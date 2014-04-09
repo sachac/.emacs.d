@@ -2,6 +2,7 @@
 #+OPTIONS: toc:4 h:4
 
 * Configuration
+** About this file
 Inspired by the [[http://eschulte.me/emacs24-starter-kit/#installation][Emacs Starter Kit]], I set up my configuration file
 using Org-babel. Because my username is Sacha, I can save this as
 Sacha.org in my =~/.emacs.d= directory to have it automatically load.
@@ -31,12 +32,16 @@ large chunks of this code. Instead, copy small parts of it (always
 making sure to copy a complete set of parentheses) into your
 =*scratch*= buffer or some other buffer in =emacs-lisp-mode=. Use =M-x
 eval-buffer= to evaluate the code and see if you like the way that
-Emacs behaves.
+Emacs behaves. See [[https://www.gnu.org/software/emacs/manual/html_mono/eintr.html][An Introduction to Programming in Emacs Lisp]] for more details on Emacs Lisp. You can also find the manual by using =C-h i= (=info=) and choosing "Emacs Lisp Intro".
 
 I've installed a lot of packages. See the [[*Add%20package%20sources][package sources]] section to
 add the repositories to your configuration. When you see =use-package=
 and a package name you might like, you can use =M-x package-install=
-to install the package of that name.
+to install the package of that name. Note that use-package is itself
+provided by a package, so you'll probably want to install that and
+=bind-key=.
+
+If you're viewing the Org file, you can open source code blocks (those are the ones in begin_src) in a separate buffer by moving your point inside them and typing C-c ' (=org-edit-special=). This opens another buffer in =emacs-lisp-mode=, so you can use =M-x eval-buffer= to load the changes. If you want to explore how functions work, use =M-x edebug-defun= to set up debugging for that function, and then call it. You can learn more about edebug in the [[http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html][Emacs Lisp]] manual.
 
 ** Personal information
 
@@ -48,6 +53,9 @@ to install the package of that name.
 ** Emacs initialization
 *** Add my elisp directory and other files
 
+Sometimes I load files outside the package system. As long as they're
+in a directory in my =load-path=, Emacs can find them.
+
 #+begin_src emacs-lisp
 (add-to-list 'load-path "~/.emacs.d")
 (add-to-list 'load-path "~/elisp")
@@ -57,11 +65,11 @@ to install the package of that name.
 
 *** Load secrets
 
+I keep slightly more sensitive information in a separate file so that I can easily publish my main configuration.
+
 #+begin_src emacs-lisp
 (load-file "~/.emacs.secrets")
 #+end_src
-
-I keep slightly more sensitive information in a separate file so that I can easily publish my main configuration.
 
 *** Add package sources
 
@@ -70,9 +78,15 @@ I keep slightly more sensitive information in a separate file so that I can easi
 (add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
 #+end_src
 
-Use =M-x package-refresh-contents= to reload the list of packages after adding these.
+Use =M-x package-refresh-contents= to reload the list of packages
+after adding these for the first time.
 
 *** Byte-compile my init files to speed things up next time
+
+I hardly ever use this because I don't care about my Emacs startup
+speed. The trick to using Emacs is to not close it. I start Emacs when
+my computer boots up. I suspend my computer when I go to sleep. Pretty
+much the only time I shut down is when I need to update the system.
 
 #+begin_src emacs-lisp
 (defun sacha/byte-recompile ()
@@ -85,7 +99,8 @@ Use =M-x package-refresh-contents= to reload the list of packages after adding t
 
 ELPA makes it easy to install packages without tracking down all the
 different websites. Let's define a function that makes it easy to
-install packages.
+install packages. I don't actually use this a lot any more, but it can
+be handy.
 
 #+begin_src emacs-lisp
 (defun sacha/package-install (package &optional repository)
@@ -98,54 +113,34 @@ If REPOSITORY is specified, use that."
     (package-install package))))
 #+end_src
 
-*** Share my Emacs configuration
-
-This code gets around the fact that my config is called Sacha.org, but
-I want it to export as sacha-emacs.org in my Dropbox's public
-directory.
-
-#+begin_src emacs-lisp
-  (defun sacha/org-share-emacs ()
-    "Share my Emacs configuration."
-    (interactive)
-    (let* ((destination-dir "~/Dropbox/Public/")
-           (destination-filename "sacha-emacs.org"))
-      (save-restriction
-        (save-excursion
-          (widen)
-          (write-region (point-min) (point-max) (expand-file-name destination-filename destination-dir))
-          (with-current-buffer (find-file-noselect (expand-file-name
-                                                    destination-filename destination-dir))
-            (org-babel-tangle-file buffer-file-name 
-                                   (expand-file-name
-                                    "sacha-emacs.el" destination-dir) "emacs-lisp")
-            (org-html-export-to-html))))))
-    #+end_src
-
 ** General configuration
 *** Backups
 
+This is one of the things people usually want to change right away. By default, Emacs saves backup files in the current directory. These are the files ending in =~= that are cluttering up your directory lists. The following code stashes them all in =~/.emacs.d/backups=, where I can find them with =C-x C-f= (=find-file=) if I really need to.
+
 #+begin_src emacs-lisp
-(setq backup-directory-alist `(("." . "~/.emacs.d/backups")))
+(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
 #+end_src
-*** Ace Jump mode  :drill:
-    :PROPERTIES:
-    :ID:       56f173e7-d2a2-4589-84d7-c6b435c8a5f8
-    :DRILL_LAST_INTERVAL: 0.0
-    :DRILL_REPEATS_SINCE_FAIL: 1
-    :DRILL_TOTAL_REPEATS: 3
-    :DRILL_FAILURE_COUNT: 2
-    :DRILL_AVERAGE_QUALITY: 1.667
-    :DRILL_EASE: 2.36
-    :DRILL_LAST_QUALITY: 0
-    :DRILL_LAST_REVIEWED: [2013-03-13 Wed 09:50]
-    :END:
 
-Quickly jump to a position in the current view.
+Disk space is cheap. Save lots.
 
 #+begin_src emacs-lisp
-  (use-package ace-jump-mode
-    :bind ("C-c SPC" . ace-jump-mode))
+(setq delete-old-versions -1)
+(setq version-control t)
+(setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list" t)))
+#+end_src
+
+*** History
+
+From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
+#+begin_src emacs-lisp
+(setq savehist-file "~/.emacs.d/savehist")
+(savehist-mode 1)
+(setq savehist-save-minibuffer-history 1)
+(setq savehist-additional-variables
+      '(kill-ring
+        search-ring
+        regexp-search-ring))
 #+end_src
 
 *** Windows configuration :drill:
@@ -161,103 +156,37 @@ Quickly jump to a position in the current view.
     :DRILL_LAST_QUALITY: 3
     :DRILL_LAST_REVIEWED: [2013-02-27 Wed 23:14]
     :END:
-#+begin_src emacs-lisp
-  (use-package winner
-    :config (winner-mode 1))
 
+When you're starting out, tooltips, menus, and the tool bar can be very helpful. [[http://sachachua.com/blog/2014/03/emacs-basics-using-mouse/][(Emacs Basics: Using the Mouse]]). Eventually, you may want to reclaim that extra little bit of screenspace. The following code turns those things off when using a graphical Emacs.
+
+#+begin_src emacs-lisp
 (when window-system
   (tooltip-mode -1)
   (tool-bar-mode -1)
   (menu-bar-mode -1))
-
-
 #+end_src
-*** Editing multiple things
-**** Multiple cursors mode                                            :drill:
-     SCHEDULED: <2013-03-03 Sun>
-    :PROPERTIES:
-    :ID:       o2b:61b0ffae-669b-4360-98fd-a6f0ea6f018e
-    :DRILL_LAST_INTERVAL: 3.86
-    :DRILL_REPEATS_SINCE_FAIL: 2
-    :DRILL_TOTAL_REPEATS: 2
-    :DRILL_FAILURE_COUNT: 1
-    :DRILL_AVERAGE_QUALITY: 2.5
-    :DRILL_EASE: 2.36
-    :DRILL_LAST_QUALITY: 3
-    :DRILL_LAST_REVIEWED: [2013-02-27 Wed 21:18]
-    :END:
+*** Winner mode - undo and redo window configuration
 
-I often define keyboard macros to process multiple lines in a region.
-Maybe =multiple-cursors= will be an even better way. Looks promising!
-[[http://emacsrocks.com/e13.html][See Emacs Rocks episode 13 (multiple-cursors) for a great demo]].
+=winner-mode= lets you use =C-c <left>= and =C-c <right>= to switch between window configurations. This is handy when something has popped up a buffer that you want to look at briefly before returning to whatever you were working on. When you're done, press =C-c <left>=.
 
 #+begin_src emacs-lisp
-  (use-package multiple-cursors
-    :bind 
-     (("C->" . mc/mark-next-like-this)
-      ("C-<" . mc/mark-previous-like-this)
-      ("C-*" . mc/mark-all-like-this)))
+  (use-package winner
+    :config (winner-mode 1))
 #+end_src
+*** Sentences end with a single space
 
-Thanks to [[http://irreal.org/blog/?p=1733][Irreal]] and [[http://planet.emacsen.org/][Planet Emacsen]] for the link!
-
-**** All  :drill:
-     SCHEDULED: <2013-03-03 Sun>
-     :PROPERTIES:
-     :ID:       211c02ab-9a9c-4e81-bc95-ce8e48db67b1
-     :DRILL_LAST_INTERVAL: 3.86
-     :DRILL_REPEATS_SINCE_FAIL: 2
-     :DRILL_TOTAL_REPEATS: 3
-     :DRILL_FAILURE_COUNT: 2
-     :DRILL_AVERAGE_QUALITY: 2.333
-     :DRILL_EASE: 2.36
-     :DRILL_LAST_QUALITY: 3
-     :DRILL_LAST_REVIEWED: [2013-02-27 Wed 21:18]
-     :END:
-
-M-x all lets you edit all lines matching a given regexp.
-
-#+begin_src emacs-lisp
-(use-package all)
-#+end_src
-
-*** Edit list   :drill:
-    SCHEDULED: <2013-03-03 Sun>
-    :PROPERTIES:
-    :ID:       e9147cb0-bad0-421c-9396-4f9045d6ebbb
-    :DRILL_LAST_INTERVAL: 3.86
-    :DRILL_REPEATS_SINCE_FAIL: 2
-    :DRILL_TOTAL_REPEATS: 3
-    :DRILL_FAILURE_COUNT: 2
-    :DRILL_AVERAGE_QUALITY: 2.333
-    :DRILL_EASE: 2.36
-    :DRILL_LAST_QUALITY: 3
-    :DRILL_LAST_REVIEWED: [2013-02-27 Wed 21:18]
-    :END:
-
-M-x edit-list makes it easier to edit an Emacs Lisp list.
-
-#+begin_src emacs-lisp
-(use-package edit-list
-  :commands edit-list)
-#+end_src
-
-*** Little editing shortcuts
-
-**** Navigation
 In my world, sentences end with a single space. This makes
 sentence navigation commands work for me.
 
 #+begin_src emacs-lisp
   (setq sentence-end-double-space nil)
 #+end_src
-**** Helm
 
-I'm trying to get the hang of using Helm for completing everything so
-that I don't have to deal with different keybindings or approaches.
-Setting =helm-input-idle-delay= to 0.1 (I want my results and I want
-them now!) should cut down on the number of times I M-x and type in
-the exact command name, hit RET, and then end up on the wrong command.
+*** Helm - interactive completion
+
+Helm makes it easy to complete various things. I find it to be easier
+to configure than ido in order to get completion in as many places as
+possible, although I prefer ido's way of switching buffers.
 
 #+begin_src emacs-lisp
     (use-package helm
@@ -280,81 +209,25 @@ the exact command name, hit RET, and then end up on the wrong command.
         ;; killed. Let's use ido instead.
         (add-to-list 'helm-completing-read-handlers-alist '(switch-to-buffer . ido)))
       :bind (("C-c h" . helm-mini)))
-    (ido-mode -1)
+    (ido-mode -1) ;; Turn off ido mode in case I enabled it accidentally
 #+end_src
-**** Helm-swoop
 
-This promises to be a fast way to find things. Let's see if replacing isearch-forward will do the trick.
+
+*** Change "yes or no" to "y or n"
+
+Lazy people like me never want to type "yes" when "y" will suffice.
 
 #+begin_src emacs-lisp
-(use-package helm-swoop
- :bind (("C-s" . isearch-forward) ("C-S-s" . helm-swoop)))
+(fset 'yes-or-no-p 'y-or-n-p)   
 #+end_src
 
+*** Minibuffer editing - more space!
 
-**** Windmove
-
-Windmove doesn't behave well with Org, so we need to use different keybindings.
-
-#+begin_src emacs-lisp
-  (use-package windmove
-    :bind
-    (("<f2> <right>" . windmove-right)
-     ("<f2> <left>" . windmove-left)
-     ("<f2> <up>" . windmove-up)
-     ("<f2> <down>" . windmove-down)))
-#+end_src
-**** When I press Enter
-I almost always want to go to the right indentation on the next line.
-#+begin_src emacs-lisp
-(global-set-key (kbd "RET") 'newline-and-indent)
-#+end_src
-
-**** Searching based on the current word
-This lets me search up and down.
-
-#+begin_src emacs-lisp
-  (defun sacha/search-word-backward ()
-    "Find the previous occurrence of the current word."
-    (interactive)
-    (let ((cur (point)))
-      (skip-syntax-backward "w_")
-      (goto-char
-       (if (re-search-backward (concat "\\_<" (current-word) "\\_>") nil t)
-           (match-beginning 0)
-         cur))))
-  
-  (defun sacha/search-word-forward ()
-    "Find the next occurrence of the current word."
-    (interactive)
-    (let ((cur (point)))
-      (skip-syntax-forward "w_")
-      (goto-char
-       (if (re-search-forward (concat "\\_<" (current-word) "\\_>") nil t)
-           (match-beginning 0)
-         cur))))
-  (global-set-key '[M-up] 'sacha/search-word-backward)
-  (global-set-key '[M-down] 'sacha/search-word-forward)
-  (defadvice search-for-keyword (around sacha activate)
-    "Match in a case-insensitive way."
-    (let ((case-fold-search t))
-      ad-do-it))
-#+end_src
-
-
-**** Tramp and editing files over SSH
-Emacs lets you edit files on remote servers, which is pretty darn
-cool.
-
-#+begin_src emacs-lisp
-(setq tramp-default-method "ssh")
-#+end_src
-
-**** Minibuffer editing
     Sometimes you want to be able to do fancy things with the text
-    that you're entering into the minibuffer. This binds =C-M-e= in a
-    minibuffer) so that you can edit the contents of the minibuffer
-    before submitting it.
+    that you're entering into the minibuffer. Sometimes you just want
+    to be able to read it, especially when it comes to lots of text.
+    This binds =C-M-e= in a minibuffer) so that you can edit the
+    contents of the minibuffer before submitting it.
 
 #+begin_src emacs-lisp
   (use-package miniedit
@@ -367,17 +240,12 @@ cool.
       (bind-key "\M-\C-e" 'miniedit minibuffer-local-must-match-map)))
 #+end_src
 
-*** Change "yes or no" to "y or n"
 
-#+begin_src emacs-lisp
-(fset 'yes-or-no-p 'y-or-n-p)   
-#+end_src
+*** Set up a light-on-dark color scheme
 
-*** Set up a white-on-black color scheme
-
-I like white on black because I find it to be more restful. The
-color-theme in ELPA is a little odd, though, so we define some advice to make
-it work. Some things still aren't quite right, though.
+I like light on dark because I find it to be more restful. The
+color-theme in ELPA was a little odd, though, so we define some advice to make
+it work. Some things still aren't quite right.
 
 #+begin_src emacs-lisp
   (defadvice color-theme-alist (around sacha activate)
@@ -413,6 +281,102 @@ Some more tweaks to solarized:
    '(org-headline-done ((((class color) (min-colors 16) (background dark)) (:foreground "LightSalmon" :strike-through t))))
    '(outline-1 ((t (:inherit font-lock-function-name-face :foreground "cornflower blue")))))
 #+end_src
+
+*** Undo tree mode - visualize your undos and branches
+
+People often struggle with the Emacs undo model, where there's really no concept of "redo" - you simply undo the undo. 
+# 
+This lets you use =C-x u= (=undo-tree-visualize=) to visually walk through the changes you've made, undo back to a certain point (or redo), and go down different branches.
+
+#+begin_src emacs-lisp
+  (use-package undo-tree
+    :init (global-undo-tree-mode))
+#+end_src
+
+*** Help - guide-key
+
+It's hard to remember keyboard shortcuts. The =guide-key= package pops up help after a short delay.
+
+#+begin_src emacs-lisp
+(use-package guide-key
+  :init
+  (setq guide-key/guide-key-sequence '("C-x r" "C-x 4" "C-c"))
+  (guide-key-mode 1))  ; Enable guide-key-mode
+#+end_src
+
+*** UTF-8
+
+From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
+#+begin_src emacs-lisp
+(prefer-coding-system 'utf-8)
+(when (display-graphic-p)
+  (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
+#+end_src
+
+** Navigation
+*** Pop to mark
+
+Handy way of getting back to previous places.
+
+#+begin_src emacs-lisp
+(bind-key "C-x p" 'pop-to-mark-command)
+#+end_src
+
+*** Helm-swoop - quickly finding lines
+
+This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= to see if I can get used to that...
+
+#+begin_src emacs-lisp
+(use-package helm-swoop
+ :bind (("C-S-s" . helm-swoop)))
+#+end_src
+
+*** Windmove - switching between windows
+
+Windmove lets you move between windows with something more natural than cycling through =C-x o= (=other-window=).
+Windmove doesn't behave well with Org, so we need to use different keybindings.
+
+#+begin_src emacs-lisp
+  (use-package windmove
+    :bind
+    (("<f2> <right>" . windmove-right)
+     ("<f2> <left>" . windmove-left)
+     ("<f2> <up>" . windmove-up)
+     ("<f2> <down>" . windmove-down)))
+#+end_src
+
+*** Searching based on the current word
+
+This lets me search up and down. I don't use this often, though.
+
+#+begin_src emacs-lisp
+  (defun sacha/search-word-backward ()
+    "Find the previous occurrence of the current word."
+    (interactive)
+    (let ((cur (point)))
+      (skip-syntax-backward "w_")
+      (goto-char
+       (if (re-search-backward (concat "\\_<" (current-word) "\\_>") nil t)
+           (match-beginning 0)
+         cur))))
+  
+  (defun sacha/search-word-forward ()
+    "Find the next occurrence of the current word."
+    (interactive)
+    (let ((cur (point)))
+      (skip-syntax-forward "w_")
+      (goto-char
+       (if (re-search-forward (concat "\\_<" (current-word) "\\_>") nil t)
+           (match-beginning 0)
+         cur))))
+  (defadvice search-for-keyword (around sacha activate)
+    "Match in a case-insensitive way."
+    (let ((case-fold-search t))
+      ad-do-it))
+  (global-set-key '[M-up] 'sacha/search-word-backward)
+  (global-set-key '[M-down] 'sacha/search-word-forward)
+#+end_src
+
 *** Frequently-accessed files
 Registers allow you to jump to a file or other location quickly. To
 jump to a register, use =C-x r j= followed by the letter of the
@@ -422,15 +386,15 @@ register.
   (dolist
       (r `((?i (file . "~/.emacs.d/Sacha.org"))
            (?o (file . "~/personal/organizer.org"))
+           (?b (file . "~/personal/business.org"))
            (?w (file . "~/Dropbox/public/sharing/index.org"))
            (?W (file . "~/Dropbox/public/blog.org"))
-           (?b (file . "~/personal/business.org"))
            (?g (file . "~/Dropbox/public/evil-plans.org"))
            ))
     (set-register (car r) (cadr r)))
 #+end_src
 
-*** Kill-ring management  :drill:
+*** Browse-kill-ring - see what you've cut so that you can paste it   :drill:
     SCHEDULED: <2013-03-03 Sun>
     :PROPERTIES:
     :ID:       508ef5ff-f338-4cd6-8201-9bc76fa432e8
@@ -444,7 +408,16 @@ register.
     :DRILL_LAST_REVIEWED: [2013-02-27 Wed 21:18]
     :END:
 
-Make sense of the kill ring
+Make sense of the kill ring! This lets you list the contents of the
+kill ring and paste a specific item. You can also manipulate your kill
+ring contents.
+
+If you're new to Emacs, you might not yet know about what the kill
+ring is. It stores the items that you cut (or kill, in Emacs terms).
+You're not limited to pasting just the most recent item - you can
+paste the second-to-the-last item you cut, and so on. I remember to
+use =C-y= and =M-y= when going backwards in the kill ring, but I never
+quite remember how to go forward, so browse-kill-ring makes it easier.
 
 #+begin_src emacs-lisp
   (sacha/package-install 'browse-kill-ring)
@@ -457,7 +430,9 @@ Make sense of the kill ring
 
 *** Key chords 
 I'm on a Dvorak keyboard, so these might not work for you.
-Experimenting with this!
+Experimenting with this. =key-chord= lets you define keyboard
+shortcuts that use ordinary keys.
+
 #+begin_src emacs-lisp
   (use-package key-chord
     :init
@@ -466,28 +441,7 @@ Experimenting with this!
       (key-chord-define-global "cg"     'undo)
       (key-chord-define-global "yp"     'other-window)))
 #+end_src
-*** Better undo
-#+begin_src emacs-lisp
-  (use-package undo-tree
-    :init (global-undo-tree-mode))
-#+end_src
-*** Tramp on Windows
-#+begin_src emacs-lisp
-(setq tramp-default-method "plink")
-(setq tramp-auto-save-directory "c:\\sacha\\tmp")
-(getenv "PATH")
-#+end_src
 
-*** More keybindings! More! More!
-
-I'm on Windows, so I can use AutoHotkey to remind some of the keys
-that I don't use that often. For example, the forward and back
-buttons on my Thinkpad...
-
-#+begin_src emacs-lisp
-(global-set-key '[f15] 'execute-extended-command)
-
-#+end_src
 ** Writing
 *** Avoiding weasel words
     #+begin_src emacs-lisp
@@ -518,6 +472,7 @@ buttons on my Thinkpad...
 
 *** Unfill paragraph
 From https://raw.github.com/qdot/conf_emacs/master/emacs_conf.org
+
 #+begin_src emacs-lisp
     (defun unfill-paragraph ()
       "Takes a multi-line paragraph and makes it into a single line of text."
@@ -526,21 +481,42 @@ From https://raw.github.com/qdot/conf_emacs/master/emacs_conf.org
         (fill-paragraph nil)))
 #+end_src
 
-Also, =visual-line-mode= is so much better than =auto-fill-mode=.
+Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't actually break the text into multiple lines - it only looks that way.
 
 #+begin_src emacs-lisp
 (remove-hook 'text-mode-hook #'turn-on-auto-fill)
 (add-hook 'text-mode-hook 'turn-on-visual-line-mode)
 #+end_src  
-*** Dictionary
-#+begin_src emacs-lisp
-(add-to-list 'load-path "~/elisp/dictionary-el")
-(load-library "dictionary-init")
-#+end_src
+
 ** Org
 
 I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of
 stuff.
+
+*** My files
+
+#<<org-files>>
+
+Here are the Org files I use. I should probably organize them better. =)
+
+| organizer.org   | My main Org file. Inbox for M-x org-capture, tasks, weekly reviews, etc.           |
+| business.org    | Business-related notes and TODOs                                                   |
+| people.org      | People-related tasks                                                               |
+| evil-plans.org  | High-level goals                                                                   |
+| decisions.org   | Pending, current, and reviewed decisions                                           |
+| blog.org        | Topic index for my blog                                                            |
+| outline.org     | Things to write about                                                              |
+| outline.org     | Huge outline of notes by category                                                  |
+| tracking.org    | Temporary Org file for tracking various things                                     |
+| delegation.org  | Templates for assigning tasks - now using Google Docs instead                      |
+| books.org       | Huge file with book notes                                                          |
+| calendar.org    | Used to use this with ical2org, but have been having problems with ical2org lately |
+| learning.org    | Learning plan                                                                      |
+| ideal.org       | Planning ideal days                                                                |
+| archive.org     | Archived subtrees                                                                  |
+| latin.org       | Latin notes                                                                        |
+| 101things.org   | Old goals for 101 things in 1001 days                                              |
+| life.org        | Questions, processes, tools                                                        |
 
 *** Modules
 Org has a whole bunch of optional modules. These are the ones I'm
@@ -602,16 +578,16 @@ I don't use the diary, but I do use the clock a lot.
 
 From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-command-to-jump-to-an-org-heading
 #+begin_src emacs-lisp
-    (setq org-goto-interface 'outline
-          org-goto-max-level 10)
-    (require 'imenu)
-    (global-set-key (kbd "M-o") 'imenu)
-  (global-set-key (kbd "C-c j") 'org-clock-goto)
-  (global-set-key (kbd "C-c i") (lambda () (interactive) (find-file "~/Dropbox/public/sharing/index.org")))
+  (setq org-goto-interface 'outline
+        org-goto-max-level 10)
+  (require 'imenu)
+  (bind-key "M-o" 'imenu)
+  (bind-key "C-c j" 'org-clock-goto) ;; jump to current task from anywhere
   (setq org-cycle-include-plain-lists 'integrate)
 #+end_src
 
-This makes it easier for me to link trees with entries, as in http://sachachua.com/evil-plans
+*** Link Org subtrees and navigate between them
+The following code makes it easier for me to link trees with entries, as in http://sachachua.com/evil-plans
 
 #+begin_src emacs-lisp
 (defun sacha/org-follow-entry-link ()
@@ -636,7 +612,6 @@ This makes it easier for me to link trees with entries, as in http://sachachua.c
     (org-set-property "LINK" link2)))
 #+end_src
 
-
 *** Taking notes
 
     My org files are in my =personal= directory, which is actually a
@@ -659,42 +634,28 @@ This makes it easier to add links from outside.
 (global-set-key (kbd "<f6>") 'sacha/yank-more)
 #+end_src
 
-Indenting list items by 4 spaces instead of 2 makes them easier to
-pop into [[http://draftin.com][Draft]], which uses Markdown.
-
-#+begin_src emacs-lisp
-(setq org-list-indent-offset 2)
-#+end_src
 **** Templates
 
      I use =org-capture= templates to quickly jot down tasks, ledger
      entries, notes, and other semi-structured pieces of information.
 #+begin_src emacs-lisp     
-  (setq org-capture-templates
-        '(("t" "Tasks" entry 
-           (file+headline "~/personal/organizer.org" "Tasks")
-           "* TODO %^{Task}    
+  (defvar sacha/org-basic-task-template "* TODO %^{Task}    
   SCHEDULED: %^t
   %?
   :PROPERTIES:
   :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
-  :END:")
+  :QUANTIFIED: %^{Quantified Awesome category}
+  :END:" "Basic task data")
+  (setq org-capture-templates
+        `(("t" "Tasks" entry 
+           (file+headline "~/personal/organizer.org" "Tasks")
+           ,sacha/org-basic-task-template)
           ("b" "Business task" entry
            (file+headline "~/personal/business.org" "Tasks")
-           "* TODO %^{Task}
-  SCHEDULED: %^t
-  %?
-  :PROPERTIES:
-  :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
-  :END:")
+           ,sacha/org-basic-task-template)
           ("p" "People task" entry
            (file+headline "~/personal/people.org" "Tasks")
-           "* TODO %^{Task}
-  SCHEDULED: %^t
-  %?
-  :PROPERTIES:
-  :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
-  :END:")
+           ,sacha/org-basic-task-template)
           ("db" "Done - Business" entry
            (file+headline "~/personal/business.org" "Tasks")
            "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
@@ -731,9 +692,9 @@ pop into [[http://draftin.com][Draft]], which uses Markdown.
   %i
   ,*Author(s):* %^{Author} \\\\
   ,*ISBN:* %^{ISBN}
-  
+
   %?
-  
+
   ,*Review on:* %^t \\
   %a
   %U"
@@ -750,9 +711,11 @@ pop into [[http://draftin.com][Draft]], which uses Markdown.
             (file+datetree "~/personal/organizer.org")
             "* %?\n\n%i\n"
             )))
-  (global-set-key (kbd "C-M-r") 'org-capture)
+  (bind-key "C-M-r" 'org-capture)
 #+end_src
 **** Refiling
+
+=org-refile= lets you organize notes by typing in the headline to file them under.
 
     #+begin_src emacs-lisp
       (setq org-reverse-note-order t)
@@ -766,10 +729,6 @@ pop into [[http://draftin.com][Draft]], which uses Markdown.
               ("~/personal/outline.org" . (:maxlevel . 3))
               ("~/personal/routines.org" . (:maxlevel . 4))))
       (setq org-blank-before-new-entry nil)
-      ;(defun sacha/verify-refile-target ()
-      ;  "Exclude todo keywords with a DONE state from refile targets"
-      ;  (not (member (nth 2 (org-heading-components)) org-done-keywords)))
-      ;(setq org-refile-target-verify-function 'sacha/verify-refile-target)
     #+end_src
     
 **** Estimating WPM
@@ -792,7 +751,10 @@ pop into [[http://draftin.com][Draft]], which uses Markdown.
 
 *** Managing tasks
 **** Track TODO state
-     #+begin_src emacs-lisp
+
+The parentheses indicate keyboard shortcuts that I can use to set the task state. @ and ! toggle logging.
+
+#+begin_src emacs-lisp
        (setq org-todo-keywords
         '((sequence
            "TODO(t)"  ; next action
@@ -803,27 +765,18 @@ pop into [[http://draftin.com][Draft]], which uses Markdown.
           (sequence "TODELEGATE(-)" "DELEGATED(d)" "COMPLETE(x)")))
 #+end_src
      
-**** Strike through DONE headlines
-
-I wanted a quick way to visually distinguish DONE tasks from tasks I
-still need to do. This [[http://lists.gnu.org/archive/html/emacs-orgmode/2007-03/msg00179.html][handy snippet from the Emacs Org-mode mailing list]] does the trick by striking through the headlines for DONE tasks.
-
-#+begin_src emacs-lisp
-(setq org-fontify-done-headline t)
-(custom-set-faces
- '(org-done ((t (:foreground "PaleGreen"   
-                 :weight normal
-                 :strike-through t))))
- '(org-headline-done 
-            ((((class color) (min-colors 16) (background dark)) 
-               (:foreground "LightSalmon" :strike-through t)))))
-#+end_src
-
 **** Projects
+
+Projects are headings with the =:PROJECT:= tag, so we don't want that tag inherited.
+
      #+begin_src emacs-lisp
        (setq org-tags-exclude-from-inheritance '("PROJECT"))
      #+end_src
-**** Tag tasks
+
+**** Tag tasks with GTD-ish contexts
+
+This defines keyboard shortcuts for those, too.
+
      #+begin_src emacs-lisp
        (setq org-tag-alist '(("@work" . ?b) 
                              ("@home" . ?h) 
@@ -838,46 +791,60 @@ still need to do. This [[http://lists.gnu.org/archive/html/emacs-orgmode/2007-03
      #+end_src
 **** Enable filtering by effort estimates
 
+That way, it's easy to see short tasks that I can finish.
+
 #+begin_src emacs-lisp
-  (setq org-global-properties
-        '(("Effort_ALL". "0:05 0:15 0:30 1:00 2:00 3:00 4:00")))
+  (add-to-list 'org-global-properties
+        '("Effort_ALL". "0:05 0:15 0:30 1:00 2:00 3:00 4:00"))
 #+end_src
      
 **** Track time
 
-     #+begin_src emacs-lisp
-     (setq org-clock-idle-time nil)
-     (setq org-log-done 'time)
-     (defadvice org-clock-in (after wicked activate)
-  "Mark STARTED when clocked in"
-  (save-excursion
-    (catch 'exit
-      (org-back-to-heading t)
-      (if (looking-at org-outline-regexp) (goto-char (1- (match-end 0))))
-      (if (looking-at (concat " +" org-todo-regexp "\\( +\\|[ \t]*$\\)"))
-	  (org-todo "STARTED")))))
+#+begin_src emacs-lisp
+  (setq org-clock-idle-time nil)
+  (setq org-log-done 'time)
+  (setq org-clock-persist 'history)
+  (org-clock-persistence-insinuate)
+  (defadvice org-clock-in (after sacha activate)
+    "Mark STARTED when clocked in."
+    (save-excursion
+      (catch 'exit
+        (org-back-to-heading t)
+        (if (looking-at org-outline-regexp) (goto-char (1- (match-end 0))))
+        (if (looking-at (concat " +" org-todo-regexp "\\( +\\|[ \t]*$\\)"))
+            (org-todo "STARTED")))))
 #+end_src
-(setq org-clock-idle-time nil)
      
+Too many clock entries clutter up a heading.
+
+#+begin_src emacs-lisp
+(setq org-log-into-drawer "LOGBOOK")
+(setq org-clock-into-drawer 1)
+#+end_src
+
 **** Habits
 
      I like using org-habits to track consistency. My task names tend
      to be a bit long, though, so I've configured the graph column to
      show a little bit more to the right.
      
-     #+begin_src emacs-lisp
-     (setq org-habit-graph-column 80)
+#+begin_src emacs-lisp
+(setq org-habit-graph-column 80)
 (setq org-habit-show-habits-only-for-today nil)
 #+end_src
+
+If you want to use habits, be sure to schedule your tasks and add a STYLE property with the value of =habit= to the tasks you want displayed.
+
 *** Estimating tasks
+
 From "Add an effort estimate on the fly when clocking in" on the
 [[http://orgmode.org/worg/org-hacks.html][Org Hacks]] page:
 
 #+begin_src emacs-lisp
 (add-hook 'org-clock-in-prepare-hook
-          'my-org-mode-ask-effort)
+          'sacha/org-mode-ask-effort)
 
-(defun my-org-mode-ask-effort ()
+(defun sacha/org-mode-ask-effort ()
   "Ask for an effort estimate when clocking in."
   (unless (org-entry-get (point) "Effort")
     (let ((effort
@@ -917,61 +884,16 @@ decide what I feel like doing the most.
       ad-do-it))
 #+end_src
 
-*** Fixing relative dates
-
-If today is Friday, I want +fri to be _next_ Friday. I submitted a
-patch for this, but I'm not on the git version yet.
-
-#+begin_src emacs-lisp
-(defun org-read-date-get-relative (s today default)
-  "Check string S for special relative date string.
-TODAY and DEFAULT are internal times, for today and for a default.
-Return shift list (N what def-flag)
-WHAT       is \"d\", \"w\", \"m\", or \"y\" for day, week, month, year.
-N          is the number of WHATs to shift.
-DEF-FLAG   is t when a double ++ or -- indicates shift relative to
-           the DEFAULT date rather than TODAY."
-  (require 'parse-time)
-  (when (and
-	 (string-match
-	  (concat
-	   "\\`[ \t]*\\([-+]\\{0,2\\}\\)"
-	   "\\([0-9]+\\)?"
-	   "\\([hdwmy]\\|\\(" (mapconcat 'car parse-time-weekdays "\\|") "\\)\\)?"
-	   "\\([ \t]\\|$\\)") s)
-	 (or (> (match-end 1) (match-beginning 1)) (match-end 4)))
-    (let* ((dir (if (> (match-end 1) (match-beginning 1))
-		    (string-to-char (substring (match-string 1 s) -1))
-		  ?+))
-	   (rel (and (match-end 1) (= 2 (- (match-end 1) (match-beginning 1)))))
-	   (n (if (match-end 2) (string-to-number (match-string 2 s)) 1))
-	   (what (if (match-end 3) (match-string 3 s) "d"))
-	   (wday1 (cdr (assoc (downcase what) parse-time-weekdays)))
-	   (date (if rel default today))
-	   (wday (nth 6 (decode-time date)))
-	   delta)
-      (if wday1
-	  (progn
-	    (setq delta (mod (+ 7 (- wday1 wday)) 7))
-	    (if (= delta 0) (setq delta 7))
-	    (if (= dir ?-)
-		(progn
-		  (setq delta (- delta 7))
-		  (if (= delta 0) (setq delta -7))))
-	    (if (> n 1) (setq delta (+ delta (* (1- n) (if (= dir ?-) -7 7)))))
-	    (list delta "d" rel))
-	(list (* n (if (= dir ?-) -1 1)) what rel)))))
-#+end_src
-
 *** Flexible scheduling of tasks
 
-I want to be able to schedule tasks for dates like the first Saturday
+I (theoretically) want to be able to schedule tasks for dates like the first Saturday
 of every month. Fortunately, [[http://stackoverflow.com/questions/13555385/org-mode-how-to-schedule-repeating-tasks-for-the-first-saturday-of-every-month][someone else has figured that out!]]
 
 #+begin_src emacs-lisp
 ;; Get this from https://raw.github.com/chenfengyuan/elisp/master/next-spec-day.el
 (load-file "~/elisp/next-spec-day.el")
 #+end_src
+
 *** Org agenda
 **** Basic configuration
 I have quite a few Org files, but I keep my agenda items and TODOs in
@@ -981,7 +903,8 @@ only a few of them them for faster scanning.
     (setq org-agenda-files '("~/personal/organizer.org"
                              "~/personal/people.org"
                              "~/personal/business.org"
-                             "~/personal/routines.org"))
+                             "~/personal/routines.org"
+                             "~/dropbox/public/learning.org"))
 #+end_src
 
 I like looking at two days at a time when I plan using the Org
@@ -1005,10 +928,19 @@ I can get a sense of how appointments are spread out.
 Some other keyboard shortcuts:
 
 #+begin_src emacs-lisp
-(define-key org-agenda-mode-map "Y" 'org-agenda-todo-yesterday)
+(bind-key "Y" 'org-agenda-todo-yesterday org-agenda-mode-map)
 #+end_src
 
 # <<project_subtasks>>
+**** Starting my weeks on Saturday
+
+I like looking at weekends as [[http://sachachua.com/blog/2010/11/week-beginnings/][week beginnings]] instead, so I want the
+Org agenda to start on Saturdays.
+
+#+begin_src emacs-lisp
+(setq org-agenda-start-on-weekday 6)
+#+end_src
+
 **** Display projects with associated subtasks
 
 I wanted a view that showed projects with a few subtasks underneath
@@ -1298,15 +1230,6 @@ this with to-do items than with projects or headings."
   (org-capture 0))
 ;; New key assignment
 (define-key org-agenda-mode-map "N" 'sacha/org-agenda-new)
-#+end_src
-
-**** Starting my weeks on Saturday
-
-I like looking at weekends as [[http://sachachua.com/blog/2010/11/week-beginnings/][week beginnings]] instead, so I want the
-Org agenda to start on Saturdays.
-
-#+begin_src emacs-lisp
-(setq org-agenda-start-on-weekday 6)
 #+end_src
 
 **** Sorting by date and priority
@@ -1692,7 +1615,7 @@ Now we put it all together...
     #+begin_src emacs-lisp
       (eval-after-load 'org
         '(progn
-           (define-key org-mode-map (kbd "C-c k") 'org-cut-subtree)
+           (bind-key "C-c k" 'org-cut-subtree org-mode-map)
            (setq org-yank-adjusted-subtrees t)))
 #+end_src
 *** Fix timestamps in Flickr links
@@ -1760,6 +1683,8 @@ This makes it easier to publish my public Dropbox files:
            )))
 #+end_src
 
+**** Org2blog
+
 I use org2blog to post to my blog, which is Wordpress-based. I used to
 use punchagan's org2blog, but there's a completely different one in
 ELPA, so I figured I'd give that a try.
@@ -1770,6 +1695,8 @@ ELPA, so I figured I'd give that a try.
 (setq org-export-with-toc nil)
 (setq org-export-htmlize-output-type 'css)
 #+end_src
+
+**** Publish without prompting
 
 I want to be able to export without having to say yes to code blocks all the time.
 
@@ -1814,22 +1741,14 @@ Sometimes I want a subtree:
 #+end_src
 **** UTF-8 checkboxes
 
-This snippet turns =- [X]= into ☑ and =- [ ]= into ☐. Yay!
-
+This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone. 
 #+begin_src emacs-lisp
-(defun sacha/org-html-checkbox (checkbox)
-  "Format CHECKBOX into HTML."
-  (case checkbox (on "<span class=\"check\">&#x2611;</span>") ; checkbox (checked)
-	(off "<span class=\"checkbox\">&#x2610;</span>")
-	(trans "<code>[-]</code>")
-	(t "")))
-(defadvice org-html-checkbox (around sacha activate)
-  (setq ad-return-value (sacha/org-html-checkbox (ad-get-arg 0))))
+(setq org-html-checkbox-types 'unicode)
+(setq org-html-checkbox-types
+ '((unicode (on . "<span class=\"task-done\">&#x2611;</span>") 
+            (off . "<span class=\"task-todo\">&#x2610;</span>") 
+            (trans . "<span class=\"task-in-progress\">[-]</span>"))))
 #+end_src
-
-To find this code, I searched =ox-html.el= for =[=. Eventually I found =org-html-checkbox=, which is directly called by =org-html-format-list-item= instead of being a function variable that you can change. So that meant I needed to override the behaviour of =org-html-checkbox= through =defadvice=. You can see above how I wrap advice around =org-html-checkbox= and replace the return value with my own function. For more about advice, read the Emacs Lisp Intro manual.
-
-Inspired by Grant from [[http://www.wisdomandwonder.com/article/8284/creation-and-conservation-of-computer-files-c3f/comment-page-1#comment-1086101][Wisdom and Wonder]].
 
 *** Structure templates
 
@@ -1860,33 +1779,10 @@ redefine =<l= to insert a Lisp block instead.
 	("gmap" . "http://maps.google.com/maps?q=%s")
 	("blog" . "http://sachachua.com/blog/p/")))
 #+end_src
-*** MobileOrg for Android
-
-    I've been playing around with MobileOrg so that I can review my
-    agenda and capture notes on my smartphone. My main Org file is too
-    big to open easily there, though.
-    
-#+begin_src emacs-lisp
-    (use-package org-mobile
-      :init
-      (progn
-        (autoload 'org-mobile-pull "org-mobile" nil t)
-        (autoload 'org-mobile-push "org-mobile" nil t))
-      :config
-      (progn
-        (setq org-mobile-directory "~/Dropbox/mobile")
-        (setq org-mobile-inbox-for-pull "~/personal/mobileorg.org")
-        (setq default-buffer-file-coding-system 'utf-8)
-        (setq org-mobile-files '("/cygdrive/c/sacha/personal/organizer.org" "/cygdrive/c/sacha/personal/business.org" "/cygdrive/c/sacha/personal/books.org"))
-        (setq org-mobile-agendas '("a"))))
-#+end_src
-*** Clocking
-Too many clock entries clutter up a heading.
-#+begin_src emacs-lisp
-(setq org-log-into-drawer "LOGBOOK")
-(setq org-clock-into-drawer 1)
-#+end_src
 *** Speed commands
+
+These are great for quickly acting on tasks.
+
 #+begin_src emacs-lisp
 (setq org-use-effective-time t)
 (setq org-use-speed-commands t)
@@ -1897,62 +1793,18 @@ Too many clock entries clutter up a heading.
 (add-to-list 'org-speed-commands-user '("i" call-interactively 'org-clock-in))
 (add-to-list 'org-speed-commands-user '("o" call-interactively 'org-clock-out))
 #+end_src
-*** My files
-
-#<<org-files>>
-
-Here are the Org files I use. I should probably organize them better. =)
-
-| organizer.org   | My main Org file. Inbox for M-x org-capture, tasks, weekly reviews, etc.           |
-| emacs.org       | Interesting Emacs snippets. Used to be in outline.org, but got to be pretty big    |
-| business.org    | Business-related notes and TODOs                                                   |
-| decisions.org   | Pending, current, and reviewed decisions                                           |
-| outline.org     | Huge outline of notes by category                                                  |
-| tracking.org    | Temporary Org file for tracking various things                                     |
-| delegation.org  | Templates for assigning tasks                                                      |
-| books.org       | Huge file with book notes                                                          |
-| calendar.org    | Used to use this with ical2org, but have been having problems with ical2org lately |
-| contacts.org    | People-related notes using org-contacts                                            |
-| blog.org        | Topic index for my blog                                                            |
-| t420.org        | Miscellaneous notes related to old projects                                        |
-| learning.org    | Learning plan                                                                      |
-| ideal.org       | Planning ideal days                                                                |
-| archive.org     | Archived subtrees                                                                  |
-| latin.org       | Latin notes                                                                        |
-| preparation.org | Things I think about and plan ahead for, so that I can be less nervous about them. |
-| 101things.org   | Old goals for 101 things in 1001 days                                              |
-| org-talk.org    | Notes for my talk in Org                                                           |
-| life.org        | Questions, processes, tools                                                        |
-| quotes.org      | Quotations                                                                         |
 
 *** Attachments
+
+Org lets you attach files to an Org file. Haven't gotten the hang of this yet, but looks interesting.
 
 #+begin_src emacs-lisp
 (setq org-attach-store-link-p t)
 #+end_src
-*** Encryption
 
-#+begin_src emacs-lisp
-     (require 'org-crypt)
-     (org-crypt-use-before-save-magic)
-     (setq org-tags-exclude-from-inheritance (quote ("crypt")))
-
-     (setq org-crypt-key nil)
-       ;; GPG key to use for encryption
-       ;; Either the Key ID or set to nil to use symmetric encryption.
-
-       ;;     (setq auto-save-default nil)
-       ;; Auto-saving does not cooperate with org-crypt.el: so you need
-       ;; to turn it off if you plan to use org-crypt.el quite often.
-       ;; Otherwise, you'll get an (annoying) message each time you
-       ;; start Org.
-
-       ;; To turn it off only locally, you can insert this:
-       ;;
-       ;; # -*- buffer-auto-save-file-name: nil; -*-
-
-#+end_src
 *** Counting
+
+Good way to remind myself that I have lots of STARTED tasks.
 
 #+begin_src emacs-lisp
 (defun sacha/org-summarize-task-status ()
@@ -1973,6 +1825,8 @@ Probably should make this a dblock someday."
 #+end_src
 *** Diagrams and graphics
 
+Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[http://sachachua.com/evil-plans]] for examples and source.
+
 #+begin_src emacs-lisp
   (setq org-ditaa-jar-path "C:/Sacha/Dropbox/bin/ditaa.jar")
   (setq org-startup-with-inline-images t)
@@ -1983,100 +1837,64 @@ Probably should make this a dblock someday."
      (ditaa . t)))
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))
 #+end_src
-** Coding
-*** General preferences
-    #+begin_src emacs-lisp
-    (setq tab-width 4)
-#+end_src
-*** Use Cygwin
+*** Share my Emacs configuration
+
+This code gets around the fact that my config is called Sacha.org, but
+I want it to export as sacha-emacs.org in my Dropbox's public
+directory. Although now that I'm shifting to Github Pages, maybe I
+don't need this any more...
+
 #+begin_src emacs-lisp
-  ;(setenv "PATH" (concat "c:/cygwin/bin;" (getenv "PATH")))
-  ;(add-to-list 'exec-path "c:/cygwin/bin/" t) 
-  ;(require 'cygwin-mount)
-  ;(cygwin-mount-activate)
+  (defun sacha/org-share-emacs ()
+    "Share my Emacs configuration."
+    (interactive)
+    (let* ((destination-dir "~/Dropbox/Public/")
+           (destination-filename "sacha-emacs.org"))
+      (save-restriction
+        (save-excursion
+          (widen)
+          (write-region (point-min) (point-max) 
+            (expand-file-name destination-filename destination-dir))
+          (with-current-buffer (find-file-noselect (expand-file-name
+                                                    destination-filename destination-dir))
+            (org-babel-tangle-file buffer-file-name 
+                                   (expand-file-name
+                                    "sacha-emacs.el" destination-dir) "emacs-lisp")
+            (org-html-export-to-html))))))
+    #+end_src
+
+** Coding
+*** Tab width of 2 is compact and readable
+#+begin_src emacs-lisp
+    (setq tab-width 2)
+#+end_src
+*** New lines are always indented
+
+I almost always want to go to the right indentation on the next line.
+#+begin_src emacs-lisp
+(global-set-key (kbd "RET") 'newline-and-indent)
+#+end_src
+
+*** Adapt to being on Windows
+
+I'm on Windows, so I use Cygwin to add Unix-y tools to make my life easier. 
+These config snippets seem to help too.
+#+begin_src emacs-lisp
   (add-hook 'comint-output-filter-functions
       'shell-strip-ctrl-m nil t)
   (add-hook 'comint-output-filter-functions
       'comint-watch-for-password-prompt nil t)
-  ;(setq explicit-shell-file-name "cmdproxy.exe")
-  ;(setq explicit-shell-file-name "bash.exe")
-  ;; For subprocesses invoked via the shell
-  ;; (e.g., "shell -c command")
-  ;(setq shell-file-name explicit-shell-file-name)
-#+end_src
-*** Drupal
-
-#+begin_src emacs-lisp
-  (define-derived-mode drupal-mode php-mode "Drupal"
-    "Major mode for Drupal source code.
-  \\{drupal-mode-map}"
-    (setq case-fold-search t) 
-    (setq indent-tabs-mode nil)
-    (setq c-basic-offset 2)
-    (setq indent-tabs-mode nil)
-    (setq tab-width 2)
-    (setq fill-column 78)
-    (c-set-offset 'arglist-cont 0)
-    (c-set-offset 'arglist-intro '+)
-    (c-set-offset 'case-label 2)
-    (c-set-offset 'arglist-close 0)
-    (setq yas/buffer-local-condition 
-    '(cond
-     ((looking-at "\\w") nil)
-     ((and
-       (not (bobp))
-       (or (equal "font-lock-comment-face"
-                  (get-char-property (1- (point)) 'face))
-           (equal "font-lock-string-face"
-                  (get-char-property (1- (point)) 'face))))
-      '(require-snippet-condition . force-in-comment))
-     (t t))))
-  (define-key drupal-mode-map (kbd "TAB") 'indent-according-to-mode)
-  (add-hook 'drupal-mode-hook (lambda () (flymake-mode 1)))
-  (add-hook 'drupal-mode-hook (lambda () (yas/minor-mode 1)))
-  (add-to-list 'auto-mode-alist '("\\.\\(php\\|test\\|module\\|inc\\|install\\|engine\\|profile\\|.theme\\)$" . drupal-mode))
-  (add-to-list 'auto-mode-alist '("\\.tpl.php$" . html-helper-mode))
-  (define-key drupal-mode-map '[M-S-up] 'flymake-goto-prev-error)
-  (define-key drupal-mode-map '[M-S-down] 'flymake-goto-next-error)
-  (define-key drupal-mode-map (kbd "C-c C-c") 'comment-dwim)
-  
-  (defun sacha/drupal-module-name ()
-    "Return the Drupal module name for .module and .install files."    (file-name-sans-extension (file-name-nondirectory
-                               (buffer-file-name))))
-  (add-to-list 'hs-special-modes-alist '(drupal-mode "{" "}" "/[*/]" nil hs-c-like-adjust-block-beginning))
-  
 #+end_src
 
 *** Expand region
+
+This is something I have to get the hang of too. It gradually expands the selection. Handy for Emacs Lisp.
+
 #+begin_src emacs-lisp
   (sacha/package-install 'expand-region)
   (use-package expand-region
     :bind ("C-=" . er/expand-region))
 #+end_src
-*** Tag files
-    I don't want to have to set my tags file per project, so I search
-    for it in the directory tree instead.
-    
-    #+begin_src emacs-lisp
-      (defun sacha/recursive-find-file (file &optional directory)
-        "Find the first FILE in DIRECTORY or its parents."
-        (setq directory (or directory (file-name-directory (buffer-file-name)) (pwd)))
-        (if (file-exists-p (expand-file-name file directory))
-            (expand-file-name file directory)
-          (unless (string= directory "/")
-            (sacha/recursive-find-file file (expand-file-name ".." directory)))))
-      
-      (defun sacha/find-tags ()
-        "Set the TAGS file."
-        (set (make-variable-buffer-local 'tags-table-list) nil)
-        (set (make-variable-buffer-local 'tags-file-name) 
-             (sacha/recursive-find-file "TAGS")))
-      
-      (eval-after-load 'drupal-mode
-        '(progn
-           (add-hook 'drupal-mode-hook 'sacha/find-tags)))
-      #+end_src
-
 *** Emacs Lisp
 **** Edebug
 
@@ -2112,6 +1930,8 @@ Eldoc provides minibuffer hints when working with Emacs Lisp.
      :DRILL_LAST_REVIEWED: [2013-02-27 Wed 21:18]
      :END:
 
+More things that I need to get used to...
+
 #+begin_src emacs-lisp
 ;; C-c C-v l : elint current buffer in clean environment.
 ;; C-c C-v L : elint current buffer by multiple emacs binaries.
@@ -2146,7 +1966,7 @@ Eldoc provides minibuffer hints when working with Emacs Lisp.
       ;;        (global-set-key (kbd "C-c y") (lambda () (interactive)
       ;;                                         (yas/load-directory "~/elisp/snippets")))
 #+end_src
-*** Show more information
+*** Show column number
 
 I sometimes need to know where I am in a line.
     #+begin_src emacs-lisp
@@ -2172,25 +1992,40 @@ I sometimes need to know where I am in a line.
           (bind-key "C-c l" 'js-load-file-and-go js2-mode-map)))
 #+end_src
 
-*** NodeJS
-
-From http://www.emacswiki.org/emacs/NodeJs
-#+begin_src emacs-lisp
-  (defun node-repl () (interactive)
-    (pop-to-buffer (make-comint "node-repl" "node" nil "--interactive")))
-#+end_src
-*** Magit
+*** Magit - nice git interface
 
 #+begin_src emacs-lisp
 (use-package magit
   :init (setq magit-diff-options '("-b")) ; ignore whitespace
   :bind ("C-x v d" . magit-status))
 #+end_src
-** Ledger (personal finance)
+*** Tag files
 
-This isn't a package yet, so I manually load it when I want to.
+    I don't often use a TAGS file, but when I do, I don't want to have
+    to set my tags file per project. I search for it in the directory
+    tree instead.
+    
+    #+begin_src emacs-lisp
+      (defun sacha/recursive-find-file (file &optional directory)
+        "Find the first FILE in DIRECTORY or its parents."
+        (setq directory (or directory (file-name-directory (buffer-file-name)) (pwd)))
+        (if (file-exists-p (expand-file-name file directory))
+            (expand-file-name file directory)
+          (unless (string= directory "/")
+            (sacha/recursive-find-file file (expand-file-name ".." directory)))))
+      
+      (defun sacha/find-tags ()
+        "Set the TAGS file."
+        (set (make-variable-buffer-local 'tags-table-list) nil)
+        (set (make-variable-buffer-local 'tags-file-name) 
+             (sacha/recursive-find-file "TAGS")))
+      
+      (eval-after-load 'drupal-mode
+        '(progn
+           (add-hook 'drupal-mode-hook 'sacha/find-tags)))
+      #+end_src
 
-*** Make it easier to review my credit card transactions
+** Ledger (personal finance): Make it easier to review my credit card transactions
 
 #+begin_src emacs-lisp
 (defun sacha/ledger-go-to-beginning-of-entry ()
@@ -2246,34 +2081,67 @@ This isn't a package yet, so I manually load it when I want to.
           (forward-line 1))))))
 #+end_src
 
-** Fun and games
+** Internet Relay Chat
 
-*** Typing of Emacs
-    #+begin_src emacs-lisp
-      (use-package typing
-        :init
-        (autoload 'typing-of-emacs "typing" nil t)
-        :config
-        (progn
-          (setq toe-starting-length 6)
-          (setq toe-starting-time-per-word 2)
-          (setq toe-max-length 20)))
+   IRC is a great way to hang out with other Emacs geeks.
+   #+begin_src emacs-lisp
+     (use-package erc
+       :config
+       (setq erc-autojoin-channels-alist '(("freenode.net"
+					    "#org-mode"
+					    "#hacklabto"
+					    "#emacs"))
+	     erc-server "irc.freenode.net"
+	     erc-nick "sachac"))
+   #+end_src
+
+** Statistics and other data transformations
+*** Quantified Awesome
+
+#+begin_src emacs-lisp
+  (defun sacha/org-clock-in-and-track ()
+    "Start the clock running. Clock into Quantified Awesome."
+    (interactive)
+    (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
+    (call-interactively 'sacha/org-quantified-track))
+  (define-key org-agenda-mode-map "!" 'sacha/org-clock-in-and-track)
+  
+  (defun sacha/org-quantified-track (&optional category)
+    "Create a tracking record using CATEGORY.
+        Default to the current task in the agenda, the currently-clocked
+        entry, or the current subtree in Org."
+    (interactive
+     (list
+      (or
+       (if (derived-mode-p 'org-agenda-mode)
+           (let* ((marker (org-get-at-bol 'org-marker))
+                  (buffer (marker-buffer marker))
+                  (pos (marker-position marker)))
+             (with-current-buffer buffer
+               (save-excursion
+                 (save-restriction
+                   (widen)
+                   (goto-char pos)
+                   (org-entry-get-with-inheritance "QUANTIFIED"))))))       
+       (if (org-clocking-p)
+           (save-excursion
+             (org-clock-goto)
+             (org-entry-get-with-inheritance "QUANTIFIED")))
+       (if (derived-mode-p 'org-mode)
+           (org-entry-get-with-inheritance "QUANTIFIED"))
+       (read-string "Category: "))))
+    (quantified-track (concat category " | " (elt (org-heading-components) 4))))
+  (use-package quantified)
 #+end_src
-*** Internet Relay Chat
+*** Beeminder
 
-    IRC is a great way to hang out with other Emacs geeks.
-    #+begin_src emacs-lisp
-      (use-package erc
-        :config
-        (setq erc-autojoin-channels-alist '(("freenode.net"
-                                             "#org-mode"
-                                             "#hacklabto"
-                                             "#emacs"))
-              erc-server "irc.freenode.net"
-              erc-nick "sachac"))
-    #+end_src
+https://github.com/sachac/beeminder.el
 
-** Statistics and data transformations
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'load-path "~/code/beeminder.el")
+(use-package beeminder)
+#+END_SRC
+
 *** R
 
 #+begin_src emacs-lisp
@@ -2283,27 +2151,6 @@ This isn't a package yet, so I manually load it when I want to.
     :commands R)
 #+end_src
 
-*** Artrage
-
-#+begin_src emacs-lisp
-          (defun sacha/artrage-export-png (directory &optional prefix)
-            "Change an Artrage script file (arscript) to export images to DIRECTORY. 
-      If PREFIX is specified, use that instead of image-."
-            (interactive "MPath: ")
-            (unless (file-directory-p directory)
-              (make-directory directory t))
-            (while (re-search-forward "[0-9\\.]+s" nil t)
-              (replace-match "0.000s"))
-            (goto-char (point-min))
-            (while (search-forward "<StrokeEvent>" nil t)
-              (replace-match (concat 
-                              "EvType: Command    CommandID: ExportLayer    Idx: -1    Channels: NO    Path: \""
-                              directory
-                              "/" (or prefix "image-")
-                              ".png\"
-  <StrokeEvent>") t t)))
-    
-#+end_src
 *** Workrave
     #+begin_src emacs-lisp
     (defvar sacha/workrave-file (expand-file-name ".\\Workrave\\historystats" (getenv "AppData")))
@@ -2345,51 +2192,27 @@ This isn't a package yet, so I manually load it when I want to.
           (while (re-search-forward "<div class=\"sharedaddy sd-sharing-enabled\">.*?<div class=\"sharing-clear\"></div></div></div></div>" nil t)
             (replace-match "")))))
 #+end_src
-** Quantified Awesome
+*** Artrage
 
 #+begin_src emacs-lisp
-  (defun sacha/org-clock-in-and-track ()
-    "Start the clock running. Clock into Quantified Awesome."
-    (interactive)
-    (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
-    (call-interactively 'sacha/org-quantified-track))
-  (define-key org-agenda-mode-map "!" 'sacha/org-clock-in-and-track)
-  
-  (defun sacha/org-quantified-track (&optional category)
-    "Create a tracking record using CATEGORY.
-        Default to the current task in the agenda, the currently-clocked
-        entry, or the current subtree in Org."
-    (interactive
-     (list
-      (or
-       (if (derived-mode-p 'org-agenda-mode)
-           (let* ((marker (org-get-at-bol 'org-marker))
-                  (buffer (marker-buffer marker))
-                  (pos (marker-position marker)))
-             (with-current-buffer buffer
-               (save-excursion
-                 (save-restriction
-                   (widen)
-                   (goto-char pos)
-                   (org-entry-get-with-inheritance "QUANTIFIED"))))))       
-       (if (org-clocking-p)
-           (save-excursion
-             (org-clock-goto)
-             (org-entry-get-with-inheritance "QUANTIFIED")))
-       (if (derived-mode-p 'org-mode)
-           (org-entry-get-with-inheritance "QUANTIFIED"))
-       (read-string "Category: "))))
-    (quantified-track (concat category " | " (elt (org-heading-components) 4))))
-  (use-package quantified)
+          (defun sacha/artrage-export-png (directory &optional prefix)
+            "Change an Artrage script file (arscript) to export images to DIRECTORY. 
+      If PREFIX is specified, use that instead of image-."
+            (interactive "MPath: ")
+            (unless (file-directory-p directory)
+              (make-directory directory t))
+            (while (re-search-forward "[0-9\\.]+s" nil t)
+              (replace-match "0.000s"))
+            (goto-char (point-min))
+            (while (search-forward "<StrokeEvent>" nil t)
+              (replace-match (concat 
+                              "EvType: Command    CommandID: ExportLayer    Idx: -1    Channels: NO    Path: \""
+                              directory
+                              "/" (or prefix "image-")
+                              ".png\"
+  <StrokeEvent>") t t)))
+    
 #+end_src
-** Beeminder
-
-https://github.com/sachac/beeminder.el
-
-#+BEGIN_SRC emacs-lisp
-(add-to-list 'load-path "~/code/beeminder.el")
-(use-package beeminder)
-#+END_SRC
 ** Workarounds
 *** color-theme sometimes comes across lists. Odd!
 
@@ -2430,46 +2253,168 @@ https://github.com/sachac/beeminder.el
      (require 'org-compat)
      (org-agenda nil "a")
 #+end_src
-** Backup
+** Advanced stuff / things I tend to forget about
+*** Editing multiple things
+**** Multiple cursors mode					      :drill:
+     SCHEDULED: <2013-03-03 Sun>
+    :PROPERTIES:
+    :ID:       o2b:61b0ffae-669b-4360-98fd-a6f0ea6f018e
+    :DRILL_LAST_INTERVAL: 3.86
+    :DRILL_REPEATS_SINCE_FAIL: 2
+    :DRILL_TOTAL_REPEATS: 2
+    :DRILL_FAILURE_COUNT: 1
+    :DRILL_AVERAGE_QUALITY: 2.5
+    :DRILL_EASE: 2.36
+    :DRILL_LAST_QUALITY: 3
+    :DRILL_LAST_REVIEWED: [2013-02-27 Wed 21:18]
+    :END:
 
-Disk space is cheap. Save lots.
+I often define keyboard macros to process multiple lines in a region.
+Maybe =multiple-cursors= will be an even better way. Looks promising!
+[[http://emacsrocks.com/e13.html][See Emacs Rocks episode 13 (multiple-cursors) for a great demo]].
 
 #+begin_src emacs-lisp
-(setq delete-old-versions -1)
-(setq version-control t)
-(setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list" t)))
+  (use-package multiple-cursors
+    :bind 
+     (("C->" . mc/mark-next-like-this)
+      ("C-<" . mc/mark-previous-like-this)
+      ("C-*" . mc/mark-all-like-this)))
 #+end_src
-** UTF-8
 
-From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
+Thanks to [[http://irreal.org/blog/?p=1733][Irreal]] and [[http://planet.emacsen.org/][Planet Emacsen]] for the link!
+
+**** All							      :drill:
+     SCHEDULED: <2013-03-03 Sun>
+     :PROPERTIES:
+     :ID:       211c02ab-9a9c-4e81-bc95-ce8e48db67b1
+     :DRILL_LAST_INTERVAL: 3.86
+     :DRILL_REPEATS_SINCE_FAIL: 2
+     :DRILL_TOTAL_REPEATS: 3
+     :DRILL_FAILURE_COUNT: 2
+     :DRILL_AVERAGE_QUALITY: 2.333
+     :DRILL_EASE: 2.36
+     :DRILL_LAST_QUALITY: 3
+     :DRILL_LAST_REVIEWED: [2013-02-27 Wed 21:18]
+     :END:
+
+M-x all lets you edit all lines matching a given regexp.
+
 #+begin_src emacs-lisp
-(prefer-coding-system 'utf-8)
-(when (display-graphic-p)
-  (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
+(use-package all)
 #+end_src
-** Help - guide-key
 
-It's hard to remember keyboard shortcuts. The =guide-key= package pops up help after a short delay.
+*** Edit list   :drill:
+    SCHEDULED: <2013-03-03 Sun>
+    :PROPERTIES:
+    :ID:       e9147cb0-bad0-421c-9396-4f9045d6ebbb
+    :DRILL_LAST_INTERVAL: 3.86
+    :DRILL_REPEATS_SINCE_FAIL: 2
+    :DRILL_TOTAL_REPEATS: 3
+    :DRILL_FAILURE_COUNT: 2
+    :DRILL_AVERAGE_QUALITY: 2.333
+    :DRILL_EASE: 2.36
+    :DRILL_LAST_QUALITY: 3
+    :DRILL_LAST_REVIEWED: [2013-02-27 Wed 21:18]
+    :END:
+
+M-x edit-list makes it easier to edit an Emacs Lisp list.
 
 #+begin_src emacs-lisp
-(use-package guide-key
-  :init
-  (setq guide-key/guide-key-sequence '("C-x r" "C-x 4" "C-c"))
-  (guide-key-mode 1))  ; Enable guide-key-mode
+(use-package edit-list
+  :commands edit-list)
 #+end_src
-** History
 
-From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
+*** Ace Jump mode  :drill:
+    :PROPERTIES:
+    :ID:       56f173e7-d2a2-4589-84d7-c6b435c8a5f8
+    :DRILL_LAST_INTERVAL: 0.0
+    :DRILL_REPEATS_SINCE_FAIL: 1
+    :DRILL_TOTAL_REPEATS: 3
+    :DRILL_FAILURE_COUNT: 2
+    :DRILL_AVERAGE_QUALITY: 1.667
+    :DRILL_EASE: 2.36
+    :DRILL_LAST_QUALITY: 0
+    :DRILL_LAST_REVIEWED: [2013-03-13 Wed 09:50]
+    :END:
+
+Quickly jump to a position in the current view.
+
 #+begin_src emacs-lisp
-(setq savehist-file "~/.emacs.d/savehist")
-(savehist-mode +1)
-(setq savehist-save-minibuffer-history +1)
-(setq savehist-additional-variables
-      '(kill-ring
-        search-ring
-        regexp-search-ring))
+  (use-package ace-jump-mode
+    :bind ("C-c SPC" . ace-jump-mode))
 #+end_src
+
+*** Network: TRAMP and editing files over SSH
+Emacs lets you edit files on remote servers, which is pretty darn
+cool. On Windows, these things help a little.
+
+#+begin_src emacs-lisp
+(setq tramp-default-method "plink")
+(setq tramp-auto-save-directory "c:\\sacha\\tmp")
+#+end_src
+
+
 * Inactive/infrequent things
+** Strike through DONE headlines
+
+I wanted a quick way to visually distinguish DONE tasks from tasks I
+still need to do. This [[http://lists.gnu.org/archive/html/emacs-orgmode/2007-03/msg00179.html][handy snippet from the Emacs Org-mode mailing list]] does the trick by striking through the headlines for DONE tasks.
+
+#+begin_src emacs-lisp :tangle no :eval no
+(setq org-fontify-done-headline t)
+(custom-set-faces
+ '(org-done ((t (:foreground "PaleGreen"   
+                 :weight normal
+                 :strike-through t))))
+ '(org-headline-done 
+            ((((class color) (min-colors 16) (background dark)) 
+               (:foreground "LightSalmon" :strike-through t)))))
+#+end_src
+
+** Drupal
+
+#+begin_src emacs-lisp :eval no :tangle no
+  (define-derived-mode drupal-mode php-mode "Drupal"
+    "Major mode for Drupal source code.
+  \\{drupal-mode-map}"
+    (setq case-fold-search t) 
+    (setq indent-tabs-mode nil)
+    (setq c-basic-offset 2)
+    (setq indent-tabs-mode nil)
+    (setq tab-width 2)
+    (setq fill-column 78)
+    (c-set-offset 'arglist-cont 0)
+    (c-set-offset 'arglist-intro '+)
+    (c-set-offset 'case-label 2)
+    (c-set-offset 'arglist-close 0)
+    (setq yas/buffer-local-condition 
+    '(cond
+     ((looking-at "\\w") nil)
+     ((and
+       (not (bobp))
+       (or (equal "font-lock-comment-face"
+                  (get-char-property (1- (point)) 'face))
+           (equal "font-lock-string-face"
+                  (get-char-property (1- (point)) 'face))))
+      '(require-snippet-condition . force-in-comment))
+     (t t))))
+  (define-key drupal-mode-map (kbd "TAB") 'indent-according-to-mode)
+  (add-hook 'drupal-mode-hook (lambda () (flymake-mode 1)))
+  (add-hook 'drupal-mode-hook (lambda () (yas/minor-mode 1)))
+  (add-to-list 'auto-mode-alist '("\\.\\(php\\|test\\|module\\|inc\\|install\\|engine\\|profile\\|.theme\\)$" . drupal-mode))
+  (add-to-list 'auto-mode-alist '("\\.tpl.php$" . html-helper-mode))
+  (define-key drupal-mode-map '[M-S-up] 'flymake-goto-prev-error)
+  (define-key drupal-mode-map '[M-S-down] 'flymake-goto-next-error)
+  (define-key drupal-mode-map (kbd "C-c C-c") 'comment-dwim)
+  
+  (defun sacha/drupal-module-name ()
+    "Return the Drupal module name for .module and .install files."    (file-name-sans-extension (file-name-nondirectory
+                               (buffer-file-name))))
+  (add-to-list 'hs-special-modes-alist '(drupal-mode "{" "}" "/[*/]" nil hs-c-like-adjust-block-beginning))
+  
+#+end_src
+
+
 ** Autoconnect to IRC so that I don't forget
 
 #+begin_src emacs-lisp  :eval no :tangle no
@@ -2478,7 +2423,7 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
    
 ** Org - send things to the bottom of the list
 Handy for collecting items together.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :eval no :tangle no
 (defun sacha/org-send-to-bottom-of-list ()
   "Send the current line to the bottom of the list."
   (interactive)
@@ -2961,6 +2906,61 @@ recently-opened files first.
            (float-time (time-subtract end start))
           "\n")))
       (yank))))
+#+end_src
+
+** MobileOrg for Android
+
+    I've been playing around with MobileOrg so that I can review my
+    agenda and capture notes on my smartphone. My main Org file is too
+    big to open easily there, though.
+    
+#+begin_src emacs-lisp :eval no :tangle no
+    (use-package org-mobile
+      :init
+      (progn
+        (autoload 'org-mobile-pull "org-mobile" nil t)
+        (autoload 'org-mobile-push "org-mobile" nil t))
+      :config
+      (progn
+        (setq org-mobile-directory "~/Dropbox/mobile")
+        (setq org-mobile-inbox-for-pull "~/personal/mobileorg.org")
+        (setq default-buffer-file-coding-system 'utf-8)
+        (setq org-mobile-files '("/cygdrive/c/sacha/personal/organizer.org" "/cygdrive/c/sacha/personal/business.org" "/cygdrive/c/sacha/personal/books.org"))
+        (setq org-mobile-agendas '("a"))))
+#+end_src
+** Encryption
+
+#+begin_src emacs-lisp :tangle no :eval no
+     (require 'org-crypt)
+     (org-crypt-use-before-save-magic)
+     (setq org-tags-exclude-from-inheritance (quote ("crypt")))
+
+     (setq org-crypt-key nil)
+       ;; GPG key to use for encryption
+       ;; Either the Key ID or set to nil to use symmetric encryption.
+
+       ;;     (setq auto-save-default nil)
+       ;; Auto-saving does not cooperate with org-crypt.el: so you need
+       ;; to turn it off if you plan to use org-crypt.el quite often.
+       ;; Otherwise, you'll get an (annoying) message each time you
+       ;; start Org.
+
+       ;; To turn it off only locally, you can insert this:
+       ;;
+       ;; # -*- buffer-auto-save-file-name: nil; -*-
+
+#+end_src
+
+** Typing of Emacs
+    #+begin_src emacs-lisp :eval no :tangle no
+      (use-package typing
+        :init
+        (autoload 'typing-of-emacs "typing" nil t)
+        :config
+        (progn
+          (setq toe-starting-length 6)
+          (setq toe-starting-time-per-word 2)
+          (setq toe-max-length 20)))
 #+end_src
 
 * Other nifty Emacs things I want to learn

@@ -2515,6 +2515,7 @@ and return the directory.  Return nil if not found.
      (org-agenda nil "a")
 #+end_src
 * Other cool configs you may want to check out
+<<links>>
 
 - [[http://doc.norang.ca/org-mode.html][Bernt Hansen]]: Lots of Org-related config. I picked up the graph-drawing stuff from this.
 - [[http://bzg.fr/emacs.html][Bastien Guerry]]: Org, Gnus, ERC - Explained in this [[http://sachachua.com/blog/2013/05/emacs-chat-bastien-guerry/][Emacs Chat (~1h)]]

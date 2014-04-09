@@ -26,6 +26,18 @@ To be precise, this is what's in my init.el:
 (org-babel-load-file (expand-file-name "~/.emacs.d/Sacha.org"))
 #+end_src
 
+If you're new to Emacs Lisp, you probably don't want to copy and paste
+large chunks of this code. Instead, copy small parts of it (always
+making sure to copy a complete set of parentheses) into your
+=*scratch*= buffer or some other buffer in =emacs-lisp-mode=. Use =M-x
+eval-buffer= to evaluate the code and see if you like the way that
+Emacs behaves.
+
+I've installed a lot of packages. See the [[*Add%20package%20sources][package sources]] section to
+add the repositories to your configuration. When you see =use-package=
+and a package name you might like, you can use =M-x package-install=
+to install the package of that name.
+
 ** Personal information
 
 #+begin_src emacs-lisp
@@ -37,13 +49,29 @@ To be precise, this is what's in my init.el:
 *** Add my elisp directory and other files
 
 #+begin_src emacs-lisp
+(add-to-list 'load-path "~/.emacs.d")
 (add-to-list 'load-path "~/elisp")
 (add-to-list 'load-path "~/elisp/artbollocks-mode")
-(load-file "~/.emacs.secrets")
-(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
-(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
 (require 'use-package)
 #+end_src
+
+*** Load secrets
+
+#+begin_src emacs-lisp
+(load-file "~/.emacs.secrets")
+#+end_src
+
+I keep slightly more sensitive information in a separate file so that I can easily publish my main configuration.
+
+*** Add package sources
+
+#+begin_src emacs-lisp
+(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
+(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
+#+end_src
+
+Use =M-x package-refresh-contents= to reload the list of packages after adding these.
+
 *** Byte-compile my init files to speed things up next time
 
 #+begin_src emacs-lisp

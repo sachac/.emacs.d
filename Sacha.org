@@ -3,6 +3,8 @@
 
 * Configuration
 ** About this file
+<<babel-init>>
+
 Inspired by the [[http://eschulte.me/emacs24-starter-kit/#installation][Emacs Starter Kit]], I set up my configuration file
 using Org-babel. Because my username is Sacha, I can save this as
 Sacha.org in my =~/.emacs.d= directory to have it automatically load.
@@ -42,6 +44,8 @@ provided by a package, so you'll probably want to install that and
 =bind-key=.
 
 If you're viewing the Org file, you can open source code blocks (those are the ones in begin_src) in a separate buffer by moving your point inside them and typing C-c ' (=org-edit-special=). This opens another buffer in =emacs-lisp-mode=, so you can use =M-x eval-buffer= to load the changes. If you want to explore how functions work, use =M-x edebug-defun= to set up debugging for that function, and then call it. You can learn more about edebug in the [[http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html][Emacs Lisp]] manual.
+
+I like using =(setq ...)= more than Customize because I can neatly organize my configuration that way. 
 
 ** Personal information
 

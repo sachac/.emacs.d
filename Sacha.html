@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-04-09 Wed 15:29 -->
+<!-- 2014-04-09 Wed 15:40 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -365,6 +365,10 @@ for the JavaScript code in this tag.
 <h3 id="sec-1-1">About this file</h3>
 <div class="outline-text-3" id="text-1-1">
 <p>
+<a id="babel-init"></a>
+</p>
+
+<p>
 Inspired by the <a href="http://eschulte.me/emacs24-starter-kit/#installation">Emacs Starter Kit</a>, I set up my configuration file
 using Org-babel. Because my username is Sacha, I can save this as
 Sacha.org in my <code>~/.emacs.d</code> directory to have it automatically load.
@@ -416,6 +420,10 @@ provided by a package, so you'll probably want to install that and
 
 <p>
 If you're viewing the Org file, you can open source code blocks (those are the ones in begin<sub>src</sub>) in a separate buffer by moving your point inside them and typing C-c ' (<code>org-edit-special</code>). This opens another buffer in <code>emacs-lisp-mode</code>, so you can use <code>M-x eval-buffer</code> to load the changes. If you want to explore how functions work, use <code>M-x edebug-defun</code> to set up debugging for that function, and then call it. You can learn more about edebug in the <a href="http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html">Emacs Lisp</a> manual.
+</p>
+
+<p>
+I like using <code>(setq ...)</code> more than Customize because I can neatly organize my configuration that way. 
 </p>
 </div>
 </div>

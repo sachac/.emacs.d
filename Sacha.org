@@ -1716,12 +1716,51 @@ Might as well take advantage of my stylesheet:
 #+begin_src emacs-lisp
 (setq org-html-head "<link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"></link>
 <link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/org-export.css\"></link>
-<link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/style.css\"></link>")
-(setq org-html-preamble nil)
-(setq org-html-postamble nil)
+<link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/style.css\"></link>
+<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"></script>")
 (setq org-html-htmlize-output-type 'css)
 (setq org-src-fontify-natively t)
 #+end_src
+**** Footer
+
+Make it easy to scroll to the top:
+
+#+begin_src emacs-lisp
+(setq org-html-preamble "<a name=\"top\" id=\"top\"></a>")
+(setq org-html-postamble "
+<style type=\"text/css\">
+.back-to-top {
+    position: fixed;
+    bottom: 2em;
+    right: 0px;
+    text-decoration: none;
+    color: #000000;
+    background-color: rgba(235, 235, 235, 0.80);
+    font-size: 12px;
+    padding: 1em;
+    display: none;
+}
+
+.back-to-top:hover {    
+    background-color: rgba(135, 135, 135, 0.50);
+}
+</style>
+
+<a class=\"back-to-top\" href=\"#top\">Back to top</a>
+
+<script type=\"text/javascript\">
+    var offset = 220;
+    var duration = 500;
+    jQuery(window).scroll(function() {
+        if (jQuery(this).scrollTop() > offset) {
+            jQuery('.back-to-top').fadeIn(duration);
+        } else {
+            jQuery('.back-to-top').fadeOut(duration);
+        }
+    });
+</script>")
+#+end_src
+
 **** Copy region
 Sometimes I want a region's HTML in my kill-ring/clipboard without any of the extra fluff:
 

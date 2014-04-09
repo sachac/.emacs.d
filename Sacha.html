@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-04-09 Wed 15:40 -->
+<!-- 2014-04-09 Wed 15:47 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -91,6 +91,7 @@
 <link rel="stylesheet" type="text/css" href="http://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css"></link>
 <link rel="stylesheet" type="text/css" href="http://sachachua.com/org-export.css"></link>
 <link rel="stylesheet" type="text/css" href="http://sachachua.com/blog/wp-content/themes/sacha-v3/style.css"></link>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
 <script type="text/javascript">
 /*
 @licstart  The following is the entire license notice for the
@@ -139,6 +140,9 @@ for the JavaScript code in this tag.
 </script>
 </head>
 <body>
+<div id="preamble" class="status">
+<a name="top" id="top"></a>
+</div>
 <div id="content">
 <h1 class="title">Sacha Chua's Emacs configuration</h1>
 <div id="table-of-contents">
@@ -246,8 +250,9 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-7-16-1">Org2blog</a></li>
 <li><a href="#sec-1-7-16-2">Publish without prompting</a></li>
 <li><a href="#sec-1-7-16-3">Stylesheet / header</a></li>
-<li><a href="#sec-1-7-16-4">Copy region</a></li>
-<li><a href="#sec-1-7-16-5">UTF-8 checkboxes</a></li>
+<li><a href="#sec-1-7-16-4">Footer</a></li>
+<li><a href="#sec-1-7-16-5">Copy region</a></li>
+<li><a href="#sec-1-7-16-6">UTF-8 checkboxes</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-7-17">Structure templates</a></li>
@@ -2701,9 +2706,8 @@ Might as well take advantage of my stylesheet:
 
 <pre class="src src-emacs-lisp">(setq org-html-head <span class="org-string">"&lt;link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"&gt;&lt;/link&gt;</span>
 <span class="org-string">&lt;link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/org-export.css\"&gt;&lt;/link&gt;</span>
-<span class="org-string">&lt;link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/style.css\"&gt;&lt;/link&gt;"</span>)
-(setq org-html-preamble nil)
-(setq org-html-postamble nil)
+<span class="org-string">&lt;link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/style.css\"&gt;&lt;/link&gt;</span>
+<span class="org-string">&lt;script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"&gt;&lt;/script&gt;"</span>)
 (setq org-html-htmlize-output-type 'css)
 (setq org-src-fontify-natively t)
 </pre>
@@ -2712,8 +2716,54 @@ Might as well take advantage of my stylesheet:
 </div>
 
 <div id="outline-container-sec-1-7-16-4" class="outline-5">
-<h5 id="sec-1-7-16-4">Copy region</h5>
+<h5 id="sec-1-7-16-4">Footer</h5>
 <div class="outline-text-5" id="text-1-7-16-4">
+<p>
+Make it easy to scroll to the top:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(setq org-html-preamble <span class="org-string">"&lt;a name=\"top\" id=\"top\"&gt;&lt;/a&gt;"</span>)
+(setq org-html-postamble <span class="org-string">"</span>
+<span class="org-string">&lt;style type=\"text/css\"&gt;</span>
+<span class="org-string">.back-to-top {</span>
+<span class="org-string">    position: fixed;</span>
+<span class="org-string">    bottom: 2em;</span>
+<span class="org-string">    right: 0px;</span>
+<span class="org-string">    text-decoration: none;</span>
+<span class="org-string">    color: #000000;</span>
+<span class="org-string">    background-color: rgba(235, 235, 235, 0.80);</span>
+<span class="org-string">    font-size: 12px;</span>
+<span class="org-string">    padding: 1em;</span>
+<span class="org-string">    display: none;</span>
+<span class="org-string">}</span>
+
+<span class="org-string">.back-to-top:hover {    </span>
+<span class="org-string">    background-color: rgba(135, 135, 135, 0.50);</span>
+<span class="org-string">}</span>
+<span class="org-string">&lt;/style&gt;</span>
+
+<span class="org-string">&lt;a class=\"back-to-top\" href=\"#top\"&gt;Back to top&lt;/a&gt;</span>
+
+<span class="org-string">&lt;script type=\"text/javascript\"&gt;</span>
+<span class="org-string">    var offset = 220;</span>
+<span class="org-string">    var duration = 500;</span>
+<span class="org-string">    jQuery(window).scroll(function() {</span>
+<span class="org-string">        if (jQuery(this).scrollTop() &gt; offset) {</span>
+<span class="org-string">            jQuery('.back-to-top').fadeIn(duration);</span>
+<span class="org-string">        } else {</span>
+<span class="org-string">            jQuery('.back-to-top').fadeOut(duration);</span>
+<span class="org-string">        }</span>
+<span class="org-string">    });</span>
+<span class="org-string">&lt;/script&gt;"</span>)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-7-16-5" class="outline-5">
+<h5 id="sec-1-7-16-5">Copy region</h5>
+<div class="outline-text-5" id="text-1-7-16-5">
 <p>
 Sometimes I want a region's HTML in my kill-ring/clipboard without any of the extra fluff:
 </p>
@@ -2745,9 +2795,9 @@ Sometimes I want a subtree:
 </div>
 </div>
 
-<div id="outline-container-sec-1-7-16-5" class="outline-5">
-<h5 id="sec-1-7-16-5">UTF-8 checkboxes</h5>
-<div class="outline-text-5" id="text-1-7-16-5">
+<div id="outline-container-sec-1-7-16-6" class="outline-5">
+<h5 id="sec-1-7-16-6">UTF-8 checkboxes</h5>
+<div class="outline-text-5" id="text-1-7-16-6">
 <p>
 This snippet turns <code>- [X]</code> into ☑ and <code>- [ ]</code> into ☐, but leaves <code>[-]</code> alone. 
 </p>
@@ -4450,6 +4500,40 @@ big to open easily there, though.
 </div>
 </div>
 </div>
+</div>
+<div id="postamble" class="status">
+
+<style type="text/css">
+.back-to-top {
+    position: fixed;
+    bottom: 2em;
+    right: 0px;
+    text-decoration: none;
+    color: #000000;
+    background-color: rgba(235, 235, 235, 0.80);
+    font-size: 12px;
+    padding: 1em;
+    display: none;
+}
+
+.back-to-top:hover {    
+    background-color: rgba(135, 135, 135, 0.50);
+}
+</style>
+
+<a class="back-to-top" href="#top">Back to top</a>
+
+<script type="text/javascript">
+    var offset = 220;
+    var duration = 500;
+    jQuery(window).scroll(function() {
+        if (jQuery(this).scrollTop() > offset) {
+            jQuery('.back-to-top').fadeIn(duration);
+        } else {
+            jQuery('.back-to-top').fadeOut(duration);
+        }
+    });
+</script>
 </div>
 </body>
 </html>

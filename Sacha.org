@@ -401,6 +401,18 @@ it work. Some things still aren't quite right, though.
 I sometimes need to switch to a lighter background for screenshots.
 For that, I use =color-theme-vim=.
 
+Some more tweaks to solarized:
+#+begin_src emacs-lisp
+  (custom-set-faces
+   '(erc-input-face ((t (:foreground "antique white"))))
+   '(helm-selection ((t (:background "ForestGreen" :foreground "black"))))
+   '(org-agenda-clocking ((t (:inherit secondary-selection :foreground "black"))) t)
+   '(org-agenda-done ((t (:foreground "dim gray" :strike-through nil))))
+   '(org-done ((t (:foreground "PaleGreen" :weight normal :strike-through t))))
+   '(org-clock-overlay ((t (:background "SkyBlue4" :foreground "black"))))
+   '(org-headline-done ((((class color) (min-colors 16) (background dark)) (:foreground "LightSalmon" :strike-through t))))
+   '(outline-1 ((t (:inherit font-lock-function-name-face :foreground "cornflower blue")))))
+#+end_src
 *** Frequently-accessed files
 Registers allow you to jump to a file or other location quickly. To
 jump to a register, use =C-x r j= followed by the letter of the

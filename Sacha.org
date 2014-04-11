@@ -822,10 +822,19 @@ That way, it's easy to see short tasks that I can finish.
     "Mark STARTED when clocked in."
     (save-excursion
       (catch 'exit
-        (org-back-to-heading t)
-        (if (looking-at org-outline-regexp) (goto-char (1- (match-end 0))))
-        (if (looking-at (concat " +" org-todo-regexp "\\( +\\|[ \t]*$\\)"))
-            (org-todo "STARTED")))))
+        (let* ((marker (or (org-get-at-bol 'org-marker)
+                           (org-agenda-error)))
+               (hdmarker (or (org-get-at-bol 'org-hd-marker) marker))
+               (pos (marker-position marker))
+               (col (current-column))
+               newhead)
+          (org-with-remote-undo (marker-buffer marker)
+            (with-current-buffer (marker-buffer marker)
+              (widen)
+              (goto-char pos)
+              (org-back-to-heading t)
+              (if (org-get-todo-state)
+                  (org-todo "STARTED"))))))))
 #+end_src
      
 Too many clock entries clutter up a heading.
@@ -2168,32 +2177,37 @@ I sometimes need to know where I am in a line.
     (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
     (call-interactively 'sacha/org-quantified-track))
   (define-key org-agenda-mode-map "!" 'sacha/org-clock-in-and-track)
-  
-  (defun sacha/org-quantified-track (&optional category)
-    "Create a tracking record using CATEGORY.
-        Default to the current task in the agenda, the currently-clocked
-        entry, or the current subtree in Org."
-    (interactive
-     (list
-      (or
-       (if (derived-mode-p 'org-agenda-mode)
-           (let* ((marker (org-get-at-bol 'org-marker))
-                  (buffer (marker-buffer marker))
-                  (pos (marker-position marker)))
-             (with-current-buffer buffer
-               (save-excursion
-                 (save-restriction
-                   (widen)
-                   (goto-char pos)
-                   (org-entry-get-with-inheritance "QUANTIFIED"))))))       
-       (if (org-clocking-p)
-           (save-excursion
-             (org-clock-goto)
-             (org-entry-get-with-inheritance "QUANTIFIED")))
-       (if (derived-mode-p 'org-mode)
-           (org-entry-get-with-inheritance "QUANTIFIED"))
-       (read-string "Category: "))))
-    (quantified-track (concat category " | " (elt (org-heading-components) 4))))
+
+  (defun sacha/org-quantified-track (&optional category note)
+    "Create a tracking record using CATEGORY and NOTE.
+  Default to the current task in the agenda, the currently-clocked
+  entry, or the current subtree in Org."
+    (interactive (list nil nil))
+    (let ((get-info 
+           (lambda ()
+             (setq category (or category
+                                (org-entry-get-with-inheritance "QUANTIFIED")))
+             (setq note (or note (elt (org-heading-components) 4))))))
+      (unless (and category note)
+        (cond
+         ((derived-mode-p 'org-agenda-mode)
+          (let* ((marker (org-get-at-bol 'org-marker))
+                 (buffer (marker-buffer marker))
+                 (pos (marker-position marker)))
+            (with-current-buffer buffer
+              (save-excursion
+                (save-restriction
+                  (widen)
+                  (goto-char pos)
+                  (funcall get-info))))))
+         ((org-clocking-p)(save-excursion (org-clock-goto) (funcall get-info)))
+         ((derived-mode-p 'org-mode) (funcall get-info))
+         (t
+          (setq category (read-string "Category"))
+          (setq note (read-string "Note"))))))
+    (quantified-track (concat category " | " note)))
+    
+
   (use-package quantified)
 #+end_src
 *** Beeminder

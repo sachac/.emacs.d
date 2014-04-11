@@ -2049,7 +2049,7 @@ I sometimes need to know where I am in a line.
 #+begin_src emacs-lisp
 (use-package magit
   :init (setq magit-diff-options '("-b")) ; ignore whitespace
-  :bind ("C-x v d" . magit-status))
+  :bind (("C-x v d" . magit-status) ("C-x v p" . magit-push)))
 #+end_src
 *** Tag files
 

@@ -1909,7 +1909,7 @@ don't need this any more...
 ** Coding
 *** Tab width of 2 is compact and readable
 #+begin_src emacs-lisp
-    (setq tab-width 2)
+    (setq-default tab-width 2)
 #+end_src
 *** New lines are always indented
 
@@ -2067,6 +2067,17 @@ I sometimes need to know where I am in a line.
         '(progn
            (add-hook 'drupal-mode-hook 'sacha/find-tags)))
       #+end_src
+*** Projects
+
+#+begin_src emacs-lisp
+(setq projectile-keymap-prefix (kbd "C-c C-p")) 
+(use-package projectile
+  :init 
+  (progn
+    (projectile-global-mode)
+    (setq projectile-enable-caching t)))
+(use-package helm-projectile)
+#+end_src
 
 ** Ledger (personal finance): Make it easier to review my credit card transactions
 

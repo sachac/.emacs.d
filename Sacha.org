@@ -723,6 +723,7 @@ able to clock in on them.
     (interactive)
     (org-capture-refile)
     (org-refile-goto-last-stored))
+  (require 'org-capture)
   (bind-key "C-c C-r" 'sacha/org-capture-refile-and-jump org-capture-mode-map)
 #+end_src
 
@@ -822,19 +823,23 @@ That way, it's easy to see short tasks that I can finish.
     "Mark STARTED when clocked in."
     (save-excursion
       (catch 'exit
-        (let* ((marker (or (org-get-at-bol 'org-marker)
-                           (org-agenda-error)))
-               (hdmarker (or (org-get-at-bol 'org-hd-marker) marker))
-               (pos (marker-position marker))
-               (col (current-column))
-               newhead)
-          (org-with-remote-undo (marker-buffer marker)
-            (with-current-buffer (marker-buffer marker)
-              (widen)
-              (goto-char pos)
-              (org-back-to-heading t)
-              (if (org-get-todo-state)
-                  (org-todo "STARTED"))))))))
+        (cond
+         ((derived-mode-p 'org-agenda-mode)
+          (let* ((marker (or (org-get-at-bol 'org-marker)
+                             (org-agenda-error)))
+                 (hdmarker (or (org-get-at-bol 'org-hd-marker) marker))
+                 (pos (marker-position marker))
+                 (col (current-column))
+                 newhead)
+            (org-with-remote-undo (marker-buffer marker)
+              (with-current-buffer (marker-buffer marker)
+                (widen)
+                (goto-char pos)
+                (org-back-to-heading t)
+                (if (org-get-todo-state)
+                    (org-todo "STARTED"))))))
+         (t (if (org-get-todo-state)
+                    (org-todo "STARTED")))))))
 #+end_src
      
 Too many clock entries clutter up a heading.

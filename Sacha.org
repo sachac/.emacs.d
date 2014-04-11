@@ -1353,6 +1353,8 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 :CUSTOM_ID: weekly-review
 :END:
 
+I regularly post [[http://sachachua.com/blog/category/weekly][weekly reviews]] to keep track of what I'm done, remind me to plan for the upcoming week, and list blog posts, sketches, and links. I 
+
 
 I want to try out grouping tasks by topic first, then breaking it
 down into previous/next week.
@@ -1628,6 +1630,24 @@ Now we put it all together...
               (if (called-interactively-p 'any)
                   (insert list)
                 list)))
+#+end_src
+*** Monthly reviews
+
+<<monthly-reviews>>
+
+I want to be able to see what I worked on in a month so that I can write my [[http://sachachua.com/blog/category/monthly][monthly reviews]]. This code makes it easy to display a month's clocked tasks and time. I haven't been particularly thorough in tracking time before, but now that I have a shortcut that logs in Quantified Awesome as well as in Org, I should end up clocking more.
+
+#+begin_src emacs-lisp
+  (defun sacha/org-review-month (start-date)
+    "Review the month's clocked tasks and time."
+    (interactive (list (org-read-date)))
+    ;; Set to the beginning of the month
+    (setq start-date (concat (substring start-date 0 8) "01"))
+    (let ((org-agenda-show-log t)
+          (org-agenda-start-with-log-mode t)
+          (org-agenda-start-with-clockreport-mode t)
+          (org-agenda-clockreport-parameter-plist '(:link t :maxlevel 3)))
+      (org-agenda-list nil start-date 'month)))
 #+end_src
 
 *** Viewing, navigating, and editing the Org tree

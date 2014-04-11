@@ -236,14 +236,8 @@ Lazy people like me never want to type "yes" when "y" will suffice.
 #+begin_src emacs-lisp
   (use-package miniedit
     :commands minibuffer-edit
-    :init
-    (progn
-      (bind-key "\M-\C-e" 'miniedit minibuffer-local-map)
-      (bind-key "\M-\C-e" 'miniedit minibuffer-local-ns-map)
-      (bind-key "\M-\C-e" 'miniedit minibuffer-local-completion-map)
-      (bind-key "\M-\C-e" 'miniedit minibuffer-local-must-match-map)))
+    :init (miniedit-install))
 #+end_src
-
 
 *** Set up a light-on-dark color scheme
 
@@ -648,7 +642,6 @@ This makes it easier to add links from outside.
   %?
   :PROPERTIES:
   :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
-  :QUANTIFIED: %^{Quantified Awesome category}
   :END:" "Basic task data")
   (setq org-capture-templates
         `(("t" "Tasks" entry 
@@ -717,6 +710,22 @@ This makes it easier to add links from outside.
             )))
   (bind-key "C-M-r" 'org-capture)
 #+end_src
+***** Allow refiling in the middle(ish) of a capture
+
+This lets me use =C-c C-r= to refile a capture and then jump to the
+new location. I wanted to be able to file tasks under projects so that
+they could inherit the QUANTIFIED property that I use to track time
+(and any Beeminder-related properties too), but I also wanted to be
+able to clock in on them.
+
+#+begin_src emacs-lisp
+  (defun sacha/org-capture-refile-and-jump ()
+    (interactive)
+    (org-capture-refile)
+    (org-refile-goto-last-stored))
+  (bind-key "C-c C-r" 'sacha/org-capture-refile-and-jump org-capture-mode-map)
+#+end_src
+
 **** Refiling
 
 =org-refile= lets you organize notes by typing in the headline to file them under.

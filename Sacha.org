@@ -387,7 +387,7 @@ register.
            (?b (file . "~/personal/business.org"))
            (?w (file . "~/Dropbox/public/sharing/index.org"))
            (?W (file . "~/Dropbox/public/blog.org"))
-           (?g (file . "~/Dropbox/public/evil-plans.org"))
+           (?g (file . "~/sachac.github.io/evil-plans/index.org"))
            ))
     (set-register (car r) (cadr r)))
 #+end_src
@@ -536,6 +536,7 @@ currently experimenting with.
                       org-panel
                       org-screen
                       org-toc))
+(org-load-modules-maybe)
 (setq org-expiry-inactive-timestamps t)
 #+end_src
 
@@ -817,7 +818,7 @@ That way, it's easy to see short tasks that I can finish.
 #+begin_src emacs-lisp
   (setq org-clock-idle-time nil)
   (setq org-log-done 'time)
-  (setq org-clock-persist 'history)
+  (setq org-clock-persist t)
   (org-clock-persistence-insinuate)
   (defadvice org-clock-in (after sacha activate)
     "Mark STARTED when clocked in."

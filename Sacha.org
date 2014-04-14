@@ -820,6 +820,7 @@ That way, it's easy to see short tasks that I can finish.
   (setq org-log-done 'time)
   (setq org-clock-persist t)
   (org-clock-persistence-insinuate)
+  (setq org-clock-report-include-clocking-task t)
   (defadvice org-clock-in (after sacha activate)
     "Mark STARTED when clocked in."
     (save-excursion

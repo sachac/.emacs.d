@@ -19,9 +19,10 @@ To be precise, this is what's in my init.el:
 #+begin_src emacs-lisp  :tangle no
 ;; This sets up the load path so that we can override it
 (package-initialize nil)
-;; Override the packages with the git version of Org
+;; Override the packages with the git version of Org and other packages
 (add-to-list 'load-path "~/elisp/org-mode/lisp")
 (add-to-list 'load-path "~/elisp/org-mode/contrib/lisp")
+(add-to-list 'load-path "~/code/beeminder.el")
 ;; Load the rest of the packages
 (package-initialize t)
 (require 'org)
@@ -2194,8 +2195,9 @@ I sometimes need to know where I am in a line.
 	     erc-nick "sachac"))
    #+end_src
 
-** Statistics and other data transformations
+** Self-tracking, statistics, and other data transformations
 *** Quantified Awesome
+<<clock-in>>
 
 #+begin_src emacs-lisp
   (defun sacha/org-clock-in-and-track ()
@@ -2242,7 +2244,6 @@ I sometimes need to know where I am in a line.
 https://github.com/sachac/beeminder.el
 
 #+BEGIN_SRC emacs-lisp
-(add-to-list 'load-path "~/code/beeminder.el")
 (use-package beeminder)
 #+END_SRC
 

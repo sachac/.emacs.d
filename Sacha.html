@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-04-14 Mon 11:14 -->
+<!-- 2014-04-14 Mon 23:19 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -290,7 +290,7 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#sec-1-9">Ledger (personal finance): Make it easier to review my credit card transactions</a></li>
 <li><a href="#sec-1-10">Internet Relay Chat</a></li>
-<li><a href="#sec-1-11">Statistics and other data transformations</a>
+<li><a href="#sec-1-11">Self-tracking, statistics, and other data transformations</a>
 <ul>
 <li><a href="#sec-1-11-1">Quantified Awesome</a></li>
 <li><a href="#sec-1-11-2">Beeminder</a></li>
@@ -396,9 +396,10 @@ To be precise, this is what's in my init.el:
 
 <pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">This sets up the load path so that we can override it</span>
 (package-initialize nil)
-<span class="org-comment-delimiter">;; </span><span class="org-comment">Override the packages with the git version of Org</span>
+<span class="org-comment-delimiter">;; </span><span class="org-comment">Override the packages with the git version of Org and other packages</span>
 (add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/lisp"</span>)
 (add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/contrib/lisp"</span>)
+(add-to-list 'load-path <span class="org-string">"~/code/beeminder.el"</span>)
 <span class="org-comment-delimiter">;; </span><span class="org-comment">Load the rest of the packages</span>
 (package-initialize t)
 (<span class="org-keyword">require</span> '<span class="org-constant">org</span>)
@@ -3429,11 +3430,15 @@ IRC is a great way to hang out with other Emacs geeks.
 </div>
 
 <div id="outline-container-sec-1-11" class="outline-3">
-<h3 id="sec-1-11">Statistics and other data transformations</h3>
+<h3 id="sec-1-11">Self-tracking, statistics, and other data transformations</h3>
 <div class="outline-text-3" id="text-1-11">
 </div><div id="outline-container-sec-1-11-1" class="outline-4">
 <h4 id="sec-1-11-1">Quantified Awesome</h4>
 <div class="outline-text-4" id="text-1-11-1">
+<p>
+<a id="clock-in"></a>
+</p>
+
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-clock-in-and-track</span> ()
@@ -3487,8 +3492,7 @@ IRC is a great way to hang out with other Emacs geeks.
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(add-to-list 'load-path <span class="org-string">"~/code/beeminder.el"</span>)
-(<span class="org-keyword">use-package</span> <span class="org-constant">beeminder</span>)
+<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">beeminder</span>)
 </pre>
 </div>
 </div>

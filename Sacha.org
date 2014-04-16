@@ -2231,15 +2231,34 @@ I sometimes need to know where I am in a line.
                   (goto-char pos)
                   (funcall get-info))))))
          ((org-clocking-p)(save-excursion (org-clock-goto) (funcall get-info)))
-         ((derived-mode-p 'org-mode) (funcall get-info))
-         (t
-          (setq category (read-string "Category"))
-          (setq note (read-string "Note"))))))
-    (quantified-track (concat category " | " note)))
+         ((derived-mode-p 'org-mode) (funcall get-info)))
+        (setq category (or category (read-string "Category: ")))
+        (setq note (or note (read-string "Note: "))))
+      (quantified-track (concat category " | " note))))
     
 
   (use-package quantified)
 #+end_src
+*** Compare times and effort estimates
+<<compare-time>>
+
+This is for comparing times in column view and in tables.
+
+#+begin_src emacs-lisp
+  (defun sacha/compare-times (clocked estimated)
+    (if (and (> (length clocked) 0) estimated)
+        (format "%.2f"
+              (/ (cl-reduce (lambda (x y) (+ (/ x 60.0) y)) (cl-subseq (parse-time-string clocked) 0 3))
+                 (cl-reduce (lambda (x y) (+ (/ x 60.0) y)) (cl-subseq (parse-time-string estimated) 0 3))))
+      ""))
+#+end_src
+
+Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: columnview :hlines 1= ... =#+END:=, and
+
+#+begin_src org
+,#+TBLFM: $4='(sacha/compare-times $3 $2)
+#+end_src
+
 *** Beeminder
 
 https://github.com/sachac/beeminder.el

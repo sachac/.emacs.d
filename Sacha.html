@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-04-16 Wed 13:34 -->
+<!-- 2014-04-16 Wed 14:39 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -293,11 +293,12 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-11">Self-tracking, statistics, and other data transformations</a>
 <ul>
 <li><a href="#sec-1-11-1">Quantified Awesome</a></li>
-<li><a href="#sec-1-11-2">Beeminder</a></li>
-<li><a href="#sec-1-11-3">R</a></li>
-<li><a href="#sec-1-11-4">Workrave</a></li>
-<li><a href="#sec-1-11-5">Blog</a></li>
-<li><a href="#sec-1-11-6">Artrage</a></li>
+<li><a href="#sec-1-11-2">Compare times and effort estimates</a></li>
+<li><a href="#sec-1-11-3">Beeminder</a></li>
+<li><a href="#sec-1-11-4">R</a></li>
+<li><a href="#sec-1-11-5">Workrave</a></li>
+<li><a href="#sec-1-11-6">Blog</a></li>
+<li><a href="#sec-1-11-7">Artrage</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-12">Workarounds</a>
@@ -3472,11 +3473,10 @@ IRC is a great way to hang out with other Emacs geeks.
                 (goto-char pos)
                 (funcall get-info))))))
        ((org-clocking-p)(<span class="org-keyword">save-excursion</span> (org-clock-goto) (funcall get-info)))
-       ((derived-mode-p 'org-mode) (funcall get-info))
-       (t
-        (setq category (read-string <span class="org-string">"Category"</span>))
-        (setq note (read-string <span class="org-string">"Note"</span>))))))
-  (quantified-track (concat category <span class="org-string">" | "</span> note)))
+       ((derived-mode-p 'org-mode) (funcall get-info)))
+      (setq category (or category (read-string <span class="org-string">"Category: "</span>)))
+      (setq note (or note (read-string <span class="org-string">"Note: "</span>))))
+    (quantified-track (concat category <span class="org-string">" | "</span> note))))
 
 
 (<span class="org-keyword">use-package</span> <span class="org-constant">quantified</span>)
@@ -3485,8 +3485,42 @@ IRC is a great way to hang out with other Emacs geeks.
 </div>
 </div>
 <div id="outline-container-sec-1-11-2" class="outline-5">
-<h5 id="sec-1-11-2">Beeminder</h5>
+<h5 id="sec-1-11-2">Compare times and effort estimates</h5>
 <div class="outline-text-5" id="text-1-11-2">
+<p>
+<a id="compare-time"></a>
+</p>
+
+<p>
+This is for comparing times in column view and in tables.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/compare-times</span> (clocked estimated)
+  (<span class="org-keyword">if</span> (and (&gt; (length clocked) 0) estimated)
+      (format <span class="org-string">"%.2f"</span>
+            (/ (cl-reduce (<span class="org-keyword">lambda</span> (x y) (+ (/ x 60.0) y)) (cl-subseq (parse-time-string clocked) 0 3))
+               (cl-reduce (<span class="org-keyword">lambda</span> (x y) (+ (/ x 60.0) y)) (cl-subseq (parse-time-string estimated) 0 3))))
+    <span class="org-string">""</span>))
+</pre>
+</div>
+
+<p>
+Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <code>#+BEGIN: columnview :hlines 1</code> &#x2026; <code>#+END:</code>, and
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-org"><span class="org-org-meta-line">#+TBLFM: $4='(sacha/compare-times $3 $2)</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-11-3" class="outline-5">
+<h5 id="sec-1-11-3">Beeminder</h5>
+<div class="outline-text-5" id="text-1-11-3">
 <p>
 <a href="https://github.com/sachac/beeminder.el">https://github.com/sachac/beeminder.el</a>
 </p>
@@ -3499,9 +3533,9 @@ IRC is a great way to hang out with other Emacs geeks.
 </div>
 </div>
 
-<div id="outline-container-sec-1-11-3" class="outline-5">
-<h5 id="sec-1-11-3">R</h5>
-<div class="outline-text-5" id="text-1-11-3">
+<div id="outline-container-sec-1-11-4" class="outline-5">
+<h5 id="sec-1-11-4">R</h5>
+<div class="outline-text-5" id="text-1-11-4">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(sacha/package-install 'ess)                
@@ -3513,9 +3547,9 @@ IRC is a great way to hang out with other Emacs geeks.
 </div>
 </div>
 
-<div id="outline-container-sec-1-11-4" class="outline-5">
-<h5 id="sec-1-11-4">Workrave</h5>
-<div class="outline-text-5" id="text-1-11-4">
+<div id="outline-container-sec-1-11-5" class="outline-5">
+<h5 id="sec-1-11-5">Workrave</h5>
+<div class="outline-text-5" id="text-1-11-5">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">    (<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/workrave-file</span> (expand-file-name <span class="org-string">".\\Workrave\\historystats"</span> (getenv <span class="org-string">"AppData"</span>)))
@@ -3550,9 +3584,9 @@ IRC is a great way to hang out with other Emacs geeks.
 </div>
 </div>
 </div>
-<div id="outline-container-sec-1-11-5" class="outline-5">
-<h5 id="sec-1-11-5">Blog</h5>
-<div class="outline-text-5" id="text-1-11-5">
+<div id="outline-container-sec-1-11-6" class="outline-5">
+<h5 id="sec-1-11-6">Blog</h5>
+<div class="outline-text-5" id="text-1-11-6">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/strip-blog-share</span> ()
@@ -3566,9 +3600,9 @@ IRC is a great way to hang out with other Emacs geeks.
 </div>
 </div>
 </div>
-<div id="outline-container-sec-1-11-6" class="outline-5">
-<h5 id="sec-1-11-6">Artrage</h5>
-<div class="outline-text-5" id="text-1-11-6">
+<div id="outline-container-sec-1-11-7" class="outline-5">
+<h5 id="sec-1-11-7">Artrage</h5>
+<div class="outline-text-5" id="text-1-11-7">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">        (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/artrage-export-png</span> (directory <span class="org-type">&amp;optional</span> prefix)

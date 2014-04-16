@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-04-16 Wed 14:39 -->
+<!-- 2014-04-16 Wed 17:12 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -2084,7 +2084,9 @@ hang of using these more!
           (org-agenda-view-columns-initially t)
           ))
         <span class="org-comment-delimiter">;; </span><span class="org-comment">Weekly review</span>
-        (<span class="org-string">"w"</span> <span class="org-string">"Weekly review"</span> agenda <span class="org-string">""</span> ((org-agenda-span 7) (org-agenda-log-mode 1)))
+        (<span class="org-string">"w"</span> <span class="org-string">"Weekly review"</span> agenda <span class="org-string">""</span>
+         ((org-agenda-span 7)
+          (org-agenda-log-mode 1)))
         (<span class="org-string">"W"</span> <span class="org-string">"Weekly review sans routines"</span> agenda <span class="org-string">""</span> ((org-agenda-span 7) (org-agenda-log-mode 1) (org-agenda-files '(<span class="org-string">"~/personal/business.org"</span> <span class="org-string">"~/personal/organizer.org"</span> <span class="org-string">"~/personal/people.org"</span>))))
         (<span class="org-string">"2"</span> <span class="org-string">"Bi-weekly review"</span> agenda <span class="org-string">""</span> ((org-agenda-span 14) (org-agenda-log-mode 1)))
         (<span class="org-string">"gb"</span> <span class="org-string">"Business"</span> todo <span class="org-string">""</span>  
@@ -3500,8 +3502,8 @@ This is for comparing times in column view and in tables.
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/compare-times</span> (clocked estimated)
   (<span class="org-keyword">if</span> (and (&gt; (length clocked) 0) estimated)
       (format <span class="org-string">"%.2f"</span>
-            (/ (cl-reduce (<span class="org-keyword">lambda</span> (x y) (+ (/ x 60.0) y)) (cl-subseq (parse-time-string clocked) 0 3))
-               (cl-reduce (<span class="org-keyword">lambda</span> (x y) (+ (/ x 60.0) y)) (cl-subseq (parse-time-string estimated) 0 3))))
+            (/ (* 1.0 (org-hh:mm-string-to-minutes clocked))
+               (org-hh:mm-string-to-minutes estimated)))
     <span class="org-string">""</span>))
 </pre>
 </div>
@@ -3522,12 +3524,37 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 <h5 id="sec-1-11-3">Beeminder</h5>
 <div class="outline-text-5" id="text-1-11-3">
 <p>
+<a id="beeminder"></a>
+</p>
+
+<p>
 <a href="https://github.com/sachac/beeminder.el">https://github.com/sachac/beeminder.el</a>
+</p>
+
+<p>
+This bit of code lets me track sent messages in Gnus:
 </p>
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">beeminder</span>)
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/beeminder-track-message</span> ()
+  (<span class="org-keyword">save-excursion</span>
+    (goto-char (point-min))
+    (<span class="org-keyword">when</span> (re-search-forward <span class="org-string">"Newsgroups: .*emacs"</span>)
+      (goto-char (point-min))
+      (<span class="org-keyword">when</span> (re-search-forward <span class="org-string">"Subject: </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span> nil t)
+        (beeminder-add-data <span class="org-string">"orgml"</span> <span class="org-string">"1"</span> (match-string 1))))))
+</pre>
+</div>
+
+<p>
+And this loads the beeminder code:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">beeminder</span>
+  <span class="org-builtin">:config</span> (add-hook 'message-send-news-hook 'sacha/beeminder-track-message))
 </pre>
 </div>
 </div>

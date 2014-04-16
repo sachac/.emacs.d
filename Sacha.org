@@ -1157,7 +1157,9 @@ hang of using these more!
             (org-agenda-view-columns-initially t)
             ))
           ;; Weekly review
-          ("w" "Weekly review" agenda "" ((org-agenda-span 7) (org-agenda-log-mode 1)))
+          ("w" "Weekly review" agenda ""
+           ((org-agenda-span 7)
+            (org-agenda-log-mode 1)))
           ("W" "Weekly review sans routines" agenda "" ((org-agenda-span 7) (org-agenda-log-mode 1) (org-agenda-files '("~/personal/business.org" "~/personal/organizer.org" "~/personal/people.org"))))
           ("2" "Bi-weekly review" agenda "" ((org-agenda-span 14) (org-agenda-log-mode 1)))
           ("gb" "Business" todo ""  
@@ -2248,8 +2250,8 @@ This is for comparing times in column view and in tables.
   (defun sacha/compare-times (clocked estimated)
     (if (and (> (length clocked) 0) estimated)
         (format "%.2f"
-              (/ (cl-reduce (lambda (x y) (+ (/ x 60.0) y)) (cl-subseq (parse-time-string clocked) 0 3))
-                 (cl-reduce (lambda (x y) (+ (/ x 60.0) y)) (cl-subseq (parse-time-string estimated) 0 3))))
+              (/ (* 1.0 (org-hh:mm-string-to-minutes clocked))
+                 (org-hh:mm-string-to-minutes estimated)))
       ""))
 #+end_src
 
@@ -2260,11 +2262,27 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 #+end_src
 
 *** Beeminder
+<<beeminder>>
 
 https://github.com/sachac/beeminder.el
 
+This bit of code lets me track sent messages in Gnus:
+
+#+begin_src emacs-lisp
+(defun sacha/beeminder-track-message ()
+	(save-excursion
+		(goto-char (point-min))
+		(when (re-search-forward "Newsgroups: .*emacs")
+			(goto-char (point-min))
+			(when (re-search-forward "Subject: \\(.*\\)" nil t)
+				(beeminder-add-data "orgml" "1" (match-string 1))))))
+#+end_src
+
+And this loads the beeminder code:
+
 #+BEGIN_SRC emacs-lisp
-(use-package beeminder)
+(use-package beeminder
+  :config (add-hook 'message-send-news-hook 'sacha/beeminder-track-message))
 #+END_SRC
 
 *** R

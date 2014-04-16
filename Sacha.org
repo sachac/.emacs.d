@@ -1199,7 +1199,7 @@ hang of using these more!
             (org-agenda-log-mode-items '(clock closed))
             (org-agenda-clockreport-mode t)
             (org-agenda-entry-types '())))
-          ("w" "Waiting for" todo "WAITING")
+          ("." "Waiting for" todo "WAITING")
           ("u" "Unscheduled tasks" alltodo ""
            ((org-agenda-skip-function 'sacha/org-agenda-skip-scheduled)
             (org-agenda-overriding-header "Unscheduled TODO entries: ")))
@@ -1811,10 +1811,11 @@ Make it easy to scroll to the top:
 Sometimes I want a region's HTML in my kill-ring/clipboard without any of the extra fluff:
 
 #+begin_src emacs-lisp
-  (defun sacha/org-copy-region-as-html (beg end)
+  (defun sacha/org-copy-region-as-html (beg end &optional level)
     "Make it easier to copy code for Wordpress posts and other things."
-    (interactive "r")
-    (let ((org-export-html-preamble nil))
+    (interactive "r\np")
+    (let ((org-export-html-preamble nil)
+          (org-html-toplevel-hlevel (or level 3)))
       (kill-new
        (org-export-string-as (buffer-substring beg end) 'html t))))
 #+end_src
@@ -2572,6 +2573,7 @@ and return the directory.  Return nil if not found.
 
 ** Startup
    #+begin_src emacs-lisp
+     (org-reload)
      (find-file "~/personal/organizer.org")
      (require 'org-compat)
      (org-agenda nil "a")

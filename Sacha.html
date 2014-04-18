@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-04-16 Wed 17:12 -->
+<!-- 2014-04-17 Thu 20:17 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -181,12 +181,13 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-5">Navigation</a>
 <ul>
 <li><a href="#sec-1-5-1">Pop to mark</a></li>
-<li><a href="#sec-1-5-2">Helm-swoop - quickly finding lines</a></li>
-<li><a href="#sec-1-5-3">Windmove - switching between windows</a></li>
-<li><a href="#sec-1-5-4">Searching based on the current word</a></li>
-<li><a href="#sec-1-5-5">Frequently-accessed files</a></li>
-<li><a href="#sec-1-5-6">Browse-kill-ring - see what you've cut so that you can paste it</a></li>
-<li><a href="#sec-1-5-7">Key chords</a></li>
+<li><a href="#sec-1-5-2">Text size</a></li>
+<li><a href="#sec-1-5-3">Helm-swoop - quickly finding lines</a></li>
+<li><a href="#sec-1-5-4">Windmove - switching between windows</a></li>
+<li><a href="#sec-1-5-5">Searching based on the current word</a></li>
+<li><a href="#sec-1-5-6">Frequently-accessed files</a></li>
+<li><a href="#sec-1-5-7">Browse-kill-ring - see what you've cut so that you can paste it</a></li>
+<li><a href="#sec-1-5-8">Key chords</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-6">Writing</a>
@@ -359,7 +360,12 @@ for the JavaScript code in this tag.
 <li><a href="#sec-3-13">Work-in-progress: monthly review</a></li>
 <li><a href="#sec-3-14">MobileOrg for Android</a></li>
 <li><a href="#sec-3-15">Encryption</a></li>
-<li><a href="#sec-3-16">Typing of Emacs</a></li>
+</ul>
+</li>
+<li><a href="#sec-4">Games</a>
+<ul>
+<li><a href="#sec-4-1">Typing of Emacs</a></li>
+<li><a href="#sec-4-2">2048 in Emacs, and colours too</a></li>
 </ul>
 </li>
 </ul>
@@ -847,10 +853,21 @@ Handy way of getting back to previous places.
 </div>
 </div>
 </div>
-
 <div id="outline-container-sec-1-5-2" class="outline-5">
-<h5 id="sec-1-5-2">Helm-swoop - quickly finding lines</h5>
+<h5 id="sec-1-5-2">Text size</h5>
 <div class="outline-text-5" id="text-1-5-2">
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(bind-key <span class="org-string">"C-+"</span> 'text-scale-increase)
+(bind-key <span class="org-string">"C--"</span> 'text-scale-decrease)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-5-3" class="outline-5">
+<h5 id="sec-1-5-3">Helm-swoop - quickly finding lines</h5>
+<div class="outline-text-5" id="text-1-5-3">
 <p>
 This promises to be a fast way to find things. Let's bind it to <code>Ctrl-Shift-S</code> to see if I can get used to that&#x2026;
 </p>
@@ -864,9 +881,9 @@ This promises to be a fast way to find things. Let's bind it to <code>Ctrl-Shift
 </div>
 </div>
 
-<div id="outline-container-sec-1-5-3" class="outline-5">
-<h5 id="sec-1-5-3">Windmove - switching between windows</h5>
-<div class="outline-text-5" id="text-1-5-3">
+<div id="outline-container-sec-1-5-4" class="outline-5">
+<h5 id="sec-1-5-4">Windmove - switching between windows</h5>
+<div class="outline-text-5" id="text-1-5-4">
 <p>
 Windmove lets you move between windows with something more natural than cycling through <code>C-x o</code> (<code>other-window</code>).
 Windmove doesn't behave well with Org, so we need to use different keybindings.
@@ -885,9 +902,9 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
 </div>
 </div>
 
-<div id="outline-container-sec-1-5-4" class="outline-5">
-<h5 id="sec-1-5-4">Searching based on the current word</h5>
-<div class="outline-text-5" id="text-1-5-4">
+<div id="outline-container-sec-1-5-5" class="outline-5">
+<h5 id="sec-1-5-5">Searching based on the current word</h5>
+<div class="outline-text-5" id="text-1-5-5">
 <p>
 This lets me search up and down. I don't use this often, though.
 </p>
@@ -924,9 +941,9 @@ This lets me search up and down. I don't use this often, though.
 </div>
 </div>
 
-<div id="outline-container-sec-1-5-5" class="outline-5">
-<h5 id="sec-1-5-5">Frequently-accessed files</h5>
-<div class="outline-text-5" id="text-1-5-5">
+<div id="outline-container-sec-1-5-6" class="outline-5">
+<h5 id="sec-1-5-6">Frequently-accessed files</h5>
+<div class="outline-text-5" id="text-1-5-6">
 <p>
 Registers allow you to jump to a file or other location quickly. To
 jump to a register, use <code>C-x r j</code> followed by the letter of the
@@ -949,9 +966,9 @@ register.
 </div>
 </div>
 
-<div id="outline-container-sec-1-5-6" class="outline-5">
-<h5 id="sec-1-5-6"><a id="ID-508ef5ff-f338-4cd6-8201-9bc76fa432e8"></a>Browse-kill-ring - see what you've cut so that you can paste it&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
-<div class="outline-text-5" id="text-1-5-6">
+<div id="outline-container-sec-1-5-7" class="outline-5">
+<h5 id="sec-1-5-7"><a id="ID-508ef5ff-f338-4cd6-8201-9bc76fa432e8"></a>Browse-kill-ring - see what you've cut so that you can paste it&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
+<div class="outline-text-5" id="text-1-5-7">
 <p>
 Make sense of the kill ring! This lets you list the contents of the
 kill ring and paste a specific item. You can also manipulate your kill
@@ -980,9 +997,9 @@ quite remember how to go forward, so browse-kill-ring makes it easier.
 </div>
 </div>
 
-<div id="outline-container-sec-1-5-7" class="outline-5">
-<h5 id="sec-1-5-7">Key chords</h5>
-<div class="outline-text-5" id="text-1-5-7">
+<div id="outline-container-sec-1-5-8" class="outline-5">
+<h5 id="sec-1-5-8">Key chords</h5>
+<div class="outline-text-5" id="text-1-5-8">
 <p>
 I'm on a Dvorak keyboard, so these might not work for you.
 Experimenting with this. <code>key-chord</code> lets you define keyboard
@@ -1074,7 +1091,7 @@ Also, <code>visual-line-mode</code> is so much better than <code>auto-fill-mode<
 <h4 id="sec-1-7">Org</h4>
 <div class="outline-text-4" id="text-1-7">
 <p>
-I use <a href="http://www.orgmode.org/">Org Mode</a> to take notes, publish my blog, and do all sorts of
+I use <a href="http://www.orgmode.org">Org Mode</a> to take notes, publish my blog, and do all sorts of
 stuff.
 </p>
 </div>
@@ -2983,6 +3000,7 @@ These are great for quickly acting on tasks.
 (add-to-list 'org-speed-commands-user '(<span class="org-string">"s"</span> call-interactively 'org-schedule))
 (add-to-list 'org-speed-commands-user '(<span class="org-string">"i"</span> call-interactively 'org-clock-in))
 (add-to-list 'org-speed-commands-user '(<span class="org-string">"o"</span> call-interactively 'org-clock-out))
+(bind-key <span class="org-string">"!"</span> 'sacha/org-clock-in-and-track org-agenda-mode-map)
 </pre>
 </div>
 </div>
@@ -4694,10 +4712,14 @@ big to open easily there, though.
 </div>
 </div>
 </div>
+</div>
 
-<div id="outline-container-sec-3-16" class="outline-4">
-<h4 id="sec-3-16">Typing of Emacs</h4>
-<div class="outline-text-4" id="text-3-16">
+<div id="outline-container-sec-4" class="outline-3">
+<h3 id="sec-4">Games</h3>
+<div class="outline-text-3" id="text-4">
+</div><div id="outline-container-sec-4-1" class="outline-4">
+<h4 id="sec-4-1">Typing of Emacs</h4>
+<div class="outline-text-4" id="text-4-1">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">typing</span>
@@ -4708,6 +4730,59 @@ big to open easily there, though.
     (setq toe-starting-length 6)
     (setq toe-starting-time-per-word 2)
     (setq toe-max-length 20)))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-4-2" class="outline-4">
+<h4 id="sec-4-2"><a id="o2b:e2b41b2d-463c-4469-91b8-63eb97a13b9d"></a>2048 in Emacs, and colours too&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></h4>
+<div class="outline-text-4" id="text-4-2">
+<p>
+While browsing through <code>M-x list-packages</code>, I noticed that there was a
+new MELPA package that implemented the 2048 game in Emacs. I wrote the
+following code to colorize it. Haven't tested the higher numbers yet,
+but they're easy enough to tweak if the colours disagree with your
+theme. =)
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-2-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"red"</span>))) <span class="org-doc">"Face used for 2"</span> <span class="org-builtin">:group</span> '2048-game)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-4-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"orange"</span>))) <span class="org-doc">"Face used for 4"</span> <span class="org-builtin">:group</span> '2048-game)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-8-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"yellow"</span>))) <span class="org-doc">"Face used for 8"</span> <span class="org-builtin">:group</span> '2048-game)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-16-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"green"</span>))) <span class="org-doc">"Face used for 16"</span> <span class="org-builtin">:group</span> '2048-game)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-32-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"lightblue"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 32"</span> <span class="org-builtin">:group</span> '2048-game)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-64-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"lavender"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 64"</span> <span class="org-builtin">:group</span> '2048-game)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-128-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"SlateBlue"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 128"</span> <span class="org-builtin">:group</span> '2048-game)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-256-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"MediumVioletRed"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 256"</span> <span class="org-builtin">:group</span> '2048-game)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-512-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"tomato"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 512"</span> <span class="org-builtin">:group</span> '2048-game)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-1024-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"SkyBlue1"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 1024"</span> <span class="org-builtin">:group</span> '2048-game)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-2048-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"lightgreen"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 2048"</span> <span class="org-builtin">:group</span> '2048-game)
+
+(<span class="org-keyword">defvar</span> <span class="org-variable-name">2048-font-lock-keywords</span>
+  '((<span class="org-string">"\\&lt;2\\&gt;"</span> 0 '2048-2-face)
+    (<span class="org-string">"\\&lt;4\\&gt;"</span> 0 '2048-4-face)
+    (<span class="org-string">"\\&lt;8\\&gt;"</span> 0 '2048-8-face)
+    (<span class="org-string">"\\&lt;16\\&gt;"</span> 0 '2048-16-face)
+    (<span class="org-string">"\\&lt;32\\&gt;"</span> 0 '2048-32-face)
+    (<span class="org-string">"\\&lt;64\\&gt;"</span> 0 '2048-64-face)
+    (<span class="org-string">"\\&lt;128\\&gt;"</span> 0 '2048-128-face)
+    (<span class="org-string">"\\&lt;256\\&gt;"</span> 0 '2048-256-face)
+    (<span class="org-string">"\\&lt;512\\&gt;"</span> 0 '2048-512-face)
+    (<span class="org-string">"\\&lt;1024\\&gt;"</span> 0 '2048-1024-face)
+    (<span class="org-string">"\\&lt;2048\\&gt;"</span> 0 '2048-2048-face)))
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/2048-fontify</span> ()
+  (font-lock-add-keywords nil 2048-font-lock-keywords))
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/2048-set-font-size</span> ()
+  (text-scale-set 5))
+
+(<span class="org-keyword">use-package</span> <span class="org-constant">2048-game</span>
+  <span class="org-builtin">:config</span>
+  (<span class="org-keyword">progn</span>
+   (add-hook '2048-mode-hook 'sacha/2048-fontify)
+   (add-hook '2048-mode-hook 'sacha/2048-set-font-size)))
 </pre>
 </div>
 </div>

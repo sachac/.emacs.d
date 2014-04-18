@@ -509,24 +509,24 @@ stuff.
 
 Here are the Org files I use. I should probably organize them better. =)
 
-| organizer.org   | My main Org file. Inbox for M-x org-capture, tasks, weekly reviews, etc.           |
-| business.org    | Business-related notes and TODOs                                                   |
-| people.org      | People-related tasks                                                               |
-| evil-plans.org  | High-level goals                                                                   |
-| decisions.org   | Pending, current, and reviewed decisions                                           |
-| blog.org        | Topic index for my blog                                                            |
-| outline.org     | Things to write about                                                              |
-| outline.org     | Huge outline of notes by category                                                  |
-| tracking.org    | Temporary Org file for tracking various things                                     |
-| delegation.org  | Templates for assigning tasks - now using Google Docs instead                      |
-| books.org       | Huge file with book notes                                                          |
-| calendar.org    | Used to use this with ical2org, but have been having problems with ical2org lately |
-| learning.org    | Learning plan                                                                      |
-| ideal.org       | Planning ideal days                                                                |
-| archive.org     | Archived subtrees                                                                  |
-| latin.org       | Latin notes                                                                        |
-| 101things.org   | Old goals for 101 things in 1001 days                                              |
-| life.org        | Questions, processes, tools                                                        |
+| organizer.org        | My main Org file. Inbox for M-x org-capture, tasks, weekly reviews, etc.                          |
+| business.org         | Business-related notes and TODOs                                                                  |
+| people.org           | People-related tasks                                                                              |
+| [[http://sachachua.com/evil-plans][evil-plans/index.org]] | High-level goals                                                                                  |
+| [[http://sachachua.com/outline][sharing/index.org]]    | Things to write about                                                                             |
+| decisions.org        | Pending, current, and reviewed decisions                                                          |
+| [[http://sachachua.com/blog/index][blog.org]]             | Topic index for my blog                                                                           |
+| [[http://sachachua.com/my-learning][learning.org]]         | Learning plan                                                                                     |
+| outline.org          | Huge outline of notes by category                                                                 |
+| tracking.org         | Temporary Org file for tracking various things                                                    |
+| delegation.org       | Templates for assigning tasks - now using Google Docs instead                                     |
+| books.org            | Huge file with book notes                                                                         |
+| calendar.org         | Used to use this with ical2org, but have been having problems with ical2org lately; no longer use |
+| ideal.org            | Planning ideal days                                                                               |
+| archive.org          | Archived subtrees                                                                                 |
+| latin.org            | Latin notes                                                                                       |
+| 101things.org        | Old goals for 101 things in 1001 days                                                             |
+| life.org             | Questions, processes, tools                                                                       |
 
 *** Modules
 Org has a whole bunch of optional modules. These are the ones I'm
@@ -912,19 +912,18 @@ decide what I feel like doing the most.
     (if sacha/org-agenda-limit-items
         (progn
           (setq list (mapcar 'org-agenda-highlight-todo list))
-          (if nosort
-            (setq ad-return-value
-              (subseq list 0 sacha/org-agenda-limit-items))
-            (when org-agenda-before-sorting-filter-function
-              (setq list (delq nil (mapcar org-agenda-before-sorting-filter-function list))))
-            (setq ad-return-value
-                  (mapconcat 'identity
-                             (delq nil 
-                                   (subseq
-                                    (sort list 'org-entries-lessp)
-                                    0
-                                    sacha/org-agenda-limit-items))
-                             "\n"))))
+          (setq ad-return-value
+                (subseq list 0 sacha/org-agenda-limit-items))
+          (when org-agenda-before-sorting-filter-function
+            (setq list (delq nil (mapcar org-agenda-before-sorting-filter-function list))))
+          (setq ad-return-value
+                (mapconcat 'identity
+                           (delq nil 
+                                 (subseq
+                                  (sort list 'org-entries-lessp)
+                                  0
+                                  sacha/org-agenda-limit-items))
+                           "\n")))
       ad-do-it))
 #+end_src
 
@@ -1147,14 +1146,14 @@ hang of using these more!
 
 #+begin_src emacs-lisp
   (defvar sacha/org-agenda-contexts
-    '((tags-todo "+@phone/!-SOMEDAY")
-      (tags-todo "+@work/!-SOMEDAY")
-      (tags-todo "+@drawing/!-SOMEDAY")
-      (tags-todo "+@coding/!-SOMEDAY")
-      (tags-todo "+@writing/!-SOMEDAY")
-      (tags-todo "+@computer/!-SOMEDAY")
-      (tags-todo "+@home/!-SOMEDAY")
-      (tags-todo "+@errands/!-SOMEDAY"))
+    '((tags-todo "+@phone")
+      (tags-todo "+@work")
+      (tags-todo "+@drawing")
+      (tags-todo "+@coding")
+      (tags-todo "+@writing")
+      (tags-todo "+@computer")
+      (tags-todo "+@home")
+      (tags-todo "+@errands"))
     "Usual list of contexts.")
   (defun sacha/org-agenda-skip-scheduled ()
     (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))

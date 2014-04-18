@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-04-18 Fri 17:49 -->
+<!-- 2014-04-18 Fri 18:01 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -1137,8 +1137,13 @@ Here are the Org files I use. I should probably organize them better. =)
 </tr>
 
 <tr>
-<td class="left">evil-plans.org</td>
+<td class="left"><a href="http://sachachua.com/evil-plans">evil-plans/index.org</a></td>
 <td class="left">High-level goals</td>
+</tr>
+
+<tr>
+<td class="left"><a href="http://sachachua.com/outline">sharing/index.org</a></td>
+<td class="left">Things to write about</td>
 </tr>
 
 <tr>
@@ -1147,13 +1152,13 @@ Here are the Org files I use. I should probably organize them better. =)
 </tr>
 
 <tr>
-<td class="left">blog.org</td>
+<td class="left"><a href="http://sachachua.com/blog/index">blog.org</a></td>
 <td class="left">Topic index for my blog</td>
 </tr>
 
 <tr>
-<td class="left">outline.org</td>
-<td class="left">Things to write about</td>
+<td class="left"><a href="http://sachachua.com/my-learning">learning.org</a></td>
+<td class="left">Learning plan</td>
 </tr>
 
 <tr>
@@ -1178,12 +1183,7 @@ Here are the Org files I use. I should probably organize them better. =)
 
 <tr>
 <td class="left">calendar.org</td>
-<td class="left">Used to use this with ical2org, but have been having problems with ical2org lately</td>
-</tr>
-
-<tr>
-<td class="left">learning.org</td>
-<td class="left">Learning plan</td>
+<td class="left">Used to use this with ical2org, but have been having problems with ical2org lately; no longer use</td>
 </tr>
 
 <tr>
@@ -1733,19 +1733,18 @@ decide what I feel like doing the most.
   (<span class="org-keyword">if</span> sacha/org-agenda-limit-items
       (<span class="org-keyword">progn</span>
         (setq list (mapcar 'org-agenda-highlight-todo list))
-        (<span class="org-keyword">if</span> nosort
-          (setq ad-return-value
-            (subseq list 0 sacha/org-agenda-limit-items))
-          (<span class="org-keyword">when</span> org-agenda-before-sorting-filter-function
-            (setq list (delq nil (mapcar org-agenda-before-sorting-filter-function list))))
-          (setq ad-return-value
-                (mapconcat 'identity
-                           (delq nil 
-                                 (subseq
-                                  (sort list 'org-entries-lessp)
-                                  0
-                                  sacha/org-agenda-limit-items))
-                           <span class="org-string">"\n"</span>))))
+        (setq ad-return-value
+              (subseq list 0 sacha/org-agenda-limit-items))
+        (<span class="org-keyword">when</span> org-agenda-before-sorting-filter-function
+          (setq list (delq nil (mapcar org-agenda-before-sorting-filter-function list))))
+        (setq ad-return-value
+              (mapconcat 'identity
+                         (delq nil 
+                               (subseq
+                                (sort list 'org-entries-lessp)
+                                0
+                                sacha/org-agenda-limit-items))
+                         <span class="org-string">"\n"</span>)))
     ad-do-it))
 </pre>
 </div>
@@ -2088,14 +2087,14 @@ hang of using these more!
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/org-agenda-contexts</span>
-  '((tags-todo <span class="org-string">"+@phone/!-SOMEDAY"</span>)
-    (tags-todo <span class="org-string">"+@work/!-SOMEDAY"</span>)
-    (tags-todo <span class="org-string">"+@drawing/!-SOMEDAY"</span>)
-    (tags-todo <span class="org-string">"+@coding/!-SOMEDAY"</span>)
-    (tags-todo <span class="org-string">"+@writing/!-SOMEDAY"</span>)
-    (tags-todo <span class="org-string">"+@computer/!-SOMEDAY"</span>)
-    (tags-todo <span class="org-string">"+@home/!-SOMEDAY"</span>)
-    (tags-todo <span class="org-string">"+@errands/!-SOMEDAY"</span>))
+  '((tags-todo <span class="org-string">"+@phone"</span>)
+    (tags-todo <span class="org-string">"+@work"</span>)
+    (tags-todo <span class="org-string">"+@drawing"</span>)
+    (tags-todo <span class="org-string">"+@coding"</span>)
+    (tags-todo <span class="org-string">"+@writing"</span>)
+    (tags-todo <span class="org-string">"+@computer"</span>)
+    (tags-todo <span class="org-string">"+@home"</span>)
+    (tags-todo <span class="org-string">"+@errands"</span>))
   <span class="org-doc">"Usual list of contexts."</span>)
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-agenda-skip-scheduled</span> ()
   (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp <span class="org-string">"\n]+&gt;"</span>))

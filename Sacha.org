@@ -778,6 +778,7 @@ able to clock in on them.
 
 *** Managing tasks
 **** Track TODO state
+<<todo-keywords>>
 
 The parentheses indicate keyboard shortcuts that I can use to set the task state. @ and ! toggle logging.
 
@@ -1216,6 +1217,7 @@ hang of using these more!
           ("." "Waiting for" todo "WAITING")
           ("u" "Unscheduled tasks" alltodo ""
            ((org-agenda-skip-function 'sacha/org-agenda-skip-scheduled)
+            (org-agenda-view-columns-initially t)
             (org-agenda-overriding-header "Unscheduled TODO entries: ")))
           ("P" "By priority"
            ((tags-todo "+PRIORITY=\"A\"")
@@ -1742,28 +1744,30 @@ This makes it easier to publish my public Dropbox files:
           '(("public"
              :base-directory "c:/sacha/Dropbox/public"
              :publishing-directory "c:/sacha/Dropbox/public"
-             :publishing-function org-html-publish-to-html
+             :publishing-function sacha/org-html-publish-to-html-trustingly
              )
             ("emacs-notes"
              :base-directory "c:/sacha/code/emacs-notes"
              :publishing-directory "c:/sacha/code/emacs-notes"
-             :publishing-function org-html-publish-to-html
+             :publishing-function sacha/org-html-publish-to-html-trustingly
              )
             ("emacs-config"
              :base-directory "c:/sacha/.emacs.d"
              :publishing-directory "c:/sacha/.emacs.d"
-             :publishing-function org-html-publish-to-html
+             :publishing-function sacha/org-html-publish-to-html-trustingly
              )))
 #+end_src
 
-I want to automatically publish some files on saving. If a file is in a publishing project, publish it.
+I want to easily publish some files. If a file is in a publishing project, publish it.
 
 #+begin_src emacs-lisp
   (defun sacha/org-publish-maybe ()
-    (when (org-publish-get-project-from-filename
-           (buffer-file-name (buffer-base-buffer)) 'up)
-      (org-publish-current-file)))
-  (add-hook 'after-save-hook 'sacha/org-publish-maybe)
+    (interactive)
+    (save-excursion
+      (when (org-publish-get-project-from-filename
+             (buffer-file-name (buffer-base-buffer)) 'up)
+        (org-publish-current-file))))
+  (bind-key "C-c C-p C-p" 'sacha/org-publish-maybe org-mode-map)
 #+end_src
 **** Org2blog
 
@@ -1787,6 +1791,10 @@ I want to be able to export without having to say yes to code blocks all the tim
   (interactive)
   (let ((org-confirm-babel-evaluate nil))
     (org-html-export-to-html)))
+
+(defun sacha/org-html-publish-to-html-trustingly (plist filename pub-dir)
+  (let ((org-confirm-babel-evaluate nil))
+    (org-html-publish-to-html plist filename pub-dir)))
 #+end_src
 **** Stylesheet / header
 Might as well take advantage of my stylesheet:

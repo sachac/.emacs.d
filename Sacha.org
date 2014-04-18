@@ -1,6 +1,7 @@
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
 
+
 * Configuration
 ** About this file
 <<babel-init>>
@@ -135,6 +136,7 @@ Disk space is cheap. Save lots.
 (setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list" t)))
 #+end_src
 
+
 *** History
 
 From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
@@ -259,7 +261,10 @@ it work. Some things still aren't quite right.
     (set-face-background 'secondary-selection "lightblue")
     (set-face-background 'font-lock-doc-face "black")
     (set-face-foreground 'font-lock-doc-face "wheat")
-    (set-face-background 'font-lock-string-face "black"))
+    (set-face-background 'font-lock-string-face "black")
+    (set-face-foreground 'org-todo "green")
+    (set-face-background 'org-todo "black"))
+
   (use-package color-theme
     :init
     (sacha/setup-color-theme))
@@ -543,7 +548,7 @@ currently experimenting with.
                       org-panel
                       org-screen
                       org-toc))
-(org-load-modules-maybe)
+(org-load-modules-maybe t)
 (setq org-expiry-inactive-timestamps t)
 #+end_src
 
@@ -783,7 +788,7 @@ The parentheses indicate keyboard shortcuts that I can use to set the task state
            "TOBLOG(b)"  ; next action
            "STARTED(s)"
            "WAITING(w@/!)"
-           "POSTPONED(p)" "SOMEDAY(s@/!)" "|" "DONE(x!)" "CANCELLED(c@)")
+           "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c@)")
           (sequence "TODELEGATE(-)" "DELEGATED(d)" "COMPLETE(x)")))
 #+end_src
      
@@ -800,16 +805,18 @@ Projects are headings with the =:PROJECT:= tag, so we don't want that tag inheri
 This defines keyboard shortcuts for those, too.
 
      #+begin_src emacs-lisp
-       (setq org-tag-alist '(("@work" . ?b) 
-                             ("@home" . ?h) 
-                             ("@writing" . ?w)
-                             ("@errands" . ?e) 
-                             ("@drawing" . ?d)
-                             ("@coding" . ?c)
-                             ("@phone" . ?p)
-                             ("@reading" . ?r)
-                             ("@computer" . ?l)
-                             ("quantified" . ?q)))
+              (setq org-tag-alist '(("@work" . ?b) 
+                                    ("@home" . ?h) 
+                                    ("@writing" . ?w)
+                                    ("@errands" . ?e) 
+                                    ("@drawing" . ?d)
+                                    ("@coding" . ?c)
+                                    ("@phone" . ?p)
+                                    ("@reading" . ?r)
+                                    ("@computer" . ?l)
+                                    ("quantified" . ?q)
+                                    ("lowenergy" . ?0)
+                                    ("highenergy" . ?1)))
      #+end_src
 **** Enable filtering by effort estimates
 
@@ -1149,15 +1156,14 @@ hang of using these more!
       (tags-todo "+@errands/!-SOMEDAY"))
     "Usual list of contexts.")
   (defun sacha/org-agenda-skip-scheduled ()
-    (org-agenda-skip-entry-if 'scheduled 'deadline
-                              'regexp "\n]+>"))
+    (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
   (setq org-agenda-custom-commands
         `(("T" todo-tree "TODO")
           ("b" todo ""
            ((org-agenda-files '("~/personal/business.org"))))
           ("o" todo ""
            ((org-agenda-files '("~/personal/organizer.org"))))
-          ("t" todo ""
+          ("c" todo ""
            ((org-agenda-prefix-format "")
             (org-agenda-cmp-user-defined 'sacha/org-sort-agenda-items-todo)
             (org-agenda-view-columns-initially t)
@@ -1731,16 +1737,34 @@ complicated than they are. Let's turn them off by default.
 This makes it easier to publish my public Dropbox files:
 
 #+begin_src emacs-lisp
-  (require 'org-publish)
-  (setq org-publish-project-alist
-        '(("public"
-           :base-directory "c:/sacha/Dropbox/public"
-           :base-extension "org"
-           :publishing-directory "c:/sacha/Dropbox/public"
-           :publishing-function org-publish-org-to-html
-           )))
+    (require 'org-publish)
+    (setq org-publish-project-alist
+          '(("public"
+             :base-directory "c:/sacha/Dropbox/public"
+             :publishing-directory "c:/sacha/Dropbox/public"
+             :publishing-function org-html-publish-to-html
+             )
+            ("emacs-notes"
+             :base-directory "c:/sacha/code/emacs-notes"
+             :publishing-directory "c:/sacha/code/emacs-notes"
+             :publishing-function org-html-publish-to-html
+             )
+            ("emacs-config"
+             :base-directory "c:/sacha/.emacs.d"
+             :publishing-directory "c:/sacha/.emacs.d"
+             :publishing-function org-html-publish-to-html
+             )))
 #+end_src
 
+I want to automatically publish some files on saving. If a file is in a publishing project, publish it.
+
+#+begin_src emacs-lisp
+  (defun sacha/org-publish-maybe ()
+    (when (org-publish-get-project-from-filename
+           (buffer-file-name (buffer-base-buffer)) 'up)
+      (org-publish-current-file)))
+  (add-hook 'after-save-hook 'sacha/org-publish-maybe)
+#+end_src
 **** Org2blog
 
 I use org2blog to post to my blog, which is Wordpress-based. I used to
@@ -2617,7 +2641,6 @@ and return the directory.  Return nil if not found.
 
 ** Startup
    #+begin_src emacs-lisp
-     (org-reload)
      (find-file "~/personal/organizer.org")
      (require 'org-compat)
      (org-agenda nil "a")

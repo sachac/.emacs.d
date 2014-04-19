@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-04-18 Fri 20:35 -->
+<!-- 2014-04-18 Fri 21:06 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -1569,14 +1569,48 @@ The parentheses indicate keyboard shortcuts that I can use to set the task state
 <h5 id="sec-1-7-7-2">Projects</h5>
 <div class="outline-text-5" id="text-1-7-7-2">
 <p>
-Projects are headings with the <code>:PROJECT:</code> tag, so we don't want that tag inherited.
+Projects are headings with the <code>:project:</code> tag, so we generally don't
+want that tag inherited, except when we display unscheduled tasks that
+don't belong to any projects.
 </p>
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(setq org-tags-exclude-from-inheritance '(<span class="org-string">"PROJECT"</span>))
+<pre class="src src-emacs-lisp">(setq org-tags-exclude-from-inheritance '(<span class="org-string">"project"</span>))
 </pre>
 </div>
+
+<p>
+This code makes it easy for me to focus on one project and its tasks.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(add-to-list 'org-speed-commands-user '(<span class="org-string">"N"</span> org-narrow-to-subtree))
+(add-to-list 'org-speed-commands-user '(<span class="org-string">"W"</span> widen))
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-agenda-for-subtree</span> ()
+  (interactive)
+  (<span class="org-keyword">if</span> (derived-mode-p 'org-agenda-mode)
+    (<span class="org-keyword">let*</span> ((marker (or (org-get-at-bol 'org-marker)
+                       (org-agenda-error)))
+           (hdmarker (or (org-get-at-bol 'org-hd-marker) marker))
+           (pos (marker-position marker))
+           (col (current-column))
+           newhead)
+      (org-with-remote-undo (marker-buffer marker)
+        (<span class="org-keyword">with-current-buffer</span> (marker-buffer marker)
+          (widen)
+          (<span class="org-keyword">let</span> ((org-agenda-view-columns-initially t))
+            (org-agenda nil <span class="org-string">"t"</span> 'subtree)))))
+    (<span class="org-keyword">let</span> ((org-agenda-view-columns-initially t))
+      (org-agenda nil <span class="org-string">"t"</span> 'subtree))))
+(add-to-list 'org-speed-commands-user '(<span class="org-string">"T"</span> sacha/org-agenda-for-subtree))
+</pre>
+</div>
+
+<p>
+There's probably a proper way to do this, maybe with <code>&lt;</code>. Oh, that would work nicely. <code>&lt; C-c a t</code> too.
+</p>
 </div>
 </div>
 
@@ -3364,7 +3398,7 @@ I sometimes need to know where I am in a line.
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">magit</span>
   <span class="org-builtin">:init</span> (setq magit-diff-options '(<span class="org-string">"-b"</span>)) <span class="org-comment-delimiter">; </span><span class="org-comment">ignore whitespace</span>
-  <span class="org-builtin">:bind</span> ((<span class="org-string">"C-x v d"</span> . magit-status) (<span class="org-string">"C-x v p"</span> . magit-push)))
+  <span class="org-builtin">:bind</span> ((<span class="org-string">"C-x v d"</span> . magit-status) (<span class="org-string">"C-x v p"</span> . magit-push) (<span class="org-string">"C-x v c"</span> . magit-log-edit)))
 </pre>
 </div>
 </div>

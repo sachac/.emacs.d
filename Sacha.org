@@ -795,11 +795,39 @@ The parentheses indicate keyboard shortcuts that I can use to set the task state
      
 **** Projects
 
-Projects are headings with the =:PROJECT:= tag, so we don't want that tag inherited.
+Projects are headings with the =:project:= tag, so we generally don't
+want that tag inherited, except when we display unscheduled tasks that
+don't belong to any projects.
 
      #+begin_src emacs-lisp
-       (setq org-tags-exclude-from-inheritance '("PROJECT"))
+       (setq org-tags-exclude-from-inheritance '("project"))
      #+end_src
+
+This code makes it easy for me to focus on one project and its tasks.
+
+#+begin_src emacs-lisp
+  (add-to-list 'org-speed-commands-user '("N" org-narrow-to-subtree))
+  (add-to-list 'org-speed-commands-user '("W" widen))
+  (defun sacha/org-agenda-for-subtree ()
+    (interactive)
+    (if (derived-mode-p 'org-agenda-mode)
+      (let* ((marker (or (org-get-at-bol 'org-marker)
+                         (org-agenda-error)))
+             (hdmarker (or (org-get-at-bol 'org-hd-marker) marker))
+             (pos (marker-position marker))
+             (col (current-column))
+             newhead)
+        (org-with-remote-undo (marker-buffer marker)
+          (with-current-buffer (marker-buffer marker)
+            (widen)
+            (let ((org-agenda-view-columns-initially t))
+              (org-agenda nil "t" 'subtree)))))
+      (let ((org-agenda-view-columns-initially t))
+        (org-agenda nil "t" 'subtree))))
+  (add-to-list 'org-speed-commands-user '("T" sacha/org-agenda-for-subtree))
+#+end_src
+
+There's probably a proper way to do this, maybe with =<=. Oh, that would work nicely. =< C-c a t= too.
 
 **** Tag tasks with GTD-ish contexts
 
@@ -2135,7 +2163,7 @@ I sometimes need to know where I am in a line.
 #+begin_src emacs-lisp
 (use-package magit
   :init (setq magit-diff-options '("-b")) ; ignore whitespace
-  :bind (("C-x v d" . magit-status) ("C-x v p" . magit-push)))
+  :bind (("C-x v d" . magit-status) ("C-x v p" . magit-push) ("C-x v c" . magit-log-edit)))
 #+end_src
 *** Tag files
 

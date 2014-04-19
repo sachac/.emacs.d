@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-04-18 Fri 18:01 -->
+<!-- 2014-04-18 Fri 20:34 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -2159,6 +2159,12 @@ hang of using these more!
          ((org-agenda-skip-function 'sacha/org-agenda-skip-scheduled)
           (org-agenda-view-columns-initially t)
           (org-agenda-overriding-header <span class="org-string">"Unscheduled TODO entries: "</span>)))
+        (<span class="org-string">"U"</span> <span class="org-string">"Unscheduled tasks outside projects"</span> tags-todo <span class="org-string">"-project"</span>
+         ((org-agenda-skip-function 'sacha/org-agenda-skip-scheduled)
+          (org-tags-exclude-from-inheritance nil)
+          (org-agenda-view-columns-initially t)
+          (org-agenda-overriding-header <span class="org-string">"Unscheduled TODO entries outside projects: "</span>)
+          (org-agenda-sorting-strategy '(todo-state-up priority-down tag-up category-keep effort-down))))
         (<span class="org-string">"P"</span> <span class="org-string">"By priority"</span>
          ((tags-todo <span class="org-string">"+PRIORITY=\"A\""</span>)
           (tags-todo <span class="org-string">"+PRIORITY=\"B\""</span>)
@@ -2166,8 +2172,9 @@ hang of using these more!
           (tags-todo <span class="org-string">"+PRIORITY=\"C\""</span>))
          ((org-agenda-prefix-format <span class="org-string">"%-10c %-10T %e "</span>)
           (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
-        (<span class="org-string">"p"</span> tags <span class="org-string">"+PROJECT"</span>
-         ((org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))) )
+        (<span class="org-string">"p"</span> tags <span class="org-string">"+project"</span>
+         ((org-tags-exclude-from-inheritance '(<span class="org-string">"project"</span>))
+          (org-agenda-sorting-strategy '(todo-state-up priority-down tag-up category-keep effort-down))))
         (<span class="org-string">"S"</span> tags-todo <span class="org-string">"TODO=\"STARTED\""</span>)
         (<span class="org-string">"2"</span> <span class="org-string">"List projects with tasks"</span> sacha/org-agenda-projects-and-tasks
          <span class="org-string">"+PROJECT"</span>

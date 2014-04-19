@@ -1127,12 +1127,12 @@ them. =) But it's good to define them, and over time, I'll get the
 hang of using these more!
 
 | Key         | Description                                                                                    |
-| w           | What am I waiting for?                                                                         |
+| .           | What am I waiting for?                                                                         |
 | T           | Not really an agenda command - shows the to-do tree in the current file                        |
 | b           | Shows business-related tasks                                                                   |
 | o           | Shows personal tasks and miscellaneous tasks (o: organizer)                                    |
-| t           | Show all my to-dos                                                                             |
 | w           | Show all tasks for the upcoming week                                                           |
+| W           | Show all tasks for the upcoming week, aside from the routine ones                              |
 | g ...       | Show tasks by context: b - business; c - coding; w - writing; p - phone; d - drawing, h - home |
 | 0           | Show common contexts with up to 3 tasks each, so that I can choose what I feel like working on |
 | ) (shift-0) | Show common contexts with all the tasks associated with them                                   |
@@ -1140,6 +1140,7 @@ hang of using these more!
 | ( (shift-9) | Show common contexts with all the unscheduled tasks associated with them                       |
 | d           | Timeline for today (agenda, clock summary)                                                     |
 | u           | Unscheduled tasks to do if I have free time                                                    |
+| U           | Unscheduled tasks that are not part of projects                                                |
 | P           | Tasks by priority                                                                              |
 | p           | My projects                                                                                    |
 | 2           | Projects with tasks                                                                            |

@@ -1690,6 +1690,22 @@ Now we put it all together...
                   (insert list)
                 list)))
 #+end_src
+*** Moving lines around
+
+This makes it easier to reorganize lines in my weekly review.
+#+begin_src emacs-lisp
+(defun sacha/org-move-line-to-destination ()
+	(interactive)
+  (save-excursion
+  	(let ((string
+	  			 (buffer-substring-no-properties
+		  			(line-beginning-position) (line-end-position))))
+		  (delete-region (line-beginning-position) (1+ (line-end-position)))
+		  (re-search-forward "<<destination>>" nil t)
+		  (insert "\n" (make-string (- (match-beginning 0) (line-beginning-position)) ?\ ) "\n"))))
+(bind-key "C-c d" 'sacha/org-move-line-to-destination org-mode-map)
+#+end_src
+
 *** Monthly reviews
 
 <<monthly-reviews>>

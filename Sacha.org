@@ -394,14 +394,14 @@ register.
 
 #+begin_src emacs-lisp :results silent
   (dolist
-      (r `((?i (file . "~/.emacs.d/Sacha.org"))
-           (?o (file . "~/personal/organizer.org"))
-           (?b (file . "~/personal/business.org"))
-           (?w (file . "~/Dropbox/public/sharing/index.org"))
-           (?W (file . "~/Dropbox/public/blog.org"))
-           (?g (file . "~/sachac.github.io/evil-plans/index.org"))
-           ))
-    (set-register (car r) (cadr r)))
+      (r `((?i . "~/.emacs.d/Sacha.org")
+           (?o . "~/personal/organizer.org")
+           (?b . "~/personal/business.org")
+           (?w . "~/Dropbox/public/sharing/index.org")
+           (?W . "~/Dropbox/public/blog.org")
+           (?g . "~/sachac.github.io/evil-plans/index.org")
+           (?l . "~/dropbox/public/learning.org")))
+    (set-register (car r) (cons 'file (cdr r))))
 #+end_src
 
 *** Browse-kill-ring - see what you've cut so that you can paste it   :drill:
@@ -748,7 +748,7 @@ able to clock in on them.
       (setq org-reverse-note-order t)
       (setq org-refile-use-outline-path nil)
       (setq org-refile-allow-creating-parent-nodes 'confirm)
-      (setq org-refile-use-cache t)
+      (setq org-refile-use-cache nil)
       (setq org-refile-targets
             '(("~/personal/business.org" . (:maxlevel . 4))
               ("~/personal/organizer.org" . (:maxlevel . 4))
@@ -1201,7 +1201,10 @@ hang of using these more!
           ("w" "Weekly review" agenda ""
            ((org-agenda-span 7)
             (org-agenda-log-mode 1)))
-          ("W" "Weekly review sans routines" agenda "" ((org-agenda-span 7) (org-agenda-log-mode 1) (org-agenda-files '("~/personal/business.org" "~/personal/organizer.org" "~/personal/people.org"))))
+          ("W" "Weekly review sans routines" agenda "" 
+           ((org-agenda-span 7) 
+            (org-agenda-log-mode 1)
+            (org-agenda-tag-filter-preset '("-routine"))))
           ("2" "Bi-weekly review" agenda "" ((org-agenda-span 14) (org-agenda-log-mode 1)))
           ("gb" "Business" todo ""  
            ((org-agenda-files '("~/personal/business.org"))
@@ -1694,16 +1697,16 @@ Now we put it all together...
 
 This makes it easier to reorganize lines in my weekly review.
 #+begin_src emacs-lisp
-(defun sacha/org-move-line-to-destination ()
-	(interactive)
-  (save-excursion
-  	(let ((string
-	  			 (buffer-substring-no-properties
-		  			(line-beginning-position) (line-end-position))))
-		  (delete-region (line-beginning-position) (1+ (line-end-position)))
-		  (re-search-forward "<<destination>>" nil t)
-		  (insert "\n" (make-string (- (match-beginning 0) (line-beginning-position)) ?\ ) "\n"))))
-(bind-key "C-c d" 'sacha/org-move-line-to-destination org-mode-map)
+  (defun sacha/org-move-line-to-destination ()
+    (interactive)
+    (save-excursion
+      (let ((string
+             (buffer-substring-no-properties
+              (line-beginning-position) (line-end-position))))
+        (delete-region (line-beginning-position) (1+ (line-end-position)))
+        (re-search-forward "<<destination>>" nil t)
+        (insert "\n" (make-string (- (match-beginning 0) (line-beginning-position)) ?\ ) (s-trim string)))))
+  (bind-key "C-c d" 'sacha/org-move-line-to-destination org-mode-map)
 #+end_src
 
 *** Monthly reviews
@@ -1883,7 +1886,9 @@ Make it easy to scroll to the top:
 }
 </style>
 
-<a class=\"back-to-top\" href=\"#top\">Back to top</a>
+<div class=\"back-to-top\">
+<a href=\"#top\">Back to top</a> | <a href=\"mailto:sacha@sachachua.com\">E-mail me</a>
+</div>
 
 <script type=\"text/javascript\">
     var offset = 220;
@@ -2016,7 +2021,8 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((dot . t)
-     (ditaa . t)))
+     (ditaa . t) 
+     (R . t)))
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))
 #+end_src
 *** Share my Emacs configuration
@@ -2217,7 +2223,11 @@ I sometimes need to know where I am in a line.
     (setq projectile-enable-caching t)))
 (use-package helm-projectile)
 #+end_src
+*** Exploring MELPA recipes
 
+#+begin_src emacs-lisp
+
+#+end_src
 ** Ledger (personal finance): Make it easier to review my credit card transactions
 
 #+begin_src emacs-lisp
@@ -2309,6 +2319,9 @@ I sometimes need to know where I am in a line.
            (lambda ()
              (setq category (or category
                                 (org-entry-get-with-inheritance "QUANTIFIED")))
+             (unless category
+               (setq category (read-string "Category: "))
+               (org-set-property "QUANTIFIED" category))
              (setq note (or note (elt (org-heading-components) 4))))))
       (unless (and category note)
         (cond
@@ -2324,7 +2337,6 @@ I sometimes need to know where I am in a line.
                   (funcall get-info))))))
          ((org-clocking-p)(save-excursion (org-clock-goto) (funcall get-info)))
          ((derived-mode-p 'org-mode) (funcall get-info)))
-        (setq category (or category (read-string "Category: ")))
         (setq note (or note (read-string "Note: "))))
       (quantified-track (concat category " | " note))))
     
@@ -2380,7 +2392,6 @@ And this loads the beeminder code:
 #+begin_src emacs-lisp
   (sacha/package-install 'ess)                
   (use-package ess-site
-    :init (setq inferior-R-program-name "c:/progra~1/R/R-2.15.0/bin/x64/Rterm.exe")
     :commands R)
 #+end_src
 

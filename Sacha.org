@@ -481,14 +481,34 @@ shortcuts that use ordinary keys.
 #+end_src
 
 *** Unfill paragraph
-From https://raw.github.com/qdot/conf_emacs/master/emacs_conf.org
+
+I unfill paragraphs a lot because Wordpress likes adding extra =<br>= tags if I don't. (I should probably just tweak my Wordpress installation.)
 
 #+begin_src emacs-lisp
-    (defun unfill-paragraph ()
-      "Takes a multi-line paragraph and makes it into a single line of text."
-      (interactive)
-      (let ((fill-column (point-max)))
-        (fill-paragraph nil)))
+  (defun sacha/unfill-paragraph (&optional region)
+    "Takes a multi-line paragraph and makes it into a single line of text."
+    (interactive (progn
+                   (barf-if-buffer-read-only)
+                   (list t)))
+    (let ((fill-column (point-max)))
+      (fill-paragraph nil region)))
+(bind-key "M-Q" 'sacha/unfill-paragraph)
+#+end_src
+
+I never actually justify text, so I might as well change the way
+=fill-paragraph= works. With the code below, =M-q= will fill the
+paragraph normally, and =C-u M-q= will unfill it.
+
+#+begin_src emacs-lisp
+  (defun sacha/fill-or-unfill-paragraph (&optional unfill region)
+    "Fill paragraph (or REGION).
+  With the prefix argument UNFILL, unfill it instead."
+    (interactive (progn
+                   (barf-if-buffer-read-only)
+                   (list (if current-prefix-arg 'unfill) t)))
+    (let ((fill-column (if unfill (point-max) fill-column)))
+      (fill-paragraph nil region)))
+(bind-key "M-q" 'sacha/fill-or-unfill-paragraph)
 #+end_src
 
 Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't actually break the text into multiple lines - it only looks that way.

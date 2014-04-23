@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-04-20 Sun 19:14 -->
+<!-- 2014-04-23 Wed 10:54 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -288,6 +288,7 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-8-10">Magit - nice git interface</a></li>
 <li><a href="#sec-1-8-11">Tag files</a></li>
 <li><a href="#sec-1-8-12">Projects</a></li>
+<li><a href="#sec-1-8-13">Exploring MELPA recipes</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-9">Ledger (personal finance): Make it easier to review my credit card transactions</a></li>
@@ -959,14 +960,14 @@ register.
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">dolist</span>
-    (r `((?i (file . <span class="org-string">"~/.emacs.d/Sacha.org"</span>))
-         (?o (file . <span class="org-string">"~/personal/organizer.org"</span>))
-         (?b (file . <span class="org-string">"~/personal/business.org"</span>))
-         (?w (file . <span class="org-string">"~/Dropbox/public/sharing/index.org"</span>))
-         (?W (file . <span class="org-string">"~/Dropbox/public/blog.org"</span>))
-         (?g (file . <span class="org-string">"~/sachac.github.io/evil-plans/index.org"</span>))
-         ))
-  (set-register (car r) (cadr r)))
+    (r `((?i . <span class="org-string">"~/.emacs.d/Sacha.org"</span>)
+         (?o . <span class="org-string">"~/personal/organizer.org"</span>)
+         (?b . <span class="org-string">"~/personal/business.org"</span>)
+         (?w . <span class="org-string">"~/Dropbox/public/sharing/index.org"</span>)
+         (?W . <span class="org-string">"~/Dropbox/public/blog.org"</span>)
+         (?g . <span class="org-string">"~/sachac.github.io/evil-plans/index.org"</span>)
+         (?l . <span class="org-string">"~/dropbox/public/learning.org"</span>)))
+  (set-register (car r) (cons 'file (cdr r))))
 </pre>
 </div>
 </div>
@@ -1066,16 +1067,39 @@ shortcuts that use ordinary keys.
 <h4 id="sec-1-6-2">Unfill paragraph</h4>
 <div class="outline-text-4" id="text-1-6-2">
 <p>
-From <a href="https://raw.github.com/qdot/conf_emacs/master/emacs_conf.org">https://raw.github.com/qdot/conf_emacs/master/emacs_conf.org</a>
+I unfill paragraphs a lot because Wordpress likes adding extra <code>&lt;br&gt;</code> tags if I don't. (I should probably just tweak my Wordpress installation.)
 </p>
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">unfill-paragraph</span> ()
-  <span class="org-doc">"Takes a multi-line paragraph and makes it into a single line of text."</span>
-  (interactive)
-  (<span class="org-keyword">let</span> ((fill-column (point-max)))
-    (fill-paragraph nil)))
+<pre class="src src-emacs-lisp">  (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/unfill-paragraph</span> (<span class="org-type">&amp;optional</span> region)
+    <span class="org-doc">"Takes a multi-line paragraph and makes it into a single line of text."</span>
+    (interactive (<span class="org-keyword">progn</span>
+                   (barf-if-buffer-read-only)
+                   (list t)))
+    (<span class="org-keyword">let</span> ((fill-column (point-max)))
+      (fill-paragraph nil region)))
+(bind-key <span class="org-string">"M-Q"</span> 'sacha/unfill-paragraph)
+</pre>
+</div>
+
+<p>
+I never actually justify text, so I might as well change the way
+<code>fill-paragraph</code> works. With the code below, <code>M-q</code> will fill the
+paragraph normally, and <code>C-u M-q</code> will unfill it.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">  (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/fill-or-unfill-paragraph</span> (<span class="org-type">&amp;optional</span> unfill region)
+    <span class="org-doc">"Fill paragraph (or REGION).</span>
+<span class="org-doc">  With the prefix argument UNFILL, unfill it instead."</span>
+    (interactive (<span class="org-keyword">progn</span>
+                   (barf-if-buffer-read-only)
+                   (list (<span class="org-keyword">if</span> current-prefix-arg 'unfill) t)))
+    (<span class="org-keyword">let</span> ((fill-column (<span class="org-keyword">if</span> unfill (point-max) fill-column)))
+      (fill-paragraph nil region)))
+(bind-key <span class="org-string">"M-q"</span> 'sacha/fill-or-unfill-paragraph)
 </pre>
 </div>
 
@@ -1498,7 +1522,7 @@ able to clock in on them.
 <pre class="src src-emacs-lisp">(setq org-reverse-note-order t)
 (setq org-refile-use-outline-path nil)
 (setq org-refile-allow-creating-parent-nodes 'confirm)
-(setq org-refile-use-cache t)
+(setq org-refile-use-cache nil)
 (setq org-refile-targets
       '((<span class="org-string">"~/personal/business.org"</span> . (<span class="org-builtin">:maxlevel</span> . 4))
         (<span class="org-string">"~/personal/organizer.org"</span> . (<span class="org-builtin">:maxlevel</span> . 4))
@@ -2153,7 +2177,10 @@ hang of using these more!
         (<span class="org-string">"w"</span> <span class="org-string">"Weekly review"</span> agenda <span class="org-string">""</span>
          ((org-agenda-span 7)
           (org-agenda-log-mode 1)))
-        (<span class="org-string">"W"</span> <span class="org-string">"Weekly review sans routines"</span> agenda <span class="org-string">""</span> ((org-agenda-span 7) (org-agenda-log-mode 1) (org-agenda-files '(<span class="org-string">"~/personal/business.org"</span> <span class="org-string">"~/personal/organizer.org"</span> <span class="org-string">"~/personal/people.org"</span>))))
+        (<span class="org-string">"W"</span> <span class="org-string">"Weekly review sans routines"</span> agenda <span class="org-string">""</span> 
+         ((org-agenda-span 7) 
+          (org-agenda-log-mode 1)
+          (org-agenda-tag-filter-preset '(<span class="org-string">"-routine"</span>))))
         (<span class="org-string">"2"</span> <span class="org-string">"Bi-weekly review"</span> agenda <span class="org-string">""</span> ((org-agenda-span 14) (org-agenda-log-mode 1)))
         (<span class="org-string">"gb"</span> <span class="org-string">"Business"</span> todo <span class="org-string">""</span>  
          ((org-agenda-files '(<span class="org-string">"~/personal/business.org"</span>))
@@ -2725,7 +2752,7 @@ This makes it easier to reorganize lines in my weekly review.
             (line-beginning-position) (line-end-position))))
       (delete-region (line-beginning-position) (1+ (line-end-position)))
       (re-search-forward <span class="org-string">"&lt;&lt;destination&gt;&gt;"</span> nil t)
-      (insert <span class="org-string">"\n"</span> (make-string (- (match-beginning 0) (line-beginning-position)) ?\ ) <span class="org-string">"\n"</span>))))
+      (insert <span class="org-string">"\n"</span> (make-string (- (match-beginning 0) (line-beginning-position)) ?\ ) (s-trim string)))))
 (bind-key <span class="org-string">"C-c d"</span> 'sacha/org-move-line-to-destination org-mode-map)
 </pre>
 </div>
@@ -2978,7 +3005,9 @@ Make it easy to scroll to the top:
 <span class="org-string">}</span>
 <span class="org-string">&lt;/style&gt;</span>
 
-<span class="org-string">&lt;a class=\"back-to-top\" href=\"#top\"&gt;Back to top&lt;/a&gt;</span>
+<span class="org-string">&lt;div class=\"back-to-top\"&gt;</span>
+<span class="org-string">&lt;a href=\"#top\"&gt;Back to top&lt;/a&gt; | &lt;a href=\"mailto:sacha@sachachua.com\"&gt;E-mail me&lt;/a&gt;</span>
+<span class="org-string">&lt;/div&gt;</span>
 
 <span class="org-string">&lt;script type=\"text/javascript\"&gt;</span>
 <span class="org-string">    var offset = 220;</span>
@@ -3172,7 +3201,8 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See <a h
 (org-babel-do-load-languages
  'org-babel-load-languages
  '((dot . t)
-   (ditaa . t)))
+   (ditaa . t) 
+   (R . t)))
 (add-to-list 'org-src-lang-modes '(<span class="org-string">"dot"</span> . graphviz-dot))
 </pre>
 </div>
@@ -3475,8 +3505,16 @@ tree instead.
 </div>
 </div>
 </div>
-</div>
+<div id="outline-container-sec-1-8-13" class="outline-4">
+<h4 id="sec-1-8-13">Exploring MELPA recipes</h4>
+<div class="outline-text-4" id="text-1-8-13">
+<div class="org-src-container">
 
+<pre class="src src-emacs-lisp"></pre>
+</div>
+</div>
+</div>
+</div>
 <div id="outline-container-sec-1-9" class="outline-3">
 <h3 id="sec-1-9">Ledger (personal finance): Make it easier to review my credit card transactions</h3>
 <div class="outline-text-3" id="text-1-9">
@@ -3587,6 +3625,9 @@ IRC is a great way to hang out with other Emacs geeks.
          (<span class="org-keyword">lambda</span> ()
            (setq category (or category
                               (org-entry-get-with-inheritance <span class="org-string">"QUANTIFIED"</span>)))
+           (<span class="org-keyword">unless</span> category
+             (setq category (read-string <span class="org-string">"Category: "</span>))
+             (org-set-property <span class="org-string">"QUANTIFIED"</span> category))
            (setq note (or note (elt (org-heading-components) 4))))))
     (<span class="org-keyword">unless</span> (and category note)
       (<span class="org-keyword">cond</span>
@@ -3602,7 +3643,6 @@ IRC is a great way to hang out with other Emacs geeks.
                 (funcall get-info))))))
        ((org-clocking-p)(<span class="org-keyword">save-excursion</span> (org-clock-goto) (funcall get-info)))
        ((derived-mode-p 'org-mode) (funcall get-info)))
-      (setq category (or category (read-string <span class="org-string">"Category: "</span>)))
       (setq note (or note (read-string <span class="org-string">"Note: "</span>))))
     (quantified-track (concat category <span class="org-string">" | "</span> note))))
 
@@ -3693,7 +3733,6 @@ And this loads the beeminder code:
 
 <pre class="src src-emacs-lisp">(sacha/package-install 'ess)                
 (<span class="org-keyword">use-package</span> <span class="org-constant">ess-site</span>
-  <span class="org-builtin">:init</span> (setq inferior-R-program-name <span class="org-string">"c:/progra~1/R/R-2.15.0/bin/x64/Rterm.exe"</span>)
   <span class="org-builtin">:commands</span> R)
 </pre>
 </div>
@@ -4916,7 +4955,9 @@ theme. =)
 }
 </style>
 
-<a class="back-to-top" href="#top">Back to top</a>
+<div class="back-to-top">
+<a href="#top">Back to top</a> | <a href="mailto:sacha@sachachua.com">E-mail me</a>
+</div>
 
 <script type="text/javascript">
     var offset = 220;

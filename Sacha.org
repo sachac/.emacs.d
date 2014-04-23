@@ -1442,111 +1442,119 @@ I want to try out grouping tasks by topic first, then breaking it
 down into previous/next week.
 
 #+begin_src emacs-lisp
-      (defun sacha/quantified-get-hours (category time-summary)
-              "Return the number of hours based on the time summary."
-              (if (stringp category)
-                 (if (assoc category time-summary) (/ (cdr (assoc category time-summary)) 3600.0) 0)
-                (apply '+ (mapcar (lambda (x) (sacha/quantified-get-hours x time-summary)) category))))
-      (defun sacha/org-summarize-focus-areas ()
-        "Summarize previous and upcoming tasks as a list."
-        (interactive)
-        (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
-              business relationships life business-next relationships-next life-next string start end time-summary
-              biz-time)
-          (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
-          (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
-          (setq time-summary (quantified-summarize-time start end))
-          (setq biz-time (sacha/quantified-get-hours "Business" time-summary))
-          (save-window-excursion
-            (org-agenda nil "w")
-            (setq string (buffer-string))
-            (with-temp-buffer
-              (insert string)
-              (goto-char (point-min))
-              (while (re-search-forward "^  \\([^:]+\\): +\\(Sched[^:]+: +\\)?TODO \\(.*?\\)\\(?:[      ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$" nil t)
-                (cond
-                 ((string= (match-string 1) "routines") nil) ; skip routine tasks
-                 ((string= (match-string 1) "business")
-                  (add-to-list 'business-next (concat "  - [ ] " (match-string 3))))
-                 ((string= (match-string 1) "people")
-                  (add-to-list 'relationships-next (concat "  - [ ] " (match-string 3))))
-                 (t (add-to-list 'life-next (concat "  - [ ] " (match-string 3))))))))
-          (save-window-excursion
-            (org-agenda nil "w")
-            (org-agenda-later -1)
-            (org-agenda-log-mode 16)
-            (setq string (buffer-string))
-            ;; Get any completed tasks from the current week as well
-            (org-agenda-later 1)
-            (org-agenda-log-mode 16)
-            (setq string (concat string "\n" (buffer-string)))
-            (with-temp-buffer
-              (insert string)
-              (goto-char (point-min))
-              (while (re-search-forward "^  \\([^:]+\\): +.*?State:.*?\\(?:TODO\\|DONE\\) \\(.*?\\)\\(?:[       ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$" nil t)
-                (cond
-                 ((string= (match-string 1) "routines") nil) ; skip routine tasks
-                 ((string= (match-string 1) "business")
-                  (add-to-list 'business (concat "  - [X] " (match-string 2))))
-                 ((string= (match-string 1) "people")
-                  (add-to-list 'relationships (concat "  - [X] " (match-string 2))))
-                 (t (add-to-list 'life (concat "  - [X] " (match-string 2))))))))
-          (setq string
-                (concat
-                 (format "- *Business* (%.1fh - %d%%)\n" biz-time (/ biz-time 1.68))
-                 (mapconcat 'identity (sort business 'string<) "\n") "\n"
-                 (mapconcat 'identity (sort business-next 'string<) "\n")
-                 "\n"
-                 (format "  - *Earn* (%.1fh - %d%% of Business)\n"
-                         (sacha/quantified-get-hours "Business - Earn" time-summary)
-                         (/ (sacha/quantified-get-hours "Business - Earn" time-summary) (* 0.01 biz-time)))
-                 (format "  - *Build* (%.1fh - %d%% of Business)\n"
-                         (sacha/quantified-get-hours "Business - Build" time-summary)
-                         (/ (sacha/quantified-get-hours "Business - Build" time-summary) (* 0.01 biz-time)))
-                 (format "    - *Drawing* (%.1fh)\n"
-                         (sacha/quantified-get-hours '("Business - Build - Drawing" "Business - Build - Book review")  time-summary))
-                 (format "    - *Delegation* (%.1fh)\n"
-                         (sacha/quantified-get-hours "Business - Build - Delegation" time-summary))
-                 (format "    - *Packaging* (%.1fh)\n"
-                         (sacha/quantified-get-hours "Business - Build - Packaging" time-summary))
-                 (format "    - *Paperwork* (%.1fh)\n"
-                         (sacha/quantified-get-hours "Business - Build - Paperwork"  time-summary))
-                 (format "  - *Connect* (%.1fh - %d%% of Business)\n"
-                         (sacha/quantified-get-hours "Business - Connect" time-summary)
-                         (/ (sacha/quantified-get-hours "Business - Connect" time-summary) (* 0.01 biz-time)))
-                 (format "- *Relationships* (%.1fh - %d%%)\n"
-                         (sacha/quantified-get-hours '("Discretionary - Social" "Discretionary - Family") time-summary)
-                         (/ (sacha/quantified-get-hours '("Discretionary - Social" "Discretionary - Family") time-summary) 1.68))
-                 (mapconcat 'identity (sort relationships 'string<) "\n") "\n"
-                 (mapconcat 'identity (sort relationships-next 'string<) "\n")
-                 "\n"
-                 (format "- *Discretionary - Productive* (%.1fh - %d%%)\n"
-                         (sacha/quantified-get-hours "Discretionary - Productive" time-summary)
-                         (/ (sacha/quantified-get-hours "Discretionary - Productive" time-summary) 1.68))
-                 (mapconcat 'identity (sort life 'string<) "\n") "\n"
-                 (mapconcat 'identity (sort life-next 'string<) "\n") "\n"
-                 (format "  - *Writing* (%.1fh)\n"
-                         (sacha/quantified-get-hours "Discretionary - Productive - Writing" time-summary))
-                 (format "- *Discretionary - Play* (%.1fh - %d%%)\n"
-                         (sacha/quantified-get-hours "Discretionary - Play" time-summary)
-                         (/ (sacha/quantified-get-hours "Discretionary - Play" time-summary) 1.68))
-;                 (format "- *Discretionary - Travel* (%.1fh - %d%%)\n"
-;                         (sacha/quantified-get-hours "Discretionary - Travel" time-summary)
-;                         (/ (sacha/quantified-get-hours "Discretionary - Travel" time-summary) 1.68))
-                 (format "- *Personal routines* (%.1fh - %d%%)\n"
-                         (sacha/quantified-get-hours "Personal" time-summary)
-                         (/ (sacha/quantified-get-hours "Personal" time-summary) 1.68))
-                 (format "- *Unpaid work* (%.1fh - %d%%)\n"
-                         (sacha/quantified-get-hours "Unpaid work" time-summary)
-                         (/ (sacha/quantified-get-hours "Unpaid work" time-summary) 1.68))
-                 (format "- *Sleep* (%.1fh - %d%% - average of %.1f per day)\n"
-                         (sacha/quantified-get-hours "Sleep" time-summary)
-                         (/ (sacha/quantified-get-hours "Sleep" time-summary) 1.68)
-                         (/ (sacha/quantified-get-hours "Sleep" time-summary) 7)
-                         )))
-          (if (called-interactively-p 'any)
-              (insert string)
-            string)))
+  (defvar sacha/weekly-review-line-regexp 
+    "^  \\([^:]+\\): +\\(Sched[^:]+: +\\)?TODO \\(.*?\\)\\(?:[      ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$"
+    "Regular expression matching lines to include.")
+
+  (defun sacha/quantified-get-hours (category time-summary)
+    "Return the number of hours based on the time summary."
+    (if (stringp category)
+        (if (assoc category time-summary) (/ (cdr (assoc category time-summary)) 3600.0) 0)
+      (apply '+ (mapcar (lambda (x) (sacha/quantified-get-hours x time-summary)) category))))
+  (defun sacha/org-summarize-focus-areas ()
+    "Summarize previous and upcoming tasks as a list."
+    (interactive)
+    (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
+          (line-re sacha/weekly-review-line-regexp)
+          business relationships life business-next relationships-next life-next string 
+          start end time-summary biz-time)
+      (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
+      (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
+      (setq time-summary (quantified-summarize-time start end))
+      (setq biz-time (sacha/quantified-get-hours "Business" time-summary))
+      (save-window-excursion
+        (org-agenda nil "w")
+        (setq string (buffer-string))
+        (with-temp-buffer
+          (insert string)
+          (goto-char (point-min))
+          (while (re-search-forward line-re nil t)
+            (cond
+             ((string= (match-string 1) "routines") nil) ; skip routine tasks
+             ((string= (match-string 1) "business")
+              (add-to-list 'business-next (concat "  - [ ] " (match-string 3))))
+             ((string= (match-string 1) "people")
+              (add-to-list 'relationships-next (concat "  - [ ] " (match-string 3))))
+             (t (add-to-list 'life-next (concat "  - [ ] " (match-string 3))))))))
+      (save-window-excursion
+        (org-agenda nil "w")
+        (org-agenda-later -1)
+        (org-agenda-log-mode 16)
+        (setq string (buffer-string))
+        ;; Get any completed tasks from the current week as well
+        (org-agenda-later 1)
+        (org-agenda-log-mode 16)
+        (setq string (concat string "\n" (buffer-string)))
+        (with-temp-buffer
+          (insert string)
+          (goto-char (point-min))
+          (while (re-search-forward line-re nil t)
+            (cond
+             ((string= (match-string 1) "routines") nil) ; skip routine tasks
+             ((string= (match-string 1) "business")
+              (add-to-list 'business (concat "  - [X] " (match-string 2))))
+             ((string= (match-string 1) "people")
+              (add-to-list 'relationships (concat "  - [X] " (match-string 2))))
+             (t (add-to-list 'life (concat "  - [X] " (match-string 2))))))))
+      (setq string
+            (concat
+             (format "- *Business* (%.1fh - %d%%)\n" biz-time (/ biz-time 1.68))
+             (mapconcat 'identity (sort business 'string<) "\n") "\n"
+             (mapconcat 'identity (sort business-next 'string<) "\n")
+             "\n"
+             (format "  - *Earn* (%.1fh - %d%% of Business)\n"
+                     (sacha/quantified-get-hours "Business - Earn" time-summary)
+                     (/ (sacha/quantified-get-hours "Business - Earn" time-summary) (* 0.01 biz-time)))
+             (format "  - *Build* (%.1fh - %d%% of Business)\n"
+                     (sacha/quantified-get-hours "Business - Build" time-summary)
+                     (/ (sacha/quantified-get-hours "Business - Build" time-summary) (* 0.01 biz-time)))
+             (format "    - *Drawing* (%.1fh)\n"
+                     (sacha/quantified-get-hours '("Business - Build - Drawing"
+                                                   "Business - Build - Book review")  time-summary))
+             (format "    - *Delegation* (%.1fh)\n"
+                     (sacha/quantified-get-hours "Business - Build - Delegation" time-summary))
+             (format "    - *Packaging* (%.1fh)\n"
+                     (sacha/quantified-get-hours "Business - Build - Packaging" time-summary))
+             (format "    - *Paperwork* (%.1fh)\n"
+                     (sacha/quantified-get-hours "Business - Build - Paperwork"  time-summary))
+             (format "  - *Connect* (%.1fh - %d%% of Business)\n"
+                     (sacha/quantified-get-hours "Business - Connect" time-summary)
+                     (/ (sacha/quantified-get-hours "Business - Connect" time-summary) (* 0.01 biz-time)))
+             (format "- *Relationships* (%.1fh - %d%%)\n"
+                     (sacha/quantified-get-hours '("Discretionary - Social"
+                                                   "Discretionary - Family") time-summary)
+                     (/ (sacha/quantified-get-hours '("Discretionary - Social"
+                                                      "Discretionary - Family") time-summary) 1.68))
+             (mapconcat 'identity (sort relationships 'string<) "\n") "\n"
+             (mapconcat 'identity (sort relationships-next 'string<) "\n")
+             "\n"
+             (format "- *Discretionary - Productive* (%.1fh - %d%%)\n"
+                     (sacha/quantified-get-hours "Discretionary - Productive" time-summary)
+                     (/ (sacha/quantified-get-hours "Discretionary - Productive" time-summary) 1.68))
+             (mapconcat 'identity (sort life 'string<) "\n") "\n"
+             (mapconcat 'identity (sort life-next 'string<) "\n") "\n"
+             (format "  - *Writing* (%.1fh)\n"
+                     (sacha/quantified-get-hours "Discretionary - Productive - Writing" time-summary))
+             (format "- *Discretionary - Play* (%.1fh - %d%%)\n"
+                     (sacha/quantified-get-hours "Discretionary - Play" time-summary)
+                     (/ (sacha/quantified-get-hours "Discretionary - Play" time-summary) 1.68))
+                                          ;                 (format "- *Discretionary - Travel* (%.1fh - %d%%)\n"
+                                          ;                         (sacha/quantified-get-hours "Discretionary - Travel" time-summary)
+                                          ;                         (/ (sacha/quantified-get-hours "Discretionary - Travel" time-summary) 1.68))
+             (format "- *Personal routines* (%.1fh - %d%%)\n"
+                     (sacha/quantified-get-hours "Personal" time-summary)
+                     (/ (sacha/quantified-get-hours "Personal" time-summary) 1.68))
+             (format "- *Unpaid work* (%.1fh - %d%%)\n"
+                     (sacha/quantified-get-hours "Unpaid work" time-summary)
+                     (/ (sacha/quantified-get-hours "Unpaid work" time-summary) 1.68))
+             (format "- *Sleep* (%.1fh - %d%% - average of %.1f per day)\n"
+                     (sacha/quantified-get-hours "Sleep" time-summary)
+                     (/ (sacha/quantified-get-hours "Sleep" time-summary) 1.68)
+                     (/ (sacha/quantified-get-hours "Sleep" time-summary) 7)
+                     )))
+      (if (called-interactively-p 'any)
+          (insert string)
+        string)))
 #+end_src
 
 I use this to put together a quick summary of how I spent my time.
@@ -1874,7 +1882,8 @@ I want to be able to export without having to say yes to code blocks all the tim
 Might as well take advantage of my stylesheet:
 
 #+begin_src emacs-lisp
-(setq org-html-head "<link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"></link>
+(setq org-html-head "<link rel=\"stylesheet\" type=\"text/css\"
+href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"></link>
 <link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/org-export.css\"></link>
 <link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/style.css\"></link>
 <script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"></script>")
@@ -2448,13 +2457,14 @@ And this loads the beeminder code:
     #+end_src
 *** Blog
 #+begin_src emacs-lisp
-    (defun sacha/strip-blog-share ()
-      (interactive)
-      (let (base)
-        (save-excursion
-          (goto-char (point-min))
-          (while (re-search-forward "<div class=\"sharedaddy sd-sharing-enabled\">.*?<div class=\"sharing-clear\"></div></div></div></div>" nil t)
-            (replace-match "")))))
+  (defun sacha/strip-blog-share ()
+    (interactive)
+    (let (base)
+      (save-excursion
+        (goto-char (point-min))
+        (while (re-search-forward 
+                "<div class=\"sharedaddy sd-sharing-enabled\">.*?<div class=\"sharing-clear\"></div></div></div></div>" nil t)
+          (replace-match "")))))
 #+end_src
 *** Artrage
 
@@ -2897,7 +2907,7 @@ List upcoming tasks so that I can see if I'm overloaded.
       (with-temp-buffer
         (insert string)
         (goto-char (point-min))
-        (while (re-search-forward "^  \\([^:]+\\): +\\(Sched[^:]+: +\\)?TODO \\(.*?\\)\\(?:[      ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$" nil t)
+        (while (re-search-forward sacha/weekly-review-line-regexp nil t)
           (cond
            ((string= (match-string 1) "routines") nil) ; skip routine tasks
            ((string= (match-string 1) "business")
@@ -2937,7 +2947,7 @@ to see which items I'd planned ahead, and which ones were new tasks.
         (with-temp-buffer
           (insert string)
         (goto-char (point-min))
-        (while (re-search-forward "^  \\([^:]+\\): +.*?State:.*?\\(?:TODO\\|DONE\\) \\(.*?\\)\\(?:[       ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$" nil t)
+        (while (re-search-forward sacha/weekly-review-line-regexp nil t)
           (cond
            ((string= (match-string 1) "routines") nil) ; skip routine tasks
            ((string= (match-string 1) "business")
@@ -3305,18 +3315,20 @@ recently-opened files first.
     big to open easily there, though.
     
 #+begin_src emacs-lisp :eval no :tangle no
-    (use-package org-mobile
-      :init
-      (progn
-        (autoload 'org-mobile-pull "org-mobile" nil t)
-        (autoload 'org-mobile-push "org-mobile" nil t))
-      :config
-      (progn
-        (setq org-mobile-directory "~/Dropbox/mobile")
-        (setq org-mobile-inbox-for-pull "~/personal/mobileorg.org")
-        (setq default-buffer-file-coding-system 'utf-8)
-        (setq org-mobile-files '("/cygdrive/c/sacha/personal/organizer.org" "/cygdrive/c/sacha/personal/business.org" "/cygdrive/c/sacha/personal/books.org"))
-        (setq org-mobile-agendas '("a"))))
+  (use-package org-mobile
+    :init
+    (progn
+      (autoload 'org-mobile-pull "org-mobile" nil t)
+      (autoload 'org-mobile-push "org-mobile" nil t))
+    :config
+    (progn
+      (setq org-mobile-directory "~/Dropbox/mobile")
+      (setq org-mobile-inbox-for-pull "~/personal/mobileorg.org")
+      (setq default-buffer-file-coding-system 'utf-8)
+      (setq org-mobile-files '("/cygdrive/c/sacha/personal/organizer.org"
+                               "/cygdrive/c/sacha/personal/business.org"
+                               "/cygdrive/c/sacha/personal/books.org"))
+      (setq org-mobile-agendas '("a"))))
 #+end_src
 ** Encryption
 

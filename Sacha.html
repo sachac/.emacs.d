@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-04-23 Wed 10:54 -->
+<!-- 2014-04-23 Wed 11:03 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -2436,111 +2436,119 @@ down into previous/next week.
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">      (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/quantified-get-hours</span> (category time-summary)
-              <span class="org-doc">"Return the number of hours based on the time summary."</span>
-              (<span class="org-keyword">if</span> (stringp category)
-                 (<span class="org-keyword">if</span> (assoc category time-summary) (/ (cdr (assoc category time-summary)) 3600.0) 0)
-                (apply '+ (mapcar (<span class="org-keyword">lambda</span> (x) (sacha/quantified-get-hours x time-summary)) category))))
-      (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-summarize-focus-areas</span> ()
-        <span class="org-doc">"Summarize previous and upcoming tasks as a list."</span>
-        (interactive)
-        (<span class="org-keyword">let</span> ((base-date (apply 'encode-time (org-read-date-analyze <span class="org-string">"-fri"</span> nil '(0 0 0))))
-              business relationships life business-next relationships-next life-next string start end time-summary
-              biz-time)
-          (setq start (format-time-string <span class="org-string">"%Y-%m-%d"</span> (days-to-time (- (time-to-number-of-days base-date) 6))))
-          (setq end (format-time-string <span class="org-string">"%Y-%m-%d"</span> (days-to-time (1+ (time-to-number-of-days base-date)))))
-          (setq time-summary (quantified-summarize-time start end))
-          (setq biz-time (sacha/quantified-get-hours <span class="org-string">"Business"</span> time-summary))
-          (<span class="org-keyword">save-window-excursion</span>
-            (org-agenda nil <span class="org-string">"w"</span>)
-            (setq string (buffer-string))
-            (<span class="org-keyword">with-temp-buffer</span>
-              (insert string)
-              (goto-char (point-min))
-              (<span class="org-keyword">while</span> (re-search-forward <span class="org-string">"^  </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">:]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">: +</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">Sched[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">:]+: +</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?TODO </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string">[      ]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">:[[:alnum:]_@#%:]+:</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?[        ]*$"</span> nil t)
-                (<span class="org-keyword">cond</span>
-                 ((string= (match-string 1) <span class="org-string">"routines"</span>) nil) <span class="org-comment-delimiter">; </span><span class="org-comment">skip routine tasks</span>
-                 ((string= (match-string 1) <span class="org-string">"business"</span>)
-                  (add-to-list 'business-next (concat <span class="org-string">"  - [ ] "</span> (match-string 3))))
-                 ((string= (match-string 1) <span class="org-string">"people"</span>)
-                  (add-to-list 'relationships-next (concat <span class="org-string">"  - [ ] "</span> (match-string 3))))
-                 (t (add-to-list 'life-next (concat <span class="org-string">"  - [ ] "</span> (match-string 3))))))))
-          (<span class="org-keyword">save-window-excursion</span>
-            (org-agenda nil <span class="org-string">"w"</span>)
-            (org-agenda-later -1)
-            (org-agenda-log-mode 16)
-            (setq string (buffer-string))
-            <span class="org-comment-delimiter">;; </span><span class="org-comment">Get any completed tasks from the current week as well</span>
-            (org-agenda-later 1)
-            (org-agenda-log-mode 16)
-            (setq string (concat string <span class="org-string">"\n"</span> (buffer-string)))
-            (<span class="org-keyword">with-temp-buffer</span>
-              (insert string)
-              (goto-char (point-min))
-              (<span class="org-keyword">while</span> (re-search-forward <span class="org-string">"^  </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">:]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">: +.*?State:.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string">TODO</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">DONE</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"> </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string">[       ]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">:[[:alnum:]_@#%:]+:</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?[        ]*$"</span> nil t)
-                (<span class="org-keyword">cond</span>
-                 ((string= (match-string 1) <span class="org-string">"routines"</span>) nil) <span class="org-comment-delimiter">; </span><span class="org-comment">skip routine tasks</span>
-                 ((string= (match-string 1) <span class="org-string">"business"</span>)
-                  (add-to-list 'business (concat <span class="org-string">"  - [X] "</span> (match-string 2))))
-                 ((string= (match-string 1) <span class="org-string">"people"</span>)
-                  (add-to-list 'relationships (concat <span class="org-string">"  - [X] "</span> (match-string 2))))
-                 (t (add-to-list 'life (concat <span class="org-string">"  - [X] "</span> (match-string 2))))))))
-          (setq string
-                (concat
-                 (format <span class="org-string">"- *Business* (%.1fh - %d%%)\n"</span> biz-time (/ biz-time 1.68))
-                 (mapconcat 'identity (sort business 'string&lt;) <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
-                 (mapconcat 'identity (sort business-next 'string&lt;) <span class="org-string">"\n"</span>)
-                 <span class="org-string">"\n"</span>
-                 (format <span class="org-string">"  - *Earn* (%.1fh - %d%% of Business)\n"</span>
-                         (sacha/quantified-get-hours <span class="org-string">"Business - Earn"</span> time-summary)
-                         (/ (sacha/quantified-get-hours <span class="org-string">"Business - Earn"</span> time-summary) (* 0.01 biz-time)))
-                 (format <span class="org-string">"  - *Build* (%.1fh - %d%% of Business)\n"</span>
-                         (sacha/quantified-get-hours <span class="org-string">"Business - Build"</span> time-summary)
-                         (/ (sacha/quantified-get-hours <span class="org-string">"Business - Build"</span> time-summary) (* 0.01 biz-time)))
-                 (format <span class="org-string">"    - *Drawing* (%.1fh)\n"</span>
-                         (sacha/quantified-get-hours '(<span class="org-string">"Business - Build - Drawing"</span> <span class="org-string">"Business - Build - Book review"</span>)  time-summary))
-                 (format <span class="org-string">"    - *Delegation* (%.1fh)\n"</span>
-                         (sacha/quantified-get-hours <span class="org-string">"Business - Build - Delegation"</span> time-summary))
-                 (format <span class="org-string">"    - *Packaging* (%.1fh)\n"</span>
-                         (sacha/quantified-get-hours <span class="org-string">"Business - Build - Packaging"</span> time-summary))
-                 (format <span class="org-string">"    - *Paperwork* (%.1fh)\n"</span>
-                         (sacha/quantified-get-hours <span class="org-string">"Business - Build - Paperwork"</span>  time-summary))
-                 (format <span class="org-string">"  - *Connect* (%.1fh - %d%% of Business)\n"</span>
-                         (sacha/quantified-get-hours <span class="org-string">"Business - Connect"</span> time-summary)
-                         (/ (sacha/quantified-get-hours <span class="org-string">"Business - Connect"</span> time-summary) (* 0.01 biz-time)))
-                 (format <span class="org-string">"- *Relationships* (%.1fh - %d%%)\n"</span>
-                         (sacha/quantified-get-hours '(<span class="org-string">"Discretionary - Social"</span> <span class="org-string">"Discretionary - Family"</span>) time-summary)
-                         (/ (sacha/quantified-get-hours '(<span class="org-string">"Discretionary - Social"</span> <span class="org-string">"Discretionary - Family"</span>) time-summary) 1.68))
-                 (mapconcat 'identity (sort relationships 'string&lt;) <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
-                 (mapconcat 'identity (sort relationships-next 'string&lt;) <span class="org-string">"\n"</span>)
-                 <span class="org-string">"\n"</span>
-                 (format <span class="org-string">"- *Discretionary - Productive* (%.1fh - %d%%)\n"</span>
-                         (sacha/quantified-get-hours <span class="org-string">"Discretionary - Productive"</span> time-summary)
-                         (/ (sacha/quantified-get-hours <span class="org-string">"Discretionary - Productive"</span> time-summary) 1.68))
-                 (mapconcat 'identity (sort life 'string&lt;) <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
-                 (mapconcat 'identity (sort life-next 'string&lt;) <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
-                 (format <span class="org-string">"  - *Writing* (%.1fh)\n"</span>
-                         (sacha/quantified-get-hours <span class="org-string">"Discretionary - Productive - Writing"</span> time-summary))
-                 (format <span class="org-string">"- *Discretionary - Play* (%.1fh - %d%%)\n"</span>
-                         (sacha/quantified-get-hours <span class="org-string">"Discretionary - Play"</span> time-summary)
-                         (/ (sacha/quantified-get-hours <span class="org-string">"Discretionary - Play"</span> time-summary) 1.68))
-<span class="org-comment-delimiter">;                 </span><span class="org-comment">(format "- *Discretionary - Travel* (%.1fh - %d%%)\n"</span>
-<span class="org-comment-delimiter">;                         </span><span class="org-comment">(sacha/quantified-get-hours "Discretionary - Travel" time-summary)</span>
-<span class="org-comment-delimiter">;                         </span><span class="org-comment">(/ (sacha/quantified-get-hours "Discretionary - Travel" time-summary) 1.68))</span>
-                 (format <span class="org-string">"- *Personal routines* (%.1fh - %d%%)\n"</span>
-                         (sacha/quantified-get-hours <span class="org-string">"Personal"</span> time-summary)
-                         (/ (sacha/quantified-get-hours <span class="org-string">"Personal"</span> time-summary) 1.68))
-                 (format <span class="org-string">"- *Unpaid work* (%.1fh - %d%%)\n"</span>
-                         (sacha/quantified-get-hours <span class="org-string">"Unpaid work"</span> time-summary)
-                         (/ (sacha/quantified-get-hours <span class="org-string">"Unpaid work"</span> time-summary) 1.68))
-                 (format <span class="org-string">"- *Sleep* (%.1fh - %d%% - average of %.1f per day)\n"</span>
-                         (sacha/quantified-get-hours <span class="org-string">"Sleep"</span> time-summary)
-                         (/ (sacha/quantified-get-hours <span class="org-string">"Sleep"</span> time-summary) 1.68)
-                         (/ (sacha/quantified-get-hours <span class="org-string">"Sleep"</span> time-summary) 7)
-                         )))
-          (<span class="org-keyword">if</span> (called-interactively-p 'any)
-              (insert string)
-            string)))
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/weekly-review-line-regexp</span> 
+  <span class="org-string">"^  </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">:]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">: +</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">Sched[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">:]+: +</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?TODO </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string">[      ]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">:[[:alnum:]_@#%:]+:</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?[        ]*$"</span>
+  <span class="org-doc">"Regular expression matching lines to include."</span>)
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/quantified-get-hours</span> (category time-summary)
+  <span class="org-doc">"Return the number of hours based on the time summary."</span>
+  (<span class="org-keyword">if</span> (stringp category)
+      (<span class="org-keyword">if</span> (assoc category time-summary) (/ (cdr (assoc category time-summary)) 3600.0) 0)
+    (apply '+ (mapcar (<span class="org-keyword">lambda</span> (x) (sacha/quantified-get-hours x time-summary)) category))))
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-summarize-focus-areas</span> ()
+  <span class="org-doc">"Summarize previous and upcoming tasks as a list."</span>
+  (interactive)
+  (<span class="org-keyword">let</span> ((base-date (apply 'encode-time (org-read-date-analyze <span class="org-string">"-fri"</span> nil '(0 0 0))))
+        (line-re sacha/weekly-review-line-regexp)
+        business relationships life business-next relationships-next life-next string 
+        start end time-summary biz-time)
+    (setq start (format-time-string <span class="org-string">"%Y-%m-%d"</span> (days-to-time (- (time-to-number-of-days base-date) 6))))
+    (setq end (format-time-string <span class="org-string">"%Y-%m-%d"</span> (days-to-time (1+ (time-to-number-of-days base-date)))))
+    (setq time-summary (quantified-summarize-time start end))
+    (setq biz-time (sacha/quantified-get-hours <span class="org-string">"Business"</span> time-summary))
+    (<span class="org-keyword">save-window-excursion</span>
+      (org-agenda nil <span class="org-string">"w"</span>)
+      (setq string (buffer-string))
+      (<span class="org-keyword">with-temp-buffer</span>
+        (insert string)
+        (goto-char (point-min))
+        (<span class="org-keyword">while</span> (re-search-forward line-re nil t)
+          (<span class="org-keyword">cond</span>
+           ((string= (match-string 1) <span class="org-string">"routines"</span>) nil) <span class="org-comment-delimiter">; </span><span class="org-comment">skip routine tasks</span>
+           ((string= (match-string 1) <span class="org-string">"business"</span>)
+            (add-to-list 'business-next (concat <span class="org-string">"  - [ ] "</span> (match-string 3))))
+           ((string= (match-string 1) <span class="org-string">"people"</span>)
+            (add-to-list 'relationships-next (concat <span class="org-string">"  - [ ] "</span> (match-string 3))))
+           (t (add-to-list 'life-next (concat <span class="org-string">"  - [ ] "</span> (match-string 3))))))))
+    (<span class="org-keyword">save-window-excursion</span>
+      (org-agenda nil <span class="org-string">"w"</span>)
+      (org-agenda-later -1)
+      (org-agenda-log-mode 16)
+      (setq string (buffer-string))
+      <span class="org-comment-delimiter">;; </span><span class="org-comment">Get any completed tasks from the current week as well</span>
+      (org-agenda-later 1)
+      (org-agenda-log-mode 16)
+      (setq string (concat string <span class="org-string">"\n"</span> (buffer-string)))
+      (<span class="org-keyword">with-temp-buffer</span>
+        (insert string)
+        (goto-char (point-min))
+        (<span class="org-keyword">while</span> (re-search-forward line-re nil t)
+          (<span class="org-keyword">cond</span>
+           ((string= (match-string 1) <span class="org-string">"routines"</span>) nil) <span class="org-comment-delimiter">; </span><span class="org-comment">skip routine tasks</span>
+           ((string= (match-string 1) <span class="org-string">"business"</span>)
+            (add-to-list 'business (concat <span class="org-string">"  - [X] "</span> (match-string 2))))
+           ((string= (match-string 1) <span class="org-string">"people"</span>)
+            (add-to-list 'relationships (concat <span class="org-string">"  - [X] "</span> (match-string 2))))
+           (t (add-to-list 'life (concat <span class="org-string">"  - [X] "</span> (match-string 2))))))))
+    (setq string
+          (concat
+           (format <span class="org-string">"- *Business* (%.1fh - %d%%)\n"</span> biz-time (/ biz-time 1.68))
+           (mapconcat 'identity (sort business 'string&lt;) <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
+           (mapconcat 'identity (sort business-next 'string&lt;) <span class="org-string">"\n"</span>)
+           <span class="org-string">"\n"</span>
+           (format <span class="org-string">"  - *Earn* (%.1fh - %d%% of Business)\n"</span>
+                   (sacha/quantified-get-hours <span class="org-string">"Business - Earn"</span> time-summary)
+                   (/ (sacha/quantified-get-hours <span class="org-string">"Business - Earn"</span> time-summary) (* 0.01 biz-time)))
+           (format <span class="org-string">"  - *Build* (%.1fh - %d%% of Business)\n"</span>
+                   (sacha/quantified-get-hours <span class="org-string">"Business - Build"</span> time-summary)
+                   (/ (sacha/quantified-get-hours <span class="org-string">"Business - Build"</span> time-summary) (* 0.01 biz-time)))
+           (format <span class="org-string">"    - *Drawing* (%.1fh)\n"</span>
+                   (sacha/quantified-get-hours '(<span class="org-string">"Business - Build - Drawing"</span>
+                                                 <span class="org-string">"Business - Build - Book review"</span>)  time-summary))
+           (format <span class="org-string">"    - *Delegation* (%.1fh)\n"</span>
+                   (sacha/quantified-get-hours <span class="org-string">"Business - Build - Delegation"</span> time-summary))
+           (format <span class="org-string">"    - *Packaging* (%.1fh)\n"</span>
+                   (sacha/quantified-get-hours <span class="org-string">"Business - Build - Packaging"</span> time-summary))
+           (format <span class="org-string">"    - *Paperwork* (%.1fh)\n"</span>
+                   (sacha/quantified-get-hours <span class="org-string">"Business - Build - Paperwork"</span>  time-summary))
+           (format <span class="org-string">"  - *Connect* (%.1fh - %d%% of Business)\n"</span>
+                   (sacha/quantified-get-hours <span class="org-string">"Business - Connect"</span> time-summary)
+                   (/ (sacha/quantified-get-hours <span class="org-string">"Business - Connect"</span> time-summary) (* 0.01 biz-time)))
+           (format <span class="org-string">"- *Relationships* (%.1fh - %d%%)\n"</span>
+                   (sacha/quantified-get-hours '(<span class="org-string">"Discretionary - Social"</span>
+                                                 <span class="org-string">"Discretionary - Family"</span>) time-summary)
+                   (/ (sacha/quantified-get-hours '(<span class="org-string">"Discretionary - Social"</span>
+                                                    <span class="org-string">"Discretionary - Family"</span>) time-summary) 1.68))
+           (mapconcat 'identity (sort relationships 'string&lt;) <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
+           (mapconcat 'identity (sort relationships-next 'string&lt;) <span class="org-string">"\n"</span>)
+           <span class="org-string">"\n"</span>
+           (format <span class="org-string">"- *Discretionary - Productive* (%.1fh - %d%%)\n"</span>
+                   (sacha/quantified-get-hours <span class="org-string">"Discretionary - Productive"</span> time-summary)
+                   (/ (sacha/quantified-get-hours <span class="org-string">"Discretionary - Productive"</span> time-summary) 1.68))
+           (mapconcat 'identity (sort life 'string&lt;) <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
+           (mapconcat 'identity (sort life-next 'string&lt;) <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
+           (format <span class="org-string">"  - *Writing* (%.1fh)\n"</span>
+                   (sacha/quantified-get-hours <span class="org-string">"Discretionary - Productive - Writing"</span> time-summary))
+           (format <span class="org-string">"- *Discretionary - Play* (%.1fh - %d%%)\n"</span>
+                   (sacha/quantified-get-hours <span class="org-string">"Discretionary - Play"</span> time-summary)
+                   (/ (sacha/quantified-get-hours <span class="org-string">"Discretionary - Play"</span> time-summary) 1.68))
+                                        <span class="org-comment-delimiter">;                 </span><span class="org-comment">(format "- *Discretionary - Travel* (%.1fh - %d%%)\n"</span>
+                                        <span class="org-comment-delimiter">;                         </span><span class="org-comment">(sacha/quantified-get-hours "Discretionary - Travel" time-summary)</span>
+                                        <span class="org-comment-delimiter">;                         </span><span class="org-comment">(/ (sacha/quantified-get-hours "Discretionary - Travel" time-summary) 1.68))</span>
+           (format <span class="org-string">"- *Personal routines* (%.1fh - %d%%)\n"</span>
+                   (sacha/quantified-get-hours <span class="org-string">"Personal"</span> time-summary)
+                   (/ (sacha/quantified-get-hours <span class="org-string">"Personal"</span> time-summary) 1.68))
+           (format <span class="org-string">"- *Unpaid work* (%.1fh - %d%%)\n"</span>
+                   (sacha/quantified-get-hours <span class="org-string">"Unpaid work"</span> time-summary)
+                   (/ (sacha/quantified-get-hours <span class="org-string">"Unpaid work"</span> time-summary) 1.68))
+           (format <span class="org-string">"- *Sleep* (%.1fh - %d%% - average of %.1f per day)\n"</span>
+                   (sacha/quantified-get-hours <span class="org-string">"Sleep"</span> time-summary)
+                   (/ (sacha/quantified-get-hours <span class="org-string">"Sleep"</span> time-summary) 1.68)
+                   (/ (sacha/quantified-get-hours <span class="org-string">"Sleep"</span> time-summary) 7)
+                   )))
+    (<span class="org-keyword">if</span> (called-interactively-p 'any)
+        (insert string)
+      string)))
 </pre>
 </div>
 
@@ -2966,7 +2974,8 @@ Might as well take advantage of my stylesheet:
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(setq org-html-head <span class="org-string">"&lt;link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"&gt;&lt;/link&gt;</span>
+<pre class="src src-emacs-lisp">(setq org-html-head <span class="org-string">"&lt;link rel=\"stylesheet\" type=\"text/css\"</span>
+<span class="org-string">href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"&gt;&lt;/link&gt;</span>
 <span class="org-string">&lt;link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/org-export.css\"&gt;&lt;/link&gt;</span>
 <span class="org-string">&lt;link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/style.css\"&gt;&lt;/link&gt;</span>
 <span class="org-string">&lt;script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"&gt;&lt;/script&gt;"</span>)
@@ -3786,7 +3795,8 @@ And this loads the beeminder code:
   (<span class="org-keyword">let</span> (base)
     (<span class="org-keyword">save-excursion</span>
       (goto-char (point-min))
-      (<span class="org-keyword">while</span> (re-search-forward <span class="org-string">"&lt;div class=\"sharedaddy sd-sharing-enabled\"&gt;.*?&lt;div class=\"sharing-clear\"&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;"</span> nil t)
+      (<span class="org-keyword">while</span> (re-search-forward 
+              <span class="org-string">"&lt;div class=\"sharedaddy sd-sharing-enabled\"&gt;.*?&lt;div class=\"sharing-clear\"&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;"</span> nil t)
         (replace-match <span class="org-string">""</span>)))))
 </pre>
 </div>
@@ -4317,7 +4327,7 @@ List upcoming tasks so that I can see if I'm overloaded.
     (<span class="org-keyword">with-temp-buffer</span>
       (insert string)
       (goto-char (point-min))
-      (<span class="org-keyword">while</span> (re-search-forward <span class="org-string">"^  </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">:]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">: +</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">Sched[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">:]+: +</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?TODO </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string">[      ]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">:[[:alnum:]_@#%:]+:</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?[        ]*$"</span> nil t)
+      (<span class="org-keyword">while</span> (re-search-forward sacha/weekly-review-line-regexp nil t)
         (<span class="org-keyword">cond</span>
          ((string= (match-string 1) <span class="org-string">"routines"</span>) nil) <span class="org-comment-delimiter">; </span><span class="org-comment">skip routine tasks</span>
          ((string= (match-string 1) <span class="org-string">"business"</span>)
@@ -4361,7 +4371,7 @@ to see which items I'd planned ahead, and which ones were new tasks.
       (<span class="org-keyword">with-temp-buffer</span>
         (insert string)
       (goto-char (point-min))
-      (<span class="org-keyword">while</span> (re-search-forward <span class="org-string">"^  </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">:]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">: +.*?State:.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string">TODO</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">DONE</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"> </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string">[       ]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">:[[:alnum:]_@#%:]+:</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?[        ]*$"</span> nil t)
+      (<span class="org-keyword">while</span> (re-search-forward sacha/weekly-review-line-regexp nil t)
         (<span class="org-keyword">cond</span>
          ((string= (match-string 1) <span class="org-string">"routines"</span>) nil) <span class="org-comment-delimiter">; </span><span class="org-comment">skip routine tasks</span>
          ((string= (match-string 1) <span class="org-string">"business"</span>)
@@ -4826,7 +4836,9 @@ big to open easily there, though.
     (setq org-mobile-directory <span class="org-string">"~/Dropbox/mobile"</span>)
     (setq org-mobile-inbox-for-pull <span class="org-string">"~/personal/mobileorg.org"</span>)
     (setq default-buffer-file-coding-system 'utf-8)
-    (setq org-mobile-files '(<span class="org-string">"/cygdrive/c/sacha/personal/organizer.org"</span> <span class="org-string">"/cygdrive/c/sacha/personal/business.org"</span> <span class="org-string">"/cygdrive/c/sacha/personal/books.org"</span>))
+    (setq org-mobile-files '(<span class="org-string">"/cygdrive/c/sacha/personal/organizer.org"</span>
+                             <span class="org-string">"/cygdrive/c/sacha/personal/business.org"</span>
+                             <span class="org-string">"/cygdrive/c/sacha/personal/books.org"</span>))
     (setq org-mobile-agendas '(<span class="org-string">"a"</span>))))
 </pre>
 </div>

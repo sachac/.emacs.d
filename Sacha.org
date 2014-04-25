@@ -393,15 +393,16 @@ jump to a register, use =C-x r j= followed by the letter of the
 register.
 
 #+begin_src emacs-lisp :results silent
-  (dolist
-      (r `((?i . "~/.emacs.d/Sacha.org")
-           (?o . "~/personal/organizer.org")
-           (?b . "~/personal/business.org")
-           (?w . "~/Dropbox/public/sharing/index.org")
-           (?W . "~/Dropbox/public/blog.org")
-           (?g . "~/sachac.github.io/evil-plans/index.org")
-           (?l . "~/dropbox/public/learning.org")))
-    (set-register (car r) (cons 'file (cdr r))))
+  (mapcar
+   (lambda (r)
+     (set-register (car r) (cons 'file (cdr r))))
+   '((?i . "~/.emacs.d/Sacha.org")
+     (?o . "~/personal/organizer.org")
+     (?b . "~/personal/business.org")
+     (?w . "~/Dropbox/public/sharing/index.org")
+     (?W . "~/Dropbox/public/blog.org")
+     (?g . "~/sachac.github.io/evil-plans/index.org")
+     (?l . "~/dropbox/public/learning.org")))
 #+end_src
 
 *** Browse-kill-ring - see what you've cut so that you can paste it   :drill:
@@ -991,11 +992,14 @@ I have quite a few Org files, but I keep my agenda items and TODOs in
 only a few of them them for faster scanning.
 
 #+begin_src emacs-lisp
-    (setq org-agenda-files '("~/personal/organizer.org"
-                             "~/personal/people.org"
-                             "~/personal/business.org"
-                             "~/personal/routines.org"
-                             "~/dropbox/public/learning.org"))
+  (setq org-agenda-files '(
+                           "~/personal/organizer.org"
+                           "~/personal/people.org"
+                           "~/personal/business.org"
+                           "~/personal/routines.org"
+                           "~/Dropbox/public/sharing/index.org"
+                           "~/dropbox/public/learning.org"
+                           ))
 #+end_src
 
 I like looking at two days at a time when I plan using the Org

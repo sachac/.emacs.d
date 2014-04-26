@@ -136,13 +136,14 @@ Disk space is cheap. Save lots.
 (setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list" t)))
 #+end_src
 
-
 *** History
 
 From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
 #+begin_src emacs-lisp
 (setq savehist-file "~/.emacs.d/savehist")
 (savehist-mode 1)
+(setq history-length t)
+(setq history-delete-duplicates t)
 (setq savehist-save-minibuffer-history 1)
 (setq savehist-additional-variables
       '(kill-ring
@@ -218,7 +219,17 @@ possible, although I prefer ido's way of switching buffers.
       :bind (("C-c h" . helm-mini)))
     (ido-mode -1) ;; Turn off ido mode in case I enabled it accidentally
 #+end_src
+*** Mode line format
 
+Display a more compact mode line
+
+#+begin_src emacs-lisp
+(use-package smart-mode-line
+  :init
+  (progn
+    (setq sml/theme 'dark)
+    (sml/setup)))
+#+end_src
 
 *** Change "yes or no" to "y or n"
 
@@ -316,7 +327,18 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
 (when (display-graphic-p)
   (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
 #+end_src
+*** Killing text
 
+From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
+
+#+begin_src emacs-lisp
+(defadvice kill-region (before slick-cut activate compile)
+  "When called interactively with no active region, kill a single line instead."
+  (interactive
+    (if mark-active (list (region-beginning) (region-end))
+      (list (line-beginning-position)
+        (line-beginning-position 2)))))
+#+end_src
 ** Navigation
 *** Pop to mark
 
@@ -324,6 +346,7 @@ Handy way of getting back to previous places.
 
 #+begin_src emacs-lisp
 (bind-key "C-x p" 'pop-to-mark-command)
+(setq set-mark-command-repeat-pop t)
 #+end_src
 *** Text size
 
@@ -400,9 +423,9 @@ register.
      (?o . "~/personal/organizer.org")
      (?b . "~/personal/business.org")
      (?w . "~/Dropbox/public/sharing/index.org")
-     (?W . "~/Dropbox/public/blog.org")
+     (?W . "~/Dropbox/public/sharing/blog.org")
      (?g . "~/sachac.github.io/evil-plans/index.org")
-     (?l . "~/dropbox/public/learning.org")))
+     (?l . "~/dropbox/public/sharing/learning.org")))
 #+end_src
 
 *** Browse-kill-ring - see what you've cut so that you can paste it   :drill:
@@ -451,6 +474,14 @@ shortcuts that use ordinary keys.
       (key-chord-mode 1)
       (key-chord-define-global "cg"     'undo)
       (key-chord-define-global "yp"     'other-window)))
+#+end_src
+*** Smartscan
+
+From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
+
+#+begin_src emacs-lisp
+(use-package smartscan
+  :init (global-smartscan-mode t))
 #+end_src
 
 ** Writing
@@ -1449,17 +1480,22 @@ down into previous/next week.
   (defvar sacha/weekly-review-line-regexp 
     "^  \\([^:]+\\): +\\(Sched[^:]+: +\\)?TODO \\(.*?\\)\\(?:[      ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$"
     "Regular expression matching lines to include.")
+  (defvar sacha/weekly-done-line-regexp 
+    "^  \\([^:]+\\): +.*?\\(?:Clocked\\|Closed\\):.*?\\(?:TODO\\|DONE\\) \\(.*?\\)\\(?:[       ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$"
+    "Regular expression matching lines to include as completed tasks.")
 
   (defun sacha/quantified-get-hours (category time-summary)
     "Return the number of hours based on the time summary."
     (if (stringp category)
         (if (assoc category time-summary) (/ (cdr (assoc category time-summary)) 3600.0) 0)
       (apply '+ (mapcar (lambda (x) (sacha/quantified-get-hours x time-summary)) category))))
+
   (defun sacha/org-summarize-focus-areas ()
     "Summarize previous and upcoming tasks as a list."
     (interactive)
     (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
           (line-re sacha/weekly-review-line-regexp)
+          (done-re sacha/weekly-done-line-regexp)
           business relationships life business-next relationships-next life-next string 
           start end time-summary biz-time)
       (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
@@ -1492,7 +1528,7 @@ down into previous/next week.
         (with-temp-buffer
           (insert string)
           (goto-char (point-min))
-          (while (re-search-forward line-re nil t)
+          (while (re-search-forward done-re nil t)
             (cond
              ((string= (match-string 1) "routines") nil) ; skip routine tasks
              ((string= (match-string 1) "business")
@@ -1585,7 +1621,6 @@ Now we put it all together...
     "Prepare weekly review template."
     (interactive)
     (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
-          (org-agenda-files '("~/personal/organizer.org" "~/personal/business.org" "~/personal/people.org"))
           start end)
       (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
       (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
@@ -1837,6 +1872,16 @@ This makes it easier to publish my public Dropbox files:
              :publishing-directory "c:/sacha/code/emacs-notes"
              :publishing-function sacha/org-html-publish-to-html-trustingly
              )
+            ("emacs-chats"
+             :base-directory "c:/sacha/code/emacs-chats"
+             :publishing-directory "c:/sacha/code/emacs-chats"
+             :publishing-function sacha/org-html-publish-to-html-trustingly
+             )
+            ("sharing"
+             :base-directory "c:/sacha/Dropbox/public/sharing"
+             :publishing-directory "c:/sacha/Dropbox/public/sharing"
+             :publishing-function sacha/org-html-publish-to-html-trustingly
+             )
             ("emacs-config"
              :base-directory "c:/sacha/.emacs.d"
              :publishing-directory "c:/sacha/.emacs.d"
@@ -1866,6 +1911,9 @@ ELPA, so I figured I'd give that a try.
 (require 'org2blog-autoloads)
 (setq org-export-with-toc nil)
 (setq org-export-htmlize-output-type 'css)
+(defadvice org2blog/wp-post-buffer (around sacha activate)
+  (let ((org-confirm-babel-evaluate nil))
+    ad-do-it))
 #+end_src
 
 **** Publish without prompting
@@ -2083,6 +2131,12 @@ don't need this any more...
                                     "sacha-emacs.el" destination-dir) "emacs-lisp")
             (org-html-export-to-html))))))
     #+end_src
+*** Task dependencies
+
+#+begin_src emacs-lisp
+(setq org-enforce-todo-dependencies t)
+(setq org-track-ordered-property-with-tag t)
+#+end_src
 
 ** Coding
 *** Tab width of 2 is compact and readable
@@ -2216,9 +2270,19 @@ I sometimes need to know where I am in a line.
 *** Magit - nice git interface
 
 #+begin_src emacs-lisp
+(defun sacha/magit-commit-all ()
+  "Publish the current file and commit all the current changes."
+  (interactive)
+  (sacha/org-publish-maybe)
+  (magit-status default-directory)
+  (magit-stage-all)
+  (call-interactively 'magit-log-edit))
+
 (use-package magit
   :init (setq magit-diff-options '("-b")) ; ignore whitespace
-  :bind (("C-x v d" . magit-status) ("C-x v p" . magit-push) ("C-x v c" . magit-log-edit)))
+  :bind (("C-x v d" . magit-status) 
+         ("C-x v p" . magit-push) 
+         ("C-x v c" . sacha/magit-commit-all)))
 #+end_src
 *** Tag files
 
@@ -2261,6 +2325,13 @@ I sometimes need to know where I am in a line.
 #+begin_src emacs-lisp
 
 #+end_src
+*** Rainbow delimiters
+
+#+begin_src emacs-lisp
+(use-package rainbow-delimiters
+  :init (global-rainbow-delimiters-mode))
+#+end_src
+
 ** Ledger (personal finance): Make it easier to review my credit card transactions
 
 #+begin_src emacs-lisp
@@ -2613,7 +2684,14 @@ Quickly jump to a position in the current view.
 
 #+begin_src emacs-lisp
   (use-package ace-jump-mode
-    :bind ("C-c SPC" . ace-jump-mode))
+    :bind ("S-SPC" . ace-jump-mode))
+#+end_src
+
+Ace Window looks useful too
+
+#+begin_src emacs-lisp
+(use-package ace-window
+  :bind ("M-s a w" . ace-window))
 #+end_src
 
 *** Network: TRAMP and editing files over SSH
@@ -3296,8 +3374,7 @@ recently-opened files first.
     (interactive)
     (let* ((base-date (org-read-date-analyze "-1m" nil '(0 0 0)))
            (start (encode-time 0 0 0 1 (elt base-date 4) (elt base-date 5)))
-           (end (encode-time 0 0 0 1 (1+ (elt base-date 4)) (elt base-date 5)))
-           (org-agenda-files '("~/personal/organizer.org" "~/personal/business.org" "~/personal/people.org")))
+           (end (encode-time 0 0 0 1 (1+ (elt base-date 4)) (elt base-date 5))))
       (save-window-excursion
         (kill-new
          (concat

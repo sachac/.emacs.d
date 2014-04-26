@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-04-23 Wed 11:03 -->
+<!-- 2014-04-26 Sat 14:38 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -88,7 +88,8 @@
     { background-color: #ffff00; color: #000000; font-weight: bold; }
   /*]]>*/-->
 </style>
-<link rel="stylesheet" type="text/css" href="http://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css"></link>
+<link rel="stylesheet" type="text/css"
+href="http://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css"></link>
 <link rel="stylesheet" type="text/css" href="http://sachachua.com/org-export.css"></link>
 <link rel="stylesheet" type="text/css" href="http://sachachua.com/blog/wp-content/themes/sacha-v3/style.css"></link>
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
@@ -170,12 +171,14 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-4-4">Winner mode - undo and redo window configuration</a></li>
 <li><a href="#sec-1-4-5">Sentences end with a single space</a></li>
 <li><a href="#sec-1-4-6">Helm - interactive completion</a></li>
-<li><a href="#sec-1-4-7">Change "yes or no" to "y or n"</a></li>
-<li><a href="#sec-1-4-8">Minibuffer editing - more space!</a></li>
-<li><a href="#sec-1-4-9">Set up a light-on-dark color scheme</a></li>
-<li><a href="#sec-1-4-10">Undo tree mode - visualize your undos and branches</a></li>
-<li><a href="#sec-1-4-11">Help - guide-key</a></li>
-<li><a href="#sec-1-4-12">UTF-8</a></li>
+<li><a href="#sec-1-4-7">Mode line format</a></li>
+<li><a href="#sec-1-4-8">Change "yes or no" to "y or n"</a></li>
+<li><a href="#sec-1-4-9">Minibuffer editing - more space!</a></li>
+<li><a href="#sec-1-4-10">Set up a light-on-dark color scheme</a></li>
+<li><a href="#sec-1-4-11">Undo tree mode - visualize your undos and branches</a></li>
+<li><a href="#sec-1-4-12">Help - guide-key</a></li>
+<li><a href="#sec-1-4-13">UTF-8</a></li>
+<li><a href="#sec-1-4-14">Killing text</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-5">Navigation</a>
@@ -188,6 +191,7 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-5-6">Frequently-accessed files</a></li>
 <li><a href="#sec-1-5-7">Browse-kill-ring - see what you've cut so that you can paste it</a></li>
 <li><a href="#sec-1-5-8">Key chords</a></li>
+<li><a href="#sec-1-5-9">Smartscan</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-6">Writing</a>
@@ -265,6 +269,7 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-7-23">Counting</a></li>
 <li><a href="#sec-1-7-24">Diagrams and graphics</a></li>
 <li><a href="#sec-1-7-25">Share my Emacs configuration</a></li>
+<li><a href="#sec-1-7-26">Task dependencies</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-8">Coding</a>
@@ -289,6 +294,7 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-8-11">Tag files</a></li>
 <li><a href="#sec-1-8-12">Projects</a></li>
 <li><a href="#sec-1-8-13">Exploring MELPA recipes</a></li>
+<li><a href="#sec-1-8-14">Rainbow delimiters</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-9">Ledger (personal finance): Make it easier to review my credit card transactions</a></li>
@@ -589,7 +595,6 @@ Disk space is cheap. Save lots.
 </div>
 </div>
 
-
 <div id="outline-container-sec-1-4-2" class="outline-4">
 <h4 id="sec-1-4-2">History</h4>
 <div class="outline-text-4" id="text-1-4-2">
@@ -600,6 +605,8 @@ From <a href="http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/0
 
 <pre class="src src-emacs-lisp">(setq savehist-file <span class="org-string">"~/.emacs.d/savehist"</span>)
 (savehist-mode 1)
+(setq history-length t)
+(setq history-delete-duplicates t)
 (setq savehist-save-minibuffer-history 1)
 (setq savehist-additional-variables
       '(kill-ring
@@ -694,11 +701,28 @@ possible, although I prefer ido's way of switching buffers.
 </div>
 </div>
 </div>
-
-
 <div id="outline-container-sec-1-4-7" class="outline-4">
-<h4 id="sec-1-4-7">Change "yes or no" to "y or n"</h4>
+<h4 id="sec-1-4-7">Mode line format</h4>
 <div class="outline-text-4" id="text-1-4-7">
+<p>
+Display a more compact mode line
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">smart-mode-line</span>
+  <span class="org-builtin">:init</span>
+  (<span class="org-keyword">progn</span>
+    (setq sml/theme 'dark)
+    (sml/setup)))
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-4-8" class="outline-4">
+<h4 id="sec-1-4-8">Change "yes or no" to "y or n"</h4>
+<div class="outline-text-4" id="text-1-4-8">
 <p>
 Lazy people like me never want to type "yes" when "y" will suffice.
 </p>
@@ -711,9 +735,9 @@ Lazy people like me never want to type "yes" when "y" will suffice.
 </div>
 </div>
 
-<div id="outline-container-sec-1-4-8" class="outline-4">
-<h4 id="sec-1-4-8">Minibuffer editing - more space!</h4>
-<div class="outline-text-4" id="text-1-4-8">
+<div id="outline-container-sec-1-4-9" class="outline-4">
+<h4 id="sec-1-4-9">Minibuffer editing - more space!</h4>
+<div class="outline-text-4" id="text-1-4-9">
 <p>
 Sometimes you want to be able to do fancy things with the text
 that you're entering into the minibuffer. Sometimes you just want
@@ -732,9 +756,9 @@ contents of the minibuffer before submitting it.
 </div>
 </div>
 
-<div id="outline-container-sec-1-4-9" class="outline-4">
-<h4 id="sec-1-4-9">Set up a light-on-dark color scheme</h4>
-<div class="outline-text-4" id="text-1-4-9">
+<div id="outline-container-sec-1-4-10" class="outline-4">
+<h4 id="sec-1-4-10">Set up a light-on-dark color scheme</h4>
+<div class="outline-text-4" id="text-1-4-10">
 <p>
 I like light on dark because I find it to be more restful. The
 color-theme in ELPA was a little odd, though, so we define some advice to make
@@ -789,9 +813,9 @@ Some more tweaks to solarized:
 </div>
 </div>
 
-<div id="outline-container-sec-1-4-10" class="outline-4">
-<h4 id="sec-1-4-10">Undo tree mode - visualize your undos and branches</h4>
-<div class="outline-text-4" id="text-1-4-10">
+<div id="outline-container-sec-1-4-11" class="outline-4">
+<h4 id="sec-1-4-11">Undo tree mode - visualize your undos and branches</h4>
+<div class="outline-text-4" id="text-1-4-11">
 <p>
 People often struggle with the Emacs undo model, where there's really no concept of "redo" - you simply undo the undo. 
 </p>
@@ -808,9 +832,9 @@ This lets you use <code>C-x u</code> (<code>undo-tree-visualize</code>) to visua
 </div>
 </div>
 
-<div id="outline-container-sec-1-4-11" class="outline-4">
-<h4 id="sec-1-4-11">Help - guide-key</h4>
-<div class="outline-text-4" id="text-1-4-11">
+<div id="outline-container-sec-1-4-12" class="outline-4">
+<h4 id="sec-1-4-12">Help - guide-key</h4>
+<div class="outline-text-4" id="text-1-4-12">
 <p>
 It's hard to remember keyboard shortcuts. The <code>guide-key</code> package pops up help after a short delay.
 </p>
@@ -826,9 +850,9 @@ It's hard to remember keyboard shortcuts. The <code>guide-key</code> package pop
 </div>
 </div>
 
-<div id="outline-container-sec-1-4-12" class="outline-4">
-<h4 id="sec-1-4-12">UTF-8</h4>
-<div class="outline-text-4" id="text-1-4-12">
+<div id="outline-container-sec-1-4-13" class="outline-4">
+<h4 id="sec-1-4-13">UTF-8</h4>
+<div class="outline-text-4" id="text-1-4-13">
 <p>
 From <a href="http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html">http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html</a>
 </p>
@@ -841,8 +865,26 @@ From <a href="http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/0
 </div>
 </div>
 </div>
-</div>
+<div id="outline-container-sec-1-4-14" class="outline-4">
+<h4 id="sec-1-4-14">Killing text</h4>
+<div class="outline-text-4" id="text-1-4-14">
+<p>
+From <a href="https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el">https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el</a>
+</p>
 
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defadvice</span> <span class="org-function-name">kill-region</span> (before slick-cut activate compile)
+  <span class="org-doc">"When called interactively with no active region, kill a single line instead."</span>
+  (interactive
+    (<span class="org-keyword">if</span> mark-active (list (region-beginning) (region-end))
+      (list (line-beginning-position)
+        (line-beginning-position 2)))))
+</pre>
+</div>
+</div>
+</div>
+</div>
 <div id="outline-container-sec-1-5" class="outline-3">
 <h3 id="sec-1-5">Navigation</h3>
 <div class="outline-text-3" id="text-1-5">
@@ -856,6 +898,7 @@ Handy way of getting back to previous places.
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(bind-key <span class="org-string">"C-x p"</span> 'pop-to-mark-command)
+(setq set-mark-command-repeat-pop t)
 </pre>
 </div>
 </div>
@@ -959,15 +1002,16 @@ register.
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">dolist</span>
-    (r `((?i . <span class="org-string">"~/.emacs.d/Sacha.org"</span>)
-         (?o . <span class="org-string">"~/personal/organizer.org"</span>)
-         (?b . <span class="org-string">"~/personal/business.org"</span>)
-         (?w . <span class="org-string">"~/Dropbox/public/sharing/index.org"</span>)
-         (?W . <span class="org-string">"~/Dropbox/public/blog.org"</span>)
-         (?g . <span class="org-string">"~/sachac.github.io/evil-plans/index.org"</span>)
-         (?l . <span class="org-string">"~/dropbox/public/learning.org"</span>)))
-  (set-register (car r) (cons 'file (cdr r))))
+<pre class="src src-emacs-lisp">(mapcar
+ (<span class="org-keyword">lambda</span> (r)
+   (set-register (car r) (cons 'file (cdr r))))
+ '((?i . <span class="org-string">"~/.emacs.d/Sacha.org"</span>)
+   (?o . <span class="org-string">"~/personal/organizer.org"</span>)
+   (?b . <span class="org-string">"~/personal/business.org"</span>)
+   (?w . <span class="org-string">"~/Dropbox/public/sharing/index.org"</span>)
+   (?W . <span class="org-string">"~/Dropbox/public/sharing/blog.org"</span>)
+   (?g . <span class="org-string">"~/sachac.github.io/evil-plans/index.org"</span>)
+   (?l . <span class="org-string">"~/dropbox/public/sharing/learning.org"</span>)))
 </pre>
 </div>
 </div>
@@ -1021,6 +1065,21 @@ shortcuts that use ordinary keys.
     (key-chord-mode 1)
     (key-chord-define-global <span class="org-string">"cg"</span>     'undo)
     (key-chord-define-global <span class="org-string">"yp"</span>     'other-window)))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-5-9" class="outline-4">
+<h4 id="sec-1-5-9">Smartscan</h4>
+<div class="outline-text-4" id="text-1-5-9">
+<p>
+From <a href="https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el">https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el</a>
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">smartscan</span>
+  <span class="org-builtin">:init</span> (global-smartscan-mode t))
 </pre>
 </div>
 </div>
@@ -1840,11 +1899,14 @@ only a few of them them for faster scanning.
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(setq org-agenda-files '(<span class="org-string">"~/personal/organizer.org"</span>
+<pre class="src src-emacs-lisp">(setq org-agenda-files '(
+                         <span class="org-string">"~/personal/organizer.org"</span>
                          <span class="org-string">"~/personal/people.org"</span>
                          <span class="org-string">"~/personal/business.org"</span>
                          <span class="org-string">"~/personal/routines.org"</span>
-                         <span class="org-string">"~/dropbox/public/learning.org"</span>))
+                         <span class="org-string">"~/Dropbox/public/sharing/index.org"</span>
+                         <span class="org-string">"~/dropbox/public/learning.org"</span>
+                         ))
 </pre>
 </div>
 
@@ -2439,17 +2501,22 @@ down into previous/next week.
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/weekly-review-line-regexp</span> 
   <span class="org-string">"^  </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">:]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">: +</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">Sched[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">:]+: +</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?TODO </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string">[      ]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">:[[:alnum:]_@#%:]+:</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?[        ]*$"</span>
   <span class="org-doc">"Regular expression matching lines to include."</span>)
+(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/weekly-done-line-regexp</span> 
+  <span class="org-string">"^  </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">:]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">: +.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string">Clocked</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">Closed</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">:.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string">TODO</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">DONE</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"> </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string">[       ]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">:[[:alnum:]_@#%:]+:</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?[        ]*$"</span>
+  <span class="org-doc">"Regular expression matching lines to include as completed tasks."</span>)
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/quantified-get-hours</span> (category time-summary)
   <span class="org-doc">"Return the number of hours based on the time summary."</span>
   (<span class="org-keyword">if</span> (stringp category)
       (<span class="org-keyword">if</span> (assoc category time-summary) (/ (cdr (assoc category time-summary)) 3600.0) 0)
     (apply '+ (mapcar (<span class="org-keyword">lambda</span> (x) (sacha/quantified-get-hours x time-summary)) category))))
+
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-summarize-focus-areas</span> ()
   <span class="org-doc">"Summarize previous and upcoming tasks as a list."</span>
   (interactive)
   (<span class="org-keyword">let</span> ((base-date (apply 'encode-time (org-read-date-analyze <span class="org-string">"-fri"</span> nil '(0 0 0))))
         (line-re sacha/weekly-review-line-regexp)
+        (done-re sacha/weekly-done-line-regexp)
         business relationships life business-next relationships-next life-next string 
         start end time-summary biz-time)
     (setq start (format-time-string <span class="org-string">"%Y-%m-%d"</span> (days-to-time (- (time-to-number-of-days base-date) 6))))
@@ -2482,7 +2549,7 @@ down into previous/next week.
       (<span class="org-keyword">with-temp-buffer</span>
         (insert string)
         (goto-char (point-min))
-        (<span class="org-keyword">while</span> (re-search-forward line-re nil t)
+        (<span class="org-keyword">while</span> (re-search-forward done-re nil t)
           (<span class="org-keyword">cond</span>
            ((string= (match-string 1) <span class="org-string">"routines"</span>) nil) <span class="org-comment-delimiter">; </span><span class="org-comment">skip routine tasks</span>
            ((string= (match-string 1) <span class="org-string">"business"</span>)
@@ -2585,7 +2652,6 @@ Now we put it all together&#x2026;
   <span class="org-doc">"Prepare weekly review template."</span>
   (interactive)
   (<span class="org-keyword">let</span> ((base-date (apply 'encode-time (org-read-date-analyze <span class="org-string">"-fri"</span> nil '(0 0 0))))
-        (org-agenda-files '(<span class="org-string">"~/personal/organizer.org"</span> <span class="org-string">"~/personal/business.org"</span> <span class="org-string">"~/personal/people.org"</span>))
         start end)
     (setq start (format-time-string <span class="org-string">"%Y-%m-%d"</span> (days-to-time (- (time-to-number-of-days base-date) 6))))
     (setq end (format-time-string <span class="org-string">"%Y-%m-%d"</span> (days-to-time (1+ (time-to-number-of-days base-date)))))
@@ -2900,6 +2966,16 @@ This makes it easier to publish my public Dropbox files:
          <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/code/emacs-notes"</span>
          <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
          )
+        (<span class="org-string">"emacs-chats"</span>
+         <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/code/emacs-chats"</span>
+         <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/code/emacs-chats"</span>
+         <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
+         )
+        (<span class="org-string">"sharing"</span>
+         <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/Dropbox/public/sharing"</span>
+         <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/Dropbox/public/sharing"</span>
+         <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
+         )
         (<span class="org-string">"emacs-config"</span>
          <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/.emacs.d"</span>
          <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/.emacs.d"</span>
@@ -2939,6 +3015,9 @@ ELPA, so I figured I'd give that a try.
 (<span class="org-keyword">require</span> '<span class="org-constant">org2blog-autoloads</span>)
 (setq org-export-with-toc nil)
 (setq org-export-htmlize-output-type 'css)
+(<span class="org-keyword">defadvice</span> <span class="org-function-name">org2blog/wp-post-buffer</span> (around sacha activate)
+  (<span class="org-keyword">let</span> ((org-confirm-babel-evaluate nil))
+    ad-do-it))
 </pre>
 </div>
 </div>
@@ -3249,6 +3328,17 @@ don't need this any more&#x2026;
 </div>
 </div>
 </div>
+<div id="outline-container-sec-1-7-26" class="outline-4">
+<h4 id="sec-1-7-26">Task dependencies</h4>
+<div class="outline-text-4" id="text-1-7-26">
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(setq org-enforce-todo-dependencies t)
+(setq org-track-ordered-property-with-tag t)
+</pre>
+</div>
+</div>
+</div>
 </div>
 
 <div id="outline-container-sec-1-8" class="outline-3">
@@ -3459,9 +3549,19 @@ I sometimes need to know where I am in a line.
 <div class="outline-text-4" id="text-1-8-10">
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">magit</span>
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/magit-commit-all</span> ()
+  <span class="org-doc">"Publish the current file and commit all the current changes."</span>
+  (interactive)
+  (sacha/org-publish-maybe)
+  (magit-status default-directory)
+  (magit-stage-all)
+  (call-interactively 'magit-log-edit))
+
+(<span class="org-keyword">use-package</span> <span class="org-constant">magit</span>
   <span class="org-builtin">:init</span> (setq magit-diff-options '(<span class="org-string">"-b"</span>)) <span class="org-comment-delimiter">; </span><span class="org-comment">ignore whitespace</span>
-  <span class="org-builtin">:bind</span> ((<span class="org-string">"C-x v d"</span> . magit-status) (<span class="org-string">"C-x v p"</span> . magit-push) (<span class="org-string">"C-x v c"</span> . magit-log-edit)))
+  <span class="org-builtin">:bind</span> ((<span class="org-string">"C-x v d"</span> . magit-status) 
+         (<span class="org-string">"C-x v p"</span> . magit-push) 
+         (<span class="org-string">"C-x v c"</span> . sacha/magit-commit-all)))
 </pre>
 </div>
 </div>
@@ -3523,7 +3623,19 @@ tree instead.
 </div>
 </div>
 </div>
+<div id="outline-container-sec-1-8-14" class="outline-4">
+<h4 id="sec-1-8-14">Rainbow delimiters</h4>
+<div class="outline-text-4" id="text-1-8-14">
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">rainbow-delimiters</span>
+  <span class="org-builtin">:init</span> (global-rainbow-delimiters-mode))
+</pre>
 </div>
+</div>
+</div>
+</div>
+
 <div id="outline-container-sec-1-9" class="outline-3">
 <h3 id="sec-1-9">Ledger (personal finance): Make it easier to review my credit card transactions</h3>
 <div class="outline-text-3" id="text-1-9">
@@ -3952,7 +4064,18 @@ Quickly jump to a position in the current view.
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">ace-jump-mode</span>
-  <span class="org-builtin">:bind</span> (<span class="org-string">"C-c SPC"</span> . ace-jump-mode))
+  <span class="org-builtin">:bind</span> (<span class="org-string">"S-SPC"</span> . ace-jump-mode))
+</pre>
+</div>
+
+<p>
+Ace Window looks useful too
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">ace-window</span>
+  <span class="org-builtin">:bind</span> (<span class="org-string">"M-s a w"</span> . ace-window))
 </pre>
 </div>
 </div>
@@ -4796,8 +4919,7 @@ searches for files within the specified directories.
   (interactive)
   (<span class="org-keyword">let*</span> ((base-date (org-read-date-analyze <span class="org-string">"-1m"</span> nil '(0 0 0)))
          (start (encode-time 0 0 0 1 (elt base-date 4) (elt base-date 5)))
-         (end (encode-time 0 0 0 1 (1+ (elt base-date 4)) (elt base-date 5)))
-         (org-agenda-files '(<span class="org-string">"~/personal/organizer.org"</span> <span class="org-string">"~/personal/business.org"</span> <span class="org-string">"~/personal/people.org"</span>)))
+         (end (encode-time 0 0 0 1 (1+ (elt base-date 4)) (elt base-date 5))))
     (<span class="org-keyword">save-window-excursion</span>
       (kill-new
        (concat

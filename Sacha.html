@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-04-26 Sat 14:38 -->
+<!-- 2014-04-28 Mon 12:36 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -192,12 +192,14 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-5-7">Browse-kill-ring - see what you've cut so that you can paste it</a></li>
 <li><a href="#sec-1-5-8">Key chords</a></li>
 <li><a href="#sec-1-5-9">Smartscan</a></li>
+<li><a href="#sec-1-5-10">Dired</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-6">Writing</a>
 <ul>
 <li><a href="#sec-1-6-1">Avoiding weasel words</a></li>
 <li><a href="#sec-1-6-2">Unfill paragraph</a></li>
+<li><a href="#sec-1-6-3">Transpose</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-7">Org</a>
@@ -589,6 +591,7 @@ Disk space is cheap. Save lots.
 
 <pre class="src src-emacs-lisp">(setq delete-old-versions -1)
 (setq version-control t)
+(setq vc-make-backup-files t)
 (setq auto-save-file-name-transforms '((<span class="org-string">".*"</span> <span class="org-string">"~/.emacs.d/auto-save-list"</span> t)))
 </pre>
 </div>
@@ -629,7 +632,8 @@ When you're starting out, tooltips, menus, and the tool bar can be very helpful.
 <pre class="src src-emacs-lisp">(<span class="org-keyword">when</span> window-system
   (tooltip-mode -1)
   (tool-bar-mode -1)
-  (menu-bar-mode -1))
+  (menu-bar-mode -1)
+  (scroll-bar-mode -1))
 </pre>
 </div>
 </div>
@@ -713,8 +717,40 @@ Display a more compact mode line
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">smart-mode-line</span>
   <span class="org-builtin">:init</span>
   (<span class="org-keyword">progn</span>
-    (setq sml/theme 'dark)
-    (sml/setup)))
+  (setq-default
+   mode-line-format 
+   '(<span class="org-string">"%e"</span>
+     mode-line-front-space
+     mode-line-mule-info
+     mode-line-client
+     mode-line-modified
+     mode-line-remote
+     mode-line-frame-identification
+     mode-line-buffer-identification
+     <span class="org-string">"   "</span>
+     mode-line-position
+     (vc-mode vc-mode)
+     <span class="org-string">"  "</span>
+     mode-line-modes
+     mode-line-misc-info
+     mode-line-end-spaces))))
+</pre>
+</div>
+
+<p>
+Hide minor modes I care less about:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">require</span> '<span class="org-constant">diminish</span>)
+(<span class="org-keyword">eval-after-load</span> <span class="org-string">"yasnippet"</span> '(diminish 'yas-minor-mode))
+(<span class="org-keyword">eval-after-load</span> <span class="org-string">"undo-tree"</span> '(diminish 'undo-tree-mode))
+(<span class="org-keyword">eval-after-load</span> <span class="org-string">"guide-key"</span> '(diminish 'guide-key-mode))
+(<span class="org-keyword">eval-after-load</span> <span class="org-string">"smartparens"</span> '(diminish 'smartparens-mode))
+(<span class="org-keyword">eval-after-load</span> <span class="org-string">"guide-key"</span> '(diminish 'guide-key-mode))
+(<span class="org-keyword">eval-after-load</span> <span class="org-string">"eldoc"</span> '(diminish 'eldoc-mode))
+(diminish 'visual-line-mode)
 </pre>
 </div>
 </div>
@@ -1084,8 +1120,22 @@ From <a href="https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el">http
 </div>
 </div>
 </div>
-</div>
+<div id="outline-container-sec-1-5-10" class="outline-4">
+<h4 id="sec-1-5-10">Dired</h4>
+<div class="outline-text-4" id="text-1-5-10">
+<p>
+From <a href="http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/">http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/</a>
+</p>
 
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">require</span> '<span class="org-constant">find-dired</span>)
+(setq find-ls-option '(<span class="org-string">"-print0 | xargs -0 ls -ld"</span> . <span class="org-string">"-ld"</span>))
+</pre>
+</div>
+</div>
+</div>
+</div>
 <div id="outline-container-sec-1-6" class="outline-3">
 <h3 id="sec-1-6">Writing</h3>
 <div class="outline-text-3" id="text-1-6">
@@ -1174,8 +1224,23 @@ Also, <code>visual-line-mode</code> is so much better than <code>auto-fill-mode<
 </div>
 </div>
 </div>
-</div>
+<div id="outline-container-sec-1-6-3" class="outline-4">
+<h4 id="sec-1-6-3">Transpose</h4>
+<div class="outline-text-4" id="text-1-6-3">
+<div class="org-src-container">
 
+<pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">Transpose stuff with M-t</span>
+(bind-key <span class="org-string">"M-t"</span> nil) <span class="org-comment-delimiter">;; </span><span class="org-comment">which used to be transpose-words</span>
+(bind-key <span class="org-string">"M-t l"</span> 'transpose-lines)
+(bind-key <span class="org-string">"M-t w"</span> 'transpose-words)
+(bind-key <span class="org-string">"M-t t"</span> 'transpose-words)
+(bind-key <span class="org-string">"M-t s"</span> 'transpose-sexps)
+(bind-key <span class="org-string">"M-t p"</span> 'transpose-params)
+</pre>
+</div>
+</div>
+</div>
+</div>
 <div id="outline-container-sec-1-7" class="outline-3">
 <h3 id="sec-1-7">Org</h3>
 <div class="outline-text-3" id="text-1-7">
@@ -1644,6 +1709,16 @@ The parentheses indicate keyboard shortcuts that I can use to set the task state
     <span class="org-string">"WAITING(w@/!)"</span>
     <span class="org-string">"SOMEDAY(.)"</span> <span class="org-string">"|"</span> <span class="org-string">"DONE(x!)"</span> <span class="org-string">"CANCELLED(c@)"</span>)
    (sequence <span class="org-string">"TODELEGATE(-)"</span> <span class="org-string">"DELEGATED(d)"</span> <span class="org-string">"COMPLETE(x)"</span>)))
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(setq org-todo-keyword-faces
+      '((<span class="org-string">"TODO"</span> . (<span class="org-builtin">:foreground</span> <span class="org-string">"green"</span> <span class="org-builtin">:weight</span> bold))
+        (<span class="org-string">"DONE"</span> . (<span class="org-builtin">:foreground</span> <span class="org-string">"cyan"</span> <span class="org-builtin">:weight</span> bold))
+        (<span class="org-string">"WAITING"</span> . (<span class="org-builtin">:foreground</span> <span class="org-string">"red"</span> <span class="org-builtin">:weight</span> bold))
+        (<span class="org-string">"SOMEDAY"</span> . (<span class="org-builtin">:foreground</span> <span class="org-string">"gray"</span> <span class="org-builtin">:weight</span> bold))))
 </pre>
 </div>
 </div>
@@ -2941,12 +3016,18 @@ Photosync (for syncing with Flickr) can't deal with periods in filenames. Org ge
 Timestamps and section numbers make my published files look more
 complicated than they are. Let's turn them off by default.
 </p>
+
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(setq org-export-with-section-numbers nil)
 (setq org-html-include-timestamps nil)
 </pre>
 </div>
+
+<p>
+Some code for Emacs chats:
+</p>
+
 
 <p>
 This makes it easier to publish my public Dropbox files:
@@ -2965,11 +3046,7 @@ This makes it easier to publish my public Dropbox files:
          <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/code/emacs-notes"</span>
          <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/code/emacs-notes"</span>
          <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
-         )
-        (<span class="org-string">"emacs-chats"</span>
-         <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/code/emacs-chats"</span>
-         <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/code/emacs-chats"</span>
-         <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
+         <span class="org-builtin">:auto-sitemap</span> t
          )
         (<span class="org-string">"sharing"</span>
          <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/Dropbox/public/sharing"</span>
@@ -3240,7 +3317,8 @@ Org lets you attach files to an Org file. Haven't gotten the hang of this yet, b
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(setq org-attach-store-link-p t)
+<pre class="src src-emacs-lisp">(setq org-attach-store-link-p 'attached)
+(setq org-attach-auto-tag nil)
 </pre>
 </div>
 </div>
@@ -4064,12 +4142,13 @@ Quickly jump to a position in the current view.
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">ace-jump-mode</span>
-  <span class="org-builtin">:bind</span> (<span class="org-string">"S-SPC"</span> . ace-jump-mode))
+  <span class="org-builtin">:bind</span> (<span class="org-string">"M-SPC"</span> . ace-jump-mode))
+(bind-key <span class="org-string">"M-S-SPC"</span> 'just-one-space)
 </pre>
 </div>
 
 <p>
-Ace Window looks useful too
+Ace Window looks useful too.
 </p>
 
 <div class="org-src-container">

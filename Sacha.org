@@ -133,6 +133,7 @@ Disk space is cheap. Save lots.
 #+begin_src emacs-lisp
 (setq delete-old-versions -1)
 (setq version-control t)
+(setq vc-make-backup-files t)
 (setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list" t)))
 #+end_src
 
@@ -171,7 +172,8 @@ When you're starting out, tooltips, menus, and the tool bar can be very helpful.
 (when window-system
   (tooltip-mode -1)
   (tool-bar-mode -1)
-  (menu-bar-mode -1))
+  (menu-bar-mode -1)
+  (scroll-bar-mode -1))
 #+end_src
 *** Winner mode - undo and redo window configuration
 
@@ -227,8 +229,36 @@ Display a more compact mode line
 (use-package smart-mode-line
   :init
   (progn
-    (setq sml/theme 'dark)
-    (sml/setup)))
+  (setq-default
+   mode-line-format 
+   '("%e"
+     mode-line-front-space
+     mode-line-mule-info
+     mode-line-client
+     mode-line-modified
+     mode-line-remote
+     mode-line-frame-identification
+     mode-line-buffer-identification
+     "   "
+     mode-line-position
+     (vc-mode vc-mode)
+     "  "
+     mode-line-modes
+     mode-line-misc-info
+     mode-line-end-spaces))))
+#+end_src
+
+Hide minor modes I care less about:
+
+#+begin_src emacs-lisp
+(require 'diminish)
+(eval-after-load "yasnippet" '(diminish 'yas-minor-mode))
+(eval-after-load "undo-tree" '(diminish 'undo-tree-mode))
+(eval-after-load "guide-key" '(diminish 'guide-key-mode))
+(eval-after-load "smartparens" '(diminish 'smartparens-mode))
+(eval-after-load "guide-key" '(diminish 'guide-key-mode))
+(eval-after-load "eldoc" '(diminish 'eldoc-mode))
+(diminish 'visual-line-mode)
 #+end_src
 
 *** Change "yes or no" to "y or n"
@@ -332,12 +362,12 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
 From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
 
 #+begin_src emacs-lisp
-(defadvice kill-region (before slick-cut activate compile)
-  "When called interactively with no active region, kill a single line instead."
-  (interactive
-    (if mark-active (list (region-beginning) (region-end))
-      (list (line-beginning-position)
-        (line-beginning-position 2)))))
+  (defadvice kill-region (before slick-cut activate compile)
+    "When called interactively with no active region, kill a single line instead."
+    (interactive
+      (if mark-active (list (region-beginning) (region-end))
+        (list (line-beginning-position)
+          (line-beginning-position 2)))))
 #+end_src
 ** Navigation
 *** Pop to mark
@@ -483,7 +513,14 @@ From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
 (use-package smartscan
   :init (global-smartscan-mode t))
 #+end_src
+*** Dired
 
+From http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/
+
+#+begin_src emacs-lisp
+(require 'find-dired)
+(setq find-ls-option '("-print0 | xargs -0 ls -ld" . "-ld"))
+#+end_src
 ** Writing
 *** Avoiding weasel words
     #+begin_src emacs-lisp
@@ -548,8 +585,18 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 #+begin_src emacs-lisp
 (remove-hook 'text-mode-hook #'turn-on-auto-fill)
 (add-hook 'text-mode-hook 'turn-on-visual-line-mode)
-#+end_src  
+#+end_src
+*** Transpose
 
+#+begin_src emacs-lisp
+;; Transpose stuff with M-t
+(bind-key "M-t" nil) ;; which used to be transpose-words
+(bind-key "M-t l" 'transpose-lines)
+(bind-key "M-t w" 'transpose-words)
+(bind-key "M-t t" 'transpose-words)
+(bind-key "M-t s" 'transpose-sexps)
+(bind-key "M-t p" 'transpose-params)
+#+end_src
 ** Org
 
 I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of
@@ -844,7 +891,15 @@ The parentheses indicate keyboard shortcuts that I can use to set the task state
            "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c@)")
           (sequence "TODELEGATE(-)" "DELEGATED(d)" "COMPLETE(x)")))
 #+end_src
-     
+
+#+begin_src emacs-lisp
+(setq org-todo-keyword-faces
+      '(("TODO" . (:foreground "green" :weight bold))
+        ("DONE" . (:foreground "cyan" :weight bold))
+        ("WAITING" . (:foreground "red" :weight bold))
+        ("SOMEDAY" . (:foreground "gray" :weight bold))))
+#+end_src     
+
 **** Projects
 
 Projects are headings with the =:project:= tag, so we generally don't
@@ -1852,10 +1907,14 @@ Photosync (for syncing with Flickr) can't deal with periods in filenames. Org ge
 *** Publishing
 Timestamps and section numbers make my published files look more
 complicated than they are. Let's turn them off by default.
+
 #+begin_src emacs-lisp
 (setq org-export-with-section-numbers nil)
 (setq org-html-include-timestamps nil)
 #+end_src
+
+Some code for Emacs chats:
+
 
 This makes it easier to publish my public Dropbox files:
 
@@ -1871,11 +1930,7 @@ This makes it easier to publish my public Dropbox files:
              :base-directory "c:/sacha/code/emacs-notes"
              :publishing-directory "c:/sacha/code/emacs-notes"
              :publishing-function sacha/org-html-publish-to-html-trustingly
-             )
-            ("emacs-chats"
-             :base-directory "c:/sacha/code/emacs-chats"
-             :publishing-directory "c:/sacha/code/emacs-chats"
-             :publishing-function sacha/org-html-publish-to-html-trustingly
+             :auto-sitemap t
              )
             ("sharing"
              :base-directory "c:/sacha/Dropbox/public/sharing"
@@ -2067,7 +2122,8 @@ These are great for quickly acting on tasks.
 Org lets you attach files to an Org file. Haven't gotten the hang of this yet, but looks interesting.
 
 #+begin_src emacs-lisp
-(setq org-attach-store-link-p t)
+(setq org-attach-store-link-p 'attached)
+(setq org-attach-auto-tag nil)
 #+end_src
 
 *** Counting
@@ -2684,10 +2740,11 @@ Quickly jump to a position in the current view.
 
 #+begin_src emacs-lisp
   (use-package ace-jump-mode
-    :bind ("S-SPC" . ace-jump-mode))
+    :bind ("M-SPC" . ace-jump-mode))
+  (bind-key "M-S-SPC" 'just-one-space)
 #+end_src
 
-Ace Window looks useful too
+Ace Window looks useful too.
 
 #+begin_src emacs-lisp
 (use-package ace-window
@@ -2826,7 +2883,7 @@ and return the directory.  Return nil if not found.
      (find-file "~/personal/organizer.org")
      (require 'org-compat)
      (org-agenda nil "a")
-#+end_src
+	 #+end_src
 * Other cool configs you may want to check out
 <<links>>
 
@@ -3498,3 +3555,5 @@ theme. =)
      (add-hook '2048-mode-hook 'sacha/2048-fontify)
      (add-hook '2048-mode-hook 'sacha/2048-set-font-size)))
 #+end_src
+
+

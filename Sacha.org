@@ -23,6 +23,7 @@ To be precise, this is what's in my init.el:
 ;; Override the packages with the git version of Org and other packages
 (add-to-list 'load-path "~/elisp/org-mode/lisp")
 (add-to-list 'load-path "~/elisp/org-mode/contrib/lisp")
+(add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
 (add-to-list 'load-path "~/code/beeminder.el")
 ;; Load the rest of the packages
 (package-initialize t)
@@ -335,7 +336,11 @@ This lets you use =C-x u= (=undo-tree-visualize=) to visually walk through the c
 
 #+begin_src emacs-lisp
   (use-package undo-tree
-    :init (global-undo-tree-mode))
+    :init
+    (progn
+      (global-undo-tree-mode)
+      (setq undo-tree-visualizer-timestamps t)
+      (setq undo-tree-visualizer-diff t)))
 #+end_src
 
 *** Help - guide-key
@@ -452,6 +457,7 @@ register.
    '((?i . "~/.emacs.d/Sacha.org")
      (?o . "~/personal/organizer.org")
      (?b . "~/personal/business.org")
+     (?e . "~/code/emacs-notes/tasks.org")
      (?w . "~/Dropbox/public/sharing/index.org")
      (?W . "~/Dropbox/public/sharing/blog.org")
      (?g . "~/sachac.github.io/evil-plans/index.org")
@@ -520,6 +526,20 @@ From http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-di
 #+begin_src emacs-lisp
 (require 'find-dired)
 (setq find-ls-option '("-print0 | xargs -0 ls -ld" . "-ld"))
+#+end_src
+** Reading
+
+https://github.com/xahlee/xah_emacs_init/blob/master/xah_emacs_font.el
+From Xah Lee:
+
+#+begin_src emacs-lisp
+(defun xah-toggle-margin-right ()
+  "Toggle the right margin between `fill-column' or window width.
+This command is convenient when reading novel, documentation."
+  (interactive)
+  (if (eq (cdr (window-margins)) nil)
+      (set-window-margins nil 0 (- (window-body-width) fill-column))
+    (set-window-margins nil 0 0)))
 #+end_src
 ** Writing
 *** Avoiding weasel words
@@ -594,8 +614,8 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 (bind-key "M-t l" 'transpose-lines)
 (bind-key "M-t w" 'transpose-words)
 (bind-key "M-t t" 'transpose-words)
+(bind-key "M-t M-t" 'transpose-words)
 (bind-key "M-t s" 'transpose-sexps)
-(bind-key "M-t p" 'transpose-params)
 #+end_src
 ** Org
 
@@ -661,12 +681,12 @@ currently experimenting with.
       (bind-key "C-c O" 'org-open-at-point-global)
       (bind-key "<f9> <f9>" 'org-agenda-list)
       (bind-key "<f9> <f8>" (lambda () (interactive) (org-capture nil "r")))
-      (eval-after-load 'org
-        '(progn
-           (bind-key "C-TAB" 'org-cycle org-mode-map)
-           (bind-key "C-c v" 'org-show-todo-tree org-mode-map)
-           (bind-key "C-c C-r" 'org-refile org-mode-map)
-           (bind-key "C-c R" 'org-reveal org-mode-map)))
+      (bind-key "C-TAB" 'org-cycle org-mode-map)
+      (bind-key "C-c v" 'org-show-todo-tree org-mode-map)
+      (bind-key "C-c C-r" 'org-refile org-mode-map)
+      (bind-key "C-c R" 'org-reveal org-mode-map)
+      (bind-key "<RET>" 'org-return-indent org-mode-map)
+
 #+end_src
 
 =append-next-kill= is more useful to me than =org-table-copy-region=.
@@ -853,7 +873,8 @@ able to clock in on them.
               ("~/personal/organizer.org" . (:maxlevel . 4))
               ("~/personal/people.org" . (:maxlevel . 3))
               ("~/personal/outline.org" . (:maxlevel . 3))
-              ("~/personal/routines.org" . (:maxlevel . 4))))
+              ("~/personal/routines.org" . (:maxlevel . 4))
+              ("~/code/emacs-notes/tasks.org" . (:maxlevel . 4))))
       (setq org-blank-before-new-entry nil)
     #+end_src
     
@@ -884,9 +905,9 @@ The parentheses indicate keyboard shortcuts that I can use to set the task state
 #+begin_src emacs-lisp
        (setq org-todo-keywords
         '((sequence
+           "STARTED(s)"
            "TODO(t)"  ; next action
            "TOBLOG(b)"  ; next action
-           "STARTED(s)"
            "WAITING(w@/!)"
            "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c@)")
           (sequence "TODELEGATE(-)" "DELEGATED(d)" "COMPLETE(x)")))
@@ -1082,9 +1103,11 @@ only a few of them them for faster scanning.
                            "~/personal/organizer.org"
                            "~/personal/people.org"
                            "~/personal/business.org"
-                           "~/personal/routines.org"
                            "~/Dropbox/public/sharing/index.org"
                            "~/dropbox/public/learning.org"
+                           "~/code/emacs-notes/tasks.org"
+                           "~/sachac.github.io/evil-plans/index.org"
+                           "~/personal/routines.org"
                            ))
 #+end_src
 
@@ -1284,102 +1307,109 @@ hang of using these more!
 | 2           | Projects with tasks                                                                            |
 
 #+begin_src emacs-lisp
-  (defvar sacha/org-agenda-contexts
-    '((tags-todo "+@phone")
-      (tags-todo "+@work")
-      (tags-todo "+@drawing")
-      (tags-todo "+@coding")
-      (tags-todo "+@writing")
-      (tags-todo "+@computer")
-      (tags-todo "+@home")
-      (tags-todo "+@errands"))
-    "Usual list of contexts.")
-  (defun sacha/org-agenda-skip-scheduled ()
-    (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
-  (setq org-agenda-custom-commands
-        `(("T" todo-tree "TODO")
-          ("b" todo ""
-           ((org-agenda-files '("~/personal/business.org"))))
-          ("o" todo ""
-           ((org-agenda-files '("~/personal/organizer.org"))))
-          ("c" todo ""
-           ((org-agenda-prefix-format "")
-            (org-agenda-cmp-user-defined 'sacha/org-sort-agenda-items-todo)
-            (org-agenda-view-columns-initially t)
-            ))
-          ;; Weekly review
-          ("w" "Weekly review" agenda ""
-           ((org-agenda-span 7)
-            (org-agenda-log-mode 1)))
-          ("W" "Weekly review sans routines" agenda "" 
-           ((org-agenda-span 7) 
-            (org-agenda-log-mode 1)
-            (org-agenda-tag-filter-preset '("-routine"))))
-          ("2" "Bi-weekly review" agenda "" ((org-agenda-span 14) (org-agenda-log-mode 1)))
-          ("gb" "Business" todo ""  
-           ((org-agenda-files '("~/personal/business.org"))
-            (org-agenda-view-columns-initially t)))
-          ("gc" "Coding" tags-todo "@coding" 
-           ((org-agenda-view-columns-initially t)))
-          ("gw" "Writing" tags-todo "@writing"
-           ((org-agenda-view-columns-initially t)))
-          ("gp" "Phone" tags-todo "@phone"
-           ((org-agenda-view-columns-initially t)))
-          ("gd" "Drawing" tags-todo "@drawing"
-           ((org-agenda-view-columns-initially t)))
-          ("gh" "Home" tags-todo "@home"
-           ((org-agenda-view-columns-initially t)))
-          ("ge" "Errands" tags-todo "@errands"
-           ((org-agenda-view-columns-initially t)))
-          ("0" "Top 3 by context"
-           ,sacha/org-agenda-contexts
-           ((org-agenda-sorting-strategy '(priority-up effort-down))
-            (sacha/org-agenda-limit-items 3)))
-          (")" "All by context"
-           ,sacha/org-agenda-contexts
-           ((org-agenda-sorting-strategy '(priority-down effort-down))
-            (sacha/org-agenda-limit-items nil)))
-          ("9" "Unscheduled top 3 by context"
-           ,sacha/org-agenda-contexts
-           ((org-agenda-skip-function 'sacha/org-agenda-skip-scheduled)
-            (org-agenda-sorting-strategy '(priority-down effort-down))
-            (sacha/org-agenda-limit-items 3)))
-          ("(" "All unscheduled by context"
-           ,sacha/org-agenda-contexts
-           ((org-agenda-skip-function 'sacha/org-agenda-skip-scheduled)
-            (org-agenda-sorting-strategy '(priority-down effort-down))
-            ))
-          ("d" "Timeline for today" ((agenda "" ))
-           ((org-agenda-ndays 1)
-            (org-agenda-show-log t)
-            (org-agenda-log-mode-items '(clock closed))
-            (org-agenda-clockreport-mode t)
-            (org-agenda-entry-types '())))
-          ("." "Waiting for" todo "WAITING")
-          ("u" "Unscheduled tasks" alltodo ""
-           ((org-agenda-skip-function 'sacha/org-agenda-skip-scheduled)
-            (org-agenda-view-columns-initially t)
-            (org-agenda-overriding-header "Unscheduled TODO entries: ")))
-          ("U" "Unscheduled tasks outside projects" tags-todo "-project"
-           ((org-agenda-skip-function 'sacha/org-agenda-skip-scheduled)
-            (org-tags-exclude-from-inheritance nil)
-            (org-agenda-view-columns-initially t)
-            (org-agenda-overriding-header "Unscheduled TODO entries outside projects: ")
-            (org-agenda-sorting-strategy '(todo-state-up priority-down tag-up category-keep effort-down))))
-          ("P" "By priority"
-           ((tags-todo "+PRIORITY=\"A\"")
-            (tags-todo "+PRIORITY=\"B\"")
-            (tags-todo "+PRIORITY=\"\"")
-            (tags-todo "+PRIORITY=\"C\""))
-           ((org-agenda-prefix-format "%-10c %-10T %e ")
-            (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
-          ("p" tags "+project"
-           ((org-tags-exclude-from-inheritance '("project"))
-            (org-agenda-sorting-strategy '(todo-state-up priority-down tag-up category-keep effort-down))))
-          ("S" tags-todo "TODO=\"STARTED\"")
-          ("2" "List projects with tasks" sacha/org-agenda-projects-and-tasks
-           "+PROJECT"
-             ((sacha/org-agenda-limit-items 3)))))
+    (defvar sacha/org-agenda-contexts
+      '((tags-todo "+@phone")
+        (tags-todo "+@work")
+        (tags-todo "+@drawing")
+        (tags-todo "+@coding")
+        (tags-todo "+@writing")
+        (tags-todo "+@computer")
+        (tags-todo "+@home")
+        (tags-todo "+@errands"))
+      "Usual list of contexts.")
+    (defun sacha/org-agenda-skip-scheduled ()
+      (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
+    (setq org-agenda-custom-commands
+          `(("T" todo-tree "TODO")
+            ("b" todo ""
+             ((org-agenda-files '("~/personal/business.org"))))
+            ("o" todo ""
+             ((org-agenda-files '("~/personal/organizer.org"))))
+            ("c" todo ""
+             ((org-agenda-prefix-format "")
+              (org-agenda-cmp-user-defined 'sacha/org-sort-agenda-items-todo)
+              (org-agenda-view-columns-initially t)
+              ))
+            ;; Weekly review
+            ("w" "Weekly review" agenda ""
+             ((org-agenda-span 7)
+              (org-agenda-log-mode 1)))
+            ("W" "Weekly review sans routines" agenda "" 
+             ((org-agenda-span 7) 
+              (org-agenda-log-mode 1)
+              (org-agenda-tag-filter-preset '("-routine"))))
+            ("2" "Bi-weekly review" agenda "" ((org-agenda-span 14) (org-agenda-log-mode 1)))
+            ("gb" "Business" todo ""  
+             ((org-agenda-files '("~/personal/business.org"))
+              (org-agenda-view-columns-initially t)))
+            ("gc" "Coding" tags-todo "@coding" 
+             ((org-agenda-view-columns-initially t)))
+            ("gw" "Writing" tags-todo "@writing"
+             ((org-agenda-view-columns-initially t)))
+            ("gp" "Phone" tags-todo "@phone"
+             ((org-agenda-view-columns-initially t)))
+            ("gd" "Drawing" tags-todo "@drawing"
+             ((org-agenda-view-columns-initially t)))
+            ("gh" "Home" tags-todo "@home"
+             ((org-agenda-view-columns-initially t)))
+            ("ge" "Errands" tags-todo "@errands"
+             ((org-agenda-view-columns-initially t)))
+            ("0" "Top 3 by context"
+             ,sacha/org-agenda-contexts
+             ((org-agenda-sorting-strategy '(priority-up effort-down))
+              (sacha/org-agenda-limit-items 3)))
+            (")" "All by context"
+             ,sacha/org-agenda-contexts
+             ((org-agenda-sorting-strategy '(priority-down effort-down))
+              (sacha/org-agenda-limit-items nil)))
+            ("9" "Unscheduled top 3 by context"
+             ,sacha/org-agenda-contexts
+             ((org-agenda-skip-function 'sacha/org-agenda-skip-scheduled)
+              (org-agenda-sorting-strategy '(priority-down effort-down))
+              (sacha/org-agenda-limit-items 3)))
+            ("(" "All unscheduled by context"
+             ,sacha/org-agenda-contexts
+             ((org-agenda-skip-function 'sacha/org-agenda-skip-scheduled)
+              (org-agenda-sorting-strategy '(priority-down effort-down))
+              ))
+            ("d" "Timeline for today" ((agenda "" ))
+             ((org-agenda-ndays 1)
+              (org-agenda-show-log t)
+              (org-agenda-log-mode-items '(clock closed))
+              (org-agenda-clockreport-mode t)
+              (org-agenda-entry-types '())))
+            ("." "Waiting for" todo "WAITING")
+            ("u" "Unscheduled tasks" tags-todo "-someday-TODO=\"SOMEDAY\"-TODO=\"DELEGATED\"-TODO=\"WAITING\"-project"
+             ((org-agenda-skip-function 'sacha/org-agenda-skip-scheduled)
+              (org-agenda-view-columns-initially t)
+              (org-tags-exclude-from-inheritance '("project"))
+              (org-agenda-overriding-header "Unscheduled TODO entries: ")
+              (org-columns-default-format "%50ITEM %TODO %3PRIORITY %Effort{:} %TAGS")
+              (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))))
+            ("U" "Unscheduled tasks outside projects" tags-todo "-project"
+             ((org-agenda-skip-function 'sacha/org-agenda-skip-scheduled)
+              (org-tags-exclude-from-inheritance nil)
+              (org-agenda-view-columns-initially t)
+              (org-agenda-overriding-header "Unscheduled TODO entries outside projects: ")
+              (org-agenda-sorting-strategy '(todo-state-up priority-down tag-up category-keep effort-down))))
+            ("P" "By priority"
+             ((tags-todo "+PRIORITY=\"A\"")
+              (tags-todo "+PRIORITY=\"B\"")
+              (tags-todo "+PRIORITY=\"\"")
+              (tags-todo "+PRIORITY=\"C\""))
+             ((org-agenda-prefix-format "%-10c %-10T %e ")
+              (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+            ("pp" tags "+project-someday-TODO=\"DONE\""
+             ((org-tags-exclude-from-inheritance '("project"))
+              (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+            ("p." tags "+project-TODO=\"DONE\""
+             ((org-tags-exclude-from-inheritance '("project"))
+              (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+            ("S" tags-todo "TODO=\"STARTED\"")
+            ("2" "List projects with tasks" sacha/org-agenda-projects-and-tasks
+             "+PROJECT"
+               ((sacha/org-agenda-limit-items 3)))))
+  (bind-key "<apps> a" 'org-agenda)
 #+end_src
 **** Make it easy to mark a task as done
 
@@ -1430,7 +1460,7 @@ this with to-do items than with projects or headings."
 
 #+begin_src emacs-lisp
   (setq org-agenda-sorting-strategy
-        '((agenda time-up category-keep priority-down tag-up effort-up)
+        '((agenda time-up priority-down tag-up effort-up category-keep)
           (todo user-defined-up todo-state-up priority-down effort-up)
           (tags user-defined-up)
           (search category-keep)))
@@ -1566,7 +1596,7 @@ down into previous/next week.
           (while (re-search-forward line-re nil t)
             (cond
              ((string= (match-string 1) "routines") nil) ; skip routine tasks
-             ((string= (match-string 1) "business")
+             ((or (string= (match-string 1) "business") (string= (match-string 1) "tasks"))
               (add-to-list 'business-next (concat "  - [ ] " (match-string 3))))
              ((string= (match-string 1) "people")
               (add-to-list 'relationships-next (concat "  - [ ] " (match-string 3))))
@@ -1586,7 +1616,7 @@ down into previous/next week.
           (while (re-search-forward done-re nil t)
             (cond
              ((string= (match-string 1) "routines") nil) ; skip routine tasks
-             ((string= (match-string 1) "business")
+             ((or (string= (match-string 1) "business") (string= (match-string 1) "tasks"))
               (add-to-list 'business (concat "  - [X] " (match-string 2))))
              ((string= (match-string 1) "people")
               (add-to-list 'relationships (concat "  - [X] " (match-string 2))))
@@ -1820,14 +1850,17 @@ Now we put it all together...
 This makes it easier to reorganize lines in my weekly review.
 #+begin_src emacs-lisp
   (defun sacha/org-move-line-to-destination ()
+    "Moves the current list item to <<destination>> in the current buffer."
     (interactive)
-    (save-excursion
-      (let ((string
-             (buffer-substring-no-properties
-              (line-beginning-position) (line-end-position))))
-        (delete-region (line-beginning-position) (1+ (line-end-position)))
-        (re-search-forward "<<destination>>" nil t)
-        (insert "\n" (make-string (- (match-beginning 0) (line-beginning-position)) ?\ ) (s-trim string)))))
+    (save-window-excursion
+      (save-excursion
+        (let ((string
+               (buffer-substring-no-properties
+                (line-beginning-position) (line-end-position))))
+          (delete-region (line-beginning-position) (1+ (line-end-position)))
+          (goto-char (point-min))
+          (re-search-forward "<<destination>>" nil t)
+          (insert "\n" (make-string (- (match-beginning 0) (line-beginning-position)) ?\ ) (s-trim string))))))
   (bind-key "C-c d" 'sacha/org-move-line-to-destination org-mode-map)
 #+end_src
 
@@ -1883,8 +1916,7 @@ Photosync (for syncing with Flickr) can't deal with periods in filenames. Org ge
       (if (region-active-p) (point) (line-beginning-position))
       (if (region-active-p) (mark) (1+ (line-end-position)))
       (let ((org-refile-targets
-             '(("~/Dropbox/Public/blog.org" . (:maxlevel . 3))))
-            (org-refile-use-cache nil))
+             '(("~/Dropbox/Public/sharing/blog.org" . (:maxlevel . 3)))))
         (org-refile-get-location "Location"))))
     (let ((s
            (replace-regexp-in-string
@@ -1892,15 +1924,16 @@ Photosync (for syncing with Flickr) can't deal with periods in filenames. Org ge
             "- [X] "
             (buffer-substring-no-properties beg end))))
       (save-window-excursion
-        (find-file (nth 1 location))
         (save-excursion
-          (save-restriction
-            (widen)
-            (goto-char (nth 3 location))
-            (looking-at org-outline-regexp)
-            (forward-line 1)
-            (insert s)
-            (org-update-statistics-cookies nil))))))
+          (find-file (nth 1 location))
+          (save-excursion
+            (save-restriction
+              (widen)
+              (goto-char (nth 3 location))
+              (looking-at org-outline-regexp)
+              (forward-line 1)
+              (insert s)
+              (org-update-statistics-cookies nil)))))))
   (bind-key "C-c f" 'sacha/org-file-blog-index-entries org-mode-map)
 #+end_src
 
@@ -1925,12 +1958,6 @@ This makes it easier to publish my public Dropbox files:
              :base-directory "c:/sacha/Dropbox/public"
              :publishing-directory "c:/sacha/Dropbox/public"
              :publishing-function sacha/org-html-publish-to-html-trustingly
-             )
-            ("emacs-notes"
-             :base-directory "c:/sacha/code/emacs-notes"
-             :publishing-directory "c:/sacha/code/emacs-notes"
-             :publishing-function sacha/org-html-publish-to-html-trustingly
-             :auto-sitemap t
              )
             ("sharing"
              :base-directory "c:/sacha/Dropbox/public/sharing"
@@ -2162,6 +2189,10 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
      (R . t)))
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))
 #+end_src
+*** Presentations
+#+begin_src emacs-lisp
+(use-package ox-reveal)
+#+end_src
 *** Share my Emacs configuration
 
 This code gets around the fact that my config is called Sacha.org, but
@@ -2193,7 +2224,6 @@ don't need this any more...
 (setq org-enforce-todo-dependencies t)
 (setq org-track-ordered-property-with-tag t)
 #+end_src
-
 ** Coding
 *** Tab width of 2 is compact and readable
 #+begin_src emacs-lisp
@@ -2380,12 +2410,6 @@ I sometimes need to know where I am in a line.
 
 #+begin_src emacs-lisp
 
-#+end_src
-*** Rainbow delimiters
-
-#+begin_src emacs-lisp
-(use-package rainbow-delimiters
-  :init (global-rainbow-delimiters-mode))
 #+end_src
 
 ** Ledger (personal finance): Make it easier to review my credit card transactions
@@ -2908,6 +2932,13 @@ still need to do. This [[http://lists.gnu.org/archive/html/emacs-orgmode/2007-03
  '(org-headline-done 
             ((((class color) (min-colors 16) (background dark)) 
                (:foreground "LightSalmon" :strike-through t)))))
+#+end_src
+
+** Rainbow delimiters
+
+#+begin_src emacs-lisp  :eval no :tangle no
+(use-package rainbow-delimiters
+  :init (global-rainbow-delimiters-mode))
 #+end_src
 
 ** Drupal

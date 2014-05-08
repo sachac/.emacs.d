@@ -24,7 +24,6 @@ To be precise, this is what's in my init.el:
 (add-to-list 'load-path "~/elisp/org-mode/lisp")
 (add-to-list 'load-path "~/elisp/org-mode/contrib/lisp")
 (add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
-(add-to-list 'load-path "~/code/beeminder.el")
 ;; Load the rest of the packages
 (package-initialize t)
 (require 'org)
@@ -685,8 +684,6 @@ currently experimenting with.
       (bind-key "C-c v" 'org-show-todo-tree org-mode-map)
       (bind-key "C-c C-r" 'org-refile org-mode-map)
       (bind-key "C-c R" 'org-reveal org-mode-map)
-      (bind-key "<RET>" 'org-return-indent org-mode-map)
-
 #+end_src
 
 =append-next-kill= is more useful to me than =org-table-copy-region=.
@@ -868,13 +865,7 @@ able to clock in on them.
       (setq org-refile-use-outline-path nil)
       (setq org-refile-allow-creating-parent-nodes 'confirm)
       (setq org-refile-use-cache nil)
-      (setq org-refile-targets
-            '(("~/personal/business.org" . (:maxlevel . 4))
-              ("~/personal/organizer.org" . (:maxlevel . 4))
-              ("~/personal/people.org" . (:maxlevel . 3))
-              ("~/personal/outline.org" . (:maxlevel . 3))
-              ("~/personal/routines.org" . (:maxlevel . 4))
-              ("~/code/emacs-notes/tasks.org" . (:maxlevel . 4))))
+      (setq org-refile-targets '((org-agenda-files . (:maxlevel . 6))))
       (setq org-blank-before-new-entry nil)
     #+end_src
     
@@ -905,9 +896,9 @@ The parentheses indicate keyboard shortcuts that I can use to set the task state
 #+begin_src emacs-lisp
        (setq org-todo-keywords
         '((sequence
-           "STARTED(s)"
            "TODO(t)"  ; next action
            "TOBLOG(b)"  ; next action
+           "STARTED(s)"
            "WAITING(w@/!)"
            "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c@)")
           (sequence "TODELEGATE(-)" "DELEGATED(d)" "COMPLETE(x)")))
@@ -1952,7 +1943,7 @@ Some code for Emacs chats:
 This makes it easier to publish my public Dropbox files:
 
 #+begin_src emacs-lisp
-    (require 'org-publish)
+    (setq sacha/emacs-notes-directory "c:/sacha/code/emacs-notes")
     (setq org-publish-project-alist
           '(("public"
              :base-directory "c:/sacha/Dropbox/public"
@@ -2547,30 +2538,6 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 ,#+TBLFM: $4='(sacha/compare-times $3 $2)
 #+end_src
 
-*** Beeminder
-<<beeminder>>
-
-https://github.com/sachac/beeminder.el
-
-This bit of code lets me track sent messages in Gnus:
-
-#+begin_src emacs-lisp
-(defun sacha/beeminder-track-message ()
-	(save-excursion
-		(goto-char (point-min))
-		(when (re-search-forward "Newsgroups: .*emacs")
-			(goto-char (point-min))
-			(when (re-search-forward "Subject: \\(.*\\)" nil t)
-				(beeminder-add-data "orgml" "1" (match-string 1))))))
-#+end_src
-
-And this loads the beeminder code:
-
-#+BEGIN_SRC emacs-lisp
-(use-package beeminder
-  :config (add-hook 'message-send-news-hook 'sacha/beeminder-track-message))
-#+END_SRC
-
 *** R
 
 #+begin_src emacs-lisp
@@ -2899,9 +2866,15 @@ and return the directory.  Return nil if not found.
       (sp-with-modes sp--lisp-modes
         (sp-local-pair "(" nil :bind "C-("))))
 #+end_src
+** Web browsing
 
-
-
+	 Minor tweak for Firefox on Windows. Otherwise I get "Searching for
+	 program" "permission denied" "firefox".
+	 
+	 #+begin_src emacs-lisp
+	 (setq browse-url-firefox-program
+         "C:/Program Files (x86)/Mozilla Firefox/firefox.exe")
+	 #+end_src
 ** Startup
    #+begin_src emacs-lisp
      (find-file "~/personal/organizer.org")
@@ -2918,6 +2891,30 @@ and return the directory.  Return nil if not found.
 - [[https://github.com/jwiegley/dot-emacs][John Wiegley]]: Also see his [[http://www.youtube.com/watch?v=RvPFZL6NJNQ][Emacs Lisp Development talk]] (sorry, sucky video) and [[http://www.youtube.com/watch?v=ytNsHmRLZGM][Emacs Chat video]]
 
 * Inactive/infrequent things
+** Beeminder
+<<beeminder>>
+
+https://github.com/sachac/beeminder.el
+
+This bit of code lets me track sent messages in Gnus:
+
+#+begin_src emacs-lisp :eval no :tangle no
+(defun sacha/beeminder-track-message ()
+	(save-excursion
+		(goto-char (point-min))
+		(when (re-search-forward "Newsgroups: .*emacs")
+			(goto-char (point-min))
+			(when (re-search-forward "Subject: \\(.*\\)" nil t)
+				(beeminder-add-data "orgml" "1" (match-string 1))))))
+#+end_src
+
+And this loads the beeminder code:
+
+#+BEGIN_SRC emacs-lisp :eval no :tangle no
+(use-package beeminder
+  :config (add-hook 'message-send-news-hook 'sacha/beeminder-track-message))
+#+END_SRC
+
 ** Strike through DONE headlines
 
 I wanted a quick way to visually distinguish DONE tasks from tasks I

@@ -26,6 +26,7 @@ To be precise, this is what's in my init.el:
 (add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
 ;; Load the rest of the packages
 (package-initialize t)
+(setq package-enable-at-startup nil)
 (require 'org)
 (require 'ob-tangle)
 (org-babel-load-file (expand-file-name "~/.emacs.d/Sacha.org"))
@@ -134,7 +135,7 @@ Disk space is cheap. Save lots.
 (setq delete-old-versions -1)
 (setq version-control t)
 (setq vc-make-backup-files t)
-(setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list" t)))
+(setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t)))
 #+end_src
 
 *** History
@@ -710,6 +711,7 @@ From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-comm
   (require 'imenu)
   (bind-key "M-o" 'imenu)
   (bind-key "C-c j" 'org-clock-goto) ;; jump to current task from anywhere
+  (bind-key "C-c C-w" 'org-refile)
   (setq org-cycle-include-plain-lists 'integrate)
 #+end_src
 
@@ -1579,7 +1581,7 @@ down into previous/next week.
       (setq time-summary (quantified-summarize-time start end))
       (setq biz-time (sacha/quantified-get-hours "Business" time-summary))
       (save-window-excursion
-        (org-agenda nil "w")
+        (org-agenda nil "W")
         (setq string (buffer-string))
         (with-temp-buffer
           (insert string)
@@ -1593,7 +1595,7 @@ down into previous/next week.
               (add-to-list 'relationships-next (concat "  - [ ] " (match-string 3))))
              (t (add-to-list 'life-next (concat "  - [ ] " (match-string 3))))))))
       (save-window-excursion
-        (org-agenda nil "w")
+        (org-agenda nil "W")
         (org-agenda-later -1)
         (org-agenda-log-mode 16)
         (setq string (buffer-string))
@@ -1960,6 +1962,8 @@ This makes it easier to publish my public Dropbox files:
              :publishing-directory "c:/sacha/.emacs.d"
              :publishing-function sacha/org-html-publish-to-html-trustingly
              )))
+(load "~/code/emacs-chats/build-site.el" t)
+(load "~/code/emacs-notes/build-site.el" t)
 #+end_src
 
 I want to easily publish some files. If a file is in a publishing project, publish it.

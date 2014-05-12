@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-05-07 Wed 22:40 -->
+<!-- 2014-05-12 Mon 13:25 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -423,6 +423,7 @@ To be precise, this is what's in my init.el:
 (add-to-list 'load-path <span class="org-string">"~/Dropbox/2014/presentations/org-reveal"</span>)
 <span class="org-comment-delimiter">;; </span><span class="org-comment">Load the rest of the packages</span>
 (package-initialize t)
+(setq package-enable-at-startup nil)
 (<span class="org-keyword">require</span> '<span class="org-constant">org</span>)
 (<span class="org-keyword">require</span> '<span class="org-constant">ob-tangle</span>)
 (org-babel-load-file (expand-file-name <span class="org-string">"~/.emacs.d/Sacha.org"</span>))
@@ -595,7 +596,7 @@ Disk space is cheap. Save lots.
 <pre class="src src-emacs-lisp">(setq delete-old-versions -1)
 (setq version-control t)
 (setq vc-make-backup-files t)
-(setq auto-save-file-name-transforms '((<span class="org-string">".*"</span> <span class="org-string">"~/.emacs.d/auto-save-list"</span> t)))
+(setq auto-save-file-name-transforms '((<span class="org-string">".*"</span> <span class="org-string">"~/.emacs.d/auto-save-list/"</span> t)))
 </pre>
 </div>
 </div>
@@ -1482,6 +1483,7 @@ From <a href="http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-
 (<span class="org-keyword">require</span> '<span class="org-constant">imenu</span>)
 (bind-key <span class="org-string">"M-o"</span> 'imenu)
 (bind-key <span class="org-string">"C-c j"</span> 'org-clock-goto) <span class="org-comment-delimiter">;; </span><span class="org-comment">jump to current task from anywhere</span>
+(bind-key <span class="org-string">"C-c C-w"</span> 'org-refile)
 (setq org-cycle-include-plain-lists 'integrate)
 </pre>
 </div>
@@ -2630,7 +2632,7 @@ down into previous/next week.
     (setq time-summary (quantified-summarize-time start end))
     (setq biz-time (sacha/quantified-get-hours <span class="org-string">"Business"</span> time-summary))
     (<span class="org-keyword">save-window-excursion</span>
-      (org-agenda nil <span class="org-string">"w"</span>)
+      (org-agenda nil <span class="org-string">"W"</span>)
       (setq string (buffer-string))
       (<span class="org-keyword">with-temp-buffer</span>
         (insert string)
@@ -2644,7 +2646,7 @@ down into previous/next week.
             (add-to-list 'relationships-next (concat <span class="org-string">"  - [ ] "</span> (match-string 3))))
            (t (add-to-list 'life-next (concat <span class="org-string">"  - [ ] "</span> (match-string 3))))))))
     (<span class="org-keyword">save-window-excursion</span>
-      (org-agenda nil <span class="org-string">"w"</span>)
+      (org-agenda nil <span class="org-string">"W"</span>)
       (org-agenda-later -1)
       (org-agenda-log-mode 16)
       (setq string (buffer-string))
@@ -3069,23 +3071,25 @@ This makes it easier to publish my public Dropbox files:
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(setq sacha/emacs-notes-directory <span class="org-string">"c:/sacha/code/emacs-notes"</span>)
-(setq org-publish-project-alist
-      '((<span class="org-string">"public"</span>
-         <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/Dropbox/public"</span>
-         <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/Dropbox/public"</span>
-         <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
-         )
-        (<span class="org-string">"sharing"</span>
-         <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/Dropbox/public/sharing"</span>
-         <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/Dropbox/public/sharing"</span>
-         <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
-         )
-        (<span class="org-string">"emacs-config"</span>
-         <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/.emacs.d"</span>
-         <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/.emacs.d"</span>
-         <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
-         )))
+<pre class="src src-emacs-lisp">    (setq sacha/emacs-notes-directory <span class="org-string">"c:/sacha/code/emacs-notes"</span>)
+    (setq org-publish-project-alist
+          '((<span class="org-string">"public"</span>
+             <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/Dropbox/public"</span>
+             <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/Dropbox/public"</span>
+             <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
+             )
+            (<span class="org-string">"sharing"</span>
+             <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/Dropbox/public/sharing"</span>
+             <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/Dropbox/public/sharing"</span>
+             <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
+             )
+            (<span class="org-string">"emacs-config"</span>
+             <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/.emacs.d"</span>
+             <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/.emacs.d"</span>
+             <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
+             )))
+(load <span class="org-string">"~/code/emacs-chats/build-site.el"</span> t)
+(load <span class="org-string">"~/code/emacs-notes/build-site.el"</span> t)
 </pre>
 </div>
 

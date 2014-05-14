@@ -461,6 +461,7 @@ register.
      (?w . "~/Dropbox/public/sharing/index.org")
      (?W . "~/Dropbox/public/sharing/blog.org")
      (?g . "~/sachac.github.io/evil-plans/index.org")
+     (?c . "~/code/dev/elisp-course.org")
      (?l . "~/dropbox/public/sharing/learning.org")))
 #+end_src
 
@@ -1939,10 +1940,7 @@ complicated than they are. Let's turn them off by default.
 (setq org-html-include-timestamps nil)
 #+end_src
 
-Some code for Emacs chats:
-
-
-This makes it easier to publish my public Dropbox files:
+This makes it easier to publish my files:
 
 #+begin_src emacs-lisp
     (setq sacha/emacs-notes-directory "c:/sacha/code/emacs-notes")
@@ -1966,7 +1964,7 @@ This makes it easier to publish my public Dropbox files:
 (load "~/code/emacs-notes/build-site.el" t)
 #+end_src
 
-I want to easily publish some files. If a file is in a publishing project, publish it.
+If a file is in a publishing project, publish it.
 
 #+begin_src emacs-lisp
   (defun sacha/org-publish-maybe ()
@@ -1976,6 +1974,17 @@ I want to easily publish some files. If a file is in a publishing project, publi
              (buffer-file-name (buffer-base-buffer)) 'up)
         (org-publish-current-file))))
   (bind-key "C-c C-p C-p" 'sacha/org-publish-maybe org-mode-map)
+#+end_src
+
+Make it easy to publish and browse a file.
+
+#+begin_src emacs-lisp
+  (defun sacha/org-publish-and-browse ()
+    (interactive)
+    (save-buffer)
+    (sacha/org-publish-maybe)
+    (browse-url (org-export-output-file-name ".html" nil default-directory)))
+  (bind-key "<apps> b" 'sacha/org-publish-and-browse)
 #+end_src
 **** Org2blog
 

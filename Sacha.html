@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-05-12 Mon 13:25 -->
+<!-- 2014-05-14 Wed 16:26 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -1056,6 +1056,7 @@ register.
    (?w . <span class="org-string">"~/Dropbox/public/sharing/index.org"</span>)
    (?W . <span class="org-string">"~/Dropbox/public/sharing/blog.org"</span>)
    (?g . <span class="org-string">"~/sachac.github.io/evil-plans/index.org"</span>)
+   (?c . <span class="org-string">"~/code/dev/elisp-course.org"</span>)
    (?l . <span class="org-string">"~/dropbox/public/sharing/learning.org"</span>)))
 </pre>
 </div>
@@ -3061,12 +3062,7 @@ complicated than they are. Let's turn them off by default.
 </div>
 
 <p>
-Some code for Emacs chats:
-</p>
-
-
-<p>
-This makes it easier to publish my public Dropbox files:
+This makes it easier to publish my files:
 </p>
 
 <div class="org-src-container">
@@ -3094,7 +3090,7 @@ This makes it easier to publish my public Dropbox files:
 </div>
 
 <p>
-I want to easily publish some files. If a file is in a publishing project, publish it.
+If a file is in a publishing project, publish it.
 </p>
 
 <div class="org-src-container">
@@ -3106,6 +3102,21 @@ I want to easily publish some files. If a file is in a publishing project, publi
            (buffer-file-name (buffer-base-buffer)) 'up)
       (org-publish-current-file))))
 (bind-key <span class="org-string">"C-c C-p C-p"</span> 'sacha/org-publish-maybe org-mode-map)
+</pre>
+</div>
+
+<p>
+Make it easy to publish and browse a file.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-publish-and-browse</span> ()
+  (interactive)
+  (save-buffer)
+  (sacha/org-publish-maybe)
+  (browse-url (org-export-output-file-name <span class="org-string">".html"</span> nil default-directory)))
+(bind-key <span class="org-string">"&lt;apps&gt; b"</span> 'sacha/org-publish-and-browse)
 </pre>
 </div>
 </div>

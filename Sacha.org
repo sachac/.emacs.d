@@ -24,9 +24,9 @@ To be precise, this is what's in my init.el:
 (add-to-list 'load-path "~/elisp/org-mode/lisp")
 (add-to-list 'load-path "~/elisp/org-mode/contrib/lisp")
 (add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
-(add-to-list 'load-path "~/code/beeminder.el")
 ;; Load the rest of the packages
 (package-initialize t)
+(setq package-enable-at-startup nil)
 (require 'org)
 (require 'ob-tangle)
 (org-babel-load-file (expand-file-name "~/.emacs.d/Sacha.org"))
@@ -136,7 +136,7 @@ Disk space is cheap. Save lots.
 (setq delete-old-versions -1)
 (setq version-control t)
 (setq vc-make-backup-files t)
-(setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list" t)))
+(setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t)))
 #+end_src
 
 *** History
@@ -464,6 +464,7 @@ register.
      (?w . "~/Dropbox/public/sharing/index.org")
      (?W . "~/Dropbox/public/sharing/blog.org")
      (?g . "~/sachac.github.io/evil-plans/index.org")
+     (?c . "~/code/dev/elisp-course.org")
      (?l . "~/dropbox/public/sharing/learning.org")))
 #+end_src
 
@@ -688,8 +689,6 @@ currently experimenting with.
       (bind-key "C-c v" 'org-show-todo-tree org-mode-map)
       (bind-key "C-c C-r" 'org-refile org-mode-map)
       (bind-key "C-c R" 'org-reveal org-mode-map)
-      (bind-key "<RET>" 'org-return-indent org-mode-map)
-
 #+end_src
 
 =append-next-kill= is more useful to me than =org-table-copy-region=.
@@ -716,6 +715,7 @@ From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-comm
   (require 'imenu)
   (bind-key "M-o" 'imenu)
   (bind-key "C-c j" 'org-clock-goto) ;; jump to current task from anywhere
+  (bind-key "C-c C-w" 'org-refile)
   (setq org-cycle-include-plain-lists 'integrate)
 #+end_src
 
@@ -871,13 +871,7 @@ able to clock in on them.
       (setq org-refile-use-outline-path nil)
       (setq org-refile-allow-creating-parent-nodes 'confirm)
       (setq org-refile-use-cache nil)
-      (setq org-refile-targets
-            '(("~/personal/business.org" . (:maxlevel . 4))
-              ("~/personal/organizer.org" . (:maxlevel . 4))
-              ("~/personal/people.org" . (:maxlevel . 3))
-              ("~/personal/outline.org" . (:maxlevel . 3))
-              ("~/personal/routines.org" . (:maxlevel . 4))
-              ("~/code/emacs-notes/tasks.org" . (:maxlevel . 4))))
+      (setq org-refile-targets '((org-agenda-files . (:maxlevel . 6))))
       (setq org-blank-before-new-entry nil)
     #+end_src
     
@@ -908,9 +902,9 @@ The parentheses indicate keyboard shortcuts that I can use to set the task state
 #+begin_src emacs-lisp
        (setq org-todo-keywords
         '((sequence
-           "STARTED(s)"
            "TODO(t)"  ; next action
            "TOBLOG(b)"  ; next action
+           "STARTED(s)"
            "WAITING(w@/!)"
            "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c@)")
           (sequence "TODELEGATE(-)" "DELEGATED(d)" "COMPLETE(x)")))
@@ -1593,7 +1587,7 @@ down into previous/next week.
       (setq time-summary (quantified-summarize-time start end))
       (setq biz-time (sacha/quantified-get-hours "Business" time-summary))
       (save-window-excursion
-        (org-agenda nil "w")
+        (org-agenda nil "W")
         (setq string (buffer-string))
         (with-temp-buffer
           (insert string)
@@ -1607,7 +1601,7 @@ down into previous/next week.
               (add-to-list 'relationships-next (concat "  - [ ] " (match-string 3))))
              (t (add-to-list 'life-next (concat "  - [ ] " (match-string 3))))))))
       (save-window-excursion
-        (org-agenda nil "w")
+        (org-agenda nil "W")
         (org-agenda-later -1)
         (org-agenda-log-mode 16)
         (setq string (buffer-string))
@@ -1951,12 +1945,10 @@ complicated than they are. Let's turn them off by default.
 (setq org-html-include-timestamps nil)
 #+end_src
 
-Some code for Emacs chats:
-
-
-This makes it easier to publish my public Dropbox files:
+This makes it easier to publish my files:
 
 #+begin_src emacs-lisp
+    (setq sacha/emacs-notes-directory "c:/sacha/code/emacs-notes")
     (setq org-publish-project-alist
           '(("public"
              :base-directory "c:/sacha/Dropbox/public"
@@ -1973,9 +1965,11 @@ This makes it easier to publish my public Dropbox files:
              :publishing-directory "c:/sacha/.emacs.d"
              :publishing-function sacha/org-html-publish-to-html-trustingly
              )))
+(load "~/code/emacs-chats/build-site.el" t)
+(load "~/code/emacs-notes/build-site.el" t)
 #+end_src
 
-I want to easily publish some files. If a file is in a publishing project, publish it.
+If a file is in a publishing project, publish it.
 
 #+begin_src emacs-lisp
   (defun sacha/org-publish-maybe ()
@@ -1985,6 +1979,17 @@ I want to easily publish some files. If a file is in a publishing project, publi
              (buffer-file-name (buffer-base-buffer)) 'up)
         (org-publish-current-file))))
   (bind-key "C-c C-p C-p" 'sacha/org-publish-maybe org-mode-map)
+#+end_src
+
+Make it easy to publish and browse a file.
+
+#+begin_src emacs-lisp
+  (defun sacha/org-publish-and-browse ()
+    (interactive)
+    (save-buffer)
+    (sacha/org-publish-maybe)
+    (browse-url (org-export-output-file-name ".html" nil default-directory)))
+  (bind-key "<apps> b" 'sacha/org-publish-and-browse)
 #+end_src
 **** Org2blog
 
@@ -2561,30 +2566,6 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 ,#+TBLFM: $4='(sacha/compare-times $3 $2)
 #+end_src
 
-*** Beeminder
-<<beeminder>>
-
-https://github.com/sachac/beeminder.el
-
-This bit of code lets me track sent messages in Gnus:
-
-#+begin_src emacs-lisp
-(defun sacha/beeminder-track-message ()
-	(save-excursion
-		(goto-char (point-min))
-		(when (re-search-forward "Newsgroups: .*emacs")
-			(goto-char (point-min))
-			(when (re-search-forward "Subject: \\(.*\\)" nil t)
-				(beeminder-add-data "orgml" "1" (match-string 1))))))
-#+end_src
-
-And this loads the beeminder code:
-
-#+BEGIN_SRC emacs-lisp
-(use-package beeminder
-  :config (add-hook 'message-send-news-hook 'sacha/beeminder-track-message))
-#+END_SRC
-
 *** R
 
 #+begin_src emacs-lisp
@@ -2913,9 +2894,15 @@ and return the directory.  Return nil if not found.
       (sp-with-modes sp--lisp-modes
         (sp-local-pair "(" nil :bind "C-("))))
 #+end_src
+** Web browsing
 
-
-
+	 Minor tweak for Firefox on Windows. Otherwise I get "Searching for
+	 program" "permission denied" "firefox".
+	 
+	 #+begin_src emacs-lisp
+	 (setq browse-url-firefox-program
+         "C:/Program Files (x86)/Mozilla Firefox/firefox.exe")
+	 #+end_src
 ** Startup
    #+begin_src emacs-lisp
      (find-file "~/personal/organizer.org")
@@ -2932,6 +2919,30 @@ and return the directory.  Return nil if not found.
 - [[https://github.com/jwiegley/dot-emacs][John Wiegley]]: Also see his [[http://www.youtube.com/watch?v=RvPFZL6NJNQ][Emacs Lisp Development talk]] (sorry, sucky video) and [[http://www.youtube.com/watch?v=ytNsHmRLZGM][Emacs Chat video]]
 
 * Inactive/infrequent things
+** Beeminder
+<<beeminder>>
+
+https://github.com/sachac/beeminder.el
+
+This bit of code lets me track sent messages in Gnus:
+
+#+begin_src emacs-lisp :eval no :tangle no
+(defun sacha/beeminder-track-message ()
+	(save-excursion
+		(goto-char (point-min))
+		(when (re-search-forward "Newsgroups: .*emacs")
+			(goto-char (point-min))
+			(when (re-search-forward "Subject: \\(.*\\)" nil t)
+				(beeminder-add-data "orgml" "1" (match-string 1))))))
+#+end_src
+
+And this loads the beeminder code:
+
+#+BEGIN_SRC emacs-lisp :eval no :tangle no
+(use-package beeminder
+  :config (add-hook 'message-send-news-hook 'sacha/beeminder-track-message))
+#+END_SRC
+
 ** Strike through DONE headlines
 
 I wanted a quick way to visually distinguish DONE tasks from tasks I

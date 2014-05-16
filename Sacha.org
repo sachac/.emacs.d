@@ -1948,7 +1948,9 @@ complicated than they are. Let's turn them off by default.
 This makes it easier to publish my files:
 
 #+begin_src emacs-lisp
-    (setq sacha/emacs-notes-directory "c:/sacha/code/emacs-notes")
+    (if (string= system-name "webdev")
+       (setq sacha/emacs-notes-directory "~/code/emacs-notes")
+     (setq sacha/emacs-notes-directory "c:/sacha/code/emacs-notes"))
     (setq org-publish-project-alist
           '(("public"
              :base-directory "c:/sacha/Dropbox/public"
@@ -1961,8 +1963,8 @@ This makes it easier to publish my files:
              :publishing-function sacha/org-html-publish-to-html-trustingly
              )
             ("emacs-config"
-             :base-directory "c:/sacha/.emacs.d"
-             :publishing-directory "c:/sacha/.emacs.d"
+             :base-directory "~/.emacs.d"
+             :publishing-directory "~/.emacs.d"
              :publishing-function sacha/org-html-publish-to-html-trustingly
              )))
 (load "~/code/emacs-chats/build-site.el" t)
@@ -1999,6 +2001,7 @@ ELPA, so I figured I'd give that a try.
 
 #+begin_src emacs-lisp
 (sacha/package-install 'org2blog)
+(sacha/package-install 'htmlize)
 (require 'org2blog-autoloads)
 (setq org-export-with-toc nil)
 (setq org-export-htmlize-output-type 'css)

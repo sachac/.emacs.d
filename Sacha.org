@@ -2368,6 +2368,7 @@ I sometimes need to know where I am in a line.
 *** Magit - nice git interface
 
 #+begin_src emacs-lisp
+(sacha/package-install 'magit)
 (defun sacha/magit-commit-all ()
   "Publish the current file and commit all the current changes."
   (interactive)

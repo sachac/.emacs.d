@@ -58,6 +58,24 @@ I like using =(setq ...)= more than Customize because I can neatly organize my c
 #+end_src
 
 ** Emacs initialization
+
+*** Install packages if necessary
+
+ELPA makes it easy to install packages without tracking down all the
+different websites. Let's define a function that makes it easy to
+install packages. I don't actually use this a lot any more, but it can
+be handy.
+
+#+begin_src emacs-lisp
+(defun sacha/package-install (package &optional repository)
+  "Install PACKAGE if it has not yet been installed.
+If REPOSITORY is specified, use that."
+  (unless (package-installed-p package)
+    (let ((package-archives (if repository
+                                (list (assoc repository package-archives))
+                              package-archives)))
+    (package-install package))))
+#+end_src
 *** Add my elisp directory and other files
 
 Sometimes I load files outside the package system. As long as they're
@@ -67,6 +85,7 @@ in a directory in my =load-path=, Emacs can find them.
 (add-to-list 'load-path "~/.emacs.d")
 (add-to-list 'load-path "~/elisp")
 (add-to-list 'load-path "~/elisp/artbollocks-mode")
+(sacha/package-install 'use-package)
 (require 'use-package)
 #+end_src
 
@@ -75,7 +94,7 @@ in a directory in my =load-path=, Emacs can find them.
 I keep slightly more sensitive information in a separate file so that I can easily publish my main configuration.
 
 #+begin_src emacs-lisp
-(load-file "~/.emacs.secrets")
+(load "~/.emacs.secrets" t)
 #+end_src
 
 *** Add package sources
@@ -100,24 +119,6 @@ much the only time I shut down is when I need to update the system.
   (interactive)
   (byte-recompile-directory "~/.emacs.d" 0)
   (byte-recompile-directory "~/elisp" 0))
-#+end_src
-
-*** Install packages if necessary
-
-ELPA makes it easy to install packages without tracking down all the
-different websites. Let's define a function that makes it easy to
-install packages. I don't actually use this a lot any more, but it can
-be handy.
-
-#+begin_src emacs-lisp
-(defun sacha/package-install (package &optional repository)
-  "Install PACKAGE if it has not yet been installed.
-If REPOSITORY is specified, use that."
-  (unless (package-installed-p package)
-    (let ((package-archives (if repository
-                                (list (assoc repository package-archives))
-                              package-archives)))
-    (package-install package))))
 #+end_src
 
 ** General configuration
@@ -279,6 +280,7 @@ Lazy people like me never want to type "yes" when "y" will suffice.
     contents of the minibuffer before submitting it.
 
 #+begin_src emacs-lisp
+  (sacha/package-install 'miniedit)
   (use-package miniedit
     :commands minibuffer-edit
     :init (miniedit-install))
@@ -296,6 +298,7 @@ it work. Some things still aren't quite right.
         ad-do-it
       nil))
   (sacha/package-install 'color-theme)
+  (sacha/package-install 'color-theme-solarized)
   (defun sacha/setup-color-theme ()
     (interactive)
     (color-theme-solarized 'dark)
@@ -1171,7 +1174,7 @@ of every month. Fortunately, [[http://stackoverflow.com/questions/13555385/org-m
 
 #+begin_src emacs-lisp
 ;; Get this from https://raw.github.com/chenfengyuan/elisp/master/next-spec-day.el
-(load-file "~/elisp/next-spec-day.el")
+(load "~/elisp/next-spec-day.el" t)
 #+end_src
 
 *** Org agenda
@@ -1180,16 +1183,17 @@ I have quite a few Org files, but I keep my agenda items and TODOs in
 only a few of them them for faster scanning.
 
 #+begin_src emacs-lisp
-  (setq org-agenda-files '(
-                           "~/personal/organizer.org"
-                           "~/personal/people.org"
-                           "~/personal/business.org"
-                           "~/Dropbox/public/sharing/index.org"
-                           "~/dropbox/public/learning.org"
-                           "~/code/dev/emacs-notes/tasks.org"
-                           "~/sachac.github.io/evil-plans/index.org"
-                           "~/personal/routines.org"
-                           ))
+  (setq org-agenda-files
+        (delq nil
+              (mapcar (lambda (x) (and (file-exists-p x) x))
+                      '("~/personal/organizer.org"
+                        "~/personal/people.org"
+                        "~/personal/business.org"
+                        "~/Dropbox/public/sharing/index.org"
+                        "~/dropbox/public/learning.org"
+                        "~/code/dev/emacs-notes/tasks.org"
+                        "~/sachac.github.io/evil-plans/index.org"
+                        "~/personal/routines.org"))))
 #+end_src
 
 I like looking at two days at a time when I plan using the Org
@@ -2030,7 +2034,9 @@ complicated than they are. Let's turn them off by default.
 This makes it easier to publish my files:
 
 #+begin_src emacs-lisp
-    (setq sacha/emacs-notes-directory "c:/sacha/code/dev/emacs-notes")
+    (if (string= system-name "webdev")
+       (setq sacha/emacs-notes-directory "~/code/dev/emacs-notes")
+     (setq sacha/emacs-notes-directory "c:/sacha/code/dev/emacs-notes"))
     (setq org-publish-project-alist
           '(("public"
              :base-directory "c:/sacha/Dropbox/public"
@@ -2043,8 +2049,8 @@ This makes it easier to publish my files:
              :publishing-function sacha/org-html-publish-to-html-trustingly
              )
             ("emacs-config"
-             :base-directory "c:/sacha/.emacs.d"
-             :publishing-directory "c:/sacha/.emacs.d"
+             :base-directory "~/.emacs.d"
+             :publishing-directory "~/.emacs.d"
              :publishing-function sacha/org-html-publish-to-html-trustingly
              )))
 (load "~/code/dev/emacs-chats/build-site.el" t)
@@ -2081,6 +2087,7 @@ ELPA, so I figured I'd give that a try.
 
 #+begin_src emacs-lisp
 (sacha/package-install 'org2blog)
+(sacha/package-install 'htmlize)
 (require 'org2blog-autoloads)
 (setq org-export-with-toc nil)
 (setq org-export-htmlize-output-type 'css)
@@ -2447,6 +2454,7 @@ I sometimes need to know where I am in a line.
 *** Magit - nice git interface
 
 #+begin_src emacs-lisp
+(sacha/package-install 'magit)
 (defun sacha/magit-commit-all ()
   "Publish the current file and commit all the current changes."
   (interactive)
@@ -2504,6 +2512,16 @@ I sometimes need to know where I am in a line.
 
 #+end_src
 
+*** Ruby
+
+		#+begin_src emacs-lisp
+    (sacha/package-install 'robe)
+    (use-package robe
+      :init
+		  (progn (add-hook 'ruby-mode-hook 'robe-mode)
+             (add-hook 'robe-mode-hook 'ac-robe-setup)
+             (add-hook 'ruby-mode-hook 'auto-complete-mode)))
+		#+end_src
 ** Ledger (personal finance): Make it easier to review my credit card transactions
 
 #+begin_src emacs-lisp

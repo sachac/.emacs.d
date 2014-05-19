@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-05-19 Mon 10:52 -->
+<!-- 2014-05-19 Mon 10:54 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -156,11 +156,11 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-2">Personal information</a></li>
 <li><a href="#sec-1-3">Emacs initialization</a>
 <ul>
-<li><a href="#sec-1-3-1">Add my elisp directory and other files</a></li>
-<li><a href="#sec-1-3-2">Load secrets</a></li>
-<li><a href="#sec-1-3-3">Add package sources</a></li>
-<li><a href="#sec-1-3-4">Byte-compile my init files to speed things up next time</a></li>
-<li><a href="#sec-1-3-5">Install packages if necessary</a></li>
+<li><a href="#sec-1-3-1">Install packages if necessary</a></li>
+<li><a href="#sec-1-3-2">Add my elisp directory and other files</a></li>
+<li><a href="#sec-1-3-3">Load secrets</a></li>
+<li><a href="#sec-1-3-4">Add package sources</a></li>
+<li><a href="#sec-1-3-5">Byte-compile my init files to speed things up next time</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-4">General configuration</a>
@@ -302,6 +302,7 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-9-11">Tag files</a></li>
 <li><a href="#sec-1-9-12">Projects</a></li>
 <li><a href="#sec-1-9-13">Exploring MELPA recipes</a></li>
+<li><a href="#sec-1-9-14">Ruby</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-10">Ledger (personal finance): Make it easier to review my credit card transactions</a></li>
@@ -478,80 +479,8 @@ I like using <code>(setq ...)</code> more than Customize because I can neatly or
 <h3 id="sec-1-3">Emacs initialization</h3>
 <div class="outline-text-3" id="text-1-3">
 </div><div id="outline-container-sec-1-3-1" class="outline-4">
-<h4 id="sec-1-3-1">Add my elisp directory and other files</h4>
+<h4 id="sec-1-3-1">Install packages if necessary</h4>
 <div class="outline-text-4" id="text-1-3-1">
-<p>
-Sometimes I load files outside the package system. As long as they're
-in a directory in my <code>load-path</code>, Emacs can find them.
-</p>
-
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(add-to-list 'load-path <span class="org-string">"~/.emacs.d"</span>)
-(add-to-list 'load-path <span class="org-string">"~/elisp"</span>)
-(add-to-list 'load-path <span class="org-string">"~/elisp/artbollocks-mode"</span>)
-(<span class="org-keyword">require</span> '<span class="org-constant">use-package</span>)
-</pre>
-</div>
-</div>
-</div>
-
-<div id="outline-container-sec-1-3-2" class="outline-4">
-<h4 id="sec-1-3-2">Load secrets</h4>
-<div class="outline-text-4" id="text-1-3-2">
-<p>
-I keep slightly more sensitive information in a separate file so that I can easily publish my main configuration.
-</p>
-
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(load-file <span class="org-string">"~/.emacs.secrets"</span>)
-</pre>
-</div>
-</div>
-</div>
-
-<div id="outline-container-sec-1-3-3" class="outline-4">
-<h4 id="sec-1-3-3">Add package sources</h4>
-<div class="outline-text-4" id="text-1-3-3">
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(add-to-list 'package-archives '(<span class="org-string">"org"</span> . <span class="org-string">"http://orgmode.org/elpa/"</span>) t)
-(add-to-list 'package-archives '(<span class="org-string">"melpa"</span> . <span class="org-string">"http://melpa.milkbox.net/packages/"</span>) t)
-</pre>
-</div>
-
-<p>
-Use <code>M-x package-refresh-contents</code> to reload the list of packages
-after adding these for the first time.
-</p>
-</div>
-</div>
-
-<div id="outline-container-sec-1-3-4" class="outline-4">
-<h4 id="sec-1-3-4">Byte-compile my init files to speed things up next time</h4>
-<div class="outline-text-4" id="text-1-3-4">
-<p>
-I hardly ever use this because I don't care about my Emacs startup
-speed. The trick to using Emacs is to not close it. I start Emacs when
-my computer boots up. I suspend my computer when I go to sleep. Pretty
-much the only time I shut down is when I need to update the system.
-</p>
-
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/byte-recompile</span> ()
-  (interactive)
-  (byte-recompile-directory <span class="org-string">"~/.emacs.d"</span> 0)
-  (byte-recompile-directory <span class="org-string">"~/elisp"</span> 0))
-</pre>
-</div>
-</div>
-</div>
-
-<div id="outline-container-sec-1-3-5" class="outline-4">
-<h4 id="sec-1-3-5">Install packages if necessary</h4>
-<div class="outline-text-4" id="text-1-3-5">
 <p>
 ELPA makes it easy to install packages without tracking down all the
 different websites. Let's define a function that makes it easy to
@@ -569,6 +498,78 @@ be handy.
                                 (list (assoc repository package-archives))
                               package-archives)))
     (package-install package))))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-3-2" class="outline-4">
+<h4 id="sec-1-3-2">Add my elisp directory and other files</h4>
+<div class="outline-text-4" id="text-1-3-2">
+<p>
+Sometimes I load files outside the package system. As long as they're
+in a directory in my <code>load-path</code>, Emacs can find them.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(add-to-list 'load-path <span class="org-string">"~/.emacs.d"</span>)
+(add-to-list 'load-path <span class="org-string">"~/elisp"</span>)
+(add-to-list 'load-path <span class="org-string">"~/elisp/artbollocks-mode"</span>)
+(sacha/package-install 'use-package)
+(<span class="org-keyword">require</span> '<span class="org-constant">use-package</span>)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-3-3" class="outline-4">
+<h4 id="sec-1-3-3">Load secrets</h4>
+<div class="outline-text-4" id="text-1-3-3">
+<p>
+I keep slightly more sensitive information in a separate file so that I can easily publish my main configuration.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(load <span class="org-string">"~/.emacs.secrets"</span> t)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-3-4" class="outline-4">
+<h4 id="sec-1-3-4">Add package sources</h4>
+<div class="outline-text-4" id="text-1-3-4">
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(add-to-list 'package-archives '(<span class="org-string">"org"</span> . <span class="org-string">"http://orgmode.org/elpa/"</span>) t)
+(add-to-list 'package-archives '(<span class="org-string">"melpa"</span> . <span class="org-string">"http://melpa.milkbox.net/packages/"</span>) t)
+</pre>
+</div>
+
+<p>
+Use <code>M-x package-refresh-contents</code> to reload the list of packages
+after adding these for the first time.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-1-3-5" class="outline-4">
+<h4 id="sec-1-3-5">Byte-compile my init files to speed things up next time</h4>
+<div class="outline-text-4" id="text-1-3-5">
+<p>
+I hardly ever use this because I don't care about my Emacs startup
+speed. The trick to using Emacs is to not close it. I start Emacs when
+my computer boots up. I suspend my computer when I go to sleep. Pretty
+much the only time I shut down is when I need to update the system.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/byte-recompile</span> ()
+  (interactive)
+  (byte-recompile-directory <span class="org-string">"~/.emacs.d"</span> 0)
+  (byte-recompile-directory <span class="org-string">"~/elisp"</span> 0))
 </pre>
 </div>
 </div>
@@ -792,7 +793,8 @@ contents of the minibuffer before submitting it.
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">miniedit</span>
+<pre class="src src-emacs-lisp">(sacha/package-install 'miniedit)
+(<span class="org-keyword">use-package</span> <span class="org-constant">miniedit</span>
   <span class="org-builtin">:commands</span> minibuffer-edit
   <span class="org-builtin">:init</span> (miniedit-install))
 </pre>
@@ -816,6 +818,7 @@ it work. Some things still aren't quite right.
       ad-do-it
     nil))
 (sacha/package-install 'color-theme)
+(sacha/package-install 'color-theme-solarized)
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/setup-color-theme</span> ()
   (interactive)
   (color-theme-solarized 'dark)
@@ -2099,7 +2102,7 @@ of every month. Fortunately, <a href="http://stackoverflow.com/questions/1355538
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">Get this from https://raw.github.com/chenfengyuan/elisp/master/next-spec-day.el</span>
-(load-file <span class="org-string">"~/elisp/next-spec-day.el"</span>)
+(load <span class="org-string">"~/elisp/next-spec-day.el"</span> t)
 </pre>
 </div>
 </div>
@@ -2118,16 +2121,17 @@ only a few of them them for faster scanning.
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(setq org-agenda-files '(
-                         <span class="org-string">"~/personal/organizer.org"</span>
-                         <span class="org-string">"~/personal/people.org"</span>
-                         <span class="org-string">"~/personal/business.org"</span>
-                         <span class="org-string">"~/Dropbox/public/sharing/index.org"</span>
-                         <span class="org-string">"~/dropbox/public/learning.org"</span>
-                         <span class="org-string">"~/code/dev/emacs-notes/tasks.org"</span>
-                         <span class="org-string">"~/sachac.github.io/evil-plans/index.org"</span>
-                         <span class="org-string">"~/personal/routines.org"</span>
-                         ))
+<pre class="src src-emacs-lisp">(setq org-agenda-files
+      (delq nil
+            (mapcar (<span class="org-keyword">lambda</span> (x) (and (file-exists-p x) x))
+                    '(<span class="org-string">"~/personal/organizer.org"</span>
+                      <span class="org-string">"~/personal/people.org"</span>
+                      <span class="org-string">"~/personal/business.org"</span>
+                      <span class="org-string">"~/Dropbox/public/sharing/index.org"</span>
+                      <span class="org-string">"~/dropbox/public/learning.org"</span>
+                      <span class="org-string">"~/code/dev/emacs-notes/tasks.org"</span>
+                      <span class="org-string">"~/sachac.github.io/evil-plans/index.org"</span>
+                      <span class="org-string">"~/personal/routines.org"</span>))))
 </pre>
 </div>
 
@@ -3186,7 +3190,9 @@ This makes it easier to publish my files:
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">    (setq sacha/emacs-notes-directory <span class="org-string">"c:/sacha/code/dev/emacs-notes"</span>)
+<pre class="src src-emacs-lisp">    (<span class="org-keyword">if</span> (string= system-name <span class="org-string">"webdev"</span>)
+       (setq sacha/emacs-notes-directory <span class="org-string">"~/code/dev/emacs-notes"</span>)
+     (setq sacha/emacs-notes-directory <span class="org-string">"c:/sacha/code/dev/emacs-notes"</span>))
     (setq org-publish-project-alist
           '((<span class="org-string">"public"</span>
              <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/Dropbox/public"</span>
@@ -3199,8 +3205,8 @@ This makes it easier to publish my files:
              <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
              )
             (<span class="org-string">"emacs-config"</span>
-             <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/.emacs.d"</span>
-             <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/.emacs.d"</span>
+             <span class="org-builtin">:base-directory</span> <span class="org-string">"~/.emacs.d"</span>
+             <span class="org-builtin">:publishing-directory</span> <span class="org-string">"~/.emacs.d"</span>
              <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
              )))
 (load <span class="org-string">"~/code/dev/emacs-chats/build-site.el"</span> t)
@@ -3251,6 +3257,7 @@ ELPA, so I figured I'd give that a try.
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(sacha/package-install 'org2blog)
+(sacha/package-install 'htmlize)
 (<span class="org-keyword">require</span> '<span class="org-constant">org2blog-autoloads</span>)
 (setq org-export-with-toc nil)
 (setq org-export-htmlize-output-type 'css)
@@ -3798,7 +3805,8 @@ I sometimes need to know where I am in a line.
 <div class="outline-text-4" id="text-1-9-10">
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/magit-commit-all</span> ()
+<pre class="src src-emacs-lisp">(sacha/package-install 'magit)
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/magit-commit-all</span> ()
   <span class="org-doc">"Publish the current file and commit all the current changes."</span>
   (interactive)
   (sacha/org-publish-maybe)
@@ -3873,8 +3881,23 @@ tree instead.
 </div>
 </div>
 </div>
-</div>
 
+<div id="outline-container-sec-1-9-14" class="outline-4">
+<h4 id="sec-1-9-14">Ruby</h4>
+<div class="outline-text-4" id="text-1-9-14">
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(sacha/package-install 'robe)
+(<span class="org-keyword">use-package</span> <span class="org-constant">robe</span>
+  <span class="org-builtin">:init</span>
+  (<span class="org-keyword">progn</span> (add-hook 'ruby-mode-hook 'robe-mode)
+         (add-hook 'robe-mode-hook 'ac-robe-setup)
+         (add-hook 'ruby-mode-hook 'auto-complete-mode)))
+</pre>
+</div>
+</div>
+</div>
+</div>
 <div id="outline-container-sec-1-10" class="outline-3">
 <h3 id="sec-1-10">Ledger (personal finance): Make it easier to review my credit card transactions</h3>
 <div class="outline-text-3" id="text-1-10">

@@ -431,8 +431,8 @@ Copied from http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tri
   (split-window-horizontally)
   (other-window 1 nil)
   (switch-to-next-buffer))
-(bind-key "C-x 2" 'vsplit-last-buffer)
-(bind-key "C-x 3" 'hsplit-last-buffer)
+(bind-key "C-x 2" 'sacha/vsplit-last-buffer)
+(bind-key "C-x 3" 'sacha/hsplit-last-buffer)
 
 #+end_src
 *** Searching based on the current word

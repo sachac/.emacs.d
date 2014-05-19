@@ -2902,6 +2902,7 @@ and return the directory.  Return nil if not found.
 *** Smartparens mode						      :drill:
 
 #+begin_src emacs-lisp
+  (sacha/package-install 'smartparens)
   (use-package smartparens
     :init 
     (progn

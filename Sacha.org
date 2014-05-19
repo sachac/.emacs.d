@@ -415,7 +415,26 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
      ("<f2> <up>" . windmove-up)
      ("<f2> <down>" . windmove-down)))
 #+end_src
+*** Make window splitting more useful
 
+Copied from http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tricks/chldury
+#+begin_src emacs-lisp
+(defun sacha/vsplit-last-buffer ()
+  "Split the window vertically and display the previous buffer."
+  (interactive)
+  (split-window-vertically)
+  (other-window 1 nil)
+  (switch-to-next-buffer))
+(defun sacha/hsplit-last-buffer ()
+  "Split the window horizontally and display the previous buffer."
+  (interactive)
+  (split-window-horizontally)
+  (other-window 1 nil)
+  (switch-to-next-buffer))
+(bind-key "C-x 2" 'vsplit-last-buffer)
+(bind-key "C-x 3" 'hsplit-last-buffer)
+
+#+end_src
 *** Searching based on the current word
 
 This lets me search up and down. I don't use this often, though.
@@ -460,7 +479,7 @@ register.
    '((?i . "~/.emacs.d/Sacha.org")
      (?o . "~/personal/organizer.org")
      (?b . "~/personal/business.org")
-     (?e . "~/code/emacs-notes/tasks.org")
+     (?e . "~/code/dev/emacs-notes/tasks.org")
      (?w . "~/Dropbox/public/sharing/index.org")
      (?W . "~/Dropbox/public/sharing/blog.org")
      (?g . "~/sachac.github.io/evil-plans/index.org")
@@ -507,13 +526,25 @@ I'm on a Dvorak keyboard, so these might not work for you.
 Experimenting with this. =key-chord= lets you define keyboard
 shortcuts that use ordinary keys.
 
+Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
 #+begin_src emacs-lisp
-  (use-package key-chord
-    :init
-    (progn 
-      (key-chord-mode 1)
-      (key-chord-define-global "cg"     'undo)
-      (key-chord-define-global "yp"     'other-window)))
+(defun sacha/switch-to-previous-buffer ()
+  "Switch to previously open buffer.
+Repeated invocations toggle between the two most recently open buffers."
+  (interactive)
+  (switch-to-buffer (other-buffer (current-buffer) 1)))
+(use-package key-chord
+  :init
+  (progn 
+    (key-chord-mode 1)
+    (key-chord-define-global "cg"     'undo)
+    (key-chord-define-global "yp"     'other-window)
+    (key-chord-define-global "yy"     'browse-kill-ring)
+    (key-chord-define-global "jj"     'ace-jump-char-mode)
+    (key-chord-define-global "jw"     'ace-jump-word-mode)
+    (key-chord-define-global "jl"     'ace-jump-line-mode)
+    (key-chord-define-global "FF"     'find-file)
+    (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer)))
 #+end_src
 *** Smartscan
 
@@ -530,6 +561,62 @@ From http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-di
 #+begin_src emacs-lisp
 (require 'find-dired)
 (setq find-ls-option '("-print0 | xargs -0 ls -ld" . "-ld"))
+#+end_src
+*** Move to beginning of line
+Copied from http://emacsredux.com/blog/2013/05/22/smarter-navigation-to-the-beginning-of-a-line/
+
+#+begin_src emacs-lisp
+(defun sacha/smarter-move-beginning-of-line (arg)
+  "Move point back to indentation of beginning of line.
+
+Move point to the first non-whitespace character on this line.
+If point is already there, move to the beginning of the line.
+Effectively toggle between the first non-whitespace character and
+the beginning of the line.
+
+If ARG is not nil or 1, move forward ARG - 1 lines first.  If
+point reaches the beginning or end of the buffer, stop there."
+  (interactive "^p")
+  (setq arg (or arg 1))
+
+  ;; Move lines first
+  (when (/= arg 1)
+    (let ((line-move-visual nil))
+      (forward-line (1- arg))))
+
+  (let ((orig-point (point)))
+    (back-to-indentation)
+    (when (= orig-point (point))
+      (move-beginning-of-line 1))))
+
+;; remap C-a to `smarter-move-beginning-of-line'
+(global-set-key [remap move-beginning-of-line]
+                'sacha/smarter-move-beginning-of-line)
+#+end_src
+*** Recent files
+
+#+begin_src emacs-lisp
+(require 'recentf)
+(setq recentf-max-saved-items 200
+      recentf-max-menu-items 15)
+(recentf-mode)
+(bind-key "C-c f" 'recentf-find-file)
+#+end_src
+*** Copy filename to clipboard
+
+http://emacsredux.com/blog/2013/03/27/copy-filename-to-the-clipboard/
+https://github.com/bbatsov/prelude
+
+#+begin_src emacs-lisp
+(defun prelude-copy-file-name-to-clipboard ()
+  "Copy the current buffer file name to the clipboard."
+  (interactive)
+  (let ((filename (if (equal major-mode 'dired-mode)
+                      default-directory
+                    (buffer-file-name))))
+    (when filename
+      (kill-new filename)
+      (message "Copied buffer file name '%s' to the clipboard." filename))))
 #+end_src
 ** Reading
 
@@ -1104,10 +1191,9 @@ only a few of them them for faster scanning.
                         "~/personal/business.org"
                         "~/Dropbox/public/sharing/index.org"
                         "~/dropbox/public/learning.org"
-                        "~/code/emacs-notes/tasks.org"
+                        "~/code/dev/emacs-notes/tasks.org"
                         "~/sachac.github.io/evil-plans/index.org"
                         "~/personal/routines.org"))))
-              
 #+end_src
 
 I like looking at two days at a time when I plan using the Org
@@ -1949,8 +2035,8 @@ This makes it easier to publish my files:
 
 #+begin_src emacs-lisp
     (if (string= system-name "webdev")
-       (setq sacha/emacs-notes-directory "~/code/emacs-notes")
-     (setq sacha/emacs-notes-directory "c:/sacha/code/emacs-notes"))
+       (setq sacha/emacs-notes-directory "~/code/dev/emacs-notes")
+     (setq sacha/emacs-notes-directory "c:/sacha/code/dev/emacs-notes"))
     (setq org-publish-project-alist
           '(("public"
              :base-directory "c:/sacha/Dropbox/public"
@@ -1967,8 +2053,8 @@ This makes it easier to publish my files:
              :publishing-directory "~/.emacs.d"
              :publishing-function sacha/org-html-publish-to-html-trustingly
              )))
-(load "~/code/emacs-chats/build-site.el" t)
-(load "~/code/emacs-notes/build-site.el" t)
+(load "~/code/dev/emacs-chats/build-site.el" t)
+(load "~/code/dev/emacs-notes/build-site.el" t)
 #+end_src
 
 If a file is in a publishing project, publish it.
@@ -2411,11 +2497,12 @@ I sometimes need to know where I am in a line.
 *** Projects
 
 #+begin_src emacs-lisp
-(setq projectile-keymap-prefix (kbd "C-c C-p")) 
+(setq projectile-keymap-prefix (kbd "C-c p")) 
 (use-package projectile
   :init 
   (progn
     (projectile-global-mode)
+    (setq projectile-completion-system 'default)
     (setq projectile-enable-caching t)))
 (use-package helm-projectile)
 #+end_src

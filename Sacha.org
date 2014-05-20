@@ -15,7 +15,7 @@ extensively first.
 
 This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]] - [[https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org][Org]] - [[https://dl.dropbox.com/u/3968124/sacha-emacs.el][.el]] - [[http://sachac.github.io/.emacs.d/][Github]] - also, http://sach.ac/dotemacs
 
-To be precise, this is what's in my init.el:
+To be precise, this is what's in the first part of my =~/.emacs.d/init.el= (what used to be the =~/.emacs= file):
 
 #+begin_src emacs-lisp  :tangle no
 ;; This sets up the load path so that we can override it
@@ -541,7 +541,7 @@ Repeated invocations toggle between the two most recently open buffers."
     (key-chord-define-global "yp"     'other-window)
     (key-chord-define-global "yy"     'browse-kill-ring)
     (key-chord-define-global "jj"     'ace-jump-char-mode)
-    (key-chord-define-global "jw"     'ace-jump-word-mode)
+    (key-chord-define-global "jw"     'ace-window)
     (key-chord-define-global "jl"     'ace-jump-line-mode)
     (key-chord-define-global "FF"     'find-file)
     (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer)))

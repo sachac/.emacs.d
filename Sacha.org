@@ -13,7 +13,7 @@ You could load it with =(org-babel-load-file "/path/to/file")=,
 changing the path appropriately, but you'll probably want to tweak it
 extensively first. 
 
-This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]] - [[https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org][Org]] - [[https://dl.dropbox.com/u/3968124/sacha-emacs.el][.el]] - [[http://sachac.github.io/.emacs.d/][Github]] - also, http://sach.ac/dotemacs
+This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]] - [[https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org][Org]] - [[https://dl.dropbox.com/u/3968124/sacha-emacs.el][.el]] - [[http://github.com/sachac/.emacs.d/][Github]] - also, http://sach.ac/dotemacs
 
 To be precise, this is what's in the first part of my =~/.emacs.d/init.el= (what used to be the =~/.emacs= file):
 

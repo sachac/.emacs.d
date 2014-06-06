@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-05-19 Mon 10:54 -->
+<!-- 2014-05-19 Mon 23:05 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -411,11 +411,11 @@ extensively first.
 </p>
 
 <p>
-This page: <a href="http://sachac.github.io/.emacs.d/Sacha.html">HTML</a> - <a href="https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org">Org</a> - <a href="https://dl.dropbox.com/u/3968124/sacha-emacs.el">.el</a> - <a href="http://sachac.github.io/.emacs.d/">Github</a> - also, <a href="http://sach.ac/dotemacs">http://sach.ac/dotemacs</a>
+This page: <a href="http://sachac.github.io/.emacs.d/Sacha.html">HTML</a> - <a href="https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org">Org</a> - <a href="https://dl.dropbox.com/u/3968124/sacha-emacs.el">.el</a> - <a href="http://github.com/sachac/.emacs.d/">Github</a> - also, <a href="http://sach.ac/dotemacs">http://sach.ac/dotemacs</a>
 </p>
 
 <p>
-To be precise, this is what's in my init.el:
+To be precise, this is what's in the first part of my <code>~/.emacs.d/init.el</code> (what used to be the <code>~/.emacs</code> file):
 </p>
 
 <div class="org-src-container">
@@ -1022,8 +1022,8 @@ Copied from <a href="http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tip
   (split-window-horizontally)
   (other-window 1 nil)
   (switch-to-next-buffer))
-(bind-key <span class="org-string">"C-x 2"</span> 'vsplit-last-buffer)
-(bind-key <span class="org-string">"C-x 3"</span> 'hsplit-last-buffer)
+(bind-key <span class="org-string">"C-x 2"</span> 'sacha/vsplit-last-buffer)
+(bind-key <span class="org-string">"C-x 3"</span> 'sacha/hsplit-last-buffer)
 </pre>
 </div>
 </div>
@@ -1153,7 +1153,7 @@ Some code from <a href="http://emacsredux.com/blog/2013/04/28/switch-to-previous
     (key-chord-define-global <span class="org-string">"yp"</span>     'other-window)
     (key-chord-define-global <span class="org-string">"yy"</span>     'browse-kill-ring)
     (key-chord-define-global <span class="org-string">"jj"</span>     'ace-jump-char-mode)
-    (key-chord-define-global <span class="org-string">"jw"</span>     'ace-jump-word-mode)
+    (key-chord-define-global <span class="org-string">"jw"</span>     'ace-window)
     (key-chord-define-global <span class="org-string">"jl"</span>     'ace-jump-line-mode)
     (key-chord-define-global <span class="org-string">"FF"</span>     'find-file)
     (key-chord-define-global <span class="org-string">"JJ"</span>     'sacha/switch-to-previous-buffer)))
@@ -4362,7 +4362,8 @@ and return the directory.  Return nil if not found.
 <div class="outline-text-4" id="text-1-15-3">
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">smartparens</span>
+<pre class="src src-emacs-lisp">(sacha/package-install 'smartparens)
+(<span class="org-keyword">use-package</span> <span class="org-constant">smartparens</span>
   <span class="org-builtin">:init</span> 
   (<span class="org-keyword">progn</span>
     (<span class="org-keyword">require</span> '<span class="org-constant">smartparens-config</span>)

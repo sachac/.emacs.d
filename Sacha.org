@@ -182,6 +182,7 @@ When you're starting out, tooltips, menus, and the tool bar can be very helpful.
 =winner-mode= lets you use =C-c <left>= and =C-c <right>= to switch between window configurations. This is handy when something has popped up a buffer that you want to look at briefly before returning to whatever you were working on. When you're done, press =C-c <left>=.
 
 #+begin_src emacs-lisp
+  (sacha/package-install 'winner)
   (use-package winner
     :config (winner-mode 1))
 #+end_src
@@ -419,18 +420,19 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
 
 Copied from http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tricks/chldury
 #+begin_src emacs-lisp
-(defun sacha/vsplit-last-buffer ()
+(defun sacha/vsplit-last-buffer (prefix)
   "Split the window vertically and display the previous buffer."
-  (interactive)
+  (interactive "p")
   (split-window-vertically)
   (other-window 1 nil)
-  (switch-to-next-buffer))
-(defun sacha/hsplit-last-buffer ()
+  (unless prefix
+    (switch-to-next-buffer)))
+(defun sacha/hsplit-last-buffer (prefix)
   "Split the window horizontally and display the previous buffer."
-  (interactive)
+  (interactive "p")
   (split-window-horizontally)
   (other-window 1 nil)
-  (switch-to-next-buffer))
+  (unless prefix (switch-to-next-buffer)))
 (bind-key "C-x 2" 'sacha/vsplit-last-buffer)
 (bind-key "C-x 3" 'sacha/hsplit-last-buffer)
 
@@ -537,10 +539,9 @@ Repeated invocations toggle between the two most recently open buffers."
   :init
   (progn 
     (key-chord-mode 1)
-    (key-chord-define-global "cg"     'undo)
-    (key-chord-define-global "yp"     'other-window)
+    (key-chord-define-global "uu"     'undo)
     (key-chord-define-global "yy"     'browse-kill-ring)
-    (key-chord-define-global "jj"     'ace-jump-char-mode)
+    (key-chord-define-global "jj"     'ace-jump-word-mode)
     (key-chord-define-global "jw"     'ace-window)
     (key-chord-define-global "jl"     'ace-jump-line-mode)
     (key-chord-define-global "FF"     'find-file)
@@ -707,6 +708,15 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 (bind-key "M-t t" 'transpose-words)
 (bind-key "M-t M-t" 'transpose-words)
 (bind-key "M-t s" 'transpose-sexps)
+#+end_src
+*** Unicode
+
+#+begin_src emacs-lisp
+(defmacro sacha/insert-unicode (unicode-name)
+  `(lambda () (interactive)
+     (insert-char (cdr (assoc-string ,unicode-name (ucs-names))))))
+(bind-key "C-x 8 s" (sacha/insert-unicode "ZERO WIDTH SPACE"))
+(bind-key "C-x 8 S" (sacha/insert-unicode "SNOWMAN"))
 #+end_src
 ** Org
 
@@ -1405,7 +1415,7 @@ hang of using these more!
     (defun sacha/org-agenda-skip-scheduled ()
       (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
     (setq org-agenda-custom-commands
-          `(("T" todo-tree "TODO")
+          `(("T" tags-todo "TODO=\"TODO\"-routine")
             ("b" todo ""
              ((org-agenda-files '("~/personal/business.org"))))
             ("o" todo ""
@@ -1741,6 +1751,9 @@ down into previous/next week.
              (format "- *Discretionary - Productive* (%.1fh - %d%%)\n"
                      (sacha/quantified-get-hours "Discretionary - Productive" time-summary)
                      (/ (sacha/quantified-get-hours "Discretionary - Productive" time-summary) 1.68))
+             (format "  - *Emacs* (%.1fh - %d%% of all)\n"
+                     (sacha/quantified-get-hours "Discretionary - Productive - Emacs" time-summary)
+                     (/ (sacha/quantified-get-hours "Discretionary - Productive - Emacs" time-summary) 1.68))
              (mapconcat 'identity (sort life 'string<) "\n") "\n"
              (mapconcat 'identity (sort life-next 'string<) "\n") "\n"
              (format "  - *Writing* (%.1fh)\n"
@@ -1781,7 +1794,7 @@ The following code makes it easy to add a line:
                              "")))
     (org-capture nil "t")
     (insert "TODO " task "\nSCHEDULED: <" (org-read-date) ">")))
-(define-key org-mode-map (kbd "C-c t") 'sacha/org-add-line-item-task)
+;(define-key org-mode-map (kbd "C-c t") 'sacha/org-add-line-item-task)
 #+end_src
 
 Now we put it all together...
@@ -1847,8 +1860,9 @@ Now we put it all together...
        
        (defun sacha/flickr-export-and-extract (start end)
          "Download Flickr metadata and extract the relevant part."
+         (interactive (list (org-read-date) (org-read-date)))
          (shell-command "c:/sacha/dropbox/bin/flickr.bat")
-         (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
+         (insert (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end)))
 #+end_src
 
 **** Link-related convenience functions
@@ -2005,7 +2019,7 @@ Photosync (for syncing with Flickr) can't deal with periods in filenames. Org ge
         (org-refile-get-location "Location"))))
     (let ((s
            (replace-regexp-in-string
-            "^ +- "
+            "^ *- "
             "- [X] "
             (buffer-substring-no-properties beg end))))
       (save-window-excursion
@@ -2210,6 +2224,7 @@ redefine =<l= to insert a Lisp block instead.
           ("q" "#+begin_quote\n?\n#+end_quote" "<quote>\n?\n</quote>")
           ("v" "#+BEGIN_VERSE\n?\n#+END_VERSE" "<verse>\n?\n</verse>")
           ("c" "#+BEGIN_COMMENT\n?\n#+END_COMMENT")
+          ("p" "#+BEGIN_PRACTICE\n?\n#+END_PRACTICE")
           ("l" "#+begin_src emacs-lisp\n?\n#+end_src" "<src lang=\"emacs-lisp\">\n?\n</src>")
           ("L" "#+latex: " "<literal style=\"latex\">?</literal>")
           ("h" "#+begin_html\n?\n#+end_html" "<literal style=\"html\">\n?\n</literal>")
@@ -2232,11 +2247,18 @@ These are great for quickly acting on tasks.
 
 #+begin_src emacs-lisp
 (setq org-use-effective-time t)
-(setq org-use-speed-commands t)
+
+(defun sacha/org-use-speed-commands-for-headings-and-lists ()
+	"Activate speed commands on list items too."
+	(or (and (looking-at org-outline-regexp) (looking-back "^\**"))
+			(save-excursion (and (looking-at (org-item-re)) (looking-back "^[ \t]*")))
+(setq org-use-speed-commands 'sacha/org-use-speed-commands-for-headings-and-lists)
+
 (add-to-list 'org-speed-commands-user '("x" org-todo "DONE"))
 (add-to-list 'org-speed-commands-user '("y" org-todo-yesterday "DONE"))
 (add-to-list 'org-speed-commands-user '("!" sacha/org-clock-in-and-track))
 (add-to-list 'org-speed-commands-user '("s" call-interactively 'org-schedule))
+(add-to-list 'org-speed-commands-user '("d" sacha/org-move-line-to-destination))
 (add-to-list 'org-speed-commands-user '("i" call-interactively 'org-clock-in))
 (add-to-list 'org-speed-commands-user '("o" call-interactively 'org-clock-out))
 (bind-key "!" 'sacha/org-clock-in-and-track org-agenda-mode-map)
@@ -2602,7 +2624,7 @@ I sometimes need to know where I am in a line.
     (interactive)
     (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
     (call-interactively 'sacha/org-quantified-track))
-  (define-key org-agenda-mode-map "!" 'sacha/org-clock-in-and-track)
+  (bind-key "!" 'sacha/org-clock-in-and-track org-agenda-mode-map)
 
   (defun sacha/org-quantified-track (&optional category note)
     "Create a tracking record using CATEGORY and NOTE.
@@ -2995,6 +3017,32 @@ and return the directory.  Return nil if not found.
 	 (setq browse-url-firefox-program
          "C:/Program Files (x86)/Mozilla Firefox/firefox.exe")
 	 #+end_src
+** Transcript editing
+
+#+begin_src emacs-lisp
+(defun sacha/split-sentence-and-capitalize ()
+  (interactive)
+  (delete-char 1)
+  (insert ".")
+  (capitalize-word 1))
+(defun sacha/split-sentence-delete-word-and-capitalize ()
+  (interactive)
+  (delete-char 1)
+  (insert ".")
+  (kill-word 1)
+  (capitalize-word 1))
+(defun sacha/delete-word-and-capitalize ()
+  (interactive)
+  (skip-syntax-backward "w")
+  (kill-word 1)
+  (capitalize-word 1))
+(key-chord-define-global "fs" 'sacha/split-sentence-and-capitalize)
+(key-chord-define-global "fd" 'sacha/delete-word-and-capitalize)
+(bind-key "C-c t s"  'sacha/split-sentence-and-capitalize org-mode-map)
+(bind-key "C-c t -"  'sacha/split-sentence-delete-word-and-capitalize org-mode-map)
+(bind-key "C-c t d"  'sacha/delete-word-and-capitalize org-mode-map)
+#+end_src
+
 ** Startup
    #+begin_src emacs-lisp
      (find-file "~/personal/organizer.org")

@@ -2248,22 +2248,22 @@ redefine =<l= to insert a Lisp block instead.
 These are great for quickly acting on tasks.
 
 #+begin_src emacs-lisp
-(setq org-use-effective-time t)
+  (setq org-use-effective-time t)
 
-(defun sacha/org-use-speed-commands-for-headings-and-lists ()
-	"Activate speed commands on list items too."
-	(or (and (looking-at org-outline-regexp) (looking-back "^\**"))
-			(save-excursion (and (looking-at (org-item-re)) (looking-back "^[ \t]*")))
-(setq org-use-speed-commands 'sacha/org-use-speed-commands-for-headings-and-lists)
+  (defun sacha/org-use-speed-commands-for-headings-and-lists ()
+    "Activate speed commands on list items too."
+    (or (and (looking-at org-outline-regexp) (looking-back "^\**"))
+        (save-excursion (and (looking-at (org-item-re)) (looking-back "^[ \t]*")))))
+  (setq org-use-speed-commands 'sacha/org-use-speed-commands-for-headings-and-lists)
 
-(add-to-list 'org-speed-commands-user '("x" org-todo "DONE"))
-(add-to-list 'org-speed-commands-user '("y" org-todo-yesterday "DONE"))
-(add-to-list 'org-speed-commands-user '("!" sacha/org-clock-in-and-track))
-(add-to-list 'org-speed-commands-user '("s" call-interactively 'org-schedule))
-(add-to-list 'org-speed-commands-user '("d" sacha/org-move-line-to-destination))
-(add-to-list 'org-speed-commands-user '("i" call-interactively 'org-clock-in))
-(add-to-list 'org-speed-commands-user '("o" call-interactively 'org-clock-out))
-(bind-key "!" 'sacha/org-clock-in-and-track org-agenda-mode-map)
+  (add-to-list 'org-speed-commands-user '("x" org-todo "DONE"))
+  (add-to-list 'org-speed-commands-user '("y" org-todo-yesterday "DONE"))
+  (add-to-list 'org-speed-commands-user '("!" sacha/org-clock-in-and-track))
+  (add-to-list 'org-speed-commands-user '("s" call-interactively 'org-schedule))
+  (add-to-list 'org-speed-commands-user '("d" sacha/org-move-line-to-destination))
+  (add-to-list 'org-speed-commands-user '("i" call-interactively 'org-clock-in))
+  (add-to-list 'org-speed-commands-user '("o" call-interactively 'org-clock-out))
+  (bind-key "!" 'sacha/org-clock-in-and-track org-agenda-mode-map)
 #+end_src
 
 *** Attachments
@@ -3039,8 +3039,6 @@ and return the directory.  Return nil if not found.
   (skip-syntax-backward "w")
   (kill-word 1)
   (capitalize-word 1))
-(key-chord-define-global "fs" 'sacha/split-sentence-and-capitalize)
-(key-chord-define-global "fd" 'sacha/delete-word-and-capitalize)
 (bind-key "C-c t s"  'sacha/split-sentence-and-capitalize org-mode-map)
 (bind-key "C-c t -"  'sacha/split-sentence-delete-word-and-capitalize org-mode-map)
 (bind-key "C-c t d"  'sacha/delete-word-and-capitalize org-mode-map)

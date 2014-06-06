@@ -309,10 +309,11 @@ it work. Some things still aren't quite right.
     (set-face-background 'font-lock-string-face "black")
     (set-face-foreground 'org-todo "green")
     (set-face-background 'org-todo "black"))
-
+ 
   (use-package color-theme
     :init
-    (sacha/setup-color-theme))
+    (when window-system
+      (sacha/setup-color-theme)))
 #+end_src
 
 I sometimes need to switch to a lighter background for screenshots.
@@ -320,6 +321,7 @@ For that, I use =color-theme-vim=.
 
 Some more tweaks to solarized:
 #+begin_src emacs-lisp
+(when window-system
   (custom-set-faces
    '(erc-input-face ((t (:foreground "antique white"))))
    '(helm-selection ((t (:background "ForestGreen" :foreground "black"))))
@@ -328,7 +330,8 @@ Some more tweaks to solarized:
    '(org-done ((t (:foreground "PaleGreen" :weight normal :strike-through t))))
    '(org-clock-overlay ((t (:background "SkyBlue4" :foreground "black"))))
    '(org-headline-done ((((class color) (min-colors 16) (background dark)) (:foreground "LightSalmon" :strike-through t))))
-   '(outline-1 ((t (:inherit font-lock-function-name-face :foreground "cornflower blue")))))
+   '(outline-1 ((t (:inherit font-lock-function-name-face :foreground "cornflower blue"))))))
+
 #+end_src
 
 *** Undo tree mode - visualize your undos and branches
@@ -431,8 +434,8 @@ Copied from http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tri
   (split-window-horizontally)
   (other-window 1 nil)
   (switch-to-next-buffer))
-(bind-key "C-x 2" 'vsplit-last-buffer)
-(bind-key "C-x 3" 'hsplit-last-buffer)
+(bind-key "C-x 2" 'sacha/vsplit-last-buffer)
+(bind-key "C-x 3" 'sacha/hsplit-last-buffer)
 
 #+end_src
 *** Searching based on the current word
@@ -600,7 +603,6 @@ point reaches the beginning or end of the buffer, stop there."
 (setq recentf-max-saved-items 200
       recentf-max-menu-items 15)
 (recentf-mode)
-(bind-key "C-c f" 'recentf-find-file)
 #+end_src
 *** Copy filename to clipboard
 
@@ -2413,6 +2415,7 @@ More things that I need to get used to...
 
 #+begin_src emacs-lisp
 (define-key emacs-lisp-mode-map (kbd "C-c .") 'find-function-at-point)
+(bind-key "C-c f" 'find-function)
 #+end_src
 *** Snippets
     #+begin_src emacs-lisp
@@ -2905,7 +2908,7 @@ and return the directory.  Return nil if not found.
   (sacha/package-install 'smartparens)
   (use-package smartparens
     :init 
-    (progn
+    (when (eq system-type 'w32)
       (require 'smartparens-config)
       (add-hook 'emacs-lisp-mode-hook 'smartparens-mode)
       (add-hook 'emacs-lisp-mode-hook 'show-smartparens-mode)

@@ -1205,6 +1205,7 @@ only a few of them them for faster scanning.
                         "~/dropbox/public/learning.org"
                         "~/code/dev/emacs-notes/tasks.org"
                         "~/sachac.github.io/evil-plans/index.org"
+                        "~/personal/cooking.org"
                         "~/personal/routines.org"))))
 #+end_src
 
@@ -2206,7 +2207,7 @@ Sometimes I want a subtree:
 
 This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone. 
 #+begin_src emacs-lisp
-(setq org-html-checkbox-types 'unicode)
+(setq org-html-checkbox-type 'unicode)
 (setq org-html-checkbox-types
  '((unicode (on . "<span class=\"task-done\">&#x2611;</span>") 
             (off . "<span class=\"task-todo\">&#x2610;</span>") 
@@ -2363,6 +2364,7 @@ I almost always want to go to the right indentation on the next line.
 I'm on Windows, so I use Cygwin to add Unix-y tools to make my life easier. 
 These config snippets seem to help too.
 #+begin_src emacs-lisp
+  (setenv "CYGWIN" "nodosfilewarning")
   (add-hook 'comint-output-filter-functions
       'shell-strip-ctrl-m nil t)
   (add-hook 'comint-output-filter-functions
@@ -3023,6 +3025,12 @@ and return the directory.  Return nil if not found.
 ** Transcript editing
 
 #+begin_src emacs-lisp
+(require 'emms)
+(require 'emms-player-simple)
+(require 'emms-source-file)
+(require 'emms-source-playlist)
+(require 'emms-player-mplayer)
+(setq emms-player-list '(emms-player-mplayer))
 (defun sacha/split-sentence-and-capitalize ()
   (interactive)
   (delete-char 1)
@@ -3042,6 +3050,34 @@ and return the directory.  Return nil if not found.
 (bind-key "C-c t s"  'sacha/split-sentence-and-capitalize org-mode-map)
 (bind-key "C-c t -"  'sacha/split-sentence-delete-word-and-capitalize org-mode-map)
 (bind-key "C-c t d"  'sacha/delete-word-and-capitalize org-mode-map)
+(bind-key "C-c e SPC" 'emms-pause)
+(bind-key "C-c e e" 'emms-pause)
+(bind-key "C-c e +" 'emms-seek-forward)
+(bind-key "C-c e -" 'emms-seek-backward)
+(bind-key "C-c e s" 'emms-seek)
+
+(defun sacha/emms-player-mplayer-set-speed (speed)
+  "Depends on mplayer's -slave mode"
+  (interactive "MSpeed: ")
+  (process-send-string emms-player-simple-process-name 
+     (format "speed_set %s\n" speed)))
+
+(defvar sacha/emms-player-mplayer-speed-increment 0.1)
+
+(defun sacha/emms-player-mplayer-speed-up ()
+  "Depends on mplayer's -slave mode"
+  (interactive)
+  (process-send-string emms-player-simple-process-name 
+     (format "speed_incr %f\n" sacha/emms-player-mplayer-speed-increment)))
+(defun sacha/emms-player-mplayer-slow-down ()
+  "Depends on mplayer's -slave mode"
+  (interactive)
+  (process-send-string emms-player-simple-process-name 
+     (format "speed_incr %f\n" (- 0 sacha/emms-player-mplayer-speed-increment))))
+
+(bind-key "C-c e [" 'sacha/emms-player-mplayer-slow-down)
+(bind-key "C-c e ]" 'sacha/emms-player-mplayer-speed-up)
+
 #+end_src
 
 ** Startup
@@ -3752,5 +3788,3 @@ theme. =)
      (add-hook '2048-mode-hook 'sacha/2048-fontify)
      (add-hook '2048-mode-hook 'sacha/2048-set-font-size)))
 #+end_src
-
-

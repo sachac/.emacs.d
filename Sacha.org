@@ -24,6 +24,7 @@ To be precise, this is what's in the first part of my =~/.emacs.d/init.el= (what
 (add-to-list 'load-path "~/elisp/org-mode/lisp")
 (add-to-list 'load-path "~/elisp/org-mode/contrib/lisp")
 (add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
+(add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
 ;; Load the rest of the packages
 (package-initialize t)
 (setq package-enable-at-startup nil)
@@ -2522,6 +2523,7 @@ I sometimes need to know where I am in a line.
 *** Projects
 
 #+begin_src emacs-lisp
+(sacha/package-install 'projectile)
 (setq projectile-keymap-prefix (kbd "C-c p")) 
 (use-package projectile
   :init 
@@ -2547,6 +2549,37 @@ I sometimes need to know where I am in a line.
              (add-hook 'robe-mode-hook 'ac-robe-setup)
              (add-hook 'ruby-mode-hook 'auto-complete-mode)))
 		#+end_src
+
+#+begin_src emacs-lisp
+(defun sacha/rspec-verify-single ()
+  "Runs the specified example at the point of the current buffer."
+  (interactive)
+  (rspec-run-single-file
+   (concat 
+     (rspec-spec-file-for (buffer-file-name))
+     ":" 
+     (save-restriction
+               (widen)
+               (number-to-string (line-number-at-pos))))
+   (rspec-core-options)))
+
+(sacha/package-install 'rspec-mode)
+(use-package rspec-mode
+  :config
+  (progn 
+    (setq rspec-command-options "--fail-fast --format documentation")
+    (bind-key "C-c , ," 'rspec-rerun rspec-mode-map)
+    (fset 'rspec-verify-single 'sacha/rspec-verify-single)))
+  
+#+end_src
+
+SASS
+
+#+begin_src emacs-lisp
+(add-hook 'sass-mode-hook
+          (lambda () (setq indent-tabs-mode nil)))
+(setq-default indent-tabs-mode nil)
+#+end_src
 ** Ledger (personal finance): Make it easier to review my credit card transactions
 
 #+begin_src emacs-lisp
@@ -2810,9 +2843,15 @@ Maybe =multiple-cursors= will be an even better way. Looks promising!
 #+begin_src emacs-lisp
   (use-package multiple-cursors
     :bind 
-     (("C->" . mc/mark-next-like-this)
+     (("C-c m a" . mc/mark-all-like-this)
+      ("C-c m a" . mc/mark-all-like-this-dwim)
+      ("C-c m l" . mc/mark-lines)
+      ("C->" . mc/mark-next-like-this)
       ("C-<" . mc/mark-previous-like-this)
       ("C-*" . mc/mark-all-like-this)))
+  (use-package mc-extras
+    :config
+      (define-key mc/keymap (kbd "C-. =") 'mc/compare-chars))
 #+end_src
 
 Thanks to [[http://irreal.org/blog/?p=1733][Irreal]] and [[http://planet.emacsen.org/][Planet Emacsen]] for the link!

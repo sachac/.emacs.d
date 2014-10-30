@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-06-06 Fri 14:08 -->
+<!-- 2014-06-15 Sun 12:15 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -167,7 +167,7 @@ for the JavaScript code in this tag.
 <ul>
 <li><a href="#sec-1-4-1">Backups</a></li>
 <li><a href="#sec-1-4-2">History</a></li>
-<li><a href="#sec-1-4-3">Windows configuration&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#sec-1-4-3">Windows configuration</a></li>
 <li><a href="#sec-1-4-4">Winner mode - undo and redo window configuration</a></li>
 <li><a href="#sec-1-4-5">Sentences end with a single space</a></li>
 <li><a href="#sec-1-4-6">Helm - interactive completion</a></li>
@@ -190,7 +190,7 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-5-5">Make window splitting more useful</a></li>
 <li><a href="#sec-1-5-6">Searching based on the current word</a></li>
 <li><a href="#sec-1-5-7">Frequently-accessed files</a></li>
-<li><a href="#sec-1-5-8">Browse-kill-ring - see what you've cut so that you can paste it&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#sec-1-5-8">Browse-kill-ring - see what you've cut so that you can paste it</a></li>
 <li><a href="#sec-1-5-9">Key chords</a></li>
 <li><a href="#sec-1-5-10">Smartscan</a></li>
 <li><a href="#sec-1-5-11">Dired</a></li>
@@ -291,7 +291,7 @@ for the JavaScript code in this tag.
 <ul>
 <li><a href="#sec-1-9-5-1">Edebug</a></li>
 <li><a href="#sec-1-9-5-2">Eldoc</a></li>
-<li><a href="#sec-1-9-5-3">Refactoring&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#sec-1-9-5-3">Refactoring</a></li>
 <li><a href="#sec-1-9-5-4">Jumping to code</a></li>
 </ul>
 </li>
@@ -329,24 +329,24 @@ for the JavaScript code in this tag.
 <ul>
 <li><a href="#sec-1-14-1">Editing multiple things</a>
 <ul>
-<li><a href="#sec-1-14-1-1">Multiple cursors mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
-<li><a href="#sec-1-14-1-2">All&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#sec-1-14-1-1">Multiple cursors mode</a></li>
+<li><a href="#sec-1-14-1-2">All</a></li>
 </ul>
 </li>
-<li><a href="#sec-1-14-2">Edit list&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
-<li><a href="#sec-1-14-3">Ace Jump mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#sec-1-14-2">Edit list</a></li>
+<li><a href="#sec-1-14-3">Ace Jump mode</a></li>
 <li><a href="#sec-1-14-4">Network: TRAMP and editing files over SSH</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-15">Other nifty Emacs things I want to learn</a>
 <ul>
-<li><a href="#sec-1-15-1">Finding the closest Makefile&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a>
+<li><a href="#sec-1-15-1">Finding the closest Makefile</a>
 <ul>
 <li><a href="#sec-1-15-1-1">Answer</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-15-2">iedit</a></li>
-<li><a href="#sec-1-15-3">Smartparens mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#sec-1-15-3">Smartparens mode</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-16">Web browsing</a></li>
@@ -385,7 +385,7 @@ for the JavaScript code in this tag.
 <li><a href="#sec-4">Games</a>
 <ul>
 <li><a href="#sec-4-1">Typing of Emacs</a></li>
-<li><a href="#sec-4-2">2048 in Emacs, and colours too&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></a></li>
+<li><a href="#sec-4-2">2048 in Emacs, and colours too</a></li>
 </ul>
 </li>
 </ul>
@@ -400,7 +400,7 @@ for the JavaScript code in this tag.
 <h3 id="sec-1-1">About this file</h3>
 <div class="outline-text-3" id="text-1-1">
 <p>
-<a id="babel-init" name="babel-init"></a>
+<a id="babel-init"></a>
 </p>
 
 <p>
@@ -632,9 +632,8 @@ From <a href="http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/0
 </div>
 
 <div id="outline-container-sec-1-4-3" class="outline-4">
-<h4 id="sec-1-4-3"><a id="ID-440c0b9a-9068-450b-89a3-a20c8ec1f447" name="ID-440c0b9a-9068-450b-89a3-a20c8ec1f447"></a>Windows configuration&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
+<h4 id="sec-1-4-3"><a id="ID-440c0b9a-9068-450b-89a3-a20c8ec1f447"></a>Windows configuration&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
 <div class="outline-text-4" id="text-1-4-3">
-
 <p>
 When you're starting out, tooltips, menus, and the tool bar can be very helpful. <a href="http://sachachua.com/blog/2014/03/emacs-basics-using-mouse/">(Emacs Basics: Using the Mouse</a>). Eventually, you may want to reclaim that extra little bit of screenspace. The following code turns those things off when using a graphical Emacs.
 </p>
@@ -757,12 +756,12 @@ Hide minor modes I care less about:
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">require</span> '<span class="org-constant">diminish</span>)
-(eval-after-load <span class="org-string">"yasnippet"</span> '(diminish 'yas-minor-mode))
-(eval-after-load <span class="org-string">"undo-tree"</span> '(diminish 'undo-tree-mode))
-(eval-after-load <span class="org-string">"guide-key"</span> '(diminish 'guide-key-mode))
-(eval-after-load <span class="org-string">"smartparens"</span> '(diminish 'smartparens-mode))
-(eval-after-load <span class="org-string">"guide-key"</span> '(diminish 'guide-key-mode))
-(eval-after-load <span class="org-string">"eldoc"</span> '(diminish 'eldoc-mode))
+(<span class="org-keyword">eval-after-load</span> <span class="org-string">"yasnippet"</span> '(diminish 'yas-minor-mode))
+(<span class="org-keyword">eval-after-load</span> <span class="org-string">"undo-tree"</span> '(diminish 'undo-tree-mode))
+(<span class="org-keyword">eval-after-load</span> <span class="org-string">"guide-key"</span> '(diminish 'guide-key-mode))
+(<span class="org-keyword">eval-after-load</span> <span class="org-string">"smartparens"</span> '(diminish 'smartparens-mode))
+(<span class="org-keyword">eval-after-load</span> <span class="org-string">"guide-key"</span> '(diminish 'guide-key-mode))
+(<span class="org-keyword">eval-after-load</span> <span class="org-string">"eldoc"</span> '(diminish 'eldoc-mode))
 (diminish 'visual-line-mode)
 </pre>
 </div>
@@ -1103,9 +1102,8 @@ register.
 </div>
 
 <div id="outline-container-sec-1-5-8" class="outline-4">
-<h4 id="sec-1-5-8"><a id="ID-508ef5ff-f338-4cd6-8201-9bc76fa432e8" name="ID-508ef5ff-f338-4cd6-8201-9bc76fa432e8"></a>Browse-kill-ring - see what you've cut so that you can paste it&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
+<h4 id="sec-1-5-8"><a id="ID-508ef5ff-f338-4cd6-8201-9bc76fa432e8"></a>Browse-kill-ring - see what you've cut so that you can paste it&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
 <div class="outline-text-4" id="text-1-5-8">
-
 <p>
 Make sense of the kill ring! This lets you list the contents of the
 kill ring and paste a specific item. You can also manipulate your kill
@@ -1427,7 +1425,7 @@ stuff.
 <h4 id="sec-1-8-1">My files</h4>
 <div class="outline-text-4" id="text-1-8-1">
 <p>
-#<a id="org-files" name="org-files"></a>
+#<a id="org-files"></a>
 </p>
 
 <p>
@@ -1594,7 +1592,7 @@ currently experimenting with.
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(eval-after-load 'org
+<pre class="src src-emacs-lisp">(<span class="org-keyword">eval-after-load</span> 'org
   '(<span class="org-keyword">progn</span>
      (bind-key <span class="org-string">"C-M-w"</span> 'append-next-kill org-mode-map)))
 </pre>
@@ -1859,7 +1857,7 @@ I'm curious about how fast I type some things.
 <h5 id="sec-1-8-7-1">Track TODO state</h5>
 <div class="outline-text-5" id="text-1-8-7-1">
 <p>
-<a id="todo-keywords" name="todo-keywords"></a>
+<a id="todo-keywords"></a>
 </p>
 
 <p>
@@ -2151,6 +2149,7 @@ only a few of them them for faster scanning.
                       <span class="org-string">"~/dropbox/public/learning.org"</span>
                       <span class="org-string">"~/code/dev/emacs-notes/tasks.org"</span>
                       <span class="org-string">"~/sachac.github.io/evil-plans/index.org"</span>
+                      <span class="org-string">"~/personal/cooking.org"</span>
                       <span class="org-string">"~/personal/routines.org"</span>))))
 </pre>
 </div>
@@ -2732,12 +2731,11 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 </div>
 
 <div id="outline-container-weekly-review" class="outline-4">
-<h4 id="weekly-review"><a id="sec-1-8-12" name="sec-1-8-12"></a>Weekly review</h4>
+<h4 id="weekly-review"><a id="sec-1-8-12"></a>Weekly review</h4>
 <div class="outline-text-4" id="text-weekly-review">
 <p>
-<a id="weekly-review" name="weekly-review"></a>
+<a id="weekly-review"></a>
 </p>
-
 
 <p>
 I regularly post <a href="http://sachachua.com/blog/category/weekly">weekly reviews</a> to keep track of what I'm done, remind me to plan for the upcoming week, and list blog posts, sketches, and links. I 
@@ -3097,7 +3095,7 @@ This makes it easier to reorganize lines in my weekly review.
 <h4 id="sec-1-8-14">Monthly reviews</h4>
 <div class="outline-text-4" id="text-1-8-14">
 <p>
-<a id="monthly-reviews" name="monthly-reviews"></a>
+<a id="monthly-reviews"></a>
 </p>
 
 <p>
@@ -3130,7 +3128,7 @@ something and paste it elsewhere in the hierarchy.
 </p>
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(eval-after-load 'org
+<pre class="src src-emacs-lisp">(<span class="org-keyword">eval-after-load</span> 'org
   '(<span class="org-keyword">progn</span>
      (bind-key <span class="org-string">"C-c k"</span> 'org-cut-subtree org-mode-map)
      (setq org-yank-adjusted-subtrees t)))
@@ -3426,7 +3424,7 @@ This snippet turns <code>- [X]</code> into ☑ and <code>- [ ]</code> into ☐, 
 </p>
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(setq org-html-checkbox-types 'unicode)
+<pre class="src src-emacs-lisp">(setq org-html-checkbox-type 'unicode)
 (setq org-html-checkbox-types
  '((unicode (on . <span class="org-string">"&lt;span class=\"task-done\"&gt;&amp;#x2611;&lt;/span&gt;"</span>) 
             (off . <span class="org-string">"&lt;span class=\"task-todo\"&gt;&amp;#x2610;&lt;/span&gt;"</span>) 
@@ -3666,7 +3664,8 @@ These config snippets seem to help too.
 </p>
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(add-hook 'comint-output-filter-functions
+<pre class="src src-emacs-lisp">(setenv <span class="org-string">"CYGWIN"</span> <span class="org-string">"nodosfilewarning"</span>)
+(add-hook 'comint-output-filter-functions
     'shell-strip-ctrl-m nil t)
 (add-hook 'comint-output-filter-functions
     'comint-watch-for-password-prompt nil t)
@@ -3732,9 +3731,8 @@ Eldoc provides minibuffer hints when working with Emacs Lisp.
 </div>
 </div>
 <div id="outline-container-sec-1-9-5-3" class="outline-5">
-<h5 id="sec-1-9-5-3"><a id="ID-99ac7ddb-08ef-46c4-8fa8-8a45164f9ef4" name="ID-99ac7ddb-08ef-46c4-8fa8-8a45164f9ef4"></a>Refactoring&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
+<h5 id="sec-1-9-5-3"><a id="ID-99ac7ddb-08ef-46c4-8fa8-8a45164f9ef4"></a>Refactoring&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
 <div class="outline-text-5" id="text-1-9-5-3">
-
 <p>
 More things that I need to get used to&#x2026;
 </p>
@@ -3883,7 +3881,7 @@ tree instead.
   (set (make-variable-buffer-local 'tags-file-name) 
        (sacha/recursive-find-file <span class="org-string">"TAGS"</span>)))
 
-(eval-after-load 'drupal-mode
+(<span class="org-keyword">eval-after-load</span> 'drupal-mode
   '(<span class="org-keyword">progn</span>
      (add-hook 'drupal-mode-hook 'sacha/find-tags)))
 </pre>
@@ -4022,7 +4020,7 @@ IRC is a great way to hang out with other Emacs geeks.
 <h4 id="sec-1-12-1">Quantified Awesome</h4>
 <div class="outline-text-4" id="text-1-12-1">
 <p>
-<a id="clock-in" name="clock-in"></a>
+<a id="clock-in"></a>
 </p>
 
 <div class="org-src-container">
@@ -4074,7 +4072,7 @@ IRC is a great way to hang out with other Emacs geeks.
 <h4 id="sec-1-12-2">Compare times and effort estimates</h4>
 <div class="outline-text-4" id="text-1-12-2">
 <p>
-<a id="compare-time" name="compare-time"></a>
+<a id="compare-time"></a>
 </p>
 
 <p>
@@ -4255,9 +4253,8 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 <h4 id="sec-1-14-1">Editing multiple things</h4>
 <div class="outline-text-4" id="text-1-14-1">
 </div><div id="outline-container-sec-1-14-1-1" class="outline-5">
-<h5 id="sec-1-14-1-1"><a id="o2b:61b0ffae-669b-4360-98fd-a6f0ea6f018e" name="o2b:61b0ffae-669b-4360-98fd-a6f0ea6f018e"></a>Multiple cursors mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
+<h5 id="sec-1-14-1-1"><a id="o2b:61b0ffae-669b-4360-98fd-a6f0ea6f018e"></a>Multiple cursors mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
 <div class="outline-text-5" id="text-1-14-1-1">
-
 <p>
 I often define keyboard macros to process multiple lines in a region.
 Maybe <code>multiple-cursors</code> will be an even better way. Looks promising!
@@ -4281,9 +4278,8 @@ Thanks to <a href="http://irreal.org/blog/?p=1733">Irreal</a> and <a href="http:
 </div>
 
 <div id="outline-container-sec-1-14-1-2" class="outline-5">
-<h5 id="sec-1-14-1-2"><a id="ID-211c02ab-9a9c-4e81-bc95-ce8e48db67b1" name="ID-211c02ab-9a9c-4e81-bc95-ce8e48db67b1"></a>All&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
+<h5 id="sec-1-14-1-2"><a id="ID-211c02ab-9a9c-4e81-bc95-ce8e48db67b1"></a>All&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
 <div class="outline-text-5" id="text-1-14-1-2">
-
 <p>
 M-x all lets you edit all lines matching a given regexp.
 </p>
@@ -4298,9 +4294,8 @@ M-x all lets you edit all lines matching a given regexp.
 </div>
 
 <div id="outline-container-sec-1-14-2" class="outline-4">
-<h4 id="sec-1-14-2"><a id="ID-e9147cb0-bad0-421c-9396-4f9045d6ebbb" name="ID-e9147cb0-bad0-421c-9396-4f9045d6ebbb"></a>Edit list&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
+<h4 id="sec-1-14-2"><a id="ID-e9147cb0-bad0-421c-9396-4f9045d6ebbb"></a>Edit list&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
 <div class="outline-text-4" id="text-1-14-2">
-
 <p>
 M-x edit-list makes it easier to edit an Emacs Lisp list.
 </p>
@@ -4315,9 +4310,8 @@ M-x edit-list makes it easier to edit an Emacs Lisp list.
 </div>
 
 <div id="outline-container-sec-1-14-3" class="outline-4">
-<h4 id="sec-1-14-3"><a id="ID-56f173e7-d2a2-4589-84d7-c6b435c8a5f8" name="ID-56f173e7-d2a2-4589-84d7-c6b435c8a5f8"></a>Ace Jump mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
+<h4 id="sec-1-14-3"><a id="ID-56f173e7-d2a2-4589-84d7-c6b435c8a5f8"></a>Ace Jump mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
 <div class="outline-text-4" id="text-1-14-3">
-
 <p>
 Quickly jump to a position in the current view.
 </p>
@@ -4365,9 +4359,8 @@ cool. On Windows, these things help a little.
 <h3 id="sec-1-15">Other nifty Emacs things I want to learn</h3>
 <div class="outline-text-3" id="text-1-15">
 </div><div id="outline-container-sec-1-15-1" class="outline-4">
-<h4 id="sec-1-15-1"><a id="ID-bfdaf129-f64c-49be-8848-a0e0300fdfdb" name="ID-bfdaf129-f64c-49be-8848-a0e0300fdfdb"></a>Finding the closest Makefile&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
+<h4 id="sec-1-15-1"><a id="ID-bfdaf129-f64c-49be-8848-a0e0300fdfdb"></a>Finding the closest Makefile&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
 <div class="outline-text-4" id="text-1-15-1">
-
 <p>
 Look up the directory hierarchy from FILE for a file named NAME.
 Stop at the first parent directory containing a file NAME,
@@ -4511,7 +4504,13 @@ program" "permission denied" "firefox".
 <div class="outline-text-3" id="text-1-17">
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/split-sentence-and-capitalize</span> ()
+<pre class="src src-emacs-lisp">(<span class="org-keyword">require</span> '<span class="org-constant">emms</span>)
+(<span class="org-keyword">require</span> '<span class="org-constant">emms-player-simple</span>)
+(<span class="org-keyword">require</span> '<span class="org-constant">emms-source-file</span>)
+(<span class="org-keyword">require</span> '<span class="org-constant">emms-source-playlist</span>)
+(<span class="org-keyword">require</span> '<span class="org-constant">emms-player-mplayer</span>)
+(setq emms-player-list '(emms-player-mplayer))
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/split-sentence-and-capitalize</span> ()
   (interactive)
   (delete-char 1)
   (insert <span class="org-string">"."</span>)
@@ -4530,6 +4529,33 @@ program" "permission denied" "firefox".
 (bind-key <span class="org-string">"C-c t s"</span>  'sacha/split-sentence-and-capitalize org-mode-map)
 (bind-key <span class="org-string">"C-c t -"</span>  'sacha/split-sentence-delete-word-and-capitalize org-mode-map)
 (bind-key <span class="org-string">"C-c t d"</span>  'sacha/delete-word-and-capitalize org-mode-map)
+(bind-key <span class="org-string">"C-c e SPC"</span> 'emms-pause)
+(bind-key <span class="org-string">"C-c e e"</span> 'emms-pause)
+(bind-key <span class="org-string">"C-c e +"</span> 'emms-seek-forward)
+(bind-key <span class="org-string">"C-c e -"</span> 'emms-seek-backward)
+(bind-key <span class="org-string">"C-c e s"</span> 'emms-seek)
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/emms-player-mplayer-set-speed</span> (speed)
+  <span class="org-doc">"Depends on mplayer's -slave mode"</span>
+  (interactive <span class="org-string">"MSpeed: "</span>)
+  (process-send-string emms-player-simple-process-name 
+     (format <span class="org-string">"speed_set %s\n"</span> speed)))
+
+(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/emms-player-mplayer-speed-increment</span> 0.1)
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/emms-player-mplayer-speed-up</span> ()
+  <span class="org-doc">"Depends on mplayer's -slave mode"</span>
+  (interactive)
+  (process-send-string emms-player-simple-process-name 
+     (format <span class="org-string">"speed_incr %f\n"</span> sacha/emms-player-mplayer-speed-increment)))
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/emms-player-mplayer-slow-down</span> ()
+  <span class="org-doc">"Depends on mplayer's -slave mode"</span>
+  (interactive)
+  (process-send-string emms-player-simple-process-name 
+     (format <span class="org-string">"speed_incr %f\n"</span> (- 0 sacha/emms-player-mplayer-speed-increment))))
+
+(bind-key <span class="org-string">"C-c e ["</span> 'sacha/emms-player-mplayer-slow-down)
+(bind-key <span class="org-string">"C-c e ]"</span> 'sacha/emms-player-mplayer-speed-up)
 </pre>
 </div>
 </div>
@@ -4552,7 +4578,7 @@ program" "permission denied" "firefox".
 <h2 id="sec-2">Other cool configs you may want to check out</h2>
 <div class="outline-text-2" id="text-2">
 <p>
-<a id="links" name="links"></a>
+<a id="links"></a>
 </p>
 
 <ul class="org-ul">
@@ -4577,7 +4603,7 @@ program" "permission denied" "firefox".
 <h3 id="sec-3-1">Beeminder</h3>
 <div class="outline-text-3" id="text-3-1">
 <p>
-<a id="beeminder" name="beeminder"></a>
+<a id="beeminder"></a>
 </p>
 
 <p>
@@ -4998,7 +5024,7 @@ left.
 <h3 id="sec-3-11">Presentation code for Emacs Conference</h3>
 <div class="outline-text-3" id="text-3-11">
 <p>
-<a id="emacsconf2013" name="emacsconf2013"></a>
+<a id="emacsconf2013"></a>
 </p>
 
 <div class="org-src-container">
@@ -5373,9 +5399,8 @@ big to open easily there, though.
 </div>
 </div>
 <div id="outline-container-sec-4-2" class="outline-3">
-<h3 id="sec-4-2"><a id="o2b:e2b41b2d-463c-4469-91b8-63eb97a13b9d" name="o2b:e2b41b2d-463c-4469-91b8-63eb97a13b9d"></a>2048 in Emacs, and colours too&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></h3>
+<h3 id="sec-4-2"><a id="o2b:e2b41b2d-463c-4469-91b8-63eb97a13b9d"></a>2048 in Emacs, and colours too&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></h3>
 <div class="outline-text-3" id="text-4-2">
-
 <p>
 While browsing through <code>M-x list-packages</code>, I noticed that there was a
 new MELPA package that implemented the 2048 game in Emacs. I wrote the

@@ -23,6 +23,7 @@ To be precise, this is what's in the first part of my =~/.emacs.d/init.el= (what
 ;; Override the packages with the git version of Org and other packages
 (add-to-list 'load-path "~/elisp/org-mode/lisp")
 (add-to-list 'load-path "~/elisp/org-mode/contrib/lisp")
+(add-to-list 'load-path "~/code/org2blog")
 (add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
 ;; Load the rest of the packages
 (package-initialize t)
@@ -101,7 +102,7 @@ I keep slightly more sensitive information in a separate file so that I can easi
 
 #+begin_src emacs-lisp
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
-(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
+(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
 #+end_src
 
 Use =M-x package-refresh-contents= to reload the list of packages
@@ -206,7 +207,7 @@ possible, although I prefer ido's way of switching buffers.
       :init
       (progn 
         (require 'helm-config) 
-        (setq helm-candidate-number-limit 10)
+        (setq helm-candidate-number-limit 100)
         ;; From https://gist.github.com/antifuchs/9238468
         (setq helm-idle-delay 0.0 ; update fast sources immediately (doesn't).
               helm-input-idle-delay 0.01  ; this actually updates things
@@ -220,8 +221,13 @@ possible, although I prefer ido's way of switching buffers.
         ;; I don't like the way switch-to-buffer uses history, since
         ;; that confuses me when it comes to buffers I've already
         ;; killed. Let's use ido instead.
-        (add-to-list 'helm-completing-read-handlers-alist '(switch-to-buffer . ido)))
-      :bind (("C-c h" . helm-mini)))
+        (add-to-list 'helm-completing-read-handlers-alist 
+                     '(switch-to-buffer . ido))
+        ;; Unicode
+        (add-to-list 'helm-completing-read-handlers-alist 
+                     '(insert-char . ido)))
+      :bind (("C-c h" . helm-mini) 
+             ("M-x" . helm-M-x)))
     (ido-mode -1) ;; Turn off ido mode in case I enabled it accidentally
 #+end_src
 *** Mode line format
@@ -533,6 +539,23 @@ shortcuts that use ordinary keys.
 
 Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
 #+begin_src emacs-lisp
+(defun sacha/key-chord-define (keymap keys command)
+  "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
+\nKEYS can be a string or a vector of two elements. Currently only elements
+that corresponds to ascii codes in the range 32 to 126 can be used.
+\nCOMMAND can be an interactive function, a string, or nil.
+If COMMAND is nil, the key-chord is removed.
+
+MODIFICATION: Do not define the transposed key chord.
+"
+  (if (/= 2 (length keys))
+      (error "Key-chord keys must have two elements"))
+  ;; Exotic chars in a string are >255 but define-key wants 128..255 for those
+  (let ((key1 (logand 255 (aref keys 0)))
+	      (key2 (logand 255 (aref keys 1))))
+  	(define-key keymap (vector 'key-chord key1 key2) command)))
+(fset 'key-chord-define 'sacha/key-chord-define)
+
 (defun sacha/switch-to-previous-buffer ()
   "Switch to previously open buffer.
 Repeated invocations toggle between the two most recently open buffers."
@@ -541,6 +564,7 @@ Repeated invocations toggle between the two most recently open buffers."
 (use-package key-chord
   :init
   (progn 
+    (fset 'key-chord-define 'sacha/key-chord-define)
     (key-chord-mode 1)
     (key-chord-define-global "uu"     'undo)
     (key-chord-define-global "yy"     'browse-kill-ring)
@@ -548,6 +572,11 @@ Repeated invocations toggle between the two most recently open buffers."
     (key-chord-define-global "jw"     'ace-window)
     (key-chord-define-global "jl"     'ace-jump-line-mode)
     (key-chord-define-global "FF"     'find-file)
+    (key-chord-define-global "hh"     'emms-pause)
+    (key-chord-define-global "ht"     nil)
+    (key-chord-define-global "th"     nil)
+    (key-chord-define-global "hc"     'emms-seek-forward)
+    (key-chord-define-global "hs"     'emms-seek-to)
     (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer)))
 #+end_src
 *** Smartscan
@@ -621,6 +650,24 @@ https://github.com/bbatsov/prelude
       (kill-new filename)
       (message "Copied buffer file name '%s' to the clipboard." filename))))
 #+end_src
+*** Narrowing
+
+From http://endlessparentheses.com/emacs-narrow-or-widen-dwim.html
+#+begin_src emacs-lisp
+(add-to-list 'load-path "~/elisp/recursive-narrow")
+(defun sacha/recursive-narrow-dwim-org ()
+    (if (derived-mode-p 'org-mode) 
+         (cond ((or (org-at-block-p) (org-in-src-block-p)) (org-narrow-to-block))
+               (t (org-narrow-to-subtree))))
+)
+(use-package recursive-narrow
+  :config
+  (add-hook 'recursive-narrow-dwim-functions 'sacha/recursive-narrow-dwim-org)
+  :bind
+  (("C-x n w" . recursive-widen)
+   ("C-x n n" . recursive-narrow-or-widen-dwim)))
+#+end_src
+
 ** Reading
 
 https://github.com/xahlee/xah_emacs_init/blob/master/xah_emacs_font.el
@@ -1220,6 +1267,7 @@ I can get a sense of how appointments are spread out.
   (setq org-agenda-show-log t)
   (setq org-agenda-skip-scheduled-if-done t)
   (setq org-agenda-skip-deadline-if-done t)
+  (setq org-agenda-skip-deadline-prewarning-if-scheduled 'pre-scheduled)
   (setq org-agenda-time-grid
         '((daily today require-timed)
          "----------------"
@@ -1418,7 +1466,7 @@ hang of using these more!
     (defun sacha/org-agenda-skip-scheduled ()
       (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
     (setq org-agenda-custom-commands
-          `(("T" tags-todo "TODO=\"TODO\"-routine")
+          `(("T" tags-todo "TODO=\"TODO\"-goal-routine-SCHEDULED={.+}")
             ("b" todo ""
              ((org-agenda-files '("~/personal/business.org"))))
             ("o" todo ""
@@ -1856,16 +1904,18 @@ Now we put it all together...
              (setq list
                    (replace-regexp-in-string "\\[\"" "[" list))
              (setq list
-                   (replace-regexp-in-string "\"\\]" "]" list)))
+                   (replace-regexp-in-string "\"" "" (replace-regexp-in-string "\"\\]" "]" list))))
            (if (called-interactively-p 'any)
                (insert list)
              list)))
        
-       (defun sacha/flickr-export-and-extract (start end)
+       (defun sacha/flickr-export-and-extract (start end &optional do-insert)
          "Download Flickr metadata and extract the relevant part."
-         (interactive (list (org-read-date) (org-read-date)))
+         (interactive (list (org-read-date) (org-read-date) t))
          (shell-command "c:/sacha/dropbox/bin/flickr.bat")
-         (insert (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end)))
+         (if do-insert
+             (insert (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
+           (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end)))
 #+end_src
 
 **** Link-related convenience functions
@@ -2019,10 +2069,10 @@ Photosync (for syncing with Flickr) can't deal with periods in filenames. Org ge
       (if (region-active-p) (mark) (1+ (line-end-position)))
       (let ((org-refile-targets
              '(("~/Dropbox/Public/sharing/blog.org" . (:maxlevel . 3)))))
-        (org-refile-get-location "Location"))))
+        (save-excursion (org-refile-get-location "Location")))))
     (let ((s
            (replace-regexp-in-string
-            "^ *- "
+            "^[ \t]*- "
             "- [X] "
             (buffer-substring-no-properties beg end))))
       (save-window-excursion
@@ -2347,6 +2397,19 @@ don't need this any more...
 (setq org-enforce-todo-dependencies t)
 (setq org-track-ordered-property-with-tag t)
 #+end_src
+*** Custom links
+
+From http://endlessparentheses.com/use-org-mode-links-for-absolutely-anything.html?source=rss
+#+begin_quote
+(org-add-link-type
+ "tag" 'endless/follow-tag-link)
+
+(defun endless/follow-tag-link (tag)
+  "Display a list of TODO headlines with tag TAG.
+With prefix argument, also display headlines without a TODO keyword."
+  (org-tags-view (null current-prefix-arg) tag))
+#+end_quote
+
 ** Coding
 *** Tab width of 2 is compact and readable
 #+begin_src emacs-lisp
@@ -3751,40 +3814,30 @@ but they're easy enough to tweak if the colours disagree with your
 theme. =)
 
 #+begin_src emacs-lisp
-  (defface 2048-2-face '((t (:foreground "red"))) "Face used for 2" :group '2048-game)
-  (defface 2048-4-face '((t (:foreground "orange"))) "Face used for 4" :group '2048-game)
-  (defface 2048-8-face '((t (:foreground "yellow"))) "Face used for 8" :group '2048-game)
-  (defface 2048-16-face '((t (:foreground "green"))) "Face used for 16" :group '2048-game)
-  (defface 2048-32-face '((t (:foreground "lightblue" :bold t))) "Face used for 32" :group '2048-game)
-  (defface 2048-64-face '((t (:foreground "lavender" :bold t))) "Face used for 64" :group '2048-game)
-  (defface 2048-128-face '((t (:foreground "SlateBlue" :bold t))) "Face used for 128" :group '2048-game)
-  (defface 2048-256-face '((t (:foreground "MediumVioletRed" :bold t))) "Face used for 256" :group '2048-game)
-  (defface 2048-512-face '((t (:foreground "tomato" :bold t))) "Face used for 512" :group '2048-game)
-  (defface 2048-1024-face '((t (:foreground "SkyBlue1" :bold t))) "Face used for 1024" :group '2048-game)
-  (defface 2048-2048-face '((t (:foreground "lightgreen" :bold t))) "Face used for 2048" :group '2048-game)
+  (defface 2048-face-2    '((t . (:background "khaki" :foreground "black"))) "Face for the tile 2" :group '2048-faces)
+  (defface 2048-face-4    '((t . (:background "burlywood" :foreground "black"))) "Face for the tile 4" :group '2048-faces)
+  (defface 2048-face-8    '((t . (:background "orange3" :foreground "black"))) "Face for the tile 8" :group '2048-faces)
+  (defface 2048-face-16   '((t . (:background "orange" :foreground "black"))) "Face for the tile 16" :group '2048-faces)
+  (defface 2048-face-32   '((t . (:background "orange red" :foreground "black"))) "Face for the tile 32" :group '2048-faces)
+  (defface 2048-face-64   '((t . (:background "firebrick" :foreground "white"))) "Face for the tile 64" :group '2048-faces)
+  (defface 2048-face-128  '((t . (:background "dark red" :foreground "white"))) "Face for the tile 128" :group '2048-faces)
+  (defface 2048-face-256  '((t . (:background "dark magenta" :foreground "white"))) "Face for the tile 256" :group '2048-faces)
+  (defface 2048-face-512  '((t . (:background "magenta" :foreground "black"))) "Face for the tile 512" :group '2048-faces)
+  (defface 2048-face-1024 '((t . (:background "gold" :foreground "black"))) "Face for the tile 1024" :group '2048-faces)
+  (defface 2048-face-2048 '((t . (:background "yellow" :foreground "black"))) "Face for the tile 2048" :group '2048-faces)
 
-  (defvar 2048-font-lock-keywords
-    '(("\\<2\\>" 0 '2048-2-face)
-      ("\\<4\\>" 0 '2048-4-face)
-      ("\\<8\\>" 0 '2048-8-face)
-      ("\\<16\\>" 0 '2048-16-face)
-      ("\\<32\\>" 0 '2048-32-face)
-      ("\\<64\\>" 0 '2048-64-face)
-      ("\\<128\\>" 0 '2048-128-face)
-      ("\\<256\\>" 0 '2048-256-face)
-      ("\\<512\\>" 0 '2048-512-face)
-      ("\\<1024\\>" 0 '2048-1024-face)
-      ("\\<2048\\>" 0 '2048-2048-face)))
 
-  (defun sacha/2048-fontify ()
-    (font-lock-add-keywords nil 2048-font-lock-keywords))
+    (defun sacha/2048-set-font-size ()
+      (text-scale-set 5)
+      (goto-char (point-min)))
 
-  (defun sacha/2048-set-font-size ()
-    (text-scale-set 5))
+    (use-package 2048-game
+      :config
+      (progn
+       (add-hook '2048-mode-hook 'sacha/2048-set-font-size)))
+#+end_src
+* Path
 
-  (use-package 2048-game
-    :config
-    (progn
-     (add-hook '2048-mode-hook 'sacha/2048-fontify)
-     (add-hook '2048-mode-hook 'sacha/2048-set-font-size)))
+#+begin_src emacs-lisp
+(setenv "PATH" (concat "\"c:/program files/postgresql/9.3/bin;\"" (getenv "PATH")))
 #+end_src

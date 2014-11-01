@@ -2598,14 +2598,15 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
       (defvar sacha/magit-limit-to-directory nil "Limit magit status to a specific directory.")
       (defun sacha/magit-status-in-directory (directory)
         "Displays magit status limited to DIRECTORY.
-  Uses the current `default-directory', or prompts for a directory
-  if called with a prefix argument."
+Uses the current `default-directory', or prompts for a directory
+if called with a prefix argument. Sets `sacha/magit-limit-to-directory'
+so that it's still active even after you stage a change. Very experimental."
         (interactive (list (expand-file-name
                             (if current-prefix-arg
                                 (read-directory-name "Directory: ")
                               default-directory))))
-        (let ((sacha/magit-limit-to-directory directory))
-          (magit-status directory)))
+        (setq sacha/magit-limit-to-directory directory)
+        (magit-status directory))
 
       (defadvice magit-insert-untracked-files (around sacha activate)
         (if sacha/magit-limit-to-directory

@@ -2574,6 +2574,12 @@ And the rest of the js2 config:
 #+end_src
 
 *** Magit - nice git interface
+		:PROPERTIES:
+		:ID:       o2b:9a42a292-7b75-4c7f-8da2-7a0d8c22d0c6
+		:POST_DATE: [2014-10-31 Fri 23:26]
+		:POSTID:   27579
+		:BLOG:     sacha
+		:END:
 
 <<magit>>
 
@@ -2656,6 +2662,9 @@ so that it's still active even after you stage a change. Very experimental."
            ("C-x v c" . sacha/magit-commit-all)))
 #+end_src
 
+The proper way to implement this is probably to patch or override the
+definition of magit-git-insert-section so that it takes a list of
+options to add at the end of the command, but that can wait for another time (or braver souls). 
 
 *** Tag files
 

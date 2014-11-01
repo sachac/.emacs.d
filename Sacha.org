@@ -2151,7 +2151,7 @@ Make it easy to publish and browse a file.
 
 I use org2blog to post to my blog, which is Wordpress-based. I used to
 use punchagan's org2blog, but there's a completely different one in
-ELPA, so I figured I'd give that a try.
+ELPA, so I figured I'd give that a try. UPDATE 2014-10-29: Overriding it with the Git version (see the first section of this config) so that I can use thumbnail support for now...
 
 #+begin_src emacs-lisp
 (sacha/package-install 'org2blog)
@@ -2528,6 +2528,36 @@ I sometimes need to know where I am in a line.
     (setq vc-diff-switches '("-b" "-B" "-u"))
 #+end_src
 *** Javascript
+
+This makes script blocks easier to copy:
+
+#+begin_src emacs-lisp
+(defvar sacha/javascript-test-regexp (concat (regexp-quote "/** Testing **/") "\\(.*\n\\)*")
+	"Regular expression matching testing-related code to remove.
+See `sacha/copy-javascript-region-or-buffer'.")
+
+(defun sacha/copy-javascript-region-or-buffer (beg end)
+	"Copy the active region or the buffer, wrapping it in script tags.
+Add a comment with the current filename and skip test-related
+code. See `sacha/javascript-test-regexp' to change the way
+test-related code is detected."
+	(interactive "r")
+	(unless (region-active-p)
+		(setq beg (point-min) end (point-max)))
+	(kill-new
+	 (concat
+		"<script type=\"text/javascript\">\n"
+		(if (buffer-file-name) (concat "// " (file-name-nondirectory (buffer-file-name)) "\n") "")
+		(replace-regexp-in-string
+		 sacha/javascript-test-regexp
+		 ""
+		 (buffer-substring (point-min) (point-max))
+		 nil)
+		"\n</script>")))
+#+end_src
+
+And the rest of the js2 config:
+
 #+begin_src emacs-lisp
       (use-package js2-mode
         :commands js2-mode
@@ -2539,27 +2569,93 @@ I sometimes need to know where I am in a line.
           (bind-key "C-M-x" 'js-send-last-sexp-and-go js2-mode-map)
           (bind-key "C-c b" 'js-send-buffer js2-mode-map)
           (bind-key "C-c C-b" 'js-send-buffer-and-go js2-mode-map)
+          (bind-key "C-c w" 'sacha/copy-javascript-region-or-buffer js2-mode-map)
           (bind-key "C-c l" 'js-load-file-and-go js2-mode-map)))
 #+end_src
 
 *** Magit - nice git interface
 
-#+begin_src emacs-lisp
-(sacha/package-install 'magit)
-(defun sacha/magit-commit-all ()
-  "Publish the current file and commit all the current changes."
-  (interactive)
-  (sacha/org-publish-maybe)
-  (magit-status default-directory)
-  (magit-stage-all)
-  (call-interactively 'magit-log-edit))
+<<magit>>
 
-(use-package magit
-  :init (setq magit-diff-options '("-b")) ; ignore whitespace
-  :bind (("C-x v d" . magit-status) 
-         ("C-x v p" . magit-push) 
-         ("C-x v c" . sacha/magit-commit-all)))
+Thanks to sheijk for hints on tweaking magit to limit it to the current directory!
+
+#+begin_src emacs-lisp
+  (sacha/package-install 'magit)
+  (defun sacha/magit-commit-all ()
+    "Publish the current file and commit all the current changes."
+    (interactive)
+    (sacha/org-publish-maybe)
+    (magit-status default-directory)
+    (magit-stage-all)
+    (call-interactively 'magit-log-edit))
+
+  (use-package magit
+    :init 
+    (setq magit-git-executable "c:/program files (x86)/git/bin/git.exe"
+          magit-diff-options '("-b")) ; ignore whitespace
+    :config
+    (progn
+      (defvar sacha/magit-limit-to-directory nil "Limit magit status to a specific directory.")
+      (defun sacha/magit-status-in-directory (directory)
+        "Displays magit status limited to DIRECTORY.
+  Uses the current `default-directory', or prompts for a directory
+  if called with a prefix argument."
+        (interactive (list (expand-file-name
+                            (if current-prefix-arg
+                                (read-directory-name "Directory: ")
+                              default-directory))))
+        (let ((sacha/magit-limit-to-directory directory))
+          (magit-status directory)))
+
+      (defadvice magit-insert-untracked-files (around sacha activate)
+        (if sacha/magit-limit-to-directory
+            (magit-with-section (section untracked 'untracked "Untracked files:" t)
+              (let ((files (cl-mapcan
+                            (lambda (f)
+                              (when (eq (aref f 0) ??) (list f)))
+                            (magit-git-lines
+                             "status" "--porcelain" "--" sacha/magit-limit-to-directory))))
+                (if (not files)
+                    (setq section nil)
+                  (dolist (file files)
+                    (setq file (magit-decode-git-path (substring file 3)))
+                    (magit-with-section (section file file)
+                      (insert "\t" file "\n")))
+                  (insert "\n"))))
+          ad-do-it))
+
+      (defadvice magit-insert-unstaged-changes (around sacha activate)
+        (if sacha/magit-limit-to-directory
+            (let ((magit-current-diff-range (cons 'index 'working))
+                  (magit-diff-options (copy-sequence magit-diff-options)))
+              (magit-git-insert-section (unstaged "Unstaged changes:")
+                  #'magit-wash-raw-diffs
+                "diff-files"
+                "--" sacha/magit-limit-to-directory
+                ))
+          ad-do-it))
+
+      (defadvice magit-insert-staged-changes (around sacha activate)
+        "Limit to `sacha/magit-limit-to-directory' if specified."
+        (if sacha/magit-limit-to-directory
+            (let ((no-commit (not (magit-git-success "log" "-1" "HEAD"))))
+              (when (or no-commit (magit-anything-staged-p))
+                (let ((magit-current-diff-range (cons "HEAD" 'index))
+                      (base (if no-commit
+                                (magit-git-string "mktree")
+                              "HEAD"))
+                      (magit-diff-options (append '("--cached") magit-diff-options)))
+                  (magit-git-insert-section (staged "Staged changes:")
+                      (apply-partially #'magit-wash-raw-diffs t)
+                    "diff-index" "--cached" base "--" sacha/magit-limit-to-directory))))
+          ad-do-it)))
+    :bind (("C-x v d" . magit-status)
+           ("C-x v C-d" . sacha/magit-status-in-directory)
+           ("C-x v p" . magit-push) 
+           ("C-x v c" . sacha/magit-commit-all)))
 #+end_src
+
+
 *** Tag files
 
     I don't often use a TAGS file, but when I do, I don't want to have
@@ -2645,6 +2741,19 @@ SASS
           (lambda () (setq indent-tabs-mode nil)))
 (setq-default indent-tabs-mode nil)
 #+end_src
+*** Skewer
+
+This lets you send HTML, CSS, and Javascript fragments to Google
+Chrome. You may need to start Chrome with =chrome
+--allow-running-insecure-content=, if you're using the user script
+with HTTPS sites.
+
+#+begin_src emacs-lisp
+(sacha/package-install 'skewer-mode)
+(use-package skewer-mode
+  :config (skewer-setup))
+#+end_src
+
 ** Ledger (personal finance): Make it easier to review my credit card transactions
 
 #+begin_src emacs-lisp
@@ -2906,14 +3015,21 @@ Maybe =multiple-cursors= will be an even better way. Looks promising!
 [[http://emacsrocks.com/e13.html][See Emacs Rocks episode 13 (multiple-cursors) for a great demo]].
 
 #+begin_src emacs-lisp
+  (sacha/package-install 'multiple-cursors)
+  (sacha/package-install 'phi-search)
+  (sacha/package-install 'phi-search-mc)
   (use-package multiple-cursors
     :bind 
      (("C-c m a" . mc/mark-all-like-this)
-      ("C-c m a" . mc/mark-all-like-this-dwim)
-      ("C-c m l" . mc/mark-lines)
-      ("C->" . mc/mark-next-like-this)
-      ("C-<" . mc/mark-previous-like-this)
-      ("C-*" . mc/mark-all-like-this)))
+      ("C-c m m" . mc/mark-all-like-this-dwim)
+      ("C-c m l" . mc/edit-lines)
+      ("C-c m n" . mc/mark-next-like-this)
+      ("C-c m p" . mc/mark-previous-like-this)
+      ("C-c m s" . mc/mark-sgml-tag-pair)
+      ("C-c m d" . mc/mark-all-like-this-in-defun)))
+  (use-package phi-search-mc
+    :config
+    (phi-search-mc/setup-keys))
   (use-package mc-extras
     :config
       (define-key mc/keymap (kbd "C-. =") 'mc/compare-chars))

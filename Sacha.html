@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-06-15 Sun 12:15 -->
+<!-- 2014-10-31 Fri 22:39 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -197,6 +197,7 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-5-12">Move to beginning of line</a></li>
 <li><a href="#sec-1-5-13">Recent files</a></li>
 <li><a href="#sec-1-5-14">Copy filename to clipboard</a></li>
+<li><a href="#sec-1-5-15">Narrowing</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-6">Reading</a></li>
@@ -279,6 +280,7 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-8-25">Presentations</a></li>
 <li><a href="#sec-1-8-26">Share my Emacs configuration</a></li>
 <li><a href="#sec-1-8-27">Task dependencies</a></li>
+<li><a href="#sec-1-8-28">Custom links</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-9">Coding</a>
@@ -304,6 +306,7 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-9-12">Projects</a></li>
 <li><a href="#sec-1-9-13">Exploring MELPA recipes</a></li>
 <li><a href="#sec-1-9-14">Ruby</a></li>
+<li><a href="#sec-1-9-15">Skewer</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-10">Ledger (personal finance): Make it easier to review my credit card transactions</a></li>
@@ -388,6 +391,7 @@ for the JavaScript code in this tag.
 <li><a href="#sec-4-2">2048 in Emacs, and colours too</a></li>
 </ul>
 </li>
+<li><a href="#sec-5">Path</a></li>
 </ul>
 </div>
 </div>
@@ -427,7 +431,9 @@ To be precise, this is what's in the first part of my <code>~/.emacs.d/init.el</
 <span class="org-comment-delimiter">;; </span><span class="org-comment">Override the packages with the git version of Org and other packages</span>
 (add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/lisp"</span>)
 (add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/contrib/lisp"</span>)
+(add-to-list 'load-path <span class="org-string">"~/code/org2blog"</span>)
 (add-to-list 'load-path <span class="org-string">"~/Dropbox/2014/presentations/org-reveal"</span>)
+(add-to-list 'load-path <span class="org-string">"/usr/local/share/emacs/site-lisp"</span>)
 <span class="org-comment-delimiter">;; </span><span class="org-comment">Load the rest of the packages</span>
 (package-initialize t)
 (setq package-enable-at-startup nil)
@@ -545,7 +551,7 @@ I keep slightly more sensitive information in a separate file so that I can easi
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(add-to-list 'package-archives '(<span class="org-string">"org"</span> . <span class="org-string">"http://orgmode.org/elpa/"</span>) t)
-(add-to-list 'package-archives '(<span class="org-string">"melpa"</span> . <span class="org-string">"http://melpa.milkbox.net/packages/"</span>) t)
+(add-to-list 'package-archives '(<span class="org-string">"melpa"</span> . <span class="org-string">"http://melpa.org/packages/"</span>) t)
 </pre>
 </div>
 
@@ -696,7 +702,7 @@ possible, although I prefer ido's way of switching buffers.
   <span class="org-builtin">:init</span>
   (<span class="org-keyword">progn</span> 
     (<span class="org-keyword">require</span> '<span class="org-constant">helm-config</span>) 
-    (setq helm-candidate-number-limit 10)
+    (setq helm-candidate-number-limit 100)
     <span class="org-comment-delimiter">;; </span><span class="org-comment">From https://gist.github.com/antifuchs/9238468</span>
     (setq helm-idle-delay 0.0 <span class="org-comment-delimiter">; </span><span class="org-comment">update fast sources immediately (doesn't).</span>
           helm-input-idle-delay 0.01  <span class="org-comment-delimiter">; </span><span class="org-comment">this actually updates things</span>
@@ -710,8 +716,13 @@ possible, although I prefer ido's way of switching buffers.
     <span class="org-comment-delimiter">;; </span><span class="org-comment">I don't like the way switch-to-buffer uses history, since</span>
     <span class="org-comment-delimiter">;; </span><span class="org-comment">that confuses me when it comes to buffers I've already</span>
     <span class="org-comment-delimiter">;; </span><span class="org-comment">killed. Let's use ido instead.</span>
-    (add-to-list 'helm-completing-read-handlers-alist '(switch-to-buffer . ido)))
-  <span class="org-builtin">:bind</span> ((<span class="org-string">"C-c h"</span> . helm-mini)))
+    (add-to-list 'helm-completing-read-handlers-alist 
+                 '(switch-to-buffer . ido))
+    <span class="org-comment-delimiter">;; </span><span class="org-comment">Unicode</span>
+    (add-to-list 'helm-completing-read-handlers-alist 
+                 '(insert-char . ido)))
+  <span class="org-builtin">:bind</span> ((<span class="org-string">"C-c h"</span> . helm-mini) 
+         (<span class="org-string">"M-x"</span> . helm-M-x)))
 (ido-mode -1) <span class="org-comment-delimiter">;; </span><span class="org-comment">Turn off ido mode in case I enabled it accidentally</span>
 </pre>
 </div>
@@ -1146,7 +1157,24 @@ Some code from <a href="http://emacsredux.com/blog/2013/04/28/switch-to-previous
 </p>
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/switch-to-previous-buffer</span> ()
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/key-chord-define</span> (keymap keys command)
+  <span class="org-doc">"Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.</span>
+<span class="org-doc">\nKEYS can be a string or a vector of two elements. Currently only elements</span>
+<span class="org-doc">that corresponds to ascii codes in the range 32 to 126 can be used.</span>
+<span class="org-doc">\nCOMMAND can be an interactive function, a string, or nil.</span>
+<span class="org-doc">If COMMAND is nil, the key-chord is removed.</span>
+
+<span class="org-doc">MODIFICATION: Do not define the transposed key chord.</span>
+<span class="org-doc">"</span>
+  (<span class="org-keyword">if</span> (/= 2 (length keys))
+      (<span class="org-warning">error</span> <span class="org-string">"Key-chord keys must have two elements"</span>))
+  <span class="org-comment-delimiter">;; </span><span class="org-comment">Exotic chars in a string are &gt;255 but define-key wants 128..255 for those</span>
+  (<span class="org-keyword">let</span> ((key1 (logand 255 (aref keys 0)))
+        (key2 (logand 255 (aref keys 1))))
+    (define-key keymap (vector 'key-chord key1 key2) command)))
+(fset 'key-chord-define 'sacha/key-chord-define)
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/switch-to-previous-buffer</span> ()
   <span class="org-doc">"Switch to previously open buffer.</span>
 <span class="org-doc">Repeated invocations toggle between the two most recently open buffers."</span>
   (interactive)
@@ -1154,6 +1182,7 @@ Some code from <a href="http://emacsredux.com/blog/2013/04/28/switch-to-previous
 (<span class="org-keyword">use-package</span> <span class="org-constant">key-chord</span>
   <span class="org-builtin">:init</span>
   (<span class="org-keyword">progn</span> 
+    (fset 'key-chord-define 'sacha/key-chord-define)
     (key-chord-mode 1)
     (key-chord-define-global <span class="org-string">"uu"</span>     'undo)
     (key-chord-define-global <span class="org-string">"yy"</span>     'browse-kill-ring)
@@ -1161,6 +1190,11 @@ Some code from <a href="http://emacsredux.com/blog/2013/04/28/switch-to-previous
     (key-chord-define-global <span class="org-string">"jw"</span>     'ace-window)
     (key-chord-define-global <span class="org-string">"jl"</span>     'ace-jump-line-mode)
     (key-chord-define-global <span class="org-string">"FF"</span>     'find-file)
+    (key-chord-define-global <span class="org-string">"hh"</span>     'emms-pause)
+    (key-chord-define-global <span class="org-string">"ht"</span>     nil)
+    (key-chord-define-global <span class="org-string">"th"</span>     nil)
+    (key-chord-define-global <span class="org-string">"hc"</span>     'emms-seek-forward)
+    (key-chord-define-global <span class="org-string">"hs"</span>     'emms-seek-to)
     (key-chord-define-global <span class="org-string">"JJ"</span>     'sacha/switch-to-previous-buffer)))
 </pre>
 </div>
@@ -1271,7 +1305,32 @@ Copied from <a href="http://emacsredux.com/blog/2013/05/22/smarter-navigation-to
 </div>
 </div>
 </div>
+<div id="outline-container-sec-1-5-15" class="outline-4">
+<h4 id="sec-1-5-15">Narrowing</h4>
+<div class="outline-text-4" id="text-1-5-15">
+<p>
+From <a href="http://endlessparentheses.com/emacs-narrow-or-widen-dwim.html">http://endlessparentheses.com/emacs-narrow-or-widen-dwim.html</a>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(add-to-list 'load-path <span class="org-string">"~/elisp/recursive-narrow"</span>)
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/recursive-narrow-dwim-org</span> ()
+    (<span class="org-keyword">if</span> (derived-mode-p 'org-mode) 
+         (<span class="org-keyword">cond</span> ((or (org-at-block-p) (org-in-src-block-p)) (org-narrow-to-block))
+               (t (org-narrow-to-subtree))))
+)
+(<span class="org-keyword">use-package</span> <span class="org-constant">recursive-narrow</span>
+  <span class="org-builtin">:config</span>
+  (add-hook 'recursive-narrow-dwim-functions 'sacha/recursive-narrow-dwim-org)
+  <span class="org-builtin">:bind</span>
+  ((<span class="org-string">"C-x n w"</span> . recursive-widen)
+   (<span class="org-string">"C-x n n"</span> . recursive-narrow-or-widen-dwim)))
+</pre>
 </div>
+</div>
+</div>
+</div>
+
 <div id="outline-container-sec-1-6" class="outline-3">
 <h3 id="sec-1-6">Reading</h3>
 <div class="outline-text-3" id="text-1-6">
@@ -2168,6 +2227,7 @@ I can get a sense of how appointments are spread out.
 (setq org-agenda-show-log t)
 (setq org-agenda-skip-scheduled-if-done t)
 (setq org-agenda-skip-deadline-if-done t)
+(setq org-agenda-skip-deadline-prewarning-if-scheduled 'pre-scheduled)
 (setq org-agenda-time-grid
       '((daily today require-timed)
        <span class="org-string">"----------------"</span>
@@ -2469,7 +2529,7 @@ hang of using these more!
   (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-agenda-skip-scheduled</span> ()
     (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp <span class="org-string">"\n]+&gt;"</span>))
   (setq org-agenda-custom-commands
-        `((<span class="org-string">"T"</span> tags-todo <span class="org-string">"TODO=\"TODO\"-routine"</span>)
+        `((<span class="org-string">"T"</span> tags-todo <span class="org-string">"TODO=\"TODO\"-goal-routine-SCHEDULED={.+}"</span>)
           (<span class="org-string">"b"</span> todo <span class="org-string">""</span>
            ((org-agenda-files '(<span class="org-string">"~/personal/business.org"</span>))))
           (<span class="org-string">"o"</span> todo <span class="org-string">""</span>
@@ -2959,16 +3019,18 @@ Now we put it all together&#x2026;
            (setq list
                  (replace-regexp-in-string <span class="org-string">"\\[\""</span> <span class="org-string">"["</span> list))
            (setq list
-                 (replace-regexp-in-string <span class="org-string">"\"\\]"</span> <span class="org-string">"]"</span> list)))
+                 (replace-regexp-in-string <span class="org-string">"\""</span> <span class="org-string">""</span> (replace-regexp-in-string <span class="org-string">"\"\\]"</span> <span class="org-string">"]"</span> list))))
          (<span class="org-keyword">if</span> (called-interactively-p 'any)
              (insert list)
            list)))
 
-     (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/flickr-export-and-extract</span> (start end)
+     (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/flickr-export-and-extract</span> (start end <span class="org-type">&amp;optional</span> do-insert)
        <span class="org-doc">"Download Flickr metadata and extract the relevant part."</span>
-       (interactive (list (org-read-date) (org-read-date)))
+       (interactive (list (org-read-date) (org-read-date) t))
        (shell-command <span class="org-string">"c:/sacha/dropbox/bin/flickr.bat"</span>)
-       (insert (sacha/flickr-extract-links-for-review <span class="org-string">"c:/sacha/dropbox/bin/flickr_metadata.csv"</span> start end)))
+       (<span class="org-keyword">if</span> do-insert
+           (insert (sacha/flickr-extract-links-for-review <span class="org-string">"c:/sacha/dropbox/bin/flickr_metadata.csv"</span> start end))
+         (sacha/flickr-extract-links-for-review <span class="org-string">"c:/sacha/dropbox/bin/flickr_metadata.csv"</span> start end)))
 </pre>
 </div>
 </div>
@@ -3169,10 +3231,10 @@ Photosync (for syncing with Flickr) can't deal with periods in filenames. Org ge
     (<span class="org-keyword">if</span> (region-active-p) (mark) (1+ (line-end-position)))
     (<span class="org-keyword">let</span> ((org-refile-targets
            '((<span class="org-string">"~/Dropbox/Public/sharing/blog.org"</span> . (<span class="org-builtin">:maxlevel</span> . 3)))))
-      (org-refile-get-location <span class="org-string">"Location"</span>))))
+      (<span class="org-keyword">save-excursion</span> (org-refile-get-location <span class="org-string">"Location"</span>)))))
   (<span class="org-keyword">let</span> ((s
          (replace-regexp-in-string
-          <span class="org-string">"^ *- "</span>
+          <span class="org-string">"^[ \t]*- "</span>
           <span class="org-string">"- [X] "</span>
           (buffer-substring-no-properties beg end))))
     (<span class="org-keyword">save-window-excursion</span>
@@ -3274,7 +3336,7 @@ Make it easy to publish and browse a file.
 <p>
 I use org2blog to post to my blog, which is Wordpress-based. I used to
 use punchagan's org2blog, but there's a completely different one in
-ELPA, so I figured I'd give that a try.
+ELPA, so I figured I'd give that a try. UPDATE 2014-10-29: Overriding it with the Git version (see the first section of this config) so that I can use thumbnail support for now&#x2026;
 </p>
 
 <div class="org-src-container">
@@ -3627,7 +3689,29 @@ don't need this any more&#x2026;
 </div>
 </div>
 </div>
+<div id="outline-container-sec-1-8-28" class="outline-4">
+<h4 id="sec-1-8-28">Custom links</h4>
+<div class="outline-text-4" id="text-1-8-28">
+<p>
+From <a href="http://endlessparentheses.com/use-org-mode-links-for-absolutely-anything.html?source=rss">http://endlessparentheses.com/use-org-mode-links-for-absolutely-anything.html?source=rss</a>
+</p>
+<blockquote>
+<p>
+(org-add-link-type
+ "tag" 'endless/follow-tag-link)
+</p>
+
+<p>
+(defun endless/follow-tag-link (tag)
+  "Display a list of TODO headlines with tag TAG.
+With prefix argument, also display headlines without a TODO keyword."
+  (org-tags-view (null current-prefix-arg) tag))
+</p>
+</blockquote>
 </div>
+</div>
+</div>
+
 <div id="outline-container-sec-1-9" class="outline-3">
 <h3 id="sec-1-9">Coding</h3>
 <div class="outline-text-3" id="text-1-9">
@@ -3815,6 +3899,41 @@ I sometimes need to know where I am in a line.
 <div id="outline-container-sec-1-9-9" class="outline-4">
 <h4 id="sec-1-9-9">Javascript</h4>
 <div class="outline-text-4" id="text-1-9-9">
+<p>
+This makes script blocks easier to copy:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/javascript-test-regexp</span> (concat (regexp-quote <span class="org-string">"/** Testing **/"</span>) <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*\n</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">*"</span>)
+  <span class="org-doc">"Regular expression matching testing-related code to remove.</span>
+<span class="org-doc">See `</span><span class="org-doc"><span class="org-constant">sacha/copy-javascript-region-or-buffer</span></span><span class="org-doc">'."</span>)
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/copy-javascript-region-or-buffer</span> (beg end)
+  <span class="org-doc">"Copy the active region or the buffer, wrapping it in script tags.</span>
+<span class="org-doc">Add a comment with the current filename and skip test-related</span>
+<span class="org-doc">code. See `</span><span class="org-doc"><span class="org-constant">sacha/javascript-test-regexp</span></span><span class="org-doc">' to change the way</span>
+<span class="org-doc">test-related code is detected."</span>
+  (interactive <span class="org-string">"r"</span>)
+  (<span class="org-keyword">unless</span> (region-active-p)
+    (setq beg (point-min) end (point-max)))
+  (kill-new
+   (concat
+    <span class="org-string">"&lt;script type=\"text/javascript\"&gt;\n"</span>
+    (<span class="org-keyword">if</span> (buffer-file-name) (concat <span class="org-string">"// "</span> (file-name-nondirectory (buffer-file-name)) <span class="org-string">"\n"</span>) <span class="org-string">""</span>)
+    (replace-regexp-in-string
+     sacha/javascript-test-regexp
+     <span class="org-string">""</span>
+     (buffer-substring (point-min) (point-max))
+     nil)
+    <span class="org-string">"\n&lt;/script&gt;"</span>)))
+</pre>
+</div>
+
+<p>
+And the rest of the js2 config:
+</p>
+
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">js2-mode</span>
@@ -3827,6 +3946,7 @@ I sometimes need to know where I am in a line.
     (bind-key <span class="org-string">"C-M-x"</span> 'js-send-last-sexp-and-go js2-mode-map)
     (bind-key <span class="org-string">"C-c b"</span> 'js-send-buffer js2-mode-map)
     (bind-key <span class="org-string">"C-c C-b"</span> 'js-send-buffer-and-go js2-mode-map)
+    (bind-key <span class="org-string">"C-c w"</span> 'sacha/copy-javascript-region-or-buffer js2-mode-map)
     (bind-key <span class="org-string">"C-c l"</span> 'js-load-file-and-go js2-mode-map)))
 </pre>
 </div>
@@ -3836,6 +3956,14 @@ I sometimes need to know where I am in a line.
 <div id="outline-container-sec-1-9-10" class="outline-4">
 <h4 id="sec-1-9-10">Magit - nice git interface</h4>
 <div class="outline-text-4" id="text-1-9-10">
+<p>
+<a id="magit"></a>
+</p>
+
+<p>
+Thanks to sheijk for hints on tweaking magit to limit it to the current directory!
+</p>
+
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(sacha/package-install 'magit)
@@ -3848,14 +3976,75 @@ I sometimes need to know where I am in a line.
   (call-interactively 'magit-log-edit))
 
 (<span class="org-keyword">use-package</span> <span class="org-constant">magit</span>
-  <span class="org-builtin">:init</span> (setq magit-diff-options '(<span class="org-string">"-b"</span>)) <span class="org-comment-delimiter">; </span><span class="org-comment">ignore whitespace</span>
-  <span class="org-builtin">:bind</span> ((<span class="org-string">"C-x v d"</span> . magit-status) 
+  <span class="org-builtin">:init</span> 
+  (setq magit-git-executable <span class="org-string">"c:/program files (x86)/git/bin/git.exe"</span>
+        magit-diff-options '(<span class="org-string">"-b"</span>)) <span class="org-comment-delimiter">; </span><span class="org-comment">ignore whitespace</span>
+  <span class="org-builtin">:config</span>
+  (<span class="org-keyword">progn</span>
+    (<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/magit-limit-to-directory</span> nil <span class="org-doc">"Limit magit status to a specific directory."</span>)
+    (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/magit-status-in-directory</span> (directory)
+      <span class="org-doc">"Displays magit status limited to DIRECTORY.</span>
+<span class="org-doc">Uses the current `</span><span class="org-doc"><span class="org-constant">default-directory</span></span><span class="org-doc">', or prompts for a directory</span>
+<span class="org-doc">if called with a prefix argument."</span>
+      (interactive (list (expand-file-name
+                          (<span class="org-keyword">if</span> current-prefix-arg
+                              (read-directory-name <span class="org-string">"Directory: "</span>)
+                            default-directory))))
+      (<span class="org-keyword">let</span> ((sacha/magit-limit-to-directory directory))
+        (magit-status directory)))
+
+    (<span class="org-keyword">defadvice</span> <span class="org-function-name">magit-insert-untracked-files</span> (around sacha activate)
+      (<span class="org-keyword">if</span> sacha/magit-limit-to-directory
+          (magit-with-section (section untracked 'untracked <span class="org-string">"Untracked files:"</span> t)
+            (<span class="org-keyword">let</span> ((files (cl-mapcan
+                          (<span class="org-keyword">lambda</span> (f)
+                            (<span class="org-keyword">when</span> (eq (aref f 0) ??) (list f)))
+                          (magit-git-lines
+                           <span class="org-string">"status"</span> <span class="org-string">"--porcelain"</span> <span class="org-string">"--"</span> sacha/magit-limit-to-directory))))
+              (<span class="org-keyword">if</span> (not files)
+                  (setq section nil)
+                (<span class="org-keyword">dolist</span> (file files)
+                  (setq file (magit-decode-git-path (substring file 3)))
+                  (magit-with-section (section file file)
+                    (insert <span class="org-string">"\t"</span> file <span class="org-string">"\n"</span>)))
+                (insert <span class="org-string">"\n"</span>))))
+        ad-do-it))
+
+    (<span class="org-keyword">defadvice</span> <span class="org-function-name">magit-insert-unstaged-changes</span> (around sacha activate)
+      (<span class="org-keyword">if</span> sacha/magit-limit-to-directory
+          (<span class="org-keyword">let</span> ((magit-current-diff-range (cons 'index 'working))
+                (magit-diff-options (copy-sequence magit-diff-options)))
+            (magit-git-insert-section (unstaged <span class="org-string">"Unstaged changes:"</span>)
+                #'magit-wash-raw-diffs
+              <span class="org-string">"diff-files"</span>
+              <span class="org-string">"--"</span> sacha/magit-limit-to-directory
+              ))
+        ad-do-it))
+
+    (<span class="org-keyword">defadvice</span> <span class="org-function-name">magit-insert-staged-changes</span> (around sacha activate)
+      <span class="org-doc">"Limit to `</span><span class="org-doc"><span class="org-constant">sacha/magit-limit-to-directory</span></span><span class="org-doc">' if specified."</span>
+      (<span class="org-keyword">if</span> sacha/magit-limit-to-directory
+          (<span class="org-keyword">let</span> ((no-commit (not (magit-git-success <span class="org-string">"log"</span> <span class="org-string">"-1"</span> <span class="org-string">"HEAD"</span>))))
+            (<span class="org-keyword">when</span> (or no-commit (magit-anything-staged-p))
+              (<span class="org-keyword">let</span> ((magit-current-diff-range (cons <span class="org-string">"HEAD"</span> 'index))
+                    (base (<span class="org-keyword">if</span> no-commit
+                              (magit-git-string <span class="org-string">"mktree"</span>)
+                            <span class="org-string">"HEAD"</span>))
+                    (magit-diff-options (append '(<span class="org-string">"--cached"</span>) magit-diff-options)))
+                (magit-git-insert-section (staged <span class="org-string">"Staged changes:"</span>)
+                    (apply-partially #'magit-wash-raw-diffs t)
+                  <span class="org-string">"diff-index"</span> <span class="org-string">"--cached"</span> base <span class="org-string">"--"</span> sacha/magit-limit-to-directory))))
+        ad-do-it)))
+  <span class="org-builtin">:bind</span> ((<span class="org-string">"C-x v d"</span> . magit-status)
+         (<span class="org-string">"C-x v C-d"</span> . sacha/magit-status-in-directory)
          (<span class="org-string">"C-x v p"</span> . magit-push) 
          (<span class="org-string">"C-x v c"</span> . sacha/magit-commit-all)))
 </pre>
 </div>
 </div>
 </div>
+
+
 <div id="outline-container-sec-1-9-11" class="outline-4">
 <h4 id="sec-1-9-11">Tag files</h4>
 <div class="outline-text-4" id="text-1-9-11">
@@ -3893,7 +4082,8 @@ tree instead.
 <div class="outline-text-4" id="text-1-9-12">
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(setq projectile-keymap-prefix (kbd <span class="org-string">"C-c p"</span>)) 
+<pre class="src src-emacs-lisp">(sacha/package-install 'projectile)
+(setq projectile-keymap-prefix (kbd <span class="org-string">"C-c p"</span>)) 
 (<span class="org-keyword">use-package</span> <span class="org-constant">projectile</span>
   <span class="org-builtin">:init</span> 
   (<span class="org-keyword">progn</span>
@@ -3928,9 +4118,65 @@ tree instead.
          (add-hook 'ruby-mode-hook 'auto-complete-mode)))
 </pre>
 </div>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/rspec-verify-single</span> ()
+  <span class="org-doc">"Runs the specified example at the point of the current buffer."</span>
+  (interactive)
+  (rspec-run-single-file
+   (concat 
+     (rspec-spec-file-for (buffer-file-name))
+     <span class="org-string">":"</span> 
+     (<span class="org-keyword">save-restriction</span>
+               (widen)
+               (number-to-string (line-number-at-pos))))
+   (rspec-core-options)))
+
+(sacha/package-install 'rspec-mode)
+(<span class="org-keyword">use-package</span> <span class="org-constant">rspec-mode</span>
+  <span class="org-builtin">:config</span>
+  (<span class="org-keyword">progn</span> 
+    (setq rspec-command-options <span class="org-string">"--fail-fast --format documentation"</span>)
+    (bind-key <span class="org-string">"C-c , ,"</span> 'rspec-rerun rspec-mode-map)
+    (fset 'rspec-verify-single 'sacha/rspec-verify-single)))
+</pre>
+</div>
+
+<p>
+SASS
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(add-hook 'sass-mode-hook
+          (<span class="org-keyword">lambda</span> () (setq indent-tabs-mode nil)))
+(setq-default indent-tabs-mode nil)
+</pre>
 </div>
 </div>
 </div>
+<div id="outline-container-sec-1-9-15" class="outline-4">
+<h4 id="sec-1-9-15">Skewer</h4>
+<div class="outline-text-4" id="text-1-9-15">
+<p>
+This lets you send HTML, CSS, and Javascript fragments to Google
+Chrome. You may need to start Chrome with <code>chrome
+--allow-running-insecure-content</code>, if you're using the user script
+with HTTPS sites.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(sacha/package-install 'skewer-mode)
+(<span class="org-keyword">use-package</span> <span class="org-constant">skewer-mode</span>
+  <span class="org-builtin">:config</span> (skewer-setup))
+</pre>
+</div>
+</div>
+</div>
+</div>
+
 <div id="outline-container-sec-1-10" class="outline-3">
 <h3 id="sec-1-10">Ledger (personal finance): Make it easier to review my credit card transactions</h3>
 <div class="outline-text-3" id="text-1-10">
@@ -4263,11 +4509,24 @@ Maybe <code>multiple-cursors</code> will be an even better way. Looks promising!
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">multiple-cursors</span>
+<pre class="src src-emacs-lisp">(sacha/package-install 'multiple-cursors)
+(sacha/package-install 'phi-search)
+(sacha/package-install 'phi-search-mc)
+(<span class="org-keyword">use-package</span> <span class="org-constant">multiple-cursors</span>
   <span class="org-builtin">:bind</span> 
-   ((<span class="org-string">"C-&gt;"</span> . mc/mark-next-like-this)
-    (<span class="org-string">"C-&lt;"</span> . mc/mark-previous-like-this)
-    (<span class="org-string">"C-*"</span> . mc/mark-all-like-this)))
+   ((<span class="org-string">"C-c m a"</span> . mc/mark-all-like-this)
+    (<span class="org-string">"C-c m m"</span> . mc/mark-all-like-this-dwim)
+    (<span class="org-string">"C-c m l"</span> . mc/edit-lines)
+    (<span class="org-string">"C-c m n"</span> . mc/mark-next-like-this)
+    (<span class="org-string">"C-c m p"</span> . mc/mark-previous-like-this)
+    (<span class="org-string">"C-c m s"</span> . mc/mark-sgml-tag-pair)
+    (<span class="org-string">"C-c m d"</span> . mc/mark-all-like-this-in-defun)))
+(<span class="org-keyword">use-package</span> <span class="org-constant">phi-search-mc</span>
+  <span class="org-builtin">:config</span>
+  (phi-search-mc/setup-keys))
+(<span class="org-keyword">use-package</span> <span class="org-constant">mc-extras</span>
+  <span class="org-builtin">:config</span>
+    (define-key mc/keymap (kbd <span class="org-string">"C-. ="</span>) 'mc/compare-chars))
 </pre>
 </div>
 
@@ -5411,44 +5670,39 @@ theme. =)
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-2-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"red"</span>))) <span class="org-doc">"Face used for 2"</span> <span class="org-builtin">:group</span> '2048-game)
-(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-4-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"orange"</span>))) <span class="org-doc">"Face used for 4"</span> <span class="org-builtin">:group</span> '2048-game)
-(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-8-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"yellow"</span>))) <span class="org-doc">"Face used for 8"</span> <span class="org-builtin">:group</span> '2048-game)
-(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-16-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"green"</span>))) <span class="org-doc">"Face used for 16"</span> <span class="org-builtin">:group</span> '2048-game)
-(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-32-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"lightblue"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 32"</span> <span class="org-builtin">:group</span> '2048-game)
-(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-64-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"lavender"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 64"</span> <span class="org-builtin">:group</span> '2048-game)
-(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-128-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"SlateBlue"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 128"</span> <span class="org-builtin">:group</span> '2048-game)
-(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-256-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"MediumVioletRed"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 256"</span> <span class="org-builtin">:group</span> '2048-game)
-(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-512-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"tomato"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 512"</span> <span class="org-builtin">:group</span> '2048-game)
-(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-1024-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"SkyBlue1"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 1024"</span> <span class="org-builtin">:group</span> '2048-game)
-(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-2048-face</span> '((t (<span class="org-builtin">:foreground</span> <span class="org-string">"lightgreen"</span> <span class="org-builtin">:bold</span> t))) <span class="org-doc">"Face used for 2048"</span> <span class="org-builtin">:group</span> '2048-game)
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-face-2</span>    '((t . (<span class="org-builtin">:background</span> <span class="org-string">"khaki"</span> <span class="org-builtin">:foreground</span> <span class="org-string">"black"</span>))) <span class="org-doc">"Face for the tile 2"</span> <span class="org-builtin">:group</span> '2048-faces)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-face-4</span>    '((t . (<span class="org-builtin">:background</span> <span class="org-string">"burlywood"</span> <span class="org-builtin">:foreground</span> <span class="org-string">"black"</span>))) <span class="org-doc">"Face for the tile 4"</span> <span class="org-builtin">:group</span> '2048-faces)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-face-8</span>    '((t . (<span class="org-builtin">:background</span> <span class="org-string">"orange3"</span> <span class="org-builtin">:foreground</span> <span class="org-string">"black"</span>))) <span class="org-doc">"Face for the tile 8"</span> <span class="org-builtin">:group</span> '2048-faces)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-face-16</span>   '((t . (<span class="org-builtin">:background</span> <span class="org-string">"orange"</span> <span class="org-builtin">:foreground</span> <span class="org-string">"black"</span>))) <span class="org-doc">"Face for the tile 16"</span> <span class="org-builtin">:group</span> '2048-faces)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-face-32</span>   '((t . (<span class="org-builtin">:background</span> <span class="org-string">"orange red"</span> <span class="org-builtin">:foreground</span> <span class="org-string">"black"</span>))) <span class="org-doc">"Face for the tile 32"</span> <span class="org-builtin">:group</span> '2048-faces)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-face-64</span>   '((t . (<span class="org-builtin">:background</span> <span class="org-string">"firebrick"</span> <span class="org-builtin">:foreground</span> <span class="org-string">"white"</span>))) <span class="org-doc">"Face for the tile 64"</span> <span class="org-builtin">:group</span> '2048-faces)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-face-128</span>  '((t . (<span class="org-builtin">:background</span> <span class="org-string">"dark red"</span> <span class="org-builtin">:foreground</span> <span class="org-string">"white"</span>))) <span class="org-doc">"Face for the tile 128"</span> <span class="org-builtin">:group</span> '2048-faces)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-face-256</span>  '((t . (<span class="org-builtin">:background</span> <span class="org-string">"dark magenta"</span> <span class="org-builtin">:foreground</span> <span class="org-string">"white"</span>))) <span class="org-doc">"Face for the tile 256"</span> <span class="org-builtin">:group</span> '2048-faces)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-face-512</span>  '((t . (<span class="org-builtin">:background</span> <span class="org-string">"magenta"</span> <span class="org-builtin">:foreground</span> <span class="org-string">"black"</span>))) <span class="org-doc">"Face for the tile 512"</span> <span class="org-builtin">:group</span> '2048-faces)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-face-1024</span> '((t . (<span class="org-builtin">:background</span> <span class="org-string">"gold"</span> <span class="org-builtin">:foreground</span> <span class="org-string">"black"</span>))) <span class="org-doc">"Face for the tile 1024"</span> <span class="org-builtin">:group</span> '2048-faces)
+(<span class="org-keyword">defface</span> <span class="org-variable-name">2048-face-2048</span> '((t . (<span class="org-builtin">:background</span> <span class="org-string">"yellow"</span> <span class="org-builtin">:foreground</span> <span class="org-string">"black"</span>))) <span class="org-doc">"Face for the tile 2048"</span> <span class="org-builtin">:group</span> '2048-faces)
 
-(<span class="org-keyword">defvar</span> <span class="org-variable-name">2048-font-lock-keywords</span>
-  '((<span class="org-string">"\\&lt;2\\&gt;"</span> 0 '2048-2-face)
-    (<span class="org-string">"\\&lt;4\\&gt;"</span> 0 '2048-4-face)
-    (<span class="org-string">"\\&lt;8\\&gt;"</span> 0 '2048-8-face)
-    (<span class="org-string">"\\&lt;16\\&gt;"</span> 0 '2048-16-face)
-    (<span class="org-string">"\\&lt;32\\&gt;"</span> 0 '2048-32-face)
-    (<span class="org-string">"\\&lt;64\\&gt;"</span> 0 '2048-64-face)
-    (<span class="org-string">"\\&lt;128\\&gt;"</span> 0 '2048-128-face)
-    (<span class="org-string">"\\&lt;256\\&gt;"</span> 0 '2048-256-face)
-    (<span class="org-string">"\\&lt;512\\&gt;"</span> 0 '2048-512-face)
-    (<span class="org-string">"\\&lt;1024\\&gt;"</span> 0 '2048-1024-face)
-    (<span class="org-string">"\\&lt;2048\\&gt;"</span> 0 '2048-2048-face)))
 
-(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/2048-fontify</span> ()
-  (font-lock-add-keywords nil 2048-font-lock-keywords))
+  (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/2048-set-font-size</span> ()
+    (text-scale-set 5)
+    (goto-char (point-min)))
 
-(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/2048-set-font-size</span> ()
-  (text-scale-set 5))
-
-(<span class="org-keyword">use-package</span> <span class="org-constant">2048-game</span>
-  <span class="org-builtin">:config</span>
-  (<span class="org-keyword">progn</span>
-   (add-hook '2048-mode-hook 'sacha/2048-fontify)
-   (add-hook '2048-mode-hook 'sacha/2048-set-font-size)))
+  (<span class="org-keyword">use-package</span> <span class="org-constant">2048-game</span>
+    <span class="org-builtin">:config</span>
+    (<span class="org-keyword">progn</span>
+     (add-hook '2048-mode-hook 'sacha/2048-set-font-size)))
 </pre>
 </div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">Path</h2>
+<div class="outline-text-2" id="text-5">
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(setenv <span class="org-string">"PATH"</span> (concat <span class="org-string">"\"c:/program files/postgresql/9.3/bin;\""</span> (getenv <span class="org-string">"PATH"</span>)))
+</pre>
 </div>
 </div>
 </div>

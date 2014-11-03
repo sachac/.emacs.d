@@ -482,7 +482,7 @@ This lets me search up and down. I don't use this often, though.
 *** Frequently-accessed files
 Registers allow you to jump to a file or other location quickly. To
 jump to a register, use =C-x r j= followed by the letter of the
-register.
+register. Using registers for all these file shortcuts is probably a bit of a waste since I can easily define my own keymap, but since I rarely go beyond register A anyway...
 
 #+begin_src emacs-lisp :results silent
   (mapcar
@@ -494,6 +494,8 @@ register.
      (?e . "~/code/dev/emacs-notes/tasks.org")
      (?w . "~/Dropbox/public/sharing/index.org")
      (?W . "~/Dropbox/public/sharing/blog.org")
+     (?j . "~/personal/journal.org")
+     (?I . "~/Dropbox/Inbox/To Blog")
      (?g . "~/sachac.github.io/evil-plans/index.org")
      (?c . "~/code/dev/elisp-course.org")
      (?l . "~/dropbox/public/sharing/learning.org")))
@@ -913,7 +915,21 @@ This makes it easier to add links from outside.
   (insert "][more]]"))
 (global-set-key (kbd "<f6>") 'sacha/yank-more)
 #+end_src
+**** Date trees
 
+This quickly adds a same-level heading for the succeeding day.
+#+begin_src emacs-lisp
+(defun sacha/org-insert-heading-for-next-day ()
+	"Insert a same-level heading for the following day."
+	(interactive)
+	(let ((new-date
+				 (seconds-to-time
+					(+ 86400.0
+						 (float-time
+							(org-read-date nil 'to-time (elt (org-heading-components) 4)))))))
+		(org-insert-heading-after-current)
+		(insert (format-time-string "%Y-%m-%d\n\n" new-date))))
+#+end_src
 **** Templates
 
      I use =org-capture= templates to quickly jot down tasks, ledger
@@ -935,6 +951,8 @@ This makes it easier to add links from outside.
           ("p" "People task" entry
            (file+headline "~/personal/people.org" "Tasks")
            ,sacha/org-basic-task-template)
+          ("j" "Journal entry" entry
+           (file+datetree+prompt "~/personal/journal.org"))
           ("db" "Done - Business" entry
            (file+headline "~/personal/business.org" "Tasks")
            "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
@@ -1470,6 +1488,8 @@ hang of using these more!
           `(("T" tags-todo "TODO=\"TODO\"-goal-routine-SCHEDULED={.+}")
             ("b" todo ""
              ((org-agenda-files '("~/personal/business.org"))))
+            ("B" todo ""
+             ((org-agenda-files '("~/Dropbox/books"))))
             ("o" todo ""
              ((org-agenda-files '("~/personal/organizer.org"))))
             ("c" todo ""

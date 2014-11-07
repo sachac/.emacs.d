@@ -224,6 +224,10 @@ possible, although I prefer ido's way of switching buffers.
         ;; killed. Let's use ido instead.
         (add-to-list 'helm-completing-read-handlers-alist 
                      '(switch-to-buffer . ido))
+        (add-to-list 'helm-completing-read-handlers-alist 
+                     '(rename-file . ido))
+        (add-to-list 'helm-completing-read-handlers-alist 
+                     '(dired-rename-file . ido))
         ;; Unicode
         (add-to-list 'helm-completing-read-handlers-alist 
                      '(insert-char . ido)))
@@ -2607,6 +2611,8 @@ I sometimes need to know where I am in a line.
 *** Ruby
 
 		#+begin_src emacs-lisp
+    (sacha/package-install 'rinari)
+    (sacha/package-install 'bundler)
     (sacha/package-install 'robe)
     (use-package robe
       :init
@@ -3127,6 +3133,7 @@ and return the directory.  Return nil if not found.
 ** Transcript editing
 
 #+begin_src emacs-lisp
+(sacha/package-install 'emms)
 (require 'emms)
 (require 'emms-player-simple)
 (require 'emms-source-file)

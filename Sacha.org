@@ -491,6 +491,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
    '((?i . "~/.emacs.d/Sacha.org")
      (?o . "~/personal/organizer.org")
      (?b . "~/personal/business.org")
+     (?B . "~/Dropbox/books")
      (?e . "~/code/dev/emacs-notes/tasks.org")
      (?w . "~/Dropbox/public/sharing/index.org")
      (?W . "~/Dropbox/public/sharing/blog.org")
@@ -542,45 +543,65 @@ shortcuts that use ordinary keys.
 
 Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
 #+begin_src emacs-lisp
-(defun sacha/key-chord-define (keymap keys command)
-  "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
-\nKEYS can be a string or a vector of two elements. Currently only elements
-that corresponds to ascii codes in the range 32 to 126 can be used.
-\nCOMMAND can be an interactive function, a string, or nil.
-If COMMAND is nil, the key-chord is removed.
+  (defun sacha/key-chord-define (keymap keys command)
+    "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
+  \nKEYS can be a string or a vector of two elements. Currently only elements
+  that corresponds to ascii codes in the range 32 to 126 can be used.
+  \nCOMMAND can be an interactive function, a string, or nil.
+  If COMMAND is nil, the key-chord is removed.
 
-MODIFICATION: Do not define the transposed key chord.
-"
-  (if (/= 2 (length keys))
-      (error "Key-chord keys must have two elements"))
-  ;; Exotic chars in a string are >255 but define-key wants 128..255 for those
-  (let ((key1 (logand 255 (aref keys 0)))
-	      (key2 (logand 255 (aref keys 1))))
-  	(define-key keymap (vector 'key-chord key1 key2) command)))
-(fset 'key-chord-define 'sacha/key-chord-define)
+  MODIFICATION: Do not define the transposed key chord.
+  "
+    (if (/= 2 (length keys))
+        (error "Key-chord keys must have two elements"))
+    ;; Exotic chars in a string are >255 but define-key wants 128..255 for those
+    (let ((key1 (logand 255 (aref keys 0)))
+          (key2 (logand 255 (aref keys 1))))
+      (define-key keymap (vector 'key-chord key1 key2) command)))
+  (fset 'key-chord-define 'sacha/key-chord-define)
 
-(defun sacha/switch-to-previous-buffer ()
-  "Switch to previously open buffer.
-Repeated invocations toggle between the two most recently open buffers."
-  (interactive)
-  (switch-to-buffer (other-buffer (current-buffer) 1)))
-(use-package key-chord
-  :init
-  (progn 
-    (fset 'key-chord-define 'sacha/key-chord-define)
-    (key-chord-mode 1)
-    (key-chord-define-global "uu"     'undo)
-    (key-chord-define-global "yy"     'browse-kill-ring)
-    (key-chord-define-global "jj"     'ace-jump-word-mode)
-    (key-chord-define-global "jw"     'ace-window)
-    (key-chord-define-global "jl"     'ace-jump-line-mode)
-    (key-chord-define-global "FF"     'find-file)
-    (key-chord-define-global "hh"     'emms-pause)
-    (key-chord-define-global "ht"     nil)
-    (key-chord-define-global "th"     nil)
-    (key-chord-define-global "hc"     'emms-seek-forward)
-    (key-chord-define-global "hs"     'emms-seek-to)
-    (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer)))
+  (defun sacha/switch-to-previous-buffer ()
+    "Switch to previously open buffer.
+  Repeated invocations toggle between the two most recently open buffers."
+    (interactive)
+    (switch-to-buffer (other-buffer (current-buffer) 1)))
+
+  (defun sacha/org-check-agenda ()
+    "Peek at agenda."
+    (interactive)
+    (cond
+     ((derived-mode-p 'org-agenda-mode)
+      (if (window-parent) (delete-window) (bury-buffer)))
+     ((get-buffer "*Org Agenda*")
+      (switch-to-buffer-other-window "*Org Agenda*"))
+     (t (org-agenda nil "a"))))
+
+  (defvar sacha/key-chord-command-map (make-sparse-keymap))
+  (bind-key "h" 'sacha/org-check-agenda sacha/key-chord-command-map)
+  (bind-key "u" 'emms-pause sacha/key-chord-command-map)
+  (bind-key "t" 'emms-seek-forward sacha/key-chord-command-map)
+  (bind-key "n" 'emms-seek-to sacha/key-chord-command-map)
+    
+  (use-package key-chord
+    :init
+    (progn 
+      (fset 'key-chord-define 'sacha/key-chord-define)
+      (key-chord-mode 1)
+      ;; k can be bound too
+      (key-chord-define-global "uu"     'undo)
+      (key-chord-define-global "yy"     'browse-kill-ring)
+      (key-chord-define-global "jj"     'ace-jump-word-mode)
+      (key-chord-define-global "jw"     'ace-window)
+      (key-chord-define-global "jl"     'ace-jump-line-mode)
+      (key-chord-define-global "jz"     'ace-jump-zap-up-to-char)
+      (key-chord-define-global "jZ"     'ace-jump-zap-to-char)
+      (key-chord-define-global "FF"     'find-file)
+      (key-chord-define-global "qq"     'sacha/org-quick-clock-in-task)
+      (key-chord-define-global "hh"     sacha/key-chord-command-map)
+      (key-chord-define-global "hc"     'emms-seek-forward)
+      (key-chord-define-global "h-"     'emms-seek-to)
+      (key-chord-define-global "xx"     'er/expand-region)
+      (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer)))
 #+end_src
 *** Smartscan
 
@@ -935,80 +956,85 @@ This quickly adds a same-level heading for the succeeding day.
      I use =org-capture= templates to quickly jot down tasks, ledger
      entries, notes, and other semi-structured pieces of information.
 #+begin_src emacs-lisp     
-  (defvar sacha/org-basic-task-template "* TODO %^{Task}    
-  SCHEDULED: %^t
-  %?
-  :PROPERTIES:
-  :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
-  :END:" "Basic task data")
-  (setq org-capture-templates
-        `(("t" "Tasks" entry 
-           (file+headline "~/personal/organizer.org" "Tasks")
-           ,sacha/org-basic-task-template)
-          ("b" "Business task" entry
-           (file+headline "~/personal/business.org" "Tasks")
-           ,sacha/org-basic-task-template)
-          ("p" "People task" entry
-           (file+headline "~/personal/people.org" "Tasks")
-           ,sacha/org-basic-task-template)
-          ("j" "Journal entry" entry
-           (file+datetree+prompt "~/personal/journal.org"))
-          ("db" "Done - Business" entry
-           (file+headline "~/personal/business.org" "Tasks")
-           "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-          ("dp" "Done - People" entry
-           (file+headline "~/personal/people.org" "Tasks")
-           "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-          ("dt" "Done - Task" entry
-           (file+headline "~/personal/organizer.org" "Tasks")
-           "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-          ("q" "Quick note" item
-           (file+headline "~/personal/organizer.org" "Quick notes"))
-          ("l" "Ledger entries")
-          ("lm" "MBNA" plain
-           (file "~/personal/ledger")
-           "%(org-read-date) %^{Payee}
-    Liabilities:MBNA  
-    Expenses:%^{Account}  $%^{Amount}
-  " :immediate-finish)
-          ("ln" "No Frills" plain
-           (file "~/personal/ledger")
-           "%(let ((org-read-date-prefer-future nil)) (org-read-date)) * No Frills
-    Liabilities:MBNA  
-    Assets:Wayne:Groceries  $%^{Amount}
-  " :immediate-finish)    
-          ("lc" "Cash" plain
-           (file "~/personal/ledger")
-           "%(org-read-date) * %^{Payee}
-    Expenses:Cash 
-    Expenses:%^{Account}  %^{Amount}
-  ")             
-          ("b" "Book" entry
-           (file+datetree "~/personal/books.org" "Inbox")
-           "* %^{Title}  %^g
-  %i
-  ,*Author(s):* %^{Author} \\\\
-  ,*ISBN:* %^{ISBN}
+    (defvar sacha/org-basic-task-template "* TODO %^{Task}    
+    SCHEDULED: %^t
+    %?
+    :PROPERTIES:
+    :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
+    :END:" "Basic task data")
+    (setq org-capture-templates
+          `(("t" "Tasks" entry 
+             (file+headline "~/personal/organizer.org" "Tasks")
+             ,sacha/org-basic-task-template)
+            ("e" "Emacs idea" entry
+             (file+headline "~/code/dev/emacs-notes/tasks.org" "Emacs")
+             "* TODO %^{Task}"
+             :immediate-finish)
+            ("b" "Business task" entry
+             (file+headline "~/personal/business.org" "Tasks")
+             ,sacha/org-basic-task-template)
+            ("p" "People task" entry
+             (file+headline "~/personal/people.org" "Tasks")
+             ,sacha/org-basic-task-template)
+            ("j" "Journal entry" plain
+             (file+datetree+prompt "~/personal/journal.org")
+  "%i")
+            ("db" "Done - Business" entry
+             (file+headline "~/personal/business.org" "Tasks")
+             "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+            ("dp" "Done - People" entry
+             (file+headline "~/personal/people.org" "Tasks")
+             "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+            ("dt" "Done - Task" entry
+             (file+headline "~/personal/organizer.org" "Tasks")
+             "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+            ("q" "Quick note" item
+             (file+headline "~/personal/organizer.org" "Quick notes"))
+            ("l" "Ledger entries")
+            ("lm" "MBNA" plain
+             (file "~/personal/ledger")
+             "%(org-read-date) %^{Payee}
+      Liabilities:MBNA  
+      Expenses:%^{Account}  $%^{Amount}
+    " :immediate-finish)
+            ("ln" "No Frills" plain
+             (file "~/personal/ledger")
+             "%(let ((org-read-date-prefer-future nil)) (org-read-date)) * No Frills
+      Liabilities:MBNA  
+      Assets:Wayne:Groceries  $%^{Amount}
+    " :immediate-finish)    
+            ("lc" "Cash" plain
+             (file "~/personal/ledger")
+             "%(org-read-date) * %^{Payee}
+      Expenses:Cash 
+      Expenses:%^{Account}  %^{Amount}
+    ")             
+            ("b" "Book" entry
+             (file+datetree "~/personal/books.org" "Inbox")
+             "* %^{Title}  %^g
+    %i
+    ,*Author(s):* %^{Author} \\\\
+    ,*ISBN:* %^{ISBN}
 
-  %?
+    %?
 
-  ,*Review on:* %^t \\
-  %a
-  %U"
-           :clock-in :clock-resume)
-           ("c" "Contact" entry (file "~/personal/contacts.org")
-            "* %(org-contacts-template-name)
-  :PROPERTIES:
-  :EMAIL: %(org-contacts-template-email)
-  :END:")
-           ("n" "Daily note" table-line (file+olp "~/personal/organizer.org" "Daily notes")
-            "| %u | %^{Note} |"
-            :immediate-finish)
-           ("r" "Notes" entry
-            (file+datetree "~/personal/organizer.org")
-            "* %?\n\n%i\n"
-            )))
-  (bind-key "C-M-r" 'org-capture)
+    ,*Review on:* %^t \\
+    %a
+    %U"
+             :clock-in :clock-resume)
+             ("c" "Contact" entry (file "~/personal/contacts.org")
+              "* %(org-contacts-template-name)
+    :PROPERTIES:
+    :EMAIL: %(org-contacts-template-email)
+    :END:")
+             ("n" "Daily note" table-line (file+olp "~/personal/organizer.org" "Daily notes")
+              "| %u | %^{Note} |"
+              :immediate-finish)
+             ("r" "Notes" entry
+              (file+datetree "~/personal/organizer.org")
+              "* %?\n\n%i\n"
+              )))
+    (bind-key "C-M-r" 'org-capture)
 #+end_src
 ***** Allow refiling in the middle(ish) of a capture
 
@@ -2140,7 +2166,12 @@ This makes it easier to publish my files:
              :base-directory "~/.emacs.d"
              :publishing-directory "~/.emacs.d"
              :publishing-function sacha/org-html-publish-to-html-trustingly
-             )))
+             )
+            ("book-notes"
+             :base-directory "c:/sacha/Dropbox/books"
+             :publishing-directory "c:/sacha/Dropbox/books/html"
+             :publishing-function sacha/org-html-publish-to-html-trustingly
+             :makeindex t)))
 (load "~/code/dev/emacs-chats/build-site.el" t)
 (load "~/code/dev/emacs-notes/build-site.el" t)
 #+end_src
@@ -2432,6 +2463,29 @@ With prefix argument, also display headlines without a TODO keyword."
 #+end_quote
 
 ** Coding
+*** Web development
+#+begin_src emacs-lisp
+  ;; from FAQ at http://web-mode.org/ for smartparens
+  (defun sacha/web-mode-hook ()
+    (setq web-mode-enable-auto-pairing nil))
+
+  (defun sacha/sp-web-mode-is-code-context (id action context)
+    (when (and (eq action 'insert)
+               (not (or (get-text-property (point) 'part-side)
+                        (get-text-property (point) 'block-side))))
+      t))
+
+  (use-package web-mode
+    :init
+    (setq web-mode-enable-current-element-highlight t)
+    :config
+    (progn
+      (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+      (setq web-mode-ac-sources-alist
+            '(("css" . (ac-source-css-property))
+              ("html" . (ac-source-words-in-buffer ac-source-abbrev)))
+            )))
+#+end_src
 *** Tab width of 2 is compact and readable
 #+begin_src emacs-lisp
     (setq-default tab-width 2)
@@ -2686,6 +2740,7 @@ The proper way to implement this is probably to patch or override the
 definition of magit-git-insert-section so that it takes a list of
 options to add at the end of the command, but that can wait for another time (or braver souls). 
 
+**** TODO Make this better by adding a post command options variable
 *** Tag files
 
     I don't often use a TAGS file, but when I do, I don't want to have
@@ -2784,6 +2839,14 @@ with HTTPS sites.
   :config (skewer-setup))
 #+end_src
 
+*** Autocomplete
+
+#+begin_src emacs-lisp
+(use-package company
+  :config
+  (global-company-mode))
+#+end_src
+
 ** Ledger (personal finance): Make it easier to review my credit card transactions
 
 #+begin_src emacs-lisp
@@ -2866,36 +2929,49 @@ with HTTPS sites.
     (call-interactively 'sacha/org-quantified-track))
   (bind-key "!" 'sacha/org-clock-in-and-track org-agenda-mode-map)
 
+  (defmacro sacha/with-org-task (&rest body)
+    "Run BODY within the current agenda task, clocked task, or cursor task."
+    `(cond
+      ((derived-mode-p 'org-agenda-mode)
+       (let* ((marker (org-get-at-bol 'org-marker))
+              (buffer (marker-buffer marker))
+              (pos (marker-position marker)))
+         (with-current-buffer buffer
+           (save-excursion
+             (save-restriction
+               (widen)
+               (goto-char pos)
+               ,@body)))))
+      ((and (derived-mode-p 'org-mode) (org-at-heading-p)) (save-excursion ,@body))
+      ((org-clocking-p) (save-excursion (org-clock-goto) ,@body))
+      ((derived-mode-p 'org-mode) ,@body)))
+
   (defun sacha/org-quantified-track (&optional category note)
     "Create a tracking record using CATEGORY and NOTE.
   Default to the current task in the agenda, the currently-clocked
   entry, or the current subtree in Org."
     (interactive (list nil nil))
-    (let ((get-info 
-           (lambda ()
-             (setq category (or category
-                                (org-entry-get-with-inheritance "QUANTIFIED")))
-             (unless category
-               (setq category (read-string "Category: "))
-               (org-set-property "QUANTIFIED" category))
-             (setq note (or note (elt (org-heading-components) 4))))))
-      (unless (and category note)
-        (cond
-         ((derived-mode-p 'org-agenda-mode)
-          (let* ((marker (org-get-at-bol 'org-marker))
-                 (buffer (marker-buffer marker))
-                 (pos (marker-position marker)))
-            (with-current-buffer buffer
-              (save-excursion
-                (save-restriction
-                  (widen)
-                  (goto-char pos)
-                  (funcall get-info))))))
-         ((org-clocking-p)(save-excursion (org-clock-goto) (funcall get-info)))
-         ((derived-mode-p 'org-mode) (funcall get-info)))
-        (setq note (or note (read-string "Note: "))))
-      (quantified-track (concat category " | " note))))
+    (unless (and category note)
+      (sacha/with-org-task
+       (setq category (or category
+                          (org-entry-get-with-inheritance "QUANTIFIED")))
+       (unless category
+         (setq category (read-string "Category: "))
+         (org-set-property "QUANTIFIED" category))
+       (setq note (or note (elt (org-heading-components) 4) (read-string "Note: ")))))
+    (quantified-track (concat category " | " note)))
     
+  (defun sacha/org-quick-clock-in-task (location jump)
+    "Track and clock in on the specified task.
+  If JUMP is non-nil or the function is called with the prefix argument, jump to that location afterwards."
+    (interactive (list (save-excursion (org-refile-get-location "Location")) current-prefix-arg))
+    (when location
+      (if jump
+          (progn (org-refile 4 nil location) (sacha/org-clock-in-and-track))
+        (save-window-excursion
+          (org-refile 4 nil location)
+          (sacha/org-clock-in-and-track)))))
+  (bind-key "C-c q" 'sacha/org-quick-clock-in-task)
 
   (use-package quantified)
 #+end_src
@@ -3133,7 +3209,9 @@ Ace Window looks useful too.
 
 #+begin_src emacs-lisp
 (use-package ace-window
-  :bind ("M-s a w" . ace-window))
+  :config 
+  (setq aw-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s))
+  :bind ("C-x o" . ace-window))
 #+end_src
 
 *** Network: TRAMP and editing files over SSH
@@ -3180,83 +3258,84 @@ and return the directory.  Return nil if not found.
   (sacha/package-install 'smartparens)
   (use-package smartparens
     :init 
-    (when (eq system-type 'w32)
+    (progn
       (require 'smartparens-config)
       (add-hook 'emacs-lisp-mode-hook 'smartparens-mode)
       (add-hook 'emacs-lisp-mode-hook 'show-smartparens-mode)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;
       ;; keybinding management
-  
+
+      (define-key sp-keymap (kbd "C-c s r n") 'sp-narrow-to-sexp)
       (define-key sp-keymap (kbd "C-M-f") 'sp-forward-sexp)
       (define-key sp-keymap (kbd "C-M-b") 'sp-backward-sexp)
-  
       (define-key sp-keymap (kbd "C-M-d") 'sp-down-sexp)
       (define-key sp-keymap (kbd "C-M-a") 'sp-backward-down-sexp)
       (define-key sp-keymap (kbd "C-S-a") 'sp-beginning-of-sexp)
       (define-key sp-keymap (kbd "C-S-d") 'sp-end-of-sexp)
-  
+
       (define-key sp-keymap (kbd "C-M-e") 'sp-up-sexp)
       (define-key emacs-lisp-mode-map (kbd ")") 'sp-up-sexp)
       (define-key sp-keymap (kbd "C-M-u") 'sp-backward-up-sexp)
       (define-key sp-keymap (kbd "C-M-t") 'sp-transpose-sexp)
-  
+
       (define-key sp-keymap (kbd "C-M-n") 'sp-next-sexp)
       (define-key sp-keymap (kbd "C-M-p") 'sp-previous-sexp)
-  
+
       (define-key sp-keymap (kbd "C-M-k") 'sp-kill-sexp)
       (define-key sp-keymap (kbd "C-M-w") 'sp-copy-sexp)
-  
+
       (define-key sp-keymap (kbd "M-<delete>") 'sp-unwrap-sexp)
       (define-key sp-keymap (kbd "M-<backspace>") 'sp-backward-unwrap-sexp)
-  
+
       (define-key sp-keymap (kbd "C-<right>") 'sp-forward-slurp-sexp)
       (define-key sp-keymap (kbd "C-<left>") 'sp-forward-barf-sexp)
       (define-key sp-keymap (kbd "C-M-<left>") 'sp-backward-slurp-sexp)
       (define-key sp-keymap (kbd "C-M-<right>") 'sp-backward-barf-sexp)
-  
+
       (define-key sp-keymap (kbd "M-D") 'sp-splice-sexp)
       (define-key sp-keymap (kbd "C-M-<delete>") 'sp-splice-sexp-killing-forward)
       (define-key sp-keymap (kbd "C-M-<backspace>") 'sp-splice-sexp-killing-backward)
       (define-key sp-keymap (kbd "C-S-<backspace>") 'sp-splice-sexp-killing-around)
-  
+
       (define-key sp-keymap (kbd "C-]") 'sp-select-next-thing-exchange)
       (define-key sp-keymap (kbd "C-<left_bracket>") 'sp-select-previous-thing)
       (define-key sp-keymap (kbd "C-M-]") 'sp-select-next-thing)
-  
+
       (define-key sp-keymap (kbd "M-F") 'sp-forward-symbol)
       (define-key sp-keymap (kbd "M-B") 'sp-backward-symbol)
-  
-      (define-key sp-keymap (kbd "H-t") 'sp-prefix-tag-object)
-      (define-key sp-keymap (kbd "H-p") 'sp-prefix-pair-object)
-      (define-key sp-keymap (kbd "H-s c") 'sp-convolute-sexp)
-      (define-key sp-keymap (kbd "H-s a") 'sp-absorb-sexp)
-      (define-key sp-keymap (kbd "H-s e") 'sp-emit-sexp)
-      (define-key sp-keymap (kbd "H-s p") 'sp-add-to-previous-sexp)
-      (define-key sp-keymap (kbd "H-s n") 'sp-add-to-next-sexp)
-      (define-key sp-keymap (kbd "H-s j") 'sp-join-sexp)
-      (define-key sp-keymap (kbd "H-s s") 'sp-split-sexp)
-  
+
+      (define-key sp-keymap (kbd "C-c s t") 'sp-prefix-tag-object)
+      (define-key sp-keymap (kbd "C-c s p") 'sp-prefix-pair-object)
+      (define-key sp-keymap (kbd "C-c s c") 'sp-convolute-sexp)
+      (define-key sp-keymap (kbd "C-c s a") 'sp-absorb-sexp)
+      (define-key sp-keymap (kbd "C-c s e") 'sp-emit-sexp)
+      (define-key sp-keymap (kbd "C-c s p") 'sp-add-to-previous-sexp)
+      (define-key sp-keymap (kbd "C-c s n") 'sp-add-to-next-sexp)
+      (define-key sp-keymap (kbd "C-c s j") 'sp-join-sexp)
+      (define-key sp-keymap (kbd "C-c s s") 'sp-split-sexp)
+
   ;;;;;;;;;;;;;;;;;;
       ;; pair management
-  
+
       (sp-local-pair 'minibuffer-inactive-mode "'" nil :actions nil)
-  
+      (sp-local-pair 'web-mode "<" nil :when '(sacha/sp-web-mode-is-code-context))
+
   ;;; markdown-mode
       (sp-with-modes '(markdown-mode gfm-mode rst-mode)
         (sp-local-pair "*" "*" :bind "C-*")
         (sp-local-tag "2" "**" "**")
         (sp-local-tag "s" "```scheme" "```")
         (sp-local-tag "<"  "<_>" "</_>" :transform 'sp-match-sgml-tags))
-  
+
   ;;; tex-mode latex-mode
       (sp-with-modes '(tex-mode plain-tex-mode latex-mode)
         (sp-local-tag "i" "1d5f8e69396c521f645375107197ea4dfbc7b792quot;<" "1d5f8e69396c521f645375107197ea4dfbc7b792quot;>"))
-  
+
   ;;; html-mode
-      (sp-with-modes '(html-mode sgml-mode)
+      (sp-with-modes '(html-mode sgml-mode web-mode)
         (sp-local-pair "<" ">"))
-  
+
   ;;; lisp modes
       (sp-with-modes sp--lisp-modes
         (sp-local-pair "(" nil :bind "C-("))))

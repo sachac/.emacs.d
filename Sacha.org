@@ -978,7 +978,7 @@ This quickly adds a same-level heading for the succeeding day.
              ,sacha/org-basic-task-template)
             ("j" "Journal entry" plain
              (file+datetree+prompt "~/personal/journal.org")
-  "%i")
+             "%K - %a\n%i\n%?\n")
             ("db" "Done - Business" entry
              (file+headline "~/personal/business.org" "Tasks")
              "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
@@ -3529,7 +3529,7 @@ Handy for collecting items together.
   (beginning-of-line)
   (let ((kill-whole-line t))
     (save-excursion
-      (kill-liune 1)
+      (kill-line 1)
       (org-end-of-item-list)
       (yank))))
 #+end_src

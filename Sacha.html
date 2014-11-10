@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-11-07 Fri 08:43 -->
+<!-- 2014-11-10 Mon 15:09 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -1816,85 +1816,85 @@ entries, notes, and other semi-structured pieces of information.
 </p>
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">  (<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/org-basic-task-template</span> <span class="org-string">"* TODO %^{Task}    </span>
-<span class="org-string">  SCHEDULED: %^t</span>
-<span class="org-string">  %?</span>
-<span class="org-string">  :PROPERTIES:</span>
-<span class="org-string">  :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}</span>
-<span class="org-string">  :END:"</span> <span class="org-doc">"Basic task data"</span>)
-  (setq org-capture-templates
-        `((<span class="org-string">"t"</span> <span class="org-string">"Tasks"</span> entry 
-           (file+headline <span class="org-string">"~/personal/organizer.org"</span> <span class="org-string">"Tasks"</span>)
-           ,sacha/org-basic-task-template)
-          (<span class="org-string">"e"</span> <span class="org-string">"Emacs idea"</span> entry
-           (file+headline <span class="org-string">"~/code/dev/emacs-notes/tasks.org"</span> <span class="org-string">"Emacs"</span>)
-           <span class="org-string">"* TODO %^{Task}"</span>
-           <span class="org-builtin">:immediate-finish</span>)
-          (<span class="org-string">"b"</span> <span class="org-string">"Business task"</span> entry
-           (file+headline <span class="org-string">"~/personal/business.org"</span> <span class="org-string">"Tasks"</span>)
-           ,sacha/org-basic-task-template)
-          (<span class="org-string">"p"</span> <span class="org-string">"People task"</span> entry
-           (file+headline <span class="org-string">"~/personal/people.org"</span> <span class="org-string">"Tasks"</span>)
-           ,sacha/org-basic-task-template)
-          (<span class="org-string">"j"</span> <span class="org-string">"Journal entry"</span> plain
-           (file+datetree+prompt <span class="org-string">"~/personal/journal.org"</span>)
-<span class="org-string">"%i"</span>)
-          (<span class="org-string">"db"</span> <span class="org-string">"Done - Business"</span> entry
-           (file+headline <span class="org-string">"~/personal/business.org"</span> <span class="org-string">"Tasks"</span>)
-           <span class="org-string">"* DONE %^{Task}\nSCHEDULED: %^t\n%?"</span>)
-          (<span class="org-string">"dp"</span> <span class="org-string">"Done - People"</span> entry
-           (file+headline <span class="org-string">"~/personal/people.org"</span> <span class="org-string">"Tasks"</span>)
-           <span class="org-string">"* DONE %^{Task}\nSCHEDULED: %^t\n%?"</span>)
-          (<span class="org-string">"dt"</span> <span class="org-string">"Done - Task"</span> entry
-           (file+headline <span class="org-string">"~/personal/organizer.org"</span> <span class="org-string">"Tasks"</span>)
-           <span class="org-string">"* DONE %^{Task}\nSCHEDULED: %^t\n%?"</span>)
-          (<span class="org-string">"q"</span> <span class="org-string">"Quick note"</span> item
-           (file+headline <span class="org-string">"~/personal/organizer.org"</span> <span class="org-string">"Quick notes"</span>))
-          (<span class="org-string">"l"</span> <span class="org-string">"Ledger entries"</span>)
-          (<span class="org-string">"lm"</span> <span class="org-string">"MBNA"</span> plain
-           (file <span class="org-string">"~/personal/ledger"</span>)
-           <span class="org-string">"%(org-read-date) %^{Payee}</span>
-<span class="org-string">    Liabilities:MBNA  </span>
-<span class="org-string">    Expenses:%^{Account}  $%^{Amount}</span>
-<span class="org-string">  "</span> <span class="org-builtin">:immediate-finish</span>)
-          (<span class="org-string">"ln"</span> <span class="org-string">"No Frills"</span> plain
-           (file <span class="org-string">"~/personal/ledger"</span>)
-           <span class="org-string">"%(let ((org-read-date-prefer-future nil)) (org-read-date)) * No Frills</span>
-<span class="org-string">    Liabilities:MBNA  </span>
-<span class="org-string">    Assets:Wayne:Groceries  $%^{Amount}</span>
-<span class="org-string">  "</span> <span class="org-builtin">:immediate-finish</span>)    
-          (<span class="org-string">"lc"</span> <span class="org-string">"Cash"</span> plain
-           (file <span class="org-string">"~/personal/ledger"</span>)
-           <span class="org-string">"%(org-read-date) * %^{Payee}</span>
-<span class="org-string">    Expenses:Cash </span>
-<span class="org-string">    Expenses:%^{Account}  %^{Amount}</span>
-<span class="org-string">  "</span>)             
-          (<span class="org-string">"b"</span> <span class="org-string">"Book"</span> entry
-           (file+datetree <span class="org-string">"~/personal/books.org"</span> <span class="org-string">"Inbox"</span>)
-           <span class="org-string">"* %^{Title}  %^g</span>
-<span class="org-string">  %i</span>
-<span class="org-string">  *Author(s):* %^{Author} \\\\</span>
-<span class="org-string">  *ISBN:* %^{ISBN}</span>
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/org-basic-task-template</span> <span class="org-string">"* TODO %^{Task}    </span>
+<span class="org-string">SCHEDULED: %^t</span>
+<span class="org-string">%?</span>
+<span class="org-string">:PROPERTIES:</span>
+<span class="org-string">:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}</span>
+<span class="org-string">:END:"</span> <span class="org-doc">"Basic task data"</span>)
+(setq org-capture-templates
+      `((<span class="org-string">"t"</span> <span class="org-string">"Tasks"</span> entry 
+         (file+headline <span class="org-string">"~/personal/organizer.org"</span> <span class="org-string">"Tasks"</span>)
+         ,sacha/org-basic-task-template)
+        (<span class="org-string">"e"</span> <span class="org-string">"Emacs idea"</span> entry
+         (file+headline <span class="org-string">"~/code/dev/emacs-notes/tasks.org"</span> <span class="org-string">"Emacs"</span>)
+         <span class="org-string">"* TODO %^{Task}"</span>
+         <span class="org-builtin">:immediate-finish</span>)
+        (<span class="org-string">"b"</span> <span class="org-string">"Business task"</span> entry
+         (file+headline <span class="org-string">"~/personal/business.org"</span> <span class="org-string">"Tasks"</span>)
+         ,sacha/org-basic-task-template)
+        (<span class="org-string">"p"</span> <span class="org-string">"People task"</span> entry
+         (file+headline <span class="org-string">"~/personal/people.org"</span> <span class="org-string">"Tasks"</span>)
+         ,sacha/org-basic-task-template)
+        (<span class="org-string">"j"</span> <span class="org-string">"Journal entry"</span> plain
+         (file+datetree+prompt <span class="org-string">"~/personal/journal.org"</span>)
+         <span class="org-string">"%K - %a\n%i\n%?\n"</span>)
+        (<span class="org-string">"db"</span> <span class="org-string">"Done - Business"</span> entry
+         (file+headline <span class="org-string">"~/personal/business.org"</span> <span class="org-string">"Tasks"</span>)
+         <span class="org-string">"* DONE %^{Task}\nSCHEDULED: %^t\n%?"</span>)
+        (<span class="org-string">"dp"</span> <span class="org-string">"Done - People"</span> entry
+         (file+headline <span class="org-string">"~/personal/people.org"</span> <span class="org-string">"Tasks"</span>)
+         <span class="org-string">"* DONE %^{Task}\nSCHEDULED: %^t\n%?"</span>)
+        (<span class="org-string">"dt"</span> <span class="org-string">"Done - Task"</span> entry
+         (file+headline <span class="org-string">"~/personal/organizer.org"</span> <span class="org-string">"Tasks"</span>)
+         <span class="org-string">"* DONE %^{Task}\nSCHEDULED: %^t\n%?"</span>)
+        (<span class="org-string">"q"</span> <span class="org-string">"Quick note"</span> item
+         (file+headline <span class="org-string">"~/personal/organizer.org"</span> <span class="org-string">"Quick notes"</span>))
+        (<span class="org-string">"l"</span> <span class="org-string">"Ledger entries"</span>)
+        (<span class="org-string">"lm"</span> <span class="org-string">"MBNA"</span> plain
+         (file <span class="org-string">"~/personal/ledger"</span>)
+         <span class="org-string">"%(org-read-date) %^{Payee}</span>
+<span class="org-string">  Liabilities:MBNA  </span>
+<span class="org-string">  Expenses:%^{Account}  $%^{Amount}</span>
+<span class="org-string">"</span> <span class="org-builtin">:immediate-finish</span>)
+        (<span class="org-string">"ln"</span> <span class="org-string">"No Frills"</span> plain
+         (file <span class="org-string">"~/personal/ledger"</span>)
+         <span class="org-string">"%(let ((org-read-date-prefer-future nil)) (org-read-date)) * No Frills</span>
+<span class="org-string">  Liabilities:MBNA  </span>
+<span class="org-string">  Assets:Wayne:Groceries  $%^{Amount}</span>
+<span class="org-string">"</span> <span class="org-builtin">:immediate-finish</span>)    
+        (<span class="org-string">"lc"</span> <span class="org-string">"Cash"</span> plain
+         (file <span class="org-string">"~/personal/ledger"</span>)
+         <span class="org-string">"%(org-read-date) * %^{Payee}</span>
+<span class="org-string">  Expenses:Cash </span>
+<span class="org-string">  Expenses:%^{Account}  %^{Amount}</span>
+<span class="org-string">"</span>)             
+        (<span class="org-string">"b"</span> <span class="org-string">"Book"</span> entry
+         (file+datetree <span class="org-string">"~/personal/books.org"</span> <span class="org-string">"Inbox"</span>)
+         <span class="org-string">"* %^{Title}  %^g</span>
+<span class="org-string">%i</span>
+<span class="org-string">*Author(s):* %^{Author} \\\\</span>
+<span class="org-string">*ISBN:* %^{ISBN}</span>
 
-<span class="org-string">  %?</span>
+<span class="org-string">%?</span>
 
-<span class="org-string">  *Review on:* %^t \\</span>
-<span class="org-string">  %a</span>
-<span class="org-string">  %U"</span>
-           <span class="org-builtin">:clock-in</span> <span class="org-builtin">:clock-resume</span>)
-           (<span class="org-string">"c"</span> <span class="org-string">"Contact"</span> entry (file <span class="org-string">"~/personal/contacts.org"</span>)
-            <span class="org-string">"* %(org-contacts-template-name)</span>
-<span class="org-string">  :PROPERTIES:</span>
-<span class="org-string">  :EMAIL: %(org-contacts-template-email)</span>
-<span class="org-string">  :END:"</span>)
-           (<span class="org-string">"n"</span> <span class="org-string">"Daily note"</span> table-line (file+olp <span class="org-string">"~/personal/organizer.org"</span> <span class="org-string">"Daily notes"</span>)
-            <span class="org-string">"| %u | %^{Note} |"</span>
-            <span class="org-builtin">:immediate-finish</span>)
-           (<span class="org-string">"r"</span> <span class="org-string">"Notes"</span> entry
-            (file+datetree <span class="org-string">"~/personal/organizer.org"</span>)
-            <span class="org-string">"* %?\n\n%i\n"</span>
-            )))
-  (bind-key <span class="org-string">"C-M-r"</span> 'org-capture)
+<span class="org-string">*Review on:* %^t \\</span>
+<span class="org-string">%a</span>
+<span class="org-string">%U"</span>
+         <span class="org-builtin">:clock-in</span> <span class="org-builtin">:clock-resume</span>)
+         (<span class="org-string">"c"</span> <span class="org-string">"Contact"</span> entry (file <span class="org-string">"~/personal/contacts.org"</span>)
+          <span class="org-string">"* %(org-contacts-template-name)</span>
+<span class="org-string">:PROPERTIES:</span>
+<span class="org-string">:EMAIL: %(org-contacts-template-email)</span>
+<span class="org-string">:END:"</span>)
+         (<span class="org-string">"n"</span> <span class="org-string">"Daily note"</span> table-line (file+olp <span class="org-string">"~/personal/organizer.org"</span> <span class="org-string">"Daily notes"</span>)
+          <span class="org-string">"| %u | %^{Note} |"</span>
+          <span class="org-builtin">:immediate-finish</span>)
+         (<span class="org-string">"r"</span> <span class="org-string">"Notes"</span> entry
+          (file+datetree <span class="org-string">"~/personal/organizer.org"</span>)
+          <span class="org-string">"* %?\n\n%i\n"</span>
+          )))
+(bind-key <span class="org-string">"C-M-r"</span> 'org-capture)
 </pre>
 </div>
 </div>
@@ -5138,7 +5138,7 @@ Handy for collecting items together.
   (beginning-of-line)
   (<span class="org-keyword">let</span> ((kill-whole-line t))
     (<span class="org-keyword">save-excursion</span>
-      (kill-liune 1)
+      (kill-line 1)
       (org-end-of-item-list)
       (yank))))
 </pre>

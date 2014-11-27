@@ -29,10 +29,8 @@ To be precise, this is what's in the first part of my =~/.emacs.d/init.el= (what
 ;; Load the rest of the packages
 (package-initialize t)
 (setq package-enable-at-startup nil)
-(load-file "~/.emacs.d/Sacha.el")
+(org-babel-load-file "~/.emacs.d/Sacha.org")
 #+end_src
-
-Whenever I change this file significantly, I can use =M-x org-babel-tangle= to export the code blocks to =Sacha.el=. Normally =org-babel-load-file= would take care of either loading the =.el= or exporting it from the =.org= depending on the file ages, but weird stuff seems to be happening on Microsoft Windows, so oh well.
 
 If you're new to Emacs Lisp, you probably don't want to copy and paste
 large chunks of this code. Instead, copy small parts of it (always
@@ -173,6 +171,7 @@ possible, although I prefer ido's way of switching buffers.
 #+begin_src emacs-lisp
     (use-package helm
       :ensure helm
+      :diminish helm-mode
       :init
       (progn 
         (require 'helm-config) 
@@ -244,19 +243,6 @@ Display a more compact mode line
      mode-line-modes
      mode-line-misc-info
      mode-line-end-spaces))))
-#+end_src
-
-Hide minor modes I care less about:
-
-#+begin_src emacs-lisp
-(require 'diminish)
-(eval-after-load "yasnippet" '(diminish 'yas-minor-mode))
-(eval-after-load "undo-tree" '(diminish 'undo-tree-mode))
-(eval-after-load "guide-key" '(diminish 'guide-key-mode))
-(eval-after-load "smartparens" '(diminish 'smartparens-mode))
-(eval-after-load "guide-key" '(diminish 'guide-key-mode))
-(eval-after-load "eldoc" '(diminish 'eldoc-mode))
-(diminish 'visual-line-mode)
 #+end_src
 
 *** Change "yes or no" to "y or n"
@@ -338,6 +324,8 @@ This lets you use =C-x u= (=undo-tree-visualize=) to visually walk through the c
 
 #+begin_src emacs-lisp
   (use-package undo-tree
+    :ensure undo-tree
+    :diminish undo-tree-mode
     :init
     (progn
       (global-undo-tree-mode)
@@ -351,9 +339,11 @@ It's hard to remember keyboard shortcuts. The =guide-key= package pops up help a
 
 #+begin_src emacs-lisp
 (use-package guide-key
+  :diminish guide-key-mode
   :init
+  (progn
   (setq guide-key/guide-key-sequence '("C-x r" "C-x 4" "C-c"))
-  (guide-key-mode 1))  ; Enable guide-key-mode
+  (guide-key-mode 1)))  ; Enable guide-key-mode
 #+end_src
 
 *** UTF-8
@@ -813,7 +803,8 @@ currently experimenting with.
                       org-panel
                       org-screen
                       org-toc))
-(org-load-modules-maybe t)
+(eval-after-load 'org
+ '(org-load-modules-maybe t))
 (setq org-expiry-inactive-timestamps t)
 #+end_src
 
@@ -1146,14 +1137,7 @@ That way, it's easy to see short tasks that I can finish.
 **** Track time
 
 #+begin_src emacs-lisp
-  (setq org-clock-idle-time nil)
-  (setq org-log-done 'time)
-  (setq org-clock-persist t)
-  (eval-after-load 'org 
-   '(org-clock-persistence-insinuate))
-  (setq org-clock-report-include-clocking-task t)
-  (eval-after-load 'org
-  '(defadvice org-clock-in (after sacha activate)
+  (defun sacha/org-clock-in-set-state-to-started ()
     "Mark STARTED when clocked in."
     (save-excursion
       (catch 'exit
@@ -1173,7 +1157,18 @@ That way, it's easy to see short tasks that I can finish.
                 (if (org-get-todo-state)
                     (org-todo "STARTED"))))))
          (t (if (org-get-todo-state)
-                    (org-todo "STARTED"))))))))
+                    (org-todo "STARTED")))))))
+  (use-package org
+   :init
+   (progn
+    (setq org-clock-idle-time nil)
+    (setq org-log-done 'time)
+    (setq org-clock-persist t)
+    (setq org-clock-report-include-clocking-task t))
+   :config 
+   (progn 
+    (org-clock-persistence-insinuate)
+    (add-hook 'org-clock-in-hook 'sacha/org-clock-in-set-state-to-started)))
 #+end_src
      
 Too many clock entries clutter up a heading.
@@ -1225,7 +1220,8 @@ decide what I feel like doing the most.
 
 #+begin_src emacs-lisp
   (defvar sacha/org-agenda-limit-items nil "Number of items to show in agenda to-do views; nil if unlimited.")
-  (defadvice org-agenda-finalize-entries (around sacha activate)
+  (eval-after-load 'org
+  '(defadvice org-agenda-finalize-entries (around sacha activate)
     (if sacha/org-agenda-limit-items
         (progn
           (setq list (mapcar 'org-agenda-highlight-todo list))
@@ -1241,7 +1237,7 @@ decide what I feel like doing the most.
                                   0
                                   sacha/org-agenda-limit-items))
                            "\n")))
-      ad-do-it))
+      ad-do-it)))
 #+end_src
 
 *** Flexible scheduling of tasks
@@ -2394,13 +2390,16 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
 #+begin_src emacs-lisp
   (setq org-ditaa-jar-path "C:/Sacha/Dropbox/bin/ditaa.jar")
   (setq org-startup-with-inline-images t)
+  (use-package org
+   :config
+   (progn
   (add-hook 'org-babel-after-execute-hook 'org-display-inline-images)
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((dot . t)
      (ditaa . t) 
      (R . t)))
-  (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))
+  (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))))
 #+end_src
 *** Presentations
 #+begin_src emacs-lisp
@@ -2523,10 +2522,14 @@ arguments and return values for each expression it evaluates.
 **** Eldoc
 Eldoc provides minibuffer hints when working with Emacs Lisp.
 #+begin_src emacs-lisp
-    (autoload 'turn-on-eldoc-mode "eldoc" nil t)
-    (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
-    (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
-    (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode)
+(use-package "eldoc"
+  :diminish eldoc-mode
+  :commands turn-on-eldoc-mode
+  :init
+  (progn
+  (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
+  (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
+  (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode)))
 #+end_src
 **** Refactoring  :drill:
      SCHEDULED: <2013-03-03 Sun>
@@ -2572,12 +2575,13 @@ More things that I need to get used to...
 *** Snippets
     #+begin_src emacs-lisp
       (use-package yasnippet
-        :ensure yasnippet
+        :diminish yas-minor-mode
+        :commands yas-global-mode
         :init
         (progn
-          (yas/initialize)
-          (yas/load-directory "~/elisp/snippets")
-          (setq yas/key-syntaxes '("w_" "w_." "^ "))))
+          (yas-global-mode 1)
+          (yas-load-directory "~/elisp/snippets")
+          (setq yas-key-syntaxes '("w_" "w_." "^ "))))
       ;;        (global-set-key (kbd "C-c y") (lambda () (interactive)
       ;;                                         (yas/load-directory "~/elisp/snippets")))
 #+end_src
@@ -2763,6 +2767,7 @@ options to add at the end of the command, but that can wait for another time (or
 #+begin_src emacs-lisp
 (use-package projectile
   :ensure projectile
+  :diminish projectile-mode
   :init 
   (progn
     (setq projectile-keymap-prefix (kbd "C-c p")) 
@@ -3210,6 +3215,7 @@ cool. On Windows, these things help a little.
 #+begin_src emacs-lisp
   (use-package smartparens
     :ensure smartparens
+    :diminish smartparens
     :config
     (progn
       (require 'smartparens-config)
@@ -3369,8 +3375,7 @@ cool. On Windows, these things help a little.
 
 ** Startup
    #+begin_src emacs-lisp
-     (find-file "~/personal/organizer.org")
-     (org-agenda nil "a")
+     (add-hook 'after-init-hook (lambda () (org-agenda nil "a")))
 	 #+end_src
 ** Japanese
 

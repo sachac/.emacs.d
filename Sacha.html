@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-10-31 Fri 22:39 -->
+<!-- 2014-11-10 Mon 15:09 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -218,9 +218,10 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-8-5">Link Org subtrees and navigate between them</a></li>
 <li><a href="#sec-1-8-6">Taking notes</a>
 <ul>
-<li><a href="#sec-1-8-6-1">Templates</a></li>
-<li><a href="#sec-1-8-6-2">Refiling</a></li>
-<li><a href="#sec-1-8-6-3">Estimating WPM</a></li>
+<li><a href="#sec-1-8-6-1">Date trees</a></li>
+<li><a href="#sec-1-8-6-2">Templates</a></li>
+<li><a href="#sec-1-8-6-3">Refiling</a></li>
+<li><a href="#sec-1-8-6-4">Estimating WPM</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-8-7">Managing tasks</a>
@@ -285,28 +286,34 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#sec-1-9">Coding</a>
 <ul>
-<li><a href="#sec-1-9-1">Tab width of 2 is compact and readable</a></li>
-<li><a href="#sec-1-9-2">New lines are always indented</a></li>
-<li><a href="#sec-1-9-3">Adapt to being on Windows</a></li>
-<li><a href="#sec-1-9-4">Expand region</a></li>
-<li><a href="#sec-1-9-5">Emacs Lisp</a>
+<li><a href="#sec-1-9-1">Web development</a></li>
+<li><a href="#sec-1-9-2">Tab width of 2 is compact and readable</a></li>
+<li><a href="#sec-1-9-3">New lines are always indented</a></li>
+<li><a href="#sec-1-9-4">Adapt to being on Windows</a></li>
+<li><a href="#sec-1-9-5">Expand region</a></li>
+<li><a href="#sec-1-9-6">Emacs Lisp</a>
 <ul>
-<li><a href="#sec-1-9-5-1">Edebug</a></li>
-<li><a href="#sec-1-9-5-2">Eldoc</a></li>
-<li><a href="#sec-1-9-5-3">Refactoring</a></li>
-<li><a href="#sec-1-9-5-4">Jumping to code</a></li>
+<li><a href="#sec-1-9-6-1">Edebug</a></li>
+<li><a href="#sec-1-9-6-2">Eldoc</a></li>
+<li><a href="#sec-1-9-6-3">Refactoring</a></li>
+<li><a href="#sec-1-9-6-4">Jumping to code</a></li>
 </ul>
 </li>
-<li><a href="#sec-1-9-6">Snippets</a></li>
-<li><a href="#sec-1-9-7">Show column number</a></li>
-<li><a href="#sec-1-9-8">Don't show whitespace in diff, but show context</a></li>
-<li><a href="#sec-1-9-9">Javascript</a></li>
-<li><a href="#sec-1-9-10">Magit - nice git interface</a></li>
-<li><a href="#sec-1-9-11">Tag files</a></li>
-<li><a href="#sec-1-9-12">Projects</a></li>
-<li><a href="#sec-1-9-13">Exploring MELPA recipes</a></li>
-<li><a href="#sec-1-9-14">Ruby</a></li>
-<li><a href="#sec-1-9-15">Skewer</a></li>
+<li><a href="#sec-1-9-7">Snippets</a></li>
+<li><a href="#sec-1-9-8">Show column number</a></li>
+<li><a href="#sec-1-9-9">Don't show whitespace in diff, but show context</a></li>
+<li><a href="#sec-1-9-10">Javascript</a></li>
+<li><a href="#sec-1-9-11">Magit - nice git interface</a>
+<ul>
+<li><a href="#sec-1-9-11-1"><span class="todo TODO">TODO</span> Make this better by adding a post command options variable</a></li>
+</ul>
+</li>
+<li><a href="#sec-1-9-12">Tag files</a></li>
+<li><a href="#sec-1-9-13">Projects</a></li>
+<li><a href="#sec-1-9-14">Exploring MELPA recipes</a></li>
+<li><a href="#sec-1-9-15">Ruby</a></li>
+<li><a href="#sec-1-9-16">Skewer</a></li>
+<li><a href="#sec-1-9-17">Autocomplete</a></li>
 </ul>
 </li>
 <li><a href="#sec-1-10">Ledger (personal finance): Make it easier to review my credit card transactions</a></li>
@@ -1090,7 +1097,7 @@ This lets me search up and down. I don't use this often, though.
 <p>
 Registers allow you to jump to a file or other location quickly. To
 jump to a register, use <code>C-x r j</code> followed by the letter of the
-register.
+register. Using registers for all these file shortcuts is probably a bit of a waste since I can easily define my own keymap, but since I rarely go beyond register A anyway&#x2026;
 </p>
 
 <div class="org-src-container">
@@ -1101,9 +1108,12 @@ register.
  '((?i . <span class="org-string">"~/.emacs.d/Sacha.org"</span>)
    (?o . <span class="org-string">"~/personal/organizer.org"</span>)
    (?b . <span class="org-string">"~/personal/business.org"</span>)
+   (?B . <span class="org-string">"~/Dropbox/books"</span>)
    (?e . <span class="org-string">"~/code/dev/emacs-notes/tasks.org"</span>)
    (?w . <span class="org-string">"~/Dropbox/public/sharing/index.org"</span>)
    (?W . <span class="org-string">"~/Dropbox/public/sharing/blog.org"</span>)
+   (?j . <span class="org-string">"~/personal/journal.org"</span>)
+   (?I . <span class="org-string">"~/Dropbox/Inbox/To Blog"</span>)
    (?g . <span class="org-string">"~/sachac.github.io/evil-plans/index.org"</span>)
    (?c . <span class="org-string">"~/code/dev/elisp-course.org"</span>)
    (?l . <span class="org-string">"~/dropbox/public/sharing/learning.org"</span>)))
@@ -1179,22 +1189,42 @@ Some code from <a href="http://emacsredux.com/blog/2013/04/28/switch-to-previous
 <span class="org-doc">Repeated invocations toggle between the two most recently open buffers."</span>
   (interactive)
   (switch-to-buffer (other-buffer (current-buffer) 1)))
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-check-agenda</span> ()
+  <span class="org-doc">"Peek at agenda."</span>
+  (interactive)
+  (<span class="org-keyword">cond</span>
+   ((derived-mode-p 'org-agenda-mode)
+    (<span class="org-keyword">if</span> (window-parent) (delete-window) (bury-buffer)))
+   ((get-buffer <span class="org-string">"*Org Agenda*"</span>)
+    (switch-to-buffer-other-window <span class="org-string">"*Org Agenda*"</span>))
+   (t (org-agenda nil <span class="org-string">"a"</span>))))
+
+(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/key-chord-command-map</span> (make-sparse-keymap))
+(bind-key <span class="org-string">"h"</span> 'sacha/org-check-agenda sacha/key-chord-command-map)
+(bind-key <span class="org-string">"u"</span> 'emms-pause sacha/key-chord-command-map)
+(bind-key <span class="org-string">"t"</span> 'emms-seek-forward sacha/key-chord-command-map)
+(bind-key <span class="org-string">"n"</span> 'emms-seek-to sacha/key-chord-command-map)
+
 (<span class="org-keyword">use-package</span> <span class="org-constant">key-chord</span>
   <span class="org-builtin">:init</span>
   (<span class="org-keyword">progn</span> 
     (fset 'key-chord-define 'sacha/key-chord-define)
     (key-chord-mode 1)
+    <span class="org-comment-delimiter">;; </span><span class="org-comment">k can be bound too</span>
     (key-chord-define-global <span class="org-string">"uu"</span>     'undo)
     (key-chord-define-global <span class="org-string">"yy"</span>     'browse-kill-ring)
     (key-chord-define-global <span class="org-string">"jj"</span>     'ace-jump-word-mode)
     (key-chord-define-global <span class="org-string">"jw"</span>     'ace-window)
     (key-chord-define-global <span class="org-string">"jl"</span>     'ace-jump-line-mode)
+    (key-chord-define-global <span class="org-string">"jz"</span>     'ace-jump-zap-up-to-char)
+    (key-chord-define-global <span class="org-string">"jZ"</span>     'ace-jump-zap-to-char)
     (key-chord-define-global <span class="org-string">"FF"</span>     'find-file)
-    (key-chord-define-global <span class="org-string">"hh"</span>     'emms-pause)
-    (key-chord-define-global <span class="org-string">"ht"</span>     nil)
-    (key-chord-define-global <span class="org-string">"th"</span>     nil)
+    (key-chord-define-global <span class="org-string">"qq"</span>     'sacha/org-quick-clock-in-task)
+    (key-chord-define-global <span class="org-string">"hh"</span>     sacha/key-chord-command-map)
     (key-chord-define-global <span class="org-string">"hc"</span>     'emms-seek-forward)
-    (key-chord-define-global <span class="org-string">"hs"</span>     'emms-seek-to)
+    (key-chord-define-global <span class="org-string">"h-"</span>     'emms-seek-to)
+    (key-chord-define-global <span class="org-string">"xx"</span>     'er/expand-region)
     (key-chord-define-global <span class="org-string">"JJ"</span>     'sacha/switch-to-previous-buffer)))
 </pre>
 </div>
@@ -1755,10 +1785,31 @@ This makes it easier to add links from outside.
 </pre>
 </div>
 </div>
-
 <div id="outline-container-sec-1-8-6-1" class="outline-5">
-<h5 id="sec-1-8-6-1">Templates</h5>
+<h5 id="sec-1-8-6-1">Date trees</h5>
 <div class="outline-text-5" id="text-1-8-6-1">
+<p>
+This quickly adds a same-level heading for the succeeding day.
+</p>
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-insert-heading-for-next-day</span> ()
+  <span class="org-doc">"Insert a same-level heading for the following day."</span>
+  (interactive)
+  (<span class="org-keyword">let</span> ((new-date
+         (seconds-to-time
+          (+ 86400.0
+             (float-time
+              (org-read-date nil 'to-time (elt (org-heading-components) 4)))))))
+    (org-insert-heading-after-current)
+    (insert (format-time-string <span class="org-string">"%Y-%m-%d\n\n"</span> new-date))))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-8-6-2" class="outline-5">
+<h5 id="sec-1-8-6-2">Templates</h5>
+<div class="outline-text-5" id="text-1-8-6-2">
 <p>
 I use <code>org-capture</code> templates to quickly jot down tasks, ledger
 entries, notes, and other semi-structured pieces of information.
@@ -1775,12 +1826,19 @@ entries, notes, and other semi-structured pieces of information.
       `((<span class="org-string">"t"</span> <span class="org-string">"Tasks"</span> entry 
          (file+headline <span class="org-string">"~/personal/organizer.org"</span> <span class="org-string">"Tasks"</span>)
          ,sacha/org-basic-task-template)
+        (<span class="org-string">"e"</span> <span class="org-string">"Emacs idea"</span> entry
+         (file+headline <span class="org-string">"~/code/dev/emacs-notes/tasks.org"</span> <span class="org-string">"Emacs"</span>)
+         <span class="org-string">"* TODO %^{Task}"</span>
+         <span class="org-builtin">:immediate-finish</span>)
         (<span class="org-string">"b"</span> <span class="org-string">"Business task"</span> entry
          (file+headline <span class="org-string">"~/personal/business.org"</span> <span class="org-string">"Tasks"</span>)
          ,sacha/org-basic-task-template)
         (<span class="org-string">"p"</span> <span class="org-string">"People task"</span> entry
          (file+headline <span class="org-string">"~/personal/people.org"</span> <span class="org-string">"Tasks"</span>)
          ,sacha/org-basic-task-template)
+        (<span class="org-string">"j"</span> <span class="org-string">"Journal entry"</span> plain
+         (file+datetree+prompt <span class="org-string">"~/personal/journal.org"</span>)
+         <span class="org-string">"%K - %a\n%i\n%?\n"</span>)
         (<span class="org-string">"db"</span> <span class="org-string">"Done - Business"</span> entry
          (file+headline <span class="org-string">"~/personal/business.org"</span> <span class="org-string">"Tasks"</span>)
          <span class="org-string">"* DONE %^{Task}\nSCHEDULED: %^t\n%?"</span>)
@@ -1840,7 +1898,7 @@ entries, notes, and other semi-structured pieces of information.
 </pre>
 </div>
 </div>
-<ul class="org-ul"><li>Allow refiling in the middle(ish) of a capture<br  /><div class="outline-text-6" id="text-1-8-6-1-1">
+<ul class="org-ul"><li>Allow refiling in the middle(ish) of a capture<br  /><div class="outline-text-6" id="text-1-8-6-2-1">
 <p>
 This lets me use <code>C-c C-r</code> to refile a capture and then jump to the
 new location. I wanted to be able to file tasks under projects so that
@@ -1863,9 +1921,9 @@ able to clock in on them.
 </li></ul>
 </div>
 
-<div id="outline-container-sec-1-8-6-2" class="outline-5">
-<h5 id="sec-1-8-6-2">Refiling</h5>
-<div class="outline-text-5" id="text-1-8-6-2">
+<div id="outline-container-sec-1-8-6-3" class="outline-5">
+<h5 id="sec-1-8-6-3">Refiling</h5>
+<div class="outline-text-5" id="text-1-8-6-3">
 <p>
 <code>org-refile</code> lets you organize notes by typing in the headline to file them under.
 </p>
@@ -1883,9 +1941,9 @@ able to clock in on them.
 </div>
 </div>
 
-<div id="outline-container-sec-1-8-6-3" class="outline-5">
-<h5 id="sec-1-8-6-3">Estimating WPM</h5>
-<div class="outline-text-5" id="text-1-8-6-3">
+<div id="outline-container-sec-1-8-6-4" class="outline-5">
+<h5 id="sec-1-8-6-4">Estimating WPM</h5>
+<div class="outline-text-5" id="text-1-8-6-4">
 <p>
 I'm curious about how fast I type some things.
 </p>
@@ -2532,6 +2590,8 @@ hang of using these more!
         `((<span class="org-string">"T"</span> tags-todo <span class="org-string">"TODO=\"TODO\"-goal-routine-SCHEDULED={.+}"</span>)
           (<span class="org-string">"b"</span> todo <span class="org-string">""</span>
            ((org-agenda-files '(<span class="org-string">"~/personal/business.org"</span>))))
+          (<span class="org-string">"B"</span> todo <span class="org-string">""</span>
+           ((org-agenda-files '(<span class="org-string">"~/Dropbox/books"</span>))))
           (<span class="org-string">"o"</span> todo <span class="org-string">""</span>
            ((org-agenda-files '(<span class="org-string">"~/personal/organizer.org"</span>))))
           (<span class="org-string">"c"</span> todo <span class="org-string">""</span>
@@ -3293,7 +3353,12 @@ This makes it easier to publish my files:
              <span class="org-builtin">:base-directory</span> <span class="org-string">"~/.emacs.d"</span>
              <span class="org-builtin">:publishing-directory</span> <span class="org-string">"~/.emacs.d"</span>
              <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
-             )))
+             )
+            (<span class="org-string">"book-notes"</span>
+             <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/Dropbox/books"</span>
+             <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/Dropbox/books/html"</span>
+             <span class="org-builtin">:publishing-function</span> sacha/org-html-publish-to-html-trustingly
+             <span class="org-builtin">:makeindex</span> t)))
 (load <span class="org-string">"~/code/dev/emacs-chats/build-site.el"</span> t)
 (load <span class="org-string">"~/code/dev/emacs-notes/build-site.el"</span> t)
 </pre>
@@ -3716,8 +3781,37 @@ With prefix argument, also display headlines without a TODO keyword."
 <h3 id="sec-1-9">Coding</h3>
 <div class="outline-text-3" id="text-1-9">
 </div><div id="outline-container-sec-1-9-1" class="outline-4">
-<h4 id="sec-1-9-1">Tab width of 2 is compact and readable</h4>
+<h4 id="sec-1-9-1">Web development</h4>
 <div class="outline-text-4" id="text-1-9-1">
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">from FAQ at http://web-mode.org/ for smartparens</span>
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/web-mode-hook</span> ()
+  (setq web-mode-enable-auto-pairing nil))
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/sp-web-mode-is-code-context</span> (id action context)
+  (<span class="org-keyword">when</span> (and (eq action 'insert)
+             (not (or (get-text-property (point) 'part-side)
+                      (get-text-property (point) 'block-side))))
+    t))
+
+(<span class="org-keyword">use-package</span> <span class="org-constant">web-mode</span>
+  <span class="org-builtin">:init</span>
+  (setq web-mode-enable-current-element-highlight t)
+  <span class="org-builtin">:config</span>
+  (<span class="org-keyword">progn</span>
+    (add-to-list 'auto-mode-alist '(<span class="org-string">"\\.html?\\'"</span> . web-mode))
+    (setq web-mode-ac-sources-alist
+          '((<span class="org-string">"css"</span> . (ac-source-css-property))
+            (<span class="org-string">"html"</span> . (ac-source-words-in-buffer ac-source-abbrev)))
+          )))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-9-2" class="outline-4">
+<h4 id="sec-1-9-2">Tab width of 2 is compact and readable</h4>
+<div class="outline-text-4" id="text-1-9-2">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(setq-default tab-width 2)
@@ -3725,9 +3819,9 @@ With prefix argument, also display headlines without a TODO keyword."
 </div>
 </div>
 </div>
-<div id="outline-container-sec-1-9-2" class="outline-4">
-<h4 id="sec-1-9-2">New lines are always indented</h4>
-<div class="outline-text-4" id="text-1-9-2">
+<div id="outline-container-sec-1-9-3" class="outline-4">
+<h4 id="sec-1-9-3">New lines are always indented</h4>
+<div class="outline-text-4" id="text-1-9-3">
 <p>
 I almost always want to go to the right indentation on the next line.
 </p>
@@ -3739,9 +3833,9 @@ I almost always want to go to the right indentation on the next line.
 </div>
 </div>
 
-<div id="outline-container-sec-1-9-3" class="outline-4">
-<h4 id="sec-1-9-3">Adapt to being on Windows</h4>
-<div class="outline-text-4" id="text-1-9-3">
+<div id="outline-container-sec-1-9-4" class="outline-4">
+<h4 id="sec-1-9-4">Adapt to being on Windows</h4>
+<div class="outline-text-4" id="text-1-9-4">
 <p>
 I'm on Windows, so I use Cygwin to add Unix-y tools to make my life easier. 
 These config snippets seem to help too.
@@ -3758,9 +3852,9 @@ These config snippets seem to help too.
 </div>
 </div>
 
-<div id="outline-container-sec-1-9-4" class="outline-4">
-<h4 id="sec-1-9-4">Expand region</h4>
-<div class="outline-text-4" id="text-1-9-4">
+<div id="outline-container-sec-1-9-5" class="outline-4">
+<h4 id="sec-1-9-5">Expand region</h4>
+<div class="outline-text-4" id="text-1-9-5">
 <p>
 This is something I have to get the hang of too. It gradually expands the selection. Handy for Emacs Lisp.
 </p>
@@ -3774,12 +3868,12 @@ This is something I have to get the hang of too. It gradually expands the select
 </div>
 </div>
 </div>
-<div id="outline-container-sec-1-9-5" class="outline-4">
-<h4 id="sec-1-9-5">Emacs Lisp</h4>
-<div class="outline-text-4" id="text-1-9-5">
-</div><div id="outline-container-sec-1-9-5-1" class="outline-5">
-<h5 id="sec-1-9-5-1">Edebug</h5>
-<div class="outline-text-5" id="text-1-9-5-1">
+<div id="outline-container-sec-1-9-6" class="outline-4">
+<h4 id="sec-1-9-6">Emacs Lisp</h4>
+<div class="outline-text-4" id="text-1-9-6">
+</div><div id="outline-container-sec-1-9-6-1" class="outline-5">
+<h5 id="sec-1-9-6-1">Edebug</h5>
+<div class="outline-text-5" id="text-1-9-6-1">
 <p>
 Did you know edebug has a trace function? I didn't. Thanks, agumonkey!
 </p>
@@ -3798,9 +3892,9 @@ arguments and return values for each expression it evaluates.
 </div>
 </div>
 
-<div id="outline-container-sec-1-9-5-2" class="outline-5">
-<h5 id="sec-1-9-5-2">Eldoc</h5>
-<div class="outline-text-5" id="text-1-9-5-2">
+<div id="outline-container-sec-1-9-6-2" class="outline-5">
+<h5 id="sec-1-9-6-2">Eldoc</h5>
+<div class="outline-text-5" id="text-1-9-6-2">
 <p>
 Eldoc provides minibuffer hints when working with Emacs Lisp.
 </p>
@@ -3814,9 +3908,9 @@ Eldoc provides minibuffer hints when working with Emacs Lisp.
 </div>
 </div>
 </div>
-<div id="outline-container-sec-1-9-5-3" class="outline-5">
-<h5 id="sec-1-9-5-3"><a id="ID-99ac7ddb-08ef-46c4-8fa8-8a45164f9ef4"></a>Refactoring&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
-<div class="outline-text-5" id="text-1-9-5-3">
+<div id="outline-container-sec-1-9-6-3" class="outline-5">
+<h5 id="sec-1-9-6-3"><a id="ID-99ac7ddb-08ef-46c4-8fa8-8a45164f9ef4"></a>Refactoring&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
+<div class="outline-text-5" id="text-1-9-6-3">
 <p>
 More things that I need to get used to&#x2026;
 </p>
@@ -3843,9 +3937,9 @@ More things that I need to get used to&#x2026;
 </div>
 </div>
 </div>
-<div id="outline-container-sec-1-9-5-4" class="outline-5">
-<h5 id="sec-1-9-5-4">Jumping to code</h5>
-<div class="outline-text-5" id="text-1-9-5-4">
+<div id="outline-container-sec-1-9-6-4" class="outline-5">
+<h5 id="sec-1-9-6-4">Jumping to code</h5>
+<div class="outline-text-5" id="text-1-9-6-4">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(define-key emacs-lisp-mode-map (kbd <span class="org-string">"C-c ."</span>) 'find-function-at-point)
@@ -3855,9 +3949,9 @@ More things that I need to get used to&#x2026;
 </div>
 </div>
 </div>
-<div id="outline-container-sec-1-9-6" class="outline-4">
-<h4 id="sec-1-9-6">Snippets</h4>
-<div class="outline-text-4" id="text-1-9-6">
+<div id="outline-container-sec-1-9-7" class="outline-4">
+<h4 id="sec-1-9-7">Snippets</h4>
+<div class="outline-text-4" id="text-1-9-7">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">yasnippet-bundle</span>
@@ -3872,9 +3966,9 @@ More things that I need to get used to&#x2026;
 </div>
 </div>
 </div>
-<div id="outline-container-sec-1-9-7" class="outline-4">
-<h4 id="sec-1-9-7">Show column number</h4>
-<div class="outline-text-4" id="text-1-9-7">
+<div id="outline-container-sec-1-9-8" class="outline-4">
+<h4 id="sec-1-9-8">Show column number</h4>
+<div class="outline-text-4" id="text-1-9-8">
 <p>
 I sometimes need to know where I am in a line.
 </p>
@@ -3886,9 +3980,9 @@ I sometimes need to know where I am in a line.
 </div>
 </div>
 
-<div id="outline-container-sec-1-9-8" class="outline-4">
-<h4 id="sec-1-9-8">Don't show whitespace in diff, but show context</h4>
-<div class="outline-text-4" id="text-1-9-8">
+<div id="outline-container-sec-1-9-9" class="outline-4">
+<h4 id="sec-1-9-9">Don't show whitespace in diff, but show context</h4>
+<div class="outline-text-4" id="text-1-9-9">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(setq vc-diff-switches '(<span class="org-string">"-b"</span> <span class="org-string">"-B"</span> <span class="org-string">"-u"</span>))
@@ -3896,9 +3990,9 @@ I sometimes need to know where I am in a line.
 </div>
 </div>
 </div>
-<div id="outline-container-sec-1-9-9" class="outline-4">
-<h4 id="sec-1-9-9">Javascript</h4>
-<div class="outline-text-4" id="text-1-9-9">
+<div id="outline-container-sec-1-9-10" class="outline-4">
+<h4 id="sec-1-9-10">Javascript</h4>
+<div class="outline-text-4" id="text-1-9-10">
 <p>
 This makes script blocks easier to copy:
 </p>
@@ -3953,9 +4047,9 @@ And the rest of the js2 config:
 </div>
 </div>
 
-<div id="outline-container-sec-1-9-10" class="outline-4">
-<h4 id="sec-1-9-10">Magit - nice git interface</h4>
-<div class="outline-text-4" id="text-1-9-10">
+<div id="outline-container-sec-1-9-11" class="outline-4">
+<h4 id="sec-1-9-11"><a id="o2b:9a42a292-7b75-4c7f-8da2-7a0d8c22d0c6"></a>Magit - nice git interface</h4>
+<div class="outline-text-4" id="text-1-9-11">
 <p>
 <a id="magit"></a>
 </p>
@@ -3966,88 +4060,97 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(sacha/package-install 'magit)
-(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/magit-commit-all</span> ()
-  <span class="org-doc">"Publish the current file and commit all the current changes."</span>
-  (interactive)
-  (sacha/org-publish-maybe)
-  (magit-status default-directory)
-  (magit-stage-all)
-  (call-interactively 'magit-log-edit))
+<pre class="src src-emacs-lisp">  (sacha/package-install 'magit)
+  (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/magit-commit-all</span> ()
+    <span class="org-doc">"Publish the current file and commit all the current changes."</span>
+    (interactive)
+    (sacha/org-publish-maybe)
+    (magit-status default-directory)
+    (magit-stage-all)
+    (call-interactively 'magit-log-edit))
 
-(<span class="org-keyword">use-package</span> <span class="org-constant">magit</span>
-  <span class="org-builtin">:init</span> 
-  (setq magit-git-executable <span class="org-string">"c:/program files (x86)/git/bin/git.exe"</span>
-        magit-diff-options '(<span class="org-string">"-b"</span>)) <span class="org-comment-delimiter">; </span><span class="org-comment">ignore whitespace</span>
-  <span class="org-builtin">:config</span>
-  (<span class="org-keyword">progn</span>
-    (<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/magit-limit-to-directory</span> nil <span class="org-doc">"Limit magit status to a specific directory."</span>)
-    (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/magit-status-in-directory</span> (directory)
-      <span class="org-doc">"Displays magit status limited to DIRECTORY.</span>
+  (<span class="org-keyword">use-package</span> <span class="org-constant">magit</span>
+    <span class="org-builtin">:init</span> 
+    (setq magit-git-executable <span class="org-string">"c:/program files (x86)/git/bin/git.exe"</span>
+          magit-diff-options '(<span class="org-string">"-b"</span>)) <span class="org-comment-delimiter">; </span><span class="org-comment">ignore whitespace</span>
+    <span class="org-builtin">:config</span>
+    (<span class="org-keyword">progn</span>
+      (<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/magit-limit-to-directory</span> nil <span class="org-doc">"Limit magit status to a specific directory."</span>)
+      (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/magit-status-in-directory</span> (directory)
+        <span class="org-doc">"Displays magit status limited to DIRECTORY.</span>
 <span class="org-doc">Uses the current `</span><span class="org-doc"><span class="org-constant">default-directory</span></span><span class="org-doc">', or prompts for a directory</span>
-<span class="org-doc">if called with a prefix argument."</span>
-      (interactive (list (expand-file-name
-                          (<span class="org-keyword">if</span> current-prefix-arg
-                              (read-directory-name <span class="org-string">"Directory: "</span>)
-                            default-directory))))
-      (<span class="org-keyword">let</span> ((sacha/magit-limit-to-directory directory))
-        (magit-status directory)))
+<span class="org-doc">if called with a prefix argument. Sets `</span><span class="org-doc"><span class="org-constant">sacha/magit-limit-to-directory</span></span><span class="org-doc">'</span>
+<span class="org-doc">so that it's still active even after you stage a change. Very experimental."</span>
+        (interactive (list (expand-file-name
+                            (<span class="org-keyword">if</span> current-prefix-arg
+                                (read-directory-name <span class="org-string">"Directory: "</span>)
+                              default-directory))))
+        (setq sacha/magit-limit-to-directory directory)
+        (magit-status directory))
 
-    (<span class="org-keyword">defadvice</span> <span class="org-function-name">magit-insert-untracked-files</span> (around sacha activate)
-      (<span class="org-keyword">if</span> sacha/magit-limit-to-directory
-          (magit-with-section (section untracked 'untracked <span class="org-string">"Untracked files:"</span> t)
-            (<span class="org-keyword">let</span> ((files (cl-mapcan
-                          (<span class="org-keyword">lambda</span> (f)
-                            (<span class="org-keyword">when</span> (eq (aref f 0) ??) (list f)))
-                          (magit-git-lines
-                           <span class="org-string">"status"</span> <span class="org-string">"--porcelain"</span> <span class="org-string">"--"</span> sacha/magit-limit-to-directory))))
-              (<span class="org-keyword">if</span> (not files)
-                  (setq section nil)
-                (<span class="org-keyword">dolist</span> (file files)
-                  (setq file (magit-decode-git-path (substring file 3)))
-                  (magit-with-section (section file file)
-                    (insert <span class="org-string">"\t"</span> file <span class="org-string">"\n"</span>)))
-                (insert <span class="org-string">"\n"</span>))))
-        ad-do-it))
+      (<span class="org-keyword">defadvice</span> <span class="org-function-name">magit-insert-untracked-files</span> (around sacha activate)
+        (<span class="org-keyword">if</span> sacha/magit-limit-to-directory
+            (magit-with-section (section untracked 'untracked <span class="org-string">"Untracked files:"</span> t)
+              (<span class="org-keyword">let</span> ((files (cl-mapcan
+                            (<span class="org-keyword">lambda</span> (f)
+                              (<span class="org-keyword">when</span> (eq (aref f 0) ??) (list f)))
+                            (magit-git-lines
+                             <span class="org-string">"status"</span> <span class="org-string">"--porcelain"</span> <span class="org-string">"--"</span> sacha/magit-limit-to-directory))))
+                (<span class="org-keyword">if</span> (not files)
+                    (setq section nil)
+                  (<span class="org-keyword">dolist</span> (file files)
+                    (setq file (magit-decode-git-path (substring file 3)))
+                    (magit-with-section (section file file)
+                      (insert <span class="org-string">"\t"</span> file <span class="org-string">"\n"</span>)))
+                  (insert <span class="org-string">"\n"</span>))))
+          ad-do-it))
 
-    (<span class="org-keyword">defadvice</span> <span class="org-function-name">magit-insert-unstaged-changes</span> (around sacha activate)
-      (<span class="org-keyword">if</span> sacha/magit-limit-to-directory
-          (<span class="org-keyword">let</span> ((magit-current-diff-range (cons 'index 'working))
-                (magit-diff-options (copy-sequence magit-diff-options)))
-            (magit-git-insert-section (unstaged <span class="org-string">"Unstaged changes:"</span>)
-                #'magit-wash-raw-diffs
-              <span class="org-string">"diff-files"</span>
-              <span class="org-string">"--"</span> sacha/magit-limit-to-directory
-              ))
-        ad-do-it))
+      (<span class="org-keyword">defadvice</span> <span class="org-function-name">magit-insert-unstaged-changes</span> (around sacha activate)
+        (<span class="org-keyword">if</span> sacha/magit-limit-to-directory
+            (<span class="org-keyword">let</span> ((magit-current-diff-range (cons 'index 'working))
+                  (magit-diff-options (copy-sequence magit-diff-options)))
+              (magit-git-insert-section (unstaged <span class="org-string">"Unstaged changes:"</span>)
+                  #'magit-wash-raw-diffs
+                <span class="org-string">"diff-files"</span>
+                <span class="org-string">"--"</span> sacha/magit-limit-to-directory
+                ))
+          ad-do-it))
 
-    (<span class="org-keyword">defadvice</span> <span class="org-function-name">magit-insert-staged-changes</span> (around sacha activate)
-      <span class="org-doc">"Limit to `</span><span class="org-doc"><span class="org-constant">sacha/magit-limit-to-directory</span></span><span class="org-doc">' if specified."</span>
-      (<span class="org-keyword">if</span> sacha/magit-limit-to-directory
-          (<span class="org-keyword">let</span> ((no-commit (not (magit-git-success <span class="org-string">"log"</span> <span class="org-string">"-1"</span> <span class="org-string">"HEAD"</span>))))
-            (<span class="org-keyword">when</span> (or no-commit (magit-anything-staged-p))
-              (<span class="org-keyword">let</span> ((magit-current-diff-range (cons <span class="org-string">"HEAD"</span> 'index))
-                    (base (<span class="org-keyword">if</span> no-commit
-                              (magit-git-string <span class="org-string">"mktree"</span>)
-                            <span class="org-string">"HEAD"</span>))
-                    (magit-diff-options (append '(<span class="org-string">"--cached"</span>) magit-diff-options)))
-                (magit-git-insert-section (staged <span class="org-string">"Staged changes:"</span>)
-                    (apply-partially #'magit-wash-raw-diffs t)
-                  <span class="org-string">"diff-index"</span> <span class="org-string">"--cached"</span> base <span class="org-string">"--"</span> sacha/magit-limit-to-directory))))
-        ad-do-it)))
-  <span class="org-builtin">:bind</span> ((<span class="org-string">"C-x v d"</span> . magit-status)
-         (<span class="org-string">"C-x v C-d"</span> . sacha/magit-status-in-directory)
-         (<span class="org-string">"C-x v p"</span> . magit-push) 
-         (<span class="org-string">"C-x v c"</span> . sacha/magit-commit-all)))
+      (<span class="org-keyword">defadvice</span> <span class="org-function-name">magit-insert-staged-changes</span> (around sacha activate)
+        <span class="org-doc">"Limit to `</span><span class="org-doc"><span class="org-constant">sacha/magit-limit-to-directory</span></span><span class="org-doc">' if specified."</span>
+        (<span class="org-keyword">if</span> sacha/magit-limit-to-directory
+            (<span class="org-keyword">let</span> ((no-commit (not (magit-git-success <span class="org-string">"log"</span> <span class="org-string">"-1"</span> <span class="org-string">"HEAD"</span>))))
+              (<span class="org-keyword">when</span> (or no-commit (magit-anything-staged-p))
+                (<span class="org-keyword">let</span> ((magit-current-diff-range (cons <span class="org-string">"HEAD"</span> 'index))
+                      (base (<span class="org-keyword">if</span> no-commit
+                                (magit-git-string <span class="org-string">"mktree"</span>)
+                              <span class="org-string">"HEAD"</span>))
+                      (magit-diff-options (append '(<span class="org-string">"--cached"</span>) magit-diff-options)))
+                  (magit-git-insert-section (staged <span class="org-string">"Staged changes:"</span>)
+                      (apply-partially #'magit-wash-raw-diffs t)
+                    <span class="org-string">"diff-index"</span> <span class="org-string">"--cached"</span> base <span class="org-string">"--"</span> sacha/magit-limit-to-directory))))
+          ad-do-it)))
+    <span class="org-builtin">:bind</span> ((<span class="org-string">"C-x v d"</span> . magit-status)
+           (<span class="org-string">"C-x v C-d"</span> . sacha/magit-status-in-directory)
+           (<span class="org-string">"C-x v p"</span> . magit-push) 
+           (<span class="org-string">"C-x v c"</span> . sacha/magit-commit-all)))
 </pre>
 </div>
-</div>
+
+<p>
+The proper way to implement this is probably to patch or override the
+definition of magit-git-insert-section so that it takes a list of
+options to add at the end of the command, but that can wait for another time (or braver souls). 
+</p>
 </div>
 
-
-<div id="outline-container-sec-1-9-11" class="outline-4">
-<h4 id="sec-1-9-11">Tag files</h4>
-<div class="outline-text-4" id="text-1-9-11">
+<div id="outline-container-sec-1-9-11-1" class="outline-5">
+<h5 id="sec-1-9-11-1"><span class="todo TODO">TODO</span> Make this better by adding a post command options variable</h5>
+</div>
+</div>
+<div id="outline-container-sec-1-9-12" class="outline-4">
+<h4 id="sec-1-9-12">Tag files</h4>
+<div class="outline-text-4" id="text-1-9-12">
 <p>
 I don't often use a TAGS file, but when I do, I don't want to have
 to set my tags file per project. I search for it in the directory
@@ -4077,9 +4180,9 @@ tree instead.
 </div>
 </div>
 </div>
-<div id="outline-container-sec-1-9-12" class="outline-4">
-<h4 id="sec-1-9-12">Projects</h4>
-<div class="outline-text-4" id="text-1-9-12">
+<div id="outline-container-sec-1-9-13" class="outline-4">
+<h4 id="sec-1-9-13">Projects</h4>
+<div class="outline-text-4" id="text-1-9-13">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(sacha/package-install 'projectile)
@@ -4095,9 +4198,9 @@ tree instead.
 </div>
 </div>
 </div>
-<div id="outline-container-sec-1-9-13" class="outline-4">
-<h4 id="sec-1-9-13">Exploring MELPA recipes</h4>
-<div class="outline-text-4" id="text-1-9-13">
+<div id="outline-container-sec-1-9-14" class="outline-4">
+<h4 id="sec-1-9-14">Exploring MELPA recipes</h4>
+<div class="outline-text-4" id="text-1-9-14">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"></pre>
@@ -4105,9 +4208,9 @@ tree instead.
 </div>
 </div>
 
-<div id="outline-container-sec-1-9-14" class="outline-4">
-<h4 id="sec-1-9-14">Ruby</h4>
-<div class="outline-text-4" id="text-1-9-14">
+<div id="outline-container-sec-1-9-15" class="outline-4">
+<h4 id="sec-1-9-15">Ruby</h4>
+<div class="outline-text-4" id="text-1-9-15">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(sacha/package-install 'robe)
@@ -4156,9 +4259,9 @@ SASS
 </div>
 </div>
 </div>
-<div id="outline-container-sec-1-9-15" class="outline-4">
-<h4 id="sec-1-9-15">Skewer</h4>
-<div class="outline-text-4" id="text-1-9-15">
+<div id="outline-container-sec-1-9-16" class="outline-4">
+<h4 id="sec-1-9-16">Skewer</h4>
+<div class="outline-text-4" id="text-1-9-16">
 <p>
 This lets you send HTML, CSS, and Javascript fragments to Google
 Chrome. You may need to start Chrome with <code>chrome
@@ -4171,6 +4274,19 @@ with HTTPS sites.
 <pre class="src src-emacs-lisp">(sacha/package-install 'skewer-mode)
 (<span class="org-keyword">use-package</span> <span class="org-constant">skewer-mode</span>
   <span class="org-builtin">:config</span> (skewer-setup))
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-1-9-17" class="outline-4">
+<h4 id="sec-1-9-17">Autocomplete</h4>
+<div class="outline-text-4" id="text-1-9-17">
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">company</span>
+  <span class="org-builtin">:config</span>
+  (global-company-mode))
 </pre>
 </div>
 </div>
@@ -4278,36 +4394,49 @@ IRC is a great way to hang out with other Emacs geeks.
   (call-interactively 'sacha/org-quantified-track))
 (bind-key <span class="org-string">"!"</span> 'sacha/org-clock-in-and-track org-agenda-mode-map)
 
+(<span class="org-keyword">defmacro</span> <span class="org-function-name">sacha/with-org-task</span> (<span class="org-type">&amp;rest</span> body)
+  <span class="org-doc">"Run BODY within the current agenda task, clocked task, or cursor task."</span>
+  `(<span class="org-keyword">cond</span>
+    ((derived-mode-p 'org-agenda-mode)
+     (<span class="org-keyword">let*</span> ((marker (org-get-at-bol 'org-marker))
+            (buffer (marker-buffer marker))
+            (pos (marker-position marker)))
+       (<span class="org-keyword">with-current-buffer</span> buffer
+         (<span class="org-keyword">save-excursion</span>
+           (<span class="org-keyword">save-restriction</span>
+             (widen)
+             (goto-char pos)
+             ,@body)))))
+    ((and (derived-mode-p 'org-mode) (org-at-heading-p)) (<span class="org-keyword">save-excursion</span> ,@body))
+    ((org-clocking-p) (<span class="org-keyword">save-excursion</span> (org-clock-goto) ,@body))
+    ((derived-mode-p 'org-mode) ,@body)))
+
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-quantified-track</span> (<span class="org-type">&amp;optional</span> category note)
   <span class="org-doc">"Create a tracking record using CATEGORY and NOTE.</span>
 <span class="org-doc">Default to the current task in the agenda, the currently-clocked</span>
 <span class="org-doc">entry, or the current subtree in Org."</span>
   (interactive (list nil nil))
-  (<span class="org-keyword">let</span> ((get-info 
-         (<span class="org-keyword">lambda</span> ()
-           (setq category (or category
-                              (org-entry-get-with-inheritance <span class="org-string">"QUANTIFIED"</span>)))
-           (<span class="org-keyword">unless</span> category
-             (setq category (read-string <span class="org-string">"Category: "</span>))
-             (org-set-property <span class="org-string">"QUANTIFIED"</span> category))
-           (setq note (or note (elt (org-heading-components) 4))))))
-    (<span class="org-keyword">unless</span> (and category note)
-      (<span class="org-keyword">cond</span>
-       ((derived-mode-p 'org-agenda-mode)
-        (<span class="org-keyword">let*</span> ((marker (org-get-at-bol 'org-marker))
-               (buffer (marker-buffer marker))
-               (pos (marker-position marker)))
-          (<span class="org-keyword">with-current-buffer</span> buffer
-            (<span class="org-keyword">save-excursion</span>
-              (<span class="org-keyword">save-restriction</span>
-                (widen)
-                (goto-char pos)
-                (funcall get-info))))))
-       ((org-clocking-p)(<span class="org-keyword">save-excursion</span> (org-clock-goto) (funcall get-info)))
-       ((derived-mode-p 'org-mode) (funcall get-info)))
-      (setq note (or note (read-string <span class="org-string">"Note: "</span>))))
-    (quantified-track (concat category <span class="org-string">" | "</span> note))))
+  (<span class="org-keyword">unless</span> (and category note)
+    (sacha/with-org-task
+     (setq category (or category
+                        (org-entry-get-with-inheritance <span class="org-string">"QUANTIFIED"</span>)))
+     (<span class="org-keyword">unless</span> category
+       (setq category (read-string <span class="org-string">"Category: "</span>))
+       (org-set-property <span class="org-string">"QUANTIFIED"</span> category))
+     (setq note (or note (elt (org-heading-components) 4) (read-string <span class="org-string">"Note: "</span>)))))
+  (quantified-track (concat category <span class="org-string">" | "</span> note)))
 
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-quick-clock-in-task</span> (location jump)
+  <span class="org-doc">"Track and clock in on the specified task.</span>
+<span class="org-doc">If JUMP is non-nil or the function is called with the prefix argument, jump to that location afterwards."</span>
+  (interactive (list (<span class="org-keyword">save-excursion</span> (org-refile-get-location <span class="org-string">"Location"</span>)) current-prefix-arg))
+  (<span class="org-keyword">when</span> location
+    (<span class="org-keyword">if</span> jump
+        (<span class="org-keyword">progn</span> (org-refile 4 nil location) (sacha/org-clock-in-and-track))
+      (<span class="org-keyword">save-window-excursion</span>
+        (org-refile 4 nil location)
+        (sacha/org-clock-in-and-track)))))
+(bind-key <span class="org-string">"C-c q"</span> 'sacha/org-quick-clock-in-task)
 
 (<span class="org-keyword">use-package</span> <span class="org-constant">quantified</span>)
 </pre>
@@ -4590,7 +4719,9 @@ Ace Window looks useful too.
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">ace-window</span>
-  <span class="org-builtin">:bind</span> (<span class="org-string">"M-s a w"</span> . ace-window))
+  <span class="org-builtin">:config</span> 
+  (setq aw-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s))
+  <span class="org-builtin">:bind</span> (<span class="org-string">"C-x o"</span> . ace-window))
 </pre>
 </div>
 </div>
@@ -4657,7 +4788,7 @@ and return the directory.  Return nil if not found.
 <pre class="src src-emacs-lisp">(sacha/package-install 'smartparens)
 (<span class="org-keyword">use-package</span> <span class="org-constant">smartparens</span>
   <span class="org-builtin">:init</span> 
-  (<span class="org-keyword">when</span> (eq system-type 'w32)
+  (<span class="org-keyword">progn</span>
     (<span class="org-keyword">require</span> '<span class="org-constant">smartparens-config</span>)
     (add-hook 'emacs-lisp-mode-hook 'smartparens-mode)
     (add-hook 'emacs-lisp-mode-hook 'show-smartparens-mode)
@@ -4665,9 +4796,9 @@ and return the directory.  Return nil if not found.
 <span class="org-comment-delimiter">;;;;;;;;;;;;;;;;;;;;;;;;</span>
     <span class="org-comment-delimiter">;; </span><span class="org-comment">keybinding management</span>
 
+    (define-key sp-keymap (kbd <span class="org-string">"C-c s r n"</span>) 'sp-narrow-to-sexp)
     (define-key sp-keymap (kbd <span class="org-string">"C-M-f"</span>) 'sp-forward-sexp)
     (define-key sp-keymap (kbd <span class="org-string">"C-M-b"</span>) 'sp-backward-sexp)
-
     (define-key sp-keymap (kbd <span class="org-string">"C-M-d"</span>) 'sp-down-sexp)
     (define-key sp-keymap (kbd <span class="org-string">"C-M-a"</span>) 'sp-backward-down-sexp)
     (define-key sp-keymap (kbd <span class="org-string">"C-S-a"</span>) 'sp-beginning-of-sexp)
@@ -4704,20 +4835,21 @@ and return the directory.  Return nil if not found.
     (define-key sp-keymap (kbd <span class="org-string">"M-F"</span>) 'sp-forward-symbol)
     (define-key sp-keymap (kbd <span class="org-string">"M-B"</span>) 'sp-backward-symbol)
 
-    (define-key sp-keymap (kbd <span class="org-string">"H-t"</span>) 'sp-prefix-tag-object)
-    (define-key sp-keymap (kbd <span class="org-string">"H-p"</span>) 'sp-prefix-pair-object)
-    (define-key sp-keymap (kbd <span class="org-string">"H-s c"</span>) 'sp-convolute-sexp)
-    (define-key sp-keymap (kbd <span class="org-string">"H-s a"</span>) 'sp-absorb-sexp)
-    (define-key sp-keymap (kbd <span class="org-string">"H-s e"</span>) 'sp-emit-sexp)
-    (define-key sp-keymap (kbd <span class="org-string">"H-s p"</span>) 'sp-add-to-previous-sexp)
-    (define-key sp-keymap (kbd <span class="org-string">"H-s n"</span>) 'sp-add-to-next-sexp)
-    (define-key sp-keymap (kbd <span class="org-string">"H-s j"</span>) 'sp-join-sexp)
-    (define-key sp-keymap (kbd <span class="org-string">"H-s s"</span>) 'sp-split-sexp)
+    (define-key sp-keymap (kbd <span class="org-string">"C-c s t"</span>) 'sp-prefix-tag-object)
+    (define-key sp-keymap (kbd <span class="org-string">"C-c s p"</span>) 'sp-prefix-pair-object)
+    (define-key sp-keymap (kbd <span class="org-string">"C-c s c"</span>) 'sp-convolute-sexp)
+    (define-key sp-keymap (kbd <span class="org-string">"C-c s a"</span>) 'sp-absorb-sexp)
+    (define-key sp-keymap (kbd <span class="org-string">"C-c s e"</span>) 'sp-emit-sexp)
+    (define-key sp-keymap (kbd <span class="org-string">"C-c s p"</span>) 'sp-add-to-previous-sexp)
+    (define-key sp-keymap (kbd <span class="org-string">"C-c s n"</span>) 'sp-add-to-next-sexp)
+    (define-key sp-keymap (kbd <span class="org-string">"C-c s j"</span>) 'sp-join-sexp)
+    (define-key sp-keymap (kbd <span class="org-string">"C-c s s"</span>) 'sp-split-sexp)
 
 <span class="org-comment-delimiter">;;;;;;;;;;;;;;;;;;</span>
     <span class="org-comment-delimiter">;; </span><span class="org-comment">pair management</span>
 
     (sp-local-pair 'minibuffer-inactive-mode <span class="org-string">"'"</span> nil <span class="org-builtin">:actions</span> nil)
+    (sp-local-pair 'web-mode <span class="org-string">"&lt;"</span> nil <span class="org-builtin">:when</span> '(sacha/sp-web-mode-is-code-context))
 
 <span class="org-comment-delimiter">;;; </span><span class="org-comment">markdown-mode</span>
     (<span class="org-keyword">sp-with-modes</span> '(markdown-mode gfm-mode rst-mode)
@@ -4731,7 +4863,7 @@ and return the directory.  Return nil if not found.
       (sp-local-tag <span class="org-string">"i"</span> <span class="org-string">"1d5f8e69396c521f645375107197ea4dfbc7b792quot;&lt;"</span> <span class="org-string">"1d5f8e69396c521f645375107197ea4dfbc7b792quot;&gt;"</span>))
 
 <span class="org-comment-delimiter">;;; </span><span class="org-comment">html-mode</span>
-    (<span class="org-keyword">sp-with-modes</span> '(html-mode sgml-mode)
+    (<span class="org-keyword">sp-with-modes</span> '(html-mode sgml-mode web-mode)
       (sp-local-pair <span class="org-string">"&lt;"</span> <span class="org-string">"&gt;"</span>))
 
 <span class="org-comment-delimiter">;;; </span><span class="org-comment">lisp modes</span>
@@ -5006,7 +5138,7 @@ Handy for collecting items together.
   (beginning-of-line)
   (<span class="org-keyword">let</span> ((kill-whole-line t))
     (<span class="org-keyword">save-excursion</span>
-      (kill-liune 1)
+      (kill-line 1)
       (org-end-of-item-list)
       (yank))))
 </pre>
@@ -5295,63 +5427,63 @@ left.
 
 ;; From org-pres--eimp-fit
 (defun sacha/org-show-eimp-fit ()
-	"Function used as a hook, fits the image found to the window."
-	(when (eq major-mode 'image-mode)
-		(eimp-fit-image-to-window nil)))
+  "Function used as a hook, fits the image found to the window."
+  (when (eq major-mode 'image-mode)
+    (eimp-fit-image-to-window nil)))
 (add-hook 'find-file-hook 'sacha/org-show-eimp-fit)
 
 (defun sacha/org-show-execute-slide ()
-	"Process slide at point.
-	If it contains an Emacs Lisp source block, evaluate it.
-	If it contains an image, view it and switch to that buffer.
-	Else, focus on that buffer.
-	Hide all drawers."
-	(interactive)
-	(find-file sacha/org-show-presentation-file)
-	(org-narrow-to-subtree)
-	(visual-line-mode)
-	(let ((heading-text (nth 4 (org-heading-components))))
-		(cond
-		 ;; view images
-		 ((and (goto-char (point-min))
-					 (re-search-forward "\\[\\[.*\\.\\(jpg\\|gif\\|png\\)" nil t))
-			(delete-other-windows)
-			(let ((org-link-frame-setup '((file . find-file))))
-				(org-open-at-point))
-			(delete-other-windows)
-			(goto-char (point-min)))
-		 ;; find and execute source code blocks
-		 ((and (goto-char (point-min))
-					 (re-search-forward "#\\+begin_src" nil t))
-			(let ((info (org-babel-get-src-block-info)))
-				(unwind-protect
-						(eval (read (concat "(progn " (nth 1 info) ")"))))))
-		 (t
-			(switch-to-buffer (current-buffer))
-			(text-scale-set 4)
-			(org-show-subtree)
-			(org-cycle-hide-drawers t)
-			(org-display-inline-images)
-			(delete-other-windows)))
-		(set-frame-name heading-text)))
+  "Process slide at point.
+  If it contains an Emacs Lisp source block, evaluate it.
+  If it contains an image, view it and switch to that buffer.
+  Else, focus on that buffer.
+  Hide all drawers."
+  (interactive)
+  (find-file sacha/org-show-presentation-file)
+  (org-narrow-to-subtree)
+  (visual-line-mode)
+  (let ((heading-text (nth 4 (org-heading-components))))
+    (cond
+     ;; view images
+     ((and (goto-char (point-min))
+           (re-search-forward "\\[\\[.*\\.\\(jpg\\|gif\\|png\\)" nil t))
+      (delete-other-windows)
+      (let ((org-link-frame-setup '((file . find-file))))
+        (org-open-at-point))
+      (delete-other-windows)
+      (goto-char (point-min)))
+     ;; find and execute source code blocks
+     ((and (goto-char (point-min))
+           (re-search-forward "#\\+begin_src" nil t))
+      (let ((info (org-babel-get-src-block-info)))
+        (unwind-protect
+            (eval (read (concat "(progn " (nth 1 info) ")"))))))
+     (t
+      (switch-to-buffer (current-buffer))
+      (text-scale-set 4)
+      (org-show-subtree)
+      (org-cycle-hide-drawers t)
+      (org-display-inline-images)
+      (delete-other-windows)))
+    (set-frame-name heading-text)))
 
 (defun sacha/org-show-next-slide ()
-	"Show the next slide."
-	(interactive)
-	(find-file sacha/org-show-presentation-file)
-	(widen)
-	(goto-char (line-end-position))
-	(when (re-search-forward sacha/org-show-slide-tag-regexp nil t)
-		(sacha/org-show-execute-slide)))
+  "Show the next slide."
+  (interactive)
+  (find-file sacha/org-show-presentation-file)
+  (widen)
+  (goto-char (line-end-position))
+  (when (re-search-forward sacha/org-show-slide-tag-regexp nil t)
+    (sacha/org-show-execute-slide)))
 
 (defun sacha/org-show-previous-slide ()
-	"Show the next slide."
-	(interactive)
-	(find-file sacha/org-show-presentation-file)
-	(widen)
-	(goto-char (line-beginning-position))
-	(when (re-search-backward sacha/org-show-slide-tag-regexp nil t)
-		(sacha/org-show-execute-slide)))
+  "Show the next slide."
+  (interactive)
+  (find-file sacha/org-show-presentation-file)
+  (widen)
+  (goto-char (line-beginning-position))
+  (when (re-search-backward sacha/org-show-slide-tag-regexp nil t)
+    (sacha/org-show-execute-slide)))
 
 (global-set-key '[f5] 'sacha/org-show-previous-slide)
 (global-set-key '[f6] 'sacha/org-show-execute-slide)

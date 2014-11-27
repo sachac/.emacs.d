@@ -2662,6 +2662,7 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
 
   (use-package magit
     :ensure magit
+    :load-path "~/elisp/magit"
     :config
     (progn
       (setq magit-git-executable "c:/program files (x86)/git/bin/git.exe"

@@ -196,6 +196,7 @@ possible, although I prefer ido's way of switching buffers.
                      '(insert-char . ido)))
       :bind (("C-c h" . helm-mini) 
              ("C-h a" . helm-apropos)
+             ("C-h w" . helm-descbinds)
              ("M-y" . helm-show-kill-ring)
              ("M-x" . helm-M-x)
              ("C-x c o" . helm-occur)
@@ -542,7 +543,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       (key-chord-mode 1)
       ;; k can be bound too
       (key-chord-define-global "uu"     'undo)
-      (key-chord-define-global "yy"     'browse-kill-ring)
+      ;; y is now free
       (key-chord-define-global "jj"     'ace-jump-word-mode)
       (key-chord-define-global "jw"     'ace-window)
       (key-chord-define-global "jl"     'ace-jump-line-mode)
@@ -916,10 +917,11 @@ This quickly adds a same-level heading for the succeeding day.
 #+begin_src emacs-lisp     
     (defvar sacha/org-basic-task-template "* TODO %^{Task}    
     SCHEDULED: %^t
-    %?
     :PROPERTIES:
     :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
-    :END:" "Basic task data")
+    :END:
+    %?
+    " "Basic task data")
     (setq org-capture-templates
           `(("t" "Tasks" entry 
              (file+headline "~/personal/organizer.org" "Tasks")
@@ -2023,21 +2025,41 @@ Now we put it all together...
 
 This makes it easier to reorganize lines in my weekly review.
 #+begin_src emacs-lisp
-  (defun sacha/org-move-line-to-destination ()
-    "Moves the current list item to <<destination>> in the current buffer."
-    (interactive)
-    (save-window-excursion
-      (save-excursion
-        (let ((string
-               (buffer-substring-no-properties
-                (line-beginning-position) (line-end-position))))
-          (delete-region (line-beginning-position) (1+ (line-end-position)))
-          (goto-char (point-min))
-          (re-search-forward "<<destination>>" nil t)
-          (insert "\n" (make-string (- (match-beginning 0) (line-beginning-position)) ?\ ) (s-trim string))))))
-  (bind-key "C-c d" 'sacha/org-move-line-to-destination org-mode-map)
+    (defun sacha/org-move-line-to-destination ()
+      "Moves the current list item to <<destination>> in the current buffer.
+If no <<destination>> is found, move it to the end of the list
+and indent it one level."
+      (interactive)
+      (save-window-excursion
+        (save-excursion
+          (let ((string
+                 (buffer-substring-no-properties
+                  (line-beginning-position) (line-end-position)))
+                found)
+            (delete-region (line-beginning-position) (1+ (line-end-position)))
+            (save-excursion
+              (goto-char (point-min))
+              (when (re-search-forward "<<destination>>" nil t)
+                (insert "\n" (make-string (- (match-beginning 0) (line-beginning-position)) ?\ ) (s-trim string))
+                (setq found t)))
+            (unless found
+              (org-end-of-item-list)
+              (insert string "\n"))))))
+    (bind-key "C-c d" 'sacha/org-move-line-to-destination org-mode-map)
 #+end_src
 
+#+begin_src emacs-lisp
+  (defun sacha/org-move-line-to-end-of-list ()
+    "Move the current list item to the end of the list."
+    (interactive)
+    (save-excursion
+      (let ((string (buffer-substring-no-properties (line-beginning-position)
+                                                    (line-end-position))))
+        (delete-region (line-beginning-position) (1+ (line-end-position)))
+        (org-end-of-item-list)
+        (insert string))))
+
+#+end_src
 *** Monthly reviews
 
 <<monthly-reviews>>
@@ -2188,6 +2210,7 @@ ELPA, so I figured I'd give that a try. UPDATE 2014-10-29: Overriding it with th
   :config
    (progn
     (setq org-export-with-toc nil)
+    (setq org-html-toplevel-hlevel 3)
     (setq org-export-htmlize-output-type 'css)
     (defadvice org2blog/wp-post-buffer (around sacha activate)
     (let ((org-confirm-babel-evaluate nil))
@@ -2575,8 +2598,8 @@ More things that I need to get used to...
         :commands yas-global-mode
         :init
         (progn
+          (setq yas-snippet-dirs (cons "~/elisp/snippets" yas-snippet-dirs))
           (yas-global-mode 1)
-          (yas-load-directory "~/elisp/snippets")
           (setq yas-key-syntaxes '("w_" "w_." "^ "))))
       ;;        (global-set-key (kbd "C-c y") (lambda () (interactive)
       ;;                                         (yas/load-directory "~/elisp/snippets")))
@@ -3193,6 +3216,24 @@ Ace Window looks useful too.
   :bind ("C-x o" . ace-window))
 #+end_src
 
+And ace-isearch...
+
+#+begin_src emacs-lisp
+(use-package ace-isearch
+  :ensure ace-isearch
+  :init (global-ace-isearch-mode 1))
+#+end_src
+
+And ace-jump-zap...
+
+#+begin_src emacs-lisp
+(use-package ace-jump-zap
+  :ensure ace-jump-zap
+  :bind
+  (("M-z" . ace-jump-zap-up-to-char-dwim)
+   ("C-M-z" . ace-jump-zap-to-char-dwim)))
+#+end_src
+
 *** Network: TRAMP and editing files over SSH
 Emacs lets you edit files on remote servers, which is pretty darn
 cool. On Windows, these things help a little.
@@ -3400,6 +3441,30 @@ Got sdic from http://namazu.org/~tsuchiya/sdic/ . Attempting to get this to work
 - [[https://github.com/jwiegley/dot-emacs][John Wiegley]]: Also see his [[http://www.youtube.com/watch?v=RvPFZL6NJNQ][Emacs Lisp Development talk]] (sorry, sucky video) and [[http://www.youtube.com/watch?v=ytNsHmRLZGM][Emacs Chat video]]
 
 * Inactive/infrequent things
+** Org - mapping blog posts and image URLs from bulk exports
+#+begin_src emacs-lisp  :tangle no
+  (defun sacha/org-map-blog-and-image-urls ()
+    "Extract and map blog post / image URLs."
+    (interactive)
+    (goto-char (point-min))
+    (keep-lines "h2\\|img")  
+    (goto-char (point-min))
+    (while (re-search-forward
+            "^.*?h2.*?a href=\"\\(.*?\\)\".*$" nil t) 
+      (replace-match "\\1"))
+    (goto-char (point-min))
+    (while (re-search-forward
+            "^.*?src=\"\\(.*?\\)\".*$" nil t)
+      (replace-match "\\1"))
+    (let (last-post current-url result)
+      (goto-char (point-min))
+      (while (re-search-forward "http://\\(.*\\)" nil t)
+        (setq current-url (match-string 0))
+        (if (string-match "/\\([^/]*?\\)\\(_thumb\\|-640x.*\\)?.png" current-url)
+            (setq result (cons (concat (match-string 1 current-url) "\t" last-post) result))
+          (setq last-post current-url)))
+      (kill-new (mapconcat 'identity result "\n"))))
+#+end_src
 ** Beeminder
 <<beeminder>>
 
@@ -3977,8 +4042,7 @@ recently-opened files first.
           "*Time review*\n"
           (sacha/org-summarize-time-use
            (format-time-string "%Y-%m-%d" start)
-           (format-time-string "%Y-%m-%d" end)
-           (float-time (time-subtract end start))
+           (format-time-string "%Y-%m-%d" end))
           "\n")))
       (yank))))
 #+end_src

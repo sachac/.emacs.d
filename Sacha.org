@@ -196,7 +196,6 @@ possible, although I prefer ido's way of switching buffers.
                      '(insert-char . ido)))
       :bind (("C-c h" . helm-mini) 
              ("C-h a" . helm-apropos)
-             ("C-h w" . helm-descbinds)
              ("M-y" . helm-show-kill-ring)
              ("M-x" . helm-M-x)
              ("C-x c o" . helm-occur)
@@ -204,6 +203,14 @@ possible, although I prefer ido's way of switching buffers.
              ("C-x c b" . sacha/helm-do-grep-book-notes)
              ("C-x c SPC" . helm-all-mark-rings)))
     (ido-mode -1) ;; Turn off ido mode in case I enabled it accidentally
+#+end_src
+
+Great for describing bindings. I'll replace the binding for =where-is= too.
+
+#+begin_src emacs-lisp
+(use-package helm-descbinds
+  :bind (("C-h b" . helm-descbinds)
+         ("C-h w" . helm-descbinds)))
 #+end_src
 
 helm-grep? Bit slow and hard to read, though.

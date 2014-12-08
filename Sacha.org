@@ -191,6 +191,10 @@ possible, although I prefer ido's way of switching buffers.
         ;; killed. Let's use ido instead.
         (add-to-list 'helm-completing-read-handlers-alist 
                      '(switch-to-buffer . ido))
+        (add-to-list 'helm-completing-read-handlers-alist 
+                     '(rename-file . ido))
+        (add-to-list 'helm-completing-read-handlers-alist 
+                     '(dired-rename-file . ido))
         ;; Unicode
         (add-to-list 'helm-completing-read-handlers-alist 
                      '(insert-char . ido)))
@@ -2692,6 +2696,7 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
 
   (use-package magit
     :ensure magit
+    :load-path "~/elisp/magit"
     :config
     (progn
       (setq magit-git-executable "c:/program files (x86)/git/bin/git.exe"
@@ -2811,6 +2816,8 @@ options to add at the end of the command, but that can wait for another time (or
 *** Ruby
 
 		#+begin_src emacs-lisp
+(use-package rinari :ensure rinari)
+(use-package bundler :ensure bundler)
     (use-package robe
       :ensure robe
       :init

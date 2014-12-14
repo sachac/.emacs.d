@@ -542,9 +542,9 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
      (t (org-agenda nil "a"))))
 
   (defvar sacha/key-chord-command-map (make-sparse-keymap))
-  (bind-key "h" 'sacha/org-check-agenda sacha/key-chord-command-map)
+  (bind-key "h" 'emms-pause sacha/key-chord-command-map)
   (bind-key "u" 'emms-pause sacha/key-chord-command-map)
-  (bind-key "t" 'emms-seek-forward sacha/key-chord-command-map)
+  (bind-key "t" 'emms-seek-backward sacha/key-chord-command-map)
   (bind-key "n" 'emms-seek-to sacha/key-chord-command-map)
     
   (use-package key-chord
@@ -756,6 +756,11 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 (bind-key "C-x 8 s" (sacha/insert-unicode "ZERO WIDTH SPACE"))
 (bind-key "C-x 8 S" (sacha/insert-unicode "SNOWMAN"))
 #+end_src
+*** Clean up spaces
+
+#+begin_src emacs-lisp
+  (bind-key "M-SPC" 'cycle-spacing)
+#+end_src
 ** Org
 
 I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of
@@ -937,10 +942,14 @@ This quickly adds a same-level heading for the succeeding day.
           `(("t" "Tasks" entry 
              (file+headline "~/personal/organizer.org" "Tasks")
              ,sacha/org-basic-task-template)
+            ("T" "Quick task" entry 
+             (file+headline "~/personal/organizer.org" "Tasks")
+             "* TODO %^{Task}"
+             :immediate-finish t)
             ("e" "Emacs idea" entry
              (file+headline "~/code/dev/emacs-notes/tasks.org" "Emacs")
              "* TODO %^{Task}"
-             :immediate-finish)
+             :immediate-finish t)
             ("b" "Business task" entry
              (file+headline "~/personal/business.org" "Tasks")
              ,sacha/org-basic-task-template)
@@ -949,7 +958,8 @@ This quickly adds a same-level heading for the succeeding day.
              ,sacha/org-basic-task-template)
             ("j" "Journal entry" plain
              (file+datetree+prompt "~/personal/journal.org")
-             "%K - %a\n%i\n%?\n")
+             "%K - %a\n%i\n%?\n"
+             :unnarrowed t)
             ("db" "Done - Business" entry
              (file+headline "~/personal/business.org" "Tasks")
              "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
@@ -967,13 +977,13 @@ This quickly adds a same-level heading for the succeeding day.
              "%(org-read-date) %^{Payee}
       Liabilities:MBNA  
       Expenses:%^{Account}  $%^{Amount}
-    " :immediate-finish)
+    " :immediate-finish t)
             ("ln" "No Frills" plain
              (file "~/personal/ledger")
              "%(let ((org-read-date-prefer-future nil)) (org-read-date)) * No Frills
       Liabilities:MBNA  
       Assets:Wayne:Groceries  $%^{Amount}
-    " :immediate-finish)    
+    " :immediate-finish t)    
             ("lc" "Cash" plain
              (file "~/personal/ledger")
              "%(org-read-date) * %^{Payee}
@@ -1000,7 +1010,7 @@ This quickly adds a same-level heading for the succeeding day.
     :END:")
              ("n" "Daily note" table-line (file+olp "~/personal/organizer.org" "Daily notes")
               "| %u | %^{Note} |"
-              :immediate-finish)
+              :immediate-finish t)
              ("r" "Notes" entry
               (file+datetree "~/personal/organizer.org")
               "* %?\n\n%i\n"
@@ -1805,8 +1815,8 @@ down into previous/next week.
       (setq string
             (concat
              (format "- *Business* (%.1fh - %d%%)\n" biz-time (/ biz-time 1.68))
-             (mapconcat 'identity (sort business 'string<) "\n") "\n"
-             (mapconcat 'identity (sort business-next 'string<) "\n")
+             (mapconcat 'identity business "\n") "\n"
+             (mapconcat 'identity business-next "\n")
              "\n"
              (format "  - *Earn* (%.1fh - %d%% of Business)\n"
                      (sacha/quantified-get-hours "Business - Earn" time-summary)
@@ -2221,10 +2231,11 @@ ELPA, so I figured I'd give that a try. UPDATE 2014-10-29: Overriding it with th
   :config
    (progn
     (setq org-export-with-toc nil)
-    (setq org-html-toplevel-hlevel 3)
+    (setq org-html-toplevel-hlevel 2)
     (setq org-export-htmlize-output-type 'css)
     (defadvice org2blog/wp-post-buffer (around sacha activate)
-    (let ((org-confirm-babel-evaluate nil))
+    (let ((org-confirm-babel-evaluate nil)
+          (org-html-toplevel-hlevel 3))
       ad-do-it))))
 (use-package htmlize :ensure htmlize)
 #+end_src
@@ -2609,9 +2620,10 @@ More things that I need to get used to...
         :commands yas-global-mode
         :init
         (progn
-          (setq yas-snippet-dirs (cons "~/elisp/snippets" yas-snippet-dirs))
           (yas-global-mode 1)
-          (setq yas-key-syntaxes '("w_" "w_." "^ "))))
+          (setq yas-key-syntaxes '("w_" "w_." "^ ")))
+        :config
+        (setq yas-snippet-dirs (cons "~/elisp/snippets" yas-snippet-dirs)))
       ;;        (global-set-key (kbd "C-c y") (lambda () (interactive)
       ;;                                         (yas/load-directory "~/elisp/snippets")))
 #+end_src
@@ -3216,9 +3228,8 @@ Quickly jump to a position in the current view.
 
 #+begin_src emacs-lisp
   (use-package ace-jump-mode
-    :ensure ace-jump-mode
-    :bind ("M-SPC" . ace-jump-mode))
-  (bind-key "M-S-SPC" 'just-one-space)
+    :ensure ace-jump-mode)
+  ;; I use the jj key-chord for this; see the definitions for key-chord
 #+end_src
 
 Ace Window looks useful too.

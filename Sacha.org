@@ -858,6 +858,7 @@ From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-comm
   (setq org-goto-interface 'outline
         org-goto-max-level 10)
   (require 'imenu)
+  (setq org-startup-folded nil)
   (bind-key "M-o" 'imenu)
   (bind-key "C-c j" 'org-clock-goto) ;; jump to current task from anywhere
   (bind-key "C-c C-w" 'org-refile)
@@ -957,6 +958,10 @@ This quickly adds a same-level heading for the succeeding day.
              (file+headline "~/personal/people.org" "Tasks")
              ,sacha/org-basic-task-template)
             ("j" "Journal entry" plain
+             (file+datetree "~/personal/journal.org")
+             "%K - %a\n%i\n%?\n"
+             :unnarrowed t)
+            ("J" "Journal entry with date" plain
              (file+datetree+prompt "~/personal/journal.org")
              "%K - %a\n%i\n%?\n"
              :unnarrowed t)
@@ -1079,7 +1084,8 @@ The parentheses indicate keyboard shortcuts that I can use to set the task state
            "STARTED(s)"
            "WAITING(w@/!)"
            "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c@)")
-          (sequence "TODELEGATE(-)" "DELEGATED(d)" "COMPLETE(x)")))
+          (sequence "TOSKETCH" "SKETCHED" "|" "POSTED")
+          (sequence "TODELEGATE(-)" "DELEGATED(d)" "|" "COMPLETE(x)")))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -1527,7 +1533,9 @@ hang of using these more!
              ((org-agenda-view-columns-initially t)))
             ("gw" "Writing" tags-todo "@writing"
              ((org-agenda-view-columns-initially t)))
-            ("gp" "Phone" tags-todo "@phone"
+            ("gp" "Publishing" tags-todo "@publishing"
+             ((org-agenda-view-columns-initially t)))
+            ("gP" "Phone" tags-todo "@phone"
              ((org-agenda-view-columns-initially t)))
             ("gd" "Drawing" tags-todo "@drawing"
              ((org-agenda-view-columns-initially t)))
@@ -2491,6 +2499,34 @@ With prefix argument, also display headlines without a TODO keyword."
   (org-tags-view (null current-prefix-arg) tag))
 #+end_quote
 
+*** Sketched books
+
+Convenience functions to make my life easier when sketchnoting books.
+
+#+begin_src emacs-lisp
+  (setq yas-indent-line 'fixed)
+  (defun sacha/convert-sketch-title-to-filename (text)
+    (setq text (replace-regexp-in-string "[?!]$" "" text))
+    (setq text (replace-regexp-in-string "[?!:] " " - " text)))
+  (ert-deftest sacha/convert-sketch-title-to-filename ()
+    (should (string= (sacha/convert-sketch-title-to-filename "Test") "Test"))
+    (should (string= (sacha/convert-sketch-title-to-filename "Another Test!") "Another Test"))
+    (should (string= (sacha/convert-sketch-title-to-filename "Does this work? Yes") "Does this work - Yes"))
+    (should (string= (sacha/convert-sketch-title-to-filename "Title: Subtitle") "Title - Subtitle"))
+    )
+
+  (defun sacha/prepare-sketchnote-file ()
+    (interactive)
+    (let* ((base-name (org-entry-get (point) "BASENAME"))
+           (filename (expand-file-name (concat base-name ".tif") "~/dropbox/inbox/")))
+      (unless base-name (error "Missing basename property"))
+      (if (file-exists-p filename)
+          (error "File already exists")
+        (copy-file "g:/drawing-templates/custom/0 - base.tif" filename))
+      (shell-command (concat (shell-quote-argument "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe ")
+                             (shell-quote-argument filename) " &"))))
+
+#+end_src
 ** Coding
 *** Web development
 #+begin_src emacs-lisp

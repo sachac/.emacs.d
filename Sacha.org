@@ -2539,7 +2539,8 @@ Works on region defined by BEG and END."
       (narrow-to-region beg end)
       (goto-char (point-min))
       (while (re-search-forward "\\([0-9]+\\):\\([0-9]+\\)" nil t)
-        (replace-match (concat "[[" url "#t=" (match-string 1) "h" (match-string 2) "s][" (match-string 0) "]]") nil t)))))
+        (replace-match (concat "[[" url "#t=" (match-string 1) "h" (match-string 2) "m][" (match-string 0) "]]") nil t)))))
+
 #+end_src
 ** Coding
 *** Web development

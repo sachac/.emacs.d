@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-12-17 Wed 23:03 -->
+<!-- 2014-12-18 Thu 20:04 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -3859,7 +3859,7 @@ Convenience functions to make my life easier when sketchnoting books.
       (narrow-to-region beg end)
       (goto-char (point-min))
       (<span class="org-keyword">while</span> (re-search-forward <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">:</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span> nil t)
-        (replace-match (concat <span class="org-string">"[["</span> url <span class="org-string">"#t="</span> (match-string 1) <span class="org-string">"h"</span> (match-string 2) <span class="org-string">"s]["</span> (match-string 0) <span class="org-string">"]]"</span>) nil t)))))
+        (replace-match (concat <span class="org-string">"[["</span> url <span class="org-string">"#t="</span> (match-string 1) <span class="org-string">"h"</span> (match-string 2) <span class="org-string">"m]["</span> (match-string 0) <span class="org-string">"]]"</span>) nil t)))))
 </pre>
 </div>
 </div>

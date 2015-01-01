@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2014-12-18 Thu 20:04 -->
+<!-- 2014-12-31 Wed 18:20 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -1004,7 +1004,8 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
   ((<span class="org-string">"&lt;f2&gt; &lt;right&gt;"</span> . windmove-right)
    (<span class="org-string">"&lt;f2&gt; &lt;left&gt;"</span> . windmove-left)
    (<span class="org-string">"&lt;f2&gt; &lt;up&gt;"</span> . windmove-up)
-   (<span class="org-string">"&lt;f2&gt; &lt;down&gt;"</span> . windmove-down)))
+   (<span class="org-string">"&lt;f2&gt; &lt;down&gt;"</span> . windmove-down)
+   ))
 </pre>
 </div>
 </div>
@@ -1157,7 +1158,12 @@ Some code from <a href="http://emacsredux.com/blog/2013/04/28/switch-to-previous
   (bind-key <span class="org-string">"h"</span> 'emms-pause sacha/key-chord-command-map)
   (bind-key <span class="org-string">"u"</span> 'emms-pause sacha/key-chord-command-map)
   (bind-key <span class="org-string">"t"</span> 'emms-seek-backward sacha/key-chord-command-map)
-  (bind-key <span class="org-string">"n"</span> 'emms-seek-to sacha/key-chord-command-map)
+  (bind-key <span class="org-string">"s"</span> 'emms-seek-to sacha/key-chord-command-map)
+  (bind-key <span class="org-string">"f"</span> 'windmove-right sacha/key-chord-command-map)
+  (bind-key <span class="org-string">"b"</span> 'windmove-left sacha/key-chord-command-map)
+  (bind-key <span class="org-string">"n"</span> 'windmove-down sacha/key-chord-command-map)
+  (bind-key <span class="org-string">"p"</span> 'windmove-up sacha/key-chord-command-map)
+
 
   (<span class="org-keyword">use-package</span> <span class="org-constant">key-chord</span>
     <span class="org-builtin">:init</span>
@@ -1166,6 +1172,7 @@ Some code from <a href="http://emacsredux.com/blog/2013/04/28/switch-to-previous
       (key-chord-mode 1)
       <span class="org-comment-delimiter">;; </span><span class="org-comment">k can be bound too</span>
       (key-chord-define-global <span class="org-string">"uu"</span>     'undo)
+      (key-chord-define-global <span class="org-string">"jj"</span>     'ace-jump-word-mode)
       <span class="org-comment-delimiter">;; </span><span class="org-comment">y is now free</span>
       (key-chord-define-global <span class="org-string">"jj"</span>     'ace-jump-word-mode)
       (key-chord-define-global <span class="org-string">"jw"</span>     'ace-window)
@@ -3660,6 +3667,7 @@ These are great for quickly acting on tasks.
 (add-to-list 'org-speed-commands-user '(<span class="org-string">"d"</span> sacha/org-move-line-to-destination))
 (add-to-list 'org-speed-commands-user '(<span class="org-string">"i"</span> call-interactively 'org-clock-in))
 (add-to-list 'org-speed-commands-user '(<span class="org-string">"o"</span> call-interactively 'org-clock-out))
+(add-to-list 'org-speed-commands-user '(<span class="org-string">"$"</span> call-interactively 'org-archive-subtree))
 (bind-key <span class="org-string">"!"</span> 'sacha/org-clock-in-and-track org-agenda-mode-map)
 </pre>
 </div>
@@ -3729,6 +3737,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See <a h
  'org-babel-load-languages
  '((dot . t)
    (ditaa . t) 
+   (sh . t)
    (R . t)))
 (add-to-list 'org-src-lang-modes '(<span class="org-string">"dot"</span> . graphviz-dot))))
 </pre>
@@ -3820,27 +3829,65 @@ Convenience functions to make my life easier when sketchnoting books.
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(setq yas-indent-line 'fixed)
-(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/convert-sketch-title-to-filename</span> (text)
-  (setq text (replace-regexp-in-string <span class="org-string">"[?!]$"</span> <span class="org-string">""</span> text))
-  (setq text (replace-regexp-in-string <span class="org-string">"[?!:] "</span> <span class="org-string">" - "</span> text)))
-(<span class="org-keyword">ert-deftest</span> <span class="org-function-name">sacha/convert-sketch-title-to-filename</span> ()
-  (should (string= (sacha/convert-sketch-title-to-filename <span class="org-string">"Test"</span>) <span class="org-string">"Test"</span>))
-  (should (string= (sacha/convert-sketch-title-to-filename <span class="org-string">"Another Test!"</span>) <span class="org-string">"Another Test"</span>))
-  (should (string= (sacha/convert-sketch-title-to-filename <span class="org-string">"Does this work? Yes"</span>) <span class="org-string">"Does this work - Yes"</span>))
-  (should (string= (sacha/convert-sketch-title-to-filename <span class="org-string">"Title: Subtitle"</span>) <span class="org-string">"Title - Subtitle"</span>))
-  )
+<pre class="src src-emacs-lisp">  (setq yas-indent-line 'fixed)
+  (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/convert-sketch-title-to-filename</span> (text)
+    (setq text (replace-regexp-in-string <span class="org-string">"[?!]$"</span> <span class="org-string">""</span> text))
+    (setq text (replace-regexp-in-string <span class="org-string">"[?!:] "</span> <span class="org-string">" - "</span> text)))
+  (<span class="org-keyword">ert-deftest</span> <span class="org-function-name">sacha/convert-sketch-title-to-filename</span> ()
+    (should (string= (sacha/convert-sketch-title-to-filename <span class="org-string">"Test"</span>) <span class="org-string">"Test"</span>))
+    (should (string= (sacha/convert-sketch-title-to-filename <span class="org-string">"Another Test!"</span>) <span class="org-string">"Another Test"</span>))
+    (should (string= (sacha/convert-sketch-title-to-filename <span class="org-string">"Does this work? Yes"</span>) <span class="org-string">"Does this work - Yes"</span>))
+    (should (string= (sacha/convert-sketch-title-to-filename <span class="org-string">"Title: Subtitle"</span>) <span class="org-string">"Title - Subtitle"</span>))
+    )
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/prepare-sketchnote-file</span> ()
   (interactive)
-  (<span class="org-keyword">let*</span> ((base-name (org-entry-get (point) <span class="org-string">"BASENAME"</span>))
+  (<span class="org-keyword">let*</span> ((base-name (org-entry-get-with-inheritance  <span class="org-string">"BASENAME"</span>))
          (filename (expand-file-name (concat base-name <span class="org-string">".tif"</span>) <span class="org-string">"~/dropbox/inbox/"</span>)))
     (<span class="org-keyword">unless</span> base-name (<span class="org-warning">error</span> <span class="org-string">"Missing basename property"</span>))
     (<span class="org-keyword">if</span> (file-exists-p filename)
         (<span class="org-warning">error</span> <span class="org-string">"File already exists"</span>)
-      (copy-file <span class="org-string">"g:/drawing-templates/custom/0 - base.tif"</span> filename))
-    (shell-command (concat (shell-quote-argument <span class="org-string">"C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe "</span>)
-                           (shell-quote-argument filename) <span class="org-string">" &amp;"</span>))))
+        (copy-file <span class="org-string">"g:/drawing-templates/custom/0 - base.tif"</span> filename))
+      (shell-command (concat (shell-quote-argument <span class="org-string">"C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe "</span>)
+                             (shell-quote-argument filename) <span class="org-string">" &amp;"</span>))))
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/index-sketched-book</span> ()
+  <span class="org-doc">"Add entries to sketched books index."</span>
+  (interactive)
+  (<span class="org-keyword">let</span> ((title (org-entry-get-with-inheritance <span class="org-string">"SHORT_TITLE"</span>))
+        (author (org-entry-get-with-inheritance <span class="org-string">"AUTHOR"</span>))
+        (basename (org-entry-get-with-inheritance <span class="org-string">"BASENAME"</span>)))
+    (<span class="org-keyword">when</span> (file-exists-p (format <span class="org-string">"~/Dropbox/inbox/%s.png"</span> basename))
+      (copy-file (format <span class="org-string">"~/Dropbox/inbox/%s.png"</span> basename)
+                 (format <span class="org-string">"~/Dropbox/packaging/sketched-books/%s.png"</span> basename) t t)
+      (copy-file (format <span class="org-string">"~/Dropbox/inbox/%s.png"</span> basename)
+                 (format <span class="org-string">"g:/documents/photosync/Visual Book Reviews/%s.png"</span> basename) t t))
+    (find-file <span class="org-string">"~/Dropbox/packaging/sketched-books/index.org"</span>)
+    (goto-char (point-min))
+    (re-search-forward <span class="org-string">"&lt;&lt;insert-point&gt;&gt;"</span>)                              
+    (insert (format <span class="org-string">"\n- [[file:%s.png][%s - %s (sketched %s)]]\n  [[file:%s.png]]\n\n"</span>
+                    basename
+                    title
+                    author
+                    (substring basename 0 10)
+                    basename))
+    (find-file <span class="org-string">"~/Dropbox/packaging/sketched-books/ebook.org"</span>)
+    (goto-char (point-min))
+    (re-search-forward <span class="org-string">"&lt;&lt;insert-point&gt;&gt;"</span>)
+    (insert (format <span class="org-string">"\n* %s - %s (sketched %s)\n\n[[file:%s.png]]\n\n"</span>
+                    title
+                    author
+                    (substring basename 0 10)
+                    basename))))
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/package-sketched-book</span> ()
+  <span class="org-doc">"Add the latest sketch and package the collection."</span>
+  (interactive)
+  (shell-command
+   (format <span class="org-string">"plink -A vagrant@127.0.0.1 -P 2222 \"cd ~/dropbox/Packaging/sketched-books; git add '%s.png'; git commit -m 'Added %s - %s' -a; git push; make all\" &amp;"</span>
+           (org-entry-get-with-inheritance <span class="org-string">"BASENAME"</span>)
+           (org-entry-get-with-inheritance <span class="org-string">"SHORT_TITLE"</span>)
+           (org-entry-get-with-inheritance <span class="org-string">"AUTHOR"</span>))))
 </pre>
 </div>
 </div>
@@ -3930,11 +3977,11 @@ These config snippets seem to help too.
 </p>
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(setenv <span class="org-string">"CYGWIN"</span> <span class="org-string">"nodosfilewarning"</span>)
-(add-hook 'comint-output-filter-functions
-    'shell-strip-ctrl-m nil t)
-(add-hook 'comint-output-filter-functions
-    'comint-watch-for-password-prompt nil t)
+<pre class="src src-emacs-lisp">(<span class="org-keyword">when</span> (eq system-type 'windows-nt)
+  (setenv <span class="org-string">"CYGWIN"</span> <span class="org-string">"nodosfilewarning"</span>)
+  (setq shell-file-name <span class="org-string">"C:/emacs/libexec/emacs/24.4/i686-pc-mingw32/cmdproxy.exe"</span>)
+  (add-hook 'comint-output-filter-functions 'shell-strip-ctrl-m nil t)
+  (add-hook 'comint-output-filter-functions 'comint-watch-for-password-prompt nil t))
 </pre>
 </div>
 </div>

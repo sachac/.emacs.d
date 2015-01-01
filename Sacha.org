@@ -423,7 +423,8 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
     (("<f2> <right>" . windmove-right)
      ("<f2> <left>" . windmove-left)
      ("<f2> <up>" . windmove-up)
-     ("<f2> <down>" . windmove-down)))
+     ("<f2> <down>" . windmove-down)
+     ))
 #+end_src
 *** Make window splitting more useful
 
@@ -545,7 +546,12 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
   (bind-key "h" 'emms-pause sacha/key-chord-command-map)
   (bind-key "u" 'emms-pause sacha/key-chord-command-map)
   (bind-key "t" 'emms-seek-backward sacha/key-chord-command-map)
-  (bind-key "n" 'emms-seek-to sacha/key-chord-command-map)
+  (bind-key "s" 'emms-seek-to sacha/key-chord-command-map)
+  (bind-key "f" 'windmove-right sacha/key-chord-command-map)
+  (bind-key "b" 'windmove-left sacha/key-chord-command-map)
+  (bind-key "n" 'windmove-down sacha/key-chord-command-map)
+  (bind-key "p" 'windmove-up sacha/key-chord-command-map)
+
     
   (use-package key-chord
     :init
@@ -554,6 +560,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       (key-chord-mode 1)
       ;; k can be bound too
       (key-chord-define-global "uu"     'undo)
+      (key-chord-define-global "jj"     'ace-jump-word-mode)
       ;; y is now free
       (key-chord-define-global "jj"     'ace-jump-word-mode)
       (key-chord-define-global "jw"     'ace-window)
@@ -2399,6 +2406,7 @@ These are great for quickly acting on tasks.
   (add-to-list 'org-speed-commands-user '("d" sacha/org-move-line-to-destination))
   (add-to-list 'org-speed-commands-user '("i" call-interactively 'org-clock-in))
   (add-to-list 'org-speed-commands-user '("o" call-interactively 'org-clock-out))
+  (add-to-list 'org-speed-commands-user '("$" call-interactively 'org-archive-subtree))
   (bind-key "!" 'sacha/org-clock-in-and-track org-agenda-mode-map)
 #+end_src
 
@@ -2447,6 +2455,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
    'org-babel-load-languages
    '((dot . t)
      (ditaa . t) 
+     (sh . t)
      (R . t)))
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))))
 #+end_src
@@ -2504,27 +2513,65 @@ With prefix argument, also display headlines without a TODO keyword."
 Convenience functions to make my life easier when sketchnoting books.
 
 #+begin_src emacs-lisp
-  (setq yas-indent-line 'fixed)
-  (defun sacha/convert-sketch-title-to-filename (text)
-    (setq text (replace-regexp-in-string "[?!]$" "" text))
-    (setq text (replace-regexp-in-string "[?!:] " " - " text)))
-  (ert-deftest sacha/convert-sketch-title-to-filename ()
-    (should (string= (sacha/convert-sketch-title-to-filename "Test") "Test"))
-    (should (string= (sacha/convert-sketch-title-to-filename "Another Test!") "Another Test"))
-    (should (string= (sacha/convert-sketch-title-to-filename "Does this work? Yes") "Does this work - Yes"))
-    (should (string= (sacha/convert-sketch-title-to-filename "Title: Subtitle") "Title - Subtitle"))
-    )
+    (setq yas-indent-line 'fixed)
+    (defun sacha/convert-sketch-title-to-filename (text)
+      (setq text (replace-regexp-in-string "[?!]$" "" text))
+      (setq text (replace-regexp-in-string "[?!:] " " - " text)))
+    (ert-deftest sacha/convert-sketch-title-to-filename ()
+      (should (string= (sacha/convert-sketch-title-to-filename "Test") "Test"))
+      (should (string= (sacha/convert-sketch-title-to-filename "Another Test!") "Another Test"))
+      (should (string= (sacha/convert-sketch-title-to-filename "Does this work? Yes") "Does this work - Yes"))
+      (should (string= (sacha/convert-sketch-title-to-filename "Title: Subtitle") "Title - Subtitle"))
+      )
 
   (defun sacha/prepare-sketchnote-file ()
     (interactive)
-    (let* ((base-name (org-entry-get (point) "BASENAME"))
+    (let* ((base-name (org-entry-get-with-inheritance  "BASENAME"))
            (filename (expand-file-name (concat base-name ".tif") "~/dropbox/inbox/")))
       (unless base-name (error "Missing basename property"))
       (if (file-exists-p filename)
           (error "File already exists")
-        (copy-file "g:/drawing-templates/custom/0 - base.tif" filename))
-      (shell-command (concat (shell-quote-argument "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe ")
-                             (shell-quote-argument filename) " &"))))
+          (copy-file "g:/drawing-templates/custom/0 - base.tif" filename))
+        (shell-command (concat (shell-quote-argument "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe ")
+                               (shell-quote-argument filename) " &"))))
+
+  (defun sacha/index-sketched-book ()
+    "Add entries to sketched books index."
+    (interactive)
+    (let ((title (org-entry-get-with-inheritance "SHORT_TITLE"))
+          (author (org-entry-get-with-inheritance "AUTHOR"))
+          (basename (org-entry-get-with-inheritance "BASENAME")))
+      (when (file-exists-p (format "~/Dropbox/inbox/%s.png" basename))
+        (copy-file (format "~/Dropbox/inbox/%s.png" basename)
+                   (format "~/Dropbox/packaging/sketched-books/%s.png" basename) t t)
+        (copy-file (format "~/Dropbox/inbox/%s.png" basename)
+                   (format "g:/documents/photosync/Visual Book Reviews/%s.png" basename) t t))
+      (find-file "~/Dropbox/packaging/sketched-books/index.org")
+      (goto-char (point-min))
+      (re-search-forward "<<insert-point>>")                              
+      (insert (format "\n- [[file:%s.png][%s - %s (sketched %s)]]\n  [[file:%s.png]]\n\n"
+                      basename
+                      title
+                      author
+                      (substring basename 0 10)
+                      basename))
+      (find-file "~/Dropbox/packaging/sketched-books/ebook.org")
+      (goto-char (point-min))
+      (re-search-forward "<<insert-point>>")
+      (insert (format "\n* %s - %s (sketched %s)\n\n[[file:%s.png]]\n\n"
+                      title
+                      author
+                      (substring basename 0 10)
+                      basename))))
+
+  (defun sacha/package-sketched-book ()
+    "Add the latest sketch and package the collection."
+    (interactive)
+    (shell-command
+     (format "plink -A vagrant@127.0.0.1 -P 2222 \"cd ~/dropbox/Packaging/sketched-books; git add '%s.png'; git commit -m 'Added %s - %s' -a; git push; make all\" &"
+             (org-entry-get-with-inheritance "BASENAME")
+             (org-entry-get-with-inheritance "SHORT_TITLE")
+             (org-entry-get-with-inheritance "AUTHOR"))))
 
 #+end_src
 *** Emacs chats, Emacs hangouts
@@ -2582,11 +2629,11 @@ I almost always want to go to the right indentation on the next line.
 I'm on Windows, so I use Cygwin to add Unix-y tools to make my life easier. 
 These config snippets seem to help too.
 #+begin_src emacs-lisp
-  (setenv "CYGWIN" "nodosfilewarning")
-  (add-hook 'comint-output-filter-functions
-      'shell-strip-ctrl-m nil t)
-  (add-hook 'comint-output-filter-functions
-      'comint-watch-for-password-prompt nil t)
+  (when (eq system-type 'windows-nt)
+	  (setenv "CYGWIN" "nodosfilewarning")
+    (setq shell-file-name "C:/emacs/libexec/emacs/24.4/i686-pc-mingw32/cmdproxy.exe")
+    (add-hook 'comint-output-filter-functions 'shell-strip-ctrl-m nil t)
+    (add-hook 'comint-output-filter-functions 'comint-watch-for-password-prompt nil t))
 #+end_src
 
 *** Expand region

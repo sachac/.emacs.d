@@ -1911,71 +1911,96 @@ The following code makes it easy to add a line:
 Now we put it all together...
 
 #+begin_src emacs-lisp
-  (defun sacha/org-prepare-weekly-review ()
-    "Prepare weekly review template."
-    (interactive)
-    (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
-          start end)
-      (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
-      (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
-        (insert
-         (concat
-          "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
-          "*Blog posts*\n\n"
-          "*Sketches*\n\n" 
-          (sacha/flickr-export-and-extract start end) "\n"
-          "*Link round-up*\n\n"
-          (sacha/evernote-export-and-extract start end)
-          "\n\n*Focus areas and time review*\n\n"
-          (sacha/org-summarize-focus-areas)
-          "\n"))))
+    (defun sacha/org-prepare-weekly-review ()
+      "Prepare weekly review template."
+      (interactive)
+      (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
+            start end)
+        (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
+        (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
+          (insert
+           "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
+           "*Blog posts*\n\n"
+           "*Sketches*\n\n" 
+           (sacha/flickr-export-and-extract start end) "\n"
+           "*Link round-up*\n\n"
+           (sacha/evernote-export-and-extract start end)
+           "\n\n*Focus areas and time review*\n\n"
+           (sacha/org-summarize-focus-areas)
+           "\n")))
 #+end_src
 **** Flickr extract
 
 #+begin_src emacs-lisp
+  (defun _sacha/clean-up-flickr-list (list)
+    (setq list
+          (replace-regexp-in-string "\\([0-9]+\\)-\\([0-9]+\\)-\\([0-9]+\\)"
+                                    "\\1.\\2.\\3" list))
+    (setq list
+          (replace-regexp-in-string "\\[\"" "[" list))
+    (setq list
+          (replace-regexp-in-string "<a href=\"\"\\([^\"]+\\).*?>.*?</a>"
+                                    "[[\\1][\\2]]" list))
+    (setq list
+          (replace-regexp-in-string "\"" "" (replace-regexp-in-string "\"\\]" "]" list))))
+
+  (defun _sacha/format-flickr-link-for-org (x)
+    (let ((title (assoc-default "FileName" x)))
+      (format
+       "- [[%s][%s]] %s"
+       (assoc-default "URL" x)
+       title
+       (if (string= (assoc-default "Description" x) "")
+           ""
+         (concat "- "
+                 (replace-regexp-in-string
+                  "<a href=\"\"\\(.*?\\)\"\".*?>\\(.*?\\)</a>"
+                  "[[\\1][\\2]]"
+                  (assoc-default "Description" x)))))))
+
+
+  (defun _sacha/parse-and-filter-flickr-csv-buffer (start end)
+    (sort
+     (delq nil
+           (mapcar (lambda (x)
+                     (if (and (string< (assoc-default "FileName" x) end)
+                              (org-string<= start (assoc-default "FileName" x)))
+                         x))
+                   (csv-parse-buffer t)))
+     (lambda (a b)
+       (string< (assoc-default "FileName" a)
+                (assoc-default "FileName" b)))))
+
+
+  (defun sacha/flickr-export-and-extract (start end &optional do-insert)
+    "Download Flickr metadata and extract the relevant part."
+    (interactive (list (org-read-date) (org-read-date) t))
+    (if do-insert
+        (insert (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
+      (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end)))
+
+
   (defun sacha/flickr-extract-links-for-review (filename start end)
     "Extract Flickr titles and URLs from FILENAME from START to END.
-       The file should be a CSV downloaded by the Flickr metadata downloader.
-       Start date and end date should be strings in the form yyyy-mm-dd."
+         The file should be a CSV downloaded by the Flickr metadata downloader.
+         Start date and end date should be strings in the form yyyy-mm-dd."
     (interactive (list (read-file-name "File: ")
-                            (org-read-date)
-                            (org-read-date)))
-         (require 'csv)
-         (let (list)
-           (with-temp-buffer
-             (insert-file-contents filename)
-             (goto-char (point-min))
-             (setq list
-                   (mapconcat
-                    (lambda (x) (concat "- [[" (car x) "][" (cdr x) "]]"))
-                    (sort
-                     (delq nil
-                           (mapcar (lambda (x)
-                                     (let ((title (cdr (assoc "FileName" x))))
-                                       (if (and (not (string< title start))
-                                                (string< title end))
-                                           (cons (cdr (assoc "URL" x)) title))))
-                                   (csv-parse-buffer t)))
-                     (lambda (a b) (string<  (cdr a) (cdr b))))
-                    "\n"))
-             (setq list
-                   (replace-regexp-in-string "\\([0-9]+\\)-\\([0-9]+\\)-\\([0-9]+\\)"
-                                             "\\1.\\2.\\3" list))
-             (setq list
-                   (replace-regexp-in-string "\\[\"" "[" list))
-             (setq list
-                   (replace-regexp-in-string "\"" "" (replace-regexp-in-string "\"\\]" "]" list))))
-           (if (called-interactively-p 'any)
-               (insert list)
-             list)))
-       
-       (defun sacha/flickr-export-and-extract (start end &optional do-insert)
-         "Download Flickr metadata and extract the relevant part."
-         (interactive (list (org-read-date) (org-read-date) t))
-         (shell-command "c:/sacha/dropbox/bin/flickr.bat")
-         (if do-insert
-             (insert (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
-           (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end)))
+                       (org-read-date)
+                       (org-read-date)))
+    (require 'csv)
+    (let (list)
+      (with-temp-buffer
+        (insert-file-contents filename)
+        (goto-char (point-min))
+        (setq list
+              (mapconcat
+               '_sacha/format-flickr-link-for-org
+               (_sacha/parse-and-filter-flickr-csv-buffer start end)
+               "\n"))
+        (setq list (_sacha/clean-up-flickr-list list))
+        (if (called-interactively-p 'any)
+            (insert list)
+          list))))
 #+end_src
 
 **** Link-related convenience functions
@@ -2113,6 +2138,44 @@ I want to be able to see what I worked on in a month so that I can write my [[ht
           (org-agenda-start-with-clockreport-mode t)
           (org-agenda-clockreport-parameter-plist '(:link t :maxlevel 3)))
       (org-agenda-list nil start-date 'month)))
+#+end_src
+
+Here's a function like =sacha/org-prepare-weekly-review=:
+
+#+begin_src emacs-lisp
+  
+  (defun _sacha/extract-posts-from-webpage (url)
+    (with-current-buffer (url-retrieve-synchronously url)
+      (goto-char (point-min))
+      (re-search-forward "<pre>")
+      (buffer-substring
+       (point)
+       (progn (re-search-forward "</pre>") (match-beginning 0)))))
+
+  (defun sacha/org-prepare-monthly-review ()
+    (interactive)
+    (let* ((date (decode-time))
+           (month (elt date 4))
+           (year (elt date 5))
+           start-date
+           end-date
+           posts
+           sketches)
+      (calendar-increment-month month year -1)
+      (setq start-date (format "%4d-%02d-01" year month)
+            end-date (format "%4d-%02d-01" (elt date 5) (elt date 4))
+            posts (_sacha/extract-posts-from-webpage
+                   (format "http://sachachua.com/blog/%4d/%d?org=1"
+                           year month))
+            sketches (sacha/flickr-export-and-extract start-date end-date)) 
+      (insert
+       "\n\n** Monthly review: "
+       (format-time-string "%B %Y" (encode-time 0 0 0 1 month year))
+       "  :monthly:review:\n"
+       "*Blog posts*\n"
+       posts "\n\n"
+       "*Sketches*\n\n"
+       sketches)))
 #+end_src
 
 *** Viewing, navigating, and editing the Org tree
@@ -2711,6 +2774,37 @@ More things that I need to get used to...
 (define-key emacs-lisp-mode-map (kbd "C-c .") 'find-function-at-point)
 (bind-key "C-c f" 'find-function)
 #+end_src
+**** Sorting defuns
+
+#+begin_src emacs-lisp
+  (defun sacha/sort-defuns-in-region (beg end)
+    "Can be handy for sorting out duplicates.
+Sorts the defuns from BEG to END. Leaves the point at where it
+couldn't figure things out. Important: This assumes all the
+top-level forms in the region are defuns."
+    (interactive "r")
+    (let ((input (buffer-substring beg end))
+          list last-point form result)
+      (save-restriction
+        (save-excursion
+          (narrow-to-region beg end)
+          (goto-char (point-min))
+          (setq last-point (point-min))
+          (setq form t)
+          (while (and form (not (eobp)))
+            (setq form (ignore-errors (read (current-buffer))))
+            (when form
+              (add-to-list
+               'list
+               (cons
+                (prin1-to-string (elt form 1))
+                (buffer-substring last-point (point))))
+              (setq last-point (point))))
+          (setq list (sort list (lambda (a b) (string< (car a) (car b)))))
+          (delete-region (point-min) (point))
+          (insert (mapconcat 'cdr list "\n"))))))
+#+end_src
+
 *** Snippets
     #+begin_src emacs-lisp
       (use-package yasnippet
@@ -4144,30 +4238,6 @@ recently-opened files first.
                       (concat ": " (substring doc 0 (string-match "\n" doc)))
                     ""))
         "")))
-#+end_src
-
-** Work-in-progress: monthly review
-
-... and for good measure, let's do some kind of monthly review too.
-
-#+begin_src emacs-lisp :eval no :tangle no
-  (defun sacha/org-prepare-monthly-review ()
-    "Prepare monthly review template."
-    (interactive)
-    (let* ((base-date (org-read-date-analyze "-1m" nil '(0 0 0)))
-           (start (encode-time 0 0 0 1 (elt base-date 4) (elt base-date 5)))
-           (end (encode-time 0 0 0 1 (1+ (elt base-date 4)) (elt base-date 5))))
-      (save-window-excursion
-        (kill-new
-         (concat
-          "*** Monthly review: " (format-time-string "%B %Y" base-date) "  :monthly:\n"
-          "*Blog posts*\n\n"
-          "*Time review*\n"
-          (sacha/org-summarize-time-use
-           (format-time-string "%Y-%m-%d" start)
-           (format-time-string "%Y-%m-%d" end))
-          "\n")))
-      (yank))))
 #+end_src
 
 ** MobileOrg for Android

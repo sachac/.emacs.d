@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2015-01-01 Thu 23:06 -->
+<!-- 2015-01-04 Sun 11:57 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -297,7 +297,7 @@ for the JavaScript code in this tag.
 <li><a href="#unnumbered-113">Eldoc</a></li>
 <li><a href="#unnumbered-114">Refactoring&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
 <li><a href="#unnumbered-115">Jumping to code</a></li>
-<li><a href="#unnumbered-116">Sorting defuns</a></li>
+<li><a href="#unnumbered-116">Sorting</a></li>
 </ul>
 </li>
 <li><a href="#unnumbered-117">Snippets</a></li>
@@ -499,6 +499,9 @@ in a directory in my <code>load-path</code>, Emacs can find them.
 <pre class="src src-emacs-lisp">(add-to-list 'load-path <span class="org-string">"~/elisp"</span>)
 (add-to-list 'load-path <span class="org-string">"~/elisp/artbollocks-mode"</span>)
 (<span class="org-keyword">require</span> '<span class="org-constant">use-package</span>)
+(<span class="org-keyword">use-package</span> <span class="org-constant">auto-compile</span>
+  <span class="org-builtin">:ensure</span> t
+  <span class="org-builtin">:init</span> (auto-compile-on-load-mode))
 </pre>
 </div>
 </div>
@@ -4155,15 +4158,14 @@ More things that I need to get used to&#x2026;
 </div>
 </div>
 <div id="outline-container-unnumbered-116" class="outline-5">
-<h5 id="unnumbered-116">Sorting defuns</h5>
+<h5 id="unnumbered-116">Sorting</h5>
 <div class="outline-text-5" id="text-unnumbered-116">
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">  (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/sort-defuns-in-region</span> (beg end)
+<pre class="src src-emacs-lisp">  (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/sort-sexps-in-region</span> (beg end)
     <span class="org-doc">"Can be handy for sorting out duplicates.</span>
-<span class="org-doc">Sorts the defuns from BEG to END. Leaves the point at where it</span>
-<span class="org-doc">couldn't figure things out. Important: This assumes all the</span>
-<span class="org-doc">top-level forms in the region are defuns."</span>
+<span class="org-doc">Sorts the sexps from BEG to END. Leaves the point at where it</span>
+<span class="org-doc">couldn't figure things out (ex: syntax errors)."</span>
     (interactive <span class="org-string">"r"</span>)
     (<span class="org-keyword">let</span> ((input (buffer-substring beg end))
           list last-point form result)
@@ -4179,7 +4181,7 @@ More things that I need to get used to&#x2026;
               (add-to-list
                'list
                (cons
-                (prin1-to-string (elt form 1))
+                (prin1-to-string form)
                 (buffer-substring last-point (point))))
               (setq last-point (point))))
           (setq list (sort list (<span class="org-keyword">lambda</span> (a b) (string&lt; (car a) (car b)))))

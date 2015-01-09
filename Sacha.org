@@ -68,6 +68,9 @@ in a directory in my =load-path=, Emacs can find them.
 (add-to-list 'load-path "~/elisp")
 (add-to-list 'load-path "~/elisp/artbollocks-mode")
 (require 'use-package)
+(use-package auto-compile
+  :ensure t
+  :init (auto-compile-on-load-mode))
 #+end_src
 
 *** Load secrets
@@ -496,7 +499,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
      (?w . "~/Dropbox/public/sharing/index.org")
      (?W . "~/Dropbox/public/sharing/blog.org")
      (?j . "~/personal/journal.org")
-     (?I . "~/Dropbox/Inbox/To Blog")
+     (?I . "~/Dropbox/Inbox")
      (?g . "~/sachac.github.io/evil-plans/index.org")
      (?c . "~/code/dev/elisp-course.org")
      (?l . "~/dropbox/public/sharing/learning.org")))
@@ -572,7 +575,9 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       (key-chord-define-global "hh"     sacha/key-chord-command-map)
       (key-chord-define-global "hc"     'emms-seek-forward)
 ;      (key-chord-define-global "h-"     nil)  ; It turns out I type h- a lot!
-      (key-chord-define-global "xx"     'er/expand-region)
+      (key-chord-define-global "XX"     'er/expand-region)
+      (key-chord-define-global "xx"     'hippie-expand)
+      (key-chord-define-global "  "     'hippie-expand)
       (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer)))
 #+end_src
 *** Smartscan
@@ -743,17 +748,6 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 (remove-hook 'text-mode-hook #'turn-on-auto-fill)
 (add-hook 'text-mode-hook 'turn-on-visual-line-mode)
 #+end_src
-*** Transpose
-
-#+begin_src emacs-lisp
-;; Transpose stuff with M-t
-(bind-key "M-t" nil) ;; which used to be transpose-words
-(bind-key "M-t l" 'transpose-lines)
-(bind-key "M-t w" 'transpose-words)
-(bind-key "M-t t" 'transpose-words)
-(bind-key "M-t M-t" 'transpose-words)
-(bind-key "M-t s" 'transpose-sexps)
-#+end_src
 *** Unicode
 
 #+begin_src emacs-lisp
@@ -767,6 +761,11 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 
 #+begin_src emacs-lisp
   (bind-key "M-SPC" 'cycle-spacing)
+#+end_src
+*** Expand
+
+#+begin_src emacs-lisp
+(bind-key "M-/" 'hippie-expand)
 #+end_src
 ** Org
 
@@ -1091,6 +1090,7 @@ The parentheses indicate keyboard shortcuts that I can use to set the task state
            "STARTED(s)"
            "WAITING(w@/!)"
            "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c@)")
+          (sequence "LEARN" "DO" "TEACH")
           (sequence "TOSKETCH" "SKETCHED" "|" "POSTED")
           (sequence "TODELEGATE(-)" "DELEGATED(d)" "|" "COMPLETE(x)")))
 #+end_src
@@ -1295,7 +1295,7 @@ only a few of them them for faster scanning.
                         "~/personal/people.org"
                         "~/personal/business.org"
                         "~/Dropbox/public/sharing/index.org"
-                        "~/dropbox/public/learning.org"
+                        "~/dropbox/public/sharing/learning.org"
                         "~/code/dev/emacs-notes/tasks.org"
                         "~/sachac.github.io/evil-plans/index.org"
                         "~/personal/cooking.org"
@@ -1975,6 +1975,7 @@ Now we put it all together...
   (defun sacha/flickr-export-and-extract (start end &optional do-insert)
     "Download Flickr metadata and extract the relevant part."
     (interactive (list (org-read-date) (org-read-date) t))
+    (shell-command "c:/sacha/dropbox/bin/flickr.bat")
     (if do-insert
         (insert (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
       (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end)))
@@ -2557,6 +2558,7 @@ don't need this any more...
 #+begin_src emacs-lisp
 (setq org-enforce-todo-dependencies t)
 (setq org-track-ordered-property-with-tag t)
+(setq org-agenda-dim-blocked-tasks 'invisible)
 #+end_src
 *** Custom links
 
@@ -2598,18 +2600,28 @@ Convenience functions to make my life easier when sketchnoting books.
         (shell-command (concat (shell-quote-argument "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe ")
                                (shell-quote-argument filename) " &"))))
 
+  (defun sacha/convert-sketched-book-to-png ()
+    "Convert TIFF to PNG."
+    (interactive)
+    (let ((basename (org-entry-get-with-inheritance "BASENAME")))
+      (shell-command (format "convert \"c:/sacha/dropbox/inbox/%s.tif\" \"c:/sacha/dropbox/inbox/%s.png\""
+                             basename
+                             basename))))
+
   (defun sacha/index-sketched-book ()
     "Add entries to sketched books index."
     (interactive)
-    (let ((title (org-entry-get-with-inheritance "SHORT_TITLE"))
+    (let* ((title (org-entry-get-with-inheritance "SHORT_TITLE"))
           (author (org-entry-get-with-inheritance "AUTHOR"))
-          (basename (org-entry-get-with-inheritance "BASENAME")))
-      (when (file-exists-p (format "~/Dropbox/inbox/%s.png" basename))
-        (copy-file (format "~/Dropbox/inbox/%s.png" basename)
+          (basename (org-entry-get-with-inheritance "BASENAME"))
+          (base-file (format "~/Dropbox/inbox/%s.png" basename)))
+      (when (file-exists-p base-file)
+        (copy-file base-file
                    (format "~/Dropbox/packaging/sketched-books/%s.png" basename) t t)
-        (copy-file (format "~/Dropbox/inbox/%s.png" basename)
+        (copy-file base-file
                    (format "g:/documents/photosync/Visual Book Reviews/%s.png" basename) t t))
       (find-file "~/Dropbox/packaging/sketched-books/index.org")
+      (vc-git-register (list (format "%s.png" basename)))
       (goto-char (point-min))
       (re-search-forward "<<insert-point>>")                              
       (insert (format "\n- [[file:%s.png][%s - %s (sketched %s)]]\n  [[file:%s.png]]\n\n"
@@ -2651,6 +2663,37 @@ Works on region defined by BEG and END."
       (while (re-search-forward "\\([0-9]+\\):\\([0-9]+\\)" nil t)
         (replace-match (concat "[[" url "#t=" (match-string 1) "h" (match-string 2) "m][" (match-string 0) "]]") nil t)))))
 
+#+end_src
+*** Archiving
+
+From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-tasks-using-a-single-command
+#+begin_src emacs-lisp
+(defun sacha/org-archive-done-tasks ()
+  "Archive finished or cancelled tasks."
+  (interactive)
+  (org-map-entries
+   (lambda ()
+     (org-archive-subtree)
+     (setq org-map-continue-from (outline-previous-heading)))
+   "TODO=\"DONE\"|TODO=\"CANCELLED\"" (if (org-before-first-heading-p) 'file 'tree)))
+#+end_src
+*** Copying and sharing code
+
+#+begin_src emacs-lisp
+  (defun sacha/copy-code-as-org-block-and-gist (beg end)
+    (interactive "r")
+    (let ((filename (file-name-base))
+          (mode (symbol-name major-mode))
+          (contents
+           (condition-case nil (buffer-substring beg end)
+             (mark-inactive (buffer-string))))
+          (gist (condition-case nil (gist-region beg end)
+                      (mark-inactive (gist-buffer)))))
+      (kill-new
+       (format "\n[[%s][Gist: %s]]\n#+begin_src %s\n%s\n#+end_src\n"
+               (oref (oref gist :data) :html-url) filename
+               (replace-regexp-in-string "-mode$" "" mode)
+               contents))))
 #+end_src
 ** Coding
 *** Web development
@@ -2774,14 +2817,13 @@ More things that I need to get used to...
 (define-key emacs-lisp-mode-map (kbd "C-c .") 'find-function-at-point)
 (bind-key "C-c f" 'find-function)
 #+end_src
-**** Sorting defuns
+**** Sorting
 
 #+begin_src emacs-lisp
-  (defun sacha/sort-defuns-in-region (beg end)
+  (defun sacha/sort-sexps-in-region (beg end)
     "Can be handy for sorting out duplicates.
-Sorts the defuns from BEG to END. Leaves the point at where it
-couldn't figure things out. Important: This assumes all the
-top-level forms in the region are defuns."
+Sorts the sexps from BEG to END. Leaves the point at where it
+couldn't figure things out (ex: syntax errors)."
     (interactive "r")
     (let ((input (buffer-substring beg end))
           list last-point form result)
@@ -2797,7 +2839,7 @@ top-level forms in the region are defuns."
               (add-to-list
                'list
                (cons
-                (prin1-to-string (elt form 1))
+                (prin1-to-string form)
                 (buffer-substring last-point (point))))
               (setq last-point (point))))
           (setq list (sort list (lambda (a b) (string< (car a) (car b)))))
@@ -2812,13 +2854,41 @@ top-level forms in the region are defuns."
         :commands yas-global-mode
         :init
         (progn
-          (yas-global-mode 1)
-          (setq yas-key-syntaxes '("w_" "w_." "^ ")))
+          (add-hook 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
+          (setq yas-key-syntaxes '("w_" "w_." "^ "))
+          (setq yas-installed-snippets-dir "~/elisp/yasnippet-snippets")
+          (yas-global-mode 1))
         :config
-        (setq yas-snippet-dirs (cons "~/elisp/snippets" yas-snippet-dirs)))
+        (bind-key "\t" 'hippie-expand yas-minor-mode-map))
       ;;        (global-set-key (kbd "C-c y") (lambda () (interactive)
       ;;                                         (yas/load-directory "~/elisp/snippets")))
 #+end_src
+
+From http://emacswiki.org/emacs/Yasnippet
+#+begin_src emacs-lisp
+  (defun shk-yas/helm-prompt (prompt choices &optional display-fn)
+    "Use helm to select a snippet. Put this into `yas/prompt-functions.'"
+    (interactive)
+    (setq display-fn (or display-fn 'identity))
+    (if (require 'helm-config)
+        (let (tmpsource cands result rmap)
+          (setq cands (mapcar (lambda (x) (funcall display-fn x)) choices))
+          (setq rmap (mapcar (lambda (x) (cons (funcall display-fn x) x)) choices))
+          (setq tmpsource
+                (list
+                 (cons 'name prompt)
+                 (cons 'candidates cands)
+                 '(action . (("Expand" . (lambda (selection) selection))))
+                 ))
+          (setq result (helm-other-buffer '(tmpsource) "*helm-select-yasnippet"))
+          (if (null result)
+              (signal 'quit "user quit!")
+            (cdr (assoc result rmap))))
+      nil))
+#+end_src
+
+(add-to-list 'yas-prompt-functions 'shk-yas/helm-prompt)
+
 *** Show column number
 
 I sometimes need to know where I am in a line.

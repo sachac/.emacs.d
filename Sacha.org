@@ -565,7 +565,6 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       (key-chord-define-global "uu"     'undo)
       (key-chord-define-global "jj"     'ace-jump-word-mode)
       ;; y is now free
-      (key-chord-define-global "jj"     'ace-jump-word-mode)
       (key-chord-define-global "jw"     'ace-window)
       (key-chord-define-global "jl"     'ace-jump-line-mode)
       (key-chord-define-global "jz"     'ace-jump-zap-up-to-char)
@@ -1942,7 +1941,8 @@ Now we put it all together...
           (replace-regexp-in-string "<a href=\"\"\\([^\"]+\\).*?>.*?</a>"
                                     "[[\\1][\\2]]" list))
     (setq list
-          (replace-regexp-in-string "\"" "" (replace-regexp-in-string "\"\\]" "]" list))))
+          (replace-regexp-in-string "\"
+" "" (replace-regexp-in-string "\"\\]" "]" list))))
 
   (defun _sacha/format-flickr-link-for-org (x)
     (let ((title (assoc-default "FileName" x)))

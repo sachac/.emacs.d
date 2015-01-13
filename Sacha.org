@@ -2965,80 +2965,81 @@ And the rest of the js2 config:
 Thanks to sheijk for hints on tweaking magit to limit it to the current directory!
 
 #+begin_src emacs-lisp
-  (defun sacha/magit-commit-all ()
-    "Publish the current file and commit all the current changes."
-    (interactive)
-    (sacha/org-publish-maybe)
-    (magit-status default-directory)
-    (magit-stage-all)
-    (call-interactively 'magit-log-edit))
+    (defun sacha/magit-commit-all ()
+      "Publish the current file and commit all the current changes."
+      (interactive)
+      (sacha/org-publish-maybe)
+      (magit-status default-directory)
+      (magit-stage-all)
+      (call-interactively 'magit-log-edit))
 
-  (use-package magit
-    :ensure magit
-    :load-path "~/elisp/magit"
-    :config
-    (progn
-      (setq magit-git-executable "c:/program files (x86)/git/bin/git.exe"
-            magit-diff-options '("-b")) ; ignore whitespace
-      (defvar sacha/magit-limit-to-directory nil "Limit magit status to a specific directory.")
-      (defun sacha/magit-status-in-directory (directory)
-        "Displays magit status limited to DIRECTORY.
-Uses the current `default-directory', or prompts for a directory
-if called with a prefix argument. Sets `sacha/magit-limit-to-directory'
-so that it's still active even after you stage a change. Very experimental."
-        (interactive (list (expand-file-name
-                            (if current-prefix-arg
-                                (read-directory-name "Directory: ")
-                              default-directory))))
-        (setq sacha/magit-limit-to-directory directory)
-        (magit-status directory))
+    (use-package magit
+      :ensure magit
+      :load-path "~/elisp/magit"
+      :config
+      (progn
+        (when (equal system-type 'windows-nt)
+          (setq magit-git-executable "c:/program files (x86)/git/bin/git.exe"))
+        (setq magit-diff-options '("-b")) ; ignore whitespace
+        (defvar sacha/magit-limit-to-directory nil "Limit magit status to a specific directory.")
+        (defun sacha/magit-status-in-directory (directory)
+          "Displays magit status limited to DIRECTORY.
+  Uses the current `default-directory', or prompts for a directory
+  if called with a prefix argument. Sets `sacha/magit-limit-to-directory'
+  so that it's still active even after you stage a change. Very experimental."
+          (interactive (list (expand-file-name
+                              (if current-prefix-arg
+                                  (read-directory-name "Directory: ")
+                                default-directory))))
+          (setq sacha/magit-limit-to-directory directory)
+          (magit-status directory))
 
-      (defadvice magit-insert-untracked-files (around sacha activate)
-        (if sacha/magit-limit-to-directory
-            (magit-with-section (section untracked 'untracked "Untracked files:" t)
-              (let ((files (cl-mapcan
-                            (lambda (f)
-                              (when (eq (aref f 0) ??) (list f)))
-                            (magit-git-lines
-                             "status" "--porcelain" "--" sacha/magit-limit-to-directory))))
-                (if (not files)
-                    (setq section nil)
-                  (dolist (file files)
-                    (setq file (magit-decode-git-path (substring file 3)))
-                    (magit-with-section (section file file)
-                      (insert "\t" file "\n")))
-                  (insert "\n"))))
-          ad-do-it))
+        (defadvice magit-insert-untracked-files (around sacha activate)
+          (if sacha/magit-limit-to-directory
+              (magit-with-section (section untracked 'untracked "Untracked files:" t)
+                (let ((files (cl-mapcan
+                              (lambda (f)
+                                (when (eq (aref f 0) ??) (list f)))
+                              (magit-git-lines
+                               "status" "--porcelain" "--" sacha/magit-limit-to-directory))))
+                  (if (not files)
+                      (setq section nil)
+                    (dolist (file files)
+                      (setq file (magit-decode-git-path (substring file 3)))
+                      (magit-with-section (section file file)
+                        (insert "\t" file "\n")))
+                    (insert "\n"))))
+            ad-do-it))
 
-      (defadvice magit-insert-unstaged-changes (around sacha activate)
-        (if sacha/magit-limit-to-directory
-            (let ((magit-current-diff-range (cons 'index 'working))
-                  (magit-diff-options (copy-sequence magit-diff-options)))
-              (magit-git-insert-section (unstaged "Unstaged changes:")
-                  #'magit-wash-raw-diffs
-                "diff-files"
-                "--" sacha/magit-limit-to-directory
-                ))
-          ad-do-it))
+        (defadvice magit-insert-unstaged-changes (around sacha activate)
+          (if sacha/magit-limit-to-directory
+              (let ((magit-current-diff-range (cons 'index 'working))
+                    (magit-diff-options (copy-sequence magit-diff-options)))
+                (magit-git-insert-section (unstaged "Unstaged changes:")
+                    #'magit-wash-raw-diffs
+                  "diff-files"
+                  "--" sacha/magit-limit-to-directory
+                  ))
+            ad-do-it))
 
-      (defadvice magit-insert-staged-changes (around sacha activate)
-        "Limit to `sacha/magit-limit-to-directory' if specified."
-        (if sacha/magit-limit-to-directory
-            (let ((no-commit (not (magit-git-success "log" "-1" "HEAD"))))
-              (when (or no-commit (magit-anything-staged-p))
-                (let ((magit-current-diff-range (cons "HEAD" 'index))
-                      (base (if no-commit
-                                (magit-git-string "mktree")
-                              "HEAD"))
-                      (magit-diff-options (append '("--cached") magit-diff-options)))
-                  (magit-git-insert-section (staged "Staged changes:")
-                      (apply-partially #'magit-wash-raw-diffs t)
-                    "diff-index" "--cached" base "--" sacha/magit-limit-to-directory))))
-          ad-do-it)))
-    :bind (("C-x v d" . magit-status)
-           ("C-x v C-d" . sacha/magit-status-in-directory)
-           ("C-x v p" . magit-push) 
-           ("C-x v c" . sacha/magit-commit-all)))
+        (defadvice magit-insert-staged-changes (around sacha activate)
+          "Limit to `sacha/magit-limit-to-directory' if specified."
+          (if sacha/magit-limit-to-directory
+              (let ((no-commit (not (magit-git-success "log" "-1" "HEAD"))))
+                (when (or no-commit (magit-anything-staged-p))
+                  (let ((magit-current-diff-range (cons "HEAD" 'index))
+                        (base (if no-commit
+                                  (magit-git-string "mktree")
+                                "HEAD"))
+                        (magit-diff-options (append '("--cached") magit-diff-options)))
+                    (magit-git-insert-section (staged "Staged changes:")
+                        (apply-partially #'magit-wash-raw-diffs t)
+                      "diff-index" "--cached" base "--" sacha/magit-limit-to-directory))))
+            ad-do-it)))
+      :bind (("C-x v d" . magit-status)
+             ("C-x v C-d" . sacha/magit-status-in-directory)
+             ("C-x v p" . magit-push) 
+             ("C-x v c" . sacha/magit-commit-all)))
 #+end_src
 
 The proper way to implement this is probably to patch or override the

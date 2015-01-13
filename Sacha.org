@@ -450,7 +450,14 @@ Copied from http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tri
 (bind-key "C-x 3" 'sacha/hsplit-last-buffer)
 
 #+end_src
-*** Searching based on the current word
+*** DONE Searching based on the current word
+    CLOSED: [2015-01-12 Mon 23:59]
+    :LOGBOOK:
+    - State "DONE"       from "DONE"       [2015-01-12 Mon 23:59]
+    - State "DONE"       from "DONE"       [2015-01-12 Mon 23:59]
+    - State "DONE"       from "DONE"       [2015-01-12 Mon 23:59]
+    - State "DONE"       from ""           [2015-01-12 Mon 23:59]
+    :END:
 
 This lets me search up and down. I don't use this often, though.
 
@@ -512,73 +519,90 @@ shortcuts that use ordinary keys.
 
 Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
 #+begin_src emacs-lisp
-  (defun sacha/key-chord-define (keymap keys command)
-    "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
-  \nKEYS can be a string or a vector of two elements. Currently only elements
-  that corresponds to ascii codes in the range 32 to 126 can be used.
-  \nCOMMAND can be an interactive function, a string, or nil.
-  If COMMAND is nil, the key-chord is removed.
+    (defun sacha/key-chord-define (keymap keys command)
+      "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
+    \nKEYS can be a string or a vector of two elements. Currently only elements
+    that corresponds to ascii codes in the range 32 to 126 can be used.
+    \nCOMMAND can be an interactive function, a string, or nil.
+    If COMMAND is nil, the key-chord is removed.
 
-  MODIFICATION: Do not define the transposed key chord.
-  "
-    (if (/= 2 (length keys))
-        (error "Key-chord keys must have two elements"))
-    ;; Exotic chars in a string are >255 but define-key wants 128..255 for those
-    (let ((key1 (logand 255 (aref keys 0)))
-          (key2 (logand 255 (aref keys 1))))
-      (define-key keymap (vector 'key-chord key1 key2) command)))
-  (fset 'key-chord-define 'sacha/key-chord-define)
+    MODIFICATION: Do not define the transposed key chord.
+    "
+      (if (/= 2 (length keys))
+          (error "Key-chord keys must have two elements"))
+      ;; Exotic chars in a string are >255 but define-key wants 128..255 for those
+      (let ((key1 (logand 255 (aref keys 0)))
+            (key2 (logand 255 (aref keys 1))))
+        (define-key keymap (vector 'key-chord key1 key2) command)))
+    (fset 'key-chord-define 'sacha/key-chord-define)
 
-  (defun sacha/switch-to-previous-buffer ()
-    "Switch to previously open buffer.
-  Repeated invocations toggle between the two most recently open buffers."
-    (interactive)
-    (switch-to-buffer (other-buffer (current-buffer) 1)))
+    (defun sacha/switch-to-previous-buffer ()
+      "Switch to previously open buffer.
+    Repeated invocations toggle between the two most recently open buffers."
+      (interactive)
+      (switch-to-buffer (other-buffer (current-buffer) 1)))
 
-  (defun sacha/org-check-agenda ()
-    "Peek at agenda."
-    (interactive)
-    (cond
-     ((derived-mode-p 'org-agenda-mode)
-      (if (window-parent) (delete-window) (bury-buffer)))
-     ((get-buffer "*Org Agenda*")
-      (switch-to-buffer-other-window "*Org Agenda*"))
-     (t (org-agenda nil "a"))))
+    (defun sacha/org-check-agenda ()
+      "Peek at agenda."
+      (interactive)
+      (cond
+       ((derived-mode-p 'org-agenda-mode)
+        (if (window-parent) (delete-window) (bury-buffer)))
+       ((get-buffer "*Org Agenda*")
+        (switch-to-buffer-other-window "*Org Agenda*"))
+       (t (org-agenda nil "a"))))
 
-  (defvar sacha/key-chord-command-map (make-sparse-keymap))
-  (bind-key "h" 'emms-pause sacha/key-chord-command-map)
-  (bind-key "u" 'emms-pause sacha/key-chord-command-map)
-  (bind-key "t" 'emms-seek-backward sacha/key-chord-command-map)
-  (bind-key "s" 'emms-seek-to sacha/key-chord-command-map)
-  (bind-key "f" 'windmove-right sacha/key-chord-command-map)
-  (bind-key "b" 'windmove-left sacha/key-chord-command-map)
-  (bind-key "n" 'windmove-down sacha/key-chord-command-map)
-  (bind-key "p" 'windmove-up sacha/key-chord-command-map)
+    (defvar sacha/key-chord-command-map (make-sparse-keymap))
+    (bind-key "h" 'emms-pause sacha/key-chord-command-map)
+    (bind-key "u" 'emms-pause sacha/key-chord-command-map)
+    (bind-key "t" 'emms-seek-backward sacha/key-chord-command-map)
+    (bind-key "s" 'emms-seek-to sacha/key-chord-command-map)
+    (bind-key "f" 'windmove-right sacha/key-chord-command-map)
+    (bind-key "b" 'windmove-left sacha/key-chord-command-map)
+    (bind-key "n" 'windmove-down sacha/key-chord-command-map)
+    (bind-key "p" 'windmove-up sacha/key-chord-command-map)
+#+end_src
 
-    
-  (use-package key-chord
-    :init
-    (progn 
-      (fset 'key-chord-define 'sacha/key-chord-define)
-      (key-chord-mode 1)
-      ;; k can be bound too
-      (key-chord-define-global "uu"     'undo)
-      (key-chord-define-global "jj"     'ace-jump-word-mode)
-      ;; y is now free
-      (key-chord-define-global "jj"     'ace-jump-word-mode)
-      (key-chord-define-global "jw"     'ace-window)
-      (key-chord-define-global "jl"     'ace-jump-line-mode)
-      (key-chord-define-global "jz"     'ace-jump-zap-up-to-char)
-      (key-chord-define-global "jZ"     'ace-jump-zap-to-char)
-      (key-chord-define-global "FF"     'find-file)
-      (key-chord-define-global "qq"     'sacha/org-quick-clock-in-task)
-      (key-chord-define-global "hh"     sacha/key-chord-command-map)
-      (key-chord-define-global "hc"     'emms-seek-forward)
-;      (key-chord-define-global "h-"     nil)  ; It turns out I type h- a lot!
-      (key-chord-define-global "XX"     'er/expand-region)
-      (key-chord-define-global "xx"     'hippie-expand)
-      (key-chord-define-global "  "     'hippie-expand)
-      (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer)))
+I'm trying to get the hang of windmove.
+#+begin_src emacs-lisp
+  (defvar sacha/windmove-map (make-sparse-keymap))
+  (bind-key "h" 'windmove-left sacha/windmove-map)
+  (bind-key "t" 'windmove-up sacha/windmove-map)
+  (bind-key "n" 'windmove-down sacha/windmove-map)
+  (bind-key "s" 'windmove-right sacha/windmove-map)
+  (bind-key "<left>" 'windmove-left sacha/windmove-map)
+  (bind-key "<up>" 'windmove-up sacha/windmove-map)
+  (bind-key "<down>" 'windmove-down sacha/windmove-map)
+  (bind-key "<right>" 'windmove-right sacha/windmove-map)
+#+end_src
+
+Now let's set up the actual keychords.
+
+#+begin_src emacs-lisp
+    (use-package key-chord
+      :init
+      (progn 
+        (fset 'key-chord-define 'sacha/key-chord-define)
+        (setq key-chord-one-key-delay 0.16)
+        (key-chord-mode 1)
+        ;; k can be bound too
+        (key-chord-define-global "uu"     'undo)
+        (key-chord-define-global "jj"     'ace-jump-word-mode)
+        (key-chord-define-global "yy"     sacha/windmove-map)
+        ;; y is now free
+        (key-chord-define-global "jj"     'ace-jump-word-mode)
+        (key-chord-define-global "jw"     'ace-window)
+        (key-chord-define-global "jl"     'ace-jump-line-mode)
+        ;(key-chord-define-global "jz"     'ace-jump-zap-up-to-char)
+        ;(key-chord-define-global "jZ"     'ace-jump-zap-to-char)
+        (key-chord-define-global "FF"     'find-file)
+        (key-chord-define-global "qq"     'sacha/org-quick-clock-in-task)
+        (key-chord-define-global "hh"     sacha/key-chord-command-map)
+        (key-chord-define-global "hc"     'emms-seek-forward)
+  ;      (key-chord-define-global "h-"     nil)  ; It turns out I type h- a lot!
+        (key-chord-define-global "xx"     'er/expand-region)
+        (key-chord-define-global "  "     'sacha/insert-space-or-expand)
+        (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer)))
 #+end_src
 *** Smartscan
 
@@ -1911,23 +1935,6 @@ The following code makes it easy to add a line:
 Now we put it all together...
 
 #+begin_src emacs-lisp
-    (defun sacha/org-prepare-weekly-review ()
-      "Prepare weekly review template."
-      (interactive)
-      (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
-            start end)
-        (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
-        (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
-          (insert
-           "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
-           "*Blog posts*\n\n"
-           "*Sketches*\n\n" 
-           (sacha/flickr-export-and-extract start end) "\n"
-           "*Link round-up*\n\n"
-           (sacha/evernote-export-and-extract start end)
-           "\n\n*Focus areas and time review*\n\n"
-           (sacha/org-summarize-focus-areas)
-           "\n")))
 #+end_src
 **** Flickr extract
 
@@ -1972,22 +1979,19 @@ Now we put it all together...
                 (assoc-default "FileName" b)))))
 
 
-  (defun sacha/flickr-export-and-extract (start end &optional do-insert)
+  (defun sacha/flickr-export-and-extract (start end &optional do-insert update-db)
     "Download Flickr metadata and extract the relevant part."
-    (interactive (list (org-read-date) (org-read-date) t))
-    (shell-command "c:/sacha/dropbox/bin/flickr.bat")
+    (interactive (list (org-read-date) (org-read-date) t current-prefix-arg))
+    (when update-db (shell-command "c:/sacha/dropbox/bin/flickr.bat"))
     (if do-insert
         (insert (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
       (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end)))
 
 
   (defun sacha/flickr-extract-links-for-review (filename start end)
-    "Extract Flickr titles and URLs from FILENAME from START to END.
-         The file should be a CSV downloaded by the Flickr metadata downloader.
+  "Extract Flickr titles and URLs from FILENAME from START to END.
+  The file should be a CSV downloaded by the Flickr metadata downloader.
          Start date and end date should be strings in the form yyyy-mm-dd."
-    (interactive (list (read-file-name "File: ")
-                       (org-read-date)
-                       (org-read-date)))
     (require 'csv)
     (let (list)
       (with-temp-buffer
@@ -2083,6 +2087,82 @@ Now we put it all together...
                   (insert list)
                 list)))
 #+end_src
+***** For copying journal entries
+
+#+begin_src emacs-lisp
+  (defun sacha/evernote-export-and-extract-journal ()
+    "Extract and file journal entries."
+    (interactive)
+    (let ((filename "c:\\sacha\\tmp\\journal.enex")
+          (journal-file "~/personal/journal.org"))
+      (shell-command
+       (concat "enscript.exe "
+               "exportNotes /q \"notebook:!Inbox intitle:Journal\" /f"
+               filename))
+      (sacha/evernote-process-journal-entries filename journal-file)))
+
+  (defun sacha/evernote-process-journal-entries (filename journal-file)
+    "Insert all the journal entries if they do not yet exist."
+    (let ((data (car (xml-parse-file filename))))
+      (mapc (lambda (x)
+              (if (and  (listp x) (equal (car x) 'note))
+                  (sacha/evernote-create-journal-note x journal-file)))
+            data)))
+
+  (defun sacha/evernote-get-creation-date (note)
+    "Return NOTE's created date as (month day year)."
+    (let ((created (cadr (assoc-default 'created note))))
+      (list (string-to-number (substring created 4 6)) ; month
+            (string-to-number (substring created 6 8)) ; day
+            (string-to-number (substring created 0 4))))) ; year
+
+  (defun sacha/evernote-create-journal-note (note journal-file)
+    "Save the given note to the journal file."
+    (with-current-buffer (find-file journal-file)
+      (org-datetree-find-date-create (sacha/evernote-get-creation-date note))
+      (forward-line 1)
+      (when (org-at-heading-p) (save-excursion (insert "\n")))
+      (let ((content (sacha/evernote-convert-content-to-org note)))
+        (unless (save-excursion
+                  (re-search-forward (regexp-quote content) (max (point) (save-excursion (org-end-of-subtree t  (defun sacha/org-prepare-weekly-review ()
+    "Prepare weekly review template."
+    (interactive)
+    (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
+          start end)
+      (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
+      (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
+      (outline-next-heading)
+      (insert
+       "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
+       "*Blog posts*\n\n"
+       "*Sketches*\n\n" 
+       (sacha/flickr-export-and-extract start end nil t) "\n"
+       "*Link round-up*\n\n"
+       (sacha/evernote-export-and-extract start end)
+       "\n\n*Focus areas and time review*\n\n"
+       (sacha/org-summarize-focus-areas)
+       "\n")))
+))) t))
+          (insert content "\n")))))
+
+  (defun sacha/evernote-convert-content-to-org (note)
+    "Convert Evernote content for NOTE to HTML"
+    (with-temp-buffer
+      (insert (cadr (assoc-default 'content note)))
+      (goto-char (point-min))
+      (while (re-search-forward "div>" nil t)
+        (replace-match "p>"))
+      (shell-command-on-region (point-min) (point-max) "pandoc -f html -t org" nil t)
+      (goto-char (point-min))
+      (while (re-search-forward "\\\\\n\n" nil t)
+       (replace-match ""))
+      (goto-char (point-min))
+      (while (re-search-forward "\\\\\$" nil t)
+       (replace-match ""))
+      (s-trim (buffer-string))))
+
+#+end_src
+
 *** Moving lines around
 
 This makes it easier to reorganize lines in my weekly review.
@@ -2168,7 +2248,7 @@ Here's a function like =sacha/org-prepare-weekly-review=:
             posts (_sacha/extract-posts-from-webpage
                    (format "http://sachachua.com/blog/%4d/%d?org=1"
                            year month))
-            sketches (sacha/flickr-export-and-extract start-date end-date)) 
+            sketches (sacha/flickr-export-and-extract start-date end-date nil t)) 
       (insert
        "\n\n** Monthly review: "
        (format-time-string "%B %Y" (encode-time 0 0 0 1 month year))
@@ -2523,6 +2603,13 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
      (R . t)))
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))))
 #+end_src
+*** Editing source code
+I don't want to get distracted by the same code in the other window, so I want org src to use the current window.
+
+#+begin_src emacs-lisp
+  (setq org-src-window-setup 'current-window)
+#+end_src
+
 *** Presentations
 #+begin_src emacs-lisp
 (use-package ox-reveal
@@ -2857,9 +2944,11 @@ couldn't figure things out (ex: syntax errors)."
           (add-hook 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
           (setq yas-key-syntaxes '("w_" "w_." "^ "))
           (setq yas-installed-snippets-dir "~/elisp/yasnippet-snippets")
+          (setq yas-expand-only-for-last-commands '(self-insert-command))
           (yas-global-mode 1))
         :config
-        (bind-key "\t" 'hippie-expand yas-minor-mode-map))
+        (bind-key "\t" 'hippie-expand yas-minor-mode-map)
+        (add-to-list 'yas-prompt-functions 'shk-yas/helm-prompt))
       ;;        (global-set-key (kbd "C-c y") (lambda () (interactive)
       ;;                                         (yas/load-directory "~/elisp/snippets")))
 #+end_src
@@ -2887,7 +2976,98 @@ From http://emacswiki.org/emacs/Yasnippet
       nil))
 #+end_src
 
-(add-to-list 'yas-prompt-functions 'shk-yas/helm-prompt)
+From https://github.com/pcmantz/elisp/blob/master/my-bindings.el
+#+begin_src emacs-lisp
+  (setq default-cursor-color "gray")
+  (setq yasnippet-can-fire-cursor-color "purple")
+
+  ;; It will test whether it can expand, if yes, cursor color -> green.
+  (defun yasnippet-can-fire-p (&optional field)
+    (interactive)
+    (setq yas--condition-cache-timestamp (current-time))
+    (let (templates-and-pos)
+      (unless (and yas-expand-only-for-last-commands
+                   (not (member last-command yas-expand-only-for-last-commands)))
+        (setq templates-and-pos (if field
+                                    (save-restriction
+                                      (narrow-to-region (yas--field-start field)
+                                                        (yas--field-end field))
+                                      (yas--templates-for-key-at-point))
+                                  (yas--templates-for-key-at-point))))
+      (and templates-and-pos (first templates-and-pos))))
+
+  (defun sacha/change-cursor-color-when-can-expand (&optional field)
+    (interactive)
+    (set-cursor-color (if (sacha/can-expand)
+                          yasnippet-can-fire-cursor-color
+                        default-cursor-color)))
+
+  (defun sacha/can-expand ()
+    "Return true if right after an expandable thing."
+    (or (abbrev--before-point) (yasnippet-can-fire-p)))
+
+                                          ; As pointed out by Dmitri, this will make sure it will update color when needed.
+  (add-hook 'post-command-hook 'sacha/change-cursor-color-when-can-expand)
+
+  (defun sacha/insert-space-or-expand ()
+    "For binding to the SPC SPC keychord."
+    (interactive)
+    (condition-case nil (or (sacha/hippie-expand-maybe nil) (insert "  "))))
+#+end_src
+
+This requires me to modify the behaviour of hippie-expand so that it doesn't ding so much.
+#+begin_src emacs-lisp
+  (defun sacha/hippie-expand-maybe (arg)
+    "Try to expand text before point, using multiple methods.
+  The expansion functions in `hippie-expand-try-functions-list' are
+  tried in order, until a possible expansion is found.  Repeated
+  application of `hippie-expand' inserts successively possible
+  expansions.
+  With a positive numeric argument, jumps directly to the ARG next
+  function in this list.  With a negative argument or just \\[universal-argument],
+  undoes the expansion."
+    (interactive "P")
+    (if (or (not arg)
+            (and (integerp arg) (> arg 0)))
+        (let ((first (or (= he-num -1)
+                         (not (equal this-command last-command)))))
+          (if first
+              (progn
+                (setq he-num -1)
+                (setq he-tried-table nil)))
+          (if arg
+              (if (not first) (he-reset-string))
+            (setq arg 0))
+          (let ((i (max (+ he-num arg) 0)))
+            (while (not (or (>= i (length hippie-expand-try-functions-list))
+                            (apply (nth i hippie-expand-try-functions-list)
+                                   (list (= he-num i)))))
+              (setq i (1+ i)))
+            (setq he-num i))
+          (if (>= he-num (length hippie-expand-try-functions-list))
+              (progn (setq he-num -1) nil)
+            (if (and hippie-expand-verbose
+                     (not (window-minibuffer-p)))
+                (message "Using %s"
+                         (nth he-num hippie-expand-try-functions-list)))))
+      (if (and (>= he-num 0)
+               (eq (marker-buffer he-string-beg) (current-buffer)))
+          (progn
+            (setq he-num -1)
+            (he-reset-string)
+            (if (and hippie-expand-verbose
+                     (not (window-minibuffer-p)))
+                (message "Undoing expansions"))))))
+
+#+end_src
+
+yas/expand
+yas-expand
+    
+because
+because
+Because
+
 
 *** Show column number
 
@@ -2898,7 +3078,8 @@ I sometimes need to know where I am in a line.
 
 *** Don't show whitespace in diff, but show context
     #+begin_src emacs-lisp
-    (setq vc-diff-switches '("-b" "-B" "-u"))
+(setq vc-diff-switches '("-b" "-B" "-u"))
+(setq vc-git-diff-switches nil)
 #+end_src
 *** Javascript
 
@@ -2947,6 +3128,15 @@ And the rest of the js2 config:
           (bind-key "C-c l" 'js-load-file-and-go js2-mode-map)))
 #+end_src
 
+**** Tern - for Javascript
+
+#+begin_src emacs-lisp
+(use-package tern
+  :init
+  (progn
+  (add-hook 'js2-mode-hook 'tern-mode)))
+
+#+end_src
 *** Magit - nice git interface
 		:PROPERTIES:
 		:ID:       o2b:9a42a292-7b75-4c7f-8da2-7a0d8c22d0c6

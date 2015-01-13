@@ -59,6 +59,18 @@ I like using =(setq ...)= more than Customize because I can neatly organize my c
 
 ** Emacs initialization
 
+*** Add package sources
+
+#+begin_src emacs-lisp
+(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
+(unless (assoc-default "melpa" package-archives)
+  (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
+  (package-refresh-contents))  
+#+end_src
+
+Use =M-x package-refresh-contents= to reload the list of packages
+after adding these for the first time.
+
 *** Add my elisp directory and other files
 
 Sometimes I load files outside the package system. As long as they're
@@ -67,6 +79,8 @@ in a directory in my =load-path=, Emacs can find them.
 #+begin_src emacs-lisp
 (add-to-list 'load-path "~/elisp")
 (add-to-list 'load-path "~/elisp/artbollocks-mode")
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
 (require 'use-package)
 (use-package auto-compile
   :ensure t
@@ -80,16 +94,6 @@ I keep slightly more sensitive information in a separate file so that I can easi
 #+begin_src emacs-lisp
 (load "~/.emacs.secrets" t)
 #+end_src
-
-*** Add package sources
-
-#+begin_src emacs-lisp
-(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
-(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
-#+end_src
-
-Use =M-x package-refresh-contents= to reload the list of packages
-after adding these for the first time.
 
 ** General configuration
 *** Backups
@@ -290,11 +294,11 @@ it work. Some things still aren't quite right.
     (if (ad-get-arg 0)
         ad-do-it
       nil))
-  (use-package color-theme :ensure color-theme)
-  (use-package color-theme-solarized :ensure color-theme-solarized)
+  (use-package color-theme :ensure t)
+  (use-package color-theme-solarized :ensure t)
   (defun sacha/setup-color-theme ()
     (interactive)
-    (color-theme-solarized 'dark)
+    (color-theme-solarized-dark)
     (set-face-foreground 'secondary-selection "darkblue")
     (set-face-background 'secondary-selection "lightblue")
     (set-face-background 'font-lock-doc-face "black")
@@ -2850,6 +2854,7 @@ couldn't figure things out (ex: syntax errors)."
 *** Snippets
     #+begin_src emacs-lisp
       (use-package yasnippet
+        :ensure t
         :diminish yas-minor-mode
         :commands yas-global-mode
         :init

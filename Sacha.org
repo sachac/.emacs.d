@@ -1108,7 +1108,8 @@ able to clock in on them.
 <<todo-keywords>>
 
 The parentheses indicate keyboard shortcuts that I can use to set the
-task state. =@= and =!= toggle logging.
+task state. =@= and =!= toggle logging. =@= prompts you for a note,
+and =!= automatically logs the timestamp of the state change.
 
 #+begin_src emacs-lisp
        (setq org-todo-keywords

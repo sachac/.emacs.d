@@ -3121,10 +3121,12 @@ And the rest of the js2 config:
 
 #+begin_src emacs-lisp
       (use-package js2-mode
-        :ensure js2-mode
+        :ensure t
         :commands js2-mode
         :init
+        (progn
           (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
+          (setq-default js2-basic-offset 2))
         :config
         (progn 
           (bind-key "C-x C-e" 'js-send-last-sexp js2-mode-map)
@@ -3892,10 +3894,6 @@ cool. On Windows, these things help a little.
 
 #+end_src
 
-** Startup
-   #+begin_src emacs-lisp
-     (add-hook 'after-init-hook (lambda () (org-agenda nil "a")))
-	 #+end_src
 ** Japanese
 
 Got sdic from http://namazu.org/~tsuchiya/sdic/ . Attempting to get this to work on Windows...

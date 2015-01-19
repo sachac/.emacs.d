@@ -442,14 +442,14 @@ Copied from http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tri
   (interactive "p")
   (split-window-vertically)
   (other-window 1 nil)
-  (unless prefix
+  (if (= prefix 1)
     (switch-to-next-buffer)))
 (defun sacha/hsplit-last-buffer (prefix)
   "Split the window horizontally and display the previous buffer."
   (interactive "p")
   (split-window-horizontally)
   (other-window 1 nil)
-  (unless prefix (switch-to-next-buffer)))
+  (if (= prefix 1) (switch-to-next-buffer)))
 (bind-key "C-x 2" 'sacha/vsplit-last-buffer)
 (bind-key "C-x 3" 'sacha/hsplit-last-buffer)
 
@@ -594,7 +594,6 @@ Now let's set up the actual keychords.
         (key-chord-define-global "jj"     'ace-jump-word-mode)
         (key-chord-define-global "yy"     sacha/windmove-map)
         ;; y is now free
-        (key-chord-define-global "jj"     'ace-jump-word-mode)
         (key-chord-define-global "jw"     'ace-window)
         (key-chord-define-global "jl"     'ace-jump-line-mode)
         ;(key-chord-define-global "jz"     'ace-jump-zap-up-to-char)
@@ -1339,6 +1338,8 @@ I can get a sense of how appointments are spread out.
 #+begin_src emacs-lisp
   (setq org-agenda-span 2)
   (setq org-agenda-sticky nil)
+  (setq org-agenda-inhibit-startup t)
+  (setq org-agenda-use-tag-inheritance nil)
   (setq org-agenda-show-log t)
   (setq org-agenda-skip-scheduled-if-done t)
   (setq org-agenda-skip-deadline-if-done t)
@@ -1947,6 +1948,7 @@ Now we put it all together...
             start end)
         (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
         (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
+        (outline-next-heading)
           (insert
            "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
            "*Blog posts*\n\n"
@@ -4608,8 +4610,10 @@ theme. =)
       (progn
        (add-hook '2048-mode-hook 'sacha/2048-set-font-size)))
 #+end_src
+
 * Path
 
 #+begin_src emacs-lisp
 (setenv "PATH" (concat "\"c:/program files/postgresql/9.3/bin;\"" (getenv "PATH")))
 #+end_src
+

@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2015-01-17 Sat 12:04 -->
+<!-- 2015-01-19 Mon 08:45 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -1036,14 +1036,14 @@ Copied from <a href="http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tip
   (interactive <span class="org-string">"p"</span>)
   (split-window-vertically)
   (other-window 1 nil)
-  (<span class="org-keyword">unless</span> prefix
+  (<span class="org-keyword">if</span> (= prefix 1)
     (switch-to-next-buffer)))
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha/hsplit-last-buffer</span> (prefix)
   <span class="org-doc">"Split the window horizontally and display the previous buffer."</span>
   (interactive <span class="org-string">"p"</span>)
   (split-window-horizontally)
   (other-window 1 nil)
-  (<span class="org-keyword">unless</span> prefix (switch-to-next-buffer)))
+  (<span class="org-keyword">if</span> (= prefix 1) (switch-to-next-buffer)))
 (bind-key <span class="org-string">"C-x 2"</span> 'sacha/vsplit-last-buffer)
 (bind-key <span class="org-string">"C-x 3"</span> 'sacha/hsplit-last-buffer)
 </pre>
@@ -1213,7 +1213,6 @@ Now let's set up the actual keychords.
     (key-chord-define-global <span class="org-string">"jj"</span>     'ace-jump-word-mode)
     (key-chord-define-global <span class="org-string">"yy"</span>     sacha/windmove-map)
     <span class="org-comment-delimiter">;; </span><span class="org-comment">y is now free</span>
-    (key-chord-define-global <span class="org-string">"jj"</span>     'ace-jump-word-mode)
     (key-chord-define-global <span class="org-string">"jw"</span>     'ace-window)
     (key-chord-define-global <span class="org-string">"jl"</span>     'ace-jump-line-mode)
     <span class="org-comment-delimiter">;</span><span class="org-comment">(key-chord-define-global "jz"     'ace-jump-zap-up-to-char)</span>
@@ -2312,6 +2311,8 @@ I can get a sense of how appointments are spread out.
 
 <pre class="src src-emacs-lisp">(setq org-agenda-span 2)
 (setq org-agenda-sticky nil)
+(setq org-agenda-inhibit-startup t)
+(setq org-agenda-use-tag-inheritance nil)
 (setq org-agenda-show-log t)
 (setq org-agenda-skip-scheduled-if-done t)
 (setq org-agenda-skip-deadline-if-done t)
@@ -3075,6 +3076,7 @@ Now we put it all together&#x2026;
         start end)
     (setq start (format-time-string <span class="org-string">"%Y-%m-%d"</span> (days-to-time (- (time-to-number-of-days base-date) 6))))
     (setq end (format-time-string <span class="org-string">"%Y-%m-%d"</span> (days-to-time (1+ (time-to-number-of-days base-date)))))
+    (outline-next-heading)
       (insert
        <span class="org-string">"*** Weekly review: Week ending "</span> (format-time-string <span class="org-string">"%B %e, %Y"</span> base-date) <span class="org-string">"  :weekly:\n"</span>
        <span class="org-string">"*Blog posts*\n\n"</span>
@@ -6408,6 +6410,7 @@ theme. =)
 </div>
 </div>
 </div>
+
 <div id="outline-container-unnumbered-183" class="outline-2">
 <h2 id="unnumbered-183">Path</h2>
 <div class="outline-text-2" id="text-unnumbered-183">

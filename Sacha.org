@@ -85,6 +85,7 @@ in a directory in my =load-path=, Emacs can find them.
 (use-package auto-compile
   :ensure t
   :init (auto-compile-on-load-mode))
+(setq load-prefer-newer t)
 #+end_src
 
 *** Load secrets
@@ -792,6 +793,13 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 
 #+begin_src emacs-lisp
 (bind-key "M-/" 'hippie-expand)
+#+end_src
+
+From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el - Exclude very large buffers from dabbrev
+#+begin_src emacs-lisp
+(defun sanityinc/dabbrev-friend-buffer (other-buffer)
+  (< (buffer-size other-buffer) (* 1 1024 1024)))
+(setq dabbrev-friend-buffer-function 'sanityinc/dabbrev-friend-buffer)
 #+end_src
 ** Org
 
@@ -2798,6 +2806,16 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
                (replace-regexp-in-string "-mode$" "" mode)
                contents))))
 #+end_src
+*** Filesystem
+
+#+begin_src emacs-lisp
+(use-package org-fstree
+  :ensure t
+  :init 
+  (progn (add-hook 'org-ctrl-c-ctrl-c-hook 'org-fstree-apply-maybe)
+         (add-hook 'org-pre-cycle-hook 'org-fstree-show-entry-maybe)))
+#+end_src
+**** TODO check out org-fstree
 ** Coding
 *** Web development
 #+begin_src emacs-lisp
@@ -2821,6 +2839,10 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
             '(("css" . (ac-source-css-property))
               ("html" . (ac-source-words-in-buffer ac-source-abbrev)))
             )))
+
+   (use-package tagedit
+     :ensure t
+     :init (add-hook 'web-mode-hook 'tagedit-mode))
 #+end_src
 *** Tab width of 2 is compact and readable
 #+begin_src emacs-lisp
@@ -2833,6 +2855,17 @@ I almost always want to go to the right indentation on the next line.
 (global-set-key (kbd "RET") 'newline-and-indent)
 #+end_src
 
+From https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-utils.el
+#+begin_src emacs-lisp
+(defun sanityinc/kill-back-to-indentation ()
+  "Kill from point back to the first non-whitespace character on the line."
+  (interactive)
+  (let ((prev-pos (point)))
+    (back-to-indentation)
+    (kill-region (point) prev-pos)))
+
+(bind-key "C-M-<backspace>" 'sanityinc/kill-back-to-indentation)
+#+end_src
 *** Adapt to being on Windows
 
 I'm on Windows, so I use Cygwin to add Unix-y tools to make my life easier. 
@@ -2913,6 +2946,11 @@ More things that I need to get used to...
     :ensure erefactor
     :config
     (define-key emacs-lisp-mode-map "\C-c\C-v" erefactor-map))
+
+  (use-package redshank
+    :ensure t
+    :init (add-hook 'emacs-lisp-mode-hook 'redshank-mode))
+
 #+end_src
 **** Jumping to code
 
@@ -2950,6 +2988,22 @@ couldn't figure things out (ex: syntax errors)."
           (insert (mapconcat 'cdr list "\n"))))))
 #+end_src
 
+**** Evaluation
+
+Borrowed from Steve Purcell's config. This pretty-prints the results.
+
+#+begin_src emacs-lisp
+(bind-key "M-:" 'pp-eval-expression)
+
+(defun sanityinc/eval-last-sexp-or-region (prefix)
+  "Eval region from BEG to END if active, otherwise the last sexp."
+  (interactive "P")
+  (if (and (mark) (use-region-p))
+      (eval-region (min (point) (mark)) (max (point) (mark)))
+    (pp-eval-last-sexp prefix)))
+
+(bind-key "C-x C-e" 'sanityinc/eval-last-sexp-or-region emacs-lisp-mode-map)
+#+end_src
 *** Snippets
     #+begin_src emacs-lisp
       (use-package yasnippet
@@ -3136,9 +3190,11 @@ And the rest of the js2 config:
         :init
         (progn
           (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
-          (setq-default js2-basic-offset 2))
+      (setq-default js2-basic-offset 2)
+      (add-to-list 'interpreter-mode-alist (cons "node" 'js2-mode)))
         :config
         (progn 
+      (js2-imenu-extras-setup)
           (bind-key "C-x C-e" 'js-send-last-sexp js2-mode-map)
           (bind-key "C-M-x" 'js-send-last-sexp-and-go js2-mode-map)
           (bind-key "C-c b" 'js-send-buffer js2-mode-map)
@@ -3147,6 +3203,11 @@ And the rest of the js2 config:
           (bind-key "C-c l" 'js-load-file-and-go js2-mode-map)))
 #+end_src
 
+#+begin_src emacs-lisp
+(use-package coffee-mode
+:ensure t
+:init (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
+#+end_src
 **** Tern - for Javascript
 
 #+begin_src emacs-lisp
@@ -3244,6 +3305,9 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
              ("C-x v C-d" . sacha/magit-status-in-directory)
              ("C-x v p" . magit-push) 
              ("C-x v c" . sacha/magit-commit-all)))
+(use-package magit-gh-pulls
+  :ensure t
+  :init (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls))
 #+end_src
 
 The proper way to implement this is probably to patch or override the
@@ -3251,6 +3315,13 @@ definition of magit-git-insert-section so that it takes a list of
 options to add at the end of the command, but that can wait for another time (or braver souls). 
 
 **** TODO Make this better by adding a post command options variable
+*** git-messenger - shows commit message
+
+#+begin_src emacs-lisp
+(use-package git-messenger
+  :ensure t
+  :bind (("C-x v p" . git-messenger:popup-message)))
+#+end_src
 *** Tag files
 
     I don't often use a TAGS file, but when I do, I don't want to have
@@ -3616,8 +3687,22 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 ;(setq eimp-mogrify-program "c:/Program Files/ImageMagick-6.8.3-Q16/mogrify.exe")
 #+end_src
 
+** Display
+
+#+begin_src emacs-lisp
+(defun sanityinc/adjust-opacity (frame incr)
+  (let* ((oldalpha (or (frame-parameter frame 'alpha) 100))
+         (newalpha (+ incr oldalpha)))
+    (when (and (<= frame-alpha-lower-limit newalpha) (>= 100 newalpha))
+      (modify-frame-parameters frame (list (cons 'alpha newalpha))))))
+(global-set-key (kbd "M-C-8") (lambda () (interactive) (sanityinc/adjust-opacity nil -2)))
+(global-set-key (kbd "M-C-9") (lambda () (interactive) (sanityinc/adjust-opacity nil 2)))
+(global-set-key (kbd "M-C-0") (lambda () (interactive) (modify-frame-parameters nil `((alpha . 100)))))
+#+end_src
+
 ** Advanced stuff / things I tend to forget about
 *** Editing multiple things
+
 **** Multiple cursors mode					      :drill:
      SCHEDULED: <2013-03-03 Sun>
     :PROPERTIES:
@@ -3640,9 +3725,11 @@ Maybe =multiple-cursors= will be an even better way. Looks promising!
   (use-package multiple-cursors
     :ensure multiple-cursors
     :bind 
-     (("C-c m a" . mc/mark-all-like-this)
+     (("C-c m t" . mc/mark-all-like-this)
       ("C-c m m" . mc/mark-all-like-this-dwim)
       ("C-c m l" . mc/edit-lines)
+      ("C-c m e" . mc/edit-ends-of-lines)
+      ("C-c m a" . mc/edit-beginnings-of-lines)
       ("C-c m n" . mc/mark-next-like-this)
       ("C-c m p" . mc/mark-previous-like-this)
       ("C-c m s" . mc/mark-sgml-tag-pair)
@@ -3728,9 +3815,43 @@ And ace-jump-zap...
   :ensure ace-jump-zap
   :bind
   (("M-z" . ace-jump-zap-up-to-char-dwim)
-   ("C-M-z" . ace-jump-zap-to-char-dwim)))
+   ("M-Z" . ace-jump-zap-to-char-dwim)))
 #+end_src
 
+*** Deleting things
+
+From Steve Purcell, who linked to http://www.emacswiki.org/emacs/ZapToISearch
+#+begin_src emacs-lisp
+(defun zap-to-isearch (rbeg rend)
+  "Kill the region between the mark and the closest portion of
+the isearch match string. The behaviour is meant to be analogous
+to zap-to-char; let's call it zap-to-isearch. The deleted region
+does not include the isearch word. This is meant to be bound only
+in isearch mode.  The point of this function is that oftentimes
+you want to delete some portion of text, one end of which happens
+to be an active isearch word. The observation to make is that if
+you use isearch a lot to move the cursor around (as you should,
+it is much more efficient than using the arrows), it happens a
+lot that you could just delete the active region between the mark
+and the point, not include the isearch word."
+  (interactive "r")
+  (when (not mark-active)
+    (error "Mark is not active"))
+  (let* ((isearch-bounds (list isearch-other-end (point)))
+         (ismin (apply 'min isearch-bounds))
+         (ismax (apply 'max isearch-bounds))
+         )
+    (if (< (mark) ismin)
+        (kill-region (mark) ismin)
+      (if (> (mark) ismax)
+          (kill-region ismax (mark))
+        (error "Internal error in isearch kill function.")))
+    (isearch-exit)
+    ))
+
+(define-key isearch-mode-map [(meta z)] 'zap-to-isearch)
+#+end_src
+**** TODO Get zap-to-isearch to work with helm-swoop
 *** Network: TRAMP and editing files over SSH
 Emacs lets you edit files on remote servers, which is pretty darn
 cool. On Windows, these things help a little.
@@ -4000,9 +4121,9 @@ still need to do. This [[http://lists.gnu.org/archive/html/emacs-orgmode/2007-03
 
 ** Rainbow delimiters
 
-#+begin_src emacs-lisp  :eval no :tangle no
-(use-package rainbow-delimiters
-  :init (global-rainbow-delimiters-mode))
+#+begin_src emacs-lisp  
+  (use-package rainbow-delimiters
+    :init (add-hook 'emacs-lisp-mode-hook 'rainbow-delimiters-mode))
 #+end_src
 
 ** Drupal

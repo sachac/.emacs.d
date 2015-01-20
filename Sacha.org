@@ -143,13 +143,13 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
     :DRILL_LAST_REVIEWED: [2013-02-27 Wed 23:14]
     :END:
 
-When you're starting out, tooltips, menus, and the tool bar can be very helpful. [[http://sachachua.com/blog/2014/03/emacs-basics-using-mouse/][(Emacs Basics: Using the Mouse]]). Eventually, you may want to reclaim that extra little bit of screenspace. The following code turns those things off when using a graphical Emacs.
+When you're starting out, tooltips, menus, and the tool bar can be very helpful. [[http://sachachua.com/blog/2014/03/emacs-basics-using-mouse/][(Emacs Basics: Using the Mouse]]). Eventually, you may want to reclaim that extra little bit of screenspace. The following code turns those things off when using a graphical Emacs. (Although I changed my mind about the menu - I want that again.)
 
 #+begin_src emacs-lisp
 (when window-system
   (tooltip-mode -1)
   (tool-bar-mode -1)
-  (menu-bar-mode -1)
+  (menu-bar-mode 1)
   (scroll-bar-mode -1))
 #+end_src
 *** Winner mode - undo and redo window configuration
@@ -382,6 +382,31 @@ From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
         (list (line-beginning-position)
           (line-beginning-position 2)))))
 #+end_src
+*** Repeatable commands
+
+Based on http://oremacs.com/2015/01/14/repeatable-commands/ . Modified to
+accept =nil= as the first value if you don't want the keymap to run a
+command by default, and to use =kbd= for the keybinding definitions.
+
+#+begin_src emacs-lisp
+  (defun sacha/def-rep-command (alist)
+    "Return a lambda that calls the first function of ALIST.
+It sets the transient map to all functions of ALIST,
+allowing you to repeat those functions as needed."
+    (lexical-let ((keymap (make-sparse-keymap))
+                  (func (cdar alist)))
+      (mapc (lambda (x)
+              (when x
+                (define-key keymap (kbd (car x)) (cdr x))))
+            alist)
+      (lambda (arg)
+        (interactive "p")
+        (when func
+          (funcall func arg))
+        (set-transient-map keymap t))))
+#+end_src
+**** TODO Look for opportunities to use this
+
 ** Navigation
 *** Pop to mark
 
@@ -391,13 +416,6 @@ Handy way of getting back to previous places.
 (bind-key "C-x p" 'pop-to-mark-command)
 (setq set-mark-command-repeat-pop t)
 #+end_src
-*** Text size
-
-#+begin_src emacs-lisp
-(bind-key "C-+" 'text-scale-increase)
-(bind-key "C--" 'text-scale-decrease)
-#+end_src
-
 *** Helm-swoop - quickly finding lines
 
 This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= to see if I can get used to that...
@@ -524,88 +542,92 @@ shortcuts that use ordinary keys.
 
 Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
 #+begin_src emacs-lisp
-    (defun sacha/key-chord-define (keymap keys command)
-      "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
-    \nKEYS can be a string or a vector of two elements. Currently only elements
-    that corresponds to ascii codes in the range 32 to 126 can be used.
-    \nCOMMAND can be an interactive function, a string, or nil.
-    If COMMAND is nil, the key-chord is removed.
+  (defun sacha/key-chord-define (keymap keys command)
+    "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
+  \nKEYS can be a string or a vector of two elements. Currently only elements
+  that corresponds to ascii codes in the range 32 to 126 can be used.
+  \nCOMMAND can be an interactive function, a string, or nil.
+  If COMMAND is nil, the key-chord is removed.
 
-    MODIFICATION: Do not define the transposed key chord.
-    "
-      (if (/= 2 (length keys))
-          (error "Key-chord keys must have two elements"))
-      ;; Exotic chars in a string are >255 but define-key wants 128..255 for those
-      (let ((key1 (logand 255 (aref keys 0)))
-            (key2 (logand 255 (aref keys 1))))
-        (define-key keymap (vector 'key-chord key1 key2) command)))
-    (fset 'key-chord-define 'sacha/key-chord-define)
+  MODIFICATION: Do not define the transposed key chord.
+  "
+    (if (/= 2 (length keys))
+        (error "Key-chord keys must have two elements"))
+    ;; Exotic chars in a string are >255 but define-key wants 128..255 for those
+    (let ((key1 (logand 255 (aref keys 0)))
+          (key2 (logand 255 (aref keys 1))))
+      (define-key keymap (vector 'key-chord key1 key2) command)))
+  (fset 'key-chord-define 'sacha/key-chord-define)
 
-    (defun sacha/switch-to-previous-buffer ()
-      "Switch to previously open buffer.
-    Repeated invocations toggle between the two most recently open buffers."
-      (interactive)
-      (switch-to-buffer (other-buffer (current-buffer) 1)))
+  (defun sacha/switch-to-previous-buffer ()
+    "Switch to previously open buffer.
+  Repeated invocations toggle between the two most recently open buffers."
+    (interactive)
+    (switch-to-buffer (other-buffer (current-buffer) 1)))
 
-    (defun sacha/org-check-agenda ()
-      "Peek at agenda."
-      (interactive)
-      (cond
-       ((derived-mode-p 'org-agenda-mode)
-        (if (window-parent) (delete-window) (bury-buffer)))
-       ((get-buffer "*Org Agenda*")
-        (switch-to-buffer-other-window "*Org Agenda*"))
-       (t (org-agenda nil "a"))))
+  (defun sacha/org-check-agenda ()
+    "Peek at agenda."
+    (interactive)
+    (cond
+     ((derived-mode-p 'org-agenda-mode)
+      (if (window-parent) (delete-window) (bury-buffer)))
+     ((get-buffer "*Org Agenda*")
+      (switch-to-buffer-other-window "*Org Agenda*"))
+     (t (org-agenda nil "a"))))
 
-    (defvar sacha/key-chord-command-map (make-sparse-keymap))
-    (bind-key "h" 'emms-pause sacha/key-chord-command-map)
-    (bind-key "u" 'emms-pause sacha/key-chord-command-map)
-    (bind-key "t" 'emms-seek-backward sacha/key-chord-command-map)
-    (bind-key "s" 'emms-seek-to sacha/key-chord-command-map)
-    (bind-key "f" 'windmove-right sacha/key-chord-command-map)
-    (bind-key "b" 'windmove-left sacha/key-chord-command-map)
-    (bind-key "n" 'windmove-down sacha/key-chord-command-map)
-    (bind-key "p" 'windmove-up sacha/key-chord-command-map)
-#+end_src
+  (defvar sacha/key-chord-command-map (make-sparse-keymap))
+  (define-key sacha/key-chord-command-map "k" 'kill-sexp)
+  (define-key sacha/key-chord-command-map "h" 'emms-pause)
+  (define-key sacha/key-chord-command-map "u" 'emms-pause)
+  (define-key sacha/key-chord-command-map "t" 'emms-seek-backward)
+  (define-key sacha/key-chord-command-map "s" 'emms-seek-to)
+  (define-key sacha/key-chord-command-map "i" 'imenu)
+  (define-key sacha/key-chord-command-map "+" (sacha/def-rep-command '(("+" . text-scale-increase) ("-" . text-scale-decrease))))
 
-I'm trying to get the hang of windmove.
-#+begin_src emacs-lisp
-  (defvar sacha/windmove-map (make-sparse-keymap))
-  (bind-key "h" 'windmove-left sacha/windmove-map)
-  (bind-key "t" 'windmove-up sacha/windmove-map)
-  (bind-key "n" 'windmove-down sacha/windmove-map)
-  (bind-key "s" 'windmove-right sacha/windmove-map)
-  (bind-key "<left>" 'windmove-left sacha/windmove-map)
-  (bind-key "<up>" 'windmove-up sacha/windmove-map)
-  (bind-key "<down>" 'windmove-down sacha/windmove-map)
-  (bind-key "<right>" 'windmove-right sacha/windmove-map)
 #+end_src
 
 Now let's set up the actual keychords.
 
 #+begin_src emacs-lisp
-    (use-package key-chord
-      :init
-      (progn 
-        (fset 'key-chord-define 'sacha/key-chord-define)
-        (setq key-chord-one-key-delay 0.16)
-        (key-chord-mode 1)
-        ;; k can be bound too
-        (key-chord-define-global "uu"     'undo)
-        (key-chord-define-global "jj"     'ace-jump-word-mode)
-        (key-chord-define-global "yy"     sacha/windmove-map)
-        ;; y is now free
-        (key-chord-define-global "jw"     'ace-window)
-        (key-chord-define-global "jl"     'ace-jump-line-mode)
-        ;(key-chord-define-global "jz"     'ace-jump-zap-up-to-char)
-        ;(key-chord-define-global "jZ"     'ace-jump-zap-to-char)
-        (key-chord-define-global "FF"     'find-file)
-        (key-chord-define-global "qq"     'sacha/org-quick-clock-in-task)
-        (key-chord-define-global "hh"     sacha/key-chord-command-map)
-        (key-chord-define-global "hc"     'emms-seek-forward)
-        (key-chord-define-global "xx"     'er/expand-region)
-        (key-chord-define-global "  "     'sacha/insert-space-or-expand)
-        (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer)))
+  (use-package key-chord
+    :init
+    (progn 
+      (fset 'key-chord-define 'sacha/key-chord-define)
+      (setq key-chord-one-key-delay 0.16)
+      (key-chord-mode 1)
+      ;; k can be bound too
+      (key-chord-define-global "uu"     'undo)
+      (key-chord-define-global "jj"     'ace-jump-word-mode)
+      (key-chord-define-global "yy"   
+            (sacha/def-rep-command
+             '(nil
+               ("<left>" . windmove-left)
+               ("<right>" . windmove-right)
+               ("<down>" . windmove-down)
+               ("<up>" . windmove-up)
+               ("y" . other-window)
+               ("h" . ace-window)
+               ("s" . (lambda () (interactive) (ace-window 4)))
+               ("d" . (lambda () (interactive) (ace-window 16)))
+               )
+             ))
+      (key-chord-define-global "jw"     'ace-window)
+      (key-chord-define-global "jl"     'ace-jump-line-mode)
+      (key-chord-define-global "j."
+                               (sacha/def-rep-command
+                                '(nil
+                                  ("<up>" . join-line)
+                                  ("<down>" . (lambda () (join-line 1)))
+                                  ("t" . join-line)
+                                  ("n" . (lambda () (join-line 1)))))) ;; not an ace-jump, but still useful
+      ;(key-chord-define-global "jZ"     'ace-jump-zap-to-char)
+      (key-chord-define-global "FF"     'find-file)
+      (key-chord-define-global "qq"     'sacha/org-quick-clock-in-task)
+      (key-chord-define-global "hh"     sacha/key-chord-command-map)
+      (key-chord-define-global "hc"     'emms-seek-forward)
+      (key-chord-define-global "xx"     'er/expand-region)
+      (key-chord-define-global "  "     'sacha/insert-space-or-expand)
+      (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer)))
 #+end_src
 *** Smartscan
 
@@ -899,7 +921,6 @@ From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-comm
         org-goto-max-level 10)
   (require 'imenu)
   (setq org-startup-folded nil)
-  (bind-key "M-o" 'imenu)
   (bind-key "C-c j" 'org-clock-goto) ;; jump to current task from anywhere
   (bind-key "C-c C-w" 'org-refile)
   (setq org-cycle-include-plain-lists 'integrate)
@@ -1971,74 +1992,74 @@ Now we put it all together...
 **** Flickr extract
 
 #+begin_src emacs-lisp
-  (defun _sacha/clean-up-flickr-list (list)
-    (setq list
-          (replace-regexp-in-string "\\([0-9]+\\)-\\([0-9]+\\)-\\([0-9]+\\)"
-                                    "\\1.\\2.\\3" list))
-    (setq list
-          (replace-regexp-in-string "\\[\"" "[" list))
-    (setq list
-          (replace-regexp-in-string "<a href=\"\"\\([^\"]+\\).*?>.*?</a>"
-                                    "[[\\1][\\2]]" list))
-    (setq list
-          (replace-regexp-in-string "\"
-" "" (replace-regexp-in-string "\"\\]" "]" list))))
+    (defun _sacha/clean-up-flickr-list (list)
+      (setq list
+            (replace-regexp-in-string "\\([0-9]+\\)-\\([0-9]+\\)-\\([0-9]+\\)"
+                                      "\\1.\\2.\\3" list))
+      (setq list
+            (replace-regexp-in-string "\\[\"" "[" list))
+      (setq list
+            (replace-regexp-in-string "<a href=\"\"\\([^\"]+\\).*?>.*?</a>"
+                                      "[[\\1][\\2]]" list))
+      (setq list
+            (replace-regexp-in-string "\"
+  " "" (replace-regexp-in-string "\"\\]" "]" list))))
 
-  (defun _sacha/format-flickr-link-for-org (x)
-    (let ((title (assoc-default "FileName" x)))
-      (format
-       "- [[%s][%s]] %s"
-       (assoc-default "URL" x)
-       title
-       (if (string= (assoc-default "Description" x) "")
-           ""
-         (concat "- "
-                 (replace-regexp-in-string
-                  "<a href=\"\"\\(.*?\\)\"\".*?>\\(.*?\\)</a>"
-                  "[[\\1][\\2]]"
-                  (assoc-default "Description" x)))))))
-
-
-  (defun _sacha/parse-and-filter-flickr-csv-buffer (start end)
-    (sort
-     (delq nil
-           (mapcar (lambda (x)
-                     (if (and (string< (assoc-default "FileName" x) end)
-                              (org-string<= start (assoc-default "FileName" x)))
-                         x))
-                   (csv-parse-buffer t)))
-     (lambda (a b)
-       (string< (assoc-default "FileName" a)
-                (assoc-default "FileName" b)))))
+    (defun _sacha/format-flickr-link-for-org (x)
+      (let ((title (assoc-default "FileName" x)))
+        (format
+         "- [[%s][%s]] %s"
+         (assoc-default "URL" x)
+         title
+         (if (string= (assoc-default "Description" x) "")
+             ""
+           (concat "- "
+                   (replace-regexp-in-string
+                    "<a href=\"\"\\(.*?\\)\"\".*?>\\(.*?\\)</a>"
+                    "[[\\1][\\2]]"
+                    (assoc-default "Description" x)))))))
 
 
-  (defun sacha/flickr-export-and-extract (start end &optional do-insert update-db)
-    "Download Flickr metadata and extract the relevant part."
-    (interactive (list (org-read-date) (org-read-date) t current-prefix-arg))
-    (when update-db (shell-command "c:/sacha/dropbox/bin/flickr.bat"))
-    (if do-insert
-        (insert (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
-      (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end)))
+    (defun _sacha/parse-and-filter-flickr-csv-buffer (start end)
+      (sort
+       (delq nil
+             (mapcar (lambda (x)
+                       (if (and (string< (assoc-default "FileName" x) end)
+                                (org-string<= start (assoc-default "FileName" x)))
+                           x))
+                     (csv-parse-buffer t)))
+       (lambda (a b)
+         (string< (assoc-default "FileName" a)
+                  (assoc-default "FileName" b)))))
 
 
-  (defun sacha/flickr-extract-links-for-review (filename start end)
-  "Extract Flickr titles and URLs from FILENAME from START to END.
-  The file should be a CSV downloaded by the Flickr metadata downloader.
-         Start date and end date should be strings in the form yyyy-mm-dd."
-    (require 'csv)
-    (let (list)
-      (with-temp-buffer
-        (insert-file-contents filename)
-        (goto-char (point-min))
-        (setq list
-              (mapconcat
-               '_sacha/format-flickr-link-for-org
-               (_sacha/parse-and-filter-flickr-csv-buffer start end)
-               "\n"))
-        (setq list (_sacha/clean-up-flickr-list list))
-        (if (called-interactively-p 'any)
-            (insert list)
-          list))))
+    (defun sacha/flickr-export-and-extract (start end &optional do-insert update-db)
+      "Download Flickr metadata and extract the relevant part."
+      (interactive (list (org-read-date) (org-read-date) t current-prefix-arg))
+      (when update-db (shell-command "c:/sacha/dropbox/bin/flickr.bat"))
+      (if do-insert
+          (insert (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
+        (sacha/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end)))
+
+
+    (defun sacha/flickr-extract-links-for-review (filename start end)
+    "Extract Flickr titles and URLs from FILENAME from START to END.
+    The file should be a CSV downloaded by the Flickr metadata downloader.
+           Start date and end date should be strings in the form yyyy-mm-dd."
+      (require 'csv)
+      (let (list)
+        (with-temp-buffer
+          (insert-file-contents filename)
+          (goto-char (point-min))
+          (setq list
+                (mapconcat
+                 '_sacha/format-flickr-link-for-org
+                 (_sacha/parse-and-filter-flickr-csv-buffer start end)
+                 "\n"))
+          (setq list (_sacha/clean-up-flickr-list list))
+          (if (called-interactively-p 'any)
+              (insert list)
+            list))))
 #+end_src
 
 **** Link-related convenience functions
@@ -2830,7 +2851,7 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
       t))
 
   (use-package web-mode
-    :ensure web-mode
+    :ensure t
     :init (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
     :config
     (progn
@@ -3184,23 +3205,23 @@ test-related code is detected."
 And the rest of the js2 config:
 
 #+begin_src emacs-lisp
-      (use-package js2-mode
-        :ensure t
-        :commands js2-mode
-        :init
-        (progn
-          (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
+  (use-package js2-mode
+    :ensure t
+    :commands js2-mode
+    :init
+    (progn
+      (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
       (setq-default js2-basic-offset 2)
       (add-to-list 'interpreter-mode-alist (cons "node" 'js2-mode)))
-        :config
-        (progn 
+    :config
+    (progn 
       (js2-imenu-extras-setup)
-          (bind-key "C-x C-e" 'js-send-last-sexp js2-mode-map)
-          (bind-key "C-M-x" 'js-send-last-sexp-and-go js2-mode-map)
-          (bind-key "C-c b" 'js-send-buffer js2-mode-map)
-          (bind-key "C-c C-b" 'js-send-buffer-and-go js2-mode-map)
-          (bind-key "C-c w" 'sacha/copy-javascript-region-or-buffer js2-mode-map)
-          (bind-key "C-c l" 'js-load-file-and-go js2-mode-map)))
+      (bind-key "C-x C-e" 'js-send-last-sexp js2-mode-map)
+      (bind-key "C-M-x" 'js-send-last-sexp-and-go js2-mode-map)
+      (bind-key "C-c b" 'js-send-buffer js2-mode-map)
+      (bind-key "C-c C-b" 'js-send-buffer-and-go js2-mode-map)
+      (bind-key "C-c w" 'sacha/copy-javascript-region-or-buffer js2-mode-map)
+      (bind-key "C-c l" 'js-load-file-and-go js2-mode-map)))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -4680,6 +4701,25 @@ recently-opened files first.
        ;;
        ;; # -*- buffer-auto-save-file-name: nil; -*-
 
+#+end_src
+
+** Rename scanned index cards
+
+#+begin_src emacs-lisp
+  (defun sacha/rename-scanned-cards ()
+    "Display and rename the scanned files."
+    (interactive)
+    (mapc (lambda (filename)
+            (find-file filename)
+            (image-mode)
+            (delete-other-windows)
+            (when (string-match "/\\([0-9]+-[0-9]+-[0-9]+\\)" filename)
+              (let ((new-name (read-string "New name: "
+                                           (concat (match-string 1 filename) " "))))
+                (when (> (length new-name) 0)
+                  (rename-file filename (concat new-name ".png"))
+                  (kill-buffer)))))
+          (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.png")))
 #+end_src
 
 * Games

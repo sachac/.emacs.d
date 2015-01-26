@@ -192,20 +192,6 @@ possible, although I prefer ido's way of switching buffers.
               helm-M-x-requires-pattern nil
               helm-ff-skip-boring-files t)
         (helm-mode))
-      :config
-      (progn
-        ;; I don't like the way switch-to-buffer uses history, since
-        ;; that confuses me when it comes to buffers I've already
-        ;; killed. Let's use ido instead.
-        (add-to-list 'helm-completing-read-handlers-alist
-                     '(switch-to-buffer . ido))
-        (add-to-list 'helm-completing-read-handlers-alist
-                     '(rename-file . ido))
-        (add-to-list 'helm-completing-read-handlers-alist
-                     '(dired-rename-file . ido))
-        ;; Unicode
-        (add-to-list 'helm-completing-read-handlers-alist
-                     '(insert-char . ido)))
       :bind (("C-c h" . helm-mini)
              ("C-h a" . helm-apropos)
              ("M-y" . helm-show-kill-ring)
@@ -579,6 +565,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
   (define-key sacha/key-chord-command-map "k" 'kill-sexp)
   (define-key sacha/key-chord-command-map "h" 'emms-pause)
   (define-key sacha/key-chord-command-map "u" 'emms-pause)
+  (define-key sacha/key-chord-command-map "r" 'repeat)
   (define-key sacha/key-chord-command-map "t" 'emms-seek-backward)
   (define-key sacha/key-chord-command-map "s" 'emms-seek-to)
   (define-key sacha/key-chord-command-map "i" 'imenu)
@@ -618,9 +605,10 @@ Now let's set up the actual keychords.
                                (sacha/def-rep-command
                                 '(nil
                                   ("<up>" . join-line)
-                                  ("<down>" . (lambda () (join-line 1)))
+                                  ("<down>" . (lambda () (interactive) (join-line 1)))
                                   ("t" . join-line)
-                                  ("n" . (lambda () (join-line 1)))))) ;; not an ace-jump, but still useful
+                                  ("n" . (lambda () (interactive) (join-line 1)))))))
+      ;; not an ace-jump, but still useful
       ;(key-chord-define-global "jZ"     'ace-jump-zap-to-char)
       (key-chord-define-global "FF"     'find-file)
       (key-chord-define-global "qq"     'sacha/org-quick-clock-in-task)
@@ -700,23 +688,6 @@ https://github.com/bbatsov/prelude
     (when filename
       (kill-new filename)
       (message "Copied buffer file name '%s' to the clipboard." filename))))
-#+end_src
-*** Narrowing
-
-From http://endlessparentheses.com/emacs-narrow-or-widen-dwim.html
-#+begin_src emacs-lisp
-(add-to-list 'load-path "~/elisp/recursive-narrow")
-(defun sacha/recursive-narrow-dwim-org ()
-    (if (derived-mode-p 'org-mode)
-         (cond ((or (org-at-block-p) (org-in-src-block-p)) (org-narrow-to-block))
-               (t (org-narrow-to-subtree))))
-)
-(use-package recursive-narrow
-  :config
-  (add-hook 'recursive-narrow-dwim-functions 'sacha/recursive-narrow-dwim-org)
-  :bind
-  (("C-x n w" . recursive-widen)
-   ("C-x n n" . recursive-narrow-or-widen-dwim)))
 #+end_src
 
 ** Reading
@@ -849,11 +820,11 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
 | wo    | without                               |
 | wi    | with                                  |
 | ex    | For example,                          |
-| email | sacha@sachachua.com                   |
-| dote  | http://sachachua.com/dotemacs         |
-| web   | http://sachachua.com/                 |
-| blog  | http://sachachua.com/blog/            |
-| ec    | http://sachachua.com/blog/emacs-chat/ |
+| qm    | sacha@sachachua.com                   |
+| qe    | http://sachachua.com/dotemacs         |
+| qw    | http://sachachua.com/                 |
+| qb    | http://sachachua.com/blog/            |
+| qc    | http://sachachua.com/blog/emacs-chat/ |
 
 #+begin_src emacs-lisp :exports code :var data=abbrev
 (mapc (lambda (x) (define-global-abbrev (car x) (cadr x))) data)
@@ -1404,7 +1375,7 @@ I can get a sense of how appointments are spread out.
   (setq org-agenda-span 2)
   (setq org-agenda-sticky nil)
   (setq org-agenda-inhibit-startup t)
-  (setq org-agenda-use-tag-inheritance nil)
+  (setq org-agenda-use-tag-inheritance t)
   (setq org-agenda-show-log t)
   (setq org-agenda-skip-scheduled-if-done t)
   (setq org-agenda-skip-deadline-if-done t)
@@ -1867,7 +1838,7 @@ down into previous/next week.
     "^  \\([^:]+\\): +\\(Sched[^:]+: +\\)?TODO \\(.*?\\)\\(?:[      ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$"
     "Regular expression matching lines to include.")
   (defvar sacha/weekly-done-line-regexp
-    "^  \\([^:]+\\): +.*?\\(?:Clocked\\|Closed\\):.*?\\(?:TODO\\|DONE\\) \\(.*?\\)\\(?:[       ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$"
+    "^  \\([^:]+\\): +.*?\\(?:Clocked\\|Closed\\):.*?\\(TODO\\|DONE\\) \\(.*?\\)\\(?:[       ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$"
     "Regular expression matching lines to include as completed tasks.")
 
   (defun sacha/quantified-get-hours (category time-summary)
@@ -1876,32 +1847,44 @@ down into previous/next week.
         (if (assoc category time-summary) (/ (cdr (assoc category time-summary)) 3600.0) 0)
       (apply '+ (mapcar (lambda (x) (sacha/quantified-get-hours x time-summary)) category))))
 
-  (defun sacha/org-summarize-focus-areas ()
-    "Summarize previous and upcoming tasks as a list."
-    (interactive)
-    (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
-          (line-re sacha/weekly-review-line-regexp)
-          (done-re sacha/weekly-done-line-regexp)
-          business relationships life business-next relationships-next life-next string
-          start end time-summary biz-time)
-      (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
-      (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
-      (setq time-summary (quantified-summarize-time start end))
-      (setq biz-time (sacha/quantified-get-hours "Business" time-summary))
-      (save-window-excursion
+  (defun _sacha/extract-tasks-from-agenda (string matchers prefix line-re)
+    (with-temp-buffer
+      (insert string)
+      (goto-char (point-min))
+      (while (re-search-forward line-re nil t)
+        (let ((temp-list matchers))
+          (while temp-list
+            (if (save-match-data
+                  (string-match (car (car temp-list)) (match-string 1)))
+                (progn
+                  (add-to-list (cdr (car temp-list)) (concat prefix (match-string 3)) t)
+                  (setq temp-list nil)))
+            (setq temp-list (cdr temp-list)))))))
+
+  (ert-deftest _sacha/extract-tasks-from-agenda ()
+    (let (list-a list-b (line-re "\\([^:]+\\):\\( \\)\\(.*\\)"))
+      (_sacha/extract-tasks-from-agenda
+       "listA: Task 1\nother: Task 2\nlistA: Task 3"
+       '(("listA" . list-a)
+         ("." . list-b))
+       "- [ ] "
+       line-re)
+      (should (equal list-a '("- [ ] Task 1" "- [ ] Task 3")))
+      (should (equal list-b '("- [ ] Task 2")))))
+
+  (defun _sacha/get-upcoming-tasks ()
+    (save-window-excursion
         (org-agenda nil "W")
-        (setq string (buffer-string))
-        (with-temp-buffer
-          (insert string)
-          (goto-char (point-min))
-          (while (re-search-forward line-re nil t)
-            (cond
-             ((string= (match-string 1) "routines") nil) ; skip routine tasks
-             ((or (string= (match-string 1) "business") (string= (match-string 1) "tasks"))
-              (add-to-list 'business-next (concat "  - [ ] " (match-string 3))))
-             ((string= (match-string 1) "people")
-              (add-to-list 'relationships-next (concat "  - [ ] " (match-string 3))))
-             (t (add-to-list 'life-next (concat "  - [ ] " (match-string 3))))))))
+        (_sacha/extract-tasks-from-agenda (buffer-string)
+                                          '(("routines" . ignore)
+                                            ("business" . business-next)
+                                            ("people" . relationships-next)
+                                            ("tasks" . emacs-next)
+                                            ("." . life-next))
+                                          "  - [ ] "
+                                          sacha/weekly-review-line-regexp)))
+  (defun _sacha/get-previous-tasks ()
+    (let (string)
       (save-window-excursion
         (org-agenda nil "W")
         (org-agenda-later -1)
@@ -1911,17 +1894,27 @@ down into previous/next week.
         (org-agenda-later 1)
         (org-agenda-log-mode 16)
         (setq string (concat string "\n" (buffer-string)))
-        (with-temp-buffer
-          (insert string)
-          (goto-char (point-min))
-          (while (re-search-forward done-re nil t)
-            (cond
-             ((string= (match-string 1) "routines") nil) ; skip routine tasks
-             ((or (string= (match-string 1) "business") (string= (match-string 1) "tasks"))
-              (add-to-list 'business (concat "  - [X] " (match-string 2))))
-             ((string= (match-string 1) "people")
-              (add-to-list 'relationships (concat "  - [X] " (match-string 2))))
-             (t (add-to-list 'life (concat "  - [X] " (match-string 2))))))))
+        (_sacha/extract-tasks-from-agenda string
+                                          '(("routines" . ignore)
+                                            ("business" . business)
+                                            ("people" . relationships)
+                                            ("tasks" . emacs)
+                                            ("." . life))
+                                          "  - [X] "
+                                          sacha/weekly-done-line-regexp))))
+
+  (defun sacha/org-summarize-focus-areas ()
+    "Summarize previous and upcoming tasks as a list."
+    (interactive)
+    (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
+          business relationships life business-next relationships-next life-next string emacs emacs-next
+          start end time-summary biz-time ignore)
+      (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
+      (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
+      (setq time-summary (quantified-summarize-time start end))
+      (setq biz-time (sacha/quantified-get-hours "Business" time-summary))
+      (_sacha/get-upcoming-tasks)
+      (_sacha/get-previous-tasks)
       (setq string
             (concat
              (format "- *Business* (%.1fh - %d%%)\n" biz-time (/ biz-time 1.68))
@@ -1951,8 +1944,8 @@ down into previous/next week.
                                                    "Discretionary - Family") time-summary)
                      (/ (sacha/quantified-get-hours '("Discretionary - Social"
                                                       "Discretionary - Family") time-summary) 1.68))
-             (mapconcat 'identity (sort relationships 'string<) "\n") "\n"
-             (mapconcat 'identity (sort relationships-next 'string<) "\n")
+             (mapconcat 'identity relationships "\n") "\n"
+             (mapconcat 'identity relationships-next "\n") "\n"
              "\n"
              (format "- *Discretionary - Productive* (%.1fh - %d%%)\n"
                      (sacha/quantified-get-hours "Discretionary - Productive" time-summary)
@@ -1960,16 +1953,15 @@ down into previous/next week.
              (format "  - *Emacs* (%.1fh - %d%% of all)\n"
                      (sacha/quantified-get-hours "Discretionary - Productive - Emacs" time-summary)
                      (/ (sacha/quantified-get-hours "Discretionary - Productive - Emacs" time-summary) 1.68))
-             (mapconcat 'identity (sort life 'string<) "\n") "\n"
-             (mapconcat 'identity (sort life-next 'string<) "\n") "\n"
+             (mapconcat 'identity emacs "\n") "\n"
+             (mapconcat 'identity emacs-next "\n") "\n"
+             (mapconcat 'identity life "\n") "\n"
+             (mapconcat 'identity life-next "\n") "\n"
              (format "  - *Writing* (%.1fh)\n"
                      (sacha/quantified-get-hours "Discretionary - Productive - Writing" time-summary))
              (format "- *Discretionary - Play* (%.1fh - %d%%)\n"
                      (sacha/quantified-get-hours "Discretionary - Play" time-summary)
                      (/ (sacha/quantified-get-hours "Discretionary - Play" time-summary) 1.68))
-                                          ;                 (format "- *Discretionary - Travel* (%.1fh - %d%%)\n"
-                                          ;                         (sacha/quantified-get-hours "Discretionary - Travel" time-summary)
-                                          ;                         (/ (sacha/quantified-get-hours "Discretionary - Travel" time-summary) 1.68))
              (format "- *Personal routines* (%.1fh - %d%%)\n"
                      (sacha/quantified-get-hours "Personal" time-summary)
                      (/ (sacha/quantified-get-hours "Personal" time-summary) 1.68))
@@ -2339,6 +2331,45 @@ Here's a function like =sacha/org-prepare-weekly-review=:
        sketches)))
 #+end_src
 
+*** Moving lines around
+
+This makes it easier to reorganize lines in my weekly review.
+#+begin_src emacs-lisp
+    (defun sacha/org-move-line-to-destination ()
+      "Moves the current list item to <<destination>> in the current buffer.
+If no <<destination>> is found, move it to the end of the list
+and indent it one level."
+      (interactive)
+      (save-window-excursion
+        (save-excursion
+          (let ((string
+                 (buffer-substring-no-properties
+                  (line-beginning-position) (line-end-position)))
+                found)
+            (delete-region (line-beginning-position) (1+ (line-end-position)))
+            (save-excursion
+              (goto-char (point-min))
+              (when (re-search-forward "<<destination>>" nil t)
+                (insert "\n" (make-string (- (match-beginning 0) (line-beginning-position)) ?\ ) (s-trim string))
+                (setq found t)))
+            (unless found
+              (org-end-of-item-list)
+              (insert string "\n"))))))
+    (bind-key "C-c d" 'sacha/org-move-line-to-destination org-mode-map)
+#+end_src
+
+#+begin_src emacs-lisp
+  (defun sacha/org-move-line-to-end-of-list ()
+    "Move the current list item to the end of the list."
+    (interactive)
+    (save-excursion
+      (let ((string (buffer-substring-no-properties (line-beginning-position)
+                                                    (line-end-position))))
+        (delete-region (line-beginning-position) (1+ (line-end-position)))
+        (org-end-of-item-list)
+        (insert string))))
+
+#+end_src
 *** Viewing, navigating, and editing the Org tree
 
     I often cut and paste subtrees. This makes it easier to cut
@@ -2403,6 +2434,7 @@ complicated than they are. Let's turn them off by default.
 #+begin_src emacs-lisp
 (setq org-export-with-section-numbers nil)
 (setq org-html-include-timestamps nil)
+(setq org-export-with-sub-superscripts nil)
 #+end_src
 
 This makes it easier to publish my files:
@@ -2854,10 +2886,8 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
     (let ((filename (file-name-base))
           (mode (symbol-name major-mode))
           (contents
-           (condition-case nil (buffer-substring beg end)
-             (mark-inactive (buffer-string))))
-          (gist (condition-case nil (gist-region beg end)
-                      (mark-inactive (gist-buffer)))))
+           (if (use-region-p) (buffer-substring beg end) (buffer-string)))
+          (gist (if (use-region-p) (gist-region beg end) (gist-buffer))))
       (kill-new
        (format "\n[[%s][Gist: %s]]\n#+begin_src %s\n%s\n#+end_src\n"
                (oref (oref gist :data) :html-url) filename
@@ -2946,18 +2976,6 @@ This is something I have to get the hang of too. It gradually expands the select
     :bind ("C-=" . er/expand-region))
 #+end_src
 *** Emacs Lisp
-**** Edebug
-
-Did you know edebug has a trace function? I didn't. Thanks, agumonkey!
-
-#+begin_src emacs-lisp
-(setq edebug-trace t)
-#+end_src
-
-While edebugging, use T to view a trace buffer (=*edebug-trace*=).
-Emacs will quickly execute the rest of your code, printing out the
-arguments and return values for each expression it evaluates.
-
 **** Eldoc
 Eldoc provides minibuffer hints when working with Emacs Lisp.
 #+begin_src emacs-lisp
@@ -4759,9 +4777,12 @@ recently-opened files first.
     (mapc (lambda (filename)
             (find-file filename)
             (image-mode)
+            (eimp-mode)
             (delete-other-windows)
+            (eimp-fit-image-to-window nil)
             (when (string-match "/\\([0-9]+-[0-9]+-[0-9]+\\)" filename)
-              (let ((new-name (read-string "New name: "
+              (let ((kill-buffer-query-functions nil)
+                    (new-name (read-string "New name: "
                                            (concat (match-string 1 filename) " "))))
                 (when (> (length new-name) 0)
                   (rename-file filename (concat new-name ".png"))

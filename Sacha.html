@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2015-01-26 Mon 14:55 -->
+<!-- 2015-01-28 Wed 14:29 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -422,16 +422,17 @@ for the JavaScript code in this tag.
 <li><a href="#unnumbered-190">Keywiz - keyboard quizzes</a></li>
 <li><a href="#unnumbered-191">MobileOrg for Android</a></li>
 <li><a href="#unnumbered-192">Encryption</a></li>
-<li><a href="#unnumbered-193">Rename scanned index cards</a></li>
+<li><a href="#unnumbered-193">Images</a></li>
+<li><a href="#unnumbered-194">Rename scanned index cards</a></li>
 </ul>
 </li>
-<li><a href="#unnumbered-194">Games</a>
+<li><a href="#unnumbered-195">Games</a>
 <ul>
-<li><a href="#unnumbered-195">Typing of Emacs</a></li>
-<li><a href="#unnumbered-196">2048 in Emacs, and colours too&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></a></li>
+<li><a href="#unnumbered-196">Typing of Emacs</a></li>
+<li><a href="#unnumbered-197">2048 in Emacs, and colours too&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></a></li>
 </ul>
 </li>
-<li><a href="#unnumbered-197">Path</a></li>
+<li><a href="#unnumbered-198">Path</a></li>
 </ul>
 </div>
 </div>
@@ -714,6 +715,8 @@ possible, although I prefer ido's way of switching buffers.
     <span class="org-rainbow-delimiters-depth-3">(</span>helm-mode<span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span>
   <span class="org-builtin">:bind</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"C-c h"</span> . helm-mini<span class="org-rainbow-delimiters-depth-3">)</span>
          <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"C-h a"</span> . helm-apropos<span class="org-rainbow-delimiters-depth-3">)</span>
+         <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"C-x C-b"</span> . helm-buffers-list<span class="org-rainbow-delimiters-depth-3">)</span>
+         <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"C-x b"</span> . helm-buffers-list<span class="org-rainbow-delimiters-depth-3">)</span>
          <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"M-y"</span> . helm-show-kill-ring<span class="org-rainbow-delimiters-depth-3">)</span>
          <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"M-x"</span> . helm-M-x<span class="org-rainbow-delimiters-depth-3">)</span>
          <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"C-x c o"</span> . helm-occur<span class="org-rainbow-delimiters-depth-3">)</span>
@@ -1266,7 +1269,7 @@ Now let's set up the actual keychords.
     <span class="org-rainbow-delimiters-depth-2">(</span>key-chord-define-global <span class="org-string">"hc"</span>     'emms-seek-forward<span class="org-rainbow-delimiters-depth-2">)</span>
     <span class="org-rainbow-delimiters-depth-2">(</span>key-chord-define-global <span class="org-string">"xx"</span>     'er/expand-region<span class="org-rainbow-delimiters-depth-2">)</span>
     <span class="org-rainbow-delimiters-depth-2">(</span>key-chord-define-global <span class="org-string">"  "</span>     'sacha/insert-space-or-expand<span class="org-rainbow-delimiters-depth-2">)</span>
-    <span class="org-rainbow-delimiters-depth-2">(</span>key-chord-define-global <span class="org-string">"JJ"</span>     'sacha/switch-to-previous-buffer<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span><span class="org-rainbow-delimiters-unmatched">)</span>
+    <span class="org-rainbow-delimiters-depth-2">(</span>key-chord-define-global <span class="org-string">"JJ"</span>     'sacha/switch-to-previous-buffer<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
 </pre>
 </div>
 </div>
@@ -4637,9 +4640,10 @@ From <a href="https://github.com/pcmantz/elisp/blob/master/my-bindings.el">https
 
 <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defun</span> <span class="org-function-name">sacha/change-cursor-color-when-can-expand</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-type">&amp;optional</span> field<span class="org-rainbow-delimiters-depth-2">)</span>
   <span class="org-rainbow-delimiters-depth-2">(</span>interactive<span class="org-rainbow-delimiters-depth-2">)</span>
-  <span class="org-rainbow-delimiters-depth-2">(</span>set-cursor-color <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-4">(</span>sacha/can-expand<span class="org-rainbow-delimiters-depth-4">)</span>
-                        yasnippet-can-fire-cursor-color
-                      default-cursor-color<span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">when</span> <span class="org-rainbow-delimiters-depth-3">(</span>eq last-command 'self-insert-command<span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-rainbow-delimiters-depth-3">(</span>set-cursor-color <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-5">(</span>sacha/can-expand<span class="org-rainbow-delimiters-depth-5">)</span>
+                          yasnippet-can-fire-cursor-color
+                        default-cursor-color<span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
 
 <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defun</span> <span class="org-function-name">sacha/can-expand</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-rainbow-delimiters-depth-2">)</span>
   <span class="org-doc">"Return true if right after an expandable thing."</span>
@@ -4811,6 +4815,7 @@ And the rest of the js2 config:
 </pre>
 </div>
 </div>
+
 <div id="outline-container-unnumbered-134" class="outline-5">
 <h5 id="unnumbered-134">Tern - for Javascript</h5>
 <div class="outline-text-5" id="text-unnumbered-134">
@@ -4819,9 +4824,18 @@ And the rest of the js2 config:
 <pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">use-package</span> <span class="org-constant">tern</span>
   <span class="org-builtin">:init</span>
   <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">progn</span>
+  <span class="org-rainbow-delimiters-depth-3">(</span>setq tern-command '<span class="org-rainbow-delimiters-depth-4">(</span><span class="org-string">"cmd"</span> <span class="org-string">"/c"</span> <span class="org-string">"tern"</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
   <span class="org-rainbow-delimiters-depth-3">(</span>add-hook 'js2-mode-hook 'tern-mode<span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+
+<span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">use-package</span> <span class="org-constant">company-tern</span>
+<span class="org-builtin">:ensure</span> t
+<span class="org-builtin">:init</span> <span class="org-rainbow-delimiters-depth-2">(</span>add-to-list 'company-backends 'company-tern<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
 </pre>
 </div>
+
+<p>
+#+end_src
+</p>
 </div>
 </div>
 </div>
@@ -4947,7 +4961,7 @@ options to add at the end of the command, but that can wait for another time (or
 
 <pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">use-package</span> <span class="org-constant">git-messenger</span>
   <span class="org-builtin">:ensure</span> t
-  <span class="org-builtin">:bind</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"C-x v p"</span> . git-messenger:popup-message<span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+  <span class="org-builtin">:bind</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"C-x v m"</span> . git-messenger:popup-message<span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
 </pre>
 </div>
 </div>
@@ -6644,8 +6658,21 @@ big to open easily there, though.
 </div>
 
 <div id="outline-container-unnumbered-193" class="outline-3">
-<h3 id="unnumbered-193">Rename scanned index cards</h3>
+<h3 id="unnumbered-193">Images</h3>
 <div class="outline-text-3" id="text-unnumbered-193">
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">use-package</span> <span class="org-constant">image+</span>
+ <span class="org-builtin">:load-path</span> <span class="org-string">"~/elisp/Emacs-imagex"</span>
+ <span class="org-builtin">:init</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">progn</span> <span class="org-rainbow-delimiters-depth-3">(</span>imagex-global-sticky-mode<span class="org-rainbow-delimiters-depth-3">)</span> <span class="org-rainbow-delimiters-depth-3">(</span>imagex-auto-adjust-mode<span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-unnumbered-194" class="outline-3">
+<h3 id="unnumbered-194">Rename scanned index cards</h3>
+<div class="outline-text-3" id="text-unnumbered-194">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defun</span> <span class="org-function-name">sacha/rename-scanned-cards</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-rainbow-delimiters-depth-2">)</span>
@@ -6653,15 +6680,13 @@ big to open easily there, though.
   <span class="org-rainbow-delimiters-depth-2">(</span>interactive<span class="org-rainbow-delimiters-depth-2">)</span>
   <span class="org-rainbow-delimiters-depth-2">(</span>mapc <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">lambda</span> <span class="org-rainbow-delimiters-depth-4">(</span>filename<span class="org-rainbow-delimiters-depth-4">)</span>
           <span class="org-rainbow-delimiters-depth-4">(</span>find-file filename<span class="org-rainbow-delimiters-depth-4">)</span>
-          <span class="org-rainbow-delimiters-depth-4">(</span>image-mode<span class="org-rainbow-delimiters-depth-4">)</span>
-          <span class="org-rainbow-delimiters-depth-4">(</span>eimp-mode<span class="org-rainbow-delimiters-depth-4">)</span>
           <span class="org-rainbow-delimiters-depth-4">(</span>delete-other-windows<span class="org-rainbow-delimiters-depth-4">)</span>
-          <span class="org-rainbow-delimiters-depth-4">(</span>eimp-fit-image-to-window nil<span class="org-rainbow-delimiters-depth-4">)</span>
           <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">when</span> <span class="org-rainbow-delimiters-depth-5">(</span>string-match <span class="org-string">"/</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[0-9]+-[0-9]+-[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span> filename<span class="org-rainbow-delimiters-depth-5">)</span>
             <span class="org-rainbow-delimiters-depth-5">(</span><span class="org-keyword">let</span> <span class="org-rainbow-delimiters-depth-6">(</span><span class="org-rainbow-delimiters-depth-7">(</span>kill-buffer-query-functions nil<span class="org-rainbow-delimiters-depth-7">)</span>
                   <span class="org-rainbow-delimiters-depth-7">(</span>new-name <span class="org-rainbow-delimiters-depth-8">(</span>read-string <span class="org-string">"New name: "</span>
                                          <span class="org-rainbow-delimiters-depth-9">(</span>concat <span class="org-rainbow-delimiters-depth-1">(</span>match-string 1 filename<span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-string">" "</span><span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span><span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span>
               <span class="org-rainbow-delimiters-depth-6">(</span><span class="org-keyword">when</span> <span class="org-rainbow-delimiters-depth-7">(</span>&gt; <span class="org-rainbow-delimiters-depth-8">(</span>length new-name<span class="org-rainbow-delimiters-depth-8">)</span> 0<span class="org-rainbow-delimiters-depth-7">)</span>
+                <span class="org-rainbow-delimiters-depth-7">(</span>revert-buffer t t<span class="org-rainbow-delimiters-depth-7">)</span>
                 <span class="org-rainbow-delimiters-depth-7">(</span>rename-file filename <span class="org-rainbow-delimiters-depth-8">(</span>concat new-name <span class="org-string">".png"</span><span class="org-rainbow-delimiters-depth-8">)</span><span class="org-rainbow-delimiters-depth-7">)</span>
                 <span class="org-rainbow-delimiters-depth-7">(</span>kill-buffer<span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
         <span class="org-rainbow-delimiters-depth-3">(</span>directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+-.*.png"</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
@@ -6671,12 +6696,12 @@ big to open easily there, though.
 </div>
 </div>
 
-<div id="outline-container-unnumbered-194" class="outline-2">
-<h2 id="unnumbered-194">Games</h2>
-<div class="outline-text-2" id="text-unnumbered-194">
-</div><div id="outline-container-unnumbered-195" class="outline-3">
-<h3 id="unnumbered-195">Typing of Emacs</h3>
-<div class="outline-text-3" id="text-unnumbered-195">
+<div id="outline-container-unnumbered-195" class="outline-2">
+<h2 id="unnumbered-195">Games</h2>
+<div class="outline-text-2" id="text-unnumbered-195">
+</div><div id="outline-container-unnumbered-196" class="outline-3">
+<h3 id="unnumbered-196">Typing of Emacs</h3>
+<div class="outline-text-3" id="text-unnumbered-196">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">use-package</span> <span class="org-constant">typing</span>
@@ -6691,9 +6716,9 @@ big to open easily there, though.
 </div>
 </div>
 </div>
-<div id="outline-container-unnumbered-196" class="outline-3">
-<h3 id="unnumbered-196"><a id="o2b:e2b41b2d-463c-4469-91b8-63eb97a13b9d"></a>2048 in Emacs, and colours too&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></h3>
-<div class="outline-text-3" id="text-unnumbered-196">
+<div id="outline-container-unnumbered-197" class="outline-3">
+<h3 id="unnumbered-197"><a id="o2b:e2b41b2d-463c-4469-91b8-63eb97a13b9d"></a>2048 in Emacs, and colours too&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></h3>
+<div class="outline-text-3" id="text-unnumbered-197">
 <p>
 While browsing through <code>M-x list-packages</code>, I noticed that there was a
 new MELPA package that implemented the 2048 game in Emacs. I wrote the
@@ -6731,9 +6756,9 @@ theme. =)
 </div>
 </div>
 
-<div id="outline-container-unnumbered-197" class="outline-2">
-<h2 id="unnumbered-197">Path</h2>
-<div class="outline-text-2" id="text-unnumbered-197">
+<div id="outline-container-unnumbered-198" class="outline-2">
+<h2 id="unnumbered-198">Path</h2>
+<div class="outline-text-2" id="text-unnumbered-198">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span>setenv <span class="org-string">"PATH"</span> <span class="org-rainbow-delimiters-depth-2">(</span>concat <span class="org-string">"\"c:/program files/postgresql/9.3/bin;\""</span> <span class="org-rainbow-delimiters-depth-3">(</span>getenv <span class="org-string">"PATH"</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>

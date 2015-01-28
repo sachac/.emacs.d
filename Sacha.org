@@ -194,6 +194,8 @@ possible, although I prefer ido's way of switching buffers.
         (helm-mode))
       :bind (("C-c h" . helm-mini)
              ("C-h a" . helm-apropos)
+             ("C-x C-b" . helm-buffers-list)
+             ("C-x b" . helm-buffers-list)
              ("M-y" . helm-show-kill-ring)
              ("M-x" . helm-M-x)
              ("C-x c o" . helm-occur)
@@ -616,7 +618,7 @@ Now let's set up the actual keychords.
       (key-chord-define-global "hc"     'emms-seek-forward)
       (key-chord-define-global "xx"     'er/expand-region)
       (key-chord-define-global "  "     'sacha/insert-space-or-expand)
-      (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer)))
+      (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer))
 #+end_src
 *** Smartscan
 
@@ -3117,9 +3119,10 @@ From https://github.com/pcmantz/elisp/blob/master/my-bindings.el
 
   (defun sacha/change-cursor-color-when-can-expand (&optional field)
     (interactive)
-    (set-cursor-color (if (sacha/can-expand)
-                          yasnippet-can-fire-cursor-color
-                        default-cursor-color)))
+    (when (eq last-command 'self-insert-command)
+      (set-cursor-color (if (sacha/can-expand)
+                            yasnippet-can-fire-cursor-color
+                          default-cursor-color))))
 
   (defun sacha/can-expand ()
     "Return true if right after an expandable thing."
@@ -3256,13 +3259,20 @@ And the rest of the js2 config:
 :ensure t
 :init (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
 #+end_src
+
 **** Tern - for Javascript
 
 #+begin_src emacs-lisp
 (use-package tern
   :init
   (progn
+  (setq tern-command '("cmd" "/c" "tern"))
   (add-hook 'js2-mode-hook 'tern-mode)))
+
+(use-package company-tern
+:ensure t
+:init (add-to-list 'company-backends 'company-tern))
+#+end_src
 
 #+end_src
 *** Magit - nice git interface
@@ -3378,7 +3388,7 @@ options to add at the end of the command, but that can wait for another time (or
 #+begin_src emacs-lisp
 (use-package git-messenger
   :ensure t
-  :bind (("C-x v p" . git-messenger:popup-message)))
+  :bind (("C-x v m" . git-messenger:popup-message)))
 #+end_src
 *** Tag files
 
@@ -4740,6 +4750,14 @@ recently-opened files first.
 
 #+end_src
 
+** Images
+
+#+begin_src emacs-lisp
+(use-package image+
+ :load-path "~/elisp/Emacs-imagex"
+ :init (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))
+#+end_src
+
 ** Rename scanned index cards
 
 #+begin_src emacs-lisp
@@ -4748,15 +4766,13 @@ recently-opened files first.
     (interactive)
     (mapc (lambda (filename)
             (find-file filename)
-            (image-mode)
-            (eimp-mode)
             (delete-other-windows)
-            (eimp-fit-image-to-window nil)
             (when (string-match "/\\([0-9]+-[0-9]+-[0-9]+\\)" filename)
               (let ((kill-buffer-query-functions nil)
                     (new-name (read-string "New name: "
                                            (concat (match-string 1 filename) " "))))
                 (when (> (length new-name) 0)
+                  (revert-buffer t t)
                   (rename-file filename (concat new-name ".png"))
                   (kill-buffer)))))
           (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.png")))

@@ -130,7 +130,6 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
 #+end_src
 
 *** Windows configuration :drill:
-    SCHEDULED: <2013-03-03 Sun>
     :PROPERTIES:
     :ID:       440c0b9a-9068-450b-89a3-a20c8ec1f447
     :DRILL_LAST_INTERVAL: 3.86
@@ -1419,6 +1418,67 @@ able to clock in on them.
            ("i" "#+index: ?" "#+index: ?")
            ("I" "#+include %file ?" "<include file=%file markup=\"?\">")))
  #+end_src
+**** Other sketches
+
+Based on [[http://williamedwardscoder.tumblr.com/post/84505278488/making-image-mosaics]]
+Aspect ratio is width / height
+
+#+begin_src emacs-lisp
+  (defun sacha/get-tile-dimensions (num-items orig-width orig-height target-aspect-ratio)
+    (let ((rows 1) (cols 1)
+          (current-aspect (/ orig-width (float orig-height)))
+          add-col-aspect
+          add-row-aspect)
+      (while (< (* rows cols) num-items)
+        (setq add-col-aspect (/ (* (1+ cols) (float orig-width))
+                                (* rows orig-height))
+              add-row-aspect (/ (* cols (float orig-width))
+                                (* (1+ rows) orig-height)))
+        (if (<  (abs (- add-col-aspect target-aspect-ratio))
+                (abs (- add-row-aspect target-aspect-ratio)))
+            (setq cols (1+ cols))
+          (setq rows (1+ rows))))
+      (cons cols rows)))
+  (ert-deftest sacha/get-tile-dimensions ()
+    (should (equal (sacha/get-tile-dimensions 2 2 1 1) (cons 1 2)))
+    (should (equal (sacha/get-tile-dimensions 4 2 1 0.5) (cons 1 4)))
+    (should (equal (sacha/get-tile-dimensions 12 1 1 (/ 4.0 3.0)) (cons 4 3)))
+    (should (equal (sacha/get-tile-dimensions 11 1 1 (/ 4.0 3.0)) (cons 4 3)))
+    (should (equal (sacha/get-tile-dimensions 13 1 1 (/ 4.0 3.0)) (cons 4 4))))
+
+  (defun sacha/extract-image-filenames (beg end)
+    "Return the filenames from the links in this region."
+    (let (files)
+      (save-excursion
+        (goto-char beg)
+        (while (re-search-forward "\\[\\[https://www.flickr.com/photos/[^]]+\\]\\[\\([^]]+\\)]\\]" end t)
+          (add-to-list 'files (concat (match-string-no-properties 1) ".png"))))
+      files))
+
+  (defun sacha/create-sketch-montage (beg end vertical)
+    "Combine the sketches in the region."
+    (interactive "r\nP")
+    ;; Extract the links
+    (let* ((files (sacha/extract-image-filenames beg end))
+           (output-file "c:/sacha/dropbox/inbox/output.png")
+           (tiles
+            (sacha/get-tile-dimensions (length files) 1497 896
+                                       (if vertical
+                                           (/ 2.0 3)
+                                         (/ 4.0 3)))))
+      (with-temp-buffer
+        (cd "~/Dropbox/Inbox/To Blog")
+        (apply 'call-process
+               "montage" nil nil nil
+               (append
+                files
+                (list
+                 "-geometry" "+0+0"
+                 "-tile" (format "%dx" (car tiles))
+                 output-file))))
+      (find-file output-file)))
+#+end_src
+
 **** Sketched books
 
  Convenience functions to make my life easier when sketchnoting books.
@@ -2963,7 +3023,6 @@ Eldoc provides minibuffer hints when working with Emacs Lisp.
   (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode)))
 #+end_src
 **** Refactoring  :drill:
-     SCHEDULED: <2013-03-03 Sun>
      :PROPERTIES:
      :ID:       99ac7ddb-08ef-46c4-8fa8-8a45164f9ef4
      :DRILL_LAST_INTERVAL: 3.86
@@ -3149,6 +3208,7 @@ This requires me to modify the behaviour of hippie-expand so that it doesn't din
   function in this list.  With a negative argument or just \\[universal-argument],
   undoes the expansion."
     (interactive "P")
+    (require 'hippie-exp)
     (if (or (not arg)
             (and (integerp arg) (> arg 0)))
         (let ((first (or (= he-num -1)
@@ -3772,7 +3832,6 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 *** Editing multiple things
 
 **** Multiple cursors mode					      :drill:
-     SCHEDULED: <2013-03-03 Sun>
     :PROPERTIES:
     :ID:       o2b:61b0ffae-669b-4360-98fd-a6f0ea6f018e
     :DRILL_LAST_INTERVAL: 3.86
@@ -3817,7 +3876,6 @@ Maybe =multiple-cursors= will be an even better way. Looks promising!
 Thanks to [[http://irreal.org/blog/?p=1733][Irreal]] and [[http://planet.emacsen.org/][Planet Emacsen]] for the link!
 
 *** Edit list   :drill:
-    SCHEDULED: <2013-03-03 Sun>
     :PROPERTIES:
     :ID:       e9147cb0-bad0-421c-9396-4f9045d6ebbb
     :DRILL_LAST_INTERVAL: 3.86

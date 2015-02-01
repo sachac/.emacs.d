@@ -1418,142 +1418,6 @@ able to clock in on them.
            ("i" "#+index: ?" "#+index: ?")
            ("I" "#+include %file ?" "<include file=%file markup=\"?\">")))
  #+end_src
-**** Other sketches
-
-Based on [[http://williamedwardscoder.tumblr.com/post/84505278488/making-image-mosaics]]
-Aspect ratio is width / height
-
-#+begin_src emacs-lisp
-  (defun sacha/get-tile-dimensions (num-items orig-width orig-height target-aspect-ratio)
-    (let ((rows 1) (cols 1)
-          (current-aspect (/ orig-width (float orig-height)))
-          add-col-aspect
-          add-row-aspect)
-      (while (< (* rows cols) num-items)
-        (setq add-col-aspect (/ (* (1+ cols) (float orig-width))
-                                (* rows orig-height))
-              add-row-aspect (/ (* cols (float orig-width))
-                                (* (1+ rows) orig-height)))
-        (if (<  (abs (- add-col-aspect target-aspect-ratio))
-                (abs (- add-row-aspect target-aspect-ratio)))
-            (setq cols (1+ cols))
-          (setq rows (1+ rows))))
-      (cons cols rows)))
-  (ert-deftest sacha/get-tile-dimensions ()
-    (should (equal (sacha/get-tile-dimensions 2 2 1 1) (cons 1 2)))
-    (should (equal (sacha/get-tile-dimensions 4 2 1 0.5) (cons 1 4)))
-    (should (equal (sacha/get-tile-dimensions 12 1 1 (/ 4.0 3.0)) (cons 4 3)))
-    (should (equal (sacha/get-tile-dimensions 11 1 1 (/ 4.0 3.0)) (cons 4 3)))
-    (should (equal (sacha/get-tile-dimensions 13 1 1 (/ 4.0 3.0)) (cons 4 4))))
-
-  (defun sacha/extract-image-filenames (beg end)
-    "Return the filenames from the links in this region."
-    (let (files)
-      (save-excursion
-        (goto-char (min beg end))
-        (while (re-search-forward "\\[\\[https://www.flickr.com/photos/[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
-          (add-to-list 'files (concat (match-string-no-properties 1) ".png"))))
-      files))
-
-  (defun sacha/create-sketch-montage (beg end tiles)
-    "Combine the sketches in the region."
-    (interactive (list (point) (mark) (if current-prefix-arg (read-string "Tiling: "))))
-    ;; Extract the links
-    (let* ((files (sacha/extract-image-filenames beg end))
-           (output-file "c:/sacha/dropbox/inbox/output.png"))
-      (unless tiles
-        (setq tiles
-              (format "%dx"
-                (car (sacha/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
-      (with-temp-buffer
-        (cd "~/Dropbox/Inbox/To Blog")
-        (apply 'call-process
-               "montage" nil nil nil
-               (append
-                files
-                (list
-                 "-geometry" "+0+0"
-                 "-tile" tiles
-                 output-file))))
-      (find-file output-file)))
-#+end_src
-
-**** Sketched books
-
- Convenience functions to make my life easier when sketchnoting books.
-
- #+begin_src emacs-lisp
-     (setq yas-indent-line 'fixed)
-     (defun sacha/convert-sketch-title-to-filename (text)
-       (setq text (replace-regexp-in-string "[?!]$" "" text))
-       (setq text (replace-regexp-in-string "[?!:] " " - " text)))
-     (ert-deftest sacha/convert-sketch-title-to-filename ()
-       (should (string= (sacha/convert-sketch-title-to-filename "Test") "Test"))
-       (should (string= (sacha/convert-sketch-title-to-filename "Another Test!") "Another Test"))
-       (should (string= (sacha/convert-sketch-title-to-filename "Does this work? Yes") "Does this work - Yes"))
-       (should (string= (sacha/convert-sketch-title-to-filename "Title: Subtitle") "Title - Subtitle"))
-       )
-
-   (defun sacha/prepare-sketchnote-file ()
-     (interactive)
-     (let* ((base-name (org-entry-get-with-inheritance  "BASENAME"))
-            (filename (expand-file-name (concat base-name ".tif") "~/dropbox/inbox/")))
-       (unless base-name (error "Missing basename property"))
-       (if (file-exists-p filename)
-           (error "File already exists")
-           (copy-file "g:/drawing-templates/custom/0 - base.tif" filename))
-         (shell-command (concat (shell-quote-argument "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe ")
-                                (shell-quote-argument filename) " &"))))
-
-   (defun sacha/convert-sketched-book-to-png ()
-     "Convert TIFF to PNG."
-     (interactive)
-     (let ((basename (org-entry-get-with-inheritance "BASENAME")))
-       (shell-command (format "convert \"c:/sacha/dropbox/inbox/%s.tif\" \"c:/sacha/dropbox/inbox/%s.png\""
-                              basename
-                              basename))))
-
-   (defun sacha/index-sketched-book ()
-     "Add entries to sketched books index."
-     (interactive)
-     (let* ((title (org-entry-get-with-inheritance "SHORT_TITLE"))
-           (author (org-entry-get-with-inheritance "AUTHOR"))
-           (basename (org-entry-get-with-inheritance "BASENAME"))
-           (base-file (format "~/Dropbox/inbox/%s.png" basename)))
-       (when (file-exists-p base-file)
-         (copy-file base-file
-                    (format "~/Dropbox/packaging/sketched-books/%s.png" basename) t t)
-         (copy-file base-file
-                    (format "g:/documents/photosync/Visual Book Reviews/%s.png" basename) t t))
-       (find-file "~/Dropbox/packaging/sketched-books/index.org")
-       (vc-git-register (list (format "%s.png" basename)))
-       (goto-char (point-min))
-       (re-search-forward "<<insert-point>>")
-       (insert (format "\n- [[file:%s.png][%s - %s (sketched %s)]]\n  [[file:%s.png]]\n\n"
-                       basename
-                       title
-                       author
-                       (substring basename 0 10)
-                       basename))
-       (find-file "~/Dropbox/packaging/sketched-books/ebook.org")
-       (goto-char (point-min))
-       (re-search-forward "<<insert-point>>")
-       (insert (format "\n* %s - %s (sketched %s)\n\n[[file:%s.png]]\n\n"
-                       title
-                       author
-                       (substring basename 0 10)
-                       basename))))
-
-   (defun sacha/package-sketched-book ()
-     "Add the latest sketch and package the collection."
-     (interactive)
-     (shell-command
-      (format "plink -A vagrant@127.0.0.1 -P 2222 \"cd ~/dropbox/Packaging/sketched-books; git add '%s.png'; git commit -m 'Added %s - %s' -a; git push; make all\" &"
-              (org-entry-get-with-inheritance "BASENAME")
-              (org-entry-get-with-inheritance "SHORT_TITLE")
-              (org-entry-get-with-inheritance "AUTHOR"))))
-
- #+end_src
 **** Emacs chats, Emacs hangouts
 
  #+begin_src emacs-lisp
@@ -4807,17 +4671,9 @@ recently-opened files first.
 
 #+end_src
 
-** Images
-
-#+begin_src emacs-lisp
-(use-package image+
- :load-path "~/elisp/Emacs-imagex"
- :init (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))
-#+end_src
-
-** Index cards
-*** STARTED Digital index pile with Emacs
-    CLOSED: [2015-02-01 Sun 17:24]
+** Drawing
+*** DONE Digital index piles with Emacs
+    CLOSED: [2015-02-01 Sun 18:26]
     :PROPERTIES:
     :Effort:   2:00
     :QUANTIFIED: Emacs
@@ -4826,7 +4682,8 @@ recently-opened files first.
     :BLOG:     sacha
     :END:
     :LOGBOOK:
-    CLOCK: [2015-02-01 Sun 17:30]
+    - State "DONE"       from "STARTED"    [2015-02-01 Sun 18:26]
+    CLOCK: [2015-02-01 Sun 17:30]--[2015-02-01 Sun 18:26] =>  0:56
     - State "DONE"       from "STARTED"    [2015-02-01 Sun 17:24]
     CLOCK: [2015-02-01 Sun 13:30]--[2015-02-01 Sun 15:26] =>  1:56
     :END:
@@ -5033,8 +4890,35 @@ recently-opened files first.
  to combine that with my code for using Imagemagick to create a montage
  of images. Whee!
 
-*** Prepare digital index card templates
-This makes them easier to save and flip between
+*** DONE Using Emacs to prepare files for external applications like Autodesk Sketchbook Pro
+    CLOSED: [2015-02-01 Sun 18:47]
+    :PROPERTIES:
+    :Effort:   1:00
+    :QUANTIFIED: Emacs
+    :ID:       o2b:3ca1d203-722f-42c0-a95a-387dcd6e27bc
+    :POST_DATE: [2015-02-01 Sun 18:47]
+    :POSTID:   27926
+    :BLOG:     sacha
+    :END:
+    :LOGBOOK:
+    - State "DONE"       from "STARTED"    [2015-02-01 Sun 18:47]
+    CLOCK: [2015-02-01 Sun 18:28]
+    :END:
+
+To make it easier to draw using Autodesk Sketchbook Pro on my laptop
+(a Lenovo X220 tablet PC), I've created several templates with
+consistent dot grids and sizes. Since I want to minimize typing when
+I'm drawing, I wrote a couple of functions to make it easier to copy
+these templates and set up appropriately-named files. That way, I can
+save them without the grid layer, flip between files using Sketchbook
+Pro's next/previous file commands, and then process them all when I'm
+ready.
+
+**** Index cards
+
+I've been experimenting with a habit of drawing at least five index
+cards every day. Here's a function that creates five index cards (or a
+specified number of them) and then opens the last one for me to edit.
 
 #+begin_src emacs-lisp
   (defvar sacha/autodesk-sketchbook-executable "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe")
@@ -5060,8 +4944,11 @@ This makes them easier to save and flip between
         (setq counter (1+ counter)))))
 #+end_src
 
-Afterwards, call =sacha/rename-scanned-cards= below.
-*** Rename scanned index cards
+Afterwards, I call =sacha/rename-scanned-cards= function to convert
+the TIFFs to PNGs, display the files and ask me to rename them
+properly. 
+
+**** Rename scanned index cards
 
  #+begin_src emacs-lisp
    (defun sacha/rename-scanned-cards ()
@@ -5086,8 +4973,175 @@ Afterwards, call =sacha/rename-scanned-cards= below.
                    (rename-file filename (concat new-name ".png"))
                    (kill-buffer)))))
            (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.png")))
-
  #+end_src
+
+I might tweak the files a little more after I rename them, so I don't
+automatically upload them. When I'm happy with the files, I use a [[http://sachachua.com/blog/?p=27830&shareadraft=baba27830_54b92ac511e86][Node
+script]] to upload the files to Flickr, move them to my =To blog=
+directory, and copy Org-formatted text that I can paste into my
+learning outline.
+
+**** Automatically resize images
+
+The =image+= package is handy for displaying the images so
+that they're scaled to the window size.
+
+ #+begin_src emacs-lisp
+ (use-package image+
+  :load-path "~/elisp/Emacs-imagex"
+  :init (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))
+ #+end_src
+
+**** Get information for sketched books
+
+For sketchnotes of books, I set up the filename based on properties in
+my Org Mode tree for that book.
+
+#+begin_src emacs-lisp
+  (defun sacha/prepare-sketchnote-file ()
+    (interactive)
+    (let* ((base-name (org-entry-get-with-inheritance  "BASENAME"))
+           (filename (expand-file-name (concat base-name ".tif") "~/dropbox/inbox/")))
+      (unless base-name (error "Missing basename property"))
+      (if (file-exists-p filename)
+          (error "File already exists")
+          (copy-file "g:/drawing-templates/custom/0 - base.tif" filename))
+        (shell-command (concat (shell-quote-argument sacha/autodesk-sketchbook-executable)
+                               (shell-quote-argument filename) " &"))))
+#+end_src
+
+By using Emacs Lisp functions to set up files that I'm going to use in
+an external application, I minimize fussing about with the keyboard
+while still being able to take advantage of structured information.
+
+Do you work with external applications? Where does it make sense to
+use Emacs Lisp to make setup or processing easier?
+
+*** Other sketches
+
+Based on [[http://williamedwardscoder.tumblr.com/post/84505278488/making-image-mosaics]]
+Aspect ratio is width / height
+
+#+begin_src emacs-lisp
+  (defun sacha/get-tile-dimensions (num-items orig-width orig-height target-aspect-ratio)
+    (let ((rows 1) (cols 1)
+          (current-aspect (/ orig-width (float orig-height)))
+          add-col-aspect
+          add-row-aspect)
+      (while (< (* rows cols) num-items)
+        (setq add-col-aspect (/ (* (1+ cols) (float orig-width))
+                                (* rows orig-height))
+              add-row-aspect (/ (* cols (float orig-width))
+                                (* (1+ rows) orig-height)))
+        (if (<  (abs (- add-col-aspect target-aspect-ratio))
+                (abs (- add-row-aspect target-aspect-ratio)))
+            (setq cols (1+ cols))
+          (setq rows (1+ rows))))
+      (cons cols rows)))
+  (ert-deftest sacha/get-tile-dimensions ()
+    (should (equal (sacha/get-tile-dimensions 2 2 1 1) (cons 1 2)))
+    (should (equal (sacha/get-tile-dimensions 4 2 1 0.5) (cons 1 4)))
+    (should (equal (sacha/get-tile-dimensions 12 1 1 (/ 4.0 3.0)) (cons 4 3)))
+    (should (equal (sacha/get-tile-dimensions 11 1 1 (/ 4.0 3.0)) (cons 4 3)))
+    (should (equal (sacha/get-tile-dimensions 13 1 1 (/ 4.0 3.0)) (cons 4 4))))
+
+  (defun sacha/extract-image-filenames (beg end)
+    "Return the filenames from the links in this region."
+    (let (files)
+      (save-excursion
+        (goto-char (min beg end))
+        (while (re-search-forward "\\[\\[https://www.flickr.com/photos/[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
+          (add-to-list 'files (concat (match-string-no-properties 1) ".png"))))
+      files))
+
+  (defun sacha/create-sketch-montage (beg end tiles)
+    "Combine the sketches in the region."
+    (interactive (list (point) (mark) (if current-prefix-arg (read-string "Tiling: "))))
+    ;; Extract the links
+    (let* ((files (sacha/extract-image-filenames beg end))
+           (output-file "c:/sacha/dropbox/inbox/output.png"))
+      (unless tiles
+        (setq tiles
+              (format "%dx"
+                (car (sacha/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
+      (with-temp-buffer
+        (cd "~/Dropbox/Inbox/To Blog")
+        (apply 'call-process
+               "montage" nil nil nil
+               (append
+                files
+                (list
+                 "-geometry" "+0+0"
+                 "-tile" tiles
+                 output-file))))
+      (find-file output-file)))
+#+end_src
+
+*** Sketched books
+
+Convenience functions to make my life easier when sketchnoting books.
+
+#+begin_src emacs-lisp
+    (setq yas-indent-line 'fixed)
+    (defun sacha/convert-sketch-title-to-filename (text)
+      (setq text (replace-regexp-in-string "[?!]$" "" text))
+      (setq text (replace-regexp-in-string "[?!:] " " - " text)))
+    (ert-deftest sacha/convert-sketch-title-to-filename ()
+      (should (string= (sacha/convert-sketch-title-to-filename "Test") "Test"))
+      (should (string= (sacha/convert-sketch-title-to-filename "Another Test!") "Another Test"))
+      (should (string= (sacha/convert-sketch-title-to-filename "Does this work? Yes") "Does this work - Yes"))
+      (should (string= (sacha/convert-sketch-title-to-filename "Title: Subtitle") "Title - Subtitle"))
+      )
+
+  (defun sacha/convert-sketched-book-to-png ()
+    "Convert TIFF to PNG."
+    (interactive)
+    (let ((basename (org-entry-get-with-inheritance "BASENAME")))
+      (shell-command (format "convert \"c:/sacha/dropbox/inbox/%s.tif\" \"c:/sacha/dropbox/inbox/%s.png\""
+                             basename
+                             basename))))
+
+  (defun sacha/index-sketched-book ()
+    "Add entries to sketched books index."
+    (interactive)
+    (let* ((title (org-entry-get-with-inheritance "SHORT_TITLE"))
+          (author (org-entry-get-with-inheritance "AUTHOR"))
+          (basename (org-entry-get-with-inheritance "BASENAME"))
+          (base-file (format "~/Dropbox/inbox/%s.png" basename)))
+      (when (file-exists-p base-file)
+        (copy-file base-file
+                   (format "~/Dropbox/packaging/sketched-books/%s.png" basename) t t)
+        (copy-file base-file
+                   (format "g:/documents/photosync/Visual Book Reviews/%s.png" basename) t t))
+      (find-file "~/Dropbox/packaging/sketched-books/index.org")
+      (vc-git-register (list (format "%s.png" basename)))
+      (goto-char (point-min))
+      (re-search-forward "<<insert-point>>")
+      (insert (format "\n- [[file:%s.png][%s - %s (sketched %s)]]\n  [[file:%s.png]]\n\n"
+                      basename
+                      title
+                      author
+                      (substring basename 0 10)
+                      basename))
+      (find-file "~/Dropbox/packaging/sketched-books/ebook.org")
+      (goto-char (point-min))
+      (re-search-forward "<<insert-point>>")
+      (insert (format "\n* %s - %s (sketched %s)\n\n[[file:%s.png]]\n\n"
+                      title
+                      author
+                      (substring basename 0 10)
+                      basename))))
+
+  (defun sacha/package-sketched-book ()
+    "Add the latest sketch and package the collection."
+    (interactive)
+    (shell-command
+     (format "plink -A vagrant@127.0.0.1 -P 2222 \"cd ~/dropbox/Packaging/sketched-books; git add '%s.png'; git commit -m 'Added %s - %s' -a; git push; make all\" &"
+             (org-entry-get-with-inheritance "BASENAME")
+             (org-entry-get-with-inheritance "SHORT_TITLE")
+             (org-entry-get-with-inheritance "AUTHOR"))))
+
+#+end_src
 
 * Games
 ** Typing of Emacs

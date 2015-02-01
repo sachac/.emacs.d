@@ -1195,7 +1195,7 @@ able to clock in on them.
             "STARTED(s)"
             "WAITING(w@/!)"
             "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c@)")
-           (sequence "LEARN" "DO" "TEACH")
+           (sequence "LEARN" "DO" "TEACH" "|" "COMPLETE(x)")
            (sequence "TOSKETCH" "SKETCHED" "|" "POSTED")
            (sequence "TODELEGATE(-)" "DELEGATED(d)" "|" "COMPLETE(x)")))
  #+end_src
@@ -1450,22 +1450,21 @@ Aspect ratio is width / height
     "Return the filenames from the links in this region."
     (let (files)
       (save-excursion
-        (goto-char beg)
-        (while (re-search-forward "\\[\\[https://www.flickr.com/photos/[^]]+\\]\\[\\([^]]+\\)]\\]" end t)
+        (goto-char (min beg end))
+        (while (re-search-forward "\\[\\[https://www.flickr.com/photos/[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
           (add-to-list 'files (concat (match-string-no-properties 1) ".png"))))
       files))
 
-  (defun sacha/create-sketch-montage (beg end vertical)
+  (defun sacha/create-sketch-montage (beg end tiles)
     "Combine the sketches in the region."
-    (interactive "r\nP")
+    (interactive (list (point) (mark) (if current-prefix-arg (read-string "Tiling: "))))
     ;; Extract the links
     (let* ((files (sacha/extract-image-filenames beg end))
-           (output-file "c:/sacha/dropbox/inbox/output.png")
-           (tiles
-            (sacha/get-tile-dimensions (length files) 1497 896
-                                       (if vertical
-                                           (/ 2.0 3)
-                                         (/ 4.0 3)))))
+           (output-file "c:/sacha/dropbox/inbox/output.png"))
+      (unless tiles
+        (setq tiles
+              (format "%dx"
+                (car (sacha/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
       (with-temp-buffer
         (cd "~/Dropbox/Inbox/To Blog")
         (apply 'call-process
@@ -1474,7 +1473,7 @@ Aspect ratio is width / height
                 files
                 (list
                  "-geometry" "+0+0"
-                 "-tile" (format "%dx" (car tiles))
+                 "-tile" tiles
                  output-file))))
       (find-file output-file)))
 #+end_src
@@ -4816,25 +4815,279 @@ recently-opened files first.
  :init (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))
 #+end_src
 
-** Rename scanned index cards
+** Index cards
+*** STARTED Digital index pile with Emacs
+    CLOSED: [2015-02-01 Sun 17:24]
+    :PROPERTIES:
+    :Effort:   2:00
+    :QUANTIFIED: Emacs
+    :ID:       o2b:243ed83f-244f-417d-b251-53a3fef813aa
+    :POSTID:   27923
+    :BLOG:     sacha
+    :END:
+    :LOGBOOK:
+    CLOCK: [2015-02-01 Sun 17:30]
+    - State "DONE"       from "STARTED"    [2015-02-01 Sun 17:24]
+    CLOCK: [2015-02-01 Sun 13:30]--[2015-02-01 Sun 15:26] =>  1:56
+    :END:
+
+ Somewhat daunted by the prospect of categorizing more than a hundred
+ sketches and blog posts for my monthly review, I spent some time
+ figuring out how to create the digital equivalent of sorting index
+ cards into various piles.
+
+ [[https://www.flickr.com/photos/sachac/16234413499/][2015-02-01 Digital piles of index cards -- index card #indexing #organization #pkm]]
+
+ In fact, wouldn't it be super-cool if the items could automatically
+ guess which category they should probably go in, prompting me only if
+ it wasn't clear?
+
+ I wanted to write a function that could take a list structured like this:
+
+ - Keyword A
+   - Previous links
+ - Keyword B
+   - Previous links
+ - Link 1 with Keyword A
+ - Link 2 with Keyword B
+ - Link 3 with Keyword A
+ - Link 4
+
+ It should file Link 1 and 3 under Keyword A, Link 2 under Keyword B,
+ and prompt me for the category for Link 4. At that prompt, I should be
+ able to select Keyword A or Keyword B, or specify a new category.
+
+ Inspired by John Kitchin's recent post on [[http://kitchingroup.cheme.cmu.edu/blog/2015/01/24/Anatomy-of-a-helm-source/][defining a Helm source]], I
+ wanted to get it to work with Helm.
+
+ First step: I needed to figure out the structure of the list, maybe
+ including a sample from the category to make it clearer what's
+ included. =org-list.el= seemed to have useful functions for this.
+ =org-list-struct= gave me the structure of the current list. Let's say
+ that a category is anything whose text does not match
+ =org-bracket-link-regexp=.
+
+ #+begin_src emacs-lisp
+   (defun sacha/org-get-list-categories ()
+     "Return a list of (category indent matching-regexp sample).
+   List categories are items that don't contain links."
+     (let ((list (org-list-struct)) last-category results)
+       (save-excursion
+         (mapc
+          (lambda (x)
+            (goto-char (car x))
+            (let ((current-item
+                   (buffer-substring-no-properties
+                    (+ (point)
+                       (elt x 1)
+                       (length (elt x 2)))
+                    (line-end-position))))
+              (if (string-match
+                   org-bracket-link-regexp
+                   (buffer-substring-no-properties
+                    (point)
+                    (line-end-position)))
+                  ;; Link - update the last category
+                  (when last-category
+                    (if (< (elt x 1) (elt last-category 1))
+                        (setq results
+                              (cons (append last-category
+                                            (list
+                                             (match-string-no-properties
+                                              3
+                                              (buffer-substring-no-properties
+                                               (point)
+                                               (line-end-position)))))
+                                    (cdr results))))
+                    (setq last-category nil))
+                ;; Category
+                (setq results
+                        (cons
+                         (setq last-category
+                               (list
+                                current-item
+                                (elt x 1)
+                                (concat "^"
+                                        (make-string (elt x 1) ?\ )
+                                        (regexp-quote
+                                         (concat (elt x 2)
+                                                 current-item))
+                                        "$")))
+                         results)))))
+          list))
+       results))
+ #+end_src
+
+ The next step was to write a function that guessed the list category
+ based on the item text, and moved the item there.
+
+ #+begin_src emacs-lisp
+   (defvar sacha/helm-org-list-candidates nil)
+   (defun sacha/helm-org-list-categories-init-candidates ()
+     "Return a list of categories from this list in a form ready for Helm."
+     (setq sacha/helm-org-list-candidates
+           (mapcar (lambda (x)
+                     (cons (if (elt x 3)
+                               (format "%s - %s" (car x) (elt x 3))
+                             (car x))
+                           x))
+                   (sacha/org-get-list-categories))))
+
+   (defun sacha/org-move-current-item-to-category (category)
+     (when category
+       (let* ((beg (line-beginning-position))
+              (end (line-end-position))
+              (string (buffer-substring-no-properties beg end)))
+         (save-excursion
+           (when (re-search-backward (elt category 2) nil t)
+             (delete-region beg (min (1+ end) (point-max)))
+             (forward-line 1)
+             (insert (make-string (+ 2 (elt category 1)) ?\ )
+                     string "\n")))) t))
+
+   (defun sacha/org-guess-list-category (&optional categories)
+     (interactive)
+     (require 'cl-lib)
+     (unless categories
+       (setq categories
+             (sacha/helm-org-list-categories-init-candidates)))
+     (let* ((beg (line-beginning-position))
+            (end (line-end-position))
+            (string (buffer-substring-no-properties beg end))
+            (found
+             (cl-member string
+                        categories
+                        :test
+                        (lambda (string cat-entry)
+                          (string-match (regexp-quote (downcase (car cat-entry)))
+                                        string)))))
+       (when (car found)
+         (sacha/org-move-current-item-to-category
+          (cdr (car found)))
+         t)))
+ #+end_src
+
+ After that, I wrote a function that used Helm to prompt me for a
+ category in case it couldn't guess the category. It took me a while to
+ figure out that I needed to use =:init= instead of =:candidates=
+ because I wanted to read information from the buffer before Helm
+ kicked in.
+
+ #+begin_src emacs-lisp
+   (setq sacha/helm-org-list-category-source
+         (helm-build-sync-source
+             "Non-link categories in the current list"
+           :init 'sacha/helm-org-list-categories-init-candidates
+           :candidates 'sacha/helm-org-list-candidates
+           :action 'sacha/org-move-current-item-to-category
+           :fuzzy-match t))
+
+   (defun sacha/org-guess-uncategorized ()
+     (interactive)
+     (sacha/helm-org-list-categories-init-candidates)
+     (let (done)
+       (while (not done)
+         (save-excursion
+           (unless (sacha/org-guess-list-category sacha/helm-org-list-candidates)
+             (unless
+                 (helm :sources
+                       '(sacha/helm-org-list-category-source
+                         sacha/helm-org-list-category-create-source))
+               (setq done t))))
+         (unless done
+           (setq done (not (looking-at "^[-+] \\[")))))))
+ #+end_src
+
+ The =:action= above refers to this function, which creates a category if it doesn't exist yet.
+
+ #+begin_src emacs-lisp
+   (setq sacha/helm-org-list-category-create-source
+         (helm-build-dummy-source
+             "Create category"
+           :action (helm-make-actions
+                    "Create category"
+                    (lambda (candidate)
+                      (save-excursion
+                        (let* ((beg (line-beginning-position))
+                               (end (line-end-position))
+                               (string (buffer-substring beg end)))
+                          (delete-region beg (min (1+ end) (point-max)))
+                          (org-beginning-of-item-list)
+                          (insert "- " candidate "\n  " string "\n")))
+                      (sacha/helm-org-list-categories-init-candidates)))))
+ #+end_src
+
+ I'm new to fiddling with Helm, so this implementation is not the best
+ it could be. But it's nifty and it works the way I want it to, hooray!
+ Now I can generate a list of blog posts and unblogged sketches,
+ categorize them quickly, and then tweak the categorizations
+ afterwards.
+
+ [[https://www.flickr.com/photos/sachac/16394665616/][2015-02-01 Index card sketches and monthly reviews -- index card #organization #pkm #indexing]]
+
+ You can see the results in my [[http://sachachua.com/blog/2015/02/monthly-review-january-2015/][January 2015]] review.
+
+ My next step for learning more about Helm sources is probably to write
+ a Helm command that creates a montage of selected images. John Kitchin
+ has a post about [[http://kitchingroup.cheme.cmu.edu/blog/][handling multiple selection in Helm]], so I just need
+ to combine that with my code for using Imagemagick to create a montage
+ of images. Whee!
+
+*** Prepare digital index card templates
+This makes them easier to save and flip between
 
 #+begin_src emacs-lisp
-  (defun sacha/rename-scanned-cards ()
-    "Display and rename the scanned files."
-    (interactive)
-    (mapc (lambda (filename)
-            (find-file filename)
-            (delete-other-windows)
-            (when (string-match "/\\([0-9]+-[0-9]+-[0-9]+\\)" filename)
-              (let ((kill-buffer-query-functions nil)
-                    (new-name (read-string "New name: "
-                                           (concat (match-string 1 filename) " "))))
-                (when (> (length new-name) 0)
-                  (revert-buffer t t)
-                  (rename-file filename (concat new-name ".png"))
-                  (kill-buffer)))))
-          (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.png")))
+  (defvar sacha/autodesk-sketchbook-executable "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe")
+  (defun sacha/prepare-index-cards (n)
+    (interactive (list (or current-prefix-arg 5)))
+    (let ((counter 1)
+          (directory "~/Dropbox/Inbox")
+          (template "c:/data/drawing-templates/custom/0 - index.tif")
+          (date (org-read-date nil nil "."))
+          temp-file)
+      (while (> n 0)
+        (setq temp-file
+              (expand-file-name (format "%s-%d.tif" date counter)
+                                directory))
+        (unless (file-exists-p temp-file)
+          (copy-file template temp-file)
+          (setq n (1- n))
+          (if (= n 0)
+              (shell-command
+               (concat (shell-quote-argument sacha/autodesk-sketchbook-executable)
+                       " "
+                       (shell-quote-argument temp-file) " &"))))
+        (setq counter (1+ counter)))))
 #+end_src
+
+Afterwards, call =sacha/rename-scanned-cards= below.
+*** Rename scanned index cards
+
+ #+begin_src emacs-lisp
+   (defun sacha/rename-scanned-cards ()
+     "Display and rename the scanned files."
+     (interactive)
+     (when (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.tif")
+       ;; Convert the TIFFs first
+       (apply 'call-process "mogrify" nil nil nil "-format" "png" "-quality" "1"
+              (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.tif"))
+       (mapc (lambda (x)
+               (rename-file x "~/Dropbox/Inbox/backup"))
+             (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.tif")))
+     (mapc (lambda (filename)
+             (find-file filename)
+             (delete-other-windows)
+             (when (string-match "/\\([0-9]+-[0-9]+-[0-9]+\\)" filename)
+               (let ((kill-buffer-query-functions nil)
+                     (new-name (read-string "New name: "
+                                            (concat (match-string 1 filename) " "))))
+                 (when (> (length new-name) 0)
+                   (revert-buffer t t)
+                   (rename-file filename (concat new-name ".png"))
+                   (kill-buffer)))))
+           (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.png")))
+
+ #+end_src
 
 * Games
 ** Typing of Emacs

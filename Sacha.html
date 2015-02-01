@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2015-01-30 Fri 16:20 -->
+<!-- 2015-02-01 Sun 18:25 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -424,16 +424,22 @@ for the JavaScript code in this tag.
 <li><a href="#unnumbered-192">MobileOrg for Android</a></li>
 <li><a href="#unnumbered-193">Encryption</a></li>
 <li><a href="#unnumbered-194">Images</a></li>
-<li><a href="#unnumbered-195">Rename scanned index cards</a></li>
-</ul>
-</li>
-<li><a href="#unnumbered-196">Games</a>
+<li><a href="#unnumbered-195">Index cards</a>
 <ul>
-<li><a href="#unnumbered-197">Typing of Emacs</a></li>
-<li><a href="#unnumbered-198">2048 in Emacs, and colours too&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></a></li>
+<li><a href="#unnumbered-196"><span class="todo nilSTARTED">STARTED</span> Digital index pile with Emacs</a></li>
+<li><a href="#unnumbered-197">Prepare digital index card templates</a></li>
+<li><a href="#unnumbered-198">Rename scanned index cards</a></li>
 </ul>
 </li>
-<li><a href="#unnumbered-199">Path</a></li>
+</ul>
+</li>
+<li><a href="#unnumbered-199">Games</a>
+<ul>
+<li><a href="#unnumbered-200">Typing of Emacs</a></li>
+<li><a href="#unnumbered-201">2048 in Emacs, and colours too&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></a></li>
+</ul>
+</li>
+<li><a href="#unnumbered-202">Path</a></li>
 </ul>
 </div>
 </div>
@@ -2190,7 +2196,7 @@ and <code>!</code> automatically logs the timestamp of the state change.
     <span class="org-string">"STARTED(s)"</span>
     <span class="org-string">"WAITING(w@/!)"</span>
     <span class="org-string">"SOMEDAY(.)"</span> <span class="org-string">"|"</span> <span class="org-string">"DONE(x!)"</span> <span class="org-string">"CANCELLED(c@)"</span><span class="org-rainbow-delimiters-depth-3">)</span>
-   <span class="org-rainbow-delimiters-depth-3">(</span>sequence <span class="org-string">"LEARN"</span> <span class="org-string">"DO"</span> <span class="org-string">"TEACH"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+   <span class="org-rainbow-delimiters-depth-3">(</span>sequence <span class="org-string">"LEARN"</span> <span class="org-string">"DO"</span> <span class="org-string">"TEACH"</span> <span class="org-string">"|"</span> <span class="org-string">"COMPLETE(x)"</span><span class="org-rainbow-delimiters-depth-3">)</span>
    <span class="org-rainbow-delimiters-depth-3">(</span>sequence <span class="org-string">"TOSKETCH"</span> <span class="org-string">"SKETCHED"</span> <span class="org-string">"|"</span> <span class="org-string">"POSTED"</span><span class="org-rainbow-delimiters-depth-3">)</span>
    <span class="org-rainbow-delimiters-depth-3">(</span>sequence <span class="org-string">"TODELEGATE(-)"</span> <span class="org-string">"DELEGATED(d)"</span> <span class="org-string">"|"</span> <span class="org-string">"COMPLETE(x)"</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
 </pre>
@@ -2524,22 +2530,21 @@ Aspect ratio is width / height
   <span class="org-doc">"Return the filenames from the links in this region."</span>
   <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">let</span> <span class="org-rainbow-delimiters-depth-3">(</span>files<span class="org-rainbow-delimiters-depth-3">)</span>
     <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">save-excursion</span>
-      <span class="org-rainbow-delimiters-depth-4">(</span>goto-char beg<span class="org-rainbow-delimiters-depth-4">)</span>
-      <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">while</span> <span class="org-rainbow-delimiters-depth-5">(</span>re-search-forward <span class="org-string">"\\[\\[https://www.flickr.com/photos/[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">]]+\\]\\[</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">]]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">]\\]"</span> end t<span class="org-rainbow-delimiters-depth-5">)</span>
+      <span class="org-rainbow-delimiters-depth-4">(</span>goto-char <span class="org-rainbow-delimiters-depth-5">(</span>min beg end<span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
+      <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">while</span> <span class="org-rainbow-delimiters-depth-5">(</span>re-search-forward <span class="org-string">"\\[\\[https://www.flickr.com/photos/[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">]]+\\]\\[</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">]]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">]\\]"</span> <span class="org-rainbow-delimiters-depth-6">(</span>max beg end<span class="org-rainbow-delimiters-depth-6">)</span> t<span class="org-rainbow-delimiters-depth-5">)</span>
         <span class="org-rainbow-delimiters-depth-5">(</span>add-to-list 'files <span class="org-rainbow-delimiters-depth-6">(</span>concat <span class="org-rainbow-delimiters-depth-7">(</span>match-string-no-properties 1<span class="org-rainbow-delimiters-depth-7">)</span> <span class="org-string">".png"</span><span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
     files<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
 
-<span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defun</span> <span class="org-function-name">sacha/create-sketch-montage</span> <span class="org-rainbow-delimiters-depth-2">(</span>beg end vertical<span class="org-rainbow-delimiters-depth-2">)</span>
+<span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defun</span> <span class="org-function-name">sacha/create-sketch-montage</span> <span class="org-rainbow-delimiters-depth-2">(</span>beg end tiles<span class="org-rainbow-delimiters-depth-2">)</span>
   <span class="org-doc">"Combine the sketches in the region."</span>
-  <span class="org-rainbow-delimiters-depth-2">(</span>interactive <span class="org-string">"r\nP"</span><span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span>interactive <span class="org-rainbow-delimiters-depth-3">(</span>list <span class="org-rainbow-delimiters-depth-4">(</span>point<span class="org-rainbow-delimiters-depth-4">)</span> <span class="org-rainbow-delimiters-depth-4">(</span>mark<span class="org-rainbow-delimiters-depth-4">)</span> <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">if</span> current-prefix-arg <span class="org-rainbow-delimiters-depth-5">(</span>read-string <span class="org-string">"Tiling: "</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span>
   <span class="org-comment-delimiter">;; </span><span class="org-comment">Extract the links</span>
   <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">let*</span> <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-rainbow-delimiters-depth-4">(</span>files <span class="org-rainbow-delimiters-depth-5">(</span>sacha/extract-image-filenames beg end<span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
-         <span class="org-rainbow-delimiters-depth-4">(</span>output-file <span class="org-string">"c:/sacha/dropbox/inbox/output.png"</span><span class="org-rainbow-delimiters-depth-4">)</span>
-         <span class="org-rainbow-delimiters-depth-4">(</span>tiles
-          <span class="org-rainbow-delimiters-depth-5">(</span>sacha/get-tile-dimensions <span class="org-rainbow-delimiters-depth-6">(</span>length files<span class="org-rainbow-delimiters-depth-6">)</span> 1497 896
-                                     <span class="org-rainbow-delimiters-depth-6">(</span><span class="org-keyword">if</span> vertical
-                                         <span class="org-rainbow-delimiters-depth-7">(</span>/ 2.0 3<span class="org-rainbow-delimiters-depth-7">)</span>
-                                       <span class="org-rainbow-delimiters-depth-7">(</span>/ 4.0 3<span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
+         <span class="org-rainbow-delimiters-depth-4">(</span>output-file <span class="org-string">"c:/sacha/dropbox/inbox/output.png"</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">unless</span> tiles
+      <span class="org-rainbow-delimiters-depth-4">(</span>setq tiles
+            <span class="org-rainbow-delimiters-depth-5">(</span>format <span class="org-string">"%dx"</span>
+              <span class="org-rainbow-delimiters-depth-6">(</span>car <span class="org-rainbow-delimiters-depth-7">(</span>sacha/get-tile-dimensions <span class="org-rainbow-delimiters-depth-8">(</span>length files<span class="org-rainbow-delimiters-depth-8">)</span> 1497 896 <span class="org-rainbow-delimiters-depth-8">(</span>/ 4.0 3<span class="org-rainbow-delimiters-depth-8">)</span><span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
     <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">with-temp-buffer</span>
       <span class="org-rainbow-delimiters-depth-4">(</span>cd <span class="org-string">"~/Dropbox/Inbox/To Blog"</span><span class="org-rainbow-delimiters-depth-4">)</span>
       <span class="org-rainbow-delimiters-depth-4">(</span>apply 'call-process
@@ -2548,7 +2553,7 @@ Aspect ratio is width / height
               files
               <span class="org-rainbow-delimiters-depth-6">(</span>list
                <span class="org-string">"-geometry"</span> <span class="org-string">"+0+0"</span>
-               <span class="org-string">"-tile"</span> <span class="org-rainbow-delimiters-depth-7">(</span>format <span class="org-string">"%dx"</span> <span class="org-rainbow-delimiters-depth-8">(</span>car tiles<span class="org-rainbow-delimiters-depth-8">)</span><span class="org-rainbow-delimiters-depth-7">)</span>
+               <span class="org-string">"-tile"</span> tiles
                output-file<span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
     <span class="org-rainbow-delimiters-depth-3">(</span>find-file output-file<span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
 </pre>
@@ -6741,13 +6746,318 @@ big to open easily there, though.
 </div>
 
 <div id="outline-container-unnumbered-195" class="outline-3">
-<h3 id="unnumbered-195">Rename scanned index cards</h3>
+<h3 id="unnumbered-195">Index cards</h3>
 <div class="outline-text-3" id="text-unnumbered-195">
+</div><div id="outline-container-unnumbered-196" class="outline-4">
+<h4 id="unnumbered-196"><a id="o2b:243ed83f-244f-417d-b251-53a3fef813aa"></a><span class="todo STARTED">STARTED</span> Digital index pile with Emacs</h4>
+<div class="outline-text-4" id="text-unnumbered-196">
+<p>
+Somewhat daunted by the prospect of categorizing more than a hundred
+sketches and blog posts for my monthly review, I spent some time
+figuring out how to create the digital equivalent of sorting index
+cards into various piles.
+</p>
+
+<p>
+<a href="https://www.flickr.com/photos/sachac/16234413499/">2015-02-01 Digital piles of index card &#x2013; index card #indexing #organization #pkm</a>
+</p>
+
+<p>
+In fact, wouldn't it be super-cool if the items could automatically
+guess which category they should probably go in, prompting me only if
+it wasn't clear?
+</p>
+
+<p>
+I wanted to write a function that could take a list structured like this:
+</p>
+
+<ul class="org-ul">
+<li>Keyword A
+<ul class="org-ul">
+<li>Previous links
+</li>
+</ul>
+</li>
+<li>Keyword B
+<ul class="org-ul">
+<li>Previous links
+</li>
+</ul>
+</li>
+<li>Link 1 with Keyword A
+</li>
+<li>Link 2 with Keyword B
+</li>
+<li>Link 3 with Keyword A
+</li>
+<li>Link 4
+</li>
+</ul>
+
+<p>
+It should file Link 1 and 3 under Keyword A, Link 2 under Keyword B,
+and prompt me for the category for Link 4. At that prompt, I should be
+able to select Keyword A or Keyword B, or specify a new category.
+</p>
+
+<p>
+Inspired by John Kitchin's recent post on <a href="http://kitchingroup.cheme.cmu.edu/blog/2015/01/24/Anatomy-of-a-helm-source/">defining a Helm source</a>, I
+wanted to get it to work with Helm.
+</p>
+
+<p>
+First step: I needed to figure out the structure of the list, maybe
+including a sample from the category to make it clearer what's
+included. <code>org-list.el</code> seemed to have useful functions for this.
+<code>org-list-struct</code> gave me the structure of the current list. Let's say
+that a category is anything whose text does not match
+<code>org-bracket-link-regexp</code>.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-get-list-categories</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-doc">"Return a list of (category indent matching-regexp sample).</span>
+<span class="org-doc">List categories are items that don't contain links."</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">let</span> <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-rainbow-delimiters-depth-4">(</span>list <span class="org-rainbow-delimiters-depth-5">(</span>org-list-struct<span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span> last-category results<span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">save-excursion</span>
+      <span class="org-rainbow-delimiters-depth-4">(</span>mapc
+       <span class="org-rainbow-delimiters-depth-5">(</span><span class="org-keyword">lambda</span> <span class="org-rainbow-delimiters-depth-6">(</span>x<span class="org-rainbow-delimiters-depth-6">)</span>
+         <span class="org-rainbow-delimiters-depth-6">(</span>goto-char <span class="org-rainbow-delimiters-depth-7">(</span>car x<span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span>
+         <span class="org-rainbow-delimiters-depth-6">(</span><span class="org-keyword">let</span> <span class="org-rainbow-delimiters-depth-7">(</span><span class="org-rainbow-delimiters-depth-8">(</span>current-item
+                <span class="org-rainbow-delimiters-depth-9">(</span>buffer-substring-no-properties
+                 <span class="org-rainbow-delimiters-depth-1">(</span>+ <span class="org-rainbow-delimiters-depth-2">(</span>point<span class="org-rainbow-delimiters-depth-2">)</span>
+                    <span class="org-rainbow-delimiters-depth-2">(</span>elt x 1<span class="org-rainbow-delimiters-depth-2">)</span>
+                    <span class="org-rainbow-delimiters-depth-2">(</span>length <span class="org-rainbow-delimiters-depth-3">(</span>elt x 2<span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+                 <span class="org-rainbow-delimiters-depth-1">(</span>line-end-position<span class="org-rainbow-delimiters-depth-1">)</span><span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span><span class="org-rainbow-delimiters-depth-7">)</span>
+           <span class="org-rainbow-delimiters-depth-7">(</span><span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-8">(</span>string-match
+                org-bracket-link-regexp
+                <span class="org-rainbow-delimiters-depth-9">(</span>buffer-substring-no-properties
+                 <span class="org-rainbow-delimiters-depth-1">(</span>point<span class="org-rainbow-delimiters-depth-1">)</span>
+                 <span class="org-rainbow-delimiters-depth-1">(</span>line-end-position<span class="org-rainbow-delimiters-depth-1">)</span><span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span>
+               <span class="org-comment-delimiter">;; </span><span class="org-comment">Link - update the last category</span>
+               <span class="org-rainbow-delimiters-depth-8">(</span><span class="org-keyword">when</span> last-category
+                 <span class="org-rainbow-delimiters-depth-9">(</span><span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-1">(</span>&lt; <span class="org-rainbow-delimiters-depth-2">(</span>elt x 1<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">(</span>elt last-category 1<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+                     <span class="org-rainbow-delimiters-depth-1">(</span>setq results
+                           <span class="org-rainbow-delimiters-depth-2">(</span>cons <span class="org-rainbow-delimiters-depth-3">(</span>append last-category
+                                         <span class="org-rainbow-delimiters-depth-4">(</span>list
+                                          <span class="org-rainbow-delimiters-depth-5">(</span>match-string-no-properties
+                                           3
+                                           <span class="org-rainbow-delimiters-depth-6">(</span>buffer-substring-no-properties
+                                            <span class="org-rainbow-delimiters-depth-7">(</span>point<span class="org-rainbow-delimiters-depth-7">)</span>
+                                            <span class="org-rainbow-delimiters-depth-7">(</span>line-end-position<span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
+                                 <span class="org-rainbow-delimiters-depth-3">(</span>cdr results<span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span><span class="org-rainbow-delimiters-depth-9">)</span>
+                 <span class="org-rainbow-delimiters-depth-9">(</span>setq last-category nil<span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span>
+             <span class="org-comment-delimiter">;; </span><span class="org-comment">Category</span>
+             <span class="org-rainbow-delimiters-depth-8">(</span>setq results
+                     <span class="org-rainbow-delimiters-depth-9">(</span>cons
+                      <span class="org-rainbow-delimiters-depth-1">(</span>setq last-category
+                            <span class="org-rainbow-delimiters-depth-2">(</span>list
+                             current-item
+                             <span class="org-rainbow-delimiters-depth-3">(</span>elt x 1<span class="org-rainbow-delimiters-depth-3">)</span>
+                             <span class="org-rainbow-delimiters-depth-3">(</span>concat <span class="org-string">"^"</span>
+                                     <span class="org-rainbow-delimiters-depth-4">(</span>make-string <span class="org-rainbow-delimiters-depth-5">(</span>elt x 1<span class="org-rainbow-delimiters-depth-5">)</span> ?\ <span class="org-rainbow-delimiters-depth-4">)</span>
+                                     <span class="org-rainbow-delimiters-depth-4">(</span>regexp-quote
+                                      <span class="org-rainbow-delimiters-depth-5">(</span>concat <span class="org-rainbow-delimiters-depth-6">(</span>elt x 2<span class="org-rainbow-delimiters-depth-6">)</span>
+                                              current-item<span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
+                                     <span class="org-string">"$"</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+                      results<span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span><span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span>
+       list<span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    results<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+The next step was to write a function that guessed the list category
+based on the item text, and moved the item there.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/helm-org-list-candidates</span> nil<span class="org-rainbow-delimiters-depth-1">)</span>
+<span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defun</span> <span class="org-function-name">sacha/helm-org-list-categories-init-candidates</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-doc">"Return a list of categories from this list in a form ready for Helm."</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span>setq sacha/helm-org-list-candidates
+        <span class="org-rainbow-delimiters-depth-3">(</span>mapcar <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">lambda</span> <span class="org-rainbow-delimiters-depth-5">(</span>x<span class="org-rainbow-delimiters-depth-5">)</span>
+                  <span class="org-rainbow-delimiters-depth-5">(</span>cons <span class="org-rainbow-delimiters-depth-6">(</span><span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-7">(</span>elt x 3<span class="org-rainbow-delimiters-depth-7">)</span>
+                            <span class="org-rainbow-delimiters-depth-7">(</span>format <span class="org-string">"%s - %s"</span> <span class="org-rainbow-delimiters-depth-8">(</span>car x<span class="org-rainbow-delimiters-depth-8">)</span> <span class="org-rainbow-delimiters-depth-8">(</span>elt x 3<span class="org-rainbow-delimiters-depth-8">)</span><span class="org-rainbow-delimiters-depth-7">)</span>
+                          <span class="org-rainbow-delimiters-depth-7">(</span>car x<span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span>
+                        x<span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
+                <span class="org-rainbow-delimiters-depth-4">(</span>sacha/org-get-list-categories<span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+
+<span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-move-current-item-to-category</span> <span class="org-rainbow-delimiters-depth-2">(</span>category<span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">when</span> category
+    <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">let*</span> <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-rainbow-delimiters-depth-5">(</span>beg <span class="org-rainbow-delimiters-depth-6">(</span>line-beginning-position<span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span>
+           <span class="org-rainbow-delimiters-depth-5">(</span>end <span class="org-rainbow-delimiters-depth-6">(</span>line-end-position<span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span>
+           <span class="org-rainbow-delimiters-depth-5">(</span>string <span class="org-rainbow-delimiters-depth-6">(</span>buffer-substring-no-properties beg end<span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
+      <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">save-excursion</span>
+        <span class="org-rainbow-delimiters-depth-5">(</span><span class="org-keyword">when</span> <span class="org-rainbow-delimiters-depth-6">(</span>re-search-backward <span class="org-rainbow-delimiters-depth-7">(</span>elt category 2<span class="org-rainbow-delimiters-depth-7">)</span> nil t<span class="org-rainbow-delimiters-depth-6">)</span>
+          <span class="org-rainbow-delimiters-depth-6">(</span>delete-region beg <span class="org-rainbow-delimiters-depth-7">(</span>min <span class="org-rainbow-delimiters-depth-8">(</span>1+ end<span class="org-rainbow-delimiters-depth-8">)</span> <span class="org-rainbow-delimiters-depth-8">(</span>point-max<span class="org-rainbow-delimiters-depth-8">)</span><span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span>
+          <span class="org-rainbow-delimiters-depth-6">(</span>forward-line 1<span class="org-rainbow-delimiters-depth-6">)</span>
+          <span class="org-rainbow-delimiters-depth-6">(</span>insert <span class="org-rainbow-delimiters-depth-7">(</span>make-string <span class="org-rainbow-delimiters-depth-8">(</span>+ 2 <span class="org-rainbow-delimiters-depth-9">(</span>elt category 1<span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span> ?\ <span class="org-rainbow-delimiters-depth-7">)</span>
+                  string <span class="org-string">"\n"</span><span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span> t<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+
+<span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-guess-list-category</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-type">&amp;optional</span> categories<span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span>interactive<span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">require</span> '<span class="org-constant">cl-lib</span><span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">unless</span> categories
+    <span class="org-rainbow-delimiters-depth-3">(</span>setq categories
+          <span class="org-rainbow-delimiters-depth-4">(</span>sacha/helm-org-list-categories-init-candidates<span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">let*</span> <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-rainbow-delimiters-depth-4">(</span>beg <span class="org-rainbow-delimiters-depth-5">(</span>line-beginning-position<span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
+         <span class="org-rainbow-delimiters-depth-4">(</span>end <span class="org-rainbow-delimiters-depth-5">(</span>line-end-position<span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
+         <span class="org-rainbow-delimiters-depth-4">(</span>string <span class="org-rainbow-delimiters-depth-5">(</span>buffer-substring-no-properties beg end<span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
+         <span class="org-rainbow-delimiters-depth-4">(</span>found
+          <span class="org-rainbow-delimiters-depth-5">(</span>cl-member string
+                     categories
+                     <span class="org-builtin">:test</span>
+                     <span class="org-rainbow-delimiters-depth-6">(</span><span class="org-keyword">lambda</span> <span class="org-rainbow-delimiters-depth-7">(</span>string cat-entry<span class="org-rainbow-delimiters-depth-7">)</span>
+                       <span class="org-rainbow-delimiters-depth-7">(</span>string-match <span class="org-rainbow-delimiters-depth-8">(</span>regexp-quote <span class="org-rainbow-delimiters-depth-9">(</span>downcase <span class="org-rainbow-delimiters-depth-1">(</span>car cat-entry<span class="org-rainbow-delimiters-depth-1">)</span><span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span>
+                                     string<span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">when</span> <span class="org-rainbow-delimiters-depth-4">(</span>car found<span class="org-rainbow-delimiters-depth-4">)</span>
+      <span class="org-rainbow-delimiters-depth-4">(</span>sacha/org-move-current-item-to-category
+       <span class="org-rainbow-delimiters-depth-5">(</span>cdr <span class="org-rainbow-delimiters-depth-6">(</span>car found<span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
+      t<span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+After that, I wrote a function that used Helm to prompt me for a
+category in case it couldn't guess the category. It took me a while to
+figure out that I needed to use <code>:init</code> instead of <code>:candidates</code>
+because I wanted to read information from the buffer before Helm
+kicked in.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span>setq sacha/helm-org-list-category-source
+      <span class="org-rainbow-delimiters-depth-2">(</span>helm-build-sync-source
+          <span class="org-string">"Non-link categories in the current list"</span>
+        <span class="org-builtin">:init</span> 'sacha/helm-org-list-categories-init-candidates
+        <span class="org-builtin">:candidates</span> 'sacha/helm-org-list-candidates
+        <span class="org-builtin">:action</span> 'sacha/org-move-current-item-to-category
+        <span class="org-builtin">:fuzzy-match</span> t<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+
+<span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defun</span> <span class="org-function-name">sacha/org-guess-uncategorized</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span>interactive<span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span>sacha/helm-org-list-categories-init-candidates<span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">let</span> <span class="org-rainbow-delimiters-depth-3">(</span>done<span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">while</span> <span class="org-rainbow-delimiters-depth-4">(</span>not done<span class="org-rainbow-delimiters-depth-4">)</span>
+      <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">save-excursion</span>
+        <span class="org-rainbow-delimiters-depth-5">(</span><span class="org-keyword">unless</span> <span class="org-rainbow-delimiters-depth-6">(</span>sacha/org-guess-list-category sacha/helm-org-list-candidates<span class="org-rainbow-delimiters-depth-6">)</span>
+          <span class="org-rainbow-delimiters-depth-6">(</span><span class="org-keyword">unless</span>
+              <span class="org-rainbow-delimiters-depth-7">(</span>helm <span class="org-builtin">:sources</span>
+                    '<span class="org-rainbow-delimiters-depth-8">(</span>sacha/helm-org-list-category-source
+                      sacha/helm-org-list-category-create-source<span class="org-rainbow-delimiters-depth-8">)</span><span class="org-rainbow-delimiters-depth-7">)</span>
+            <span class="org-rainbow-delimiters-depth-7">(</span>setq done t<span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
+      <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">unless</span> done
+        <span class="org-rainbow-delimiters-depth-5">(</span>setq done <span class="org-rainbow-delimiters-depth-6">(</span>not <span class="org-rainbow-delimiters-depth-7">(</span>looking-at <span class="org-string">"^[-+] \\["</span><span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+The <code>:action</code> above refers to this function, which creates a category if it doesn't exist yet.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span>setq sacha/helm-org-list-category-create-source
+      <span class="org-rainbow-delimiters-depth-2">(</span>helm-build-dummy-source
+          <span class="org-string">"Create category"</span>
+        <span class="org-builtin">:action</span> <span class="org-rainbow-delimiters-depth-3">(</span>helm-make-actions
+                 <span class="org-string">"Create category"</span>
+                 <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">lambda</span> <span class="org-rainbow-delimiters-depth-5">(</span>candidate<span class="org-rainbow-delimiters-depth-5">)</span>
+                   <span class="org-rainbow-delimiters-depth-5">(</span><span class="org-keyword">save-excursion</span>
+                     <span class="org-rainbow-delimiters-depth-6">(</span><span class="org-keyword">let*</span> <span class="org-rainbow-delimiters-depth-7">(</span><span class="org-rainbow-delimiters-depth-8">(</span>beg <span class="org-rainbow-delimiters-depth-9">(</span>line-beginning-position<span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span>
+                            <span class="org-rainbow-delimiters-depth-8">(</span>end <span class="org-rainbow-delimiters-depth-9">(</span>line-end-position<span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span>
+                            <span class="org-rainbow-delimiters-depth-8">(</span>string <span class="org-rainbow-delimiters-depth-9">(</span>buffer-substring beg end<span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span><span class="org-rainbow-delimiters-depth-7">)</span>
+                       <span class="org-rainbow-delimiters-depth-7">(</span>delete-region beg <span class="org-rainbow-delimiters-depth-8">(</span>min <span class="org-rainbow-delimiters-depth-9">(</span>1+ end<span class="org-rainbow-delimiters-depth-9">)</span> <span class="org-rainbow-delimiters-depth-9">(</span>point-max<span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span><span class="org-rainbow-delimiters-depth-7">)</span>
+                       <span class="org-rainbow-delimiters-depth-7">(</span>org-beginning-of-item-list<span class="org-rainbow-delimiters-depth-7">)</span>
+                       <span class="org-rainbow-delimiters-depth-7">(</span>insert <span class="org-string">"- "</span> candidate <span class="org-string">"\n  "</span> string <span class="org-string">"\n"</span><span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span>
+                   <span class="org-rainbow-delimiters-depth-5">(</span>sacha/helm-org-list-categories-init-candidates<span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+I'm new to fiddling with Helm, so this implementation is not the best
+it could be. But it's nifty and it works the way I want it to, hooray!
+Now I can generate a list of blog posts and unblogged sketches,
+categorize them quickly, and then tweak the categorizations
+afterwards.
+</p>
+
+<p>
+<a href="https://www.flickr.com/photos/sachac/16394665616/">2015-02-01 Index card sketches and monthly reviews &#x2013; index card #organization #pkm #indexing</a>
+</p>
+
+<p>
+You can see the results in my <a href="http://sachachua.com/blog/2015/02/monthly-review-january-2015/">January 2015</a> review.
+</p>
+
+<p>
+My next step for learning more about Helm sources is probably to write
+a Helm command that creates a montage of selected images. John Kitchin
+has a post about <a href="http://kitchingroup.cheme.cmu.edu/blog/">handling multiple selection in Helm</a>, so I just need
+to combine that with my code for using Imagemagick to create a montage
+of images. Whee!
+</p>
+</div>
+</div>
+
+<div id="outline-container-unnumbered-197" class="outline-4">
+<h4 id="unnumbered-197">Prepare digital index card templates</h4>
+<div class="outline-text-4" id="text-unnumbered-197">
+<p>
+This makes them easier to save and flip between
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defvar</span> <span class="org-variable-name">sacha/autodesk-sketchbook-executable</span> <span class="org-string">"C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe"</span><span class="org-rainbow-delimiters-depth-1">)</span>
+<span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defun</span> <span class="org-function-name">sacha/prepare-index-cards</span> <span class="org-rainbow-delimiters-depth-2">(</span>n<span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span>interactive <span class="org-rainbow-delimiters-depth-3">(</span>list <span class="org-rainbow-delimiters-depth-4">(</span>or current-prefix-arg 5<span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">let</span> <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-rainbow-delimiters-depth-4">(</span>counter 1<span class="org-rainbow-delimiters-depth-4">)</span>
+        <span class="org-rainbow-delimiters-depth-4">(</span>directory <span class="org-string">"~/Dropbox/Inbox"</span><span class="org-rainbow-delimiters-depth-4">)</span>
+        <span class="org-rainbow-delimiters-depth-4">(</span>template <span class="org-string">"c:/data/drawing-templates/custom/0 - index.tif"</span><span class="org-rainbow-delimiters-depth-4">)</span>
+        <span class="org-rainbow-delimiters-depth-4">(</span>date <span class="org-rainbow-delimiters-depth-5">(</span>org-read-date nil nil <span class="org-string">"."</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
+        temp-file<span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">while</span> <span class="org-rainbow-delimiters-depth-4">(</span>&gt; n 0<span class="org-rainbow-delimiters-depth-4">)</span>
+      <span class="org-rainbow-delimiters-depth-4">(</span>setq temp-file
+            <span class="org-rainbow-delimiters-depth-5">(</span>expand-file-name <span class="org-rainbow-delimiters-depth-6">(</span>format <span class="org-string">"%s-%d.tif"</span> date counter<span class="org-rainbow-delimiters-depth-6">)</span>
+                              directory<span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
+      <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">unless</span> <span class="org-rainbow-delimiters-depth-5">(</span>file-exists-p temp-file<span class="org-rainbow-delimiters-depth-5">)</span>
+        <span class="org-rainbow-delimiters-depth-5">(</span>copy-file template temp-file<span class="org-rainbow-delimiters-depth-5">)</span>
+        <span class="org-rainbow-delimiters-depth-5">(</span>setq n <span class="org-rainbow-delimiters-depth-6">(</span>1- n<span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span>
+        <span class="org-rainbow-delimiters-depth-5">(</span><span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-6">(</span>= n 0<span class="org-rainbow-delimiters-depth-6">)</span>
+            <span class="org-rainbow-delimiters-depth-6">(</span>shell-command
+             <span class="org-rainbow-delimiters-depth-7">(</span>concat <span class="org-rainbow-delimiters-depth-8">(</span>shell-quote-argument sacha/autodesk-sketchbook-executable<span class="org-rainbow-delimiters-depth-8">)</span>
+                     <span class="org-string">" "</span>
+                     <span class="org-rainbow-delimiters-depth-8">(</span>shell-quote-argument temp-file<span class="org-rainbow-delimiters-depth-8">)</span> <span class="org-string">" &amp;"</span><span class="org-rainbow-delimiters-depth-7">)</span><span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
+      <span class="org-rainbow-delimiters-depth-4">(</span>setq counter <span class="org-rainbow-delimiters-depth-5">(</span>1+ counter<span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+Afterwards, call <code>sacha/rename-scanned-cards</code> below.
+</p>
+</div>
+</div>
+<div id="outline-container-unnumbered-198" class="outline-4">
+<h4 id="unnumbered-198">Rename scanned index cards</h4>
+<div class="outline-text-4" id="text-unnumbered-198">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">defun</span> <span class="org-function-name">sacha/rename-scanned-cards</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-rainbow-delimiters-depth-2">)</span>
   <span class="org-doc">"Display and rename the scanned files."</span>
   <span class="org-rainbow-delimiters-depth-2">(</span>interactive<span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">when</span> <span class="org-rainbow-delimiters-depth-3">(</span>directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+-.*.tif"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-comment-delimiter">;; </span><span class="org-comment">Convert the TIFFs first</span>
+    <span class="org-rainbow-delimiters-depth-3">(</span>apply 'call-process <span class="org-string">"mogrify"</span> nil nil nil <span class="org-string">"-format"</span> <span class="org-string">"png"</span> <span class="org-string">"-quality"</span> <span class="org-string">"1"</span>
+           <span class="org-rainbow-delimiters-depth-4">(</span>directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+-.*.tif"</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-rainbow-delimiters-depth-3">(</span>mapc <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">lambda</span> <span class="org-rainbow-delimiters-depth-5">(</span>x<span class="org-rainbow-delimiters-depth-5">)</span>
+            <span class="org-rainbow-delimiters-depth-5">(</span>rename-file x <span class="org-string">"~/Dropbox/Inbox/backup"</span><span class="org-rainbow-delimiters-depth-5">)</span><span class="org-rainbow-delimiters-depth-4">)</span>
+          <span class="org-rainbow-delimiters-depth-4">(</span>directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+-.*.tif"</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span>
   <span class="org-rainbow-delimiters-depth-2">(</span>mapc <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">lambda</span> <span class="org-rainbow-delimiters-depth-4">(</span>filename<span class="org-rainbow-delimiters-depth-4">)</span>
           <span class="org-rainbow-delimiters-depth-4">(</span>find-file filename<span class="org-rainbow-delimiters-depth-4">)</span>
           <span class="org-rainbow-delimiters-depth-4">(</span>delete-other-windows<span class="org-rainbow-delimiters-depth-4">)</span>
@@ -6765,13 +7075,14 @@ big to open easily there, though.
 </div>
 </div>
 </div>
+</div>
 
-<div id="outline-container-unnumbered-196" class="outline-2">
-<h2 id="unnumbered-196">Games</h2>
-<div class="outline-text-2" id="text-unnumbered-196">
-</div><div id="outline-container-unnumbered-197" class="outline-3">
-<h3 id="unnumbered-197">Typing of Emacs</h3>
-<div class="outline-text-3" id="text-unnumbered-197">
+<div id="outline-container-unnumbered-199" class="outline-2">
+<h2 id="unnumbered-199">Games</h2>
+<div class="outline-text-2" id="text-unnumbered-199">
+</div><div id="outline-container-unnumbered-200" class="outline-3">
+<h3 id="unnumbered-200">Typing of Emacs</h3>
+<div class="outline-text-3" id="text-unnumbered-200">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">use-package</span> <span class="org-constant">typing</span>
@@ -6786,9 +7097,9 @@ big to open easily there, though.
 </div>
 </div>
 </div>
-<div id="outline-container-unnumbered-198" class="outline-3">
-<h3 id="unnumbered-198"><a id="o2b:e2b41b2d-463c-4469-91b8-63eb97a13b9d"></a>2048 in Emacs, and colours too&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></h3>
-<div class="outline-text-3" id="text-unnumbered-198">
+<div id="outline-container-unnumbered-201" class="outline-3">
+<h3 id="unnumbered-201"><a id="o2b:e2b41b2d-463c-4469-91b8-63eb97a13b9d"></a>2048 in Emacs, and colours too&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></h3>
+<div class="outline-text-3" id="text-unnumbered-201">
 <p>
 While browsing through <code>M-x list-packages</code>, I noticed that there was a
 new MELPA package that implemented the 2048 game in Emacs. I wrote the
@@ -6826,9 +7137,9 @@ theme. =)
 </div>
 </div>
 
-<div id="outline-container-unnumbered-199" class="outline-2">
-<h2 id="unnumbered-199">Path</h2>
-<div class="outline-text-2" id="text-unnumbered-199">
+<div id="outline-container-unnumbered-202" class="outline-2">
+<h2 id="unnumbered-202">Path</h2>
+<div class="outline-text-2" id="text-unnumbered-202">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"><span class="org-rainbow-delimiters-depth-1">(</span>setenv <span class="org-string">"PATH"</span> <span class="org-rainbow-delimiters-depth-2">(</span>concat <span class="org-string">"\"c:/program files/postgresql/9.3/bin;\""</span> <span class="org-rainbow-delimiters-depth-3">(</span>getenv <span class="org-string">"PATH"</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>

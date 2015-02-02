@@ -221,6 +221,221 @@ helm-grep? Bit slow and hard to read, though.
   (helm-do-grep-1 (list sacha/book-notes-directory)))
 #+end_src
 
+**** DONE Getting Helm and org-refile to clock in or create tasks :emacs:org:helm:
+     CLOSED: [2015-02-02 Mon 08:40] SCHEDULED: <2015-02-02 Mon>
+     :PROPERTIES:
+     :Effort:   1:00
+     :ID:       o2b:68856129-3324-4a07-87f3-066a228c5847
+     :POSTID:   27940
+     :BLOG:     sacha
+     :END:
+     :LOGBOOK:
+     - State "DONE"       from "STARTED"    [2015-02-02 Mon 08:40]
+     CLOCK: [2015-02-02 Mon 08:35]--[2015-02-02 Mon 08:40] =>  0:05
+     CLOCK: [2015-02-02 Mon 07:13]--[2015-02-02 Mon 08:35] =>  1:22
+     :END:
+
+  I've been thinking about how to improve the way that I navigate to,
+  clock in, and create tasks in Org Mode. If the task is one of the ones
+  I've planned for today, I use my Org agenda. If I know that the task
+  exists, I use =C-u C-c C-w= (=org-refile=) to jump to it, and then =!=
+  (one of my =org-speed-commands-user= options) to clock in and track it
+  on Quantified Awesome. If I want to resume an interrupted task, I use
+  =C-u C-c j= (my shortcut for =org-clock-goto=). For new tasks, I go to
+  the appropriate project entry and create it, although I really should
+  be using =org-capture= instead.
+
+  [[https://www.flickr.com/photos/65214961@N00/16218018829][2015-01-30 Org Mode jumping to tasks -- index card #emacs #org]]
+
+  I thought about how I can reduce some of these distinctions. For
+  example, what if it didn't matter whether or not a task already
+  exists? I can modify the org-refile interface to make it easier for me
+  to create tasks if my description doesn't match anything. To make
+  things simpler, I'll just reuse one of my =org-capture-templates=, and
+  I'll pre-fill it with the candidate from Helm.
+
+  #+begin_src emacs-lisp
+    (ert-deftest sacha/org-capture-prefill-template ()
+      (should
+       ;; It should fill things in one field at a time
+       (string=
+        (sacha/org-capture-prefill-template
+         "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
+         "Hello World")
+        "* TODO Hello World\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
+        ))
+      (should
+       (string=
+        (sacha/org-capture-prefill-template
+         "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
+         "Hello World" "<2015-01-01>")
+        "* TODO Hello World\nSCHEDULED: <2015-01-01>\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"))
+      (should
+       (string=
+        (sacha/org-capture-prefill-template
+         "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
+         "Hello World" "<2015-01-01>" "0:05")
+        "* TODO Hello World\nSCHEDULED: <2015-01-01>\n:PROPERTIES:\n:Effort: 0:05\n:END:\n%?\n")))
+
+    (defun sacha/org-capture-prefill-template (template &rest values)
+      "Pre-fill TEMPLATE with VALUES."
+      (setq template (or template (org-capture-get :template)))
+      (with-temp-buffer
+        (insert template)
+        (goto-char (point-min))
+        (while (re-search-forward
+                (concat "%\\("
+                        "\\[\\(.+\\)\\]\\|"
+                        "<\\([^>\n]+\\)>\\|"
+                        "\\([tTuUaliAcxkKInfF]\\)\\|"
+                        "\\(:[-a-zA-Z]+\\)\\|"
+                        "\\^\\({\\([^}]*\\)}\\)"
+                        "?\\([gGtTuUCLp]\\)?\\|"
+                        "%\\\\\\([1-9][0-9]*\\)"
+                        "\\)") nil t)
+          (if (car values)
+              (replace-match (car values) nil t))
+          (setq values (cdr values)))
+        (buffer-string)))
+
+    (defun sacha/helm-org-create-task (candidate)
+      (let ((entry (org-capture-select-template "T")))
+        (org-capture-set-plist entry)
+        (org-capture-get-template)
+        (org-capture-set-target-location)
+        (condition-case error
+            (progn
+              (org-capture-put
+               :template
+               (org-capture-fill-template
+                (sacha/org-capture-prefill-template (org-capture-get :template)
+                                                    candidate)))
+              (org-capture-place-template
+               (equal (car (org-capture-get :target)) 'function)))
+          ((error quit)
+           (if (get-buffer "*Capture*") (kill-buffer "*Capture*"))
+           (error "Capture abort: %s" error)))) t)
+
+  #+end_src
+
+  Next, I want to add this to the way that Helm prompts me to refile.
+  That means that my creation task should return something ready for
+  =org-refile=. Actually, maybe I don't have to do that if I know I'm
+  always going to call it when I want to jump to something. I might as
+  well add that bit of code that sets up clocking in, too.
+
+  #+begin_src emacs-lisp
+    (defvar sacha/helm-org-refile-locations nil)
+
+    (defun sacha/helm-org-clock-in-and-track-from-refile (candidate)
+      (let ((location (org-refile--get-location candidate sacha/helm-org-refile-locations)))
+        (save-window-excursion
+          (org-refile 4 nil location)
+          (sacha/org-clock-in-and-track)
+          t)))
+
+    (defun sacha/helm-org-refile-read-location (tbl)
+      (setq sacha/helm-org-refile-locations tbl)
+      (helm
+       (list
+        (helm-build-sync-source "Refile targets"
+          :candidates (mapcar 'car tbl)
+          :action '(("Select" . identity)
+                    ("Clock in and track" . sacha/helm-org-clock-in-and-track-from-refile))
+          :history 'org-refile-history)
+        (helm-build-dummy-source "Create task"
+          :action (helm-make-actions
+                   "Create task"
+                   'sacha/helm-org-create-task)))))
+
+    (defun sacha/org-refile-get-location (&optional prompt default-buffer new-nodes no-exclude)
+      "Prompt the user for a refile location, using PROMPT.
+    PROMPT should not be suffixed with a colon and a space, because
+    this function appends the default value from
+    `org-refile-history' automatically, if that is not empty.
+    When NO-EXCLUDE is set, do not exclude headlines in the current subtree,
+    this is used for the GOTO interface."
+      (let ((org-refile-targets org-refile-targets)
+            (org-refile-use-outline-path org-refile-use-outline-path)
+            excluded-entries)
+        (when (and (derived-mode-p 'org-mode)
+                   (not org-refile-use-cache)
+                   (not no-exclude))
+          (org-map-tree
+           (lambda()
+             (setq excluded-entries
+                   (append excluded-entries (list (org-get-heading t t)))))))
+        (setq org-refile-target-table
+              (org-refile-get-targets default-buffer excluded-entries)))
+      (unless org-refile-target-table
+        (user-error "No refile targets"))
+      (let* ((cbuf (current-buffer))
+             (partial-completion-mode nil)
+             (cfn (buffer-file-name (buffer-base-buffer cbuf)))
+             (cfunc (if (and org-refile-use-outline-path
+                             org-outline-path-complete-in-steps)
+                        'org-olpath-completing-read
+                      'org-icompleting-read))
+             (extra (if org-refile-use-outline-path "/" ""))
+             (cbnex (concat (buffer-name) extra))
+             (filename (and cfn (expand-file-name cfn)))
+             (tbl (mapcar
+                   (lambda (x)
+                     (if (and (not (member org-refile-use-outline-path
+                                           '(file full-file-path)))
+                              (not (equal filename (nth 1 x))))
+                         (cons (concat (car x) extra " ("
+                                       (file-name-nondirectory (nth 1 x)) ")")
+                               (cdr x))
+                       (cons (concat (car x) extra) (cdr x))))
+                   org-refile-target-table))
+             (completion-ignore-case t)
+             cdef
+             (prompt (concat prompt
+                             (or (and (car org-refile-history)
+                                      (concat " (default " (car org-refile-history) ")"))
+                                 (and (assoc cbnex tbl) (setq cdef cbnex)
+                                      (concat " (default " cbnex ")"))) ": "))
+             pa answ parent-target child parent old-hist)
+        (setq old-hist org-refile-history)
+        ;; Use Helm's sources instead
+        (setq answ (sacha/helm-org-refile-read-location tbl))
+        (if (and (stringp answ)
+                 (setq pa (org-refile--get-location answ tbl)))
+            (progn
+              (org-refile-check-position pa)
+              (when (or (not org-refile-history)
+                        (not (eq old-hist org-refile-history))
+                        (not (equal (car pa) (car org-refile-history))))
+                (setq org-refile-history
+                      (cons (car pa) (if (assoc (car org-refile-history) tbl)
+                                         org-refile-history
+                                       (cdr org-refile-history))))
+                (if (equal (car org-refile-history) (nth 1 org-refile-history))
+                    (pop org-refile-history)))
+              pa)
+          (if (and (stringp answ) (string-match "\\`\\(.*\\)/\\([^/]+\\)\\'" answ))
+              (progn
+                (setq parent (match-string 1 answ)
+                      child (match-string 2 answ))
+                (setq parent-target (org-refile--get-location parent tbl))
+                (when (and parent-target
+                           (or (eq new-nodes t)
+                               (and (eq new-nodes 'confirm)
+                                    (y-or-n-p (format "Create new node \"%s\"? "
+                                                      child)))))
+                  (org-refile-new-child parent-target child)))
+            (if (not (equal answ t)) (user-error "Invalid target location"))))))
+
+    (fset 'org-refile-get-location 'sacha/org-refile-get-location)
+  #+end_src
+
+  Hooray! Now =C-u C-c C-w= (=org-refile=) also lets me use =TAB= or
+  =F2= to select the alternative action of quickly clocking in on a
+  task. Mwahaha.
+
+  I think I'm getting the hang of tweaking Helm. Yay!
+ 
 *** Mode line format
 
 Display a more compact mode line
@@ -566,6 +781,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
   (define-key sacha/key-chord-command-map "k" 'kill-sexp)
   (define-key sacha/key-chord-command-map "h" 'emms-pause)
   (define-key sacha/key-chord-command-map "u" 'emms-pause)
+  (define-key sacha/key-chord-command-map "a" 'sacha/org-check-agenda)
   (define-key sacha/key-chord-command-map "r" 'repeat)
   (define-key sacha/key-chord-command-map "t" 'emms-seek-backward)
   (define-key sacha/key-chord-command-map "s" 'emms-seek-to)
@@ -621,8 +837,7 @@ Now let's set up the actual keychords.
 #+end_src
 *** Smartscan
 
-From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
-
+From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el, this makes =M-n= and =M-p= look for the symbol at point.
 #+begin_src emacs-lisp
 (use-package smartscan
   :init (global-smartscan-mode t))
@@ -820,7 +1035,6 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
 | bc    | because                               |
 | wo    | without                               |
 | wi    | with                                  |
-| ex    | For example,                          |
 | qm    | sacha@sachachua.com                   |
 | qe    | http://sachachua.com/dotemacs         |
 | qw    | http://sachachua.com/                 |
@@ -4110,9 +4324,10 @@ still need to do. This [[http://lists.gnu.org/archive/html/emacs-orgmode/2007-03
 
 ** Rainbow delimiters
 
+I don't automatically turn this on because I think it slows things down a little.
+
 #+begin_src emacs-lisp
-  (use-package rainbow-delimiters
-    :init (add-hook 'emacs-lisp-mode-hook 'rainbow-delimiters-mode))
+(use-package rainbow-delimiters)
 #+end_src
 
 ** Drupal
@@ -4902,7 +5117,6 @@ recently-opened files first.
     :END:
     :LOGBOOK:
     - State "DONE"       from "STARTED"    [2015-02-01 Sun 18:47]
-    CLOCK: [2015-02-01 Sun 18:28]
     :END:
 
 To make it easier to draw using Autodesk Sketchbook Pro on my laptop
@@ -5016,6 +5230,34 @@ while still being able to take advantage of structured information.
 
 Do you work with external applications? Where does it make sense to
 use Emacs Lisp to make setup or processing easier?
+
+*** TODO Move to-blog sketches to a staging folder for easier upload
+
+This function moves the specified files from my =To blog= folder to my
+=Selection= folder. That makes it easier to upload them to Wordpress
+and then delete them afterwards. I use the Wordpress web interface
+instead of org2blog's file upload support because sometimes the
+Org2blog file uploads don't work as well as I'd like, and I haven't
+looked into debugging that yet.
+
+#+begin_src emacs-lisp
+  (defun sacha/org-stage-image-files-in-subtree ()
+    "Move corresponding linked images to staging directory."
+    (interactive)
+    (save-excursion
+      (save-restriction
+        (org-narrow-to-subtree)
+        (goto-char (point-min))
+        (while (re-search-forward org-bracket-link-regexp nil t)
+          (if (save-match-data (string-match "flickr.com" (match-string 0)))
+              (when (file-exists-p
+                     (expand-file-name (concat (match-string 3) ".png")
+                                       "~/Dropbox/Inbox/To blog"))
+                (rename-file
+                 (expand-file-name (concat (match-string 3) ".png")
+                                   "~/Dropbox/Inbox/To blog")
+                 "~/Dropbox/Inbox/Selection" )))))))
+#+end_src
 
 *** Other sketches
 

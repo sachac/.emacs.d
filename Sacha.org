@@ -2752,18 +2752,26 @@ use punchagan's org2blog, but there's a completely different one in
 ELPA, so I figured I'd give that a try. UPDATE 2014-10-29: Overriding it with the Git version (see the first section of this config) so that I can use thumbnail support for now...
 
 #+begin_src emacs-lisp
-(use-package org2blog
-  :load-path "~/code/org2blog"
-  :config
-   (progn
-    (setq org-export-with-toc nil)
-    (setq org-html-toplevel-hlevel 2)
-    (setq org-export-htmlize-output-type 'css)
-    (defadvice org2blog/wp-post-buffer (around sacha activate)
-    (let ((org-confirm-babel-evaluate nil)
-          (org-html-toplevel-hlevel 3))
-      ad-do-it))))
-(use-package htmlize :ensure htmlize)
+  (use-package org2blog
+    :load-path "~/code/org2blog"
+    :config
+     (progn
+      (setq org-export-with-toc nil)
+      (setq org-html-toplevel-hlevel 2)
+      (setq org-export-htmlize-output-type 'css)
+      (defadvice org2blog/wp-post-buffer (around sacha activate)
+      (let ((org-confirm-babel-evaluate nil)
+            (org-html-toplevel-hlevel 3))
+        ad-do-it))))
+
+  (defun sacha/org2blog-subtree ()
+    "Post to my blog and get files ready."
+    (interactive)
+    (org2blog/wp-post-subtree)
+    (sacha/stage-image-files-in-subtree)
+    (browse-url "http://sachachua.com/blog/wp-admin/edit.php?page=cal"))
+
+  (use-package htmlize :ensure htmlize)
 #+end_src
 
 **** Publish without prompting

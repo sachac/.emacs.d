@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2015-02-03 Tue 13:01 -->
+<!-- 2015-02-03 Tue 13:44 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -4098,6 +4098,14 @@ ELPA, so I figured I'd give that a try. UPDATE 2014-10-29: Overriding it with th
     (<span class="org-keyword">let</span> ((org-confirm-babel-evaluate nil)
           (org-html-toplevel-hlevel 3))
       ad-do-it))))
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/org2blog-subtree</span> ()
+  <span class="org-doc">"Post to my blog and get files ready."</span>
+  (interactive)
+  (org2blog/wp-post-subtree)
+  (sacha/stage-image-files-in-subtree)
+  (browse-url <span class="org-string">"http://sachachua.com/blog/wp-admin/edit.php?page=cal"</span>))
+
 (<span class="org-keyword">use-package</span> <span class="org-constant">htmlize</span> <span class="org-builtin">:ensure</span> htmlize)
 </pre>
 </div>
@@ -6573,7 +6581,7 @@ left.
 <h3 id="unnumbered-185">Enable minibuffer completion</h3>
 <div class="outline-text-3" id="text-unnumbered-185">
 <p>
-<span class="timestamp-wrapper"><span class="timestamp">[2013-03-31]</span></span> Superseded by ido-hacks?
+<span class="timestamp-wrapper"><span class="timestamp">[2013-03-31 Sun] </span></span> Superseded by ido-hacks?
 </p>
 
 <p>
@@ -6597,7 +6605,7 @@ easier to discover commands.
 <h4 id="unnumbered-187">Ido-mode: Much better navigationy things</h4>
 <div class="outline-text-4" id="text-unnumbered-187">
 <p>
-<span class="timestamp-wrapper"><span class="timestamp">[2013-03-31]</span></span>: Let's try using Helm instead.
+<span class="timestamp-wrapper"><span class="timestamp">[2013-03-31 Sun]</span></span>: Let's try using Helm instead.
 </p>
 
 <p>

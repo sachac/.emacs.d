@@ -5150,7 +5150,8 @@ specified number of them) and then opens the last one for me to edit.
         (unless (file-exists-p temp-file)
           (copy-file template temp-file)
           (setq n (1- n))
-          (if (= n 0)
+          (when (= n 0)
+              (quantified-track "Drawing")
               (shell-command
                (concat (shell-quote-argument sacha/autodesk-sketchbook-executable)
                        " "
@@ -5166,7 +5167,7 @@ properly.
 
  #+begin_src emacs-lisp
    (defun sacha/rename-scanned-cards ()
-     "Display and rename the scanned files."
+     "Display and rename the scanned or saved files."
      (interactive)
      (when (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.tif")
        ;; Convert the TIFFs first
@@ -5186,7 +5187,16 @@ properly.
                    (revert-buffer t t)
                    (rename-file filename (concat new-name ".png"))
                    (kill-buffer)))))
-           (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.png")))
+           (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.png"))
+     (when (yes-or-no-p "Upload files?")
+       (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+ .*.png"))
+       (find-file "~/Dropbox/Public/sharing/index.org")
+       (goto-char (point-min))
+       (when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))
+         (forward-line 1)
+         (org-end-of-item-list)
+         (save-excursion (yank))
+         (sacha/org-guess-uncategorized))))
  #+end_src
 
 I might tweak the files a little more after I rename them, so I don't

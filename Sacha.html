@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2015-02-02 Mon 08:40 -->
+<!-- 2015-02-03 Tue 13:01 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -7113,7 +7113,8 @@ specified number of them) and then opens the last one for me to edit.
       (<span class="org-keyword">unless</span> (file-exists-p temp-file)
         (copy-file template temp-file)
         (setq n (1- n))
-        (<span class="org-keyword">if</span> (= n 0)
+        (<span class="org-keyword">when</span> (= n 0)
+            (quantified-track <span class="org-string">"Drawing"</span>)
             (shell-command
              (concat (shell-quote-argument sacha/autodesk-sketchbook-executable)
                      <span class="org-string">" "</span>
@@ -7136,7 +7137,7 @@ properly.
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha/rename-scanned-cards</span> ()
-  <span class="org-doc">"Display and rename the scanned files."</span>
+  <span class="org-doc">"Display and rename the scanned or saved files."</span>
   (interactive)
   (<span class="org-keyword">when</span> (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+-.*.tif"</span>)
     <span class="org-comment-delimiter">;; </span><span class="org-comment">Convert the TIFFs first</span>
@@ -7156,7 +7157,16 @@ properly.
                 (revert-buffer t t)
                 (rename-file filename (concat new-name <span class="org-string">".png"</span>))
                 (kill-buffer)))))
-        (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+-.*.png"</span>)))
+        (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+-.*.png"</span>))
+  (<span class="org-keyword">when</span> (yes-or-no-p <span class="org-string">"Upload files?"</span>)
+    (apply 'call-process <span class="org-string">"up"</span> nil nil nil (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+ .*.png"</span>))
+    (find-file <span class="org-string">"~/Dropbox/Public/sharing/index.org"</span>)
+    (goto-char (point-min))
+    (<span class="org-keyword">when</span> (re-search-forward (regexp-quote <span class="org-string">"#+ORGLST: sketchinbox"</span>))
+      (forward-line 1)
+      (org-end-of-item-list)
+      (<span class="org-keyword">save-excursion</span> (yank))
+      (sacha/org-guess-uncategorized))))
 </pre>
 </div>
 

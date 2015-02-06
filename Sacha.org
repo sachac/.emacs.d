@@ -17,9 +17,9 @@ This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]] - [[https://git
 
 To be precise, this is what's in the first part of my =~/.emacs.d/init.el= (what used to be the =~/.emacs= file):
 
-#+begin_src emacs-lisp  :tangle no
+#+BEGIN_SRC emacs-lisp
 ;; This sets up the load path so that we can override it
-(package-initialize nil)
+(package-initialize t)
 ;; Override the packages with the git version of Org and other packages
 (add-to-list 'load-path "~/elisp/org-mode/lisp")
 (add-to-list 'load-path "~/elisp/org-mode/contrib/lisp")
@@ -27,10 +27,10 @@ To be precise, this is what's in the first part of my =~/.emacs.d/init.el= (what
 (add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
 ;; Load the rest of the packages
-(package-initialize t)
+(package-initialize nil)
 (setq package-enable-at-startup nil)
 (org-babel-load-file "~/.emacs.d/Sacha.org")
-#+end_src
+#+END_SRC
 
 If you're new to Emacs Lisp, you probably don't want to copy and paste
 large chunks of this code. Instead, copy small parts of it (always
@@ -52,21 +52,21 @@ I like using =(setq ...)= more than Customize because I can neatly organize my c
 
 ** Personal information
 
-#+begin_src emacs-lisp
-  (setq user-full-name "Sacha Chua"
-        user-mail-address "sacha@sachachua.com")
-#+end_src
+#+BEGIN_SRC emacs-lisp
+(setq user-full-name "Sacha Chua"
+      user-mail-address "sacha@sachachua.com")
+#+END_SRC
 
 ** Emacs initialization
 
 *** Add package sources
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 (unless (assoc-default "melpa" package-archives)
   (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
   (package-refresh-contents))
-#+end_src
+#+END_SRC
 
 Use =M-x package-refresh-contents= to reload the list of packages
 after adding these for the first time.
@@ -76,48 +76,49 @@ after adding these for the first time.
 Sometimes I load files outside the package system. As long as they're
 in a directory in my =load-path=, Emacs can find them.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (add-to-list 'load-path "~/elisp")
 (add-to-list 'load-path "~/elisp/artbollocks-mode")
 (unless (package-installed-p 'use-package)
   (package-install 'use-package))
+(setq use-package-verbose t)
 (require 'use-package)
 (use-package auto-compile
   :ensure t
   :init (auto-compile-on-load-mode))
 (setq load-prefer-newer t)
-#+end_src
+#+END_SRC
 
 *** Load secrets
 
 I keep slightly more sensitive information in a separate file so that I can easily publish my main configuration.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (load "~/.emacs.secrets" t)
-#+end_src
+#+END_SRC
 
 ** General configuration
 *** Backups
 
 This is one of the things people usually want to change right away. By default, Emacs saves backup files in the current directory. These are the files ending in =~= that are cluttering up your directory lists. The following code stashes them all in =~/.emacs.d/backups=, where I can find them with =C-x C-f= (=find-file=) if I really need to.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
-#+end_src
+#+END_SRC
 
 Disk space is cheap. Save lots.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (setq delete-old-versions -1)
 (setq version-control t)
 (setq vc-make-backup-files t)
 (setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t)))
-#+end_src
+#+END_SRC
 
 *** History
 
 From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (setq savehist-file "~/.emacs.d/savehist")
 (savehist-mode 1)
 (setq history-length t)
@@ -127,7 +128,7 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
       '(kill-ring
         search-ring
         regexp-search-ring))
-#+end_src
+#+END_SRC
 
 *** Windows configuration :drill:
     :PROPERTIES:
@@ -144,30 +145,31 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
 
 When you're starting out, tooltips, menus, and the tool bar can be very helpful. [[http://sachachua.com/blog/2014/03/emacs-basics-using-mouse/][(Emacs Basics: Using the Mouse]]). Eventually, you may want to reclaim that extra little bit of screenspace. The following code turns those things off when using a graphical Emacs. (Although I changed my mind about the menu - I want that again.)
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (when window-system
   (tooltip-mode -1)
   (tool-bar-mode -1)
   (menu-bar-mode 1)
   (scroll-bar-mode -1))
-#+end_src
+#+END_SRC
 *** Winner mode - undo and redo window configuration
 
 =winner-mode= lets you use =C-c <left>= and =C-c <right>= to switch between window configurations. This is handy when something has popped up a buffer that you want to look at briefly before returning to whatever you were working on. When you're done, press =C-c <left>=.
 
-#+begin_src emacs-lisp
-  (use-package winner
-    :ensure winner
-    :init (winner-mode 1))
-#+end_src
+#+BEGIN_SRC emacs-lisp
+(use-package winner
+  :ensure t
+  :defer t
+  :idle (winner-mode 1))
+#+END_SRC
 *** Sentences end with a single space
 
 In my world, sentences end with a single space. This makes
 sentence navigation commands work for me.
 
-#+begin_src emacs-lisp
-  (setq sentence-end-double-space nil)
-#+end_src
+#+BEGIN_SRC emacs-lisp
+(setq sentence-end-double-space nil)
+#+END_SRC
 
 *** Helm - interactive completion
 
@@ -175,51 +177,52 @@ Helm makes it easy to complete various things. I find it to be easier
 to configure than ido in order to get completion in as many places as
 possible, although I prefer ido's way of switching buffers.
 
-#+begin_src emacs-lisp
-    (use-package helm
-      :ensure helm
-      :diminish helm-mode
-      :init
-      (progn
-        (require 'helm-config)
-        (setq helm-candidate-number-limit 100)
-        ;; From https://gist.github.com/antifuchs/9238468
-        (setq helm-idle-delay 0.0 ; update fast sources immediately (doesn't).
-              helm-input-idle-delay 0.01  ; this actually updates things
-                                            ; reeeelatively quickly.
-              helm-quick-update t
-              helm-M-x-requires-pattern nil
-              helm-ff-skip-boring-files t)
-        (helm-mode))
-      :bind (("C-c h" . helm-mini)
-             ("C-h a" . helm-apropos)
-             ("C-x C-b" . helm-buffers-list)
-             ("C-x b" . helm-buffers-list)
-             ("M-y" . helm-show-kill-ring)
-             ("M-x" . helm-M-x)
-             ("C-x c o" . helm-occur)
-             ("C-x c s" . helm-swoop)
-             ("C-x c b" . sacha/helm-do-grep-book-notes)
-             ("C-x c SPC" . helm-all-mark-rings)))
-    (ido-mode -1) ;; Turn off ido mode in case I enabled it accidentally
-#+end_src
+#+BEGIN_SRC emacs-lisp
+(use-package helm
+  :ensure helm
+  :diminish helm-mode
+  :init
+  (progn
+    (require 'helm-config)
+    (setq helm-candidate-number-limit 100)
+    ;; From https://gist.github.com/antifuchs/9238468
+    (setq helm-idle-delay 0.0 ; update fast sources immediately (doesn't).
+          helm-input-idle-delay 0.01  ; this actually updates things
+                                        ; reeeelatively quickly.
+          helm-quick-update t
+          helm-M-x-requires-pattern nil
+          helm-ff-skip-boring-files t)
+    (helm-mode))
+  :bind (("C-c h" . helm-mini)
+         ("C-h a" . helm-apropos)
+         ("C-x C-b" . helm-buffers-list)
+         ("C-x b" . helm-buffers-list)
+         ("M-y" . helm-show-kill-ring)
+         ("M-x" . helm-M-x)
+         ("C-x c o" . helm-occur)
+         ("C-x c s" . helm-swoop)
+         ("C-x c b" . sacha/helm-do-grep-book-notes)
+         ("C-x c SPC" . helm-all-mark-rings)))
+(ido-mode -1) ;; Turn off ido mode in case I enabled it accidentally
+#+END_SRC
 
 Great for describing bindings. I'll replace the binding for =where-is= too.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (use-package helm-descbinds
+  :defer t
   :bind (("C-h b" . helm-descbinds)
          ("C-h w" . helm-descbinds)))
-#+end_src
+#+END_SRC
 
 helm-grep? Bit slow and hard to read, though.
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (defvar sacha/book-notes-directory "~/Dropbox/books")
 (defun sacha/helm-do-grep-book-notes ()
   "Search my book notes."
   (interactive)
   (helm-do-grep-1 (list sacha/book-notes-directory)))
-#+end_src
+#+END_SRC
 
 **** DONE Getting Helm and org-refile to clock in or create tasks :emacs:org:helm:
      CLOSED: [2015-02-02 Mon 08:40] SCHEDULED: <2015-02-02 Mon>
@@ -254,7 +257,7 @@ helm-grep? Bit slow and hard to read, though.
   things simpler, I'll just reuse one of my =org-capture-templates=, and
   I'll pre-fill it with the candidate from Helm.
 
-  #+begin_src emacs-lisp
+  #+BEGIN_SRC emacs-lisp
   (ert-deftest sacha/org-capture-prefill-template ()
     (should
      ;; It should fill things in one field at a time
@@ -316,7 +319,7 @@ helm-grep? Bit slow and hard to read, though.
          (if (get-buffer "*Capture*") (kill-buffer "*Capture*"))
          (error "Capture abort: %s" error)))) t)
 
-  #+end_src
+  #+END_SRC
 
   Next, I want to add this to the way that Helm prompts me to refile.
   That means that my creation task should return something ready for
@@ -324,7 +327,7 @@ helm-grep? Bit slow and hard to read, though.
   always going to call it when I want to jump to something. I might as
   well add that bit of code that sets up clocking in, too.
 
-  #+begin_src emacs-lisp
+  #+BEGIN_SRC emacs-lisp
   (defvar sacha/helm-org-refile-locations nil)
 
   (defun sacha/helm-org-clock-in-and-track-from-refile (candidate)
@@ -428,7 +431,7 @@ helm-grep? Bit slow and hard to read, though.
           (if (not (equal answ t)) (user-error "Invalid target location"))))))
 
   (fset 'org-refile-get-location 'sacha/org-refile-get-location)
-  #+end_src
+  #+END_SRC
 
   Hooray! Now =C-u C-c C-w= (=org-refile=) also lets me use =TAB= or
   =F2= to select the alternative action of quickly clocking in on a
@@ -440,9 +443,10 @@ helm-grep? Bit slow and hard to read, though.
 
 Display a more compact mode line
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (use-package smart-mode-line
-  :init
+  :defer t
+  :idle
   (progn
   (setq-default
    mode-line-format
@@ -461,15 +465,15 @@ Display a more compact mode line
      mode-line-modes
      mode-line-misc-info
      mode-line-end-spaces))))
-#+end_src
+#+END_SRC
 
 *** Change "yes or no" to "y or n"
 
 Lazy people like me never want to type "yes" when "y" will suffice.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (fset 'yes-or-no-p 'y-or-n-p)
-#+end_src
+#+END_SRC
 
 *** Minibuffer editing - more space!
 
@@ -479,12 +483,13 @@ Lazy people like me never want to type "yes" when "y" will suffice.
     This binds =C-M-e= in a minibuffer) so that you can edit the
     contents of the minibuffer before submitting it.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (use-package miniedit
-  :ensure miniedit
+  :defer t
+  :ensure t
   :commands minibuffer-edit
   :init (miniedit-install))
-#+end_src
+#+END_SRC
 
 *** Set up a light-on-dark color scheme
 
@@ -492,7 +497,7 @@ I like light on dark because I find it to be more restful. The
 color-theme in ELPA was a little odd, though, so we define some advice to make
 it work. Some things still aren't quite right.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (defadvice color-theme-alist (around sacha activate)
   (if (ad-get-arg 0)
       ad-do-it
@@ -510,17 +515,16 @@ it work. Some things still aren't quite right.
   (set-face-foreground 'org-todo "green")
   (set-face-background 'org-todo "black"))
 
-(use-package color-theme
-  :init
-  (when window-system
+(eval-after-load 'color-theme
+  '(when window-system
     (sacha/setup-color-theme)))
-#+end_src
+#+END_SRC
 
 I sometimes need to switch to a lighter background for screenshots.
 For that, I use =color-theme-vim=.
 
 Some more tweaks to solarized:
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (when window-system
   (custom-set-faces
    '(erc-input-face ((t (:foreground "antique white"))))
@@ -532,7 +536,7 @@ Some more tweaks to solarized:
    '(org-headline-done ((((class color) (min-colors 16) (background dark)) (:foreground "LightSalmon" :strike-through t))))
    '(outline-1 ((t (:inherit font-lock-function-name-face :foreground "cornflower blue"))))))
 
-#+end_src
+#+END_SRC
 
 *** Undo tree mode - visualize your undos and branches
 
@@ -540,57 +544,59 @@ People often struggle with the Emacs undo model, where there's really no concept
 #
 This lets you use =C-x u= (=undo-tree-visualize=) to visually walk through the changes you've made, undo back to a certain point (or redo), and go down different branches.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (use-package undo-tree
-  :ensure undo-tree
+  :defer t
+  :ensure t
   :diminish undo-tree-mode
-  :init
+  :idle
   (progn
     (global-undo-tree-mode)
     (setq undo-tree-visualizer-timestamps t)
     (setq undo-tree-visualizer-diff t)))
-#+end_src
+#+END_SRC
 
 *** Help - guide-key
 
 It's hard to remember keyboard shortcuts. The =guide-key= package pops up help after a short delay.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (use-package guide-key
+  :defer t
   :diminish guide-key-mode
-  :init
+  :idle
   (progn
   (setq guide-key/guide-key-sequence '("C-x r" "C-x 4" "C-c"))
   (guide-key-mode 1)))  ; Enable guide-key-mode
-#+end_src
+#+END_SRC
 
 *** UTF-8
 
 From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (prefer-coding-system 'utf-8)
 (when (display-graphic-p)
   (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
-#+end_src
+#+END_SRC
 *** Killing text
 
 From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (defadvice kill-region (before slick-cut activate compile)
   "When called interactively with no active region, kill a single line instead."
   (interactive
     (if mark-active (list (region-beginning) (region-end))
       (list (line-beginning-position)
         (line-beginning-position 2)))))
-#+end_src
+#+END_SRC
 *** Repeatable commands
 
 Based on http://oremacs.com/2015/01/14/repeatable-commands/ . Modified to
 accept =nil= as the first value if you don't want the keymap to run a
 command by default, and to use =kbd= for the keybinding definitions.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
   (defun sacha/def-rep-command (alist)
     "Return a lambda that calls the first function of ALIST.
 It sets the transient map to all functions of ALIST,
@@ -606,24 +612,25 @@ allowing you to repeat those functions as needed."
         (when func
           (funcall func arg))
         (set-transient-map keymap t))))
-#+end_src
+#+END_SRC
 **** TODO Look for opportunities to use this
-
+     
 ** Navigation
 *** Pop to mark
 
 Handy way of getting back to previous places.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (bind-key "C-x p" 'pop-to-mark-command)
 (setq set-mark-command-repeat-pop t)
-#+end_src
+#+END_SRC
 *** Helm-swoop - quickly finding lines
 
 This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= to see if I can get used to that...
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (use-package helm-swoop
+ :defer t
  :bind
  (("C-S-s" . helm-swoop)
   ("M-i" . helm-swoop)
@@ -638,26 +645,27 @@ This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= t
    (define-key isearch-mode-map (kbd "M-i") 'helm-swoop-from-isearch)
    (define-key helm-swoop-map (kbd "M-i") 'helm-multi-swoop-all-from-helm-swoop))
 )
-#+end_src
+#+END_SRC
 
 *** Windmove - switching between windows
 
 Windmove lets you move between windows with something more natural than cycling through =C-x o= (=other-window=).
 Windmove doesn't behave well with Org, so we need to use different keybindings.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (use-package windmove
+  :defer t
   :bind
   (("<f2> <right>" . windmove-right)
    ("<f2> <left>" . windmove-left)
    ("<f2> <up>" . windmove-up)
    ("<f2> <down>" . windmove-down)
    ))
-#+end_src
+#+END_SRC
 *** Make window splitting more useful
 
 Copied from http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tricks/chldury
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (defun sacha/vsplit-last-buffer (prefix)
   "Split the window vertically and display the previous buffer."
   (interactive "p")
@@ -674,7 +682,7 @@ Copied from http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tri
 (bind-key "C-x 2" 'sacha/vsplit-last-buffer)
 (bind-key "C-x 3" 'sacha/hsplit-last-buffer)
 
-#+end_src
+#+END_SRC
 *** DONE Searching based on the current word
     CLOSED: [2015-01-12 Mon 23:59]
     :LOGBOOK:
@@ -686,7 +694,7 @@ Copied from http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tri
 
 This lets me search up and down. I don't use this often, though.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (defun sacha/search-word-backward ()
   "Find the previous occurrence of the current word."
   (interactive)
@@ -712,14 +720,14 @@ This lets me search up and down. I don't use this often, though.
     ad-do-it))
 (global-set-key '[M-up] 'sacha/search-word-backward)
 (global-set-key '[M-down] 'sacha/search-word-forward)
-#+end_src
+#+END_SRC
 
 *** Frequently-accessed files
 Registers allow you to jump to a file or other location quickly. To
 jump to a register, use =C-x r j= followed by the letter of the
 register. Using registers for all these file shortcuts is probably a bit of a waste since I can easily define my own keymap, but since I rarely go beyond register A anyway. Also, I might as well add shortcuts for refiling.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (defvar sacha/refile-map (make-sparse-keymap))
 
 (defmacro sacha/defshortcut (key file)
@@ -745,7 +753,8 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (sacha/defshortcut ?g "~/sachac.github.io/evil-plans/index.org")
 (sacha/defshortcut ?c "~/code/dev/elisp-course.org")
 (sacha/defshortcut ?l "~/dropbox/public/sharing/learning.org")
-#+end_src
+(sacha/defshortcut ?q "~/personal/questions.org")
+#+END_SRC
 
 *** Key chords
 I'm on a Dvorak keyboard, so these might not work for you.
@@ -753,7 +762,7 @@ Experimenting with this. =key-chord= lets you define keyboard
 shortcuts that use ordinary keys.
 
 Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (defun sacha/key-chord-define (keymap keys command)
   "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
 \nKEYS can be a string or a vector of two elements. Currently only elements
@@ -800,12 +809,13 @@ Repeated invocations toggle between the two most recently open buffers."
 (define-key sacha/key-chord-command-map "i" 'imenu)
 (define-key sacha/key-chord-command-map "+" (sacha/def-rep-command '(("+" . text-scale-increase) ("-" . text-scale-decrease))))
 (define-key sacha/key-chord-command-map "-" (sacha/def-rep-command '(("-" . text-scale-decrease)("+" . text-scale-increase) )))
-#+end_src
+#+END_SRC
 
 Now let's set up the actual keychords.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (use-package key-chord
+  :defer t
   :init
   (progn
     (fset 'key-chord-define 'sacha/key-chord-define)
@@ -845,26 +855,27 @@ Now let's set up the actual keychords.
     (key-chord-define-global "xx"     'er/expand-region)
     (key-chord-define-global "  "     'sacha/insert-space-or-expand)
     (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer))
-#+end_src
+#+END_SRC
 *** Smartscan
 
 From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el, this makes =M-n= and =M-p= look for the symbol at point.
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (use-package smartscan
-  :init (global-smartscan-mode t))
-#+end_src
+  :defer t
+  :idle (global-smartscan-mode t))
+#+END_SRC
 *** Dired
 
 From http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (require 'find-dired)
 (setq find-ls-option '("-print0 | xargs -0 ls -ld" . "-ld"))
-#+end_src
+#+END_SRC
 *** Move to beginning of line
 Copied from http://emacsredux.com/blog/2013/05/22/smarter-navigation-to-the-beginning-of-a-line/
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (defun sacha/smarter-move-beginning-of-line (arg)
   "Move point back to indentation of beginning of line.
 
@@ -891,21 +902,21 @@ point reaches the beginning or end of the buffer, stop there."
 ;; remap C-a to `smarter-move-beginning-of-line'
 (global-set-key [remap move-beginning-of-line]
                 'sacha/smarter-move-beginning-of-line)
-#+end_src
+#+END_SRC
 *** Recent files
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (require 'recentf)
 (setq recentf-max-saved-items 200
       recentf-max-menu-items 15)
 (recentf-mode)
-#+end_src
+#+END_SRC
 *** Copy filename to clipboard
 
 http://emacsredux.com/blog/2013/03/27/copy-filename-to-the-clipboard/
 https://github.com/bbatsov/prelude
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (defun prelude-copy-file-name-to-clipboard ()
   "Copy the current buffer file name to the clipboard."
   (interactive)
@@ -915,14 +926,14 @@ https://github.com/bbatsov/prelude
     (when filename
       (kill-new filename)
       (message "Copied buffer file name '%s' to the clipboard." filename))))
-#+end_src
+#+END_SRC
 
 ** Reading
 
 https://github.com/xahlee/xah_emacs_init/blob/master/xah_emacs_font.el
 From Xah Lee:
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (defun xah-toggle-margin-right ()
   "Toggle the right margin between `fill-column' or window width.
 This command is convenient when reading novel, documentation."
@@ -930,12 +941,13 @@ This command is convenient when reading novel, documentation."
   (if (eq (cdr (window-margins)) nil)
       (set-window-margins nil 0 (- (window-body-width) fill-column))
     (set-window-margins nil 0 0)))
-#+end_src
+#+END_SRC
 ** Writing
 *** Avoiding weasel words
-    #+begin_src emacs-lisp
+    #+BEGIN_SRC emacs-lisp
     (use-package artbollocks-mode
-      :init
+      :defer t
+      :idle
       (progn
         (setq artbollocks-weasel-words-regex
               (concat "\\b" (regexp-opt
@@ -957,13 +969,13 @@ This command is convenient when reading novel, documentation."
         ;; Don't show the art critic words, or at least until I figure
         ;; out my own jargon
         (setq artbollocks-jargon nil)))
-    #+end_src
+    #+END_SRC
 
 *** Unfill paragraph
 
 I unfill paragraphs a lot because Wordpress likes adding extra =<br>= tags if I don't. (I should probably just tweak my Wordpress installation.)
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
   (defun sacha/unfill-paragraph (&optional region)
     "Takes a multi-line paragraph and makes it into a single line of text."
     (interactive (progn
@@ -972,13 +984,13 @@ I unfill paragraphs a lot because Wordpress likes adding extra =<br>= tags if I 
     (let ((fill-column (point-max)))
       (fill-paragraph nil region)))
 (bind-key "M-Q" 'sacha/unfill-paragraph)
-#+end_src
+#+END_SRC
 
 I never actually justify text, so I might as well change the way
 =fill-paragraph= works. With the code below, =M-q= will fill the
 paragraph normally, and =C-u M-q= will unfill it.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
   (defun sacha/fill-or-unfill-paragraph (&optional unfill region)
     "Fill paragraph (or REGION).
   With the prefix argument UNFILL, unfill it instead."
@@ -988,42 +1000,42 @@ paragraph normally, and =C-u M-q= will unfill it.
     (let ((fill-column (if unfill (point-max) fill-column)))
       (fill-paragraph nil region)))
 (bind-key "M-q" 'sacha/fill-or-unfill-paragraph)
-#+end_src
+#+END_SRC
 
 Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't actually break the text into multiple lines - it only looks that way.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (remove-hook 'text-mode-hook #'turn-on-auto-fill)
 (add-hook 'text-mode-hook 'turn-on-visual-line-mode)
-#+end_src
+#+END_SRC
 *** Unicode
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (defmacro sacha/insert-unicode (unicode-name)
   `(lambda () (interactive)
      (insert-char (cdr (assoc-string ,unicode-name (ucs-names))))))
 (bind-key "C-x 8 s" (sacha/insert-unicode "ZERO WIDTH SPACE"))
 (bind-key "C-x 8 S" (sacha/insert-unicode "SNOWMAN"))
-#+end_src
+#+END_SRC
 *** Clean up spaces
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (bind-key "M-SPC" 'cycle-spacing)
-#+end_src
+#+END_SRC
 *** Expand
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (bind-key "M-/" 'hippie-expand)
-#+end_src
+#+END_SRC
 
 From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el - Exclude very large buffers from dabbrev
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (defun sanityinc/dabbrev-friend-buffer (other-buffer)
   (< (buffer-size other-buffer) (* 1 1024 1024)))
 (setq dabbrev-friend-buffer-function 'sanityinc/dabbrev-friend-buffer)
-#+end_src
+#+END_SRC
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (setq hippie-expand-try-functions-list
       '(yas-hippie-try-expand
         try-expand-all-abbrevs
@@ -1036,7 +1048,7 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
         try-expand-line
         try-complete-lisp-symbol-partially
         try-complete-lisp-symbol))
-#+end_src
+#+END_SRC
 
 *** Define more abbreviations
 
@@ -1052,24 +1064,24 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
 | qb    | http://sachachua.com/blog/            |
 | qc    | http://sachachua.com/blog/emacs-chat/ |
 
-#+begin_src emacs-lisp :exports code :var data=abbrev
-(mapc (lambda (x) (define-global-abbrev (car x) (cadr x))) data)
-#+end_src
+#+BEGIN_SRC emacs-lisp
+(mapc (lambda (x) (define-global-abbrev (car x) (cadr x))) (cddr data))
+#+END_SRC
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (add-hook 'text-mode-hook 'abbrev-mode)
 (diminish 'abbrev-mode " A")
-#+end_src
+#+END_SRC
 ** Org
 
 I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of
 stuff.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (use-package org
   :diminish org-mode
   )
-#+end_src
+#+END_SRC
 *** My files
 
 #<<org-files>>
@@ -1098,7 +1110,7 @@ Here are the Org files I use. I should probably organize them better. =)
 *** Modules
 Org has a whole bunch of optional modules. These are the ones I'm
 currently experimenting with.
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
   (setq org-modules '(org-bbdb
                       org-gnus
                       org-drill
@@ -1119,11 +1131,11 @@ currently experimenting with.
 (eval-after-load 'org
  '(org-load-modules-maybe t))
 (setq org-expiry-inactive-timestamps t)
-#+end_src
+#+END_SRC
 
 *** Keyboard shortcuts
 
-    #+begin_src emacs-lisp
+    #+BEGIN_SRC emacs-lisp
     (bind-key "C-c r" 'org-capture)
     (bind-key "C-c a" 'org-agenda)
     (bind-key "C-c l" 'org-store-link)
@@ -1135,14 +1147,14 @@ currently experimenting with.
     (bind-key "C-c v" 'org-show-todo-tree org-mode-map)
     (bind-key "C-c C-r" 'org-refile org-mode-map)
     (bind-key "C-c R" 'org-reveal org-mode-map)
-    #+end_src
+    #+END_SRC
 
 =append-next-kill= is more useful to me than =org-table-copy-region=.
 
-#+begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (eval-after-load 'org
   '(bind-key "C-M-w" 'append-next-kill org-mode-map))
-#+end_src
+#+END_SRC
 
 I don't use the diary, but I do use the clock a lot.
 
@@ -1298,6 +1310,10 @@ This quickly adds a same-level heading for the succeeding day.
              (file+datetree+prompt "~/personal/journal.org")
              "%K - %a\n%i\n%?\n"
              :unnarrowed t)
+            ("s" "Journal entry with date, scheduled" entry
+             (file+datetree+prompt "~/personal/journal.org")
+             "%K - %a\n%i\n%?\n"
+             :unnarrowed t)
             ("db" "Done - Business" entry
              (file+headline "~/personal/business.org" "Tasks")
              "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
@@ -1409,6 +1425,14 @@ able to clock in on them.
                    (string-match a (car b))
                    (or (null file)
                        (string-match file (elt b)))))))
+     (defun sacha/org-refile-get-location-exact (name)
+       "Return the refile location identified by NAME."
+       (let ((org-refile-targets org-refile-targets) tbl)
+         (setq org-refile-target-table (org-refile-get-targets)))
+       (unless org-refile-target-table
+         (user-error "No refile targets"))
+       (cl-find name org-refile-target-table
+                :test (lambda (a b) (string-equal a (car b)))))
      ;; Example: (sacha/org-clock-in-refile "Off my computer")
      (defun sacha/org-clock-in-refile (location &optional file)
        "Clocks into LOCATION.
@@ -1994,7 +2018,7 @@ hang of using these more!
               (tags-todo "+PRIORITY=\"C\""))
              ((org-agenda-prefix-format "%-10c %-10T %e ")
               (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
-            ("pp" tags "+project-someday-TODO=\"DONE\""
+            ("pp" tags "+project-someday-TODO=\"DONE\"-TODO=\"SOMEDAY\""
              ((org-tags-exclude-from-inheritance '("project"))
               (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
             ("p." tags "+project-TODO=\"DONE\""
@@ -2713,6 +2737,28 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
    (bind-key "C-c f" 'sacha/org-file-blog-index-entries org-mode-map)
  #+end_src
 
+**** Quickly refiling to the same file
+
+#+begin_src emacs-lisp
+  (defun sacha/org-refile-in-file (prefix)
+    "Refile to a target within the current file."
+    (interactive "p")
+    (let ((org-refile-targets `(((,(buffer-file-name)) :maxlevel . 6))))
+      (call-interactively 'org-refile)))
+  (define-key sacha/refile-map "." 'sacha/org-refile-in-file)
+
+  (defun sacha/org-refile-to-previous-in-file (prefix)
+    (interactive "p")
+    "Refile to the previous target."
+    (let ((org-refile-targets `(((,(buffer-file-name)) :maxlevel . 6))))
+      (save-excursion
+        (org-refile nil nil (sacha/org-refile-get-location-exact (car org-refile-history))))))
+
+  (define-key sacha/refile-map "," 'sacha/org-refile-to-previous-in-file)
+  (add-to-list 'org-speed-commands-user '("." call-interactively 'sacha/org-refile-to-previous-in-file))
+  (add-to-list 'org-speed-commands-user '("W" call-interactively 'sacha/org-refile-in-file))
+#+end_src
+
 *** Publishing
 Timestamps and section numbers make my published files look more
 complicated than they are. Let's turn them off by default.
@@ -2721,6 +2767,9 @@ complicated than they are. Let's turn them off by default.
 (setq org-export-with-section-numbers nil)
 (setq org-html-include-timestamps nil)
 (setq org-export-with-sub-superscripts nil)
+(setq org-export-with-toc nil)
+(setq org-html-toplevel-hlevel 2)
+(setq org-export-htmlize-output-type 'css)
 #+end_src
 
 This makes it easier to publish my files:
@@ -2785,12 +2834,9 @@ ELPA, so I figured I'd give that a try. UPDATE 2014-10-29: Overriding it with th
 
 #+begin_src emacs-lisp
   (use-package org2blog
-    :load-path "~/code/org2blog"
+    :defer t
     :config
      (progn
-      (setq org-export-with-toc nil)
-      (setq org-html-toplevel-hlevel 2)
-      (setq org-export-htmlize-output-type 'css)
       (defadvice org2blog/wp-post-buffer (around sacha activate)
       (let ((org-confirm-babel-evaluate nil)
             (org-html-toplevel-hlevel 3))
@@ -2804,7 +2850,7 @@ ELPA, so I figured I'd give that a try. UPDATE 2014-10-29: Overriding it with th
     (shell-command "start c:\\sacha\\dropbox\\inbox\\selection")
     (browse-url "http://sachachua.com/blog/wp-admin/edit.php?page=cal"))
 
-  (use-package htmlize :ensure htmlize)
+  (use-package htmlize :ensure t :defer t)
 #+end_src
 
 **** Publish without prompting
@@ -3046,15 +3092,16 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
 #+begin_src emacs-lisp
 (use-package org-fstree
   :ensure t
-  :init
+  :defer t
+  :commands (org-fstree-apply-maybe org-fstree-show-entry-maybe)
+  :idle
   (progn (add-hook 'org-ctrl-c-ctrl-c-hook 'org-fstree-apply-maybe)
          (add-hook 'org-pre-cycle-hook 'org-fstree-show-entry-maybe)))
 #+end_src
 **** TODO check out org-fstree
 *** Presentations
 #+begin_src emacs-lisp
-(use-package ox-reveal
- :ensure ox-reveal)
+(use-package ox-reveal :disabled t)
 #+end_src
 ** Coding
 *** Web development
@@ -3071,7 +3118,8 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
 
   (use-package web-mode
     :ensure t
-    :init (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+    :defer t
+    :mode "\\.html?\\'"
     :config
     (progn
       (setq web-mode-enable-current-element-highlight t)
@@ -3082,7 +3130,8 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
 
    (use-package tagedit
      :ensure t
-     :init (add-hook 'web-mode-hook 'tagedit-mode))
+     :defer t
+     :idle (add-hook 'web-mode-hook 'tagedit-mode))
 #+end_src
 *** Tab width of 2 is compact and readable
 #+begin_src emacs-lisp
@@ -3125,6 +3174,7 @@ This is something I have to get the hang of too. It gradually expands the select
 #+begin_src emacs-lisp
   (use-package expand-region
     :ensure expand-region
+    :defer t
     :bind ("C-=" . er/expand-region))
 #+end_src
 *** Emacs Lisp
@@ -3134,6 +3184,7 @@ Eldoc provides minibuffer hints when working with Emacs Lisp.
 (use-package "eldoc"
   :diminish eldoc-mode
   :commands turn-on-eldoc-mode
+  :defer t
   :init
   (progn
   (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
@@ -3170,12 +3221,14 @@ More things that I need to get used to...
 ;; C-c C-v ? : Display flymake elint warnings/errors
 
   (use-package erefactor
-    :ensure erefactor
+    :ensure t
+    :defer t
     :config
     (define-key emacs-lisp-mode-map "\C-c\C-v" erefactor-map))
 
   (use-package redshank
     :ensure t
+    :defer t
     :init (add-hook 'emacs-lisp-mode-hook 'redshank-mode))
 
 #+end_src
@@ -3235,18 +3288,18 @@ Borrowed from Steve Purcell's config. This pretty-prints the results.
     #+begin_src emacs-lisp
       (use-package yasnippet
         :ensure t
+        :defer t
         :diminish yas-minor-mode
         :commands yas-global-mode
-        :init
+        :idle
         (progn
           (add-hook 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
           (setq yas-key-syntaxes '("w_" "w_." "^ "))
           (setq yas-installed-snippets-dir "~/elisp/yasnippet-snippets")
           (setq yas-expand-only-for-last-commands '(self-insert-command))
-          (yas-global-mode 1))
-        :config
-        (bind-key "\t" 'hippie-expand yas-minor-mode-map)
-        (add-to-list 'yas-prompt-functions 'shk-yas/helm-prompt))
+          (yas-global-mode 1)
+          (bind-key "\t" 'hippie-expand yas-minor-mode-map)
+          (add-to-list 'yas-prompt-functions 'shk-yas/helm-prompt)))
       ;;        (global-set-key (kbd "C-c y") (lambda () (interactive)
       ;;                                         (yas/load-directory "~/elisp/snippets")))
 #+end_src
@@ -3415,6 +3468,7 @@ And the rest of the js2 config:
 #+begin_src emacs-lisp
   (use-package js2-mode
     :ensure t
+    :defer t
     :commands js2-mode
     :init
     (progn
@@ -3435,24 +3489,10 @@ And the rest of the js2 config:
 #+begin_src emacs-lisp
 (use-package coffee-mode
 :ensure t
-:init (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
+:defer t
+:idle (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
 #+end_src
 
-**** Tern - for Javascript
-
-#+begin_src emacs-lisp
-(use-package tern
-  :init
-  (progn
-  (setq tern-command '("cmd" "/c" "tern"))
-  (add-hook 'js2-mode-hook 'tern-mode)))
-
-(use-package company-tern
-:ensure t
-:init (add-to-list 'company-backends 'company-tern))
-#+end_src
-
-#+end_src
 *** Magit - nice git interface
 		:PROPERTIES:
 		:ID:       o2b:9a42a292-7b75-4c7f-8da2-7a0d8c22d0c6
@@ -3475,7 +3515,8 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
         (call-interactively 'magit-log-edit))
 
       (use-package magit
-        :ensure magit
+        :ensure t
+        :defer t
         :load-path "~/elisp/magit"
         :config
         (progn
@@ -3553,7 +3594,7 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
     (magit-gh-pulls-reload))
 
   (use-package magit-gh-pulls
-    :ensure t)
+    :ensure t :defer t)
 #+end_src
 
 The proper way to implement this is probably to patch or override the
@@ -3565,7 +3606,7 @@ options to add at the end of the command, but that can wait for another time (or
 
 #+begin_src emacs-lisp
 (use-package git-messenger
-  :ensure t
+  :ensure t :defer t
   :bind (("C-x v m" . git-messenger:popup-message)))
 #+end_src
 *** Tag files
@@ -3597,15 +3638,17 @@ options to add at the end of the command, but that can wait for another time (or
 
 #+begin_src emacs-lisp
 (use-package projectile
-  :ensure projectile
+  :ensure t
+  :defer t
   :diminish projectile-mode
-  :init
+  :idle
   (progn
     (setq projectile-keymap-prefix (kbd "C-c p"))
     (setq projectile-completion-system 'default)
     (setq projectile-enable-caching t)
     (projectile-global-mode)))
 (use-package helm-projectile
+   :defer t :ensure t
    :ensure helm-projectile)
 #+end_src
 *** Exploring MELPA recipes
@@ -3617,10 +3660,10 @@ options to add at the end of the command, but that can wait for another time (or
 *** Ruby
 
 		#+begin_src emacs-lisp
-(use-package rinari :ensure rinari)
-(use-package bundler :ensure bundler)
+(use-package rinari :ensure t :defer t)
+(use-package bundler :ensure t :defer t)
     (use-package robe
-      :ensure robe
+      :ensure t :defer t
       :init
 		  (progn (add-hook 'ruby-mode-hook 'robe-mode)
              (add-hook 'robe-mode-hook 'ac-robe-setup)
@@ -3641,7 +3684,7 @@ options to add at the end of the command, but that can wait for another time (or
    (rspec-core-options)))
 
 (use-package rspec-mode
-  :ensure rspec-mode
+  :ensure t :defer t
   :config
   (progn
     (setq rspec-command-options "--fail-fast --format documentation")
@@ -3666,7 +3709,7 @@ with HTTPS sites.
 
 #+begin_src emacs-lisp
 (use-package skewer-mode
-  :ensure skewer-mode
+  :ensure t :defer t
   :config (skewer-setup))
 #+end_src
 
@@ -3674,10 +3717,28 @@ with HTTPS sites.
 
 #+begin_src emacs-lisp
 (use-package company
-  :ensure company
+  :ensure t 
   :config
   (add-hook 'prog-mode-hook 'company-mode))
 #+end_src
+*** Tern - for Javascript
+
+#+begin_src emacs-lisp
+(use-package tern
+  :ensure t
+  :defer t
+  :idle
+  (progn
+  (setq tern-command '("cmd" "/c" "tern"))
+  (add-hook 'js2-mode-hook 'tern-mode)))
+
+(use-package company-tern
+:ensure t
+:defer t
+:init (add-to-list 'company-backends 'company-tern))
+#+end_src
+
+
 
 ** Ledger (personal finance): Make it easier to review my credit card transactions
 
@@ -3740,7 +3801,7 @@ with HTTPS sites.
    IRC is a great way to hang out with other Emacs geeks.
    #+begin_src emacs-lisp
      (use-package erc
-       :ensure erc
+       :ensure t :defer t
        :config
        (setq erc-autojoin-channels-alist '(("freenode.net"
 					    "#org-mode"
@@ -3832,7 +3893,7 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 
 #+begin_src emacs-lisp
   (use-package ess-site
-    :ensure ess
+    :ensure ess :defer t
     :commands R)
 #+end_src
 
@@ -3968,7 +4029,7 @@ Maybe =multiple-cursors= will be an even better way. Looks promising!
 
 #+begin_src emacs-lisp
   (use-package multiple-cursors
-    :ensure multiple-cursors
+    :ensure t :defer t
     :bind
      (("C-c m t" . mc/mark-all-like-this)
       ("C-c m m" . mc/mark-all-like-this-dwim)
@@ -3980,13 +4041,13 @@ Maybe =multiple-cursors= will be an even better way. Looks promising!
       ("C-c m s" . mc/mark-sgml-tag-pair)
       ("C-c m d" . mc/mark-all-like-this-in-defun)))
   (use-package phi-search
-    :ensure phi-search)
+    :ensure t :defer t)
   (use-package phi-search-mc
-    :ensure phi-search-mc
+    :ensure t :defer t
     :config
     (phi-search-mc/setup-keys))
   (use-package mc-extras
-    :ensure mc-extras
+    :ensure t :defer t
     :config
       (define-key mc/keymap (kbd "C-. =") 'mc/compare-chars))
 #+end_src
@@ -4010,7 +4071,7 @@ M-x edit-list makes it easier to edit an Emacs Lisp list.
 
 #+begin_src emacs-lisp
 (use-package edit-list
-  :ensure edit-list
+  :ensure t :defer t
   :commands edit-list)
 #+end_src
 
@@ -4031,7 +4092,7 @@ Quickly jump to a position in the current view.
 
 #+begin_src emacs-lisp
   (use-package ace-jump-mode
-    :ensure ace-jump-mode)
+    :ensure t)
   ;; I use the jj key-chord for this; see the definitions for key-chord
 #+end_src
 
@@ -4039,7 +4100,7 @@ Ace Window looks useful too.
 
 #+begin_src emacs-lisp
 (use-package ace-window
-  :ensure ace-window
+  :ensure t :defer t
   :config (setq aw-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s))
   :bind ("C-x o" . ace-window))
 #+end_src
@@ -4048,7 +4109,7 @@ And ace-isearch...
 
 #+begin_src emacs-lisp
 (use-package ace-isearch
-  :ensure ace-isearch
+  :ensure t :defer t
   :init (global-ace-isearch-mode 1))
 #+end_src
 
@@ -4056,7 +4117,7 @@ And ace-jump-zap...
 
 #+begin_src emacs-lisp
 (use-package ace-jump-zap
-  :ensure ace-jump-zap
+  :ensure t :defer t
   :bind
   (("M-z" . ace-jump-zap-up-to-char-dwim)
    ("M-Z" . ace-jump-zap-to-char-dwim)))
@@ -4110,7 +4171,7 @@ cool. On Windows, these things help a little.
 
 #+begin_src emacs-lisp
   (use-package smartparens
-    :ensure smartparens
+    :ensure t :defer t
     :diminish smartparens
     :config
     (progn
@@ -4208,7 +4269,7 @@ cool. On Windows, these things help a little.
 
 #+begin_src emacs-lisp
   (use-package emms
-    :ensure emms
+    :ensure t :defer t
     :config
     (progn
       (require 'emms-player-simple)
@@ -4344,6 +4405,7 @@ And this loads the beeminder code:
 
 #+begin_src emacs-lisp :eval no :tangle no
 (use-package beeminder
+  :disabled t
   :config (add-hook 'message-send-news-hook 'sacha/beeminder-track-message))
 #+end_src
 
@@ -4368,7 +4430,7 @@ still need to do. This [[http://lists.gnu.org/archive/html/emacs-orgmode/2007-03
 I don't automatically turn this on because I think it slows things down a little.
 
 #+begin_src emacs-lisp
-(use-package rainbow-delimiters)
+(use-package rainbow-delimiters :disabled t)
 #+end_src
 
 ** Drupal
@@ -4763,7 +4825,7 @@ Ido-mode is awesome. Let's make it awesomer. I usually want to go to
 recently-opened files first.
 
 #+begin_src emacs-lisp :eval no :tangle no
-(use-package ido
+(use-package ido :disabled t
   :init
   (progn
   (ido-mode 1)
@@ -4849,7 +4911,7 @@ recently-opened files first.
 
 ** Keywiz - keyboard quizzes
 #+begin_src emacs-lisp :eval no :tangle no
-  (use-package keywiz)
+  (use-package keywiz :disabled t)
   (defun sacha/load-keybindings ()
     "Since we don't want to have to pass through a keywiz game each time..."
     (setq keywiz-cached-commands nil)
@@ -4889,7 +4951,7 @@ recently-opened files first.
     big to open easily there, though.
 
 #+begin_src emacs-lisp :eval no :tangle no
-  (use-package org-mobile
+  (use-package org-mobile :disabled t
     :init
     (progn
       (autoload 'org-mobile-pull "org-mobile" nil t)
@@ -5198,7 +5260,44 @@ specified number of them) and then opens the last one for me to edit.
                        " "
                        (shell-quote-argument temp-file) " &"))))
         (setq counter (1+ counter)))))
+
+  (defun sacha/prepare-index-card-for-subtree ()
+    "Create an index card template for the current subtree."
+    (interactive)
+    (let* ((directory "~/Dropbox/Inbox")
+           (template "c:/data/drawing-templates/custom/0 - index.tif")
+           (date (org-read-date nil nil "."))
+           (heading (elt (org-heading-components) 4))
+           (filename
+            (expand-file-name (concat date " " (sacha/convert-sketch-title-to-filename heading) ".tif")
+                              directory)))
+      (unless (file-exists-p filename) (copy-file template filename))
+      (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
+      (sacha/org-quantified-track "Drawing")
+      (save-window-excursion
+        (shell-command "c:/sacha/Dropbox/bin/orient /rotate:180")
+        (shell-command
+         (concat (shell-quote-argument sacha/autodesk-sketchbook-executable)
+                 " "
+                 (shell-quote-argument filename) " &")))
+      (with-current-buffer (get-buffer-create "*Done*")
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (message "Hello")
+                                   (shell-command "c:/sacha/Dropbox/bin/orient /rotate:0")
+                                   (delete-window))
+                         "Done")
+          (text-scale-set 10)
+          (widget-setup)
+          (widget-minor-mode)
+          (pop-to-buffer (current-buffer))))))
+
+  (add-to-list 'org-speed-commands-user '("d" call-interactively 'sacha/prepare-index-card-for-subtree))
 #+end_src
+
+orient.exe is a renamed [[http://answers.microsoft.com/en-us/windows/forum/windows_8-pictures/is-there-a-shortcut-to-rotate-the-screen-in-win-8/5a326bdf-a8f5-4a8b-8cd7-510fdf597b49?page=2][display.exe]].
 
 Afterwards, I call =sacha/rename-scanned-cards= function to convert
 the TIFFs to PNGs, display the files and ask me to rename them
@@ -5210,17 +5309,17 @@ properly.
    (defun sacha/rename-scanned-cards ()
      "Display and rename the scanned or saved files."
      (interactive)
-     (when (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.tif")
+     (when (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.tif")
        ;; Convert the TIFFs first
        (apply 'call-process "mogrify" nil nil nil "-format" "png" "-quality" "1"
-              (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.tif"))
+              (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.tif"))
        (mapc (lambda (x)
                (rename-file x "~/Dropbox/Inbox/backup" t))
-             (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.tif")))
+             (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.tif")))
      (mapc (lambda (filename)
              (find-file filename)
              (delete-other-windows)
-             (when (string-match "/\\([0-9]+-[0-9]+-[0-9]+\\)" filename)
+             (when (string-match "/\\(\\([0-9]+-[0-9]+-[0-9]+\\)\\( .*\\)?\\)\\.png" filename)
                (let ((kill-buffer-query-functions nil)
                      (new-name (read-string "New name: "
                                             (concat (match-string 1 filename) " "))))
@@ -5228,11 +5327,12 @@ properly.
                    (revert-buffer t t)
                    (rename-file filename (concat new-name ".png"))
                    (kill-buffer)))))
-           (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.png"))
+           (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.png"))
      (when (yes-or-no-p "Upload files?")
        (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+ .*.png"))
        (find-file "~/Dropbox/Public/sharing/index.org")
        (goto-char (point-min))
+       (sleep-for 3)
        (when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))
          (forward-line 1)
          (org-end-of-item-list)
@@ -5252,9 +5352,10 @@ The =image+= package is handy for displaying the images so
 that they're scaled to the window size.
 
  #+begin_src emacs-lisp
- (use-package image+
+ (use-package image+ :defer t
   :load-path "~/elisp/Emacs-imagex"
-  :init (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))
+  :commands (imagex-global-sticky-mode imagex-auto-adjust-mode)
+  :defer (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))
  #+end_src
 
 **** Get information for sketched books
@@ -5439,7 +5540,7 @@ Convenience functions to make my life easier when sketchnoting books.
 * Games
 ** Typing of Emacs
     #+begin_src emacs-lisp :eval no :tangle no
-      (use-package typing
+      (use-package typing :disabled t
         :init
         (autoload 'typing-of-emacs "typing" nil t)
         :config
@@ -5447,43 +5548,6 @@ Convenience functions to make my life easier when sketchnoting books.
           (setq toe-starting-length 6)
           (setq toe-starting-time-per-word 2)
           (setq toe-max-length 20)))
-#+end_src
-** 2048 in Emacs, and colours too																			:emacs:
-	 :PROPERTIES:
-	 :ID:       o2b:e2b41b2d-463c-4469-91b8-63eb97a13b9d
-	 :POST_DATE: [2014-04-16 Wed 23:23]
-	 :POSTID:   27182
-	 :BLOG:     sacha
-	 :END:
-
-While browsing through =M-x list-packages=, I noticed that there was a
-new MELPA package that implemented the 2048 game in Emacs. I wrote the
-following code to colorize it. Haven't tested the higher numbers yet,
-but they're easy enough to tweak if the colours disagree with your
-theme. =)
-
-#+begin_src emacs-lisp
-  (defface 2048-face-2    '((t . (:background "khaki" :foreground "black"))) "Face for the tile 2" :group '2048-faces)
-  (defface 2048-face-4    '((t . (:background "burlywood" :foreground "black"))) "Face for the tile 4" :group '2048-faces)
-  (defface 2048-face-8    '((t . (:background "orange3" :foreground "black"))) "Face for the tile 8" :group '2048-faces)
-  (defface 2048-face-16   '((t . (:background "orange" :foreground "black"))) "Face for the tile 16" :group '2048-faces)
-  (defface 2048-face-32   '((t . (:background "orange red" :foreground "black"))) "Face for the tile 32" :group '2048-faces)
-  (defface 2048-face-64   '((t . (:background "firebrick" :foreground "white"))) "Face for the tile 64" :group '2048-faces)
-  (defface 2048-face-128  '((t . (:background "dark red" :foreground "white"))) "Face for the tile 128" :group '2048-faces)
-  (defface 2048-face-256  '((t . (:background "dark magenta" :foreground "white"))) "Face for the tile 256" :group '2048-faces)
-  (defface 2048-face-512  '((t . (:background "magenta" :foreground "black"))) "Face for the tile 512" :group '2048-faces)
-  (defface 2048-face-1024 '((t . (:background "gold" :foreground "black"))) "Face for the tile 1024" :group '2048-faces)
-  (defface 2048-face-2048 '((t . (:background "yellow" :foreground "black"))) "Face for the tile 2048" :group '2048-faces)
-
-
-    (defun sacha/2048-set-font-size ()
-      (text-scale-set 5)
-      (goto-char (point-min)))
-
-    (use-package 2048-game
-      :config
-      (progn
-       (add-hook '2048-mode-hook 'sacha/2048-set-font-size)))
 #+end_src
 
 * Path

@@ -255,66 +255,66 @@ helm-grep? Bit slow and hard to read, though.
   I'll pre-fill it with the candidate from Helm.
 
   #+begin_src emacs-lisp
-    (ert-deftest sacha/org-capture-prefill-template ()
-      (should
-       ;; It should fill things in one field at a time
-       (string=
-        (sacha/org-capture-prefill-template
-         "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
-         "Hello World")
-        "* TODO Hello World\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
-        ))
-      (should
-       (string=
-        (sacha/org-capture-prefill-template
-         "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
-         "Hello World" "<2015-01-01>")
-        "* TODO Hello World\nSCHEDULED: <2015-01-01>\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"))
-      (should
-       (string=
-        (sacha/org-capture-prefill-template
-         "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
-         "Hello World" "<2015-01-01>" "0:05")
-        "* TODO Hello World\nSCHEDULED: <2015-01-01>\n:PROPERTIES:\n:Effort: 0:05\n:END:\n%?\n")))
+  (ert-deftest sacha/org-capture-prefill-template ()
+    (should
+     ;; It should fill things in one field at a time
+     (string=
+      (sacha/org-capture-prefill-template
+       "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
+       "Hello World")
+      "* TODO Hello World\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
+      ))
+    (should
+     (string=
+      (sacha/org-capture-prefill-template
+       "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
+       "Hello World" "<2015-01-01>")
+      "* TODO Hello World\nSCHEDULED: <2015-01-01>\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"))
+    (should
+     (string=
+      (sacha/org-capture-prefill-template
+       "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
+       "Hello World" "<2015-01-01>" "0:05")
+      "* TODO Hello World\nSCHEDULED: <2015-01-01>\n:PROPERTIES:\n:Effort: 0:05\n:END:\n%?\n")))
 
-    (defun sacha/org-capture-prefill-template (template &rest values)
-      "Pre-fill TEMPLATE with VALUES."
-      (setq template (or template (org-capture-get :template)))
-      (with-temp-buffer
-        (insert template)
-        (goto-char (point-min))
-        (while (re-search-forward
-                (concat "%\\("
-                        "\\[\\(.+\\)\\]\\|"
-                        "<\\([^>\n]+\\)>\\|"
-                        "\\([tTuUaliAcxkKInfF]\\)\\|"
-                        "\\(:[-a-zA-Z]+\\)\\|"
-                        "\\^\\({\\([^}]*\\)}\\)"
-                        "?\\([gGtTuUCLp]\\)?\\|"
-                        "%\\\\\\([1-9][0-9]*\\)"
-                        "\\)") nil t)
-          (if (car values)
-              (replace-match (car values) nil t))
-          (setq values (cdr values)))
-        (buffer-string)))
+  (defun sacha/org-capture-prefill-template (template &rest values)
+    "Pre-fill TEMPLATE with VALUES."
+    (setq template (or template (org-capture-get :template)))
+    (with-temp-buffer
+      (insert template)
+      (goto-char (point-min))
+      (while (re-search-forward
+              (concat "%\\("
+                      "\\[\\(.+\\)\\]\\|"
+                      "<\\([^>\n]+\\)>\\|"
+                      "\\([tTuUaliAcxkKInfF]\\)\\|"
+                      "\\(:[-a-zA-Z]+\\)\\|"
+                      "\\^\\({\\([^}]*\\)}\\)"
+                      "?\\([gGtTuUCLp]\\)?\\|"
+                      "%\\\\\\([1-9][0-9]*\\)"
+                      "\\)") nil t)
+        (if (car values)
+            (replace-match (car values) nil t))
+        (setq values (cdr values)))
+      (buffer-string)))
 
-    (defun sacha/helm-org-create-task (candidate)
-      (let ((entry (org-capture-select-template "T")))
-        (org-capture-set-plist entry)
-        (org-capture-get-template)
-        (org-capture-set-target-location)
-        (condition-case error
-            (progn
-              (org-capture-put
-               :template
-               (org-capture-fill-template
-                (sacha/org-capture-prefill-template (org-capture-get :template)
-                                                    candidate)))
-              (org-capture-place-template
-               (equal (car (org-capture-get :target)) 'function)))
-          ((error quit)
-           (if (get-buffer "*Capture*") (kill-buffer "*Capture*"))
-           (error "Capture abort: %s" error)))) t)
+  (defun sacha/helm-org-create-task (candidate)
+    (let ((entry (org-capture-select-template "T")))
+      (org-capture-set-plist entry)
+      (org-capture-get-template)
+      (org-capture-set-target-location)
+      (condition-case error
+          (progn
+            (org-capture-put
+             :template
+             (org-capture-fill-template
+              (sacha/org-capture-prefill-template (org-capture-get :template)
+                                                  candidate)))
+            (org-capture-place-template
+             (equal (car (org-capture-get :target)) 'function)))
+        ((error quit)
+         (if (get-buffer "*Capture*") (kill-buffer "*Capture*"))
+         (error "Capture abort: %s" error)))) t)
 
   #+end_src
 
@@ -325,109 +325,109 @@ helm-grep? Bit slow and hard to read, though.
   well add that bit of code that sets up clocking in, too.
 
   #+begin_src emacs-lisp
-    (defvar sacha/helm-org-refile-locations nil)
+  (defvar sacha/helm-org-refile-locations nil)
 
-    (defun sacha/helm-org-clock-in-and-track-from-refile (candidate)
-      (let ((location (org-refile--get-location candidate sacha/helm-org-refile-locations)))
-        (save-window-excursion
-          (org-refile 4 nil location)
-          (sacha/org-clock-in-and-track)
-          t)))
+  (defun sacha/helm-org-clock-in-and-track-from-refile (candidate)
+    (let ((location (org-refile--get-location candidate sacha/helm-org-refile-locations)))
+      (save-window-excursion
+        (org-refile 4 nil location)
+        (sacha/org-clock-in-and-track)
+        t)))
 
-    (defun sacha/helm-org-refile-read-location (tbl)
-      (setq sacha/helm-org-refile-locations tbl)
-      (helm
-       (list
-        (helm-build-sync-source "Refile targets"
-          :candidates (mapcar 'car tbl)
-          :action '(("Select" . identity)
-                    ("Clock in and track" . sacha/helm-org-clock-in-and-track-from-refile))
-          :history 'org-refile-history)
-        (helm-build-dummy-source "Create task"
-          :action (helm-make-actions
-                   "Create task"
-                   'sacha/helm-org-create-task)))))
+  (defun sacha/helm-org-refile-read-location (tbl)
+    (setq sacha/helm-org-refile-locations tbl)
+    (helm
+     (list
+      (helm-build-sync-source "Refile targets"
+        :candidates (mapcar 'car tbl)
+        :action '(("Select" . identity)
+                  ("Clock in and track" . sacha/helm-org-clock-in-and-track-from-refile))
+        :history 'org-refile-history)
+      (helm-build-dummy-source "Create task"
+        :action (helm-make-actions
+                 "Create task"
+                 'sacha/helm-org-create-task)))))
 
-    (defun sacha/org-refile-get-location (&optional prompt default-buffer new-nodes no-exclude)
-      "Prompt the user for a refile location, using PROMPT.
-    PROMPT should not be suffixed with a colon and a space, because
-    this function appends the default value from
-    `org-refile-history' automatically, if that is not empty.
-    When NO-EXCLUDE is set, do not exclude headlines in the current subtree,
-    this is used for the GOTO interface."
-      (let ((org-refile-targets org-refile-targets)
-            (org-refile-use-outline-path org-refile-use-outline-path)
-            excluded-entries)
-        (when (and (derived-mode-p 'org-mode)
-                   (not org-refile-use-cache)
-                   (not no-exclude))
-          (org-map-tree
-           (lambda()
-             (setq excluded-entries
-                   (append excluded-entries (list (org-get-heading t t)))))))
-        (setq org-refile-target-table
-              (org-refile-get-targets default-buffer excluded-entries)))
-      (unless org-refile-target-table
-        (user-error "No refile targets"))
-      (let* ((cbuf (current-buffer))
-             (partial-completion-mode nil)
-             (cfn (buffer-file-name (buffer-base-buffer cbuf)))
-             (cfunc (if (and org-refile-use-outline-path
-                             org-outline-path-complete-in-steps)
-                        'org-olpath-completing-read
-                      'org-icompleting-read))
-             (extra (if org-refile-use-outline-path "/" ""))
-             (cbnex (concat (buffer-name) extra))
-             (filename (and cfn (expand-file-name cfn)))
-             (tbl (mapcar
-                   (lambda (x)
-                     (if (and (not (member org-refile-use-outline-path
-                                           '(file full-file-path)))
-                              (not (equal filename (nth 1 x))))
-                         (cons (concat (car x) extra " ("
-                                       (file-name-nondirectory (nth 1 x)) ")")
-                               (cdr x))
-                       (cons (concat (car x) extra) (cdr x))))
-                   org-refile-target-table))
-             (completion-ignore-case t)
-             cdef
-             (prompt (concat prompt
-                             (or (and (car org-refile-history)
-                                      (concat " (default " (car org-refile-history) ")"))
-                                 (and (assoc cbnex tbl) (setq cdef cbnex)
-                                      (concat " (default " cbnex ")"))) ": "))
-             pa answ parent-target child parent old-hist)
-        (setq old-hist org-refile-history)
-        ;; Use Helm's sources instead
-        (setq answ (sacha/helm-org-refile-read-location tbl))
-        (if (and (stringp answ)
-                 (setq pa (org-refile--get-location answ tbl)))
+  (defun sacha/org-refile-get-location (&optional prompt default-buffer new-nodes no-exclude)
+    "Prompt the user for a refile location, using PROMPT.
+  PROMPT should not be suffixed with a colon and a space, because
+  this function appends the default value from
+  `org-refile-history' automatically, if that is not empty.
+  When NO-EXCLUDE is set, do not exclude headlines in the current subtree,
+  this is used for the GOTO interface."
+    (let ((org-refile-targets org-refile-targets)
+          (org-refile-use-outline-path org-refile-use-outline-path)
+          excluded-entries)
+      (when (and (derived-mode-p 'org-mode)
+                 (not org-refile-use-cache)
+                 (not no-exclude))
+        (org-map-tree
+         (lambda()
+           (setq excluded-entries
+                 (append excluded-entries (list (org-get-heading t t)))))))
+      (setq org-refile-target-table
+            (org-refile-get-targets default-buffer excluded-entries)))
+    (unless org-refile-target-table
+      (user-error "No refile targets"))
+    (let* ((cbuf (current-buffer))
+           (partial-completion-mode nil)
+           (cfn (buffer-file-name (buffer-base-buffer cbuf)))
+           (cfunc (if (and org-refile-use-outline-path
+                           org-outline-path-complete-in-steps)
+                      'org-olpath-completing-read
+                    'org-icompleting-read))
+           (extra (if org-refile-use-outline-path "/" ""))
+           (cbnex (concat (buffer-name) extra))
+           (filename (and cfn (expand-file-name cfn)))
+           (tbl (mapcar
+                 (lambda (x)
+                   (if (and (not (member org-refile-use-outline-path
+                                         '(file full-file-path)))
+                            (not (equal filename (nth 1 x))))
+                       (cons (concat (car x) extra " ("
+                                     (file-name-nondirectory (nth 1 x)) ")")
+                             (cdr x))
+                     (cons (concat (car x) extra) (cdr x))))
+                 org-refile-target-table))
+           (completion-ignore-case t)
+           cdef
+           (prompt (concat prompt
+                           (or (and (car org-refile-history)
+                                    (concat " (default " (car org-refile-history) ")"))
+                               (and (assoc cbnex tbl) (setq cdef cbnex)
+                                    (concat " (default " cbnex ")"))) ": "))
+           pa answ parent-target child parent old-hist)
+      (setq old-hist org-refile-history)
+      ;; Use Helm's sources instead
+      (setq answ (sacha/helm-org-refile-read-location tbl))
+      (if (and (stringp answ)
+               (setq pa (org-refile--get-location answ tbl)))
+          (progn
+            (org-refile-check-position pa)
+            (when (or (not org-refile-history)
+                      (not (eq old-hist org-refile-history))
+                      (not (equal (car pa) (car org-refile-history))))
+              (setq org-refile-history
+                    (cons (car pa) (if (assoc (car org-refile-history) tbl)
+                                       org-refile-history
+                                     (cdr org-refile-history))))
+              (if (equal (car org-refile-history) (nth 1 org-refile-history))
+                  (pop org-refile-history)))
+            pa)
+        (if (and (stringp answ) (string-match "\\`\\(.*\\)/\\([^/]+\\)\\'" answ))
             (progn
-              (org-refile-check-position pa)
-              (when (or (not org-refile-history)
-                        (not (eq old-hist org-refile-history))
-                        (not (equal (car pa) (car org-refile-history))))
-                (setq org-refile-history
-                      (cons (car pa) (if (assoc (car org-refile-history) tbl)
-                                         org-refile-history
-                                       (cdr org-refile-history))))
-                (if (equal (car org-refile-history) (nth 1 org-refile-history))
-                    (pop org-refile-history)))
-              pa)
-          (if (and (stringp answ) (string-match "\\`\\(.*\\)/\\([^/]+\\)\\'" answ))
-              (progn
-                (setq parent (match-string 1 answ)
-                      child (match-string 2 answ))
-                (setq parent-target (org-refile--get-location parent tbl))
-                (when (and parent-target
-                           (or (eq new-nodes t)
-                               (and (eq new-nodes 'confirm)
-                                    (y-or-n-p (format "Create new node \"%s\"? "
-                                                      child)))))
-                  (org-refile-new-child parent-target child)))
-            (if (not (equal answ t)) (user-error "Invalid target location"))))))
+              (setq parent (match-string 1 answ)
+                    child (match-string 2 answ))
+              (setq parent-target (org-refile--get-location parent tbl))
+              (when (and parent-target
+                         (or (eq new-nodes t)
+                             (and (eq new-nodes 'confirm)
+                                  (y-or-n-p (format "Create new node \"%s\"? "
+                                                    child)))))
+                (org-refile-new-child parent-target child)))
+          (if (not (equal answ t)) (user-error "Invalid target location"))))))
 
-    (fset 'org-refile-get-location 'sacha/org-refile-get-location)
+  (fset 'org-refile-get-location 'sacha/org-refile-get-location)
   #+end_src
 
   Hooray! Now =C-u C-c C-w= (=org-refile=) also lets me use =TAB= or
@@ -480,10 +480,10 @@ Lazy people like me never want to type "yes" when "y" will suffice.
     contents of the minibuffer before submitting it.
 
 #+begin_src emacs-lisp
-  (use-package miniedit
-    :ensure miniedit
-    :commands minibuffer-edit
-    :init (miniedit-install))
+(use-package miniedit
+  :ensure miniedit
+  :commands minibuffer-edit
+  :init (miniedit-install))
 #+end_src
 
 *** Set up a light-on-dark color scheme
@@ -493,27 +493,27 @@ color-theme in ELPA was a little odd, though, so we define some advice to make
 it work. Some things still aren't quite right.
 
 #+begin_src emacs-lisp
-  (defadvice color-theme-alist (around sacha activate)
-    (if (ad-get-arg 0)
-        ad-do-it
-      nil))
-  (use-package color-theme :ensure t)
-  (use-package color-theme-solarized :ensure t)
-  (defun sacha/setup-color-theme ()
-    (interactive)
-    (color-theme-solarized-dark)
-    (set-face-foreground 'secondary-selection "darkblue")
-    (set-face-background 'secondary-selection "lightblue")
-    (set-face-background 'font-lock-doc-face "black")
-    (set-face-foreground 'font-lock-doc-face "wheat")
-    (set-face-background 'font-lock-string-face "black")
-    (set-face-foreground 'org-todo "green")
-    (set-face-background 'org-todo "black"))
+(defadvice color-theme-alist (around sacha activate)
+  (if (ad-get-arg 0)
+      ad-do-it
+    nil))
+(use-package color-theme :ensure t)
+(use-package color-theme-solarized :ensure t)
+(defun sacha/setup-color-theme ()
+  (interactive)
+  (color-theme-solarized-dark)
+  (set-face-foreground 'secondary-selection "darkblue")
+  (set-face-background 'secondary-selection "lightblue")
+  (set-face-background 'font-lock-doc-face "black")
+  (set-face-foreground 'font-lock-doc-face "wheat")
+  (set-face-background 'font-lock-string-face "black")
+  (set-face-foreground 'org-todo "green")
+  (set-face-background 'org-todo "black"))
 
-  (use-package color-theme
-    :init
-    (when window-system
-      (sacha/setup-color-theme)))
+(use-package color-theme
+  :init
+  (when window-system
+    (sacha/setup-color-theme)))
 #+end_src
 
 I sometimes need to switch to a lighter background for screenshots.
@@ -541,14 +541,14 @@ People often struggle with the Emacs undo model, where there's really no concept
 This lets you use =C-x u= (=undo-tree-visualize=) to visually walk through the changes you've made, undo back to a certain point (or redo), and go down different branches.
 
 #+begin_src emacs-lisp
-  (use-package undo-tree
-    :ensure undo-tree
-    :diminish undo-tree-mode
-    :init
-    (progn
-      (global-undo-tree-mode)
-      (setq undo-tree-visualizer-timestamps t)
-      (setq undo-tree-visualizer-diff t)))
+(use-package undo-tree
+  :ensure undo-tree
+  :diminish undo-tree-mode
+  :init
+  (progn
+    (global-undo-tree-mode)
+    (setq undo-tree-visualizer-timestamps t)
+    (setq undo-tree-visualizer-diff t)))
 #+end_src
 
 *** Help - guide-key
@@ -577,12 +577,12 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
 From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
 
 #+begin_src emacs-lisp
-  (defadvice kill-region (before slick-cut activate compile)
-    "When called interactively with no active region, kill a single line instead."
-    (interactive
-      (if mark-active (list (region-beginning) (region-end))
-        (list (line-beginning-position)
-          (line-beginning-position 2)))))
+(defadvice kill-region (before slick-cut activate compile)
+  "When called interactively with no active region, kill a single line instead."
+  (interactive
+    (if mark-active (list (region-beginning) (region-end))
+      (list (line-beginning-position)
+        (line-beginning-position 2)))))
 #+end_src
 *** Repeatable commands
 
@@ -595,7 +595,7 @@ command by default, and to use =kbd= for the keybinding definitions.
     "Return a lambda that calls the first function of ALIST.
 It sets the transient map to all functions of ALIST,
 allowing you to repeat those functions as needed."
-    (lexical-let ((keymap (make-sparse-keymap))
+    (let ((keymap (make-sparse-keymap))
                   (func (cdar alist)))
       (mapc (lambda (x)
               (when x
@@ -623,21 +623,21 @@ Handy way of getting back to previous places.
 This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= to see if I can get used to that...
 
 #+begin_src emacs-lisp
-  (use-package helm-swoop
-   :bind
-   (("C-S-s" . helm-swoop)
-    ("M-i" . helm-swoop)
-    ("M-s s" . helm-swoop)
-    ("M-s M-s" . helm-swoop)
-    ("M-I" . helm-swoop-back-to-last-point)
-    ("C-c M-i" . helm-multi-swoop)
-    ("C-x M-i" . helm-multi-swoop-all)
-    )
-   :config
-   (progn
-     (define-key isearch-mode-map (kbd "M-i") 'helm-swoop-from-isearch)
-     (define-key helm-swoop-map (kbd "M-i") 'helm-multi-swoop-all-from-helm-swoop))
+(use-package helm-swoop
+ :bind
+ (("C-S-s" . helm-swoop)
+  ("M-i" . helm-swoop)
+  ("M-s s" . helm-swoop)
+  ("M-s M-s" . helm-swoop)
+  ("M-I" . helm-swoop-back-to-last-point)
+  ("C-c M-i" . helm-multi-swoop)
+  ("C-x M-i" . helm-multi-swoop-all)
   )
+ :config
+ (progn
+   (define-key isearch-mode-map (kbd "M-i") 'helm-swoop-from-isearch)
+   (define-key helm-swoop-map (kbd "M-i") 'helm-multi-swoop-all-from-helm-swoop))
+)
 #+end_src
 
 *** Windmove - switching between windows
@@ -646,13 +646,13 @@ Windmove lets you move between windows with something more natural than cycling 
 Windmove doesn't behave well with Org, so we need to use different keybindings.
 
 #+begin_src emacs-lisp
-  (use-package windmove
-    :bind
-    (("<f2> <right>" . windmove-right)
-     ("<f2> <left>" . windmove-left)
-     ("<f2> <up>" . windmove-up)
-     ("<f2> <down>" . windmove-down)
-     ))
+(use-package windmove
+  :bind
+  (("<f2> <right>" . windmove-right)
+   ("<f2> <left>" . windmove-left)
+   ("<f2> <up>" . windmove-up)
+   ("<f2> <down>" . windmove-down)
+   ))
 #+end_src
 *** Make window splitting more useful
 
@@ -687,54 +687,64 @@ Copied from http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tri
 This lets me search up and down. I don't use this often, though.
 
 #+begin_src emacs-lisp
-  (defun sacha/search-word-backward ()
-    "Find the previous occurrence of the current word."
-    (interactive)
-    (let ((cur (point)))
-      (skip-syntax-backward "w_")
-      (goto-char
-       (if (re-search-backward (concat "\\_<" (current-word) "\\_>") nil t)
-           (match-beginning 0)
-         cur))))
+(defun sacha/search-word-backward ()
+  "Find the previous occurrence of the current word."
+  (interactive)
+  (let ((cur (point)))
+    (skip-syntax-backward "w_")
+    (goto-char
+     (if (re-search-backward (concat "\\_<" (current-word) "\\_>") nil t)
+         (match-beginning 0)
+       cur))))
 
-  (defun sacha/search-word-forward ()
-    "Find the next occurrence of the current word."
-    (interactive)
-    (let ((cur (point)))
-      (skip-syntax-forward "w_")
-      (goto-char
-       (if (re-search-forward (concat "\\_<" (current-word) "\\_>") nil t)
-           (match-beginning 0)
-         cur))))
-  (defadvice search-for-keyword (around sacha activate)
-    "Match in a case-insensitive way."
-    (let ((case-fold-search t))
-      ad-do-it))
-  (global-set-key '[M-up] 'sacha/search-word-backward)
-  (global-set-key '[M-down] 'sacha/search-word-forward)
+(defun sacha/search-word-forward ()
+  "Find the next occurrence of the current word."
+  (interactive)
+  (let ((cur (point)))
+    (skip-syntax-forward "w_")
+    (goto-char
+     (if (re-search-forward (concat "\\_<" (current-word) "\\_>") nil t)
+         (match-beginning 0)
+       cur))))
+(defadvice search-for-keyword (around sacha activate)
+  "Match in a case-insensitive way."
+  (let ((case-fold-search t))
+    ad-do-it))
+(global-set-key '[M-up] 'sacha/search-word-backward)
+(global-set-key '[M-down] 'sacha/search-word-forward)
 #+end_src
 
 *** Frequently-accessed files
 Registers allow you to jump to a file or other location quickly. To
 jump to a register, use =C-x r j= followed by the letter of the
-register. Using registers for all these file shortcuts is probably a bit of a waste since I can easily define my own keymap, but since I rarely go beyond register A anyway...
+register. Using registers for all these file shortcuts is probably a bit of a waste since I can easily define my own keymap, but since I rarely go beyond register A anyway. Also, I might as well add shortcuts for refiling.
 
-#+begin_src emacs-lisp :results silent
-  (mapcar
-   (lambda (r)
-     (set-register (car r) (cons 'file (cdr r))))
-   '((?i . "~/.emacs.d/Sacha.org")
-     (?o . "~/personal/organizer.org")
-     (?b . "~/personal/business.org")
-     (?B . "~/Dropbox/books")
-     (?e . "~/code/dev/emacs-notes/tasks.org")
-     (?w . "~/Dropbox/public/sharing/index.org")
-     (?W . "~/Dropbox/public/sharing/blog.org")
-     (?j . "~/personal/journal.org")
-     (?I . "~/Dropbox/Inbox")
-     (?g . "~/sachac.github.io/evil-plans/index.org")
-     (?c . "~/code/dev/elisp-course.org")
-     (?l . "~/dropbox/public/sharing/learning.org")))
+#+begin_src emacs-lisp
+(defvar sacha/refile-map (make-sparse-keymap))
+
+(defmacro sacha/defshortcut (key file)
+  `(progn
+     (set-register ,key (cons 'file ,file))
+     (define-key sacha/refile-map
+       (char-to-string ,key)
+       (lambda (prefix)
+         (interactive "p")
+         (let ((org-refile-targets '(((,file) :maxlevel . 6)))
+               (current-prefix-arg (or current-prefix-arg '(4))))
+           (call-interactively 'org-refile))))))
+
+(sacha/defshortcut ?i "~/.emacs.d/Sacha.org")
+(sacha/defshortcut ?o "~/personal/organizer.org")
+(sacha/defshortcut ?b "~/personal/business.org")
+(sacha/defshortcut ?B "~/Dropbox/books")
+(sacha/defshortcut ?e "~/code/dev/emacs-notes/tasks.org")
+(sacha/defshortcut ?w "~/Dropbox/public/sharing/index.org")
+(sacha/defshortcut ?W "~/Dropbox/public/sharing/blog.org")
+(sacha/defshortcut ?j "~/personal/journal.org")
+(sacha/defshortcut ?I "~/Dropbox/Inbox")
+(sacha/defshortcut ?g "~/sachac.github.io/evil-plans/index.org")
+(sacha/defshortcut ?c "~/code/dev/elisp-course.org")
+(sacha/defshortcut ?l "~/dropbox/public/sharing/learning.org")
 #+end_src
 
 *** Key chords
@@ -744,96 +754,97 @@ shortcuts that use ordinary keys.
 
 Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
 #+begin_src emacs-lisp
-  (defun sacha/key-chord-define (keymap keys command)
-    "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
-  \nKEYS can be a string or a vector of two elements. Currently only elements
-  that corresponds to ascii codes in the range 32 to 126 can be used.
-  \nCOMMAND can be an interactive function, a string, or nil.
-  If COMMAND is nil, the key-chord is removed.
+(defun sacha/key-chord-define (keymap keys command)
+  "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
+\nKEYS can be a string or a vector of two elements. Currently only elements
+that corresponds to ascii codes in the range 32 to 126 can be used.
+\nCOMMAND can be an interactive function, a string, or nil.
+If COMMAND is nil, the key-chord is removed.
 
-  MODIFICATION: Do not define the transposed key chord.
-  "
-    (if (/= 2 (length keys))
-        (error "Key-chord keys must have two elements"))
-    ;; Exotic chars in a string are >255 but define-key wants 128..255 for those
-    (let ((key1 (logand 255 (aref keys 0)))
-          (key2 (logand 255 (aref keys 1))))
-      (define-key keymap (vector 'key-chord key1 key2) command)))
-  (fset 'key-chord-define 'sacha/key-chord-define)
+MODIFICATION: Do not define the transposed key chord.
+"
+  (if (/= 2 (length keys))
+      (error "Key-chord keys must have two elements"))
+  ;; Exotic chars in a string are >255 but define-key wants 128..255 for those
+  (let ((key1 (logand 255 (aref keys 0)))
+        (key2 (logand 255 (aref keys 1))))
+    (define-key keymap (vector 'key-chord key1 key2) command)))
+(fset 'key-chord-define 'sacha/key-chord-define)
 
-  (defun sacha/switch-to-previous-buffer ()
-    "Switch to previously open buffer.
-  Repeated invocations toggle between the two most recently open buffers."
-    (interactive)
-    (switch-to-buffer (other-buffer (current-buffer) 1)))
+(defun sacha/switch-to-previous-buffer ()
+  "Switch to previously open buffer.
+Repeated invocations toggle between the two most recently open buffers."
+  (interactive)
+  (switch-to-buffer (other-buffer (current-buffer) 1)))
 
-  (defun sacha/org-check-agenda ()
-    "Peek at agenda."
-    (interactive)
-    (cond
-     ((derived-mode-p 'org-agenda-mode)
-      (if (window-parent) (delete-window) (bury-buffer)))
-     ((get-buffer "*Org Agenda*")
-      (switch-to-buffer-other-window "*Org Agenda*"))
-     (t (org-agenda nil "a"))))
+(defun sacha/org-check-agenda ()
+  "Peek at agenda."
+  (interactive)
+  (cond
+   ((derived-mode-p 'org-agenda-mode)
+    (if (window-parent) (delete-window) (bury-buffer)))
+   ((get-buffer "*Org Agenda*")
+    (switch-to-buffer-other-window "*Org Agenda*"))
+   (t (org-agenda nil "a"))))
 
-  (defvar sacha/key-chord-command-map (make-sparse-keymap))
-  (define-key sacha/key-chord-command-map "k" 'kill-sexp)
-  (define-key sacha/key-chord-command-map "h" 'emms-pause)
-  (define-key sacha/key-chord-command-map "u" 'emms-pause)
-  (define-key sacha/key-chord-command-map "a" 'sacha/org-check-agenda)
-  (define-key sacha/key-chord-command-map "r" 'repeat)
-  (define-key sacha/key-chord-command-map "t" 'emms-seek-backward)
-  (define-key sacha/key-chord-command-map "s" 'emms-seek-to)
-  (define-key sacha/key-chord-command-map "i" 'imenu)
-  (define-key sacha/key-chord-command-map "+" (sacha/def-rep-command '(("+" . text-scale-increase) ("-" . text-scale-decrease))))
-  (define-key sacha/key-chord-command-map "-" (sacha/def-rep-command '(("-" . text-scale-decrease)("+" . text-scale-increase) )))
-
+(defvar sacha/key-chord-command-map (make-sparse-keymap))
+(define-key sacha/key-chord-command-map "k" 'kill-sexp)
+(define-key sacha/key-chord-command-map "h" 'emms-pause)
+(define-key sacha/key-chord-command-map "u" 'emms-pause)
+(define-key sacha/key-chord-command-map "a" 'sacha/org-check-agenda)
+(define-key sacha/key-chord-command-map "o" 'sacha/org-check-agenda)
+(define-key sacha/key-chord-command-map "." 'repeat)
+(define-key sacha/key-chord-command-map "r" sacha/refile-map)
+(define-key sacha/key-chord-command-map "t" 'emms-seek-backward)
+(define-key sacha/key-chord-command-map "s" 'emms-seek-to)
+(define-key sacha/key-chord-command-map "i" 'imenu)
+(define-key sacha/key-chord-command-map "+" (sacha/def-rep-command '(("+" . text-scale-increase) ("-" . text-scale-decrease))))
+(define-key sacha/key-chord-command-map "-" (sacha/def-rep-command '(("-" . text-scale-decrease)("+" . text-scale-increase) )))
 #+end_src
 
 Now let's set up the actual keychords.
 
 #+begin_src emacs-lisp
-  (use-package key-chord
-    :init
-    (progn
-      (fset 'key-chord-define 'sacha/key-chord-define)
-      (setq key-chord-one-key-delay 0.16)
-      (key-chord-mode 1)
-      ;; k can be bound too
-      (key-chord-define-global "uu"     'undo)
-      (key-chord-define-global "jj"     'ace-jump-word-mode)
-      (key-chord-define-global "yy"
-            (sacha/def-rep-command
-             '(nil
-               ("<left>" . windmove-left)
-               ("<right>" . windmove-right)
-               ("<down>" . windmove-down)
-               ("<up>" . windmove-up)
-               ("y" . other-window)
-               ("h" . ace-window)
-               ("s" . (lambda () (interactive) (ace-window 4)))
-               ("d" . (lambda () (interactive) (ace-window 16)))
-               )
-             ))
-      (key-chord-define-global "jw"     'ace-window)
-      (key-chord-define-global "jl"     'ace-jump-line-mode)
-      (key-chord-define-global "j."
-                               (sacha/def-rep-command
-                                '(nil
-                                  ("<up>" . join-line)
-                                  ("<down>" . (lambda () (interactive) (join-line 1)))
-                                  ("t" . join-line)
-                                  ("n" . (lambda () (interactive) (join-line 1)))))))
-      ;; not an ace-jump, but still useful
-      ;(key-chord-define-global "jZ"     'ace-jump-zap-to-char)
-      (key-chord-define-global "FF"     'find-file)
-      (key-chord-define-global "qq"     'sacha/org-quick-clock-in-task)
-      (key-chord-define-global "hh"     sacha/key-chord-command-map)
-      (key-chord-define-global "hc"     'emms-seek-forward)
-      (key-chord-define-global "xx"     'er/expand-region)
-      (key-chord-define-global "  "     'sacha/insert-space-or-expand)
-      (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer))
+(use-package key-chord
+  :init
+  (progn
+    (fset 'key-chord-define 'sacha/key-chord-define)
+    (setq key-chord-one-key-delay 0.16)
+    (key-chord-mode 1)
+    ;; k can be bound too
+    (key-chord-define-global "uu"     'undo)
+    (key-chord-define-global "jj"     'ace-jump-word-mode)
+    (key-chord-define-global "yy"
+          (sacha/def-rep-command
+           '(nil
+             ("<left>" . windmove-left)
+             ("<right>" . windmove-right)
+             ("<down>" . windmove-down)
+             ("<up>" . windmove-up)
+             ("y" . other-window)
+             ("h" . ace-window)
+             ("s" . (lambda () (interactive) (ace-window 4)))
+             ("d" . (lambda () (interactive) (ace-window 16)))
+             )
+           ))
+    (key-chord-define-global "jw"     'ace-window)
+    (key-chord-define-global "jl"     'ace-jump-line-mode)
+    (key-chord-define-global "j."
+                             (sacha/def-rep-command
+                              '(nil
+                                ("<up>" . join-line)
+                                ("<down>" . (lambda () (interactive) (join-line 1)))
+                                ("t" . join-line)
+                                ("n" . (lambda () (interactive) (join-line 1)))))))
+    ;; not an ace-jump, but still useful
+    ;(key-chord-define-global "jZ"     'ace-jump-zap-to-char)
+    (key-chord-define-global "FF"     'find-file)
+    (key-chord-define-global "qq"     'sacha/org-quick-clock-in-task)
+    (key-chord-define-global "hh"     sacha/key-chord-command-map)
+    (key-chord-define-global "hc"     'emms-seek-forward)
+    (key-chord-define-global "xx"     'er/expand-region)
+    (key-chord-define-global "  "     'sacha/insert-space-or-expand)
+    (key-chord-define-global "JJ"     'sacha/switch-to-previous-buffer))
 #+end_src
 *** Smartscan
 
@@ -923,30 +934,30 @@ This command is convenient when reading novel, documentation."
 ** Writing
 *** Avoiding weasel words
     #+begin_src emacs-lisp
-      (use-package artbollocks-mode
-        :init
-        (progn
-          (setq artbollocks-weasel-words-regex
-                (concat "\\b" (regexp-opt
-                               '("one of the"
-                                 "should"
-                                 "just"
-                                 "sort of"
-                                 "a lot"
-                                 "probably"
-                                 "maybe"
-                                 "perhaps"
-                                 "I think"
-                                 "really"
-                                 "pretty"
-                                 "nice"
-                                 "action"
-                                 "utilize"
-                                 "leverage") t) "\\b"))
-          ;; Don't show the art critic words, or at least until I figure
-          ;; out my own jargon
-          (setq artbollocks-jargon nil)))
-#+end_src
+    (use-package artbollocks-mode
+      :init
+      (progn
+        (setq artbollocks-weasel-words-regex
+              (concat "\\b" (regexp-opt
+                             '("one of the"
+                               "should"
+                               "just"
+                               "sort of"
+                               "a lot"
+                               "probably"
+                               "maybe"
+                               "perhaps"
+                               "I think"
+                               "really"
+                               "pretty"
+                               "nice"
+                               "action"
+                               "utilize"
+                               "leverage") t) "\\b"))
+        ;; Don't show the art critic words, or at least until I figure
+        ;; out my own jargon
+        (setq artbollocks-jargon nil)))
+    #+end_src
 
 *** Unfill paragraph
 
@@ -997,7 +1008,7 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 *** Clean up spaces
 
 #+begin_src emacs-lisp
-  (bind-key "M-SPC" 'cycle-spacing)
+(bind-key "M-SPC" 'cycle-spacing)
 #+end_src
 *** Expand
 
@@ -1013,18 +1024,18 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
 #+end_src
 
 #+begin_src emacs-lisp
-  (setq hippie-expand-try-functions-list
-        '(yas-hippie-try-expand
-          try-expand-all-abbrevs
-          try-complete-file-name-partially
-          try-complete-file-name
-          try-expand-dabbrev
-          try-expand-dabbrev-from-kill
-          try-expand-dabbrev-all-buffers
-          try-expand-list
-          try-expand-line
-          try-complete-lisp-symbol-partially
-          try-complete-lisp-symbol))
+(setq hippie-expand-try-functions-list
+      '(yas-hippie-try-expand
+        try-expand-all-abbrevs
+        try-complete-file-name-partially
+        try-complete-file-name
+        try-expand-dabbrev
+        try-expand-dabbrev-from-kill
+        try-expand-dabbrev-all-buffers
+        try-expand-list
+        try-expand-line
+        try-complete-lisp-symbol-partially
+        try-complete-lisp-symbol))
 #+end_src
 
 *** Define more abbreviations
@@ -1113,24 +1124,24 @@ currently experimenting with.
 *** Keyboard shortcuts
 
     #+begin_src emacs-lisp
-      (bind-key "C-c r" 'org-capture)
-      (bind-key "C-c a" 'org-agenda)
-      (bind-key "C-c l" 'org-store-link)
-      (bind-key "C-c L" 'org-insert-link-global)
-      (bind-key "C-c O" 'org-open-at-point-global)
-      (bind-key "<f9> <f9>" 'org-agenda-list)
-      (bind-key "<f9> <f8>" (lambda () (interactive) (org-capture nil "r")))
-      (bind-key "C-TAB" 'org-cycle org-mode-map)
-      (bind-key "C-c v" 'org-show-todo-tree org-mode-map)
-      (bind-key "C-c C-r" 'org-refile org-mode-map)
-      (bind-key "C-c R" 'org-reveal org-mode-map)
-#+end_src
+    (bind-key "C-c r" 'org-capture)
+    (bind-key "C-c a" 'org-agenda)
+    (bind-key "C-c l" 'org-store-link)
+    (bind-key "C-c L" 'org-insert-link-global)
+    (bind-key "C-c O" 'org-open-at-point-global)
+    (bind-key "<f9> <f9>" 'org-agenda-list)
+    (bind-key "<f9> <f8>" (lambda () (interactive) (org-capture nil "r")))
+    (bind-key "C-TAB" 'org-cycle org-mode-map)
+    (bind-key "C-c v" 'org-show-todo-tree org-mode-map)
+    (bind-key "C-c C-r" 'org-refile org-mode-map)
+    (bind-key "C-c R" 'org-reveal org-mode-map)
+    #+end_src
 
 =append-next-kill= is more useful to me than =org-table-copy-region=.
 
 #+begin_src emacs-lisp
-  (eval-after-load 'org
-    '(bind-key "C-M-w" 'append-next-kill org-mode-map))
+(eval-after-load 'org
+  '(bind-key "C-M-w" 'append-next-kill org-mode-map))
 #+end_src
 
 I don't use the diary, but I do use the clock a lot.
@@ -1374,6 +1385,46 @@ able to clock in on them.
       (setq org-blank-before-new-entry nil)
     #+end_src
 
+***** TEACH Jump to Org location by substring
+      :PROPERTIES:
+      :Effort:   1:00
+      :QUANTIFIED: Emacs
+      :END:
+      :LOGBOOK:
+      CLOCK: [2015-02-05 Thu 19:48]--[2015-02-05 Thu 20:03] =>  0:15
+      :END:
+
+   #+begin_src emacs-lisp
+     ;; Example: (org-refile 4 nil (sacha/org-refile-get-location-by-substring "Other Emacs"))
+     (defun sacha/org-refile-get-location-by-substring (regexp &optional file)
+       "Return the refile location identified by REGEXP."
+       (let ((org-refile-targets org-refile-targets) tbl)
+         (setq org-refile-target-table (org-refile-get-targets)))
+       (unless org-refile-target-table
+         (user-error "No refile targets"))
+       (cl-find regexp org-refile-target-table
+                :test
+                (lambda (a b)
+                  (and
+                   (string-match a (car b))
+                   (or (null file)
+                       (string-match file (elt b)))))))
+     ;; Example: (sacha/org-clock-in-refile "Off my computer")
+     (defun sacha/org-clock-in-refile (location &optional file)
+       "Clocks into LOCATION.
+     LOCATION and FILE can also be regular expressions for `sacha/org-refile-get-location-by-substring'."
+       (interactive (list (sacha/org-refile-get-location)))
+       (save-window-excursion
+         (save-excursion
+           (if (stringp location) (setq location (sacha/org-refile-get-location-by-substring location file)))
+           (org-refile 4 nil location)
+           (org-clock-in))))
+     (defun sacha/org-off-my-computer (category)
+       (interactive "MCategory: ")
+       (sacha/org-clock-in-refile "Off my computer")
+       (quantified-track category))
+   #+end_src
+
 **** Estimating WPM
 
      I'm curious about how fast I type some things.
@@ -1488,38 +1539,19 @@ able to clock in on them.
 ***** Track time
 
  #+begin_src emacs-lisp
-   (defun sacha/org-clock-in-set-state-to-started ()
-     "Mark STARTED when clocked in."
-     (save-excursion
-       (catch 'exit
-         (cond
-          ((derived-mode-p 'org-agenda-mode)
-           (let* ((marker (or (org-get-at-bol 'org-marker)
-                              (org-agenda-error)))
-                  (hdmarker (or (org-get-at-bol 'org-hd-marker) marker))
-                  (pos (marker-position marker))
-                  (col (current-column))
-                  newhead)
-             (org-with-remote-undo (marker-buffer marker)
-               (with-current-buffer (marker-buffer marker)
-                 (widen)
-                 (goto-char pos)
-                 (org-back-to-heading t)
-                 (if (org-get-todo-state)
-                     (org-todo "STARTED"))))))
-          (t (if (org-get-todo-state)
-                     (org-todo "STARTED")))))))
    (use-package org
     :init
     (progn
      (setq org-clock-idle-time nil)
      (setq org-log-done 'time)
+     (setq org-clock-continuously t)
      (setq org-clock-persist t)
+     (setq org-clock-in-switch-to-state "STARTED")
+     (setq org-clock-in-resume t)
      (setq org-clock-report-include-clocking-task t))
     :config
     (progn
-     (org-clock-persistence-insinuate)
-     (add-hook 'org-clock-in-hook 'sacha/org-clock-in-set-state-to-started)))
+     (org-clock-persistence-insinuate)))
  #+end_src
 
  Too many clock entries clutter up a heading.
@@ -2768,7 +2800,8 @@ ELPA, so I figured I'd give that a try. UPDATE 2014-10-29: Overriding it with th
     "Post to my blog and get files ready."
     (interactive)
     (org2blog/wp-post-subtree)
-    (sacha/stage-image-files-in-subtree)
+    (sacha/org-stage-image-files-in-subtree)
+    (shell-command "start c:\\sacha\\dropbox\\inbox\\selection")
     (browse-url "http://sachachua.com/blog/wp-admin/edit.php?page=cal"))
 
   (use-package htmlize :ensure htmlize)
@@ -4309,10 +4342,10 @@ This bit of code lets me track sent messages in Gnus:
 
 And this loads the beeminder code:
 
-#+BEGIN_SRC emacs-lisp :eval no :tangle no
+#+begin_src emacs-lisp :eval no :tangle no
 (use-package beeminder
   :config (add-hook 'message-send-news-hook 'sacha/beeminder-track-message))
-#+END_SRC
+#+end_src
 
 ** Strike through DONE headlines
 
@@ -5182,7 +5215,7 @@ properly.
        (apply 'call-process "mogrify" nil nil nil "-format" "png" "-quality" "1"
               (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.tif"))
        (mapc (lambda (x)
-               (rename-file x "~/Dropbox/Inbox/backup"))
+               (rename-file x "~/Dropbox/Inbox/backup" t))
              (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+-.*.tif")))
      (mapc (lambda (filename)
              (find-file filename)

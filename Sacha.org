@@ -328,109 +328,110 @@ helm-grep? Bit slow and hard to read, though.
   well add that bit of code that sets up clocking in, too.
 
   #+BEGIN_SRC emacs-lisp
-  (defvar my/helm-org-refile-locations nil)
+      (defvar my/helm-org-refile-locations nil)
 
-  (defun my/helm-org-clock-in-and-track-from-refile (candidate)
-    (let ((location (org-refile--get-location candidate my/helm-org-refile-locations)))
-      (save-window-excursion
-        (org-refile 4 nil location)
-        (my/org-clock-in-and-track)
-        t)))
+      (defun my/helm-org-clock-in-and-track-from-refile (candidate)
+        (let ((location (org-refile--get-location candidate my/helm-org-refile-locations)))
+          (save-window-excursion
+            (org-refile 4 nil location)
+            (my/org-clock-in-and-track)
+            t)))
 
-  (defun my/helm-org-refile-read-location (tbl)
-    (setq my/helm-org-refile-locations tbl)
-    (helm
-     (list
-      (helm-build-sync-source "Refile targets"
-        :candidates (mapcar 'car tbl)
-        :action '(("Select" . identity)
-                  ("Clock in and track" . my/helm-org-clock-in-and-track-from-refile))
-        :history 'org-refile-history)
-      (helm-build-dummy-source "Create task"
-        :action (helm-make-actions
-                 "Create task"
-                 'my/helm-org-create-task)))))
+      (defun my/helm-org-refile-read-location (tbl)
+        (setq my/helm-org-refile-locations tbl)
+        (helm
+         (list
+          (helm-build-sync-source "Refile targets"
+            :candidates (mapcar 'car tbl)
+            :action '(("Select" . identity)
+                      ("Clock in and track" . my/helm-org-clock-in-and-track-from-refile)
+                      ("Draw index card" . my/helm-org-prepare-index-card-for-subtree))
+            :history 'org-refile-history)
+          (helm-build-dummy-source "Create task"
+            :action (helm-make-actions
+                     "Create task"
+                     'my/helm-org-create-task)))))
 
-  (defun my/org-refile-get-location (&optional prompt default-buffer new-nodes no-exclude)
-    "Prompt the user for a refile location, using PROMPT.
-  PROMPT should not be suffixed with a colon and a space, because
-  this function appends the default value from
-  `org-refile-history' automatically, if that is not empty.
-  When NO-EXCLUDE is set, do not exclude headlines in the current subtree,
-  this is used for the GOTO interface."
-    (let ((org-refile-targets org-refile-targets)
-          (org-refile-use-outline-path org-refile-use-outline-path)
-          excluded-entries)
-      (when (and (derived-mode-p 'org-mode)
-                 (not org-refile-use-cache)
-                 (not no-exclude))
-        (org-map-tree
-         (lambda()
-           (setq excluded-entries
-                 (append excluded-entries (list (org-get-heading t t)))))))
-      (setq org-refile-target-table
-            (org-refile-get-targets default-buffer excluded-entries)))
-    (unless org-refile-target-table
-      (user-error "No refile targets"))
-    (let* ((cbuf (current-buffer))
-           (partial-completion-mode nil)
-           (cfn (buffer-file-name (buffer-base-buffer cbuf)))
-           (cfunc (if (and org-refile-use-outline-path
-                           org-outline-path-complete-in-steps)
-                      'org-olpath-completing-read
-                    'org-icompleting-read))
-           (extra (if org-refile-use-outline-path "/" ""))
-           (cbnex (concat (buffer-name) extra))
-           (filename (and cfn (expand-file-name cfn)))
-           (tbl (mapcar
-                 (lambda (x)
-                   (if (and (not (member org-refile-use-outline-path
-                                         '(file full-file-path)))
-                            (not (equal filename (nth 1 x))))
-                       (cons (concat (car x) extra " ("
-                                     (file-name-nondirectory (nth 1 x)) ")")
-                             (cdr x))
-                     (cons (concat (car x) extra) (cdr x))))
-                 org-refile-target-table))
-           (completion-ignore-case t)
-           cdef
-           (prompt (concat prompt
-                           (or (and (car org-refile-history)
-                                    (concat " (default " (car org-refile-history) ")"))
-                               (and (assoc cbnex tbl) (setq cdef cbnex)
-                                    (concat " (default " cbnex ")"))) ": "))
-           pa answ parent-target child parent old-hist)
-      (setq old-hist org-refile-history)
-      ;; Use Helm's sources instead
-      (setq answ (my/helm-org-refile-read-location tbl))
-      (if (and (stringp answ)
-               (setq pa (org-refile--get-location answ tbl)))
-          (progn
-            (org-refile-check-position pa)
-            (when (or (not org-refile-history)
-                      (not (eq old-hist org-refile-history))
-                      (not (equal (car pa) (car org-refile-history))))
-              (setq org-refile-history
-                    (cons (car pa) (if (assoc (car org-refile-history) tbl)
-                                       org-refile-history
-                                     (cdr org-refile-history))))
-              (if (equal (car org-refile-history) (nth 1 org-refile-history))
-                  (pop org-refile-history)))
-            pa)
-        (if (and (stringp answ) (string-match "\\`\\(.*\\)/\\([^/]+\\)\\'" answ))
-            (progn
-              (setq parent (match-string 1 answ)
-                    child (match-string 2 answ))
-              (setq parent-target (org-refile--get-location parent tbl))
-              (when (and parent-target
-                         (or (eq new-nodes t)
-                             (and (eq new-nodes 'confirm)
-                                  (y-or-n-p (format "Create new node \"%s\"? "
-                                                    child)))))
-                (org-refile-new-child parent-target child)))
-          (if (not (equal answ t)) (user-error "Invalid target location"))))))
+      (defun my/org-refile-get-location (&optional prompt default-buffer new-nodes no-exclude)
+        "Prompt the user for a refile location, using PROMPT.
+      PROMPT should not be suffixed with a colon and a space, because
+      this function appends the default value from
+      `org-refile-history' automatically, if that is not empty.
+      When NO-EXCLUDE is set, do not exclude headlines in the current subtree,
+      this is used for the GOTO interface."
+        (let ((org-refile-targets org-refile-targets)
+              (org-refile-use-outline-path org-refile-use-outline-path)
+              excluded-entries)
+          (when (and (derived-mode-p 'org-mode)
+                     (not org-refile-use-cache)
+                     (not no-exclude))
+            (org-map-tree
+             (lambda()
+               (setq excluded-entries
+                     (append excluded-entries (list (org-get-heading t t)))))))
+          (setq org-refile-target-table
+                (org-refile-get-targets default-buffer excluded-entries)))
+        (unless org-refile-target-table
+          (user-error "No refile targets"))
+        (let* ((cbuf (current-buffer))
+               (partial-completion-mode nil)
+               (cfn (buffer-file-name (buffer-base-buffer cbuf)))
+               (cfunc (if (and org-refile-use-outline-path
+                               org-outline-path-complete-in-steps)
+                          'org-olpath-completing-read
+                        'org-icompleting-read))
+               (extra (if org-refile-use-outline-path "/" ""))
+               (cbnex (concat (buffer-name) extra))
+               (filename (and cfn (expand-file-name cfn)))
+               (tbl (mapcar
+                     (lambda (x)
+                       (if (and (not (member org-refile-use-outline-path
+                                             '(file full-file-path)))
+                                (not (equal filename (nth 1 x))))
+                           (cons (concat (car x) extra " ("
+                                         (file-name-nondirectory (nth 1 x)) ")")
+                                 (cdr x))
+                         (cons (concat (car x) extra) (cdr x))))
+                     org-refile-target-table))
+               (completion-ignore-case t)
+               cdef
+               (prompt (concat prompt
+                               (or (and (car org-refile-history)
+                                        (concat " (default " (car org-refile-history) ")"))
+                                   (and (assoc cbnex tbl) (setq cdef cbnex)
+                                        (concat " (default " cbnex ")"))) ": "))
+               pa answ parent-target child parent old-hist)
+          (setq old-hist org-refile-history)
+          ;; Use Helm's sources instead
+          (setq answ (my/helm-org-refile-read-location tbl))
+          (if (and (stringp answ)
+                   (setq pa (org-refile--get-location answ tbl)))
+              (progn
+                (org-refile-check-position pa)
+                (when (or (not org-refile-history)
+                          (not (eq old-hist org-refile-history))
+                          (not (equal (car pa) (car org-refile-history))))
+                  (setq org-refile-history
+                        (cons (car pa) (if (assoc (car org-refile-history) tbl)
+                                           org-refile-history
+                                         (cdr org-refile-history))))
+                  (if (equal (car org-refile-history) (nth 1 org-refile-history))
+                      (pop org-refile-history)))
+                pa)
+            (if (and (stringp answ) (string-match "\\`\\(.*\\)/\\([^/]+\\)\\'" answ))
+                (progn
+                  (setq parent (match-string 1 answ)
+                        child (match-string 2 answ))
+                  (setq parent-target (org-refile--get-location parent tbl))
+                  (when (and parent-target
+                             (or (eq new-nodes t)
+                                 (and (eq new-nodes 'confirm)
+                                      (y-or-n-p (format "Create new node \"%s\"? "
+                                                        child)))))
+                    (org-refile-new-child parent-target child)))
+              (if (not (equal answ t)) (user-error "Invalid target location"))))))
 
-  (fset 'org-refile-get-location 'my/org-refile-get-location)
+      (fset 'org-refile-get-location 'my/org-refile-get-location)
   #+END_SRC
 
   Hooray! Now =C-u C-c C-w= (=org-refile=) also lets me use =TAB= or
@@ -2421,10 +2422,10 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
      (defun my/flickr-export-and-extract (start end &optional do-insert update-db)
        "Download Flickr metadata and extract the relevant part."
        (interactive (list (org-read-date) (org-read-date) t current-prefix-arg))
-       (when update-db (shell-command "c:/my/dropbox/bin/flickr.bat"))
+       (when update-db (shell-command "c:/sacha/dropbox/bin/flickr.bat"))
        (if do-insert
-           (insert (my/flickr-extract-links-for-review "c:/my/dropbox/bin/flickr_metadata.csv" start end))
-         (my/flickr-extract-links-for-review "c:/my/dropbox/bin/flickr_metadata.csv" start end)))
+           (insert (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
+         (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end)))
 
 
      (defun my/flickr-extract-links-for-review (filename start end)
@@ -2489,7 +2490,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
  #+begin_src emacs-lisp
      (defun my/evernote-export-and-extract (start-date end-date)
        "Extract notes created on or after START-DATE and before END-DATE."
-       (let ((filename "c:/my/tmp/Evernote.enex"))
+       (let ((filename "c:/sacha/tmp/Evernote.enex"))
          (call-process
           "c:/Program Files (x86)/Evernote/Evernote/enscript.exe"
           nil t t
@@ -2776,16 +2777,16 @@ This makes it easier to publish my files:
 #+begin_src emacs-lisp
     (if (string= system-name "webdev")
        (setq my/emacs-notes-directory "~/code/dev/emacs-notes")
-     (setq my/emacs-notes-directory "c:/my/code/dev/emacs-notes"))
+     (setq my/emacs-notes-directory "c:/sacha/code/dev/emacs-notes"))
     (setq org-publish-project-alist
           '(("public"
-             :base-directory "c:/my/Dropbox/public"
-             :publishing-directory "c:/my/Dropbox/public"
+             :base-directory "c:/sacha/Dropbox/public"
+             :publishing-directory "c:/sacha/Dropbox/public"
              :publishing-function my/org-html-publish-to-html-trustingly
              )
             ("sharing"
-             :base-directory "c:/my/Dropbox/public/sharing"
-             :publishing-directory "c:/my/Dropbox/public/sharing"
+             :base-directory "c:/sacha/Dropbox/public/sharing"
+             :publishing-directory "c:/sacha/Dropbox/public/sharing"
              :publishing-function my/org-html-publish-to-html-trustingly
              )
             ("emacs-config"
@@ -2794,8 +2795,8 @@ This makes it easier to publish my files:
              :publishing-function my/org-html-publish-to-html-trustingly
              )
             ("book-notes"
-             :base-directory "c:/my/Dropbox/books"
-             :publishing-directory "c:/my/Dropbox/books/html"
+             :base-directory "c:/sacha/Dropbox/books"
+             :publishing-directory "c:/sacha/Dropbox/books/html"
              :publishing-function my/org-html-publish-to-html-trustingly
              :makeindex t)))
 (load "~/code/dev/emacs-chats/build-site.el" t)
@@ -3014,7 +3015,7 @@ Org lets you attach files to an Org file. Haven't gotten the hang of this yet, b
 Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[http://sachachua.com/evil-plans]] for examples and source.
 
 #+begin_src emacs-lisp
-  (setq org-ditaa-jar-path "C:/My/Dropbox/bin/ditaa.jar")
+  (setq org-ditaa-jar-path "c:/sacha/Dropbox/bin/ditaa.jar")
   (setq org-startup-with-inline-images t)
   (use-package org
    :config
@@ -5271,10 +5272,11 @@ specified number of them) and then opens the last one for me to edit.
             (expand-file-name (concat date " " (my/convert-sketch-title-to-filename heading) ".tif")
                               directory)))
       (unless (file-exists-p filename) (copy-file template filename))
+      (unless (org-entry-get (point) "Effort") (org-set-property "Effort" "0:15"))
       (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
       (my/org-quantified-track "Drawing")
       (save-window-excursion
-        (shell-command "c:/my/Dropbox/bin/orient /rotate:180")
+        (shell-command "c:/sacha/Dropbox/bin/orient /rotate:180")
         (shell-command
          (concat (shell-quote-argument my/autodesk-sketchbook-executable)
                  " "
@@ -5284,14 +5286,20 @@ specified number of them) and then opens the last one for me to edit.
           (erase-buffer)
           (widget-create 'push-button
                          :notify (lambda (&rest ignore)
-                                   (message "Hello")
-                                   (shell-command "c:/my/Dropbox/bin/orient /rotate:0")
+                                   (shell-command "c:/sacha/Dropbox/bin/orient /rotate:0")
                                    (delete-window))
                          "Done")
           (text-scale-set 10)
           (widget-setup)
           (widget-minor-mode)
           (pop-to-buffer (current-buffer))))))
+
+  (defun my/helm-org-prepare-index-card-for-subtree (candidate)
+    (let ((location (org-refile--get-location candidate my/helm-org-refile-locations)))
+      (save-window-excursion
+        (save-excursion
+          (org-refile 4 nil location)
+          (my/prepare-index-card-for-subtree)) t))) 
 
   (add-to-list 'org-speed-commands-user '("d" call-interactively 'my/prepare-index-card-for-subtree))
 #+end_src
@@ -5452,7 +5460,7 @@ Aspect ratio is width / height
     (interactive (list (point) (mark) (if current-prefix-arg (read-string "Tiling: "))))
     ;; Extract the links
     (let* ((files (my/extract-image-filenames beg end))
-           (output-file "c:/my/dropbox/inbox/output.png"))
+           (output-file "c:/sacha/dropbox/inbox/output.png"))
       (unless tiles
         (setq tiles
               (format "%dx"
@@ -5490,7 +5498,7 @@ Convenience functions to make my life easier when sketchnoting books.
     "Convert TIFF to PNG."
     (interactive)
     (let ((basename (org-entry-get-with-inheritance "BASENAME")))
-      (shell-command (format "convert \"c:/my/dropbox/inbox/%s.tif\" \"c:/my/dropbox/inbox/%s.png\""
+      (shell-command (format "convert \"c:/sacha/dropbox/inbox/%s.tif\" \"c:/sacha/dropbox/inbox/%s.png\""
                              basename
                              basename))))
 

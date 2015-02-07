@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Sacha Chua's Emacs configuration</title>
-<!-- 2015-02-06 Fri 18:41 -->
+<!-- 2015-02-06 Fri 19:29 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Sacha Chua" />
@@ -890,7 +890,8 @@ well add that bit of code that sets up clocking in, too.
     (helm-build-sync-source <span class="org-string">"Refile targets"</span>
       <span class="org-builtin">:candidates</span> (mapcar 'car tbl)
       <span class="org-builtin">:action</span> '((<span class="org-string">"Select"</span> . identity)
-                (<span class="org-string">"Clock in and track"</span> . my/helm-org-clock-in-and-track-from-refile))
+                (<span class="org-string">"Clock in and track"</span> . my/helm-org-clock-in-and-track-from-refile)
+                (<span class="org-string">"Draw index card"</span> . my/helm-org-prepare-index-card-for-subtree))
       <span class="org-builtin">:history</span> 'org-refile-history)
     (helm-build-dummy-source <span class="org-string">"Create task"</span>
       <span class="org-builtin">:action</span> (helm-make-actions
@@ -3673,10 +3674,10 @@ Now we put it all together&#x2026;
   (<span class="org-keyword">defun</span> <span class="org-function-name">my/flickr-export-and-extract</span> (start end <span class="org-type">&amp;optional</span> do-insert update-db)
     <span class="org-doc">"Download Flickr metadata and extract the relevant part."</span>
     (interactive (list (org-read-date) (org-read-date) t current-prefix-arg))
-    (<span class="org-keyword">when</span> update-db (shell-command <span class="org-string">"c:/my/dropbox/bin/flickr.bat"</span>))
+    (<span class="org-keyword">when</span> update-db (shell-command <span class="org-string">"c:/sacha/dropbox/bin/flickr.bat"</span>))
     (<span class="org-keyword">if</span> do-insert
-        (insert (my/flickr-extract-links-for-review <span class="org-string">"c:/my/dropbox/bin/flickr_metadata.csv"</span> start end))
-      (my/flickr-extract-links-for-review <span class="org-string">"c:/my/dropbox/bin/flickr_metadata.csv"</span> start end)))
+        (insert (my/flickr-extract-links-for-review <span class="org-string">"c:/sacha/dropbox/bin/flickr_metadata.csv"</span> start end))
+      (my/flickr-extract-links-for-review <span class="org-string">"c:/sacha/dropbox/bin/flickr_metadata.csv"</span> start end)))
 
 
   (<span class="org-keyword">defun</span> <span class="org-function-name">my/flickr-extract-links-for-review</span> (filename start end)
@@ -3746,7 +3747,7 @@ Now we put it all together&#x2026;
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/evernote-export-and-extract</span> (start-date end-date)
   <span class="org-doc">"Extract notes created on or after START-DATE and before END-DATE."</span>
-  (<span class="org-keyword">let</span> ((filename <span class="org-string">"c:/my/tmp/Evernote.enex"</span>))
+  (<span class="org-keyword">let</span> ((filename <span class="org-string">"c:/sacha/tmp/Evernote.enex"</span>))
     (call-process
      <span class="org-string">"c:/Program Files (x86)/Evernote/Evernote/enscript.exe"</span>
      nil t t
@@ -4087,16 +4088,16 @@ This makes it easier to publish my files:
 
 <pre class="src src-emacs-lisp">    (<span class="org-keyword">if</span> (string= system-name <span class="org-string">"webdev"</span>)
        (setq my/emacs-notes-directory <span class="org-string">"~/code/dev/emacs-notes"</span>)
-     (setq my/emacs-notes-directory <span class="org-string">"c:/my/code/dev/emacs-notes"</span>))
+     (setq my/emacs-notes-directory <span class="org-string">"c:/sacha/code/dev/emacs-notes"</span>))
     (setq org-publish-project-alist
           '((<span class="org-string">"public"</span>
-             <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/my/Dropbox/public"</span>
-             <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/my/Dropbox/public"</span>
+             <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/Dropbox/public"</span>
+             <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/Dropbox/public"</span>
              <span class="org-builtin">:publishing-function</span> my/org-html-publish-to-html-trustingly
              )
             (<span class="org-string">"sharing"</span>
-             <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/my/Dropbox/public/sharing"</span>
-             <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/my/Dropbox/public/sharing"</span>
+             <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/Dropbox/public/sharing"</span>
+             <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/Dropbox/public/sharing"</span>
              <span class="org-builtin">:publishing-function</span> my/org-html-publish-to-html-trustingly
              )
             (<span class="org-string">"emacs-config"</span>
@@ -4105,8 +4106,8 @@ This makes it easier to publish my files:
              <span class="org-builtin">:publishing-function</span> my/org-html-publish-to-html-trustingly
              )
             (<span class="org-string">"book-notes"</span>
-             <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/my/Dropbox/books"</span>
-             <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/my/Dropbox/books/html"</span>
+             <span class="org-builtin">:base-directory</span> <span class="org-string">"c:/sacha/Dropbox/books"</span>
+             <span class="org-builtin">:publishing-directory</span> <span class="org-string">"c:/sacha/Dropbox/books/html"</span>
              <span class="org-builtin">:publishing-function</span> my/org-html-publish-to-html-trustingly
              <span class="org-builtin">:makeindex</span> t)))
 (load <span class="org-string">"~/code/dev/emacs-chats/build-site.el"</span> t)
@@ -4420,7 +4421,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See <a h
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(setq org-ditaa-jar-path <span class="org-string">"C:/My/Dropbox/bin/ditaa.jar"</span>)
+<pre class="src src-emacs-lisp">(setq org-ditaa-jar-path <span class="org-string">"c:/sacha/Dropbox/bin/ditaa.jar"</span>)
 (setq org-startup-with-inline-images t)
 (<span class="org-keyword">use-package</span> <span class="org-constant">org</span>
  <span class="org-builtin">:config</span>
@@ -7209,10 +7210,11 @@ specified number of them) and then opens the last one for me to edit.
           (expand-file-name (concat date <span class="org-string">" "</span> (my/convert-sketch-title-to-filename heading) <span class="org-string">".tif"</span>)
                             directory)))
     (<span class="org-keyword">unless</span> (file-exists-p filename) (copy-file template filename))
+    (<span class="org-keyword">unless</span> (org-entry-get (point) <span class="org-string">"Effort"</span>) (org-set-property <span class="org-string">"Effort"</span> <span class="org-string">"0:15"</span>))
     (<span class="org-keyword">if</span> (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
     (my/org-quantified-track <span class="org-string">"Drawing"</span>)
     (<span class="org-keyword">save-window-excursion</span>
-      (shell-command <span class="org-string">"c:/my/Dropbox/bin/orient /rotate:180"</span>)
+      (shell-command <span class="org-string">"c:/sacha/Dropbox/bin/orient /rotate:180"</span>)
       (shell-command
        (concat (shell-quote-argument my/autodesk-sketchbook-executable)
                <span class="org-string">" "</span>
@@ -7222,14 +7224,20 @@ specified number of them) and then opens the last one for me to edit.
         (erase-buffer)
         (widget-create 'push-button
                        <span class="org-builtin">:notify</span> (<span class="org-keyword">lambda</span> (<span class="org-type">&amp;rest</span> ignore)
-                                 (message <span class="org-string">"Hello"</span>)
-                                 (shell-command <span class="org-string">"c:/my/Dropbox/bin/orient /rotate:0"</span>)
+                                 (shell-command <span class="org-string">"c:/sacha/Dropbox/bin/orient /rotate:0"</span>)
                                  (delete-window))
                        <span class="org-string">"Done"</span>)
         (text-scale-set 10)
         (widget-setup)
         (widget-minor-mode)
         (pop-to-buffer (current-buffer))))))
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/helm-org-prepare-index-card-for-subtree</span> (candidate)
+  (<span class="org-keyword">let</span> ((location (org-refile--get-location candidate my/helm-org-refile-locations)))
+    (<span class="org-keyword">save-window-excursion</span>
+      (<span class="org-keyword">save-excursion</span>
+        (org-refile 4 nil location)
+        (my/prepare-index-card-for-subtree)) t))) 
 
 (add-to-list 'org-speed-commands-user '(<span class="org-string">"d"</span> call-interactively 'my/prepare-index-card-for-subtree))
 </pre>
@@ -7434,7 +7442,7 @@ Aspect ratio is width / height
   (interactive (list (point) (mark) (<span class="org-keyword">if</span> current-prefix-arg (read-string <span class="org-string">"Tiling: "</span>))))
   <span class="org-comment-delimiter">;; </span><span class="org-comment">Extract the links</span>
   (<span class="org-keyword">let*</span> ((files (my/extract-image-filenames beg end))
-         (output-file <span class="org-string">"c:/my/dropbox/inbox/output.png"</span>))
+         (output-file <span class="org-string">"c:/sacha/dropbox/inbox/output.png"</span>))
     (<span class="org-keyword">unless</span> tiles
       (setq tiles
             (format <span class="org-string">"%dx"</span>
@@ -7479,7 +7487,7 @@ Convenience functions to make my life easier when sketchnoting books.
   <span class="org-doc">"Convert TIFF to PNG."</span>
   (interactive)
   (<span class="org-keyword">let</span> ((basename (org-entry-get-with-inheritance <span class="org-string">"BASENAME"</span>)))
-    (shell-command (format <span class="org-string">"convert \"c:/my/dropbox/inbox/%s.tif\" \"c:/my/dropbox/inbox/%s.png\""</span>
+    (shell-command (format <span class="org-string">"convert \"c:/sacha/dropbox/inbox/%s.tif\" \"c:/sacha/dropbox/inbox/%s.png\""</span>
                            basename
                            basename))))
 

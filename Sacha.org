@@ -797,64 +797,67 @@ Repeated invocations toggle between the two most recently open buffers."
     (switch-to-buffer-other-window "*Org Agenda*"))
    (t (org-agenda nil "a"))))
 
-(defvar my/key-chord-command-map (make-sparse-keymap))
-(define-key my/key-chord-command-map "k" 'kill-sexp)
-(define-key my/key-chord-command-map "h" 'emms-pause)
-(define-key my/key-chord-command-map "u" 'emms-pause)
-(define-key my/key-chord-command-map "a" 'my/org-check-agenda)
-(define-key my/key-chord-command-map "o" 'my/org-check-agenda)
-(define-key my/key-chord-command-map "." 'repeat)
-(define-key my/key-chord-command-map "r" my/refile-map)
-(define-key my/key-chord-command-map "t" 'emms-seek-backward)
-(define-key my/key-chord-command-map "s" 'emms-seek-to)
-(define-key my/key-chord-command-map "i" 'imenu)
-(define-key my/key-chord-command-map "+" (my/def-rep-command '(("+" . text-scale-increase) ("-" . text-scale-decrease))))
-(define-key my/key-chord-command-map "-" (my/def-rep-command '(("-" . text-scale-decrease)("+" . text-scale-increase) )))
 #+END_SRC
 
 Now let's set up the actual keychords.
 
 #+BEGIN_SRC emacs-lisp
-(use-package key-chord
-  :init
-  (progn
-    (fset 'key-chord-define 'my/key-chord-define)
-    (setq key-chord-one-key-delay 0.16)
-    (key-chord-mode 1)
-    ;; k can be bound too
-    (key-chord-define-global "uu"     'undo)
-    (key-chord-define-global "jj"     'ace-jump-word-mode)
-    (key-chord-define-global "yy"
-          (my/def-rep-command
-           '(nil
-             ("<left>" . windmove-left)
-             ("<right>" . windmove-right)
-             ("<down>" . windmove-down)
-             ("<up>" . windmove-up)
-             ("y" . other-window)
-             ("h" . ace-window)
-             ("s" . (lambda () (interactive) (ace-window 4)))
-             ("d" . (lambda () (interactive) (ace-window 16)))
-             )
-           ))
-    (key-chord-define-global "jw"     'ace-window)
-    (key-chord-define-global "jl"     'ace-jump-line-mode)
-    (key-chord-define-global "j."
-                             (my/def-rep-command
-                              '(nil
-                                ("<up>" . join-line)
-                                ("<down>" . (lambda () (interactive) (join-line 1)))
-                                ("t" . join-line)
-                                ("n" . (lambda () (interactive) (join-line 1)))))))
-    ;; not an ace-jump, but still useful
-    ;(key-chord-define-global "jZ"     'ace-jump-zap-to-char)
-    (key-chord-define-global "FF"     'find-file)
-    (key-chord-define-global "qq"     'my/org-quick-clock-in-task)
-    (key-chord-define-global "hh"     my/key-chord-command-map)
-    (key-chord-define-global "hc"     'emms-seek-forward)
-    (key-chord-define-global "xx"     'er/expand-region)
-    (key-chord-define-global "  "     'my/insert-space-or-expand)
-    (key-chord-define-global "JJ"     'my/switch-to-previous-buffer))
+  (use-package key-chord
+    :init
+    (progn
+      (fset 'key-chord-define 'my/key-chord-define)
+      (setq key-chord-one-key-delay 0.16)
+      (key-chord-mode 1)
+      ;; k can be bound too
+      (key-chord-define-global "uu"     'undo)
+      (key-chord-define-global "jj"     'ace-jump-word-mode)
+      (key-chord-define-global "yy"
+            (defhydra my/window-movement ()
+             ("<left>" windmove-left)
+             ("<right>" windmove-right)
+             ("<down>" windmove-down)
+             ("<up>" windmove-up)
+             ("y" other-window "other")
+             ("h" ace-window "ace")
+             ("f" find-file "file")
+             ("F" find-file-other-window "other file")
+             ("v" (progn (split-window-right) (windmove-right)))
+             ("x" (progn (split-window-below) (windmove-down)))
+             ("o" delete-other-windows :color blue)
+             ("a" ace-window)
+             ("s" ace-swap-window)
+             ("d" delete-window)
+             ("D" ace-delete-window)
+             ("i" ace-maximize-window)
+             ("b" helm-buffers-list)
+             ("q" nil)))
+      (key-chord-define-global "jw"     'ace-window)
+      (key-chord-define-global "jl"     'ace-jump-line-mode)
+      (key-chord-define-global "j."
+                               (defhydra join-lines ()
+                                ("<up>" join-line)
+                                ("<down>" (join-line 1))
+                                ("t" join-line)
+                                ("n" (join-line 1)))))
+      ;; not an ace-jump, but still useful
+      ;(key-chord-define-global "jZ"     'ace-jump-zap-to-char)
+      (key-chord-define-global "FF"     'find-file)
+      (key-chord-define-global "qq"     'my/org-quick-clock-in-task)
+      (key-chord-define-global "hh"     
+                               (defhydra my/key-chord-commands ()
+                                 ("k" kill-sexp)
+                                 ("h" emms-pause :color blue)
+                                 ("a" my/org-check-agenda :color blue)
+                                 ("." repeat)
+                                 ("t" emms-seek-backward)
+                                 ("s" emms-seek-to :color blue)
+                                 ("i" imenu :color blue)
+                                 ("+" text-scale-increase)
+                                 ("-" text-scale-decrease)))
+      (key-chord-define-global "hc"     'emms-seek-forward)
+      (key-chord-define-global "xx"     'er/expand-region)
+      (key-chord-define-global "  "     'my/insert-space-or-expand)
+      (key-chord-define-global "JJ"     'my/switch-to-previous-buffer))
 #+END_SRC
 *** Smartscan
 
@@ -2360,9 +2363,13 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
        "Prepare weekly review template."
        (interactive)
        (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
-             start end)
+             start end links)
          (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
          (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
+         (setq links (my/evernote-export-and-extract start end))
+         (with-temp-buffer
+          (insert links)
+          (my/open-urls-in-region (point-min) (point-max)))
          (outline-next-heading)
            (insert
             "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
@@ -2370,7 +2377,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
             "*Sketches*\n\n"
             (my/flickr-export-and-extract start end) "\n"
             "*Link round-up*\n\n"
-            (my/evernote-export-and-extract start end)
+            links
             "\n\n*Focus areas and time review*\n\n"
             (my/org-summarize-focus-areas)
             "\n")))
@@ -4171,9 +4178,9 @@ cool. On Windows, these things help a little.
 
 #+begin_src emacs-lisp
   (use-package smartparens
-    :ensure t :defer t
+    :ensure t 
     :diminish smartparens
-    :config
+    :idle
     (progn
       (require 'smartparens-config)
       (add-hook 'emacs-lisp-mode-hook 'smartparens-mode)
@@ -4349,7 +4356,12 @@ Got sdic from http://namazu.org/~tsuchiya/sdic/ . Attempting to get this to work
 	      sdic-waei-dictionary-list))))
 #+end_src
 
+** Clipboard
 
+#+begin_src emacs-lisp
+(use-package clipmon
+  :init (progn (setq clipmon-action 'kill-new clipmon-timeout nil clipmon-sound nil clipmon-cursor-color nil) (clipmon-mode)))
+#+end_src
 * Other cool configs you may want to check out
 <<links>>
 
@@ -5254,39 +5266,25 @@ specified number of them) and then opens the last one for me to edit.
           (copy-file template temp-file)
           (setq n (1- n))
           (when (= n 0)
-              (quantified-track "Drawing")
-              (shell-command
-               (concat (shell-quote-argument my/autodesk-sketchbook-executable)
-                       " "
-                       (shell-quote-argument temp-file) " &"))))
-        (setq counter (1+ counter)))))
-
-  (defun my/prepare-index-card-for-subtree ()
-    "Create an index card template for the current subtree."
-    (interactive)
-    (let* ((directory "~/Dropbox/Inbox")
-           (template "c:/data/drawing-templates/custom/0 - index.tif")
-           (date (org-read-date nil nil "."))
-           (heading (elt (org-heading-components) 4))
-           (filename
-            (expand-file-name (concat date " " (my/convert-sketch-title-to-filename heading) ".tif")
-                              directory)))
-      (unless (file-exists-p filename) (copy-file template filename))
-      (unless (org-entry-get (point) "Effort") (org-set-property "Effort" "0:15"))
-      (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
-      (my/org-quantified-track "Drawing")
-      (save-window-excursion
-        (shell-command "c:/sacha/Dropbox/bin/orient /rotate:180")
-        (shell-command
-         (concat (shell-quote-argument my/autodesk-sketchbook-executable)
-                 " "
-                 (shell-quote-argument filename) " &")))
+            (quantified-track "Drawing")
+            (shell-command
+             (concat (shell-quote-argument my/autodesk-sketchbook-executable)
+                     " "
+                     (shell-quote-argument temp-file) " &"))))
+        (setq counter (1+ counter)))
+      (my/rotate-screen 180)
       (with-current-buffer (get-buffer-create "*Done*")
         (let ((inhibit-read-only t))
           (erase-buffer)
           (widget-create 'push-button
                          :notify (lambda (&rest ignore)
-                                   (shell-command "c:/sacha/Dropbox/bin/orient /rotate:0")
+                                   (my/rotate-screen 0)
+                                   (delete-window)
+                                   (my/rename-scanned-cards))
+                         "Process files")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/rotate-screen 0)
                                    (delete-window))
                          "Done")
           (text-scale-set 10)
@@ -5294,12 +5292,124 @@ specified number of them) and then opens the last one for me to edit.
           (widget-minor-mode)
           (pop-to-buffer (current-buffer))))))
 
+  (defvar my/index-card-file-name nil "Most recent index card file name.")
+  (defun my/rotate-screen (degrees)
+    (shell-command (format "c:/sacha/Dropbox/bin/orient /rotate:%d" degrees)))
+
+  (defun my/prepare-index-card-template (&optional name)
+    "Create the image file for NAME. Return the new filename."
+    (let* ((directory "~/Dropbox/Inbox")
+           (template "c:/data/drawing-templates/custom/0 - index.tif")
+           (date (org-read-date nil nil "."))
+           (filename
+            (expand-file-name (concat date " " (my/convert-sketch-title-to-filename (or name "")) ".tif") directory))
+           (counter 1))
+      (unless name
+        (setq name (expand-file-name (format "%s-%d.tif" date counter) directory))
+        (while (file-exists-p name)
+          (setq counter (1+ counter))
+          (setq name (expand-file-name (format "%s-%d.tif" date counter) directory))))
+      (unless (file-exists-p filename) (copy-file template filename))
+      filename))
+
+  (defun my/prepare-index-card (&optional name)
+    "Prepare the index card for NAME.
+  Rotate the screen and show a button to un-rotate the screen."
+    (interactive "MName: ")
+    (setq my/index-card-file-name (my/prepare-index-card-template name))
+    (save-window-excursion
+      (my/rotate-screen 180)
+      (shell-command
+       (concat (shell-quote-argument my/autodesk-sketchbook-executable)
+               " " (shell-quote-argument my/index-card-file-name) " &")))
+    (with-current-buffer (get-buffer-create "*Done*")
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (widget-create 'push-button
+                       :notify (lambda (&rest ignore)
+                                 (my/rotate-screen 0)
+                                 (delete-window)
+                                 (my/process-tiff my/index-card-file-name))
+                       "Upload")
+        (widget-create 'push-button
+                       :notify (lambda (&rest ignore)
+                                 (my/rotate-screen 0)
+                                 (delete-window))
+                       "Done")
+        (text-scale-set 10)
+        (widget-setup)
+        (widget-minor-mode)
+        (pop-to-buffer (current-buffer)))))
+
+  (defun my/prepare-index-card-for-subtree ()
+    "Create an index card template for the current subtree."
+    (interactive)
+    (let* ((heading (elt (org-heading-components) 4)))
+      (unless (org-entry-get (point) "Effort") (org-set-property "Effort" "0:15"))
+      (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
+      (my/org-quantified-track "Drawing")
+      (if (org-at-heading-p) (forward-line 1))
+      (my/prepare-index-card heading)))
+
   (defun my/helm-org-prepare-index-card-for-subtree (candidate)
     (let ((location (org-refile--get-location candidate my/helm-org-refile-locations)))
       (save-window-excursion
         (save-excursion
           (org-refile 4 nil location)
           (my/prepare-index-card-for-subtree)) t))) 
+
+  (defun my/open-image (filename)
+    "Open image in Autodesk Sketchbook Pro."
+    (shell-command
+     (concat (shell-quote-argument my/autodesk-sketchbook-executable)
+             " " (shell-quote-argument filename) " &")))
+
+  (defun my/org-prompt-index-cards ()
+    "Display a buffer for easy selection of questions to work on."
+    (interactive)
+    (let ((questions
+           (cl-sort (org-map-entries 'org-heading-components "TODO=\"DRAW\"")
+                    '< :key (lambda (x) (or (elt x 3) 100)))))
+      (with-current-buffer (get-buffer-create "*Sketches*")
+        (let ((inhibit-read-only t))
+          (quantified-track "Drawing")
+          (erase-buffer)
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/open-image (my/prepare-index-card-template)))
+                         "New")
+          (insert "\n")
+          (mapc (lambda (q)
+                  (widget-create 'push-button
+                                 :notify (lambda (&rest ignore)
+                                           (my/open-image (my/prepare-index-card-template (elt q 4))))
+                                 (elt q 4))
+                  (insert "\n"))
+                questions)
+          (insert "\n")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/rotate-screen 0)
+                                   (delete-window)
+                                   (my/rename-scanned-cards))
+                         "Process")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/rotate-screen 0)
+                                   (delete-window))
+                         "Quit")
+          (text-scale-set 5)
+          (widget-setup)
+          (widget-minor-mode)
+          (scroll-bar-mode)
+          (switch-to-buffer (current-buffer))
+          (delete-other-windows)))))
+
+  (defun my/prepare-index-card-for-journal ()
+    "Create an index card for my process journal."
+    (interactive)
+    (quantified-track "Drawing")
+    (my/prepare-index-card "Journal"))
 
   (add-to-list 'org-speed-commands-user '("d" call-interactively 'my/prepare-index-card-for-subtree))
 #+end_src
@@ -5313,6 +5423,24 @@ properly.
 **** Rename scanned index cards
 
  #+begin_src emacs-lisp
+   (use-package s :ensure t)
+   (defun my/process-tiff (filename)
+     "Convert, display, rename, and upload FILENAME."
+     (save-window-excursion
+       (call-process "mogrify" nil nil nil "-format" "png" "-quality" "1" filename)
+       (delete-other-windows)
+       (find-file (setq filename (s-append ".png" (s-chop-suffix ".tif" filename))))
+       (let ((new-name
+              (read-string "New name: "
+                           (concat
+                            (if (string-match "/\\(\\([0-9]+-[0-9]+-[0-9]+\\)\\( .*\\)?\\)\\.png" filename)
+                                (match-string 1 filename)
+                              filename)
+                            " "))))
+         (rename-file filename (concat new-name ".png"))
+         (setq filename (expand-file-name (concat new-name ".png") (file-name-directory filename)))))
+     (call-process "up" nil t nil filename))
+
    (defun my/rename-scanned-cards ()
      "Display and rename the scanned or saved files."
      (interactive)
@@ -5326,7 +5454,7 @@ properly.
      (mapc (lambda (filename)
              (find-file filename)
              (delete-other-windows)
-             (when (string-match "/\\(\\([0-9]+-[0-9]+-[0-9]+\\)\\( .*\\)?\\)\\.png" filename)
+             (when (string-match "/\\(\\([0-9]+-[0-9]+-[0-9]+\\)\\( ?.*\\)?\\)\\.png" filename)
                (let ((kill-buffer-query-functions nil)
                      (new-name (read-string "New name: "
                                             (concat (match-string 1 filename) " "))))
@@ -5362,7 +5490,7 @@ that they're scaled to the window size.
  (use-package image+ :defer t
   :load-path "~/elisp/Emacs-imagex"
   :commands (imagex-global-sticky-mode imagex-auto-adjust-mode)
-  :defer (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))
+  :init (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))
  #+end_src
 
 **** Get information for sketched books

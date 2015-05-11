@@ -179,7 +179,7 @@ possible, although I prefer ido's way of switching buffers.
 
 #+BEGIN_SRC emacs-lisp
 (use-package helm
-  :ensure helm
+  :ensure t
   :diminish helm-mode
   :init
   (progn
@@ -189,6 +189,7 @@ possible, although I prefer ido's way of switching buffers.
     (setq helm-idle-delay 0.0 ; update fast sources immediately (doesn't).
           helm-input-idle-delay 0.01  ; this actually updates things
                                         ; reeeelatively quickly.
+          helm-yas-display-key-on-candidate t
           helm-quick-update t
           helm-M-x-requires-pattern nil
           helm-ff-skip-boring-files t)
@@ -201,6 +202,8 @@ possible, although I prefer ido's way of switching buffers.
          ("M-x" . helm-M-x)
          ("C-x c o" . helm-occur)
          ("C-x c s" . helm-swoop)
+         ("C-x c y" . helm-yas-complete)
+         ("C-x c Y" . helm-yas-create-snippet-on-region)
          ("C-x c b" . my/helm-do-grep-book-notes)
          ("C-x c SPC" . helm-all-mark-rings)))
 (ido-mode -1) ;; Turn off ido mode in case I enabled it accidentally
@@ -224,7 +227,7 @@ helm-grep? Bit slow and hard to read, though.
   (helm-do-grep-1 (list my/book-notes-directory)))
 #+END_SRC
 
-**** DONE Getting Helm and org-refile to clock in or create tasks :emacs:org:helm:
+**** Getting Helm and org-refile to clock in or create tasks :emacs:org:helm:
      CLOSED: [2015-02-02 Mon 08:40] SCHEDULED: <2015-02-02 Mon>
      :PROPERTIES:
      :Effort:   1:00
@@ -615,7 +618,7 @@ allowing you to repeat those functions as needed."
         (set-transient-map keymap t))))
 #+END_SRC
 **** TODO Look for opportunities to use this
-     
+
 ** Navigation
 *** Pop to mark
 
@@ -684,45 +687,6 @@ Copied from http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tri
 (bind-key "C-x 3" 'my/hsplit-last-buffer)
 
 #+END_SRC
-*** DONE Searching based on the current word
-    CLOSED: [2015-01-12 Mon 23:59]
-    :LOGBOOK:
-    - State "DONE"       from "DONE"       [2015-01-12 Mon 23:59]
-    - State "DONE"       from "DONE"       [2015-01-12 Mon 23:59]
-    - State "DONE"       from "DONE"       [2015-01-12 Mon 23:59]
-    - State "DONE"       from ""           [2015-01-12 Mon 23:59]
-    :END:
-
-This lets me search up and down. I don't use this often, though.
-
-#+BEGIN_SRC emacs-lisp
-(defun my/search-word-backward ()
-  "Find the previous occurrence of the current word."
-  (interactive)
-  (let ((cur (point)))
-    (skip-syntax-backward "w_")
-    (goto-char
-     (if (re-search-backward (concat "\\_<" (current-word) "\\_>") nil t)
-         (match-beginning 0)
-       cur))))
-
-(defun my/search-word-forward ()
-  "Find the next occurrence of the current word."
-  (interactive)
-  (let ((cur (point)))
-    (skip-syntax-forward "w_")
-    (goto-char
-     (if (re-search-forward (concat "\\_<" (current-word) "\\_>") nil t)
-         (match-beginning 0)
-       cur))))
-(defadvice search-for-keyword (around sacha activate)
-  "Match in a case-insensitive way."
-  (let ((case-fold-search t))
-    ad-do-it))
-(global-set-key '[M-up] 'my/search-word-backward)
-(global-set-key '[M-down] 'my/search-word-forward)
-#+END_SRC
-
 *** Frequently-accessed files
 Registers allow you to jump to a file or other location quickly. To
 jump to a register, use =C-x r j= followed by the letter of the
@@ -753,6 +717,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (my/defshortcut ?I "~/Dropbox/Inbox")
 (my/defshortcut ?g "~/sachac.github.io/evil-plans/index.org")
 (my/defshortcut ?c "~/code/dev/elisp-course.org")
+(my/defshortcut ?C "~/personal/calendar.org")
 (my/defshortcut ?l "~/dropbox/public/sharing/learning.org")
 (my/defshortcut ?q "~/personal/questions.org")
 #+END_SRC
@@ -843,16 +808,20 @@ Now let's set up the actual keychords.
       ;(key-chord-define-global "jZ"     'ace-jump-zap-to-char)
       (key-chord-define-global "FF"     'find-file)
       (key-chord-define-global "qq"     'my/org-quick-clock-in-task)
-      (key-chord-define-global "hh"     
+      (key-chord-define-global "hh"
                                (defhydra my/key-chord-commands ()
                                  ("k" kill-sexp)
                                  ("h" emms-pause :color blue)
+                                 ("b" helm-buffers-list :color blue)
+                                 ("f" find-file :color blue)
                                  ("a" my/org-check-agenda :color blue)
                                  ("." repeat)
+                                 ("o" my/org-off-my-computer :color blue)
                                  ("t" emms-seek-backward)
                                  ("s" emms-seek-to :color blue)
                                  ("i" imenu :color blue)
                                  ("+" text-scale-increase)
+                                 ("q" nil)
                                  ("-" text-scale-decrease)))
       (key-chord-define-global "hc"     'emms-seek-forward)
       (key-chord-define-global "xx"     'er/expand-region)
@@ -1091,24 +1060,24 @@ stuff.
 
 Here are the Org files I use. I should probably organize them better. =)
 
-| organizer.org        | My main Org file. Inbox for M-x org-capture, tasks, weekly reviews, etc.                          |
-| business.org         | Business-related notes and TODOs                                                                  |
-| people.org           | People-related tasks                                                                              |
-| [[http://sachachua.com/evil-plans][evil-plans/index.org]] | High-level goals                                                                                  |
-| [[http://sachachua.com/outline][sharing/index.org]]    | Things to write about                                                                             |
-| decisions.org        | Pending, current, and reviewed decisions                                                          |
-| [[http://sachachua.com/blog/index][blog.org]]             | Topic index for my blog                                                                           |
-| [[http://sachachua.com/my-learning][learning.org]]         | Learning plan                                                                                     |
-| outline.org          | Huge outline of notes by category                                                                 |
-| tracking.org         | Temporary Org file for tracking various things                                                    |
-| delegation.org       | Templates for assigning tasks - now using Google Docs instead                                     |
-| books.org            | Huge file with book notes                                                                         |
-| calendar.org         | Used to use this with ical2org, but have been having problems with ical2org lately; no longer use |
-| ideal.org            | Planning ideal days                                                                               |
-| archive.org          | Archived subtrees                                                                                 |
-| latin.org            | Latin notes                                                                                       |
-| 101things.org        | Old goals for 101 things in 1001 days                                                             |
-| life.org             | Questions, processes, tools                                                                       |
+| organizer.org        | My main Org file. Inbox for M-x org-capture, tasks, weekly reviews, etc. |
+| business.org         | Business-related notes and TODOs                                         |
+| people.org           | People-related tasks                                                     |
+| [[http://sachachua.com/evil-plans][evil-plans/index.org]] | High-level goals                                                         |
+| [[http://sachachua.com/outline][sharing/index.org]]    | Things to write about                                                    |
+| decisions.org        | Pending, current, and reviewed decisions                                 |
+| [[http://sachachua.com/blog/index][blog.org]]             | Topic index for my blog                                                  |
+| [[http://sachachua.com/my-learning][learning.org]]         | Learning plan                                                            |
+| outline.org          | Huge outline of notes by category                                        |
+| tracking.org         | Temporary Org file for tracking various things                           |
+| delegation.org       | Templates for assigning tasks - now using Google Docs instead            |
+| books.org            | Huge file with book notes                                                |
+| calendar.org         | Now using this with org-gcal                                             |
+| ideal.org            | Planning ideal days                                                      |
+| archive.org          | Archived subtrees                                                        |
+| latin.org            | Latin notes                                                              |
+| 101things.org        | Old goals for 101 things in 1001 days                                    |
+| life.org             | Questions, processes, tools                                              |
 
 *** Modules
 Org has a whole bunch of optional modules. These are the ones I'm
@@ -1280,99 +1249,115 @@ This quickly adds a same-level heading for the succeeding day.
      I use =org-capture= templates to quickly jot down tasks, ledger
      entries, notes, and other semi-structured pieces of information.
 #+begin_src emacs-lisp
-    (defvar my/org-basic-task-template "* TODO %^{Task}
-    SCHEDULED: %^t
-    :PROPERTIES:
-    :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
-    :END:
-    %?
-    " "Basic task data")
-    (setq org-capture-templates
-          `(("t" "Tasks" entry
-             (file+headline "~/personal/organizer.org" "Tasks")
-             ,my/org-basic-task-template)
-            ("T" "Quick task" entry
-             (file+headline "~/personal/organizer.org" "Tasks")
-             "* TODO %^{Task}"
-             :immediate-finish t)
-            ("e" "Emacs idea" entry
-             (file+headline "~/code/dev/emacs-notes/tasks.org" "Emacs")
-             "* TODO %^{Task}"
-             :immediate-finish t)
-            ("b" "Business task" entry
-             (file+headline "~/personal/business.org" "Tasks")
-             ,my/org-basic-task-template)
-            ("p" "People task" entry
-             (file+headline "~/personal/people.org" "Tasks")
-             ,my/org-basic-task-template)
-            ("j" "Journal entry" plain
-             (file+datetree "~/personal/journal.org")
-             "%K - %a\n%i\n%?\n"
-             :unnarrowed t)
-            ("J" "Journal entry with date" plain
-             (file+datetree+prompt "~/personal/journal.org")
-             "%K - %a\n%i\n%?\n"
-             :unnarrowed t)
-            ("s" "Journal entry with date, scheduled" entry
-             (file+datetree+prompt "~/personal/journal.org")
-             "%K - %a\n%i\n%?\n"
-             :unnarrowed t)
-            ("db" "Done - Business" entry
-             (file+headline "~/personal/business.org" "Tasks")
-             "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-            ("dp" "Done - People" entry
-             (file+headline "~/personal/people.org" "Tasks")
-             "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-            ("dt" "Done - Task" entry
-             (file+headline "~/personal/organizer.org" "Tasks")
-             "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-            ("q" "Quick note" item
-             (file+headline "~/personal/organizer.org" "Quick notes"))
-            ("l" "Ledger entries")
-            ("lm" "MBNA" plain
-             (file "~/personal/ledger")
-             "%(org-read-date) %^{Payee}
-      Liabilities:MBNA
-      Expenses:%^{Account}  $%^{Amount}
-    " :immediate-finish t)
-            ("ln" "No Frills" plain
-             (file "~/personal/ledger")
-             "%(let ((org-read-date-prefer-future nil)) (org-read-date)) * No Frills
-      Liabilities:MBNA
-      Assets:Wayne:Groceries  $%^{Amount}
-    " :immediate-finish t)
-            ("lc" "Cash" plain
-             (file "~/personal/ledger")
-             "%(org-read-date) * %^{Payee}
-      Expenses:Cash
-      Expenses:%^{Account}  %^{Amount}
-    ")
-            ("b" "Book" entry
-             (file+datetree "~/personal/books.org" "Inbox")
-             "* %^{Title}  %^g
-    %i
-    ,*Author(s):* %^{Author} \\\\
-    ,*ISBN:* %^{ISBN}
+  (defun my/org-contacts-template-email (&optional return-value)
+    "Try to return the contact email for a template.
+  If not found return RETURN-VALUE or something that would ask the user."
+    (or (cadr (if (gnus-alive-p)
+                  (gnus-with-article-headers
+                    (mail-extract-address-components
+                     (or (mail-fetch-field "Reply-To") (mail-fetch-field "From") "")))))
+        return-value
+        (concat "%^{" org-contacts-email-property "}p")))
 
-    %?
 
-    ,*Review on:* %^t \\
-    %a
-    %U"
-             :clock-in :clock-resume)
-             ("c" "Contact" entry (file "~/personal/contacts.org")
-              "* %(org-contacts-template-name)
-    :PROPERTIES:
-    :EMAIL: %(org-contacts-template-email)
-    :END:")
-             ("n" "Daily note" table-line (file+olp "~/personal/organizer.org" "Daily notes")
-              "| %u | %^{Note} |"
-              :immediate-finish t)
-             ("r" "Notes" entry
-              (file+datetree "~/personal/organizer.org")
-              "* %?\n\n%i\n"
-              )))
-    (bind-key "C-M-r" 'org-capture)
+  (defvar my/org-basic-task-template "* TODO %^{Task}
+  SCHEDULED: %^t
+  %<%Y-%m-%d %H:%M>
+  :PROPERTIES:
+  :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
+  :END:
+  %?
+  " "Basic task data")
+  (setq org-capture-templates
+        `(("t" "Tasks" entry
+           (file+headline "~/personal/organizer.org" "Tasks")
+           ,my/org-basic-task-template)
+          ("T" "Quick task" entry
+           (file+headline "~/personal/organizer.org" "Tasks")
+           "* TODO %^{Task}"
+           :immediate-finish t)
+          ("i" "Interrupting task" entry
+           (file+headline "~/personal/organizer.org" "Tasks")
+           "* STARTED %^{Task}"
+           :clock-in :clock-resume)
+          ("e" "Emacs idea" entry
+           (file+headline "~/code/dev/emacs-notes/tasks.org" "Emacs")
+           "* TODO %^{Task}"
+           :immediate-finish t)
+          ("b" "Business task" entry
+           (file+headline "~/personal/business.org" "Tasks")
+           ,my/org-basic-task-template)
+          ("p" "People task" entry
+           (file+headline "~/personal/people.org" "Tasks")
+           ,my/org-basic-task-template)
+          ("j" "Journal entry" plain
+           (file+datetree "~/personal/journal.org")
+           "%K - %a\n%i\n%?\n"
+           :unnarrowed t)
+          ("J" "Journal entry with date" plain
+           (file+datetree+prompt "~/personal/journal.org")
+           "%K - %a\n%i\n%?\n"
+           :unnarrowed t)
+          ("s" "Journal entry with date, scheduled" entry
+           (file+datetree+prompt "~/personal/journal.org")
+           "* \n%K - %a\n%t\t%i\n%?\n"
+           :unnarrowed t)
+          ("db" "Done - Business" entry
+           (file+headline "~/personal/business.org" "Tasks")
+           "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+          ("dp" "Done - People" entry
+           (file+headline "~/personal/people.org" "Tasks")
+           "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+          ("dt" "Done - Task" entry
+           (file+headline "~/personal/organizer.org" "Tasks")
+           "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+          ("q" "Quick note" item
+           (file+headline "~/personal/organizer.org" "Quick notes"))
+          ("l" "Ledger entries")
+          ("lm" "MBNA" plain
+           (file "~/personal/ledger")
+           "%(org-read-date) %^{Payee}
+    Liabilities:MBNA
+    Expenses:%^{Account}  $%^{Amount}
+  " :immediate-finish t)
+          ("ln" "No Frills" plain
+           (file "~/personal/ledger")
+           "%(let ((org-read-date-prefer-future nil)) (org-read-date)) * No Frills
+    Liabilities:MBNA
+    Assets:Wayne:Groceries  $%^{Amount}
+  " :immediate-finish t)
+          ("lc" "Cash" plain
+           (file "~/personal/ledger")
+           "%(org-read-date) * %^{Payee}
+    Expenses:Cash
+    Expenses:%^{Account}  %^{Amount}
+  ")
+          ("B" "Book" entry
+           (file+datetree "~/personal/books.org" "Inbox")
+           "* %^{Title}  %^g
+  %i
+  ,*Author(s):* %^{Author} \\\\
+  ,*ISBN:* %^{ISBN}
+
+  %?
+
+  ,*Review on:* %^t \\
+  %a
+  %U"
+           :clock-in :clock-resume)
+           ("c" "Contact" entry (file "~/personal/contacts.org")
+            "* %(org-contacts-template-name)
+  :PROPERTIES:
+  :EMAIL: %(my/org-contacts-template-email)
+  :END:")
+           ("n" "Daily note" table-line (file+olp "~/personal/organizer.org" "Daily notes")
+            "| %u | %^{Note} |"
+            :immediate-finish t)
+           ("r" "Notes" entry
+            (file+datetree "~/personal/organizer.org")
+            "* %?\n\n%i\n"
+            )))
+  (bind-key "C-M-r" 'org-capture)
 #+end_src
 ***** Allow refiling in the middle(ish) of a capture
 
@@ -1428,6 +1413,9 @@ able to clock in on them.
                    (string-match a (car b))
                    (or (null file)
                        (string-match file (elt b)))))))
+     (defun my/org-refile-subtree-to (name)
+       (org-refile nil nil (my/org-refile-get-location-exact name)))
+
      (defun my/org-refile-get-location-exact (name)
        "Return the refile location identified by NAME."
        (let ((org-refile-targets org-refile-targets) tbl)
@@ -1571,14 +1559,14 @@ able to clock in on them.
     (progn
      (setq org-clock-idle-time nil)
      (setq org-log-done 'time)
-     (setq org-clock-continuously t)
+     (setq org-clock-continuously nil)
      (setq org-clock-persist t)
      (setq org-clock-in-switch-to-state "STARTED")
      (setq org-clock-in-resume t)
+     (setq org-show-notification-handler 'message)
      (setq org-clock-report-include-clocking-task t))
     :config
-    (progn
-     (org-clock-persistence-insinuate)))
+     (org-clock-persistence-insinuate))
  #+end_src
 
  Too many clock entries clutter up a heading.
@@ -1691,20 +1679,72 @@ able to clock in on them.
            ("i" "#+index: ?" "#+index: ?")
            ("I" "#+include %file ?" "<include file=%file markup=\"?\">")))
  #+end_src
+
+This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exporting-org-mode-nested-blocks-to-html
+
+#+begin_src emacs-lisp
+(defun my/org-html-quote2 (block backend info)
+  (when (org-export-derived-backend-p backend 'html)
+  (when (string-match "\\`<div class=\"quote2\">" block)
+  (setq block (replace-match "<blockquote>" t nil block))
+  (string-match "</div>\n\\'" block)
+  (setq block (replace-match "</blockquote>\n" t nil block))
+  block)))
+(eval-after-load 'ox
+'(add-to-list 'org-export-filter-special-block-functions 'my/org-html-quote2))
+#+end_src
 **** Emacs chats, Emacs hangouts
 
  #+begin_src emacs-lisp
- (defun my/org-link-youtube-time (url beg end)
-   "Link times of the form h:mm to YouTube video at URL.
- Works on region defined by BEG and END."
-   (interactive (list (read-string "URL: " (org-entry-get-with-inheritance "YOUTUBE")) (point) (mark)))
-   (save-excursion
-     (save-restriction
-       (narrow-to-region beg end)
-       (goto-char (point-min))
-       (while (re-search-forward "\\([0-9]+\\):\\([0-9]+\\)" nil t)
-         (replace-match (concat "[[" url "&t=" (match-string 1) "h" (match-string 2) "m][" (match-string 0) "]]") nil t)))))
+   (defun my/org-link-youtube-time (url beg end)
+     "Link times of the form h:mm to YouTube video at URL.
+   Works on region defined by BEG and END."
+     (interactive (list (read-string "URL: " (org-entry-get-with-inheritance "YOUTUBE")) (point) (mark)))
+     (save-excursion
+       (save-restriction
+         (narrow-to-region beg end)
+         (goto-char (point-min))
+         (let ((char (if (string-match "\\?" url) "&" "?")))
+           (while (re-search-forward "\\(\\([0-9]+\\):\\([0-9]+\\):\\([0-9]+\\)\\) ::" nil t)
+             (replace-match
+              (format "[[%s%st=%sh%sm%ss][%s]] "
+                      url
+                      char
+                      (match-string 2)
+                      (match-string 3)
+                      (match-string 4)
+                      (match-string 1)) nil t))))))
 
+   (defun my/clean-up-google-hangout-chat ()
+     (interactive)
+     (save-excursion
+       (while (re-search-forward "<hr.*?div class=\"Kc-Ma-m\".*?>" nil t)
+         (replace-match "\n| ")))
+     (save-excursion
+       (while (re-search-forward "</div><div class=\"Kc-yi-m\">" nil t)
+         (replace-match " | ")))
+     (save-excursion
+       (while (re-search-forward "</div></div><div class=\"Kc-ib\">" nil t)
+         (replace-match " | ")))
+     (save-excursion
+       (while (re-search-forward "<a rel=\"nofollow\" target=\"_blank\" href=\"\\(.*?\\)\">\\(.*?\\)</a>" nil t)
+         (replace-match "[[\\1][\\2]]")))
+     (save-excursion
+       (while (re-search-forward "</div></div></div></div>" nil t)
+         (replace-match " |")))
+     (save-excursion
+       (while (re-search-forward "&nbsp;" nil t)
+         (replace-match " ")))
+     (save-excursion
+       (while (re-search-forward "</div><div class=\"Kc-ib\">" nil t)
+         (replace-match " ")))
+     (save-excursion
+       (while (re-search-forward "<img.*?>" nil t)
+         (replace-match "")))
+     (save-excursion
+       (while (re-search-forward "<wbr>" nil t)
+         (replace-match "")))
+     )
  #+end_src
 *** Org agenda
 **** Basic configuration
@@ -2179,20 +2219,27 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
         "\\<IGNORE\\>"))
 #+end_src
 
+**** Synchronizing with Google Calendar
+
+#+begin_src emacs-lisp
+(defun my/org-gcal-notify (title mes)
+  (message "%s - %s" title mes))
+(use-package org-gcal
+  :load-path "~/elisp/org-gcal.el"
+  :init (fset 'org-gcal-notify 'my/org-gcal-notify))
+#+end_src
 *** Reviews
 **** Weekly review
-
- <<weekly-review>>
-
  :PROPERTIES:
  :CUSTOM_ID: weekly-review
  :END:
 
- I regularly post [[http://sachachua.com/blog/category/weekly][weekly reviews]] to keep track of what I'm done, remind me to plan for the upcoming week, and list blog posts, sketches, and links. I
+ <<weekly-review>>
 
-
- I want to try out grouping tasks by topic first, then breaking it
- down into previous/next week.
+ I regularly post [[http://sachachua.com/blog/category/weekly][weekly reviews]] to keep track of what I'm done,
+ remind me to plan for the upcoming week, and list blog posts,
+ sketches, and links. I want to try out grouping tasks by topic first,
+ then breaking it down into previous/next week.
 
  #+begin_src emacs-lisp
    (defvar my/weekly-review-line-regexp
@@ -2291,10 +2338,6 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
               (format "    - *Drawing* (%.1fh)\n"
                       (my/quantified-get-hours '("Business - Build - Drawing"
                                                     "Business - Build - Book review")  time-summary))
-              (format "    - *Delegation* (%.1fh)\n"
-                      (my/quantified-get-hours "Business - Build - Delegation" time-summary))
-              (format "    - *Packaging* (%.1fh)\n"
-                      (my/quantified-get-hours "Business - Build - Packaging" time-summary))
               (format "    - *Paperwork* (%.1fh)\n"
                       (my/quantified-get-hours "Business - Build - Paperwork"  time-summary))
               (format "  - *Connect* (%.1fh - %d%% of Business)\n"
@@ -2359,36 +2402,34 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
  Now we put it all together...
 
  #+begin_src emacs-lisp
-     (defun my/org-prepare-weekly-review ()
-       "Prepare weekly review template."
-       (interactive)
-       (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
-             start end links)
-         (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
-         (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
-         (setq links (my/evernote-export-and-extract start end))
-         (with-temp-buffer
-          (insert links)
-          (my/open-urls-in-region (point-min) (point-max)))
-         (outline-next-heading)
-           (insert
-            "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
-            "*Blog posts*\n\n"
-            "*Sketches*\n\n"
-            (my/flickr-export-and-extract start end) "\n"
-            "*Link round-up*\n\n"
-            links
-            "\n\n*Focus areas and time review*\n\n"
-            (my/org-summarize-focus-areas)
-            "\n")))
+(defun my/org-prepare-weekly-review (&optional skip-urls)
+  "Prepare weekly review template."
+  (interactive "p")
+  (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
+        start end links)
+    (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
+    (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
+    (setq links (my/evernote-export-and-extract start end))
+    (unless skip-urls
+      (with-temp-buffer
+        (insert links)
+        (my/open-urls-in-region (point-min) (point-max))))
+    (outline-next-heading)
+      (insert
+       "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
+       "*Blog posts*\n\n"
+       "*Sketches*\n\n"
+       (my/flickr-export-and-extract start end) "\n"
+       "*Link round-up*\n\n"
+       links
+       "\n\n*Focus areas and time review*\n\n"
+       (my/org-summarize-focus-areas)
+       "\n")))
  #+end_src
 ***** Flickr extract
 
  #+begin_src emacs-lisp
      (defun _my/clean-up-flickr-list (list)
-       (setq list
-             (replace-regexp-in-string "\\([0-9]+\\)-\\([0-9]+\\)-\\([0-9]+\\)"
-                                       "\\1.\\2.\\3" list))
        (setq list
              (replace-regexp-in-string "\\[\"" "[" list))
        (setq list
@@ -2519,7 +2560,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
          (with-temp-buffer
            (insert-file-contents filename)
            (goto-char (point-min))
-           (while (re-search-forward "<title>\\(.+?\\)</title>\\(.*?\n\\)*?.*?href=\"\\(.*?\\)\"" nil t)
+           (while (re-search-forward "<title>\\(.+?\\)</title>\\(.*?\n\\)*?via Diigo.*?href=\"\\(.*?\\)\"" nil t)
              (setq list
                    (cons
                     (cons
@@ -2535,6 +2576,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                  list)))
  #+end_src
 ****** For copying journal entries
+<<evernote-copy-journal>>
 
  #+begin_src emacs-lisp
      (defun my/evernote-export-and-extract-journal ()
@@ -2657,19 +2699,6 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
         sketches)))
  #+end_src
 
-**** Fix timestamps in Flickr links
-
- Photosync (for syncing with Flickr) can't deal with periods in filenames. Org gets confused with dashes in timestamps that are in link text. Solution? Save files with dashes, then use a little code to replace dashes in the region.
-
- #+begin_src emacs-lisp
- (defun my/fix-flickr-list (beg end)
-   (interactive "r")
-   (save-excursion (save-restriction
-     (narrow-to-region beg end)
-     (goto-char (point-min))
-     (while (re-search-forward "\\([0-9]+\\)-\\([0-9]+\\)-\\([0-9]+\\)" nil t)
-       (replace-match (concat (match-string 1) "." (match-string 2) "." (match-string 3)) nil t)))))
- #+end_src
 *** Filing
 **** Moving lines around
 
@@ -2737,8 +2766,8 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
              (save-restriction
                (widen)
                (goto-char (nth 3 location))
-               (looking-at org-outline-regexp)
-               (forward-line 1)
+               (re-search-forward org-list-full-item-re nil t)
+               (goto-char (line-beginning-position))
                (insert s)
                (org-update-statistics-cookies nil)))))))
    (bind-key "C-c f" 'my/org-file-blog-index-entries org-mode-map)
@@ -3374,6 +3403,9 @@ From https://github.com/pcmantz/elisp/blob/master/my-bindings.el
     (condition-case nil (or (my/hippie-expand-maybe nil) (insert "  "))))
 #+end_src
 
+#+RESULTS:
+: my/insert-space-or-expand
+
 This requires me to modify the behaviour of hippie-expand so that it doesn't ding so much.
 #+begin_src emacs-lisp
   (defun my/hippie-expand-maybe (arg)
@@ -3724,7 +3756,7 @@ with HTTPS sites.
 
 #+begin_src emacs-lisp
 (use-package company
-  :ensure t 
+  :ensure t
   :config
   (add-hook 'prog-mode-hook 'company-mode))
 #+end_src
@@ -3744,7 +3776,6 @@ with HTTPS sites.
 :defer t
 :init (add-to-list 'company-backends 'company-tern))
 #+end_src
-
 
 
 ** Ledger (personal finance): Make it easier to review my credit card transactions
@@ -4178,7 +4209,7 @@ cool. On Windows, these things help a little.
 
 #+begin_src emacs-lisp
   (use-package smartparens
-    :ensure t 
+    :ensure t
     :diminish smartparens
     :idle
     (progn
@@ -4360,8 +4391,21 @@ Got sdic from http://namazu.org/~tsuchiya/sdic/ . Attempting to get this to work
 
 #+begin_src emacs-lisp
 (use-package clipmon
-  :init (progn (setq clipmon-action 'kill-new clipmon-timeout nil clipmon-sound nil clipmon-cursor-color nil) (clipmon-mode)))
+  :init (progn (setq clipmon-action 'kill-new clipmon-timeout nil clipmon-sound nil clipmon-cursor-color nil clipmon-suffix nil) (clipmon-mode)))
 #+end_src
+** Search
+
+#+begin_src emacs-lisp
+  (use-package engine-mode
+    :ensure t
+    :init
+    (progn
+      (defengine my-blog "https://www.google.ca/search?q=site%3Asachachua.com+%s" "b")
+      (defengine my-photos "http://www.flickr.com/search/?w=65214961@N00&q=%s" "f")
+      (defengine mail "https://mail.google.com/mail/u/0/#search/%s" "m")
+      (engine-mode)))
+#+end_src
+
 * Other cool configs you may want to check out
 <<links>>
 
@@ -5002,7 +5046,7 @@ recently-opened files first.
 #+end_src
 
 ** Drawing
-*** DONE Digital index piles with Emacs
+*** Digital index piles with Emacs
     CLOSED: [2015-02-01 Sun 18:26]
     :PROPERTIES:
     :Effort:   2:00
@@ -5220,7 +5264,7 @@ recently-opened files first.
  to combine that with my code for using Imagemagick to create a montage
  of images. Whee!
 
-*** DONE Using Emacs to prepare files for external applications like Autodesk Sketchbook Pro
+*** Using Emacs to prepare files for external applications like Autodesk Sketchbook Pro
     CLOSED: [2015-02-01 Sun 18:47]
     :PROPERTIES:
     :Effort:   1:00
@@ -5229,59 +5273,127 @@ recently-opened files first.
     :POST_DATE: [2015-02-01 Sun 18:47]
     :POSTID:   27926
     :BLOG:     sacha
+    :ARCHIVE_TIME: 2015-05-07 Thu 22:17
+    :ARCHIVE_FILE: ~/.emacs.d/Sacha.org
+    :ARCHIVE_OLPATH: Inactive/infrequent things/Drawing
+    :ARCHIVE_CATEGORY: Sacha
+    :ARCHIVE_TODO: DONE
     :END:
-    :LOGBOOK:
-    - State "DONE"       from "STARTED"    [2015-02-01 Sun 18:47]
-    :END:
+      :LOGBOOK:
+      - State "DONE"       from "STARTED"    [2015-02-01 Sun 18:47]
+      :END:
 
-To make it easier to draw using Autodesk Sketchbook Pro on my laptop
-(a Lenovo X220 tablet PC), I've created several templates with
-consistent dot grids and sizes. Since I want to minimize typing when
-I'm drawing, I wrote a couple of functions to make it easier to copy
-these templates and set up appropriately-named files. That way, I can
-save them without the grid layer, flip between files using Sketchbook
-Pro's next/previous file commands, and then process them all when I'm
-ready.
+  To make it easier to draw using Autodesk Sketchbook Pro on my laptop
+  (a Lenovo X220 tablet PC), I've created several templates with
+  consistent dot grids and sizes. Since I want to minimize typing when
+  I'm drawing, I wrote a couple of functions to make it easier to copy
+  these templates and set up appropriately-named files. That way, I can
+  save them without the grid layer, flip between files using Sketchbook
+  Pro's next/previous file commands, and then process them all when I'm
+  ready.
 
 **** Index cards
 
-I've been experimenting with a habit of drawing at least five index
-cards every day. Here's a function that creates five index cards (or a
-specified number of them) and then opens the last one for me to edit.
+  I've been experimenting with a habit of drawing at least five index
+  cards every day. Here's a function that creates five index cards (or a
+  specified number of them) and then opens the last one for me to edit.
 
-#+begin_src emacs-lisp
-  (defvar my/autodesk-sketchbook-executable "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe")
-  (defun my/prepare-index-cards (n)
-    (interactive (list (or current-prefix-arg 5)))
-    (let ((counter 1)
-          (directory "~/Dropbox/Inbox")
-          (template "c:/data/drawing-templates/custom/0 - index.tif")
-          (date (org-read-date nil nil "."))
-          temp-file)
-      (while (> n 0)
-        (setq temp-file
-              (expand-file-name (format "%s-%d.tif" date counter)
-                                directory))
-        (unless (file-exists-p temp-file)
-          (copy-file template temp-file)
-          (setq n (1- n))
-          (when (= n 0)
-            (quantified-track "Drawing")
-            (shell-command
-             (concat (shell-quote-argument my/autodesk-sketchbook-executable)
-                     " "
-                     (shell-quote-argument temp-file) " &"))))
-        (setq counter (1+ counter)))
-      (my/rotate-screen 180)
+  #+begin_src emacs-lisp
+    (defvar my/autodesk-sketchbook-executable "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe")
+    (defun my/prepare-index-cards (n)
+      (interactive (list (or current-prefix-arg 5)))
+      (let ((counter 1)
+            (directory "~/Dropbox/Inbox")
+            (template "c:/data/drawing-templates/custom/0 - index.tif")
+            (date (org-read-date nil nil "."))
+            temp-file)
+        (quantified-track "Drawing")
+        (dotimes (i 5) (setq temp-file (my/prepare-index-card-template)))
+        (my/rotate-screen 180)
+        (my/open-image temp-file)
+        (with-current-buffer (get-buffer-create "*Done*")
+          (let ((inhibit-read-only t))
+            (erase-buffer)
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/rotate-screen 0)
+                                     (delete-window)
+                                     (my/rename-scanned-cards))
+                           "Process files")
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/rotate-screen 0)
+                                     (delete-window))
+                           "Done")
+            (text-scale-set 10)
+            (widget-setup)
+            (widget-minor-mode)
+            (pop-to-buffer (current-buffer))))))
+
+    (defvar my/index-card-file-name nil "Most recent index card file name.")
+    (defun my/rotate-screen (degrees)
+      (shell-command (format "c:/sacha/Dropbox/bin/orient /rotate:%d" degrees)))
+
+    (defun my/get-index-card-filename (base)
+      "Check several directories for files matching BASE.
+    Return the matching filename, if any."
+      (car (-flatten
+            (delq nil
+                  (mapcar
+                   (lambda (dir)
+                     (directory-files dir t
+                                      (regexp-quote base)))
+                   '("~/Dropbox/Inbox" "~/Dropbox/Inbox/To blog"
+                     "g:/documents/photosync/sketchbook"))))))
+
+    (defun my/prepare-index-card-template (&optional name date)
+      "Create the image file for NAME. Return the new filename."
+      (let* ((directory "~/Dropbox/Inbox")
+             (template "c:/data/drawing-templates/custom/0 - index.tif")
+             (date (or date (org-read-date nil nil ".")))
+             (counter ?a))
+        (while (my/get-index-card-filename (concat date (char-to-string counter)))
+          (setq counter (1+ counter)))
+        (setq name (expand-file-name
+                    (concat date (char-to-string counter)
+                            (if name
+                                (concat " "
+                                        (my/convert-sketch-title-to-filename (or name "")))
+                              "")
+                            ".tif")
+                    directory))
+        (unless (file-exists-p name) (copy-file template name))
+        name))
+
+    (defun my/prepare-index-card (&optional name date)
+      "Prepare the index card for NAME.
+    Rotate the screen and show a button to un-rotate the screen."
+      (interactive (list (read-string "Name: ")
+                         (if current-prefix-arg (org-read-date) (org-read-date nil nil "."))))
+      (setq my/index-card-file-name (my/prepare-index-card-template name date))
+      (save-window-excursion
+        (my/rotate-screen 180)
+        (shell-command
+         (concat (shell-quote-argument my/autodesk-sketchbook-executable)
+                 " " (shell-quote-argument my/index-card-file-name) " &")))
       (with-current-buffer (get-buffer-create "*Done*")
         (let ((inhibit-read-only t))
           (erase-buffer)
           (widget-create 'push-button
                          :notify (lambda (&rest ignore)
+                                   (my/open-image (my/prepare-index-card-template)))
+                         "New")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/open-image (my/prepare-index-card-template nil (org-read-date nil nil "-1"))))
+                         "Yesterday")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
                                    (my/rotate-screen 0)
                                    (delete-window)
-                                   (my/rename-scanned-cards))
-                         "Process files")
+                                   (my/process-tiff (list my/index-card-file-name)))
+                         "Upload")
+
           (widget-create 'push-button
                          :notify (lambda (&rest ignore)
                                    (my/rotate-screen 0)
@@ -5290,233 +5402,228 @@ specified number of them) and then opens the last one for me to edit.
           (text-scale-set 10)
           (widget-setup)
           (widget-minor-mode)
-          (pop-to-buffer (current-buffer))))))
+          (pop-to-buffer (current-buffer)))))
 
-  (defvar my/index-card-file-name nil "Most recent index card file name.")
-  (defun my/rotate-screen (degrees)
-    (shell-command (format "c:/sacha/Dropbox/bin/orient /rotate:%d" degrees)))
+    (defun my/prepare-index-card-for-subtree ()
+      "Create an index card template for the current subtree."
+      (interactive)
+      (let* ((heading (elt (org-heading-components) 4)))
+        (unless (org-entry-get (point) "Effort") (org-set-property "Effort" "0:15"))
+        (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
+        (my/org-quantified-track "Drawing")
+        (if (org-at-heading-p) (forward-line 1))
+        (my/prepare-index-card heading)))
 
-  (defun my/prepare-index-card-template (&optional name)
-    "Create the image file for NAME. Return the new filename."
-    (let* ((directory "~/Dropbox/Inbox")
-           (template "c:/data/drawing-templates/custom/0 - index.tif")
-           (date (org-read-date nil nil "."))
-           (filename
-            (expand-file-name (concat date " " (my/convert-sketch-title-to-filename (or name "")) ".tif") directory))
-           (counter 1))
-      (unless name
-        (setq name (expand-file-name (format "%s-%d.tif" date counter) directory))
-        (while (file-exists-p name)
-          (setq counter (1+ counter))
-          (setq name (expand-file-name (format "%s-%d.tif" date counter) directory))))
-      (unless (file-exists-p filename) (copy-file template filename))
-      filename))
+    (defun my/helm-org-prepare-index-card-for-subtree (candidate)
+      (let ((location (org-refile--get-location candidate my/helm-org-refile-locations)))
+        (save-window-excursion
+          (save-excursion
+            (org-refile 4 nil location)
+            (my/prepare-index-card-for-subtree)) t)))
 
-  (defun my/prepare-index-card (&optional name)
-    "Prepare the index card for NAME.
-  Rotate the screen and show a button to un-rotate the screen."
-    (interactive "MName: ")
-    (setq my/index-card-file-name (my/prepare-index-card-template name))
-    (save-window-excursion
-      (my/rotate-screen 180)
-      (shell-command
-       (concat (shell-quote-argument my/autodesk-sketchbook-executable)
-               " " (shell-quote-argument my/index-card-file-name) " &")))
-    (with-current-buffer (get-buffer-create "*Done*")
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (widget-create 'push-button
-                       :notify (lambda (&rest ignore)
-                                 (my/rotate-screen 0)
-                                 (delete-window)
-                                 (my/process-tiff my/index-card-file-name))
-                       "Upload")
-        (widget-create 'push-button
-                       :notify (lambda (&rest ignore)
-                                 (my/rotate-screen 0)
-                                 (delete-window))
-                       "Done")
-        (text-scale-set 10)
-        (widget-setup)
-        (widget-minor-mode)
-        (pop-to-buffer (current-buffer)))))
+    (defun my/open-image (filename)
+      "Open image in Autodesk Sketchbook Pro."
+      (call-process
+       my/autodesk-sketchbook-executable
+       nil 0 nil filename))
 
-  (defun my/prepare-index-card-for-subtree ()
-    "Create an index card template for the current subtree."
-    (interactive)
-    (let* ((heading (elt (org-heading-components) 4)))
-      (unless (org-entry-get (point) "Effort") (org-set-property "Effort" "0:15"))
-      (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
-      (my/org-quantified-track "Drawing")
-      (if (org-at-heading-p) (forward-line 1))
-      (my/prepare-index-card heading)))
+    (defvar my/org-index-card-source nil)
+    (defun my/org-prompt-index-cards ()
+      "Display a buffer for easy selection of questions to work on."
+      (interactive)
+      (find-file "~/personal/questions.org")
+      (let ((questions
+             (cl-sort (org-map-entries 'org-heading-components "TODO=\"DRAW\"")
+                      '< :key (lambda (x) (or (elt x 3) 100)))))
+        (setq my/org-index-card-source (current-buffer))
+        (my/rotate-screen 180)
+        (with-current-buffer (get-buffer-create "*Sketches*")
+          (let ((inhibit-read-only t))
+            (quantified-track "Drawing")
+            (erase-buffer)
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/open-image (my/prepare-index-card-template)))
+                           "New")
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/open-image (my/prepare-index-card-template nil (org-read-date nil nil "-1"))))
+                           "Yesterday")
+            (insert "\n")
+            (mapc (lambda (q)
+                    (widget-create 'push-button
+                                   :notify (lambda (widget &rest ignore)
+                                             (my/open-image
+                                              (my/prepare-index-card-template
+                                               (widget-value widget)))
+                                             (with-current-buffer my/org-index-card-source
+                                               (save-excursion
+                                                 (goto-char (org-find-exact-headline-in-buffer (widget-value widget) my/org-index-card-source t))
+                                                 (org-set-property "Effort" "0:15")
+                                                 (org-clock-in)
+                                                 (org-todo "LINK")))
+                                             (widget-delete widget))
+                                   (elt q 4))
+                    (insert "\n"))
+                  questions)
+            (insert "\n")
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/rotate-screen 0)
+                                     (kill-buffer)
+                                     (my/rename-scanned-cards))
+                           "Process")
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/rotate-screen 0)
+                                     (org-clock-out)
+                                     (kill-buffer))
+                           "Quit")
+            (text-scale-set 5)
+            (widget-setup)
+            (widget-minor-mode)
+            (goto-char (point-min))
+            (scroll-bar-mode)
+            (switch-to-buffer (current-buffer))
+            (delete-other-windows)))))
 
-  (defun my/helm-org-prepare-index-card-for-subtree (candidate)
-    (let ((location (org-refile--get-location candidate my/helm-org-refile-locations)))
-      (save-window-excursion
-        (save-excursion
-          (org-refile 4 nil location)
-          (my/prepare-index-card-for-subtree)) t))) 
+    (defun my/prepare-index-card-for-journal ()
+      "Create an index card for my process journal."
+      (interactive)
+      (quantified-track "Drawing")
+      (my/prepare-index-card "Journal"))
 
-  (defun my/open-image (filename)
-    "Open image in Autodesk Sketchbook Pro."
-    (shell-command
-     (concat (shell-quote-argument my/autodesk-sketchbook-executable)
-             " " (shell-quote-argument filename) " &")))
+    (add-to-list 'org-speed-commands-user '("d" call-interactively 'my/prepare-index-card-for-subtree))
+  #+end_src
 
-  (defun my/org-prompt-index-cards ()
-    "Display a buffer for easy selection of questions to work on."
-    (interactive)
-    (let ((questions
-           (cl-sort (org-map-entries 'org-heading-components "TODO=\"DRAW\"")
-                    '< :key (lambda (x) (or (elt x 3) 100)))))
-      (with-current-buffer (get-buffer-create "*Sketches*")
-        (let ((inhibit-read-only t))
-          (quantified-track "Drawing")
-          (erase-buffer)
-          (widget-create 'push-button
-                         :notify (lambda (&rest ignore)
-                                   (my/open-image (my/prepare-index-card-template)))
-                         "New")
-          (insert "\n")
-          (mapc (lambda (q)
-                  (widget-create 'push-button
-                                 :notify (lambda (&rest ignore)
-                                           (my/open-image (my/prepare-index-card-template (elt q 4))))
-                                 (elt q 4))
-                  (insert "\n"))
-                questions)
-          (insert "\n")
-          (widget-create 'push-button
-                         :notify (lambda (&rest ignore)
-                                   (my/rotate-screen 0)
-                                   (delete-window)
-                                   (my/rename-scanned-cards))
-                         "Process")
-          (widget-create 'push-button
-                         :notify (lambda (&rest ignore)
-                                   (my/rotate-screen 0)
-                                   (delete-window))
-                         "Quit")
-          (text-scale-set 5)
-          (widget-setup)
-          (widget-minor-mode)
-          (scroll-bar-mode)
-          (switch-to-buffer (current-buffer))
-          (delete-other-windows)))))
+  orient.exe is a renamed [[http://answers.microsoft.com/en-us/windows/forum/windows_8-pictures/is-there-a-shortcut-to-rotate-the-screen-in-win-8/5a326bdf-a8f5-4a8b-8cd7-510fdf597b49?page=2][display.exe]].
 
-  (defun my/prepare-index-card-for-journal ()
-    "Create an index card for my process journal."
-    (interactive)
-    (quantified-track "Drawing")
-    (my/prepare-index-card "Journal"))
-
-  (add-to-list 'org-speed-commands-user '("d" call-interactively 'my/prepare-index-card-for-subtree))
-#+end_src
-
-orient.exe is a renamed [[http://answers.microsoft.com/en-us/windows/forum/windows_8-pictures/is-there-a-shortcut-to-rotate-the-screen-in-win-8/5a326bdf-a8f5-4a8b-8cd7-510fdf597b49?page=2][display.exe]].
-
-Afterwards, I call =my/rename-scanned-cards= function to convert
-the TIFFs to PNGs, display the files and ask me to rename them
-properly. 
+  Afterwards, I call =my/rename-scanned-cards= function to convert
+  the TIFFs to PNGs, display the files and ask me to rename them
+  properly.
 
 **** Rename scanned index cards
 
- #+begin_src emacs-lisp
-   (use-package s :ensure t)
-   (defun my/process-tiff (filename)
-     "Convert, display, rename, and upload FILENAME."
-     (save-window-excursion
-       (call-process "mogrify" nil nil nil "-format" "png" "-quality" "1" filename)
-       (delete-other-windows)
-       (find-file (setq filename (s-append ".png" (s-chop-suffix ".tif" filename))))
-       (let ((new-name
-              (read-string "New name: "
-                           (concat
-                            (if (string-match "/\\(\\([0-9]+-[0-9]+-[0-9]+\\)\\( .*\\)?\\)\\.png" filename)
-                                (match-string 1 filename)
-                              filename)
-                            " "))))
-         (rename-file filename (concat new-name ".png"))
-         (setq filename (expand-file-name (concat new-name ".png") (file-name-directory filename)))))
-     (call-process "up" nil t nil filename))
-
-   (defun my/rename-scanned-cards ()
-     "Display and rename the scanned or saved files."
-     (interactive)
-     (when (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.tif")
-       ;; Convert the TIFFs first
-       (apply 'call-process "mogrify" nil nil nil "-format" "png" "-quality" "1"
-              (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.tif"))
-       (mapc (lambda (x)
-               (rename-file x "~/Dropbox/Inbox/backup" t))
-             (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.tif")))
-     (mapc (lambda (filename)
-             (find-file filename)
-             (delete-other-windows)
-             (when (string-match "/\\(\\([0-9]+-[0-9]+-[0-9]+\\)\\( ?.*\\)?\\)\\.png" filename)
-               (let ((kill-buffer-query-functions nil)
-                     (new-name (read-string "New name: "
-                                            (concat (match-string 1 filename) " "))))
-                 (when (> (length new-name) 0)
-                   (revert-buffer t t)
-                   (rename-file filename (concat new-name ".png"))
-                   (kill-buffer)))))
-           (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.png"))
-     (when (yes-or-no-p "Upload files?")
-       (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+ .*.png"))
+   #+begin_src emacs-lisp
+     (use-package s :ensure t)
+     (defun my/process-tiff (files)
+       "Convert, display, rename, and upload FILES."
+       (interactive (list (dired-get-marked-files)))
+       (unless (listp files) (setq files (list files)))
+       (save-window-excursion
+         (apply 'call-process "mogrify" nil nil nil (append (list "-format" "png" "-quality" "1") files))
+         (delete-other-windows)
+         (setq files
+               (mapcar
+                (lambda (filename)
+                  (find-file (setq filename (s-append ".png" (s-chop-suffix ".tif" filename))))
+                  (let ((new-name
+                         (read-string "New name: "
+                                      (concat
+                                       (if (string-match "/\\(\\([0-9]+-[0-9]+-[0-9]+\\)\\( ?.*\\)?\\)\\.png" filename)
+                                           (match-string 1 filename)
+                                         filename)
+                                       " "))))
+                    (rename-file filename (concat new-name ".png"))
+                    (setq filename (expand-file-name (concat new-name ".png") (file-name-directory filename)))))
+                files)))
        (find-file "~/Dropbox/Public/sharing/index.org")
        (goto-char (point-min))
+       (when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))
+         (forward-line 1)
+         (org-end-of-item-list)
+         (apply 'call-process "up" nil t nil files)))
+
+     (defun my/convert-index-card-tiffs-to-pngs ()
+       (when (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.tif")
+         ;; Convert the TIFFs first
+         (apply 'call-process "mogrify" nil nil nil "-format" "png" "-quality" "1"
+                (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.tif"))
+         (mapc (lambda (x)
+                 (rename-file x "~/Dropbox/Inbox/backup" t))
+               (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.tif"))))
+
+     (defun my/rename-scanned-cards ()
+       "Display and rename the scanned or saved files."
+       (interactive)
+       (my/convert-index-card-tiffs-to-pngs)
+       (mapc (lambda (filename)
+               (find-file filename)
+               (delete-other-windows)
+               (when (string-match "/\\(\\([0-9]+-[0-9]+-[0-9]+\\)\\( ?.*\\)?\\)\\.png" filename)
+                 (let ((kill-buffer-query-functions nil)
+                       (new-name (read-string "New name: "
+                                              (concat (match-string 1 filename) " "))))
+                   (when (> (length new-name) 0)
+                     (revert-buffer t t)
+                     (rename-file filename (concat (s-trim new-name) ".png"))
+                     (kill-buffer)))))
+             (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.png"))
+       (when (yes-or-no-p "Upload files?")
+         (my/upload-scanned-cards)))
+
+     (defun my/clean-index-card-directory ()
+       "Remove files marked for deletion and move private files."
+       (shell-command "mv ~/Dropbox/Inbox/*delete* ~/Dropbox/Inbox/backup")
+       (shell-command "mv ~/Dropbox/Inbox/*private* ~/dropbox/sketches/private"))
+
+     (defun my/upload-scanned-cards ()
+       (interactive)
+       (my/clean-index-card-directory)
+       (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png"))
        (sleep-for 3)
+       (find-file "~/personal/questions.org")
+       (goto-char (point-min))
        (when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))
          (forward-line 1)
          (org-end-of-item-list)
          (save-excursion (yank))
-         (my/org-guess-uncategorized))))
- #+end_src
+         (my/org-guess-uncategorized)))
+   #+end_src
 
-I might tweak the files a little more after I rename them, so I don't
-automatically upload them. When I'm happy with the files, I use a [[http://sachachua.com/blog/?p=27830&shareadraft=baba27830_54b92ac511e86][Node
-script]] to upload the files to Flickr, move them to my =To blog=
-directory, and copy Org-formatted text that I can paste into my
-learning outline.
+  I might tweak the files a little more after I rename them, so I don't
+  automatically upload them. When I'm happy with the files, I use a [[http://sachachua.com/blog/?p=27830&shareadraft=baba27830_54b92ac511e86][Node
+  script]] to upload the files to Flickr, move them to my =To blog=
+  directory, and copy Org-formatted text that I can paste into my
+  learning outline.
 
 **** Automatically resize images
 
-The =image+= package is handy for displaying the images so
-that they're scaled to the window size.
+  The =image+= package is handy for displaying the images so
+  that they're scaled to the window size.
 
- #+begin_src emacs-lisp
- (use-package image+ :defer t
-  :load-path "~/elisp/Emacs-imagex"
-  :commands (imagex-global-sticky-mode imagex-auto-adjust-mode)
-  :init (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))
- #+end_src
+   #+begin_src emacs-lisp
+   (use-package image+ :defer t
+    :load-path "~/elisp/Emacs-imagex"
+    :commands (imagex-global-sticky-mode imagex-auto-adjust-mode)
+    :init (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))
+   #+end_src
 
 **** Get information for sketched books
 
-For sketchnotes of books, I set up the filename based on properties in
-my Org Mode tree for that book.
+  For sketchnotes of books, I set up the filename based on properties in
+  my Org Mode tree for that book.
 
-#+begin_src emacs-lisp
-  (defun my/prepare-sketchnote-file ()
-    (interactive)
-    (let* ((base-name (org-entry-get-with-inheritance  "BASENAME"))
-           (filename (expand-file-name (concat base-name ".tif") "~/dropbox/inbox/")))
-      (unless base-name (error "Missing basename property"))
-      (if (file-exists-p filename)
-          (error "File already exists")
-          (copy-file "g:/drawing-templates/custom/0 - base.tif" filename))
-        (shell-command (concat (shell-quote-argument my/autodesk-sketchbook-executable)
-                               (shell-quote-argument filename) " &"))))
-#+end_src
+  #+begin_src emacs-lisp
+    (defun my/prepare-sketchnote-file ()
+      (interactive)
+      (let* ((base-name (org-entry-get-with-inheritance  "BASENAME"))
+             (filename (expand-file-name (concat base-name ".tif") "~/dropbox/inbox/")))
+        (unless base-name (error "Missing basename property"))
+        (if (file-exists-p filename)
+            (error "File already exists")
+            (copy-file "g:/drawing-templates/custom/0 - base.tif" filename))
+          (shell-command (concat (shell-quote-argument my/autodesk-sketchbook-executable)
+                                 (shell-quote-argument filename) " &"))))
+  #+end_src
 
-By using Emacs Lisp functions to set up files that I'm going to use in
-an external application, I minimize fussing about with the keyboard
-while still being able to take advantage of structured information.
+  By using Emacs Lisp functions to set up files that I'm going to use in
+  an external application, I minimize fussing about with the keyboard
+  while still being able to take advantage of structured information.
 
-Do you work with external applications? Where does it make sense to
-use Emacs Lisp to make setup or processing easier?
+  Do you work with external applications? Where does it make sense to
+  use Emacs Lisp to make setup or processing easier?
+
 
 *** TODO Move to-blog sketches to a staging folder for easier upload
 
@@ -5552,58 +5659,68 @@ Based on [[http://williamedwardscoder.tumblr.com/post/84505278488/making-image-m
 Aspect ratio is width / height
 
 #+begin_src emacs-lisp
-  (defun my/get-tile-dimensions (num-items orig-width orig-height target-aspect-ratio)
-    (let ((rows 1) (cols 1)
-          (current-aspect (/ orig-width (float orig-height)))
-          add-col-aspect
-          add-row-aspect)
-      (while (< (* rows cols) num-items)
-        (setq add-col-aspect (/ (* (1+ cols) (float orig-width))
-                                (* rows orig-height))
-              add-row-aspect (/ (* cols (float orig-width))
-                                (* (1+ rows) orig-height)))
-        (if (<  (abs (- add-col-aspect target-aspect-ratio))
-                (abs (- add-row-aspect target-aspect-ratio)))
-            (setq cols (1+ cols))
-          (setq rows (1+ rows))))
-      (cons cols rows)))
-  (ert-deftest my/get-tile-dimensions ()
-    (should (equal (my/get-tile-dimensions 2 2 1 1) (cons 1 2)))
-    (should (equal (my/get-tile-dimensions 4 2 1 0.5) (cons 1 4)))
-    (should (equal (my/get-tile-dimensions 12 1 1 (/ 4.0 3.0)) (cons 4 3)))
-    (should (equal (my/get-tile-dimensions 11 1 1 (/ 4.0 3.0)) (cons 4 3)))
-    (should (equal (my/get-tile-dimensions 13 1 1 (/ 4.0 3.0)) (cons 4 4))))
+   (defun my/get-tile-dimensions (num-items orig-width orig-height target-aspect-ratio)
+     (let ((rows 1) (cols 1)
+           (current-aspect (/ orig-width (float orig-height)))
+           add-col-aspect
+           add-row-aspect)
+       (while (< (* rows cols) num-items)
+         (setq add-col-aspect (/ (* (1+ cols) (float orig-width))
+                                 (* rows orig-height))
+               add-row-aspect (/ (* cols (float orig-width))
+                                 (* (1+ rows) orig-height)))
+         (if (<  (abs (- add-col-aspect target-aspect-ratio))
+                 (abs (- add-row-aspect target-aspect-ratio)))
+             (setq cols (1+ cols))
+           (setq rows (1+ rows))))
+       (cons cols rows)))
+   (ert-deftest my/get-tile-dimensions ()
+     (should (equal (my/get-tile-dimensions 2 2 1 1) (cons 1 2)))
+     (should (equal (my/get-tile-dimensions 4 2 1 0.5) (cons 1 4)))
+     (should (equal (my/get-tile-dimensions 12 1 1 (/ 4.0 3.0)) (cons 4 3)))
+     (should (equal (my/get-tile-dimensions 11 1 1 (/ 4.0 3.0)) (cons 4 3)))
+     (should (equal (my/get-tile-dimensions 13 1 1 (/ 4.0 3.0)) (cons 4 4))))
 
-  (defun my/extract-image-filenames (beg end)
-    "Return the filenames from the links in this region."
-    (let (files)
-      (save-excursion
-        (goto-char (min beg end))
-        (while (re-search-forward "\\[\\[https://www.flickr.com/photos/[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
-          (add-to-list 'files (concat (match-string-no-properties 1) ".png"))))
-      files))
+   (defun my/extract-image-filenames (beg end)
+     "Return the filenames from the links in this region."
+     (let (files)
+       (save-excursion
+         (goto-char (min beg end))
+         (while (re-search-forward "\\[\\[https://www.flickr.com/photos/[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
+           (add-to-list 'files (concat (match-string-no-properties 1) ".png"))))
+       files))
 
-  (defun my/create-sketch-montage (beg end tiles)
-    "Combine the sketches in the region."
-    (interactive (list (point) (mark) (if current-prefix-arg (read-string "Tiling: "))))
-    ;; Extract the links
-    (let* ((files (my/extract-image-filenames beg end))
-           (output-file "c:/sacha/dropbox/inbox/output.png"))
-      (unless tiles
-        (setq tiles
-              (format "%dx"
-                (car (my/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
-      (with-temp-buffer
-        (cd "~/Dropbox/Inbox/To Blog")
-        (apply 'call-process
-               "montage" nil nil nil
-               (append
-                files
-                (list
-                 "-geometry" "+0+0"
-                 "-tile" tiles
-                 output-file))))
-      (find-file output-file)))
+   (defun my/create-sketch-montage (beg end tiles)
+     "Combine the sketches in the region."
+     (interactive (list (point) (mark) (if current-prefix-arg (read-string "Tiling: "))))
+     ;; Extract the links
+     (let* ((files
+             (if (derived-mode-p 'dired-mode)
+                 (dired-get-marked-files)
+               (mapcar 'my/get-index-card-filename
+                       (reverse (my/extract-image-filenames beg end)))))
+            (output-file "c:/sacha/dropbox/inbox/output.png"))
+       (unless tiles
+         (setq tiles
+               (format "%dx"
+                 (car (my/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
+       (with-temp-buffer
+         (cd "~/Dropbox/Inbox/To Blog")
+         (apply 'call-process
+                "montage" nil nil nil
+                (append
+                 files
+                 (list
+                  "-geometry" "+0+0"
+                  "-tile" tiles
+                  output-file))))
+       (find-file output-file)))
+
+   (defun my/create-week-montage (beg end)
+     (interactive "r")
+     (my/prepare-index-card (format "Week ending %s -- index card #journal #weekly" (org-read-date nil nil "-fri"))
+                            (org-read-date nil nil "-fri"))
+     (my/create-sketch-montage beg end "2x"))
 #+end_src
 
 *** Sketched books
@@ -5683,6 +5800,16 @@ Convenience functions to make my life easier when sketchnoting books.
           (setq toe-starting-length 6)
           (setq toe-starting-time-per-word 2)
           (setq toe-max-length 20)))
+#+end_src
+
+* Speech synthesis (experimental)
+
+#+begin_src emacs-lisp
+(defvar my/espeak-command "c:/program files (x86)/espeak/command_line/espeak.exe")
+(defun my/say (string &optional speed)
+  (interactive "MString: ")
+  (setq speed (or speed 175))
+  (call-process my/espeak-command nil nil nil string "-s" speed))
 #+end_src
 
 * Path

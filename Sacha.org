@@ -1,7 +1,6 @@
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
 
-
 * Configuration
 ** About this file
 <<babel-init>>
@@ -228,7 +227,7 @@ helm-grep? Bit slow and hard to read, though.
 #+END_SRC
 
 **** Getting Helm and org-refile to clock in or create tasks :emacs:org:helm:
-     CLOSED: [2015-02-02 Mon 08:40] SCHEDULED: <2015-02-02 Mon>
+     CLOSED: [2015-02-02 Mon 08:40] 
      :PROPERTIES:
      :Effort:   1:00
      :ID:       o2b:68856129-3324-4a07-87f3-066a228c5847
@@ -1562,7 +1561,7 @@ able to clock in on them.
      (setq org-clock-continuously nil)
      (setq org-clock-persist t)
      (setq org-clock-in-switch-to-state "STARTED")
-     (setq org-clock-in-resume t)
+     (setq org-clock-in-resume nil)
      (setq org-show-notification-handler 'message)
      (setq org-clock-report-include-clocking-task t))
     :config
@@ -5054,215 +5053,261 @@ recently-opened files first.
     :ID:       o2b:243ed83f-244f-417d-b251-53a3fef813aa
     :POSTID:   27923
     :BLOG:     sacha
+    :ARCHIVE_TIME: 2015-05-07 Thu 22:17
+    :ARCHIVE_FILE: ~/.emacs.d/Sacha.org
+    :ARCHIVE_OLPATH: Inactive/infrequent things/Drawing
+    :ARCHIVE_CATEGORY: Sacha
+    :ARCHIVE_TODO: DONE
     :END:
-    :LOGBOOK:
-    - State "DONE"       from "STARTED"    [2015-02-01 Sun 18:26]
-    CLOCK: [2015-02-01 Sun 17:30]--[2015-02-01 Sun 18:26] =>  0:56
-    - State "DONE"       from "STARTED"    [2015-02-01 Sun 17:24]
-    CLOCK: [2015-02-01 Sun 13:30]--[2015-02-01 Sun 15:26] =>  1:56
-    :END:
+      :LOGBOOK:
+      - State "DONE"       from "STARTED"    [2015-02-01 Sun 18:26]
+      CLOCK: [2015-02-01 Sun 17:30]--[2015-02-01 Sun 18:26] =>  0:56
+      - State "DONE"       from "STARTED"    [2015-02-01 Sun 17:24]
+      CLOCK: [2015-02-01 Sun 13:30]--[2015-02-01 Sun 15:26] =>  1:56
+      :END:
 
- Somewhat daunted by the prospect of categorizing more than a hundred
- sketches and blog posts for my monthly review, I spent some time
- figuring out how to create the digital equivalent of sorting index
- cards into various piles.
+   Somewhat daunted by the prospect of categorizing more than a hundred
+   sketches and blog posts for my monthly review, I spent some time
+   figuring out how to create the digital equivalent of sorting index
+   cards into various piles.
 
- [[https://www.flickr.com/photos/sachac/16234413499/][2015-02-01 Digital piles of index cards -- index card #indexing #organization #pkm]]
+   [[https://www.flickr.com/photos/sachac/16234413499/][2015-02-01 Digital piles of index cards -- index card #indexing #organization #pkm]]
 
- In fact, wouldn't it be super-cool if the items could automatically
- guess which category they should probably go in, prompting me only if
- it wasn't clear?
+   In fact, wouldn't it be super-cool if the items could automatically
+   guess which category they should probably go in, prompting me only if
+   it wasn't clear?
 
- I wanted to write a function that could take a list structured like this:
+   I wanted to write a function that could take a list structured like this:
 
- - Keyword A
-   - Previous links
- - Keyword B
-   - Previous links
- - Link 1 with Keyword A
- - Link 2 with Keyword B
- - Link 3 with Keyword A
- - Link 4
+   - Keyword A
+     - Previous links
+   - Keyword B
+     - Previous links
+   - Link 1 with Keyword A
+   - Link 2 with Keyword B
+   - Link 3 with Keyword A
+   - Link 4
 
- It should file Link 1 and 3 under Keyword A, Link 2 under Keyword B,
- and prompt me for the category for Link 4. At that prompt, I should be
- able to select Keyword A or Keyword B, or specify a new category.
+   It should file Link 1 and 3 under Keyword A, Link 2 under Keyword B,
+   and prompt me for the category for Link 4. At that prompt, I should be
+   able to select Keyword A or Keyword B, or specify a new category.
 
- Inspired by John Kitchin's recent post on [[http://kitchingroup.cheme.cmu.edu/blog/2015/01/24/Anatomy-of-a-helm-source/][defining a Helm source]], I
- wanted to get it to work with Helm.
+   Inspired by John Kitchin's recent post on [[http://kitchingroup.cheme.cmu.edu/blog/2015/01/24/Anatomy-of-a-helm-source/][defining a Helm source]], I
+   wanted to get it to work with Helm.
 
- First step: I needed to figure out the structure of the list, maybe
- including a sample from the category to make it clearer what's
- included. =org-list.el= seemed to have useful functions for this.
- =org-list-struct= gave me the structure of the current list. Let's say
- that a category is anything whose text does not match
- =org-bracket-link-regexp=.
+   First step: I needed to figure out the structure of the list, maybe
+   including a sample from the category to make it clearer what's
+   included. =org-list.el= seemed to have useful functions for this.
+   =org-list-struct= gave me the structure of the current list. Let's say
+   that a category is anything whose text does not match
+   =org-bracket-link-regexp=.
 
- #+begin_src emacs-lisp
-   (defun my/org-get-list-categories ()
-     "Return a list of (category indent matching-regexp sample).
-   List categories are items that don't contain links."
-     (let ((list (org-list-struct)) last-category results)
-       (save-excursion
-         (mapc
-          (lambda (x)
-            (goto-char (car x))
-            (let ((current-item
-                   (buffer-substring-no-properties
-                    (+ (point)
-                       (elt x 1)
-                       (length (elt x 2)))
-                    (line-end-position))))
-              (if (string-match
-                   org-bracket-link-regexp
-                   (buffer-substring-no-properties
-                    (point)
-                    (line-end-position)))
-                  ;; Link - update the last category
-                  (when last-category
-                    (if (< (elt x 1) (elt last-category 1))
-                        (setq results
-                              (cons (append last-category
-                                            (list
-                                             (match-string-no-properties
-                                              3
-                                              (buffer-substring-no-properties
-                                               (point)
-                                               (line-end-position)))))
-                                    (cdr results))))
-                    (setq last-category nil))
-                ;; Category
-                (setq results
-                        (cons
-                         (setq last-category
-                               (list
-                                current-item
-                                (elt x 1)
-                                (concat "^"
-                                        (make-string (elt x 1) ?\ )
-                                        (regexp-quote
-                                         (concat (elt x 2)
-                                                 current-item))
-                                        "$")))
-                         results)))))
-          list))
-       results))
- #+end_src
+   #+begin_src emacs-lisp
+     (defun my/org-get-list-categories ()
+       "Return a list of (category indent matching-regexp sample).
+     List categories are items that don't contain links."
+       (let ((list (org-list-struct)) last-category results)
+         (save-excursion
+           (mapc
+            (lambda (x)
+              (goto-char (car x))
+              (let ((current-item
+                     (buffer-substring-no-properties
+                      (+ (point)
+                         (elt x 1)
+                         (length (elt x 2)))
+                      (line-end-position))))
+                (if (string-match
+                     org-bracket-link-regexp
+                     (buffer-substring-no-properties
+                      (point)
+                      (line-end-position)))
+                    ;; Link - update the last category
+                    (when last-category
+                      (if (< (elt x 1) (elt last-category 1))
+                          (setq results
+                                (cons (append last-category
+                                              (list
+                                               (match-string-no-properties
+                                                3
+                                                (buffer-substring-no-properties
+                                                 (point)
+                                                 (line-end-position)))))
+                                      (cdr results))))
+                      (setq last-category nil))
+                  ;; Category
+                  (setq results
+                          (cons
+                           (setq last-category
+                                 (list
+                                  current-item
+                                  (elt x 1)
+                                  (concat "^"
+                                          (make-string (elt x 1) ?\ )
+                                          (regexp-quote
+                                           (concat (elt x 2)
+                                                   current-item))
+                                          "$")))
+                           results)))))
+            list))
+         results))
+   #+end_src
 
- The next step was to write a function that guessed the list category
- based on the item text, and moved the item there.
+   The next step was to write a function that guessed the list category
+   based on the item text, and moved the item there.
 
- #+begin_src emacs-lisp
-   (defvar my/helm-org-list-candidates nil)
-   (defun my/helm-org-list-categories-init-candidates ()
-     "Return a list of categories from this list in a form ready for Helm."
-     (setq my/helm-org-list-candidates
-           (mapcar (lambda (x)
-                     (cons (if (elt x 3)
-                               (format "%s - %s" (car x) (elt x 3))
-                             (car x))
-                           x))
-                   (my/org-get-list-categories))))
+   #+begin_src emacs-lisp
+     (defvar my/helm-org-list-candidates nil)
+     (defun my/helm-org-list-categories-init-candidates ()
+       "Return a list of categories from this list in a form ready for Helm."
+       (setq my/helm-org-list-candidates
+             (mapcar (lambda (x)
+                       (cons (if (elt x 3)
+                                 (format "%s - %s" (car x) (elt x 3))
+                               (car x))
+                             x))
+                     (my/org-get-list-categories))))
 
-   (defun my/org-move-current-item-to-category (category)
-     (when category
+     (defun my/org-move-current-item-to-category (category)
+       (when category
+         (let* ((beg (line-beginning-position))
+                (end (line-end-position))
+                (string (buffer-substring-no-properties beg end)))
+           (save-excursion
+             (when (re-search-backward (elt category 2) nil t)
+               (delete-region beg (min (1+ end) (point-max)))
+               (forward-line 1)
+               (insert (make-string (+ 2 (elt category 1)) ?\ )
+                       string "\n")))) t))
+
+     (defun my/org-guess-list-category (&optional categories)
+       (interactive)
+       (require 'cl-lib)
+       (unless categories
+         (setq categories
+               (my/helm-org-list-categories-init-candidates)))
        (let* ((beg (line-beginning-position))
               (end (line-end-position))
-              (string (buffer-substring-no-properties beg end)))
-         (save-excursion
-           (when (re-search-backward (elt category 2) nil t)
-             (delete-region beg (min (1+ end) (point-max)))
-             (forward-line 1)
-             (insert (make-string (+ 2 (elt category 1)) ?\ )
-                     string "\n")))) t))
+              (string (buffer-substring-no-properties beg end))
+              (found
+               (cl-member string
+                          categories
+                          :test
+                          (lambda (string cat-entry)
+                            (string-match (regexp-quote (downcase (car cat-entry)))
+                                          string)))))
+         (when (car found)
+           (my/org-move-current-item-to-category
+            (cdr (car found)))
+           t)))
+   #+end_src
 
-   (defun my/org-guess-list-category (&optional categories)
-     (interactive)
-     (require 'cl-lib)
-     (unless categories
-       (setq categories
-             (my/helm-org-list-categories-init-candidates)))
-     (let* ((beg (line-beginning-position))
-            (end (line-end-position))
-            (string (buffer-substring-no-properties beg end))
-            (found
-             (cl-member string
-                        categories
-                        :test
-                        (lambda (string cat-entry)
-                          (string-match (regexp-quote (downcase (car cat-entry)))
-                                        string)))))
-       (when (car found)
-         (my/org-move-current-item-to-category
-          (cdr (car found)))
-         t)))
- #+end_src
+   After that, I wrote a function that used Helm to prompt me for a
+   category in case it couldn't guess the category. It took me a while to
+   figure out that I needed to use =:init= instead of =:candidates=
+   because I wanted to read information from the buffer before Helm
+   kicked in.
 
- After that, I wrote a function that used Helm to prompt me for a
- category in case it couldn't guess the category. It took me a while to
- figure out that I needed to use =:init= instead of =:candidates=
- because I wanted to read information from the buffer before Helm
- kicked in.
+   #+begin_src emacs-lisp
+     (setq my/helm-org-list-category-source
+           (helm-build-sync-source
+               "Non-link categories in the current list"
+             :init 'my/helm-org-list-categories-init-candidates
+             :candidates 'my/helm-org-list-candidates
+             :action 'my/org-move-current-item-to-category
+             :fuzzy-match t))
 
- #+begin_src emacs-lisp
-   (setq my/helm-org-list-category-source
-         (helm-build-sync-source
-             "Non-link categories in the current list"
-           :init 'my/helm-org-list-categories-init-candidates
-           :candidates 'my/helm-org-list-candidates
-           :action 'my/org-move-current-item-to-category
-           :fuzzy-match t))
+     (defun my/org-guess-uncategorized ()
+       (interactive)
+       (my/helm-org-list-categories-init-candidates)
+       (let (done)
+         (while (not done)
+           (save-excursion
+             (unless (my/org-guess-list-category my/helm-org-list-candidates)
+               (unless
+                   (helm :sources
+                         '(my/helm-org-list-category-source
+                           my/helm-org-list-category-create-source))
+                 (setq done t))))
+           (unless done
+             (setq done (not (looking-at "^[-+] \\[")))))))
+   #+end_src
 
-   (defun my/org-guess-uncategorized ()
-     (interactive)
-     (my/helm-org-list-categories-init-candidates)
-     (let (done)
-       (while (not done)
-         (save-excursion
-           (unless (my/org-guess-list-category my/helm-org-list-candidates)
-             (unless
-                 (helm :sources
-                       '(my/helm-org-list-category-source
-                         my/helm-org-list-category-create-source))
-               (setq done t))))
-         (unless done
-           (setq done (not (looking-at "^[-+] \\[")))))))
- #+end_src
+  Actually, it might be helpful to be able to sort lists by a keyword.
 
- The =:action= above refers to this function, which creates a category if it doesn't exist yet.
+  #+begin_src emacs-lisp
+    (defun my/org-sort-list-by-regexp (regexp)
+      (interactive "MRegexp: ")
+      (save-restriction
+        (narrow-to-region (point)
+                          (save-excursion (org-end-of-item-list)))
+        (org-sort-list
+         nil ?f
+         (lambda ()
+           (let ((line (buffer-substring-no-properties
+                        (point)
+                        (save-excursion
+                          (org-end-of-item)))))
+             (if (string-match regexp line)
+                 (if (string-match org-bracket-link-regexp line)
+                     (match-string 3 line)
+                   "ZZZ")
+               "ZZZZZ")))
+         'string<)))
+  #+end_src
 
- #+begin_src emacs-lisp
-   (setq my/helm-org-list-category-create-source
-         (helm-build-dummy-source
-             "Create category"
-           :action (helm-make-actions
-                    "Create category"
-                    (lambda (candidate)
-                      (save-excursion
-                        (let* ((beg (line-beginning-position))
-                               (end (line-end-position))
-                               (string (buffer-substring beg end)))
-                          (delete-region beg (min (1+ end) (point-max)))
-                          (org-beginning-of-item-list)
-                          (insert "- " candidate "\n  " string "\n")))
-                      (my/helm-org-list-categories-init-candidates)))))
- #+end_src
+  #+RESULTS:
+  : my/org-sort-list-by-regexp
 
- I'm new to fiddling with Helm, so this implementation is not the best
- it could be. But it's nifty and it works the way I want it to, hooray!
- Now I can generate a list of blog posts and unblogged sketches,
- categorize them quickly, and then tweak the categorizations
- afterwards.
+  This one files sketches into the headings I've started using in questions.org.
 
- [[https://www.flickr.com/photos/sachac/16394665616/][2015-02-01 Index card sketches and monthly reviews -- index card #organization #pkm #indexing]]
+  #+begin_src emacs-lisp
+  (defun my/refile-sketches-to-questions ()
+    (interactive)
+  (while (looking-at "^  \\+ \\[\\[.*?\\]\\[\\(.*?\\) -- \\(.*?\\)\\]\\]\n")
+    (let ((link (match-string 0))
+          (title (match-string 1)))
+      (save-excursion
+        (if (save-match-data (search-forward (concat "* " title) nil t))
+            (progn (forward-line) (insert (match-string 0)) (replace-match ""))
+          (forward-line 1))))))
+  #+end_src
 
- You can see the results in my [[http://sachachua.com/blog/2015/02/monthly-review-january-2015/][January 2015]] review.
+   The =:action= above refers to this function, which creates a category if it doesn't exist yet.
 
- My next step for learning more about Helm sources is probably to write
- a Helm command that creates a montage of selected images. John Kitchin
- has a post about [[http://kitchingroup.cheme.cmu.edu/blog/][handling multiple selection in Helm]], so I just need
- to combine that with my code for using Imagemagick to create a montage
- of images. Whee!
+   #+begin_src emacs-lisp
+     (setq my/helm-org-list-category-create-source
+           (helm-build-dummy-source
+               "Create category"
+             :action (helm-make-actions
+                      "Create category"
+                      (lambda (candidate)
+                        (save-excursion
+                          (let* ((beg (line-beginning-position))
+                                 (end (line-end-position))
+                                 (string (buffer-substring beg end)))
+                            (delete-region beg (min (1+ end) (point-max)))
+                            (org-beginning-of-item-list)
+                            (insert "- " candidate "\n  " string "\n")))
+                        (my/helm-org-list-categories-init-candidates)))))
+   #+end_src
+
+   I'm new to fiddling with Helm, so this implementation is not the best
+   it could be. But it's nifty and it works the way I want it to, hooray!
+   Now I can generate a list of blog posts and unblogged sketches,
+   categorize them quickly, and then tweak the categorizations
+   afterwards.
+
+   [[https://www.flickr.com/photos/sachac/16394665616/][2015-02-01 Index card sketches and monthly reviews -- index card #organization #pkm #indexing]]
+
+   You can see the results in my [[http://sachachua.com/blog/2015/02/monthly-review-january-2015/][January 2015]] review.
+
+   My next step for learning more about Helm sources is probably to write
+   a Helm command that creates a montage of selected images. John Kitchin
+   has a post about [[http://kitchingroup.cheme.cmu.edu/blog/][handling multiple selection in Helm]], so I just need
+   to combine that with my code for using Imagemagick to create a montage
+   of images. Whee!
+
 
 *** Using Emacs to prepare files for external applications like Autodesk Sketchbook Pro
     CLOSED: [2015-02-01 Sun 18:47]
@@ -5320,6 +5365,14 @@ recently-opened files first.
                                      (delete-window)
                                      (my/rename-scanned-cards))
                            "Process files")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/open-image (my/prepare-index-card-template)))
+                         "New")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/open-image (my/prepare-index-card-template nil (org-read-date nil nil "-1"))))
+                         "Yesterday")
             (widget-create 'push-button
                            :notify (lambda (&rest ignore)
                                      (my/rotate-screen 0)
@@ -5343,7 +5396,7 @@ recently-opened files first.
                    (lambda (dir)
                      (directory-files dir t
                                       (regexp-quote base)))
-                   '("~/Dropbox/Inbox" "~/Dropbox/Inbox/To blog"
+                   '("~/Dropbox/Inbox" "~/Dropbox/Inbox/To blog" "~/Dropbox/sketches/private"
                      "g:/documents/photosync/sketchbook"))))))
 
     (defun my/prepare-index-card-template (&optional name date)
@@ -5581,6 +5634,9 @@ recently-opened files first.
          (my/org-guess-uncategorized)))
    #+end_src
 
+   #+RESULTS:
+   : my/upload-scanned-cards
+
   I might tweak the files a little more after I rename them, so I don't
   automatically upload them. When I'm happy with the files, I use a [[http://sachachua.com/blog/?p=27830&shareadraft=baba27830_54b92ac511e86][Node
   script]] to upload the files to Flickr, move them to my =To blog=
@@ -5719,7 +5775,7 @@ Aspect ratio is width / height
    (defun my/create-week-montage (beg end)
      (interactive "r")
      (my/prepare-index-card (format "Week ending %s -- index card #journal #weekly" (org-read-date nil nil "-fri"))
-                            (org-read-date nil nil "-fri"))
+                            (org-read-date nil nil "."))
      (my/create-sketch-montage beg end "2x"))
 #+end_src
 

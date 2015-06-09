@@ -227,7 +227,7 @@ helm-grep? Bit slow and hard to read, though.
 #+END_SRC
 
 **** Getting Helm and org-refile to clock in or create tasks :emacs:org:helm:
-     CLOSED: [2015-02-02 Mon 08:40] 
+     CLOSED: [2015-02-02 Mon 08:40]
      :PROPERTIES:
      :Effort:   1:00
      :ID:       o2b:68856129-3324-4a07-87f3-066a228c5847
@@ -441,7 +441,7 @@ helm-grep? Bit slow and hard to read, though.
   task. Mwahaha.
 
   I think I'm getting the hang of tweaking Helm. Yay!
- 
+
 *** Mode line format
 
 Display a more compact mode line
@@ -3138,6 +3138,47 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
 #+begin_src emacs-lisp
 (use-package ox-reveal :disabled t)
 #+end_src
+*** Copying information from my phone
+
+I have a tiny Tasker script that makes it easy to log timestamped
+entries as files in a directory that I synchronize with Dropbox. This
+code pulls that information into my ~/Dropbox/tasker/
+
+#+begin_src emacs-lisp
+  (defun my/read-phone-entries ()
+    "Copy phone data to a summary Org file."
+    (interactive)
+    (mapc
+     (lambda (filename)
+       (let ((base (file-name-base filename)) contents timestamp category encoded-time date)
+         (when (string-match "^[^ ]+ [^ ]+ \\([^ ]+\\) - \\(.*\\)" base)
+           (setq time (seconds-to-time (/ (string-to-number (match-string 1 base)) 1000))
+                 encoded-time (decode-time time)
+                 date (list (elt encoded-time 4) (elt encoded-time 3) (elt encoded-time 5))
+                 category (match-string 2 base))
+           (with-temp-buffer
+             (insert-file-contents filename)
+             (setq contents (s-trim (buffer-string))))
+           (with-current-buffer
+               (find-file "~/dropbox/tasker/summary.txt")
+             (org-datetree-find-date-create date)
+             (unless (save-excursion (re-search-forward (regexp-quote base) nil t))
+               (goto-char (line-end-position))
+               (insert "\n")
+               (insert "**** " contents "  :" category ":\n" base "\n")
+               (insert (format-time-string "[%Y-%m-%d %a %H:%M]\n" time))
+
+               (if (member category '("Think" "Do"))
+                   (save-excursion
+                     (org-back-to-heading t)
+                     (if (looking-at org-outline-regexp) (goto-char (1- (match-end 0))))
+                     (unless (looking-at org-todo-regexp)
+                       (org-todo "TODO"))))
+               (if (string-match "^Energy \\([0-9]\\)" contents)
+                   (org-set-property "ENERGY" (match-string 1 contents))))))))
+     (directory-files "~/dropbox/tasker/data" t "\\.txt$")))
+#+end_src
+
 ** Coding
 *** Web development
 #+begin_src emacs-lisp
@@ -3163,10 +3204,6 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
               ("html" . (ac-source-words-in-buffer ac-source-abbrev)))
             )))
 
-   (use-package tagedit
-     :ensure t
-     :defer t
-     :idle (add-hook 'web-mode-hook 'tagedit-mode))
 #+end_src
 *** Tab width of 2 is compact and readable
 #+begin_src emacs-lisp
@@ -4390,6 +4427,7 @@ Got sdic from http://namazu.org/~tsuchiya/sdic/ . Attempting to get this to work
 
 #+begin_src emacs-lisp
 (use-package clipmon
+  :disabled t
   :init (progn (setq clipmon-action 'kill-new clipmon-timeout nil clipmon-sound nil clipmon-cursor-color nil clipmon-suffix nil) (clipmon-mode)))
 #+end_src
 ** Search
@@ -5612,8 +5650,7 @@ recently-opened files first.
                      (rename-file filename (concat (s-trim new-name) ".png"))
                      (kill-buffer)))))
              (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.png"))
-       (when (yes-or-no-p "Upload files?")
-         (my/upload-scanned-cards)))
+             (my/upload-scanned-cards))
 
      (defun my/clean-index-card-directory ()
        "Remove files marked for deletion and move private files."
@@ -5623,14 +5660,21 @@ recently-opened files first.
      (defun my/upload-scanned-cards ()
        (interactive)
        (my/clean-index-card-directory)
-       (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png"))
+       (with-current-buffer (get-buffer-create "*Files to be uploaded*")
+         (erase-buffer)
+         (insert (mapconcat 'identity (directory-files "~/Dropbox/Inbox" nil "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png") "\n"))
+         (goto-char (point-min))
+         (switch-to-buffer (current-buffer))
+         (delete-other-windows))
+       (when (yes-or-no-p "Upload files?")
+         (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png")))
        (sleep-for 3)
        (find-file "~/personal/questions.org")
        (goto-char (point-min))
        (when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))
          (forward-line 1)
          (org-end-of-item-list)
-         (save-excursion (yank))
+         (save-excursion (yank) (insert "\n"))
          (my/org-guess-uncategorized)))
    #+end_src
 

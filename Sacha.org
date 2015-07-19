@@ -330,110 +330,112 @@ helm-grep? Bit slow and hard to read, though.
   well add that bit of code that sets up clocking in, too.
 
   #+BEGIN_SRC emacs-lisp
-      (defvar my/helm-org-refile-locations nil)
+    (defvar my/helm-org-refile-locations nil)
+    (defvar my/org-refile-last-location nil)
 
-      (defun my/helm-org-clock-in-and-track-from-refile (candidate)
-        (let ((location (org-refile--get-location candidate my/helm-org-refile-locations)))
-          (save-window-excursion
-            (org-refile 4 nil location)
-            (my/org-clock-in-and-track)
-            t)))
+    (defun my/helm-org-clock-in-and-track-from-refile (candidate)
+      (let ((location (org-refile--get-location candidate my/helm-org-refile-locations)))
+        (save-window-excursion
+          (org-refile 4 nil location)
+          (my/org-clock-in-and-track)
+          t)))
 
-      (defun my/helm-org-refile-read-location (tbl)
-        (setq my/helm-org-refile-locations tbl)
-        (helm
-         (list
-          (helm-build-sync-source "Refile targets"
-            :candidates (mapcar 'car tbl)
-            :action '(("Select" . identity)
-                      ("Clock in and track" . my/helm-org-clock-in-and-track-from-refile)
-                      ("Draw index card" . my/helm-org-prepare-index-card-for-subtree))
-            :history 'org-refile-history)
-          (helm-build-dummy-source "Create task"
-            :action (helm-make-actions
-                     "Create task"
-                     'my/helm-org-create-task)))))
+    (defun my/helm-org-refile-read-location (tbl)
+      (setq my/helm-org-refile-locations tbl)
+      (helm
+       (list
+        (helm-build-sync-source "Refile targets"
+          :candidates (mapcar 'car tbl)
+          :action '(("Select" . identity)
+                    ("Clock in and track" . my/helm-org-clock-in-and-track-from-refile)
+                    ("Draw index card" . my/helm-org-prepare-index-card-for-subtree))
+          :history 'org-refile-history)
+        (helm-build-dummy-source "Create task"
+          :action (helm-make-actions
+                   "Create task"
+                   'my/helm-org-create-task)))))
 
-      (defun my/org-refile-get-location (&optional prompt default-buffer new-nodes no-exclude)
-        "Prompt the user for a refile location, using PROMPT.
-      PROMPT should not be suffixed with a colon and a space, because
-      this function appends the default value from
-      `org-refile-history' automatically, if that is not empty.
-      When NO-EXCLUDE is set, do not exclude headlines in the current subtree,
-      this is used for the GOTO interface."
-        (let ((org-refile-targets org-refile-targets)
-              (org-refile-use-outline-path org-refile-use-outline-path)
-              excluded-entries)
-          (when (and (derived-mode-p 'org-mode)
-                     (not org-refile-use-cache)
-                     (not no-exclude))
-            (org-map-tree
-             (lambda()
-               (setq excluded-entries
-                     (append excluded-entries (list (org-get-heading t t)))))))
-          (setq org-refile-target-table
-                (org-refile-get-targets default-buffer excluded-entries)))
-        (unless org-refile-target-table
-          (user-error "No refile targets"))
-        (let* ((cbuf (current-buffer))
-               (partial-completion-mode nil)
-               (cfn (buffer-file-name (buffer-base-buffer cbuf)))
-               (cfunc (if (and org-refile-use-outline-path
-                               org-outline-path-complete-in-steps)
-                          'org-olpath-completing-read
-                        'org-icompleting-read))
-               (extra (if org-refile-use-outline-path "/" ""))
-               (cbnex (concat (buffer-name) extra))
-               (filename (and cfn (expand-file-name cfn)))
-               (tbl (mapcar
-                     (lambda (x)
-                       (if (and (not (member org-refile-use-outline-path
-                                             '(file full-file-path)))
-                                (not (equal filename (nth 1 x))))
-                           (cons (concat (car x) extra " ("
-                                         (file-name-nondirectory (nth 1 x)) ")")
-                                 (cdr x))
-                         (cons (concat (car x) extra) (cdr x))))
-                     org-refile-target-table))
-               (completion-ignore-case t)
-               cdef
-               (prompt (concat prompt
-                               (or (and (car org-refile-history)
-                                        (concat " (default " (car org-refile-history) ")"))
-                                   (and (assoc cbnex tbl) (setq cdef cbnex)
-                                        (concat " (default " cbnex ")"))) ": "))
-               pa answ parent-target child parent old-hist)
-          (setq old-hist org-refile-history)
-          ;; Use Helm's sources instead
-          (setq answ (my/helm-org-refile-read-location tbl))
-          (if (and (stringp answ)
-                   (setq pa (org-refile--get-location answ tbl)))
+    (defun my/org-refile-get-location (&optional prompt default-buffer new-nodes no-exclude)
+      "Prompt the user for a refile location, using PROMPT.
+    PROMPT should not be suffixed with a colon and a space, because
+    this function appends the default value from
+    `org-refile-history' automatically, if that is not empty.
+    When NO-EXCLUDE is set, do not exclude headlines in the current subtree,
+    this is used for the GOTO interface."
+      (let ((org-refile-targets org-refile-targets)
+            (org-refile-use-outline-path org-refile-use-outline-path)
+            excluded-entries)
+        (when (and (derived-mode-p 'org-mode)
+                   (not org-refile-use-cache)
+                   (not no-exclude))
+          (org-map-tree
+           (lambda()
+             (setq excluded-entries
+                   (append excluded-entries (list (org-get-heading t t)))))))
+        (setq org-refile-target-table
+              (org-refile-get-targets default-buffer excluded-entries)))
+      (unless org-refile-target-table
+        (user-error "No refile targets"))
+      (let* ((cbuf (current-buffer))
+             (partial-completion-mode nil)
+             (cfn (buffer-file-name (buffer-base-buffer cbuf)))
+             (cfunc (if (and org-refile-use-outline-path
+                             org-outline-path-complete-in-steps)
+                        'org-olpath-completing-read
+                      'org-icompleting-read))
+             (extra (if org-refile-use-outline-path "/" ""))
+             (cbnex (concat (buffer-name) extra))
+             (filename (and cfn (expand-file-name cfn)))
+             (tbl (mapcar
+                   (lambda (x)
+                     (if (and (not (member org-refile-use-outline-path
+                                           '(file full-file-path)))
+                              (not (equal filename (nth 1 x))))
+                         (cons (concat (car x) extra " ("
+                                       (file-name-nondirectory (nth 1 x)) ")")
+                               (cdr x))
+                       (cons (concat (car x) extra) (cdr x))))
+                   org-refile-target-table))
+             (completion-ignore-case t)
+             cdef
+             (prompt (concat prompt
+                             (or (and (car org-refile-history)
+                                      (concat " (default " (car org-refile-history) ")"))
+                                 (and (assoc cbnex tbl) (setq cdef cbnex)
+                                      (concat " (default " cbnex ")"))) ": "))
+             pa answ parent-target child parent old-hist)
+        (setq old-hist org-refile-history)
+        ;; Use Helm's sources instead
+        (setq answ (my/helm-org-refile-read-location tbl))
+        (if (and (stringp answ)
+                 (setq pa (org-refile--get-location answ tbl)))
+            (progn
+              (org-refile-check-position pa)
+              (when (or (not org-refile-history)
+                        (not (eq old-hist org-refile-history))
+                        (not (equal (car pa) (car org-refile-history))))
+                (setq org-refile-history
+                      (cons (car pa) (if (assoc (car org-refile-history) tbl)
+                                         org-refile-history
+                                       (cdr org-refile-history))))
+                (if (equal (car org-refile-history) (nth 1 org-refile-history))
+                    (pop org-refile-history)))
+              (setq my/org-refile-last-location pa)
+              pa)
+          (if (and (stringp answ) (string-match "\\`\\(.*\\)/\\([^/]+\\)\\'" answ))
               (progn
-                (org-refile-check-position pa)
-                (when (or (not org-refile-history)
-                          (not (eq old-hist org-refile-history))
-                          (not (equal (car pa) (car org-refile-history))))
-                  (setq org-refile-history
-                        (cons (car pa) (if (assoc (car org-refile-history) tbl)
-                                           org-refile-history
-                                         (cdr org-refile-history))))
-                  (if (equal (car org-refile-history) (nth 1 org-refile-history))
-                      (pop org-refile-history)))
-                pa)
-            (if (and (stringp answ) (string-match "\\`\\(.*\\)/\\([^/]+\\)\\'" answ))
-                (progn
-                  (setq parent (match-string 1 answ)
-                        child (match-string 2 answ))
-                  (setq parent-target (org-refile--get-location parent tbl))
-                  (when (and parent-target
-                             (or (eq new-nodes t)
-                                 (and (eq new-nodes 'confirm)
-                                      (y-or-n-p (format "Create new node \"%s\"? "
-                                                        child)))))
-                    (org-refile-new-child parent-target child)))
-              (if (not (equal answ t)) (user-error "Invalid target location"))))))
+                (setq parent (match-string 1 answ)
+                      child (match-string 2 answ))
+                (setq parent-target (org-refile--get-location parent tbl))
+                (when (and parent-target
+                           (or (eq new-nodes t)
+                               (and (eq new-nodes 'confirm)
+                                    (y-or-n-p (format "Create new node \"%s\"? "
+                                                      child)))))
+                  (org-refile-new-child parent-target child)))
+            (if (not (equal answ t)) (user-error "Invalid target location"))))))
 
-      (fset 'org-refile-get-location 'my/org-refile-get-location)
+    (fset 'org-refile-get-location 'my/org-refile-get-location)
   #+END_SRC
 
   Hooray! Now =C-u C-c C-w= (=org-refile=) also lets me use =TAB= or
@@ -1474,7 +1476,7 @@ able to clock in on them.
             "STARTED(s)"
             "WAITING(w@/!)"
             "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c@)")
-           (sequence "LEARN" "DO" "TEACH" "|" "COMPLETE(x)")
+           (sequence "LEARN" "TRY" "TEACH" "|" "COMPLETE(x)")
            (sequence "TOSKETCH" "SKETCHED" "|" "POSTED")
            (sequence "TODELEGATE(-)" "DELEGATED(d)" "|" "COMPLETE(x)")))
  #+end_src
@@ -1704,14 +1706,14 @@ This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exportin
          (narrow-to-region beg end)
          (goto-char (point-min))
          (let ((char (if (string-match "\\?" url) "&" "?")))
-           (while (re-search-forward "\\(\\([0-9]+\\):\\([0-9]+\\):\\([0-9]+\\)\\) ::" nil t)
+           (while (re-search-forward "\\(\\([0-9]+\\):\\([0-9]+\\)\\(:\\([0-9]+\\)\\)?\\) ::" nil t)
              (replace-match
               (format "[[%s%st=%sh%sm%ss][%s]] "
                       url
                       char
                       (match-string 2)
                       (match-string 3)
-                      (match-string 4)
+                      (or (match-string 5) "0")
                       (match-string 1)) nil t))))))
 
    (defun my/clean-up-google-hangout-chat ()
@@ -1757,12 +1759,14 @@ only a few of them them for faster scanning.
                       '("~/personal/organizer.org"
                         "~/personal/people.org"
                         "~/personal/business.org"
+                        "~/Dropbox/tasker/summary.txt"
                         "~/Dropbox/public/sharing/index.org"
                         "~/dropbox/public/sharing/learning.org"
                         "~/code/dev/emacs-notes/tasks.org"
                         "~/sachac.github.io/evil-plans/index.org"
                         "~/personal/cooking.org"
                         "~/personal/routines.org"))))
+  (add-to-list 'auto-mode-alist '("\\.txt$" . org-mode))
 #+end_src
 
 I like looking at two days at a time when I plan using the Org
@@ -2777,17 +2781,26 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 #+begin_src emacs-lisp
   (defun my/org-refile-in-file (prefix)
     "Refile to a target within the current file."
-    (interactive "p")
+    (interactive)
     (let ((org-refile-targets `(((,(buffer-file-name)) :maxlevel . 6))))
       (call-interactively 'org-refile)))
   (define-key my/refile-map "." 'my/org-refile-in-file)
 
-  (defun my/org-refile-to-previous-in-file (prefix)
-    (interactive "p")
+  (defun my/org-refile-to-previous-in-file ()
+    (interactive)
     "Refile to the previous target."
     (let ((org-refile-targets `(((,(buffer-file-name)) :maxlevel . 6))))
       (save-excursion
         (org-refile nil nil (my/org-refile-get-location-exact (car org-refile-history))))))
+
+;; TODO Get this to work
+  (defun my/org-refile-to-previous ()
+    (interactive)
+    "Refile to the previous target."
+    (save-excursion
+      (org-refile nil nil my/org-refile-last-location)))
+
+  (add-to-list 'org-speed-commands-user '("G" call-interactively 'my/org-refile-to-previous))
 
   (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
   (add-to-list 'org-speed-commands-user '("." call-interactively 'my/org-refile-to-previous-in-file))
@@ -2865,13 +2878,18 @@ Make it easy to publish and browse a file.
 
 I use org2blog to post to my blog, which is Wordpress-based. I used to
 use punchagan's org2blog, but there's a completely different one in
-ELPA, so I figured I'd give that a try. UPDATE 2014-10-29: Overriding it with the Git version (see the first section of this config) so that I can use thumbnail support for now...
+ELPA, so I figured I'd give that a try. UPDATE 2014-10-29: Overriding
+it with the Git version (see the first section of this config) so that
+I can use thumbnail support for now...
 
 #+begin_src emacs-lisp
   (use-package org2blog
-    :defer t
+    :load-path "~/code/org2blog"
+    :commands 'org2blog/wp-post-subtree
     :config
      (progn
+      (setq org2blog/wp-track-posts nil)
+      (setq org2blog/wp-use-tags-as-categories t)
       (defadvice org2blog/wp-post-buffer (around sacha activate)
       (let ((org-confirm-babel-evaluate nil)
             (org-html-toplevel-hlevel 3))
@@ -3085,6 +3103,14 @@ Probably should make this a dblock someday."
     (message "%s" (mapconcat (lambda (x) (format "%s: %d" (car x) (cdr x)))
                              result "\n"))))
 #+end_src
+*** Spreadsheets
+#+begin_src emacs-lisp
+  (defun my/org-days-between (start end)
+    "Number of days between START and END.
+  This includes START and END."
+    (1+ (- (calendar-absolute-from-gregorian (org-date-to-gregorian end))
+        (calendar-absolute-from-gregorian (org-date-to-gregorian start)))))
+#+end_src
 *** Literate programming
 **** Editing source code
  I don't want to get distracted by the same code in the other window, so I want org src to use the current window.
@@ -3175,7 +3201,8 @@ code pulls that information into my ~/Dropbox/tasker/
                      (unless (looking-at org-todo-regexp)
                        (org-todo "TODO"))))
                (if (string-match "^Energy \\([0-9]\\)" contents)
-                   (org-set-property "ENERGY" (match-string 1 contents))))))))
+                   (org-set-property "ENERGY" (match-string 1 contents)))))
+           (delete-file filename))))
      (directory-files "~/dropbox/tasker/data" t "\\.txt$")))
 #+end_src
 
@@ -5409,6 +5436,10 @@ recently-opened files first.
                          "New")
           (widget-create 'push-button
                          :notify (lambda (&rest ignore)
+                                   (my/open-image (my/prepare-index-card-template nil (org-read-date))))
+                         "Date")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
                                    (my/open-image (my/prepare-index-card-template nil (org-read-date nil nil "-1"))))
                          "Yesterday")
             (widget-create 'push-button
@@ -5425,17 +5456,22 @@ recently-opened files first.
     (defun my/rotate-screen (degrees)
       (shell-command (format "c:/sacha/Dropbox/bin/orient /rotate:%d" degrees)))
 
-    (defun my/get-index-card-filename (base)
+    (defvar my/sketch-directories
+      '("~/Dropbox/Inbox"
+        "~/Dropbox/Inbox/To blog"
+        "~/Dropbox/sketches/private"
+        "g:/documents/photosync/sketchbook"))
+    (defun my/get-index-card-filename (base &optional as-regexp)
       "Check several directories for files matching BASE.
-    Return the matching filename, if any."
+    Return the matching filename, if any.
+    If AS-REGEXP is non-nil, treat BASE as a regular expression."
       (car (-flatten
             (delq nil
                   (mapcar
                    (lambda (dir)
                      (directory-files dir t
-                                      (regexp-quote base)))
-                   '("~/Dropbox/Inbox" "~/Dropbox/Inbox/To blog" "~/Dropbox/sketches/private"
-                     "g:/documents/photosync/sketchbook"))))))
+                                      (if as-regexp base (regexp-quote base))))
+                   my/sketch-directories)))))
 
     (defun my/prepare-index-card-template (&optional name date)
       "Create the image file for NAME. Return the new filename."
@@ -5478,6 +5514,10 @@ recently-opened files first.
                          :notify (lambda (&rest ignore)
                                    (my/open-image (my/prepare-index-card-template nil (org-read-date nil nil "-1"))))
                          "Yesterday")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/open-image (my/prepare-index-card-template nil (org-read-date))))
+                         "Date")
           (widget-create 'push-button
                          :notify (lambda (&rest ignore)
                                    (my/rotate-screen 0)
@@ -5587,11 +5627,97 @@ recently-opened files first.
     (add-to-list 'org-speed-commands-user '("d" call-interactively 'my/prepare-index-card-for-subtree))
   #+end_src
 
-  orient.exe is a renamed [[http://answers.microsoft.com/en-us/windows/forum/windows_8-pictures/is-there-a-shortcut-to-rotate-the-screen-in-win-8/5a326bdf-a8f5-4a8b-8cd7-510fdf597b49?page=2][display.exe]].
+    orient.exe is a renamed [[http://answers.microsoft.com/en-us/windows/forum/windows_8-pictures/is-there-a-shortcut-to-rotate-the-screen-in-win-8/5a326bdf-a8f5-4a8b-8cd7-510fdf597b49?page=2][display.exe]].
 
-  Afterwards, I call =my/rename-scanned-cards= function to convert
-  the TIFFs to PNGs, display the files and ask me to rename them
-  properly.
+    Afterwards, I call =my/rename-scanned-cards= function to convert
+    the TIFFs to PNGs, display the files and ask me to rename them
+    properly.
+
+
+**** Easily backfilling my journal
+     CLOSED: [2015-07-19 Sun 11:53]
+     :PROPERTIES:
+     :Effort:   0:30
+     :QUANTIFIED: Emacs
+     :END:
+     :LOGBOOK:
+     - State "DONE"       from "STARTED"    [2015-07-19 Sun 11:53]
+     CLOCK: [2015-07-19 Sun 11:18]--[2015-07-19 Sun 11:53] =>  0:35
+     :END:
+
+  #+begin_src emacs-lisp
+    (defun my/draw-journal-entry (date)
+      "Creates a blank journal entry for DATE and brings up the log."
+      (interactive (list (org-read-date)))
+      ;; Open the Quantified Awesome time log for that date
+      (let ((filename (my/get-journal-entry date)))
+        (if filename
+            (my/open-image filename)
+          (browse-url (format "http://quantifiedawesome.com/records?start=%s&end=%s"
+                              date
+                              (format-time-string
+                               "%Y-%m-%d"
+                               (seconds-to-time
+                                (+ (org-time-string-to-seconds date) 86400)))))
+          (my/open-image
+            (my/prepare-index-card-template
+             (format-time-string
+              "%A -- index card #journal"
+              (org-time-string-to-time date))
+             date)))))
+
+    (defun my/get-journal-entry (date)
+      "Returns the filename for the journal sketch for DATE."
+      (my/get-index-card-filename
+       (format "%s.* -- index card #journal.png" date)
+       t))
+
+    (defun my/get-missing-journal-dates (start-date end-date)
+      "Return a list of dates missing journal entries.
+    Range is specified by START-DATE (inclusive) and END-DATE (exclusive)."
+      (let* ((current-day (1- (org-time-string-to-absolute end-date)))
+             (start-day (org-time-string-to-absolute start-date))
+             current-date
+             current-date-string
+             missing-list)
+        (while (>= current-day start-day)
+          (setq current-date (calendar-gregorian-from-absolute current-day))
+          (setq current-date-string (format "%04d-%02d-%02d" (elt current-date 2) (elt current-date 0) (elt current-date 1)))
+          (unless (my/get-journal-entry current-date-string)
+            (add-to-list 'missing-list current-date-string))
+          (setq current-day (1- current-day)))
+        missing-list))
+
+    (defun my/show-missing-journal-entries (since)
+      (interactive (list (org-read-date)))
+      (let ((missing-dates (my/get-missing-journal-dates since (org-read-date nil nil "."))))
+        (if missing-dates
+            (with-current-buffer (get-buffer-create "*Done*")
+              (let ((inhibit-read-only t))
+                (erase-buffer)
+                (widget-create 'push-button
+                               :notify (lambda (&rest ignore)
+                                         (my/open-image (my/prepare-index-card-template)))
+                               "New")
+                (mapc
+                 (lambda (date)
+                   (widget-create 'push-button
+                                  :date date
+                                  :notify (lambda (widget &rest ignore)
+                                            (my/draw-journal-entry (plist-get (cdr widget) :date)))
+                                  date))
+                 missing-dates)
+                (widget-create 'push-button
+                               :notify (lambda (&rest ignore)
+                                         (my/rotate-screen 0)
+                                         (delete-window))
+                               "Done")
+                (text-scale-set 10)
+                (widget-setup)
+                (widget-minor-mode)
+                (pop-to-buffer (current-buffer))))
+          (message "All clear!"))))
+  #+end_src
 
 **** Rename scanned index cards
 
@@ -5759,68 +5885,72 @@ Based on [[http://williamedwardscoder.tumblr.com/post/84505278488/making-image-m
 Aspect ratio is width / height
 
 #+begin_src emacs-lisp
-   (defun my/get-tile-dimensions (num-items orig-width orig-height target-aspect-ratio)
-     (let ((rows 1) (cols 1)
-           (current-aspect (/ orig-width (float orig-height)))
-           add-col-aspect
-           add-row-aspect)
-       (while (< (* rows cols) num-items)
-         (setq add-col-aspect (/ (* (1+ cols) (float orig-width))
-                                 (* rows orig-height))
-               add-row-aspect (/ (* cols (float orig-width))
-                                 (* (1+ rows) orig-height)))
-         (if (<  (abs (- add-col-aspect target-aspect-ratio))
-                 (abs (- add-row-aspect target-aspect-ratio)))
-             (setq cols (1+ cols))
-           (setq rows (1+ rows))))
-       (cons cols rows)))
-   (ert-deftest my/get-tile-dimensions ()
-     (should (equal (my/get-tile-dimensions 2 2 1 1) (cons 1 2)))
-     (should (equal (my/get-tile-dimensions 4 2 1 0.5) (cons 1 4)))
-     (should (equal (my/get-tile-dimensions 12 1 1 (/ 4.0 3.0)) (cons 4 3)))
-     (should (equal (my/get-tile-dimensions 11 1 1 (/ 4.0 3.0)) (cons 4 3)))
-     (should (equal (my/get-tile-dimensions 13 1 1 (/ 4.0 3.0)) (cons 4 4))))
+  (defun my/get-tile-dimensions (num-items orig-width orig-height target-aspect-ratio)
+    (let ((rows 1) (cols 1)
+          (current-aspect (/ orig-width (float orig-height)))
+          add-col-aspect
+          add-row-aspect)
+      (while (< (* rows cols) num-items)
+        (setq add-col-aspect (/ (* (1+ cols) (float orig-width))
+                                (* rows orig-height))
+              add-row-aspect (/ (* cols (float orig-width))
+                                (* (1+ rows) orig-height)))
+        (if (<  (abs (- add-col-aspect target-aspect-ratio))
+                (abs (- add-row-aspect target-aspect-ratio)))
+            (setq cols (1+ cols))
+          (setq rows (1+ rows))))
+      (cons cols rows)))
+  (ert-deftest my/get-tile-dimensions ()
+    (should (equal (my/get-tile-dimensions 2 2 1 1) (cons 1 2)))
+    (should (equal (my/get-tile-dimensions 4 2 1 0.5) (cons 1 4)))
+    (should (equal (my/get-tile-dimensions 12 1 1 (/ 4.0 3.0)) (cons 4 3)))
+    (should (equal (my/get-tile-dimensions 11 1 1 (/ 4.0 3.0)) (cons 4 3)))
+    (should (equal (my/get-tile-dimensions 13 1 1 (/ 4.0 3.0)) (cons 4 4))))
 
-   (defun my/extract-image-filenames (beg end)
-     "Return the filenames from the links in this region."
-     (let (files)
-       (save-excursion
-         (goto-char (min beg end))
-         (while (re-search-forward "\\[\\[https://www.flickr.com/photos/[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
-           (add-to-list 'files (concat (match-string-no-properties 1) ".png"))))
-       files))
+  (defun my/extract-image-filenames (beg end)
+    "Return the filenames from the links in this region."
+    (let (files)
+      (save-excursion
+        (goto-char (min beg end))
+        (while (re-search-forward "\\[\\[https://www.flickr.com/photos/[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
+          (add-to-list 'files (concat (match-string-no-properties 1) ".png"))))
+      files))
 
-   (defun my/create-sketch-montage (beg end tiles)
-     "Combine the sketches in the region."
-     (interactive (list (point) (mark) (if current-prefix-arg (read-string "Tiling: "))))
-     ;; Extract the links
-     (let* ((files
-             (if (derived-mode-p 'dired-mode)
-                 (dired-get-marked-files)
-               (mapcar 'my/get-index-card-filename
-                       (reverse (my/extract-image-filenames beg end)))))
-            (output-file "c:/sacha/dropbox/inbox/output.png"))
-       (unless tiles
-         (setq tiles
-               (format "%dx"
-                 (car (my/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
-       (with-temp-buffer
-         (cd "~/Dropbox/Inbox/To Blog")
-         (apply 'call-process
-                "montage" nil nil nil
-                (append
-                 files
-                 (list
-                  "-geometry" "+0+0"
-                  "-tile" tiles
-                  output-file))))
-       (find-file output-file)))
+  (defun my/create-sketch-montage (beg end tiles)
+    "Combine the sketches in the region."
+    (interactive (list (point) (mark) (if current-prefix-arg (read-string "Tiling: "))))
+    ;; Extract the links
+    (let* ((files
+            (if (derived-mode-p 'dired-mode)
+                (dired-get-marked-files)
+              (mapcar 'my/get-index-card-filename
+                      (reverse (my/extract-image-filenames beg end)))))
+           (output-file "c:/sacha/dropbox/inbox/output.png"))
+      (unless tiles
+        (setq tiles
+              (format "%dx"
+                (car (my/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
+      (with-temp-buffer
+        (cd "~/Dropbox/Inbox/To Blog")
+        (apply 'call-process
+               "montage" nil nil nil
+               (append
+                files
+                (list
+                 "-geometry" "+0+0"
+                 "-tile" tiles
+                 output-file))))
+      (find-file output-file)))
 
-   (defun my/create-week-montage (beg end)
-     (interactive "r")
-     (my/prepare-index-card (format "Week ending %s -- index card #journal #weekly" (org-read-date nil nil "-fri"))
-                            (org-read-date nil nil "."))
-     (my/create-sketch-montage beg end "2x"))
+  (defun my/create-week-montage (beg end)
+    (interactive "r")
+    (let* ((filename (format "Week ending %s -- index card #journal #weekly" (org-read-date nil nil "-fri")))
+           (full-filename (my/get-index-card-filename filename)))
+      (if full-filename
+          (my/open-image full-filename)
+        (my/prepare-index-card filename
+                               (org-read-date nil nil "."))))
+    (my/create-sketch-montage beg end "2x"))
 #+end_src
 
 *** Sketched books

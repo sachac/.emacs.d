@@ -709,6 +709,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 
 (my/defshortcut ?i "~/.emacs.d/Sacha.org")
 (my/defshortcut ?o "~/personal/organizer.org")
+(my/defshortcut ?s "~/personal/sewing.org")
 (my/defshortcut ?b "~/personal/business.org")
 (my/defshortcut ?B "~/Dropbox/books")
 (my/defshortcut ?e "~/code/dev/emacs-notes/tasks.org")
@@ -1062,6 +1063,7 @@ stuff.
 Here are the Org files I use. I should probably organize them better. =)
 
 | organizer.org        | My main Org file. Inbox for M-x org-capture, tasks, weekly reviews, etc. |
+| sewing.org           | Sewing projects, fabric tracking, etc. |
 | business.org         | Business-related notes and TODOs                                         |
 | people.org           | People-related tasks                                                     |
 | [[http://sachachua.com/evil-plans][evil-plans/index.org]] | High-level goals                                                         |
@@ -1478,6 +1480,7 @@ able to clock in on them.
             "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c@)")
            (sequence "LEARN" "TRY" "TEACH" "|" "COMPLETE(x)")
            (sequence "TOSKETCH" "SKETCHED" "|" "POSTED")
+           (sequence "TOBUY" "TOSHRINK" "TOCUT"  "TOSEW" "|" "DONE(x)")
            (sequence "TODELEGATE(-)" "DELEGATED(d)" "|" "COMPLETE(x)")))
  #+end_src
 
@@ -1757,6 +1760,7 @@ only a few of them them for faster scanning.
         (delq nil
               (mapcar (lambda (x) (and (file-exists-p x) x))
                       '("~/personal/organizer.org"
+                        "~/personal/sewing.org"
                         "~/personal/people.org"
                         "~/personal/business.org"
                         "~/Dropbox/tasker/summary.txt"
@@ -2314,12 +2318,12 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                                            "  - [X] "
                                            my/weekly-done-line-regexp))))
 
-   (defun my/org-summarize-focus-areas ()
+   (defun my/org-summarize-focus-areas (date)
      "Summarize previous and upcoming tasks as a list."
-     (interactive)
-     (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
-           business relationships life business-next relationships-next life-next string emacs emacs-next
-           start end time-summary biz-time ignore)
+     (interactive (list (org-read-date-analyze (if current-prefix-arg (org-read-date) "-fri") nil '(0 0 0))))
+     (let (business relationships life business-next relationships-next life-next string emacs emacs-next
+                    start end time-summary biz-time ignore)
+       (setq base-date (apply 'encode-time date))
        (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
        (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
        (setq time-summary (quantified-summarize-time start end))
@@ -2364,6 +2368,8 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
               (mapconcat 'identity emacs-next "\n") "\n"
               (mapconcat 'identity life "\n") "\n"
               (mapconcat 'identity life-next "\n") "\n"
+              (format "  - *Sewing* (%.1fh)\n"
+                      (my/quantified-get-hours "Discretionary - Productive - Sewing" time-summary))
               (format "  - *Writing* (%.1fh)\n"
                       (my/quantified-get-hours "Discretionary - Productive - Writing" time-summary))
               (format "- *Discretionary - Play* (%.1fh - %d%%)\n"
@@ -2405,10 +2411,10 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
  Now we put it all together...
 
  #+begin_src emacs-lisp
-(defun my/org-prepare-weekly-review (&optional skip-urls)
+(defun my/org-prepare-weekly-review (&optional date skip-urls)
   "Prepare weekly review template."
-  (interactive "p")
-  (let ((base-date (apply 'encode-time (org-read-date-analyze "-fri" nil '(0 0 0))))
+  (interactive (list (org-read-date-analyze (if current-prefix-arg (org-read-date) "-fri") nil '(0 0 0))))
+  (let ((base-date (apply 'encode-time date))
         start end links)
     (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
     (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
@@ -2426,7 +2432,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
        "*Link round-up*\n\n"
        links
        "\n\n*Focus areas and time review*\n\n"
-       (my/org-summarize-focus-areas)
+       (my/org-summarize-focus-areas date)
        "\n")))
  #+end_src
 ***** Flickr extract
@@ -2692,6 +2698,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                     (format "http://sachachua.com/blog/%4d/%d?org=1"
                             year month))
              sketches (my/flickr-export-and-extract start-date end-date nil t))
+       (goto-char (line-end-position))
        (insert
         "\n\n** Monthly review: "
         (format-time-string "%B %Y" (encode-time 0 0 0 1 month year))
@@ -5627,6 +5634,23 @@ recently-opened files first.
     (add-to-list 'org-speed-commands-user '("d" call-interactively 'my/prepare-index-card-for-subtree))
   #+end_src
 
+  #+RESULTS:
+  | d | call-interactively              | (quote my/prepare-index-card-for-subtree) |
+  | W | call-interactively              | (quote my/org-refile-in-file)             |
+  | . | call-interactively              | (quote my/org-refile-to-previous-in-file) |
+  | G | call-interactively              | (quote my/org-refile-to-previous)         |
+  | T | my/org-agenda-for-subtree       |                                           |
+  | W | widen                           |                                           |
+  | N | org-narrow-to-subtree           |                                           |
+  | $ | call-interactively              | (quote org-archive-subtree)               |
+  | o | call-interactively              | (quote org-clock-out)                     |
+  | i | call-interactively              | (quote org-clock-in)                      |
+  | d | my/org-move-line-to-destination |                                           |
+  | s | call-interactively              | (quote org-schedule)                      |
+  | ! | my/org-clock-in-and-track       |                                           |
+  | y | org-todo-yesterday              | DONE                                      |
+  | x | org-todo                        | DONE                                      |
+
     orient.exe is a renamed [[http://answers.microsoft.com/en-us/windows/forum/windows_8-pictures/is-there-a-shortcut-to-rotate-the-screen-in-win-8/5a326bdf-a8f5-4a8b-8cd7-510fdf597b49?page=2][display.exe]].
 
     Afterwards, I call =my/rename-scanned-cards= function to convert
@@ -5695,6 +5719,10 @@ recently-opened files first.
             (with-current-buffer (get-buffer-create "*Done*")
               (let ((inhibit-read-only t))
                 (erase-buffer)
+                (widget-create 'push-button
+                               :notify (lambda (&rest ignore)
+                                         (quantified-track "Drawing"))
+                               "Track")
                 (widget-create 'push-button
                                :notify (lambda (&rest ignore)
                                          (my/open-image (my/prepare-index-card-template)))

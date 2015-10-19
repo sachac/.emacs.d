@@ -84,7 +84,7 @@ in a directory in my =load-path=, Emacs can find them.
 (require 'use-package)
 (use-package auto-compile
   :ensure t
-  :init (auto-compile-on-load-mode))
+  :config (auto-compile-on-load-mode))
 (setq load-prefer-newer t)
 #+END_SRC
 

@@ -667,27 +667,12 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
    ("<f2> <down>" . windmove-down)
    ))
 #+END_SRC
-*** Make window splitting more useful
+*** More window movement
 
-Copied from http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tricks/chldury
-#+BEGIN_SRC emacs-lisp
-(defun my/vsplit-last-buffer (prefix)
-  "Split the window vertically and display the previous buffer."
-  (interactive "p")
-  (split-window-vertically)
-  (other-window 1 nil)
-  (if (= prefix 1)
-    (switch-to-next-buffer)))
-(defun my/hsplit-last-buffer (prefix)
-  "Split the window horizontally and display the previous buffer."
-  (interactive "p")
-  (split-window-horizontally)
-  (other-window 1 nil)
-  (if (= prefix 1) (switch-to-next-buffer)))
-(bind-key "C-x 2" 'my/vsplit-last-buffer)
-(bind-key "C-x 3" 'my/hsplit-last-buffer)
-
-#+END_SRC
+#+begin_src emacs-lisp
+(use-package switch-window
+  :bind (("C-x o" . switch-window)))
+#+end_src
 *** Frequently-accessed files
 Registers allow you to jump to a file or other location quickly. To
 jump to a register, use =C-x r j= followed by the letter of the
@@ -764,6 +749,13 @@ Repeated invocations toggle between the two most recently open buffers."
     (switch-to-buffer-other-window "*Org Agenda*"))
    (t (org-agenda nil "a"))))
 
+(defun my/goto-random-char ()
+  (interactive)
+  (goto-char (random (point-max))))
+
+(defhydra my/goto-random-char-hydra ()
+  ("r" my/goto-random-char))
+
 #+END_SRC
 
 Now let's set up the actual keychords.
@@ -777,6 +769,7 @@ Now let's set up the actual keychords.
       (key-chord-mode 1)
       ;; k can be bound too
       (key-chord-define-global "uu"     'undo)
+      (key-chord-define-global "jr"     'my/goto-random-char-hydra/my/goto-random-char)
       (key-chord-define-global "jj"     'ace-jump-word-mode)
       (key-chord-define-global "yy"
             (defhydra my/window-movement ()
@@ -785,7 +778,7 @@ Now let's set up the actual keychords.
              ("<down>" windmove-down)
              ("<up>" windmove-up)
              ("y" other-window "other")
-             ("h" ace-window "ace")
+             ("h" switch-window "switch-window")
              ("f" find-file "file")
              ("F" find-file-other-window "other file")
              ("v" (progn (split-window-right) (windmove-right)))
@@ -793,12 +786,12 @@ Now let's set up the actual keychords.
              ("o" delete-other-windows :color blue)
              ("a" ace-window)
              ("s" ace-swap-window)
-             ("d" delete-window)
-             ("D" ace-delete-window)
-             ("i" ace-maximize-window)
+             ("d" delete-window "delete")
+             ("D" ace-delete-window "ace delete")
+             ("i" ace-maximize-window "maximize")
              ("b" helm-buffers-list)
              ("q" nil)))
-      (key-chord-define-global "jw"     'ace-window)
+      (key-chord-define-global "jw"     'switch-window)
       (key-chord-define-global "jl"     'ace-jump-line-mode)
       (key-chord-define-global "j."
                                (defhydra join-lines ()
@@ -812,18 +805,20 @@ Now let's set up the actual keychords.
       (key-chord-define-global "qq"     'my/org-quick-clock-in-task)
       (key-chord-define-global "hh"
                                (defhydra my/key-chord-commands ()
+                                 "Main"
                                  ("k" kill-sexp)
                                  ("h" emms-pause :color blue)
+                                 ("t" emms-seek-backward)
+                                 ("s" emms-seek-to :color blue)
                                  ("b" helm-buffers-list :color blue)
                                  ("f" find-file :color blue)
                                  ("a" my/org-check-agenda :color blue)
                                  ("." repeat)
                                  ("o" my/org-off-my-computer :color blue)
-                                 ("t" emms-seek-backward)
-                                 ("s" emms-seek-to :color blue)
+                                 ("w" my/engine-mode-hydra/body "web" :exit t)
                                  ("i" imenu :color blue)
+                                 ("q" quantified-track :color blue)
                                  ("+" text-scale-increase)
-                                 ("q" nil)
                                  ("-" text-scale-decrease)))
       (key-chord-define-global "hc"     'emms-seek-forward)
       (key-chord-define-global "xx"     'er/expand-region)
@@ -1094,6 +1089,7 @@ currently experimenting with.
                       org-habit
                       org-irc
                       org-mouse
+                      org-protocol
                       org-annotate-file
                       org-eval
                       org-expiry
@@ -1305,6 +1301,10 @@ This quickly adds a same-level heading for the succeeding day.
            (file+datetree+prompt "~/personal/journal.org")
            "* \n%K - %a\n%t\t%i\n%?\n"
            :unnarrowed t)
+          ("p" "Protocol" entry (file+headline ,(concat org-directory "notes.org") "Inbox")
+           "* %^{Title}\nSource: %u, %c\n #+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?")
+          ("L" "Protocol Link" entry (file+headline ,(concat org-directory "notes.org") "Inbox")
+           "* %? [[%:link][%:description]] \nCaptured On: %U")
           ("db" "Done - Business" entry
            (file+headline "~/personal/business.org" "Tasks")
            "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
@@ -3213,6 +3213,27 @@ code pulls that information into my ~/Dropbox/tasker/
      (directory-files "~/dropbox/tasker/data" t "\\.txt$")))
 #+end_src
 
+*** Emacs packages
+
+#+begin_src emacs-lisp
+  (defun my/org-package-open (package-name)
+    (interactive "MPackage name: ")
+    (describe-package (intern package-name)))
+
+  (defun my/org-package-export (link description format)
+    (let ((path (format "http://melpa.org/#/%s" link))
+          (desc (or description link)))
+      (cond
+       ((eq format 'html) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
+       ((eq format 'wp) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
+       ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
+       ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
+       ((eq format 'ascii) (format "%s (%s)" desc path))
+       (t path))))
+
+  (org-add-link-type "package" 'my/org-package-open 'my/org-package-export)
+#+end_src
+
 ** Coding
 *** Web development
 #+begin_src emacs-lisp
@@ -3282,6 +3303,12 @@ This is something I have to get the hang of too. It gradually expands the select
     :ensure expand-region
     :defer t
     :bind ("C-=" . er/expand-region))
+#+end_src
+*** Compilation
+
+#+begin_src emacs-lisp
+(eval-after-load 'python-mode
+  '(bind-key "C-c C-c" 'compile python-mode-map))
 #+end_src
 *** Emacs Lisp
 **** Eldoc
@@ -3530,7 +3557,6 @@ because
 because
 Because
 
-
 *** Show column number
 
 I sometimes need to know where I am in a line.
@@ -3600,6 +3626,50 @@ And the rest of the js2 config:
 :ensure t
 :defer t
 :idle (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
+#+end_src
+
+*** HTML
+
+Convenience function for getting rid of annoying spans
+offby1 says there's (setq nxml-sexp-element-flag t)
+
+<span><span>Hello world</span></span>
+
+#+begin_src emacs-lisp
+(defun my/clean-up-spans-in-region (beg end)
+  (interactive "r")
+  (save-excursion
+    (let ((changed t))
+      (while changed
+        (setq changed nil)
+        (goto-char beg)
+        (while (re-search-forward "<span>\\([^<]*\\)</span>" end t)
+          (replace-match "\\1")
+          (setq changed t)))
+      (setq changed t)
+      (while changed
+        (setq changed nil)
+        (goto-char beg)
+        (while (re-search-forward "<span>*\\(<a[^<]+>[^<]*</a>\\)</span>" end t)
+          (replace-match "\\1")
+          (setq changed t))))))
+
+(defun my/clean-up-spans-in-string (string)
+  (with-temp-buffer
+    (insert string)
+    (my/clean-up-spans-in-region (point-min) (point-max))
+    (buffer-string)))
+
+(ert-deftest my/clean-up-spans-in-string ()
+  (should (string= (my/clean-up-spans-in-string "<span><span>Hello world</span></span>")
+          "Hello world"))
+  (should (string= (my/clean-up-spans-in-string "<span><span><a href=\"http://example.com\">Hello another world</a></span></span>")
+                   "<a href=\"http://example.com\">Hello another world</a>"))
+  (should (string= (my/clean-up-spans-in-string "<span><h1>Leave alone</h1></span>") "<span><h1>Leave alone</h1></span>"))
+  (should (string= (my/clean-up-spans-in-string "<span><a href=\"http://example.com\">Leave</a> alone</span>")
+                   "<span><a href=\"http://example.com\">Leave</a> alone</span>")))
+
+;; (ert "my/clean-up-spans-in-string")
 #+end_src
 
 *** Magit - nice git interface
@@ -3911,10 +3981,12 @@ with HTTPS sites.
      (use-package erc
        :ensure t :defer t
        :config
+       (setq erc-hide-list '("PART" "QUIT"))
        (setq erc-autojoin-channels-alist '(("freenode.net"
 					    "#org-mode"
 					    "#hacklabto"
-					    "#emacs"))
+					    "#emacs"
+              "#emacs-beginners"))
 	     erc-server "irc.freenode.net"
 	     erc-nick "sachac"))
    #+end_src
@@ -4204,16 +4276,7 @@ Quickly jump to a position in the current view.
   ;; I use the jj key-chord for this; see the definitions for key-chord
 #+end_src
 
-Ace Window looks useful too.
-
-#+begin_src emacs-lisp
-(use-package ace-window
-  :ensure t :defer t
-  :config (setq aw-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s))
-  :bind ("C-x o" . ace-window))
-#+end_src
-
-And ace-isearch...
+Ace-isearch switches between ace-jump and helm-swoop automatically.
 
 #+begin_src emacs-lisp
 (use-package ace-isearch
@@ -4471,10 +4534,27 @@ Got sdic from http://namazu.org/~tsuchiya/sdic/ . Attempting to get this to work
     :ensure t
     :init
     (progn
-      (defengine my-blog "https://www.google.ca/search?q=site%3Asachachua.com+%s" "b")
+      (defengine my-blog "https://www.google.ca/search?q=site:sachachua.com+%s" "b")
       (defengine my-photos "http://www.flickr.com/search/?w=65214961@N00&q=%s" "f")
       (defengine mail "https://mail.google.com/mail/u/0/#search/%s" "m")
+      (defengine google "http://google.com/search?q=%s" "g")
+      (defengine emacswiki "http://google.com/search?q=site:emacswiki.org+%s" "e")
+      (defhydra my/engine-mode-hydra (:color blue)
+        "Engine mode"
+        ("b" engine/search-my-blog "blog")
+        ("f" engine/search-my-photos "flickr")
+        ("m" engine/search-mail "mail")
+        ("g" engine/search-google "google")
+        ("e" engine/search-emacswiki "emacswiki"))
+      (bind-key* "C-c /" 'my/engine-mode-hydra/body)
       (engine-mode)))
+#+end_src
+** Emacs server
+
+This permits the use of =emacsclient=, =emacsclientw=, and =org-protocol=.
+
+#+begin_src emacs-lisp
+(server-start)
 #+end_src
 
 * Other cool configs you may want to check out
@@ -4625,63 +4705,62 @@ Handy for collecting items together.
 #+end_src
 ** Previous weekly review
 #+begin_src emacs-lisp
-      (defvar my/org-quantified-categories
-        '(("Business"
-           ("Earn" . "Business - Earn")
-           ("E1" . "Business - Earn - Consulting - E1")
-           ("Connect" . "Business - Connect")
-           ("Build" . "Business - Build"))
-          ("Discretionary"
-           ("Social" . "Discretionary - Social")
-           ("Productive" . "Discretionary - Productive")
-           ("Writing" . "Discretionary - Productive - Writing")
-           ("Emacs" . "Discretionary - Productive - Emacs")
-           ("Play" . "Discretionary - Play"))
-          ("Personal" ;("Biking" . "Personal - Bike")
-           ("Routines" . "Personal - Routines"))
-          ("Sleep" nil)
-          ("Unpaid work"
-           ("Commuting" . "Unpaid work - Subway")
-           ("Cook" . "Unpaid work - Cook")
-           ("Tidy" . "Unpaid work - Tidy up")))
-        "Categories for time summary.")
+    (defvar my/org-quantified-categories
+      '(("Business"
+         ("Earn" . "Business - Earn")
+         ("E1" . "Business - Earn - Consulting - E1")
+         ("Connect" . "Business - Connect")
+         ("Build" . "Business - Build"))
+        ("Discretionary"
+         ("Social" . "Discretionary - Social")
+         ("Productive" . "Discretionary - Productive")
+         ("Sewing" . "Discretionary - Productive - Sewing")
+         ("Writing" . "Discretionary - Productive - Writing")
+         ("Emacs" . "Discretionary - Productive - Emacs")
+         ("Play" . "Discretionary - Play"))
+        ("Personal" ;("Biking" . "Personal - Bike")
+         ("Routines" . "Personal - Routines"))
+        ("Sleep" nil)
+        ("Unpaid work"
+         ("Commuting" . "Unpaid work - Subway")
+         ("Cook" . "Unpaid work - Cook")
+         ("Tidy" . "Unpaid work - Tidy up")))
+      "Categories for time summary.")
 
-      (defun my/org-summarize-time-use (&optional start end)
-        (require 'quantified)
-        (interactive)
-        (unless start (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6)))))
-        (unless end (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date))))))
-        (let ((time-summary (quantified-summarize-time start end))
-              (categories my/org-quantified-categories)
-              result)
-          (setq result
-                (mapconcat
-                 (lambda (a)
-                   (if (assoc (car a) time-summary)
-                       (concat
-                        (format "- %s: %.1f hours" (car a) (/ (cdr (assoc (car a) time-summary)) 3600.0))
-                        (if (cdr a)
-                            (let ((detail
-                                   (delq nil
-                                         (mapcar (lambda (b)
-                                                   (if (assoc (cdr b) time-summary)
-                                                       (format "%s: %.1f"
-                                                               (car b)
-                                                               (/ (cdr (assoc (cdr b) time-summary)) 3600.0))
-                                                     nil))
-                                                 (cdr a)))))
-                              (if detail
-                                  (concat " (" (mapconcat 'identity detail ", ") ")")
-                                ""))
-                          "")
-                        (if (string-equal (car a) "Sleep")
-                            (format " - average of %.1f hours per day" (/ (cdr (assoc (car a) time-summary)) 3600.0 7.0))
-                          "")
-                        "\n")))
-           categories ""))
-    (if (called-interactively-p)
-        (insert result)
-      result)))
+    (defun my/org-summarize-time-use (&optional start end)
+      (require 'quantified)
+      (interactive (list (org-read-date) (org-read-date)))
+      (let ((time-summary (quantified-summarize-time start end))
+            (categories my/org-quantified-categories)
+            result)
+        (setq result
+              (mapconcat
+               (lambda (a)
+                 (if (assoc (car a) time-summary)
+                     (concat
+                      (format "- %s: %.1f hours" (car a) (/ (cdr (assoc (car a) time-summary)) 3600.0))
+                      (if (cdr a)
+                          (let ((detail
+                                 (delq nil
+                                       (mapcar (lambda (b)
+                                                 (if (assoc (cdr b) time-summary)
+                                                     (format "%s: %.1f"
+                                                             (car b)
+                                                             (/ (cdr (assoc (cdr b) time-summary)) 3600.0))
+                                                   nil))
+                                               (cdr a)))))
+                            (if detail
+                                (concat " (" (mapconcat 'identity detail ", ") ")")
+                              ""))
+                        "")
+                      (if (string-equal (car a) "Sleep")
+                          (format " - average of %.1f hours per day" (/ (cdr (assoc (car a) time-summary)) 3600.0 7.0))
+                        "")
+                      "\n")))
+         categories ""))
+  (if (called-interactively-p 'any)
+      (insert result)
+    result)))
 #+end_src
 
 List upcoming tasks so that I can see if I'm overloaded.
@@ -5699,7 +5778,7 @@ recently-opened files first.
     (defun my/get-missing-journal-dates (start-date end-date)
       "Return a list of dates missing journal entries.
     Range is specified by START-DATE (inclusive) and END-DATE (exclusive)."
-      (let* ((current-day (1- (org-time-string-to-absolute end-date)))
+      (let* ((current-day (org-time-string-to-absolute end-date))
              (start-day (org-time-string-to-absolute start-date))
              current-date
              current-date-string

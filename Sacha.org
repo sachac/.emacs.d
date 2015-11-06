@@ -756,6 +756,12 @@ Repeated invocations toggle between the two most recently open buffers."
 (defhydra my/goto-random-char-hydra ()
   ("r" my/goto-random-char))
 
+  (defun my/org-insert-link ()
+    (interactive)
+    (when (org-in-regexp org-bracket-link-regexp 1)
+      (goto-char (match-end 0))
+      (insert "\n"))
+    (call-interactively 'org-insert-link))
 #+END_SRC
 
 Now let's set up the actual keychords.
@@ -818,6 +824,8 @@ Now let's set up the actual keychords.
                                  ("w" my/engine-mode-hydra/body "web" :exit t)
                                  ("i" imenu :color blue)
                                  ("q" quantified-track :color blue)
+                                 ("l" org-insert-last-stored-link)
+                                 ("L" my/org-insert-link)
                                  ("+" text-scale-increase)
                                  ("-" text-scale-decrease)))
       (key-chord-define-global "hc"     'emms-seek-forward)
@@ -1261,10 +1269,10 @@ This quickly adds a same-level heading for the succeeding day.
 
   (defvar my/org-basic-task-template "* TODO %^{Task}
   SCHEDULED: %^t
-  %<%Y-%m-%d %H:%M>
   :PROPERTIES:
   :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
   :END:
+  %<%Y-%m-%d %H:%M>
   %?
   " "Basic task data")
   (setq org-capture-templates
@@ -3981,7 +3989,7 @@ with HTTPS sites.
      (use-package erc
        :ensure t :defer t
        :config
-       (setq erc-hide-list '("PART" "QUIT"))
+       (setq erc-hide-list '("PART" "QUIT" "JOIN"))
        (setq erc-autojoin-channels-alist '(("freenode.net"
 					    "#org-mode"
 					    "#hacklabto"

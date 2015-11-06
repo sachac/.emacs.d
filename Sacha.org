@@ -1309,10 +1309,8 @@ This quickly adds a same-level heading for the succeeding day.
            (file+datetree+prompt "~/personal/journal.org")
            "* \n%K - %a\n%t\t%i\n%?\n"
            :unnarrowed t)
-          ("p" "Protocol" entry (file+headline ,(concat org-directory "notes.org") "Inbox")
-           "* %^{Title}\nSource: %u, %c\n #+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?")
-          ("L" "Protocol Link" entry (file+headline ,(concat org-directory "notes.org") "Inbox")
-           "* %? [[%:link][%:description]] \nCaptured On: %U")
+          ("c" "Protocol Link" entry (file+headline ,org-default-notes-file "Inbox")
+           "* [[%:link][%:description]] \n\n#+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n%?\n\nCaptured: %U")
           ("db" "Done - Business" entry
            (file+headline "~/personal/business.org" "Tasks")
            "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
@@ -1356,7 +1354,7 @@ This quickly adds a same-level heading for the succeeding day.
   %a
   %U"
            :clock-in :clock-resume)
-           ("c" "Contact" entry (file "~/personal/contacts.org")
+           ("C" "Contact" entry (file "~/personal/contacts.org")
             "* %(org-contacts-template-name)
   :PROPERTIES:
   :EMAIL: %(my/org-contacts-template-email)

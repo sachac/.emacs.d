@@ -3,6 +3,9 @@
 
 * Configuration
 ** About this file
+   :PROPERTIES:
+   :CUSTOM_ID: babel-init
+   :END:
 <<babel-init>>
 
 Inspired by the [[http://eschulte.me/emacs24-starter-kit/#installation][Emacs Starter Kit]], I set up my configuration file
@@ -260,67 +263,83 @@ helm-grep? Bit slow and hard to read, though.
   I'll pre-fill it with the candidate from Helm.
 
   #+BEGIN_SRC emacs-lisp
-  (ert-deftest my/org-capture-prefill-template ()
-    (should
-     ;; It should fill things in one field at a time
-     (string=
-      (my/org-capture-prefill-template
-       "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
-       "Hello World")
-      "* TODO Hello World\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
-      ))
-    (should
-     (string=
-      (my/org-capture-prefill-template
-       "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
-       "Hello World" "<2015-01-01>")
-      "* TODO Hello World\nSCHEDULED: <2015-01-01>\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"))
-    (should
-     (string=
-      (my/org-capture-prefill-template
-       "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
-       "Hello World" "<2015-01-01>" "0:05")
-      "* TODO Hello World\nSCHEDULED: <2015-01-01>\n:PROPERTIES:\n:Effort: 0:05\n:END:\n%?\n")))
+    (ert-deftest my/org-capture-prefill-template ()
+      (should
+       ;; It should fill things in one field at ia time
+       (string=
+        (my/org-capture-prefill-template
+         "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
+         "Hello World")
+        "* TODO Hello World\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
+        ))
+      (should
+       (string=
+        (my/org-capture-prefill-template
+         "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
+         "Hello World" "<2015-01-01>")
+        "* TODO Hello World\nSCHEDULED: <2015-01-01>\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"))
+      (should
+       (string=
+        (my/org-capture-prefill-template
+         "* TODO %^{Task}\nSCHEDULED: %^t\n:PROPERTIES:\n:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}\n:END:\n%?\n"
+         "Hello World" "<2015-01-01>" "0:05")
+        "* TODO Hello World\nSCHEDULED: <2015-01-01>\n:PROPERTIES:\n:Effort: 0:05\n:END:\n%?\n")))
 
-  (defun my/org-capture-prefill-template (template &rest values)
-    "Pre-fill TEMPLATE with VALUES."
-    (setq template (or template (org-capture-get :template)))
-    (with-temp-buffer
-      (insert template)
-      (goto-char (point-min))
-      (while (re-search-forward
-              (concat "%\\("
-                      "\\[\\(.+\\)\\]\\|"
-                      "<\\([^>\n]+\\)>\\|"
-                      "\\([tTuUaliAcxkKInfF]\\)\\|"
-                      "\\(:[-a-zA-Z]+\\)\\|"
-                      "\\^\\({\\([^}]*\\)}\\)"
-                      "?\\([gGtTuUCLp]\\)?\\|"
-                      "%\\\\\\([1-9][0-9]*\\)"
-                      "\\)") nil t)
-        (if (car values)
-            (replace-match (car values) nil t))
-        (setq values (cdr values)))
-      (buffer-string)))
+    (defun my/org-capture-prefill-template (template &rest values)
+      "Pre-fill TEMPLATE with VALUES."
+      (setq template (or template (org-capture-get :template)))
+      (with-temp-buffer
+        (insert template)
+        (goto-char (point-min))
+        (while (re-search-forward
+                (concat "%\\("
+                        "\\[\\(.+\\)\\]\\|"
+                        "<\\([^>\n]+\\)>\\|"
+                        "\\([tTuUaliAcxkKInfF]\\)\\|"
+                        "\\(:[-a-zA-Z]+\\)\\|"
+                        "\\^\\({\\([^}]*\\)}\\)"
+                        "?\\([gGtTuUCLp]\\)?\\|"
+                        "%\\\\\\([1-9][0-9]*\\)"
+                        "\\)") nil t)
+          (if (car values)
+              (replace-match (car values) nil t))
+          (setq values (cdr values)))
+        (buffer-string)))
 
-  (defun my/helm-org-create-task (candidate)
-    (let ((entry (org-capture-select-template "T")))
-      (org-capture-set-plist entry)
-      (org-capture-get-template)
-      (org-capture-set-target-location)
-      (condition-case error
-          (progn
-            (org-capture-put
-             :template
-             (org-capture-fill-template
-              (my/org-capture-prefill-template (org-capture-get :template)
-                                                  candidate)))
-            (org-capture-place-template
-             (equal (car (org-capture-get :target)) 'function)))
-        ((error quit)
-         (if (get-buffer "*Capture*") (kill-buffer "*Capture*"))
-         (error "Capture abort: %s" error)))) t)
+    (defun my/org-get-current-refile-location ()
+      "Return the current entry as a location understood by org-refile."
+      (interactive)
+      (list (elt (org-heading-components) 4)
+            (or buffer-file-name
+                (with-current-buffer (buffer-base-buffer (current-buffer))
+                  buffer-file-name))
+            nil
+            (point)))
 
+
+    (defun my/helm-org-create-task (candidate)
+      "Creates the task and returns the location."
+      (let ((entry (org-capture-select-template "T")))
+        (org-capture-set-plist entry)
+        (org-capture-get-template)
+        (org-capture-set-target-location)
+        (condition-case error
+            (progn
+              (org-capture-put
+               :template
+               (org-capture-fill-template
+                (my/org-capture-prefill-template (org-capture-get :template)
+                                                 candidate)))
+              (org-capture-place-template
+               (equal (car (org-capture-get :target)) 'function))
+              (setq org-refile-target-table (org-refile-get-targets))
+              ;; Return the new location
+              (my/org-get-current-refile-location))
+          ((error quit)
+           (if (get-buffer "*Capture*") (kill-buffer "*Capture*"))
+           (error "Capture abort: %s" error)))))
+
+    ;; (my/org-refile-get-location-by-substring "Try again")
   #+END_SRC
 
   Next, I want to add this to the way that Helm prompts me to refile.
@@ -330,112 +349,196 @@ helm-grep? Bit slow and hard to read, though.
   well add that bit of code that sets up clocking in, too.
 
   #+BEGIN_SRC emacs-lisp
-    (defvar my/helm-org-refile-locations nil)
-    (defvar my/org-refile-last-location nil)
+      (defvar my/helm-org-refile-locations nil)
+      (defvar my/org-refile-last-location nil)
 
-    (defun my/helm-org-clock-in-and-track-from-refile (candidate)
-      (let ((location (org-refile--get-location candidate my/helm-org-refile-locations)))
-        (save-window-excursion
-          (org-refile 4 nil location)
-          (my/org-clock-in-and-track)
-          t)))
+      (defun my/helm-org-clock-in-and-track-from-refile (candidate)
+        (let ((location (org-refile--get-location candidate my/helm-org-refile-locations)))
+          (save-window-excursion
+            (org-refile 4 nil location)
+            (my/org-clock-in-and-track)
+            t)))
 
-    (defun my/helm-org-refile-read-location (tbl)
-      (setq my/helm-org-refile-locations tbl)
-      (helm
-       (list
-        (helm-build-sync-source "Refile targets"
-          :candidates (mapcar 'car tbl)
-          :action '(("Select" . identity)
-                    ("Clock in and track" . my/helm-org-clock-in-and-track-from-refile)
-                    ("Draw index card" . my/helm-org-prepare-index-card-for-subtree))
-          :history 'org-refile-history)
-        (helm-build-dummy-source "Create task"
-          :action (helm-make-actions
-                   "Create task"
-                   'my/helm-org-create-task)))))
+    (defun my/org-get-todays-items-as-refile-candidates ()
+      "Return items scheduled for today, ready for choosing during refiling."
+      (delq
+       nil
+       (mapcar
+        (lambda (s)
+          (if (get-text-property 0 'org-marker s)
+              (list
+               s
+               (buffer-file-name (marker-buffer (get-text-property 0 'org-marker s)))
+               nil
+               (marker-position (get-text-property 0 'org-marker s)))))
+        (save-window-excursion (my/org-get-entries-fn (calendar-current-date) (calendar-current-date))))))
 
-    (defun my/org-refile-get-location (&optional prompt default-buffer new-nodes no-exclude)
-      "Prompt the user for a refile location, using PROMPT.
-    PROMPT should not be suffixed with a colon and a space, because
-    this function appends the default value from
-    `org-refile-history' automatically, if that is not empty.
-    When NO-EXCLUDE is set, do not exclude headlines in the current subtree,
-    this is used for the GOTO interface."
-      (let ((org-refile-targets org-refile-targets)
-            (org-refile-use-outline-path org-refile-use-outline-path)
-            excluded-entries)
-        (when (and (derived-mode-p 'org-mode)
-                   (not org-refile-use-cache)
-                   (not no-exclude))
-          (org-map-tree
-           (lambda()
-             (setq excluded-entries
-                   (append excluded-entries (list (org-get-heading t t)))))))
-        (setq org-refile-target-table
-              (org-refile-get-targets default-buffer excluded-entries)))
-      (unless org-refile-target-table
-        (user-error "No refile targets"))
-      (let* ((cbuf (current-buffer))
-             (partial-completion-mode nil)
-             (cfn (buffer-file-name (buffer-base-buffer cbuf)))
-             (cfunc (if (and org-refile-use-outline-path
-                             org-outline-path-complete-in-steps)
-                        'org-olpath-completing-read
-                      'org-icompleting-read))
-             (extra (if org-refile-use-outline-path "/" ""))
-             (cbnex (concat (buffer-name) extra))
-             (filename (and cfn (expand-file-name cfn)))
-             (tbl (mapcar
-                   (lambda (x)
-                     (if (and (not (member org-refile-use-outline-path
-                                           '(file full-file-path)))
-                              (not (equal filename (nth 1 x))))
-                         (cons (concat (car x) extra " ("
-                                       (file-name-nondirectory (nth 1 x)) ")")
-                               (cdr x))
-                       (cons (concat (car x) extra) (cdr x))))
-                   org-refile-target-table))
-             (completion-ignore-case t)
-             cdef
-             (prompt (concat prompt
-                             (or (and (car org-refile-history)
-                                      (concat " (default " (car org-refile-history) ")"))
-                                 (and (assoc cbnex tbl) (setq cdef cbnex)
-                                      (concat " (default " cbnex ")"))) ": "))
-             pa answ parent-target child parent old-hist)
-        (setq old-hist org-refile-history)
-        ;; Use Helm's sources instead
-        (setq answ (my/helm-org-refile-read-location tbl))
-        (if (and (stringp answ)
-                 (setq pa (org-refile--get-location answ tbl)))
-            (progn
-              (org-refile-check-position pa)
-              (when (or (not org-refile-history)
-                        (not (eq old-hist org-refile-history))
-                        (not (equal (car pa) (car org-refile-history))))
-                (setq org-refile-history
-                      (cons (car pa) (if (assoc (car org-refile-history) tbl)
-                                         org-refile-history
-                                       (cdr org-refile-history))))
-                (if (equal (car org-refile-history) (nth 1 org-refile-history))
-                    (pop org-refile-history)))
-              (setq my/org-refile-last-location pa)
-              pa)
-          (if (and (stringp answ) (string-match "\\`\\(.*\\)/\\([^/]+\\)\\'" answ))
+    ;; Based on http://emacs.stackexchange.com/questions/4063/how-to-get-the-raw-data-for-an-org-mode-agenda-without-an-agenda-view
+    (defun my/org-get-entries-fn (begin end)
+    "Return org schedule items between BEGIN and END.
+    USAGE:  (org-get-entries-fn '(6 1 2015) '(6 30 2015))"
+      (require 'calendar)
+      (require 'org)
+      (require 'org-agenda)
+      (require 'cl)
+      (unless
+          (and
+            (calendar-date-is-valid-p begin)
+            (calendar-date-is-valid-p end))
+        (let ((debug-on-quit nil))
+          (signal 'quit `("One or both of your gregorian dates are invalid."))))
+      (let* (
+          result
+          (org-agenda-prefix-format "  • ")
+          (org-agenda-entry-types '(:scheduled))
+          (date-after
+            (lambda (date num)
+              "Return the date after NUM days from DATE."
+              (calendar-gregorian-from-absolute
+               (+ (calendar-absolute-from-gregorian date) num))))
+          (enumerate-days
+            (lambda (begin end)
+              "Enumerate date objects between BEGIN and END."
+              (when (> (calendar-absolute-from-gregorian begin)
+                       (calendar-absolute-from-gregorian end))
+                (error "Invalid period : %S - %S" begin end))
+              (let ((d begin) ret (cont t))
+                (while cont
+                  (push (copy-sequence d) ret)
+                  (setq cont (not (equal d end)))
+                  (setq d (funcall date-after d 1)))
+                (nreverse ret)))) )
+        (org-agenda-reset-markers)
+        (setq org-agenda-buffer
+          (when (buffer-live-p org-agenda-buffer)
+            org-agenda-buffer))
+        (org-compile-prefix-format nil)
+        (setq result
+          (loop for date in (funcall enumerate-days begin end) append
+            (loop for file in (org-agenda-files nil 'ifmode)
+              append
               (progn
-                (setq parent (match-string 1 answ)
-                      child (match-string 2 answ))
-                (setq parent-target (org-refile--get-location parent tbl))
-                (when (and parent-target
-                           (or (eq new-nodes t)
-                               (and (eq new-nodes 'confirm)
-                                    (y-or-n-p (format "Create new node \"%s\"? "
-                                                      child)))))
-                  (org-refile-new-child parent-target child)))
-            (if (not (equal answ t)) (user-error "Invalid target location"))))))
+                (org-check-agenda-file file)
+                (apply 'org-agenda-get-day-entries file date org-agenda-entry-types)))))
+        (unless (buffer-live-p (get-buffer org-agenda-buffer-name))
+          (get-buffer-create org-agenda-buffer-name))
+        (with-current-buffer (get-buffer org-agenda-buffer-name)
+          (org-agenda-mode)
+          (setq buffer-read-only t)
+          (let ((inhibit-read-only t))
+            (erase-buffer))
+          (mapcar
+            (lambda (x)
+              (let ((inhibit-read-only t))
+                (insert (format "%s" x) "\n")))
+            result))
+    ;;    (display-buffer org-agenda-buffer-name t)
+        result))
 
-    (fset 'org-refile-get-location 'my/org-refile-get-location)
+      (defun my/helm-org-refile-read-location (tbl)
+        (setq my/helm-org-refile-locations tbl)
+        (helm
+         (list
+          ;; (helm-build-sync-source "Today's tasks"
+          ;;   :candidates (mapcar (lambda (a) (cons (car a) a))
+          ;;                       (my/org-get-todays-items-as-refile-candidates))
+          ;;   :action '(("Select" . identity)
+          ;;             ("Clock in and track" . my/helm-org-clock-in-and-track-from-refile)
+          ;;             ("Draw index card" . my/helm-org-prepare-index-card-for-subtree))
+          ;;   :history 'org-refile-history)
+          (helm-build-sync-source "Refile targets"
+            :candidates (mapcar (lambda (a) (cons (car a) a)) tbl)
+            :action '(("Select" . identity)
+                      ("Clock in and track" . my/helm-org-clock-in-and-track-from-refile)
+                      ("Draw index card" . my/helm-org-prepare-index-card-for-subtree))
+            :history 'org-refile-history)
+          (helm-build-dummy-source "Create task"
+            :action (helm-make-actions
+                     "Create task"
+                     'my/helm-org-create-task)))))
+
+      (defun my/org-refile-get-location (&optional prompt default-buffer new-nodes no-exclude)
+        "Prompt the user for a refile location, using PROMPT.
+      PROMPT should not be suffixed with a colon and a space, because
+      this function appends the default value from
+      `org-refile-history' automatically, if that is not empty.
+      When NO-EXCLUDE is set, do not exclude headlines in the current subtree,
+      this is used for the GOTO interface."
+        (let ((org-refile-targets org-refile-targets)
+              (org-refile-use-outline-path org-refile-use-outline-path)
+              excluded-entries)
+          (when (and (derived-mode-p 'org-mode)
+                     (not org-refile-use-cache)
+                     (not no-exclude))
+            (org-map-tree
+             (lambda()
+               (setq excluded-entries
+                     (append excluded-entries (list (org-get-heading t t)))))))
+          (setq org-refile-target-table
+                (org-refile-get-targets default-buffer excluded-entries)))
+        (unless org-refile-target-table
+          (user-error "No refile targets"))
+        (let* ((cbuf (current-buffer))
+               (partial-completion-mode nil)
+               (cfn (buffer-file-name (buffer-base-buffer cbuf)))
+               (cfunc (if (and org-refile-use-outline-path
+                               org-outline-path-complete-in-steps)
+                          'org-olpath-completing-read
+                        'org-icompleting-read))
+               (extra (if org-refile-use-outline-path "/" ""))
+               (cbnex (concat (buffer-name) extra))
+               (filename (and cfn (expand-file-name cfn)))
+               (tbl (mapcar
+                     (lambda (x)
+                       (if (and (not (member org-refile-use-outline-path
+                                             '(file full-file-path)))
+                                (not (equal filename (nth 1 x))))
+                           (cons (concat (car x) extra " ("
+                                         (file-name-nondirectory (nth 1 x)) ")")
+                                 (cdr x))
+                         (cons (concat (car x) extra) (cdr x))))
+                     org-refile-target-table))
+               (completion-ignore-case t)
+               cdef
+               (prompt (concat prompt
+                               (or (and (car org-refile-history)
+                                        (concat " (default " (car org-refile-history) ")"))
+                                   (and (assoc cbnex tbl) (setq cdef cbnex)
+                                        (concat " (default " cbnex ")"))) ": "))
+               pa answ parent-target child parent old-hist)
+          (setq old-hist org-refile-history)
+          ;; Use Helm's sources instead
+          (setq answ (my/helm-org-refile-read-location tbl))
+          (cond
+           ((and (stringp answ)
+                 (setq pa (org-refile--get-location answ tbl)))
+            (org-refile-check-position pa)
+            (when (or (not org-refile-history)
+                      (not (eq old-hist org-refile-history))
+                      (not (equal (car pa) (car org-refile-history))))
+              (setq org-refile-history
+                    (cons (car pa) (if (assoc (car org-refile-history) tbl)
+                                       org-refile-history
+                                     (cdr org-refile-history))))
+              (if (equal (car org-refile-history) (nth 1 org-refile-history))
+                  (pop org-refile-history)))
+            (setq my/org-refile-last-location pa)
+            pa)
+           ((and (stringp answ) (string-match "\\`\\(.*\\)/\\([^/]+\\)\\'" answ))
+            (setq parent (match-string 1 answ)
+                  child (match-string 2 answ))
+            (setq parent-target (org-refile--get-location parent tbl))
+            (when (and parent-target
+                       (or (eq new-nodes t)
+                           (and (eq new-nodes 'confirm)
+                                (y-or-n-p (format "Create new node \"%s\"? "
+                                                  child)))))
+              (org-refile-new-child parent-target child)))
+           ((listp answ) answ) ;; Sacha: Helm returned a refile location
+           ((not (equal answ t))
+            (user-error "Invalid target location")))))
+
+      (fset 'org-refile-get-location 'my/org-refile-get-location)
   #+END_SRC
 
   Hooray! Now =C-u C-c C-w= (=org-refile=) also lets me use =TAB= or
@@ -788,7 +891,6 @@ Now let's set up the actual keychords.
              ("f" find-file "file")
              ("F" find-file-other-window "other file")
              ("v" (progn (split-window-right) (windmove-right)))
-             ("x" (progn (split-window-below) (windmove-down)))
              ("o" delete-other-windows :color blue)
              ("a" ace-window)
              ("s" ace-swap-window)
@@ -808,21 +910,35 @@ Now let's set up the actual keychords.
       ;; not an ace-jump, but still useful
       ;(key-chord-define-global "jZ"     'ace-jump-zap-to-char)
       (key-chord-define-global "FF"     'find-file)
-      (key-chord-define-global "qq"     'my/org-quick-clock-in-task)
+      (key-chord-define-global
+       "qq"
+       (defhydra my/quantified-hydra (:color blue)
+         "Quick tracking of Quantified Awesome stuff"
+         ("k" (my/org-clock-in-and-track-by-name "Clean the kitchen") "Kitchen")
+         ("D" (my/org-clock-in-and-track-by-name "Draw") "Draw")
+         ("w" (my/org-clock-in-and-track-by-name "Walk for 30+ minutes") "Walk")
+         ("r" (my/org-clock-in-and-track-by-name "Personal routines") "Routines")
+         ("b" (my/org-clock-in-and-track-by-name "Play Borderlands 2") "Borderlands 2")
+         ("l" (my/org-clock-in-and-track-by-name "Eat lunch") "Lunch")
+         ("d" (my/org-clock-in-and-track-by-name "Eat dinner") "Dinner")
+         )
+       )
       (key-chord-define-global "hh"
                                (defhydra my/key-chord-commands ()
                                  "Main"
                                  ("k" kill-sexp)
-                                 ("h" emms-pause :color blue)
-                                 ("t" emms-seek-backward)
-                                 ("s" emms-seek-to :color blue)
+                                 ("h" my/org-jump :color blue)
+                                 ("x" my/org-finish-previous-task-and-clock-in-new-one "Finish and clock in" :color blue)
+                                 ("i" my/org-quick-clock-in-task "Clock in" :color blue)
                                  ("b" helm-buffers-list :color blue)
                                  ("f" find-file :color blue)
                                  ("a" my/org-check-agenda :color blue)
+                                 ("c" (call-interactively 'org-capture) "capture" :color blue)
+                                 ("t" (org-capture nil "T") "Capture task")
                                  ("." repeat)
                                  ("o" my/org-off-my-computer :color blue)
                                  ("w" my/engine-mode-hydra/body "web" :exit t)
-                                 ("i" imenu :color blue)
+                                 ("m" imenu :color blue)
                                  ("q" quantified-track :color blue)
                                  ("l" org-insert-last-stored-link)
                                  ("L" my/org-insert-link)
@@ -833,6 +949,22 @@ Now let's set up the actual keychords.
       (key-chord-define-global "  "     'my/insert-space-or-expand)
       (key-chord-define-global "JJ"     'my/switch-to-previous-buffer))
 #+END_SRC
+
+Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char=.
+
+#+begin_src emacs-lisp
+(bind-key "C-t" 'my/key-chord-commands/body)
+#+end_src
+
+I used to have these as part of my main hydra, but I haven't been
+doing transcripts lately, so I'll free up those keystrokes for
+something else.
+
+#+begin_example
+                                 ("h" emms-pause :color blue)
+                                 ("t" emms-seek-backward)
+                                 ("s" emms-seek-to :color blue)
+#+end_example
 *** Smartscan
 
 From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el, this makes =M-n= and =M-p= look for the symbol at point.
@@ -1060,6 +1192,9 @@ stuff.
   )
 #+END_SRC
 *** My files
+    :PROPERTIES:
+    :CUSTOM_ID: org-files
+    :END:
 
 #<<org-files>>
 
@@ -1161,6 +1296,7 @@ I don't use the diary, but I do use the clock a lot.
    (add-to-list 'org-speed-commands-user '("s" call-interactively 'org-schedule))
    (add-to-list 'org-speed-commands-user '("d" my/org-move-line-to-destination))
    (add-to-list 'org-speed-commands-user '("i" call-interactively 'org-clock-in))
+   (add-to-list 'org-speed-commands-user '("P" call-interactively 'org2blog/wp-post-subtree))
    (add-to-list 'org-speed-commands-user '("o" call-interactively 'org-clock-out))
    (add-to-list 'org-speed-commands-user '("$" call-interactively 'org-archive-subtree))
    (bind-key "!" 'my/org-clock-in-and-track org-agenda-mode-map)
@@ -1281,7 +1417,7 @@ This quickly adds a same-level heading for the succeeding day.
            ,my/org-basic-task-template)
           ("T" "Quick task" entry
            (file+headline "~/personal/organizer.org" "Tasks")
-           "* TODO %^{Task}"
+           "* TODO %^{Task}\nSCHEDULED: %t\n"
            :immediate-finish t)
           ("i" "Interrupting task" entry
            (file+headline "~/personal/organizer.org" "Tasks")
@@ -1421,20 +1557,23 @@ able to clock in on them.
                   (and
                    (string-match a (car b))
                    (or (null file)
-                       (string-match file (elt b)))))))
+                       (string-match file (elt b 1)))))))
      (defun my/org-refile-subtree-to (name)
        (org-refile nil nil (my/org-refile-get-location-exact name)))
 
-     (defun my/org-refile-get-location-exact (name)
+      (defun my/org-refile-get-location-exact (name &optional file)
        "Return the refile location identified by NAME."
        (let ((org-refile-targets org-refile-targets) tbl)
          (setq org-refile-target-table (org-refile-get-targets)))
        (unless org-refile-target-table
          (user-error "No refile targets"))
        (cl-find name org-refile-target-table
-                :test (lambda (a b) (string-equal a (car b)))))
+                :test (lambda (a b)
+                      (and (string-equal a (car b))
+                   (or (null file)
+                       (string-match file (elt b 1)))))))
      ;; Example: (my/org-clock-in-refile "Off my computer")
-     (defun my/org-clock-in-refile (location &optional file)
+      (defun my/org-clock-in-refile (location &optional file)
        "Clocks into LOCATION.
      LOCATION and FILE can also be regular expressions for `my/org-refile-get-location-by-substring'."
        (interactive (list (my/org-refile-get-location)))
@@ -1443,11 +1582,35 @@ able to clock in on them.
            (if (stringp location) (setq location (my/org-refile-get-location-by-substring location file)))
            (org-refile 4 nil location)
            (org-clock-in))))
+
+      (defun my/org-finish-previous-task-and-clock-in-new-one (location &optional file)
+       (interactive (list (my/org-refile-get-location)))
+       (save-window-excursion
+         (org-clock-goto)
+         (org-todo 'done))
+       (my/org-clock-in-and-track-by-name location file))
+
+     (defun my/org-clock-in-and-track-by-name (location &optional file)
+       (interactive (list (my/org-refile-get-location)))
+       (save-window-excursion
+         (save-excursion
+           (if (stringp location) (setq location (my/org-refile-get-location-exact location file)))
+           (org-refile 4 nil location)
+           (my/org-clock-in-and-track))))
      (defun my/org-off-my-computer (category)
        (interactive "MCategory: ")
        (my/org-clock-in-refile "Off my computer")
        (quantified-track category))
    #+end_src
+
+***** Quick way to jump
+
+#+begin_src emacs-lisp
+(defun my/org-jump ()
+  (interactive)
+  (let ((current-prefix-arg '(4)))
+    (call-interactively 'org-refile)))
+#+end_src
 
 **** Estimating WPM
 
@@ -1470,6 +1633,9 @@ able to clock in on them.
 *** Tasks
 **** Managing tasks
 ***** Track TODO state
+      :PROPERTIES:
+      :CUSTOM_ID: todo-keywords
+      :END:
  <<todo-keywords>>
 
  The parentheses indicate keyboard shortcuts that I can use to set the
@@ -1600,6 +1766,9 @@ able to clock in on them.
  If you want to use habits, be sure to schedule your tasks and add a STYLE property with the value of =habit= to the tasks you want displayed.
 
 **** Estimating tasks
+     :PROPERTIES:
+     :CUSTOM_ID: subset
+     :END:
 
  From "Add an effort estimate on the fly when clocking in" on the
  [[http://orgmode.org/worg/org-hacks.html][Org Hacks]] page:
@@ -1758,6 +1927,9 @@ This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exportin
  #+end_src
 *** Org agenda
 **** Basic configuration
+     :PROPERTIES:
+     :CUSTOM_ID: project_subtasks
+     :END:
 I have quite a few Org files, but I keep my agenda items and TODOs in
 only a few of them them for faster scanning.
 
@@ -1817,6 +1989,9 @@ Org agenda to start on Saturdays.
 #+end_src
 
 **** Display projects with associated subtasks
+     :PROPERTIES:
+     :CUSTOM_ID: agenda_commands
+     :END:
 
 I wanted a view that showed projects with a few subtasks underneath
 them. Here's a sample of the output:
@@ -2591,6 +2766,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                  list)))
  #+end_src
 ****** For copying journal entries
+       :PROPERTIES:
+       :CUSTOM_ID: evernote-copy-journal
+       :END:
 <<evernote-copy-journal>>
 
  #+begin_src emacs-lisp
@@ -2658,6 +2836,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
  #+end_src
 
 **** Monthly reviews
+     :PROPERTIES:
+     :CUSTOM_ID: monthly-reviews
+     :END:
 
  <<monthly-reviews>>
 
@@ -2717,6 +2898,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 
 *** Filing
 **** Moving lines around
+     :PROPERTIES:
+     :CUSTOM_ID: destination
+     :END:
 
  This makes it easier to reorganize lines in my weekly review.
  #+begin_src emacs-lisp
@@ -3092,6 +3276,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
    '((dot . t)
      (ditaa . t)
      (sh . t)
+     (shell . t)
      (R . t)))
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))))
 #+end_src
@@ -3219,7 +3404,7 @@ code pulls that information into my ~/Dropbox/tasker/
      (directory-files "~/dropbox/tasker/data" t "\\.txt$")))
 #+end_src
 
-*** Emacs packages
+*** Emacs packages, other settings for easy Emacs News generation
 
 #+begin_src emacs-lisp
   (defun my/org-package-open (package-name)
@@ -3234,10 +3419,17 @@ code pulls that information into my ~/Dropbox/tasker/
        ((eq format 'wp) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
        ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
        ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
-       ((eq format 'ascii) (format "%s (%s)" desc path))
+       ((eq format 'ascii) (format "%s <%s>" desc path))
        (t path))))
 
   (org-add-link-type "package" 'my/org-package-open 'my/org-package-export)
+#+end_src
+
+This setting puts Org ASCII export links right after the text instead of in a separate section:
+
+#+begin_src emacs-lisp
+(setq org-ascii-links-to-notes nil)
+
 #+end_src
 
 ** Coding
@@ -3577,6 +3769,19 @@ I sometimes need to know where I am in a line.
 #+end_src
 *** Javascript
 
+I like js2-mode.
+
+#+begin_src emacs-lisp
+(add-to-list 'auto-mode-alist '("\\.js\\'\\|\\.json\\'" . js2-mode))
+#+end_src
+
+Handy shortcuts:
+#+begin_src emacs-lisp
+(use-package js2-mode
+  :init
+  (bind-key "C-c C-c" 'compile js2-mode-map))
+#+end_src
+
 This makes script blocks easier to copy:
 
 #+begin_src emacs-lisp
@@ -3604,6 +3809,33 @@ test-related code is detected."
 		"\n</script>")))
 #+end_src
 
+This makes it easier to debug:
+
+#+begin_src emacs-lisp
+  (defvar my/debug-counter 1)
+  (defun my/insert-or-flush-debug (&optional reset beg end)
+    (interactive "pr")
+    (cond
+     ((= reset 4)
+      (save-excursion
+        (flush-lines "console.log('DEBUG: [0-9]+" (point-min) (point-max))
+        (setq my/debug-counter 1)))
+     ((region-active-p)
+      (save-excursion
+        (goto-char end)
+        (insert ");\n")
+        (goto-char beg)
+        (insert (format "console.log('DEBUG: %d', " my/debug-counter))
+        (setq my/debug-counter (1+ my/debug-counter))
+        (js2-indent-line)))
+     (t
+      ;; Wrap the region in the debug
+      (insert (format "console.log('DEBUG: %d');\n" my/debug-counter))
+      (setq my/debug-counter (1+ my/debug-counter))
+      (backward-char 3)
+      (js2-indent-line))))
+#+end_src
+
 And the rest of the js2 config:
 
 #+begin_src emacs-lisp
@@ -3622,6 +3854,7 @@ And the rest of the js2 config:
       (bind-key "C-x C-e" 'js-send-last-sexp js2-mode-map)
       (bind-key "C-M-x" 'js-send-last-sexp-and-go js2-mode-map)
       (bind-key "C-c b" 'js-send-buffer js2-mode-map)
+      (bind-key "C-c d" 'my/insert-or-flush-debug js2-mode-map)
       (bind-key "C-c C-b" 'js-send-buffer-and-go js2-mode-map)
       (bind-key "C-c w" 'my/copy-javascript-region-or-buffer js2-mode-map)
       (bind-key "C-c l" 'js-load-file-and-go js2-mode-map)))
@@ -3684,6 +3917,7 @@ offby1 says there's (setq nxml-sexp-element-flag t)
 		:POST_DATE: [2014-10-31 Fri 23:26]
 		:POSTID:   27579
 		:BLOG:     sacha
+    :CUSTOM_ID: magit
 		:END:
 
 <<magit>>
@@ -3826,12 +4060,15 @@ options to add at the end of the command, but that can wait for another time (or
   :ensure t
   :defer t
   :diminish projectile-mode
-  :idle
+  :config
   (progn
     (setq projectile-keymap-prefix (kbd "C-c p"))
     (setq projectile-completion-system 'default)
     (setq projectile-enable-caching t)
-    (projectile-global-mode)))
+    (setq projectile-indexing-method 'alien)
+    (add-to-list 'projectile-globally-ignored-files "node-modules"))
+  :idle
+  (projectile-global-mode))
 (use-package helm-projectile
    :defer t :ensure t
    :ensure helm-projectile)
@@ -3912,6 +4149,8 @@ with HTTPS sites.
 (use-package tern
   :ensure t
   :defer t
+  :config
+  (bind-key "C-c C-c" 'compile tern-mode-keymap)
   :idle
   (progn
   (setq tern-command '("cmd" "/c" "tern"))
@@ -3999,6 +4238,9 @@ with HTTPS sites.
 
 ** Self-tracking, statistics, and other data transformations
 *** Quantified Awesome
+    :PROPERTIES:
+    :CUSTOM_ID: clock-in
+    :END:
 <<clock-in>>
 
 #+begin_src emacs-lisp
@@ -4035,16 +4277,21 @@ with HTTPS sites.
       (my/with-org-task
        (setq category (or category
                           (org-entry-get-with-inheritance "QUANTIFIED")))
-       (unless category
+       (cond
+        ((null category)
          (setq category (read-string "Category: "))
          (org-set-property "QUANTIFIED" category))
-       (setq note (or note (elt (org-heading-components) 4) (read-string "Note: ")))))
+        ((string= category "ask")
+         (setq category (read-string "Category: "))))
+       (unless (string= (or (org-entry-get-with-inheritance "QUANTIFIEDQUIET") "") "t")
+         (setq note
+               (or note (elt (org-heading-components) 4) (read-string "Note: "))))))
     (quantified-track (concat category " | " note)))
 
   (defun my/org-quick-clock-in-task (location jump)
     "Track and clock in on the specified task.
   If JUMP is non-nil or the function is called with the prefix argument, jump to that location afterwards."
-    (interactive (list (save-excursion (org-refile-get-location "Location")) current-prefix-arg))
+    (interactive (list (save-excursion (my/org-refile-get-location "Location")) current-prefix-arg))
     (when location
       (if jump
           (progn (org-refile 4 nil location) (my/org-clock-in-and-track))
@@ -4056,6 +4303,9 @@ with HTTPS sites.
   (use-package quantified)
 #+end_src
 *** Compare times and effort estimates
+    :PROPERTIES:
+    :CUSTOM_ID: compare-time
+    :END:
 <<compare-time>>
 
 This is for comparing times in column view and in tables.
@@ -4563,7 +4813,83 @@ This permits the use of =emacsclient=, =emacsclientw=, and =org-protocol=.
 (server-start)
 #+end_src
 
+** Mail with Gnus
+
+I used to have this in =~/.gnus=, but people might find it handy, so here it is.
+
+I like using [[http://gmane.org][Gmane]] to read mailing lists, and I use IMAP to read my Gmail.
+
+#+begin_src emacs-lisp
+(setq gnus-select-method '(nnnil ""))
+(setq gnus-secondary-select-methods
+      '((nntp "news.gmane.org")
+        (nnimap "imap.gmail.com"
+                (nnimap-address "imap.gmail.com")
+                (nnimap-server-port 993)
+                (nnimap-stream ssl)
+                (nnimap-authenticator login))))
+#+end_src
+
+I'm on Windows, so sending e-mail is a bit of a pain. Fortunately, I eventually found something that works.
+I've configured [[http://emailrelay.sourceforge.net/][emailrelay]] to accept the mail and forward it to Gmail. The server starts with this batch file:
+
+#+begin_example
+start "emailrelay" "C:\Program Files (x86)\emailrelay\emailrelay.exe" --as-proxy smtp.gmail.com:25 --client-auth "C:/sacha/.emailrelay" --client-tls --log --pid-file "C:\Program Files (x86)\emailrelay\emailrelay.pid" --spool-dir C:\sacha\tmp\emailrelay
+#+end_example
+
+Sending queued mail works with this batch file:
+
+#+begin_example
+emailrelay --as-client smtp.gmail.com:587 --client-auth c:\sacha\.emailrelay --client-tls --spool-dir c:\sacha\tmp\emailrelay
+#+end_example
+
+I should probably get around to using =--as-proxy= properly, since it still seems to hold mail until I explicitly send it.
+
+Some more config. Not sure how much of this is needed.
+
+#+begin_src emacs-lisp
+(setq message-send-mail-function 'smtpmail-send-it
+      smtpmail-starttls-credentials '(("localhost" 25 "sacha@local.sachachua.com" nil))
+      smtpmail-auth-credentials '(("localhost" 25 "sacha@local.sachachua.com" nil))
+      smtpmail-default-smtp-server "localhost"
+      smtpmail-smtp-server "localhost"
+      smtpmail-smtp-service 25
+      smtpmail-local-domain "local.sachachua.com")
+(setq send-mail-function 'smtpmail-send-it)
+(setq smtpmail-smtp-server "127.0.0.1")
+(setq smtpmail-smtp-service 25)
+(setq user-mail-address "sacha@sachachua.com")
+#+end_src
+
+Hide HTML mail.
+
+#+begin_src emacs-lisp
+(setq mm-discouraged-alternatives
+      '("text/html" "text/richtext")
+      mm-automatic-display
+      (remove "text/html" mm-automatic-display))
+#+end_src
+
+Hide quoted text.
+
+#+begin_src emacs-lisp
+(setq gnus-treat-hide-citation t)
+#+end_src
+
+Get smarter about filtering depending on what I reed or mark. I use =!= (tick) for
+
+#+begin_src emacs-lisp
+(setq gnus-use-adaptive-scoring t)
+(setq gnus-default-adaptive-score-alist
+     '((gnus-unread-mark)
+			 (gnus-ticked-mark (subject 10))
+       (gnus-killed-mark (subject -5))
+       (gnus-catchup-mark (subject -1))))
+#+end_src
 * Other cool configs you may want to check out
+  :PROPERTIES:
+  :CUSTOM_ID: links
+  :END:
 <<links>>
 
 - [[http://doc.norang.ca/org-mode.html][Bernt Hansen]]: Lots of Org-related config. I picked up the graph-drawing stuff from this.
@@ -4598,6 +4924,9 @@ This permits the use of =emacsclient=, =emacsclientw=, and =org-protocol=.
       (kill-new (mapconcat 'identity result "\n"))))
 #+end_src
 ** Beeminder
+   :PROPERTIES:
+   :CUSTOM_ID: beeminder
+   :END:
 <<beeminder>>
 
 https://github.com/sachac/beeminder.el
@@ -4944,6 +5273,9 @@ left.
                        "\n"))))
 #+end_src
 ** Presentation code for Emacs Conference
+   :PROPERTIES:
+   :CUSTOM_ID: emacsconf2013
+   :END:
 <<emacsconf2013>>
 
 #+begin_src  :eval no :tangle no
@@ -5798,38 +6130,49 @@ recently-opened files first.
         missing-list))
 
     (defun my/show-missing-journal-entries (since)
-      (interactive (list (org-read-date)))
+      (interactive (list (if current-prefix-arg (org-read-date) (org-read-date nil nil "-7"))))
       (let ((missing-dates (my/get-missing-journal-dates since (org-read-date nil nil "."))))
-        (if missing-dates
-            (with-current-buffer (get-buffer-create "*Done*")
-              (let ((inhibit-read-only t))
-                (erase-buffer)
-                (widget-create 'push-button
-                               :notify (lambda (&rest ignore)
-                                         (quantified-track "Drawing"))
-                               "Track")
-                (widget-create 'push-button
-                               :notify (lambda (&rest ignore)
-                                         (my/open-image (my/prepare-index-card-template)))
-                               "New")
-                (mapc
-                 (lambda (date)
-                   (widget-create 'push-button
-                                  :date date
-                                  :notify (lambda (widget &rest ignore)
-                                            (my/draw-journal-entry (plist-get (cdr widget) :date)))
-                                  date))
-                 missing-dates)
-                (widget-create 'push-button
-                               :notify (lambda (&rest ignore)
-                                         (my/rotate-screen 0)
-                                         (delete-window))
-                               "Done")
-                (text-scale-set 10)
-                (widget-setup)
-                (widget-minor-mode)
-                (pop-to-buffer (current-buffer))))
-          (message "All clear!"))))
+        (with-current-buffer (get-buffer-create "*Done*")
+          (let ((inhibit-read-only t))
+            (erase-buffer)
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/org-clock-in-and-track-by-name "Draw")
+                                     )
+                           "Draw")
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/org-clock-in-and-track-by-name "Draw journal entries")
+                                     )
+                           "Journal")
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/open-image (my/prepare-index-card-template)))
+                           "New")
+            (mapc
+             (lambda (date)
+               (widget-create 'push-button
+                              :date date
+                              :notify (lambda (widget &rest ignore)
+                                        (my/draw-journal-entry (plist-get (cdr widget) :date)))
+                              date))
+             missing-dates)
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/rotate-screen 0)
+                                     (delete-window)
+                                     (my/rename-scanned-cards))
+                           "Rename")
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/rotate-screen 0)
+                                     (delete-window)
+                                     (my/convert-and-upload-cards))
+                           "Upload")
+            (text-scale-set 10)
+            (widget-setup)
+            (widget-minor-mode)
+            (pop-to-buffer (current-buffer))))))
   #+end_src
 
 **** Rename scanned index cards
@@ -5872,6 +6215,12 @@ recently-opened files first.
          (mapc (lambda (x)
                  (rename-file x "~/Dropbox/Inbox/backup" t))
                (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.tif"))))
+
+     (defun my/convert-and-upload-cards ()
+       "Trust in existing filenames, upload without modification."
+       (interactive)
+       (my/convert-index-card-tiffs-to-pngs)
+       (my/upload-scanned-cards))
 
      (defun my/rename-scanned-cards ()
        "Display and rename the scanned or saved files."
@@ -6067,6 +6416,9 @@ Aspect ratio is width / height
 #+end_src
 
 *** Sketched books
+    :PROPERTIES:
+    :CUSTOM_ID: insert-point
+    :END:
 
 Convenience functions to make my life easier when sketchnoting books.
 

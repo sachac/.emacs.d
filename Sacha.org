@@ -936,6 +936,7 @@ Now let's set up the actual keychords.
                                  ("c" (call-interactively 'org-capture) "capture" :color blue)
                                  ("t" (org-capture nil "T") "Capture task")
                                  ("." repeat)
+                                 ("C-t" transpose-chars)
                                  ("o" my/org-off-my-computer :color blue)
                                  ("w" my/engine-mode-hydra/body "web" :exit t)
                                  ("m" imenu :color blue)
@@ -950,7 +951,7 @@ Now let's set up the actual keychords.
       (key-chord-define-global "JJ"     'my/switch-to-previous-buffer))
 #+END_SRC
 
-Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char=.
+Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char=. It turns out I actually do use =C-t= a fair bit, but I can always add it back as an option.
 
 #+begin_src emacs-lisp
 (bind-key "C-t" 'my/key-chord-commands/body)
@@ -3778,8 +3779,15 @@ I like js2-mode.
 Handy shortcuts:
 #+begin_src emacs-lisp
 (use-package js2-mode
-  :init
-  (bind-key "C-c C-c" 'compile js2-mode-map))
+  :config
+  (bind-key "C-c C-c" 'compile js2-mode-map)
+  (add-hook 'js2-mode-hook 'jasminejs-mode))
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package jasminejs-mode
+  :config
+  (add-hook 'jasminejs-mode-hook 'jasminejs-add-snippets-to-yas-snippet-dirs))
 #+end_src
 
 This makes script blocks easier to copy:
@@ -4162,63 +4170,6 @@ with HTTPS sites.
 :init (add-to-list 'company-backends 'company-tern))
 #+end_src
 
-
-** Ledger (personal finance): Make it easier to review my credit card transactions
-
-#+begin_src emacs-lisp
-(defun my/ledger-go-to-beginning-of-entry ()
-  "Move to the beginning of the current entry."
-  (while (and (not (bobp))
-              (eq (ledger-context-line-type (ledger-context-at-point))
-                  'acct-transaction))
-    (forward-line -1)))
-
-(defun my/ledger-entry-date ()
-  "Returns the date of the entry containing point or nil."
-  (save-excursion
-    (my/ledger-go-to-beginning-of-entry)
-    (let ((context-info (ledger-context-other-line 0)))
-      (when (eq (ledger-context-line-type context-info) 'entry)
-        (goto-char (line-beginning-position))
-        (if (looking-at "\\([-0-9\\./]+\\)")
-            (match-string-no-properties 1))))))
-
-(defun my/ledger-guess-mbna ()
-  "Adds a sub-account for the dates for my credit card transactions."
-  (interactive)
-  (save-excursion
-    (my/ledger-go-to-beginning-of-entry)
-    (forward-line 1)
-    (let ((amount 0) (date (my/ledger-entry-date)) month)
-      (if (string-match "[0-9]+[-\\.]\\([0-9]+\\)[-\\.]\\([0-9]+\\)" date)
-          (setq month (string-to-number (match-string 1 date))))
-      ;; Is this a payment or a charge?
-      (save-excursion
-        (while (and (eq (ledger-context-line-type (ledger-context-at-point))
-                        'acct-transaction)
-                    (not (eobp)))
-          (let ((context (ledger-context-at-point)))
-            (if (ledger-context-field-value context 'amount)
-                (if (string-match "MBNA" (ledger-context-field-value context 'account))
-                    (setq amount (string-to-number (ledger-context-field-value context 'amount)))
-                  (setq amount (- (string-to-number (ledger-context-field-value context 'amount)))))))
-          (forward-line 1)))
-      (save-excursion
-        (while (and (eq (ledger-context-line-type (ledger-context-at-point))
-                        'acct-transaction)
-                    (not (eobp)))
-          (let ((context (ledger-context-at-point)))
-            (if (string-match "MBNA" (ledger-context-field-value context 'account))
-                (if (re-search-forward "\\(MBNA\\)[ \t]*[-$\.0-9]*[ \t]*$" (line-end-position) t)
-                    (replace-match
-                     (concat "MBNA:"
-                             (elt
-                              '("January" "February" "March" "April" "May" "June" "July" "August" "September" "October" "November" "December")
-                              (% (+ (if (> amount 0) 10 11) month) 12)))
-                             t t nil 1))))
-          (forward-line 1))))))
-#+end_src
-
 ** Internet Relay Chat
 
    IRC is a great way to hang out with other Emacs geeks.
@@ -4231,7 +4182,8 @@ with HTTPS sites.
 					    "#org-mode"
 					    "#hacklabto"
 					    "#emacs"
-              "#emacs-beginners"))
+              "#emacs-beginners"
+              "#emacs-ops"))
 	     erc-server "irc.freenode.net"
 	     erc-nick "sachac"))
    #+end_src
@@ -4441,6 +4393,214 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 (global-set-key (kbd "M-C-8") (lambda () (interactive) (sanityinc/adjust-opacity nil -2)))
 (global-set-key (kbd "M-C-9") (lambda () (interactive) (sanityinc/adjust-opacity nil 2)))
 (global-set-key (kbd "M-C-0") (lambda () (interactive) (modify-frame-parameters nil `((alpha . 100)))))
+#+end_src
+
+** Web browsing
+
+	 Minor tweak for Firefox on Windows. Otherwise I get "Searching for
+	 program" "permission denied" "firefox".
+
+	 #+begin_src emacs-lisp
+	 (setq browse-url-firefox-program
+         "C:/Program Files (x86)/Mozilla Firefox/firefox.exe")
+	 #+end_src
+** Clipboard
+
+#+begin_src emacs-lisp
+(use-package clipmon
+  :disabled t
+  :init (progn (setq clipmon-action 'kill-new clipmon-timeout nil clipmon-sound nil clipmon-cursor-color nil clipmon-suffix nil) (clipmon-mode)))
+#+end_src
+** Search
+
+#+begin_src emacs-lisp
+  (use-package engine-mode
+    :ensure t
+    :init
+    (progn
+      (defengine my-blog "https://www.google.ca/search?q=site:sachachua.com+%s" "b")
+      (defengine my-photos "http://www.flickr.com/search/?w=65214961@N00&q=%s" "f")
+      (defengine mail "https://mail.google.com/mail/u/0/#search/%s" "m")
+      (defengine google "http://google.com/search?q=%s" "g")
+      (defengine emacswiki "http://google.com/search?q=site:emacswiki.org+%s" "e")
+      (defhydra my/engine-mode-hydra (:color blue)
+        "Engine mode"
+        ("b" engine/search-my-blog "blog")
+        ("f" engine/search-my-photos "flickr")
+        ("m" engine/search-mail "mail")
+        ("g" engine/search-google "google")
+        ("e" engine/search-emacswiki "emacswiki"))
+      (bind-key* "C-c /" 'my/engine-mode-hydra/body)
+      (engine-mode)))
+#+end_src
+** Mail with Gnus
+   :PROPERTIES:
+   :ID:       o2b:c696259a-146e-4f47-8828-e7ca45cc2215
+   :POST_DATE: [2015-11-20 Fri 12:36]
+   :POSTID:   28485
+   :BLOG:     sacha
+   :END:
+
+I use Gmail for my mail because it:
+- synchronizes with my phone, which is handy for notifications and quick replies
+- filters most of the spam for me
+- works with a few interesting extensions such as Boomerang for Gmail
+
+However, I like the way the Gnus mail/news client in Emacs gives me a
+much more keyboard-friendly way to manage lots of mail, and I can even
+write code to partially automate some of my common operations.
+
+I used to have my config in in =~/.gnus=, but people might find it
+handy, so I've added it to my public [[http://sachacuha.com/dotemacs][Emacs configuration]].
+
+I like using [[http://gmane.org][Gmane]] to read mailing lists, and I use IMAP to read my Gmail.
+
+#+begin_src emacs-lisp
+(setq gnus-select-method '(nnnil ""))
+(setq gnus-secondary-select-methods
+      '((nntp "news.gmane.org")
+        (nnimap "imap.gmail.com"
+                (nnimap-address "imap.gmail.com")
+                (nnimap-server-port 993)
+                (nnimap-stream ssl)
+                (nnimap-authenticator login))))
+#+end_src
+
+I have two-factor authentication enabled for Gmail, so I set up an
+app-specific password for Gnus. I have an =~/.authinfo= file set up
+with something like:
+
+#+begin_example
+machine imap.gmail.com login sacha@sachachua.com password mysecretapppassword
+machine imap.gmail.com login sacha@sachachua.com password mysecretapppassword port 993
+machine smtp.gmail.com login sacha@sachachua.com password mysecretapppassword port 587
+#+end_example
+
+(I should probably get around to using GPG to automatically encrypt and decrypt this file.)
+
+Sending e-mail on Windows was a bit of a pain. Fortunately, I eventually found something that works.
+I've configured [[http://emailrelay.sourceforge.net/][emailrelay]] to accept the mail and forward it to Gmail. The server starts with this batch file:
+
+#+begin_example
+start "emailrelay" "C:\Program Files (x86)\emailrelay\emailrelay.exe" --as-proxy smtp.gmail.com:25 --client-auth "C:/sacha/.emailrelay" --client-tls --log --pid-file "C:\Program Files (x86)\emailrelay\emailrelay.pid" --spool-dir C:\sacha\tmp\emailrelay
+#+end_example
+
+Sending queued mail works with this batch file:
+
+#+begin_example
+"c:\Program Files (x86)\emailrelay\emailrelay.exe" --as-client smtp.gmail.com:587 --client-auth c:\sacha\.emailrelay --client-tls --spool-dir c:\sacha\tmp\emailrelay
+#+end_example
+
+I should probably get around to using =--as-proxy= properly, since it still seems to hold mail until I explicitly send it.
+
+Some more config. Not sure how much of this is needed.
+
+#+begin_src emacs-lisp
+(setq message-send-mail-function 'smtpmail-send-it
+      smtpmail-starttls-credentials '(("localhost" 25 "sacha@local.sachachua.com" nil))
+      smtpmail-auth-credentials '(("localhost" 25 "sacha@local.sachachua.com" nil))
+      smtpmail-default-smtp-server "localhost"
+      smtpmail-smtp-server "localhost"
+      smtpmail-smtp-service 25
+      smtpmail-local-domain "local.sachachua.com")
+(setq send-mail-function 'smtpmail-send-it)
+(setq smtpmail-smtp-server "127.0.0.1")
+(setq smtpmail-smtp-service 25)
+(setq user-mail-address "sacha@sachachua.com")
+#+end_src
+
+Hide HTML mail. I need to fiddle with this some more, since Gnus still
+tries to display them. Sometimes my Gnus crashes when it tries to
+display HTML mail.
+
+#+begin_src emacs-lisp
+(setq mm-discouraged-alternatives
+      '("text/html" "text/richtext")
+      mm-automatic-display
+      (-difference mm-automatic-display '("text/html" "text/enriched" "text/richtext")))
+#+end_src
+
+Hide quoted text.
+
+#+begin_src emacs-lisp
+(setq gnus-treat-hide-citation t)
+#+end_src
+
+Get smarter about filtering depending on what I reed or mark. I use =!= (tick) for marking threads as something that interests me.
+
+#+begin_src emacs-lisp
+(setq gnus-use-adaptive-scoring t)
+(setq gnus-default-adaptive-score-alist
+     '((gnus-unread-mark)
+			 (gnus-ticked-mark (subject 10))
+       (gnus-killed-mark (subject -5))
+       (gnus-catchup-mark (subject -1))))
+#+end_src
+
+** Ledger (personal finance)
+
+Make it easier to review my credit card transactions
+
+#+begin_src emacs-lisp
+(defun my/ledger-go-to-beginning-of-entry ()
+  "Move to the beginning of the current entry."
+  (while (and (not (bobp))
+              (eq (ledger-context-line-type (ledger-context-at-point))
+                  'acct-transaction))
+    (forward-line -1)))
+
+(defun my/ledger-entry-date ()
+  "Returns the date of the entry containing point or nil."
+  (save-excursion
+    (my/ledger-go-to-beginning-of-entry)
+    (let ((context-info (ledger-context-other-line 0)))
+      (when (eq (ledger-context-line-type context-info) 'entry)
+        (goto-char (line-beginning-position))
+        (if (looking-at "\\([-0-9\\./]+\\)")
+            (match-string-no-properties 1))))))
+
+(defun my/ledger-guess-mbna ()
+  "Adds a sub-account for the dates for my credit card transactions."
+  (interactive)
+  (save-excursion
+    (my/ledger-go-to-beginning-of-entry)
+    (forward-line 1)
+    (let ((amount 0) (date (my/ledger-entry-date)) month)
+      (if (string-match "[0-9]+[-\\.]\\([0-9]+\\)[-\\.]\\([0-9]+\\)" date)
+          (setq month (string-to-number (match-string 1 date))))
+      ;; Is this a payment or a charge?
+      (save-excursion
+        (while (and (eq (ledger-context-line-type (ledger-context-at-point))
+                        'acct-transaction)
+                    (not (eobp)))
+          (let ((context (ledger-context-at-point)))
+            (if (ledger-context-field-value context 'amount)
+                (if (string-match "MBNA" (ledger-context-field-value context 'account))
+                    (setq amount (string-to-number (ledger-context-field-value context 'amount)))
+                  (setq amount (- (string-to-number (ledger-context-field-value context 'amount)))))))
+          (forward-line 1)))
+      (save-excursion
+        (while (and (eq (ledger-context-line-type (ledger-context-at-point))
+                        'acct-transaction)
+                    (not (eobp)))
+          (let ((context (ledger-context-at-point)))
+            (if (string-match "MBNA" (ledger-context-field-value context 'account))
+                (if (re-search-forward "\\(MBNA\\)[ \t]*[-$\.0-9]*[ \t]*$" (line-end-position) t)
+                    (replace-match
+                     (concat "MBNA:"
+                             (elt
+                              '("January" "February" "March" "April" "May" "June" "July" "August" "September" "October" "November" "December")
+                              (% (+ (if (> amount 0) 10 11) month) 12)))
+                             t t nil 1))))
+          (forward-line 1))))))
+#+end_src
+
+** Emacs server
+
+This permits the use of =emacsclient=, =emacsclientw=, and =org-protocol=.
+
+#+begin_src emacs-lisp
+(server-start)
 #+end_src
 
 ** Advanced stuff / things I tend to forget about
@@ -4683,15 +4843,43 @@ cool. On Windows, these things help a little.
       (sp-with-modes sp--lisp-modes
         (sp-local-pair "(" nil :bind "C-("))))
 #+end_src
-** Web browsing
+* Other cool configs you may want to check out
+  :PROPERTIES:
+  :CUSTOM_ID: links
+  :END:
+<<links>>
 
-	 Minor tweak for Firefox on Windows. Otherwise I get "Searching for
-	 program" "permission denied" "firefox".
+- [[http://doc.norang.ca/org-mode.html][Bernt Hansen]]: Lots of Org-related config. I picked up the graph-drawing stuff from this.
+- [[http://bzg.fr/emacs.html][Bastien Guerry]]: Org, Gnus, ERC - Explained in this [[http://sachachua.com/blog/2013/05/emacs-chat-bastien-guerry/][Emacs Chat (~1h)]]
+- [[https://github.com/iani/emacs-prelude][Iannis Zannos]]: Explained in this [[https://www.youtube.com/watch?v=0F8aCbC9z3A][Emacs Chat (~1h)]]
+- [[https://github.com/magnars/.emacs.d][Magnar Sveen]]: http://whattheemacsd.com/ has some explanations. [[http://sachachua.com/blog/2013/11/emacs-chat-magnar-sveen-emacs-rocks/][Emacs Chat (~1h)]]
+- [[https://github.com/jwiegley/dot-emacs][John Wiegley]]: Also see his [[http://www.youtube.com/watch?v=RvPFZL6NJNQ][Emacs Lisp Development talk]] (sorry, sucky video) and [[http://www.youtube.com/watch?v=ytNsHmRLZGM][Emacs Chat video]]
 
-	 #+begin_src emacs-lisp
-	 (setq browse-url-firefox-program
-         "C:/Program Files (x86)/Mozilla Firefox/firefox.exe")
-	 #+end_src
+* Inactive/infrequent things
+** Org - mapping blog posts and image URLs from bulk exports
+#+begin_src emacs-lisp  :tangle no
+  (defun my/org-map-blog-and-image-urls ()
+    "Extract and map blog post / image URLs."
+    (interactive)
+    (goto-char (point-min))
+    (keep-lines "h2\\|img")
+    (goto-char (point-min))
+    (while (re-search-forward
+            "^.*?h2.*?a href=\"\\(.*?\\)\".*$" nil t)
+      (replace-match "\\1"))
+    (goto-char (point-min))
+    (while (re-search-forward
+            "^.*?src=\"\\(.*?\\)\".*$" nil t)
+      (replace-match "\\1"))
+    (let (last-post current-url result)
+      (goto-char (point-min))
+      (while (re-search-forward "http://\\(.*\\)" nil t)
+        (setq current-url (match-string 0))
+        (if (string-match "/\\([^/]*?\\)\\(_thumb\\|-640x.*\\)?.png" current-url)
+            (setq result (cons (concat (match-string 1 current-url) "\t" last-post) result))
+          (setq last-post current-url)))
+      (kill-new (mapconcat 'identity result "\n"))))
+#+end_src
 ** Transcript editing
 
 #+begin_src emacs-lisp
@@ -4776,153 +4964,6 @@ Got sdic from http://namazu.org/~tsuchiya/sdic/ . Attempting to get this to work
 	      sdic-waei-dictionary-list))))
 #+end_src
 
-** Clipboard
-
-#+begin_src emacs-lisp
-(use-package clipmon
-  :disabled t
-  :init (progn (setq clipmon-action 'kill-new clipmon-timeout nil clipmon-sound nil clipmon-cursor-color nil clipmon-suffix nil) (clipmon-mode)))
-#+end_src
-** Search
-
-#+begin_src emacs-lisp
-  (use-package engine-mode
-    :ensure t
-    :init
-    (progn
-      (defengine my-blog "https://www.google.ca/search?q=site:sachachua.com+%s" "b")
-      (defengine my-photos "http://www.flickr.com/search/?w=65214961@N00&q=%s" "f")
-      (defengine mail "https://mail.google.com/mail/u/0/#search/%s" "m")
-      (defengine google "http://google.com/search?q=%s" "g")
-      (defengine emacswiki "http://google.com/search?q=site:emacswiki.org+%s" "e")
-      (defhydra my/engine-mode-hydra (:color blue)
-        "Engine mode"
-        ("b" engine/search-my-blog "blog")
-        ("f" engine/search-my-photos "flickr")
-        ("m" engine/search-mail "mail")
-        ("g" engine/search-google "google")
-        ("e" engine/search-emacswiki "emacswiki"))
-      (bind-key* "C-c /" 'my/engine-mode-hydra/body)
-      (engine-mode)))
-#+end_src
-** Emacs server
-
-This permits the use of =emacsclient=, =emacsclientw=, and =org-protocol=.
-
-#+begin_src emacs-lisp
-(server-start)
-#+end_src
-
-** Mail with Gnus
-
-I used to have this in =~/.gnus=, but people might find it handy, so here it is.
-
-I like using [[http://gmane.org][Gmane]] to read mailing lists, and I use IMAP to read my Gmail.
-
-#+begin_src emacs-lisp
-(setq gnus-select-method '(nnnil ""))
-(setq gnus-secondary-select-methods
-      '((nntp "news.gmane.org")
-        (nnimap "imap.gmail.com"
-                (nnimap-address "imap.gmail.com")
-                (nnimap-server-port 993)
-                (nnimap-stream ssl)
-                (nnimap-authenticator login))))
-#+end_src
-
-I'm on Windows, so sending e-mail is a bit of a pain. Fortunately, I eventually found something that works.
-I've configured [[http://emailrelay.sourceforge.net/][emailrelay]] to accept the mail and forward it to Gmail. The server starts with this batch file:
-
-#+begin_example
-start "emailrelay" "C:\Program Files (x86)\emailrelay\emailrelay.exe" --as-proxy smtp.gmail.com:25 --client-auth "C:/sacha/.emailrelay" --client-tls --log --pid-file "C:\Program Files (x86)\emailrelay\emailrelay.pid" --spool-dir C:\sacha\tmp\emailrelay
-#+end_example
-
-Sending queued mail works with this batch file:
-
-#+begin_example
-emailrelay --as-client smtp.gmail.com:587 --client-auth c:\sacha\.emailrelay --client-tls --spool-dir c:\sacha\tmp\emailrelay
-#+end_example
-
-I should probably get around to using =--as-proxy= properly, since it still seems to hold mail until I explicitly send it.
-
-Some more config. Not sure how much of this is needed.
-
-#+begin_src emacs-lisp
-(setq message-send-mail-function 'smtpmail-send-it
-      smtpmail-starttls-credentials '(("localhost" 25 "sacha@local.sachachua.com" nil))
-      smtpmail-auth-credentials '(("localhost" 25 "sacha@local.sachachua.com" nil))
-      smtpmail-default-smtp-server "localhost"
-      smtpmail-smtp-server "localhost"
-      smtpmail-smtp-service 25
-      smtpmail-local-domain "local.sachachua.com")
-(setq send-mail-function 'smtpmail-send-it)
-(setq smtpmail-smtp-server "127.0.0.1")
-(setq smtpmail-smtp-service 25)
-(setq user-mail-address "sacha@sachachua.com")
-#+end_src
-
-Hide HTML mail.
-
-#+begin_src emacs-lisp
-(setq mm-discouraged-alternatives
-      '("text/html" "text/richtext")
-      mm-automatic-display
-      (remove "text/html" mm-automatic-display))
-#+end_src
-
-Hide quoted text.
-
-#+begin_src emacs-lisp
-(setq gnus-treat-hide-citation t)
-#+end_src
-
-Get smarter about filtering depending on what I reed or mark. I use =!= (tick) for
-
-#+begin_src emacs-lisp
-(setq gnus-use-adaptive-scoring t)
-(setq gnus-default-adaptive-score-alist
-     '((gnus-unread-mark)
-			 (gnus-ticked-mark (subject 10))
-       (gnus-killed-mark (subject -5))
-       (gnus-catchup-mark (subject -1))))
-#+end_src
-* Other cool configs you may want to check out
-  :PROPERTIES:
-  :CUSTOM_ID: links
-  :END:
-<<links>>
-
-- [[http://doc.norang.ca/org-mode.html][Bernt Hansen]]: Lots of Org-related config. I picked up the graph-drawing stuff from this.
-- [[http://bzg.fr/emacs.html][Bastien Guerry]]: Org, Gnus, ERC - Explained in this [[http://sachachua.com/blog/2013/05/emacs-chat-bastien-guerry/][Emacs Chat (~1h)]]
-- [[https://github.com/iani/emacs-prelude][Iannis Zannos]]: Explained in this [[https://www.youtube.com/watch?v=0F8aCbC9z3A][Emacs Chat (~1h)]]
-- [[https://github.com/magnars/.emacs.d][Magnar Sveen]]: http://whattheemacsd.com/ has some explanations. [[http://sachachua.com/blog/2013/11/emacs-chat-magnar-sveen-emacs-rocks/][Emacs Chat (~1h)]]
-- [[https://github.com/jwiegley/dot-emacs][John Wiegley]]: Also see his [[http://www.youtube.com/watch?v=RvPFZL6NJNQ][Emacs Lisp Development talk]] (sorry, sucky video) and [[http://www.youtube.com/watch?v=ytNsHmRLZGM][Emacs Chat video]]
-
-* Inactive/infrequent things
-** Org - mapping blog posts and image URLs from bulk exports
-#+begin_src emacs-lisp  :tangle no
-  (defun my/org-map-blog-and-image-urls ()
-    "Extract and map blog post / image URLs."
-    (interactive)
-    (goto-char (point-min))
-    (keep-lines "h2\\|img")
-    (goto-char (point-min))
-    (while (re-search-forward
-            "^.*?h2.*?a href=\"\\(.*?\\)\".*$" nil t)
-      (replace-match "\\1"))
-    (goto-char (point-min))
-    (while (re-search-forward
-            "^.*?src=\"\\(.*?\\)\".*$" nil t)
-      (replace-match "\\1"))
-    (let (last-post current-url result)
-      (goto-char (point-min))
-      (while (re-search-forward "http://\\(.*\\)" nil t)
-        (setq current-url (match-string 0))
-        (if (string-match "/\\([^/]*?\\)\\(_thumb\\|-640x.*\\)?.png" current-url)
-            (setq result (cons (concat (match-string 1 current-url) "\t" last-post) result))
-          (setq last-post current-url)))
-      (kill-new (mapconcat 'identity result "\n"))))
-#+end_src
 ** Beeminder
    :PROPERTIES:
    :CUSTOM_ID: beeminder

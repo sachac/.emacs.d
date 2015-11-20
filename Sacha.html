@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2015-11-16 Mon 16:02 -->
+<!-- 2015-11-20 Fri 12:37 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
@@ -156,7 +156,7 @@ for the JavaScript code in this tag.
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#orgheadline181">Configuration</a>
+<li><a href="#orgheadline179">Configuration</a>
 <ul>
 <li><a href="#babel-init">About this file</a></li>
 <li><a href="#orgheadline3">Personal information</a></li>
@@ -360,61 +360,61 @@ for the JavaScript code in this tag.
 <li><a href="#orgheadline148">Tern - for Javascript</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline150">Ledger (personal finance): Make it easier to review my credit card transactions</a></li>
-<li><a href="#orgheadline151">Internet Relay Chat</a></li>
-<li><a href="#orgheadline158">Self-tracking, statistics, and other data transformations</a>
+<li><a href="#orgheadline150">Internet Relay Chat</a></li>
+<li><a href="#orgheadline157">Self-tracking, statistics, and other data transformations</a>
 <ul>
 <li><a href="#clock-in">Quantified Awesome</a></li>
 <li><a href="#compare-time">Compare times and effort estimates</a></li>
-<li><a href="#orgheadline154">R</a></li>
-<li><a href="#orgheadline155">Workrave</a></li>
-<li><a href="#orgheadline156">Blog</a></li>
-<li><a href="#orgheadline157">Artrage</a></li>
+<li><a href="#orgheadline153">R</a></li>
+<li><a href="#orgheadline154">Workrave</a></li>
+<li><a href="#orgheadline155">Blog</a></li>
+<li><a href="#orgheadline156">Artrage</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline162">Workarounds</a>
+<li><a href="#orgheadline161">Workarounds</a>
 <ul>
-<li><a href="#orgheadline159">color-theme sometimes comes across lists. Odd!</a></li>
-<li><a href="#orgheadline160">ido-sort-mtime stopped working when I upgraded to Windows 8</a></li>
-<li><a href="#orgheadline161">Cygwin mogrify doesn't work for me, but ImageMagick does</a></li>
+<li><a href="#orgheadline158">color-theme sometimes comes across lists. Odd!</a></li>
+<li><a href="#orgheadline159">ido-sort-mtime stopped working when I upgraded to Windows 8</a></li>
+<li><a href="#orgheadline160">Cygwin mogrify doesn't work for me, but ImageMagick does</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline163">Display</a></li>
-<li><a href="#orgheadline171">Advanced stuff / things I tend to forget about</a>
+<li><a href="#orgheadline162">Display</a></li>
+<li><a href="#orgheadline163">Web browsing</a></li>
+<li><a href="#orgheadline164">Clipboard</a></li>
+<li><a href="#orgheadline165">Search</a></li>
+<li><a href="#orgheadline166">Mail with Gnus</a></li>
+<li><a href="#orgheadline167">Ledger (personal finance)</a></li>
+<li><a href="#orgheadline168">Emacs server</a></li>
+<li><a href="#orgheadline176">Advanced stuff / things I tend to forget about</a>
 <ul>
-<li><a href="#orgheadline165">Editing multiple things</a>
+<li><a href="#orgheadline170">Editing multiple things</a>
 <ul>
-<li><a href="#orgheadline164">Multiple cursors mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#orgheadline169">Multiple cursors mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
 </ul>
 </li>
-<li><a href="#orgheadline166">Edit list&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
-<li><a href="#orgheadline167">Ace Jump mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
-<li><a href="#orgheadline168">Deleting things</a>
+<li><a href="#orgheadline171">Edit list&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#orgheadline172">Ace Jump mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#orgheadline173">Deleting things</a>
 <ul>
-<li><a href="#orgheadline169"><span class="todo nilTODO">TODO</span> Get zap-to-isearch to work with helm-swoop</a></li>
+<li><a href="#orgheadline174"><span class="todo nilTODO">TODO</span> Get zap-to-isearch to work with helm-swoop</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline170">Network: TRAMP and editing files over SSH</a></li>
+<li><a href="#orgheadline175">Network: TRAMP and editing files over SSH</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline173">Other nifty Emacs things I want to learn</a>
+<li><a href="#orgheadline178">Other nifty Emacs things I want to learn</a>
 <ul>
-<li><a href="#orgheadline172">Smartparens mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#orgheadline177">Smartparens mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
 </ul>
 </li>
-<li><a href="#orgheadline174">Web browsing</a></li>
-<li><a href="#orgheadline175">Transcript editing</a></li>
-<li><a href="#orgheadline176">Japanese</a></li>
-<li><a href="#orgheadline177">Clipboard</a></li>
-<li><a href="#orgheadline178">Search</a></li>
-<li><a href="#orgheadline179">Emacs server</a></li>
-<li><a href="#orgheadline180">Mail with Gnus</a></li>
 </ul>
 </li>
 <li><a href="#links">Other cool configs you may want to check out</a></li>
 <li><a href="#orgheadline214">Inactive/infrequent things</a>
 <ul>
-<li><a href="#orgheadline183">Org - mapping blog posts and image URLs from bulk exports</a></li>
+<li><a href="#orgheadline181">Org - mapping blog posts and image URLs from bulk exports</a></li>
+<li><a href="#orgheadline182">Transcript editing</a></li>
+<li><a href="#orgheadline183">Japanese</a></li>
 <li><a href="#beeminder">Beeminder</a></li>
 <li><a href="#orgheadline185">Strike through DONE headlines</a></li>
 <li><a href="#orgheadline186">Rainbow delimiters</a></li>
@@ -467,9 +467,9 @@ for the JavaScript code in this tag.
 </div>
 </div>
 
-<div id="outline-container-orgheadline181" class="outline-2">
-<h2 id="orgheadline181">Configuration</h2>
-<div class="outline-text-2" id="text-orgheadline181">
+<div id="outline-container-orgheadline179" class="outline-2">
+<h2 id="orgheadline179">Configuration</h2>
+<div class="outline-text-2" id="text-orgheadline179">
 </div><div id="outline-container-orgheadline2" class="outline-3">
 <h3 id="babel-init"><a id="orgheadline2"></a>About this file</h3>
 <div class="outline-text-3" id="text-babel-init">
@@ -1623,6 +1623,7 @@ Now let's set up the actual keychords.
                                (<span class="org-string">"c"</span> (call-interactively 'org-capture) <span class="org-string">"capture"</span> <span class="org-builtin">:color</span> blue)
                                (<span class="org-string">"t"</span> (org-capture nil <span class="org-string">"T"</span>) <span class="org-string">"Capture task"</span>)
                                (<span class="org-string">"."</span> repeat)
+                               (<span class="org-string">"C-t"</span> transpose-chars)
                                (<span class="org-string">"o"</span> my/org-off-my-computer <span class="org-builtin">:color</span> blue)
                                (<span class="org-string">"w"</span> my/engine-mode-hydra/body <span class="org-string">"web"</span> <span class="org-builtin">:exit</span> t)
                                (<span class="org-string">"m"</span> imenu <span class="org-builtin">:color</span> blue)
@@ -1639,7 +1640,7 @@ Now let's set up the actual keychords.
 </div>
 
 <p>
-Hmm, good point about <code>C-t</code> being more useful as a Hydra than as <code>transpose-char</code>.
+Hmm, good point about <code>C-t</code> being more useful as a Hydra than as <code>transpose-char</code>. It turns out I actually do use <code>C-t</code> a fair bit, but I can always add it back as an option.
 </p>
 
 <div class="org-src-container">
@@ -5361,8 +5362,17 @@ Handy shortcuts:
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">js2-mode</span>
-  <span class="org-builtin">:init</span>
-  (bind-key <span class="org-string">"C-c C-c"</span> 'compile js2-mode-map))
+  <span class="org-builtin">:config</span>
+  (bind-key <span class="org-string">"C-c C-c"</span> 'compile js2-mode-map)
+  (add-hook 'js2-mode-hook 'jasminejs-mode))
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">jasminejs-mode</span>
+  <span class="org-builtin">:config</span>
+  (add-hook 'jasminejs-mode-hook 'jasminejs-add-snippets-to-yas-snippet-dirs))
 </pre>
 </div>
 
@@ -5826,71 +5836,9 @@ with HTTPS sites.
 </div>
 </div>
 
-
 <div id="outline-container-orgheadline150" class="outline-3">
-<h3 id="orgheadline150">Ledger (personal finance): Make it easier to review my credit card transactions</h3>
+<h3 id="orgheadline150">Internet Relay Chat</h3>
 <div class="outline-text-3" id="text-orgheadline150">
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/ledger-go-to-beginning-of-entry</span> ()
-  <span class="org-doc">"Move to the beginning of the current entry."</span>
-  (<span class="org-keyword">while</span> (and (not (bobp))
-              (eq (ledger-context-line-type (ledger-context-at-point))
-                  'acct-transaction))
-    (forward-line -1)))
-
-(<span class="org-keyword">defun</span> <span class="org-function-name">my/ledger-entry-date</span> ()
-  <span class="org-doc">"Returns the date of the entry containing point or nil."</span>
-  (<span class="org-keyword">save-excursion</span>
-    (my/ledger-go-to-beginning-of-entry)
-    (<span class="org-keyword">let</span> ((context-info (ledger-context-other-line 0)))
-      (<span class="org-keyword">when</span> (eq (ledger-context-line-type context-info) 'entry)
-        (goto-char (line-beginning-position))
-        (<span class="org-keyword">if</span> (looking-at <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[-0-9\\./]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>)
-            (match-string-no-properties 1))))))
-
-(<span class="org-keyword">defun</span> <span class="org-function-name">my/ledger-guess-mbna</span> ()
-  <span class="org-doc">"Adds a sub-account for the dates for my credit card transactions."</span>
-  (interactive)
-  (<span class="org-keyword">save-excursion</span>
-    (my/ledger-go-to-beginning-of-entry)
-    (forward-line 1)
-    (<span class="org-keyword">let</span> ((amount 0) (date (my/ledger-entry-date)) month)
-      (<span class="org-keyword">if</span> (string-match <span class="org-string">"[0-9]+[-\\.]</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">[-\\.]</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span> date)
-          (setq month (string-to-number (match-string 1 date))))
-      <span class="org-comment-delimiter">;; </span><span class="org-comment">Is this a payment or a charge?</span>
-      (<span class="org-keyword">save-excursion</span>
-        (<span class="org-keyword">while</span> (and (eq (ledger-context-line-type (ledger-context-at-point))
-                        'acct-transaction)
-                    (not (eobp)))
-          (<span class="org-keyword">let</span> ((context (ledger-context-at-point)))
-            (<span class="org-keyword">if</span> (ledger-context-field-value context 'amount)
-                (<span class="org-keyword">if</span> (string-match <span class="org-string">"MBNA"</span> (ledger-context-field-value context 'account))
-                    (setq amount (string-to-number (ledger-context-field-value context 'amount)))
-                  (setq amount (- (string-to-number (ledger-context-field-value context 'amount)))))))
-          (forward-line 1)))
-      (<span class="org-keyword">save-excursion</span>
-        (<span class="org-keyword">while</span> (and (eq (ledger-context-line-type (ledger-context-at-point))
-                        'acct-transaction)
-                    (not (eobp)))
-          (<span class="org-keyword">let</span> ((context (ledger-context-at-point)))
-            (<span class="org-keyword">if</span> (string-match <span class="org-string">"MBNA"</span> (ledger-context-field-value context 'account))
-                (<span class="org-keyword">if</span> (re-search-forward <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">MBNA</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">[ \t]*[-$\.0-9]*[ \t]*$"</span> (line-end-position) t)
-                    (replace-match
-                     (concat <span class="org-string">"MBNA:"</span>
-                             (elt
-                              '(<span class="org-string">"January"</span> <span class="org-string">"February"</span> <span class="org-string">"March"</span> <span class="org-string">"April"</span> <span class="org-string">"May"</span> <span class="org-string">"June"</span> <span class="org-string">"July"</span> <span class="org-string">"August"</span> <span class="org-string">"September"</span> <span class="org-string">"October"</span> <span class="org-string">"November"</span> <span class="org-string">"December"</span>)
-                              (% (+ (<span class="org-keyword">if</span> (&gt; amount 0) 10 11) month) 12)))
-                             t t nil 1))))
-          (forward-line 1))))))
-</pre>
-</div>
-</div>
-</div>
-
-<div id="outline-container-orgheadline151" class="outline-3">
-<h3 id="orgheadline151">Internet Relay Chat</h3>
-<div class="outline-text-3" id="text-orgheadline151">
 <p>
 IRC is a great way to hang out with other Emacs geeks.
 </p>
@@ -5904,7 +5852,8 @@ IRC is a great way to hang out with other Emacs geeks.
          <span class="org-string">"#org-mode"</span>
          <span class="org-string">"#hacklabto"</span>
          <span class="org-string">"#emacs"</span>
-         <span class="org-string">"#emacs-beginners"</span>))
+         <span class="org-string">"#emacs-beginners"</span>
+         <span class="org-string">"#emacs-ops"</span>))
   erc-server <span class="org-string">"irc.freenode.net"</span>
   erc-nick <span class="org-string">"sachac"</span>))
 </pre>
@@ -5912,11 +5861,11 @@ IRC is a great way to hang out with other Emacs geeks.
 </div>
 </div>
 
-<div id="outline-container-orgheadline158" class="outline-3">
-<h3 id="orgheadline158">Self-tracking, statistics, and other data transformations</h3>
-<div class="outline-text-3" id="text-orgheadline158">
-</div><div id="outline-container-orgheadline152" class="outline-4">
-<h4 id="clock-in"><a id="orgheadline152"></a>Quantified Awesome</h4>
+<div id="outline-container-orgheadline157" class="outline-3">
+<h3 id="orgheadline157">Self-tracking, statistics, and other data transformations</h3>
+<div class="outline-text-3" id="text-orgheadline157">
+</div><div id="outline-container-orgheadline151" class="outline-4">
+<h4 id="clock-in"><a id="orgheadline151"></a>Quantified Awesome</h4>
 <div class="outline-text-4" id="text-clock-in">
 <p>
 <a id="orgtarget8"></a>
@@ -5985,8 +5934,8 @@ IRC is a great way to hang out with other Emacs geeks.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline153" class="outline-4">
-<h4 id="compare-time"><a id="orgheadline153"></a>Compare times and effort estimates</h4>
+<div id="outline-container-orgheadline152" class="outline-4">
+<h4 id="compare-time"><a id="orgheadline152"></a>Compare times and effort estimates</h4>
 <div class="outline-text-4" id="text-compare-time">
 <p>
 <a id="orgtarget9"></a>
@@ -6019,9 +5968,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 
-<div id="outline-container-orgheadline154" class="outline-4">
-<h4 id="orgheadline154">R</h4>
-<div class="outline-text-4" id="text-orgheadline154">
+<div id="outline-container-orgheadline153" class="outline-4">
+<h4 id="orgheadline153">R</h4>
+<div class="outline-text-4" id="text-orgheadline153">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">ess-site</span>
@@ -6032,9 +5981,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 
-<div id="outline-container-orgheadline155" class="outline-4">
-<h4 id="orgheadline155">Workrave</h4>
-<div class="outline-text-4" id="text-orgheadline155">
+<div id="outline-container-orgheadline154" class="outline-4">
+<h4 id="orgheadline154">Workrave</h4>
+<div class="outline-text-4" id="text-orgheadline154">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">    (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/workrave-file</span> (expand-file-name <span class="org-string">".\\Workrave\\historystats"</span> (getenv <span class="org-string">"AppData"</span>)))
@@ -6069,9 +6018,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline156" class="outline-4">
-<h4 id="orgheadline156">Blog</h4>
-<div class="outline-text-4" id="text-orgheadline156">
+<div id="outline-container-orgheadline155" class="outline-4">
+<h4 id="orgheadline155">Blog</h4>
+<div class="outline-text-4" id="text-orgheadline155">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/strip-blog-share</span> ()
@@ -6086,9 +6035,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline157" class="outline-4">
-<h4 id="orgheadline157">Artrage</h4>
-<div class="outline-text-4" id="text-orgheadline157">
+<div id="outline-container-orgheadline156" class="outline-4">
+<h4 id="orgheadline156">Artrage</h4>
+<div class="outline-text-4" id="text-orgheadline156">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">        (<span class="org-keyword">defun</span> <span class="org-function-name">my/artrage-export-png</span> (directory <span class="org-type">&amp;optional</span> prefix)
@@ -6112,12 +6061,12 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline162" class="outline-3">
-<h3 id="orgheadline162">Workarounds</h3>
-<div class="outline-text-3" id="text-orgheadline162">
-</div><div id="outline-container-orgheadline159" class="outline-4">
-<h4 id="orgheadline159">color-theme sometimes comes across lists. Odd!</h4>
-<div class="outline-text-4" id="text-orgheadline159">
+<div id="outline-container-orgheadline161" class="outline-3">
+<h3 id="orgheadline161">Workarounds</h3>
+<div class="outline-text-3" id="text-orgheadline161">
+</div><div id="outline-container-orgheadline158" class="outline-4">
+<h4 id="orgheadline158">color-theme sometimes comes across lists. Odd!</h4>
+<div class="outline-text-4" id="text-orgheadline158">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defadvice</span> <span class="org-function-name">face-attribute</span> (around sacha activate)
@@ -6128,9 +6077,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 
-<div id="outline-container-orgheadline160" class="outline-4">
-<h4 id="orgheadline160">ido-sort-mtime stopped working when I upgraded to Windows 8</h4>
-<div class="outline-text-4" id="text-orgheadline160">
+<div id="outline-container-orgheadline159" class="outline-4">
+<h4 id="orgheadline159">ido-sort-mtime stopped working when I upgraded to Windows 8</h4>
+<div class="outline-text-4" id="text-orgheadline159">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defadvice</span> <span class="org-function-name">ido-sort-mtime</span> (around sacha activate)
@@ -6151,9 +6100,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline161" class="outline-4">
-<h4 id="orgheadline161">Cygwin mogrify doesn't work for me, but ImageMagick does</h4>
-<div class="outline-text-4" id="text-orgheadline161">
+<div id="outline-container-orgheadline160" class="outline-4">
+<h4 id="orgheadline160">Cygwin mogrify doesn't work for me, but ImageMagick does</h4>
+<div class="outline-text-4" id="text-orgheadline160">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;</span><span class="org-comment">(setq eimp-mogrify-program "c:/Program Files/ImageMagick-6.8.3-Q16/mogrify.exe")</span>
@@ -6163,9 +6112,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 
-<div id="outline-container-orgheadline163" class="outline-3">
-<h3 id="orgheadline163">Display</h3>
-<div class="outline-text-3" id="text-orgheadline163">
+<div id="outline-container-orgheadline162" class="outline-3">
+<h3 id="orgheadline162">Display</h3>
+<div class="outline-text-3" id="text-orgheadline162">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sanityinc/adjust-opacity</span> (frame incr)
@@ -6181,15 +6130,289 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 
-<div id="outline-container-orgheadline171" class="outline-3">
-<h3 id="orgheadline171">Advanced stuff / things I tend to forget about</h3>
-<div class="outline-text-3" id="text-orgheadline171">
-</div><div id="outline-container-orgheadline165" class="outline-4">
-<h4 id="orgheadline165">Editing multiple things</h4>
-<div class="outline-text-4" id="text-orgheadline165">
-</div><div id="outline-container-orgheadline164" class="outline-5">
-<h5 id="orgheadline164"><a id="o2b:61b0ffae-669b-4360-98fd-a6f0ea6f018e"></a>Multiple cursors mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
-<div class="outline-text-5" id="text-orgheadline164">
+<div id="outline-container-orgheadline163" class="outline-3">
+<h3 id="orgheadline163">Web browsing</h3>
+<div class="outline-text-3" id="text-orgheadline163">
+<p>
+Minor tweak for Firefox on Windows. Otherwise I get "Searching for
+program" "permission denied" "firefox".
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(setq browse-url-firefox-program
+      <span class="org-string">"C:/Program Files (x86)/Mozilla Firefox/firefox.exe"</span>)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgheadline164" class="outline-3">
+<h3 id="orgheadline164">Clipboard</h3>
+<div class="outline-text-3" id="text-orgheadline164">
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">clipmon</span>
+  <span class="org-builtin">:disabled</span> t
+  <span class="org-builtin">:init</span> (<span class="org-keyword">progn</span> (setq clipmon-action 'kill-new clipmon-timeout nil clipmon-sound nil clipmon-cursor-color nil clipmon-suffix nil) (clipmon-mode)))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgheadline165" class="outline-3">
+<h3 id="orgheadline165">Search</h3>
+<div class="outline-text-3" id="text-orgheadline165">
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">engine-mode</span>
+  <span class="org-builtin">:ensure</span> t
+  <span class="org-builtin">:init</span>
+  (<span class="org-keyword">progn</span>
+    (defengine my-blog <span class="org-string">"https://www.google.ca/search?q=site:sachachua.com+%s"</span> <span class="org-string">"b"</span>)
+    (defengine my-photos <span class="org-string">"http://www.flickr.com/search/?w=65214961@N00&amp;q=%s"</span> <span class="org-string">"f"</span>)
+    (defengine mail <span class="org-string">"https://mail.google.com/mail/u/0/#search/%s"</span> <span class="org-string">"m"</span>)
+    (defengine google <span class="org-string">"http://google.com/search?q=%s"</span> <span class="org-string">"g"</span>)
+    (defengine emacswiki <span class="org-string">"http://google.com/search?q=site:emacswiki.org+%s"</span> <span class="org-string">"e"</span>)
+    (defhydra my/engine-mode-hydra (<span class="org-builtin">:color</span> blue)
+      <span class="org-string">"Engine mode"</span>
+      (<span class="org-string">"b"</span> engine/search-my-blog <span class="org-string">"blog"</span>)
+      (<span class="org-string">"f"</span> engine/search-my-photos <span class="org-string">"flickr"</span>)
+      (<span class="org-string">"m"</span> engine/search-mail <span class="org-string">"mail"</span>)
+      (<span class="org-string">"g"</span> engine/search-google <span class="org-string">"google"</span>)
+      (<span class="org-string">"e"</span> engine/search-emacswiki <span class="org-string">"emacswiki"</span>))
+    (bind-key* <span class="org-string">"C-c /"</span> 'my/engine-mode-hydra/body)
+    (engine-mode)))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgheadline166" class="outline-3">
+<h3 id="orgheadline166"><a id="o2b:c696259a-146e-4f47-8828-e7ca45cc2215"></a>Mail with Gnus</h3>
+<div class="outline-text-3" id="text-orgheadline166">
+<p>
+I use Gmail for my mail because it:
+</p>
+<ul class="org-ul">
+<li>synchronizes with my phone, which is handy for notifications and quick replies</li>
+<li>filters most of the spam for me</li>
+<li>works with a few interesting extensions such as Boomerang for Gmail</li>
+</ul>
+
+<p>
+However, I like the way the Gnus mail/news client in Emacs gives me a
+much more keyboard-friendly way to manage lots of mail, and I can even
+write code to partially automate some of my common operations.
+</p>
+
+<p>
+I used to have my config in in <code>~/.gnus</code>, but people might find it
+handy, so I've added it to my public <a href="http://sachacuha.com/dotemacs">Emacs configuration</a>.
+</p>
+
+<p>
+I like using <a href="http://gmane.org/">Gmane</a> to read mailing lists, and I use IMAP to read my Gmail.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(setq gnus-select-method '(nnnil <span class="org-string">""</span>))
+(setq gnus-secondary-select-methods
+      '((nntp <span class="org-string">"news.gmane.org"</span>)
+        (nnimap <span class="org-string">"imap.gmail.com"</span>
+                (nnimap-address <span class="org-string">"imap.gmail.com"</span>)
+                (nnimap-server-port 993)
+                (nnimap-stream ssl)
+                (nnimap-authenticator login))))
+</pre>
+</div>
+
+<p>
+I have two-factor authentication enabled for Gmail, so I set up an
+app-specific password for Gnus. I have an <code>~/.authinfo</code> file set up
+with something like:
+</p>
+
+<pre class="example">
+machine imap.gmail.com login sacha@sachachua.com password mysecretapppassword
+machine imap.gmail.com login sacha@sachachua.com password mysecretapppassword port 993
+machine smtp.gmail.com login sacha@sachachua.com password mysecretapppassword port 587
+</pre>
+
+<p>
+(I should probably get around to using GPG to automatically encrypt and decrypt this file.)
+</p>
+
+<p>
+Sending e-mail on Windows was a bit of a pain. Fortunately, I eventually found something that works.
+I've configured <a href="http://emailrelay.sourceforge.net/">emailrelay</a> to accept the mail and forward it to Gmail. The server starts with this batch file:
+</p>
+
+<pre class="example">
+start "emailrelay" "C:\Program Files (x86)\emailrelay\emailrelay.exe" --as-proxy smtp.gmail.com:25 --client-auth "C:/sacha/.emailrelay" --client-tls --log --pid-file "C:\Program Files (x86)\emailrelay\emailrelay.pid" --spool-dir C:\sacha\tmp\emailrelay
+</pre>
+
+<p>
+Sending queued mail works with this batch file:
+</p>
+
+<pre class="example">
+"c:\Program Files (x86)\emailrelay\emailrelay.exe" --as-client smtp.gmail.com:587 --client-auth c:\sacha\.emailrelay --client-tls --spool-dir c:\sacha\tmp\emailrelay
+</pre>
+
+<p>
+I should probably get around to using <code>--as-proxy</code> properly, since it still seems to hold mail until I explicitly send it.
+</p>
+
+<p>
+Some more config. Not sure how much of this is needed.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(setq message-send-mail-function 'smtpmail-send-it
+      smtpmail-starttls-credentials '((<span class="org-string">"localhost"</span> 25 <span class="org-string">"sacha@local.sachachua.com"</span> nil))
+      smtpmail-auth-credentials '((<span class="org-string">"localhost"</span> 25 <span class="org-string">"sacha@local.sachachua.com"</span> nil))
+      smtpmail-default-smtp-server <span class="org-string">"localhost"</span>
+      smtpmail-smtp-server <span class="org-string">"localhost"</span>
+      smtpmail-smtp-service 25
+      smtpmail-local-domain <span class="org-string">"local.sachachua.com"</span>)
+(setq send-mail-function 'smtpmail-send-it)
+(setq smtpmail-smtp-server <span class="org-string">"127.0.0.1"</span>)
+(setq smtpmail-smtp-service 25)
+(setq user-mail-address <span class="org-string">"sacha@sachachua.com"</span>)
+</pre>
+</div>
+
+<p>
+Hide HTML mail. I need to fiddle with this some more, since Gnus still
+tries to display them. Sometimes my Gnus crashes when it tries to
+display HTML mail.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(setq mm-discouraged-alternatives
+      '(<span class="org-string">"text/html"</span> <span class="org-string">"text/richtext"</span>)
+      mm-automatic-display
+      (-difference mm-automatic-display '(<span class="org-string">"text/html"</span> <span class="org-string">"text/enriched"</span> <span class="org-string">"text/richtext"</span>)))
+</pre>
+</div>
+
+<p>
+Hide quoted text.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(setq gnus-treat-hide-citation t)
+</pre>
+</div>
+
+<p>
+Get smarter about filtering depending on what I reed or mark. I use <code>!</code> (tick) for marking threads as something that interests me.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(setq gnus-use-adaptive-scoring t)
+(setq gnus-default-adaptive-score-alist
+     '((gnus-unread-mark)
+       (gnus-ticked-mark (subject 10))
+       (gnus-killed-mark (subject -5))
+       (gnus-catchup-mark (subject -1))))
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgheadline167" class="outline-3">
+<h3 id="orgheadline167">Ledger (personal finance)</h3>
+<div class="outline-text-3" id="text-orgheadline167">
+<p>
+Make it easier to review my credit card transactions
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/ledger-go-to-beginning-of-entry</span> ()
+  <span class="org-doc">"Move to the beginning of the current entry."</span>
+  (<span class="org-keyword">while</span> (and (not (bobp))
+              (eq (ledger-context-line-type (ledger-context-at-point))
+                  'acct-transaction))
+    (forward-line -1)))
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/ledger-entry-date</span> ()
+  <span class="org-doc">"Returns the date of the entry containing point or nil."</span>
+  (<span class="org-keyword">save-excursion</span>
+    (my/ledger-go-to-beginning-of-entry)
+    (<span class="org-keyword">let</span> ((context-info (ledger-context-other-line 0)))
+      (<span class="org-keyword">when</span> (eq (ledger-context-line-type context-info) 'entry)
+        (goto-char (line-beginning-position))
+        (<span class="org-keyword">if</span> (looking-at <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[-0-9\\./]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>)
+            (match-string-no-properties 1))))))
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/ledger-guess-mbna</span> ()
+  <span class="org-doc">"Adds a sub-account for the dates for my credit card transactions."</span>
+  (interactive)
+  (<span class="org-keyword">save-excursion</span>
+    (my/ledger-go-to-beginning-of-entry)
+    (forward-line 1)
+    (<span class="org-keyword">let</span> ((amount 0) (date (my/ledger-entry-date)) month)
+      (<span class="org-keyword">if</span> (string-match <span class="org-string">"[0-9]+[-\\.]</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">[-\\.]</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span> date)
+          (setq month (string-to-number (match-string 1 date))))
+      <span class="org-comment-delimiter">;; </span><span class="org-comment">Is this a payment or a charge?</span>
+      (<span class="org-keyword">save-excursion</span>
+        (<span class="org-keyword">while</span> (and (eq (ledger-context-line-type (ledger-context-at-point))
+                        'acct-transaction)
+                    (not (eobp)))
+          (<span class="org-keyword">let</span> ((context (ledger-context-at-point)))
+            (<span class="org-keyword">if</span> (ledger-context-field-value context 'amount)
+                (<span class="org-keyword">if</span> (string-match <span class="org-string">"MBNA"</span> (ledger-context-field-value context 'account))
+                    (setq amount (string-to-number (ledger-context-field-value context 'amount)))
+                  (setq amount (- (string-to-number (ledger-context-field-value context 'amount)))))))
+          (forward-line 1)))
+      (<span class="org-keyword">save-excursion</span>
+        (<span class="org-keyword">while</span> (and (eq (ledger-context-line-type (ledger-context-at-point))
+                        'acct-transaction)
+                    (not (eobp)))
+          (<span class="org-keyword">let</span> ((context (ledger-context-at-point)))
+            (<span class="org-keyword">if</span> (string-match <span class="org-string">"MBNA"</span> (ledger-context-field-value context 'account))
+                (<span class="org-keyword">if</span> (re-search-forward <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">MBNA</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">[ \t]*[-$\.0-9]*[ \t]*$"</span> (line-end-position) t)
+                    (replace-match
+                     (concat <span class="org-string">"MBNA:"</span>
+                             (elt
+                              '(<span class="org-string">"January"</span> <span class="org-string">"February"</span> <span class="org-string">"March"</span> <span class="org-string">"April"</span> <span class="org-string">"May"</span> <span class="org-string">"June"</span> <span class="org-string">"July"</span> <span class="org-string">"August"</span> <span class="org-string">"September"</span> <span class="org-string">"October"</span> <span class="org-string">"November"</span> <span class="org-string">"December"</span>)
+                              (% (+ (<span class="org-keyword">if</span> (&gt; amount 0) 10 11) month) 12)))
+                             t t nil 1))))
+          (forward-line 1))))))
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgheadline168" class="outline-3">
+<h3 id="orgheadline168">Emacs server</h3>
+<div class="outline-text-3" id="text-orgheadline168">
+<p>
+This permits the use of <code>emacsclient</code>, <code>emacsclientw</code>, and <code>org-protocol</code>.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(server-start)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgheadline176" class="outline-3">
+<h3 id="orgheadline176">Advanced stuff / things I tend to forget about</h3>
+<div class="outline-text-3" id="text-orgheadline176">
+</div><div id="outline-container-orgheadline170" class="outline-4">
+<h4 id="orgheadline170">Editing multiple things</h4>
+<div class="outline-text-4" id="text-orgheadline170">
+</div><div id="outline-container-orgheadline169" class="outline-5">
+<h5 id="orgheadline169"><a id="o2b:61b0ffae-669b-4360-98fd-a6f0ea6f018e"></a>Multiple cursors mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
+<div class="outline-text-5" id="text-orgheadline169">
 <p>
 I often define keyboard macros to process multiple lines in a region.
 Maybe <code>multiple-cursors</code> will be an even better way. Looks promising!
@@ -6230,9 +6453,9 @@ Thanks to <a href="http://irreal.org/blog/?p=1733">Irreal</a> and <a href="http:
 </div>
 </div>
 
-<div id="outline-container-orgheadline166" class="outline-4">
-<h4 id="orgheadline166"><a id="ID-e9147cb0-bad0-421c-9396-4f9045d6ebbb"></a>Edit list&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
-<div class="outline-text-4" id="text-orgheadline166">
+<div id="outline-container-orgheadline171" class="outline-4">
+<h4 id="orgheadline171"><a id="ID-e9147cb0-bad0-421c-9396-4f9045d6ebbb"></a>Edit list&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
+<div class="outline-text-4" id="text-orgheadline171">
 <p>
 M-x edit-list makes it easier to edit an Emacs Lisp list.
 </p>
@@ -6247,9 +6470,9 @@ M-x edit-list makes it easier to edit an Emacs Lisp list.
 </div>
 </div>
 
-<div id="outline-container-orgheadline167" class="outline-4">
-<h4 id="orgheadline167"><a id="ID-56f173e7-d2a2-4589-84d7-c6b435c8a5f8"></a>Ace Jump mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
-<div class="outline-text-4" id="text-orgheadline167">
+<div id="outline-container-orgheadline172" class="outline-4">
+<h4 id="orgheadline172"><a id="ID-56f173e7-d2a2-4589-84d7-c6b435c8a5f8"></a>Ace Jump mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
+<div class="outline-text-4" id="text-orgheadline172">
 <p>
 Quickly jump to a position in the current view.
 </p>
@@ -6290,9 +6513,9 @@ And ace-jump-zap&#x2026;
 </div>
 </div>
 
-<div id="outline-container-orgheadline168" class="outline-4">
-<h4 id="orgheadline168">Deleting things</h4>
-<div class="outline-text-4" id="text-orgheadline168">
+<div id="outline-container-orgheadline173" class="outline-4">
+<h4 id="orgheadline173">Deleting things</h4>
+<div class="outline-text-4" id="text-orgheadline173">
 <p>
 From Steve Purcell, who linked to <a href="http://www.emacswiki.org/emacs/ZapToISearch">http://www.emacswiki.org/emacs/ZapToISearch</a>
 </p>
@@ -6329,13 +6552,13 @@ From Steve Purcell, who linked to <a href="http://www.emacswiki.org/emacs/ZapToI
 </pre>
 </div>
 </div>
-<div id="outline-container-orgheadline169" class="outline-5">
-<h5 id="orgheadline169"><span class="todo TODO">TODO</span> Get zap-to-isearch to work with helm-swoop</h5>
+<div id="outline-container-orgheadline174" class="outline-5">
+<h5 id="orgheadline174"><span class="todo TODO">TODO</span> Get zap-to-isearch to work with helm-swoop</h5>
 </div>
 </div>
-<div id="outline-container-orgheadline170" class="outline-4">
-<h4 id="orgheadline170">Network: TRAMP and editing files over SSH</h4>
-<div class="outline-text-4" id="text-orgheadline170">
+<div id="outline-container-orgheadline175" class="outline-4">
+<h4 id="orgheadline175">Network: TRAMP and editing files over SSH</h4>
+<div class="outline-text-4" id="text-orgheadline175">
 <p>
 Emacs lets you edit files on remote servers, which is pretty darn
 cool. On Windows, these things help a little.
@@ -6351,12 +6574,12 @@ cool. On Windows, these things help a little.
 </div>
 </div>
 
-<div id="outline-container-orgheadline173" class="outline-3">
-<h3 id="orgheadline173">Other nifty Emacs things I want to learn</h3>
-<div class="outline-text-3" id="text-orgheadline173">
-</div><div id="outline-container-orgheadline172" class="outline-4">
-<h4 id="orgheadline172">Smartparens mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
-<div class="outline-text-4" id="text-orgheadline172">
+<div id="outline-container-orgheadline178" class="outline-3">
+<h3 id="orgheadline178">Other nifty Emacs things I want to learn</h3>
+<div class="outline-text-3" id="text-orgheadline178">
+</div><div id="outline-container-orgheadline177" class="outline-4">
+<h4 id="orgheadline177">Smartparens mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
+<div class="outline-text-4" id="text-orgheadline177">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">smartparens</span>
@@ -6449,25 +6672,60 @@ cool. On Windows, these things help a little.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline174" class="outline-3">
-<h3 id="orgheadline174">Web browsing</h3>
-<div class="outline-text-3" id="text-orgheadline174">
+</div>
+<div id="outline-container-orgheadline180" class="outline-2">
+<h2 id="links"><a id="orgheadline180"></a>Other cool configs you may want to check out</h2>
+<div class="outline-text-2" id="text-links">
 <p>
-Minor tweak for Firefox on Windows. Otherwise I get "Searching for
-program" "permission denied" "firefox".
+<a id="orgtarget10"></a>
 </p>
 
+<ul class="org-ul">
+<li><a href="http://doc.norang.ca/org-mode.html">Bernt Hansen</a>: Lots of Org-related config. I picked up the graph-drawing stuff from this.</li>
+<li><a href="http://bzg.fr/emacs.html">Bastien Guerry</a>: Org, Gnus, ERC - Explained in this <a href="http://sachachua.com/blog/2013/05/emacs-chat-bastien-guerry/">Emacs Chat (~1h)</a></li>
+<li><a href="https://github.com/iani/emacs-prelude">Iannis Zannos</a>: Explained in this <a href="https://www.youtube.com/watch?v=0F8aCbC9z3A">Emacs Chat (~1h)</a></li>
+<li><a href="https://github.com/magnars/.emacs.d">Magnar Sveen</a>: <a href="http://whattheemacsd.com/">http://whattheemacsd.com/</a> has some explanations. <a href="http://sachachua.com/blog/2013/11/emacs-chat-magnar-sveen-emacs-rocks/">Emacs Chat (~1h)</a></li>
+<li><a href="https://github.com/jwiegley/dot-emacs">John Wiegley</a>: Also see his <a href="http://www.youtube.com/watch?v=RvPFZL6NJNQ">Emacs Lisp Development talk</a> (sorry, sucky video) and <a href="http://www.youtube.com/watch?v=ytNsHmRLZGM">Emacs Chat video</a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orgheadline214" class="outline-2">
+<h2 id="orgheadline214">Inactive/infrequent things</h2>
+<div class="outline-text-2" id="text-orgheadline214">
+</div><div id="outline-container-orgheadline181" class="outline-3">
+<h3 id="orgheadline181">Org - mapping blog posts and image URLs from bulk exports</h3>
+<div class="outline-text-3" id="text-orgheadline181">
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(setq browse-url-firefox-program
-      <span class="org-string">"C:/Program Files (x86)/Mozilla Firefox/firefox.exe"</span>)
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-map-blog-and-image-urls</span> ()
+  <span class="org-doc">"Extract and map blog post / image URLs."</span>
+  (interactive)
+  (goto-char (point-min))
+  (keep-lines <span class="org-string">"h2</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">img"</span>)
+  (goto-char (point-min))
+  (<span class="org-keyword">while</span> (re-search-forward
+          <span class="org-string">"^.*?h2.*?a href=\"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">\".*$"</span> nil t)
+    (replace-match <span class="org-string">"\\1"</span>))
+  (goto-char (point-min))
+  (<span class="org-keyword">while</span> (re-search-forward
+          <span class="org-string">"^.*?src=\"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">\".*$"</span> nil t)
+    (replace-match <span class="org-string">"\\1"</span>))
+  (<span class="org-keyword">let</span> (last-post current-url result)
+    (goto-char (point-min))
+    (<span class="org-keyword">while</span> (re-search-forward <span class="org-string">"http://</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span> nil t)
+      (setq current-url (match-string 0))
+      (<span class="org-keyword">if</span> (string-match <span class="org-string">"/</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">/]*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">_thumb</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">-640x.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?.png"</span> current-url)
+          (setq result (cons (concat (match-string 1 current-url) <span class="org-string">"\t"</span> last-post) result))
+        (setq last-post current-url)))
+    (kill-new (mapconcat 'identity result <span class="org-string">"\n"</span>))))
 </pre>
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline175" class="outline-3">
-<h3 id="orgheadline175">Transcript editing</h3>
-<div class="outline-text-3" id="text-orgheadline175">
+<div id="outline-container-orgheadline182" class="outline-3">
+<h3 id="orgheadline182">Transcript editing</h3>
+<div class="outline-text-3" id="text-orgheadline182">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">emms</span>
@@ -6533,9 +6791,9 @@ program" "permission denied" "firefox".
 </div>
 </div>
 
-<div id="outline-container-orgheadline176" class="outline-3">
-<h3 id="orgheadline176">Japanese</h3>
-<div class="outline-text-3" id="text-orgheadline176">
+<div id="outline-container-orgheadline183" class="outline-3">
+<h3 id="orgheadline183">Japanese</h3>
+<div class="outline-text-3" id="text-orgheadline183">
 <p>
 Got sdic from <a href="http://namazu.org/~tsuchiya/sdic/">http://namazu.org/~tsuchiya/sdic/</a> . Attempting to get this to work on Windows&#x2026;
 </p>
@@ -6559,215 +6817,6 @@ Got sdic from <a href="http://namazu.org/~tsuchiya/sdic/">http://namazu.org/~tsu
 </div>
 </div>
 
-<div id="outline-container-orgheadline177" class="outline-3">
-<h3 id="orgheadline177">Clipboard</h3>
-<div class="outline-text-3" id="text-orgheadline177">
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">clipmon</span>
-  <span class="org-builtin">:disabled</span> t
-  <span class="org-builtin">:init</span> (<span class="org-keyword">progn</span> (setq clipmon-action 'kill-new clipmon-timeout nil clipmon-sound nil clipmon-cursor-color nil clipmon-suffix nil) (clipmon-mode)))
-</pre>
-</div>
-</div>
-</div>
-<div id="outline-container-orgheadline178" class="outline-3">
-<h3 id="orgheadline178">Search</h3>
-<div class="outline-text-3" id="text-orgheadline178">
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">engine-mode</span>
-  <span class="org-builtin">:ensure</span> t
-  <span class="org-builtin">:init</span>
-  (<span class="org-keyword">progn</span>
-    (defengine my-blog <span class="org-string">"https://www.google.ca/search?q=site:sachachua.com+%s"</span> <span class="org-string">"b"</span>)
-    (defengine my-photos <span class="org-string">"http://www.flickr.com/search/?w=65214961@N00&amp;q=%s"</span> <span class="org-string">"f"</span>)
-    (defengine mail <span class="org-string">"https://mail.google.com/mail/u/0/#search/%s"</span> <span class="org-string">"m"</span>)
-    (defengine google <span class="org-string">"http://google.com/search?q=%s"</span> <span class="org-string">"g"</span>)
-    (defengine emacswiki <span class="org-string">"http://google.com/search?q=site:emacswiki.org+%s"</span> <span class="org-string">"e"</span>)
-    (defhydra my/engine-mode-hydra (<span class="org-builtin">:color</span> blue)
-      <span class="org-string">"Engine mode"</span>
-      (<span class="org-string">"b"</span> engine/search-my-blog <span class="org-string">"blog"</span>)
-      (<span class="org-string">"f"</span> engine/search-my-photos <span class="org-string">"flickr"</span>)
-      (<span class="org-string">"m"</span> engine/search-mail <span class="org-string">"mail"</span>)
-      (<span class="org-string">"g"</span> engine/search-google <span class="org-string">"google"</span>)
-      (<span class="org-string">"e"</span> engine/search-emacswiki <span class="org-string">"emacswiki"</span>))
-    (bind-key* <span class="org-string">"C-c /"</span> 'my/engine-mode-hydra/body)
-    (engine-mode)))
-</pre>
-</div>
-</div>
-</div>
-<div id="outline-container-orgheadline179" class="outline-3">
-<h3 id="orgheadline179">Emacs server</h3>
-<div class="outline-text-3" id="text-orgheadline179">
-<p>
-This permits the use of <code>emacsclient</code>, <code>emacsclientw</code>, and <code>org-protocol</code>.
-</p>
-
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(server-start)
-</pre>
-</div>
-</div>
-</div>
-
-<div id="outline-container-orgheadline180" class="outline-3">
-<h3 id="orgheadline180">Mail with Gnus</h3>
-<div class="outline-text-3" id="text-orgheadline180">
-<p>
-I used to have this in <code>~/.gnus</code>, but people might find it handy, so here it is.
-</p>
-
-<p>
-I like using <a href="http://gmane.org/">Gmane</a> to read mailing lists, and I use IMAP to read my Gmail.
-</p>
-
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(setq gnus-select-method '(nnnil <span class="org-string">""</span>))
-(setq gnus-secondary-select-methods
-      '((nntp <span class="org-string">"news.gmane.org"</span>)
-        (nnimap <span class="org-string">"imap.gmail.com"</span>
-                (nnimap-address <span class="org-string">"imap.gmail.com"</span>)
-                (nnimap-server-port 993)
-                (nnimap-stream ssl)
-                (nnimap-authenticator login))))
-</pre>
-</div>
-
-<p>
-I'm on Windows, so sending e-mail is a bit of a pain. Fortunately, I eventually found something that works.
-I've configured <a href="http://emailrelay.sourceforge.net/">emailrelay</a> to accept the mail and forward it to Gmail. The server starts with this batch file:
-</p>
-
-<pre class="example">
-start "emailrelay" "C:\Program Files (x86)\emailrelay\emailrelay.exe" --as-proxy smtp.gmail.com:25 --client-auth "C:/sacha/.emailrelay" --client-tls --log --pid-file "C:\Program Files (x86)\emailrelay\emailrelay.pid" --spool-dir C:\sacha\tmp\emailrelay
-</pre>
-
-<p>
-Sending queued mail works with this batch file:
-</p>
-
-<pre class="example">
-emailrelay --as-client smtp.gmail.com:587 --client-auth c:\sacha\.emailrelay --client-tls --spool-dir c:\sacha\tmp\emailrelay
-</pre>
-
-<p>
-I should probably get around to using <code>--as-proxy</code> properly, since it still seems to hold mail until I explicitly send it.
-</p>
-
-<p>
-Some more config. Not sure how much of this is needed.
-</p>
-
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(setq message-send-mail-function 'smtpmail-send-it
-      smtpmail-starttls-credentials '((<span class="org-string">"localhost"</span> 25 <span class="org-string">"sacha@local.sachachua.com"</span> nil))
-      smtpmail-auth-credentials '((<span class="org-string">"localhost"</span> 25 <span class="org-string">"sacha@local.sachachua.com"</span> nil))
-      smtpmail-default-smtp-server <span class="org-string">"localhost"</span>
-      smtpmail-smtp-server <span class="org-string">"localhost"</span>
-      smtpmail-smtp-service 25
-      smtpmail-local-domain <span class="org-string">"local.sachachua.com"</span>)
-(setq send-mail-function 'smtpmail-send-it)
-(setq smtpmail-smtp-server <span class="org-string">"127.0.0.1"</span>)
-(setq smtpmail-smtp-service 25)
-(setq user-mail-address <span class="org-string">"sacha@sachachua.com"</span>)
-</pre>
-</div>
-
-<p>
-Hide HTML mail.
-</p>
-
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(setq mm-discouraged-alternatives
-      '(<span class="org-string">"text/html"</span> <span class="org-string">"text/richtext"</span>)
-      mm-automatic-display
-      (remove <span class="org-string">"text/html"</span> mm-automatic-display))
-</pre>
-</div>
-
-<p>
-Hide quoted text.
-</p>
-
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(setq gnus-treat-hide-citation t)
-</pre>
-</div>
-
-<p>
-Get smarter about filtering depending on what I reed or mark. I use <code>!</code> (tick) for
-</p>
-
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(setq gnus-use-adaptive-scoring t)
-(setq gnus-default-adaptive-score-alist
-     '((gnus-unread-mark)
-       (gnus-ticked-mark (subject 10))
-       (gnus-killed-mark (subject -5))
-       (gnus-catchup-mark (subject -1))))
-</pre>
-</div>
-</div>
-</div>
-</div>
-<div id="outline-container-orgheadline182" class="outline-2">
-<h2 id="links"><a id="orgheadline182"></a>Other cool configs you may want to check out</h2>
-<div class="outline-text-2" id="text-links">
-<p>
-<a id="orgtarget10"></a>
-</p>
-
-<ul class="org-ul">
-<li><a href="http://doc.norang.ca/org-mode.html">Bernt Hansen</a>: Lots of Org-related config. I picked up the graph-drawing stuff from this.</li>
-<li><a href="http://bzg.fr/emacs.html">Bastien Guerry</a>: Org, Gnus, ERC - Explained in this <a href="http://sachachua.com/blog/2013/05/emacs-chat-bastien-guerry/">Emacs Chat (~1h)</a></li>
-<li><a href="https://github.com/iani/emacs-prelude">Iannis Zannos</a>: Explained in this <a href="https://www.youtube.com/watch?v=0F8aCbC9z3A">Emacs Chat (~1h)</a></li>
-<li><a href="https://github.com/magnars/.emacs.d">Magnar Sveen</a>: <a href="http://whattheemacsd.com/">http://whattheemacsd.com/</a> has some explanations. <a href="http://sachachua.com/blog/2013/11/emacs-chat-magnar-sveen-emacs-rocks/">Emacs Chat (~1h)</a></li>
-<li><a href="https://github.com/jwiegley/dot-emacs">John Wiegley</a>: Also see his <a href="http://www.youtube.com/watch?v=RvPFZL6NJNQ">Emacs Lisp Development talk</a> (sorry, sucky video) and <a href="http://www.youtube.com/watch?v=ytNsHmRLZGM">Emacs Chat video</a></li>
-</ul>
-</div>
-</div>
-
-<div id="outline-container-orgheadline214" class="outline-2">
-<h2 id="orgheadline214">Inactive/infrequent things</h2>
-<div class="outline-text-2" id="text-orgheadline214">
-</div><div id="outline-container-orgheadline183" class="outline-3">
-<h3 id="orgheadline183">Org - mapping blog posts and image URLs from bulk exports</h3>
-<div class="outline-text-3" id="text-orgheadline183">
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-map-blog-and-image-urls</span> ()
-  <span class="org-doc">"Extract and map blog post / image URLs."</span>
-  (interactive)
-  (goto-char (point-min))
-  (keep-lines <span class="org-string">"h2</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">img"</span>)
-  (goto-char (point-min))
-  (<span class="org-keyword">while</span> (re-search-forward
-          <span class="org-string">"^.*?h2.*?a href=\"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">\".*$"</span> nil t)
-    (replace-match <span class="org-string">"\\1"</span>))
-  (goto-char (point-min))
-  (<span class="org-keyword">while</span> (re-search-forward
-          <span class="org-string">"^.*?src=\"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">\".*$"</span> nil t)
-    (replace-match <span class="org-string">"\\1"</span>))
-  (<span class="org-keyword">let</span> (last-post current-url result)
-    (goto-char (point-min))
-    (<span class="org-keyword">while</span> (re-search-forward <span class="org-string">"http://</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span> nil t)
-      (setq current-url (match-string 0))
-      (<span class="org-keyword">if</span> (string-match <span class="org-string">"/</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">/]*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">_thumb</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">-640x.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?.png"</span> current-url)
-          (setq result (cons (concat (match-string 1 current-url) <span class="org-string">"\t"</span> last-post) result))
-        (setq last-post current-url)))
-    (kill-new (mapconcat 'identity result <span class="org-string">"\n"</span>))))
-</pre>
-</div>
-</div>
-</div>
 <div id="outline-container-orgheadline184" class="outline-3">
 <h3 id="beeminder"><a id="orgheadline184"></a>Beeminder</h3>
 <div class="outline-text-3" id="text-beeminder">

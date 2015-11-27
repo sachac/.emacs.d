@@ -918,6 +918,7 @@ Now let's set up the actual keychords.
          ("D" (my/org-clock-in-and-track-by-name "Draw") "Draw")
          ("w" (my/org-clock-in-and-track-by-name "Walk for 30+ minutes") "Walk")
          ("r" (my/org-clock-in-and-track-by-name "Personal routines") "Routines")
+         ("R" (my/org-clock-in-and-track-by-name "Relax") "Relax")
          ("b" (my/org-clock-in-and-track-by-name "Play Borderlands 2") "Borderlands 2")
          ("l" (my/org-clock-in-and-track-by-name "Eat lunch") "Lunch")
          ("d" (my/org-clock-in-and-track-by-name "Eat dinner") "Dinner")
@@ -1182,7 +1183,7 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
 (add-hook 'text-mode-hook 'abbrev-mode)
 (diminish 'abbrev-mode " A")
 #+END_SRC
-** Org
+** Org  :org:
 
 I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of
 stuff.
@@ -3433,6 +3434,167 @@ This setting puts Org ASCII export links right after the text instead of in a se
 
 #+end_src
 
+*** DONE Org Mode tables and fill-in quizzes - Latin verb conjugations in Emacs
+    CLOSED: [2015-11-26 Thu 21:48]
+    :PROPERTIES:
+    :Effort:   0:30
+    :QUANTIFIED: Emacs
+    :ID:       o2b:1583ec79-b64c-4c6e-b910-80b985c94a90
+    :POST_DATE: [2015-11-26 Thu 21:22]
+    :POSTID:   28490
+    :BLOG:     sacha
+    :END:
+    :LOGBOOK:
+    - State "DONE"       from "STARTED"    [2015-11-26 Thu 21:48]
+    CLOCK: [2015-11-26 Thu 21:11]--[2015-11-26 Thu 21:48] =>  0:37
+    :END:
+
+I've been working on memorizing Latin verb conjugations. I was looking
+for a conjugation drill similar to these ones for and [[http://www.latintests.net/grammar/nouns.php][nouns]] and
+[[http://www.latintests.net/grammar/pronouns1.php][pronouns]], because I liked the instant feedback and the ability to
+quickly get hints. I couldn't find an online drill I liked, though, so
+I made my own with Emacs and Org. (Because... why not?)
+
+I wrote some code to allow me to take a table like this:
+
+#+NAME: third-conjugation
+| present - 1st sing. - ago / agere       | agO        |
+| present - 2nd sing. - ago / agere       | agis       |
+| present - 3rd sing. - ago / agere       | agit       |
+| present - 1st plu. - ago / agere        | agimus     |
+| present - 2nd plu. - ago / agere        | agitis     |
+| present - 3rd plu. - ago / agere        | agunt      |
+| imperfect - 1st sing. - ago / agere     | agEbam     |
+| imperfect - 2nd sing. - ago / agere     | agEbAs     |
+| imperfect - 3rd sing. - ago / agere     | agEbat     |
+| imperfect - 1st plu. - ago / agere      | agEbAmus   |
+| imperfect - 2nd plu. - ago / agere      | agEbAtis   |
+| imperfect - 3rd plu. - ago / agere      | agEbant    |
+| future - 1st sing. - ago / agere        | agam       |
+| future - 2nd sing. - ago / agere        | agEs       |
+| future - 3rd sing. - ago / agere        | agEt       |
+| future - 1st plu. - ago / agere         | agEmus     |
+| future - 2nd plu. - ago / agere         | agEtis     |
+| future - 3rd plu. - ago / agere         | agent      |
+
+I can call =my/make-fill-in-quiz= to get a quiz buffer that looks like
+this. If I get stuck, =?= shows me a hint in the echo area. 
+
+To make it easier, I've left =case-fold-search= set to =nil= so that I
+don't have to match the case (uppercase vowels = macrons), but I can
+set =case-fold-search= to =t= if I want to make sure I've got the
+macrons in the right places.
+
+Here's the code to display the quiz buffer.
+
+#+begin_src emacs-lisp 
+     (require 'widget)
+     (defun my/check-widget-value (widget &rest ignore)
+       "Provide visual feedback for WIDGET."
+       (cond
+        ((string= (widget-value widget) "?")
+         ;; Asking for hint
+         (message "%s" (widget-get widget :correct))
+         (widget-value-set widget ""))
+        ;; Use string-match to obey case-fold-search 
+        ((string-match 
+          (concat "^"
+                  (regexp-quote (widget-get widget :correct))
+                  "$")
+          (widget-value widget))
+         (message "Correct")
+         (goto-char (widget-field-start widget))
+         (goto-char (line-end-position))
+         (insert "✓")
+         (widget-forward 1)
+         )))
+
+   (defun my/make-fill-in-quiz (&optional quiz-table)
+     "Create an fill-in quiz for the Org table at point.
+The Org table's first column should have the questions and the second column 
+should have the answers."
+     (interactive (list (org-babel-read-table)))
+     (with-current-buffer (get-buffer-create "*Quiz*")
+       (kill-all-local-variables)
+       (let ((inhibit-read-only t))
+         (erase-buffer))
+       (remove-overlays)
+       (mapc (lambda (row)
+               (widget-insert (car row))
+               (widget-insert "\t")
+               (widget-create 'editable-field
+                              :size 15
+                              :correct (cadr row)
+                              :notify 'my/check-widget-value)
+               (widget-insert "\n"))    
+             quiz-table)
+       (widget-create 'push-button
+                      :table quiz-table
+                      :notify (lambda (widget &rest ignore)
+                                (my/make-fill-in-quiz (widget-get widget :table))) 
+                      "Reset")
+       (use-local-map widget-keymap)
+       (widget-setup)
+       (goto-char (point-min))
+       (widget-forward 1)
+       (switch-to-buffer (current-buffer))))
+#+end_src  
+
+Incidentally, I generated the table above from a larger table of Latin verb conjugations in the appendix of Wheelock's Latin, specified like this:
+
+#+begin_src org
+,#+NAME: present-indicative-active
+| laudO    | moneO   | agO    | audiO   | capiO   |
+| laudAs   | monEs   | agis   | audIs   | capis   |
+| laudat   | monet   | agit   | audit   | capit   |
+| laudAmus | monEmus | agimus | audImus | capimus |
+| laudAtis | monEtis | agitis | audItis | capitis |
+| laudant  | monent  | agunt  | audiunt | capiunt |
+
+,#+NAME: imperfect-indicative-active
+| laudAbam   | monEbam   | agEbam   | audiEbam   | capiEbam   |
+| laudAbas   | monEbas   | agEbAs   | audiEbAs   | capiEbas   |
+| laudAbat   | monEbat   | agEbat   | audiEbat   | capiEbat   |
+| laudAbAmus | monEbAmus | agEbAmus | audiEbAmus | capiEbAmus |
+| laudAbAtis | monEbAtis | agEbAtis | audiEbAtis | capiEbAtis |
+| laudAbant  | monEbant  | agEbant  | audiEbant  | capiEbant  |
+
+,#+NAME: future-indicative-active
+| laudAbO    | monEbO    | agam   | audiam     | capiam     |
+| laudAbis   | monEbis   | agEs   | audiEs     | capiEs     |
+| laudAbit   | monEbit   | agEt   | audiet     | capiet     |
+| laudAbimus | monEbimus | agEmus | audiEmus   | capiEmus   |
+| laudAbitis | monEbitis | agEtis | audiEtis   | capiEtis   |
+| laudAbunt  | monEbunt  | agent  | audient    | capient    |
+#+end_src
+
+with the code:
+
+#+begin_src org
+,#+begin_src emacs-lisp :var present=present-indicative-active :var imperfect=imperfect-indicative-active :var future=future-indicative-active
+  (defun my/label-latin-with-verbs (table verbs persons tense)
+    (apply 'append
+           (-zip-with (lambda (row person) 
+                        (-zip-with (lambda (word verb)
+                                     (list word (format "%s - %s - %s" tense person verb)))
+                                   row verbs))
+                      table (-cycle persons))))
+  (apply 'append 
+         (mapcar (lambda (tense)
+                   (my/label-latin-with-verbs 
+                    (symbol-value tense)
+                    '("laudo / laudare" "moneo / monEre" "ago / agere" "audiO / audIre" "capiO / capere")
+                    '("1st sing." "2nd sing." "3rd sing." "1st plu." "2nd plu." "3rd plu.")
+                    (symbol-name tense)))
+                 '(present imperfect future)))
+
+,#+end_src
+#+end_src
+
+This uses =dash.el= for the =-zip-with= and =-cycle= functions.
+There's probably a much better way to process the lists, but I'm still
+getting the hang of thinking properly functionally... =)
+
 ** Coding
 *** Web development
 #+begin_src emacs-lisp
@@ -4174,18 +4336,29 @@ with HTTPS sites.
 
    IRC is a great way to hang out with other Emacs geeks.
    #+begin_src emacs-lisp
-     (use-package erc
-       :ensure t :defer t
-       :config
-       (setq erc-hide-list '("PART" "QUIT" "JOIN"))
-       (setq erc-autojoin-channels-alist '(("freenode.net"
-					    "#org-mode"
-					    "#hacklabto"
-					    "#emacs"
-              "#emacs-beginners"
-              "#emacs-ops"))
-	     erc-server "irc.freenode.net"
-	     erc-nick "sachac"))
+          (use-package erc
+            :ensure t :defer t
+            :config
+            (setq erc-hide-list '("PART" "QUIT" "JOIN"))
+            (setq erc-autojoin-channels-alist '(("freenode.net"
+   					      "#org-mode"
+   					      "#hacklabto"
+   					      "#emacs"
+                   "#emacs-beginners"
+                   "#emacs-ops"))
+   	       erc-server "irc.freenode.net"
+   	       erc-nick "sachac")
+            (defun erc-cmd-OPME ()
+              "Request chanserv to op me."
+              (erc-message "PRIVMSG"
+                           (format "chanserv op %s %s"
+                                   (erc-default-target)
+                                   (erc-current-nick)) nil))
+       
+            (defun erc-cmd-DEOPME ()
+              "Deop myself from current channel."
+              (erc-cmd-DEOP (format "%s" (erc-current-nick))))
+            )
    #+end_src
 
 ** Self-tracking, statistics, and other data transformations
@@ -4349,6 +4522,14 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 
 #+end_src
 ** Workarounds
+*** GnuTLS on Windows
+
+http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en.html has lots of tips.
+
+#+begin_src emacs-lisp
+(setq gnutls-trustfiles '("c:/sacha/cacert.pem.txt"))
+#+end_src
+
 *** color-theme sometimes comes across lists. Odd!
 
 #+begin_src emacs-lisp
@@ -4843,6 +5024,7 @@ cool. On Windows, these things help a little.
       (sp-with-modes sp--lisp-modes
         (sp-local-pair "(" nil :bind "C-("))))
 #+end_src
+
 * Other cool configs you may want to check out
   :PROPERTIES:
   :CUSTOM_ID: links

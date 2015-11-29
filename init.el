@@ -8,8 +8,6 @@
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
 ;; Load the rest of the packages
 (package-initialize nil)
-(add-to-list 'package-archives
-             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 
 (setq package-enable-at-startup nil)
 (org-babel-load-file "~/.emacs.d/Sacha.org")
@@ -20,7 +18,7 @@
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    (quote
-    (paredit image+ yasnippet web-mode use-package undo-tree switch-window smartparens smart-mode-line skewer-mode rspec-mode robe rinari redshank phi-search-mc org-fstree miniedit mc-extras magit-gh-pulls key-chord jasminejs-mode hydra htmlize helm-projectile helm-descbinds git-messenger expand-region ess erefactor engine-mode emms edit-list company-tern color-theme-solarized coffee-mode bundler auto-compile ace-jump-zap ace-isearch))))
+    (metaweblog swoop paredit image+ yasnippet web-mode use-package undo-tree switch-window smartparens smart-mode-line skewer-mode rspec-mode robe rinari redshank phi-search-mc org-fstree miniedit mc-extras magit-gh-pulls key-chord jasminejs-mode hydra htmlize helm-projectile helm-descbinds git-messenger expand-region ess erefactor engine-mode emms edit-list company-tern color-theme-solarized coffee-mode bundler auto-compile ace-jump-zap ace-isearch))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -33,4 +31,5 @@
  '(org-clock-overlay ((t (:background "SkyBlue4" :foreground "black"))))
  '(org-done ((t (:foreground "PaleGreen" :weight normal :strike-through t))))
  '(org-headline-done ((((class color) (min-colors 16) (background dark)) (:foreground "LightSalmon" :strike-through t))))
- '(outline-1 ((t (:inherit font-lock-function-name-face :foreground "cornflower blue")))))
+ '(outline-1 ((t (:inherit font-lock-function-name-face :foreground "cornflower blue"))))
+ '(smerge-refined-added ((t (:inherit smerge-refined-change :background "darkgreen")))))

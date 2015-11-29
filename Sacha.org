@@ -814,7 +814,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
   MODIFICATION: Do not define the transposed key chord.
   "
     (if (/= 2 (length keys))
-	(error "Key-chord keys must have two elements"))
+        (error "Key-chord keys must have two elements"))
     ;; Exotic chars in a string are >255 but define-key wants 128..255 for those
     (let ((key1 (logand 255 (aref keys 0)))
           (key2 (logand 255 (aref keys 1))))
@@ -845,7 +845,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
     :config
     (defhydra my/goto-random-char-hydra ()
       ("r" my/goto-random-char))
-    
+
     (defhydra my/window-movement ()
       ("<left>" windmove-left)
       ("<right>" windmove-right)
@@ -869,54 +869,54 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       ("<down>" (join-line 1))
       ("t" join-line)
       ("n" (join-line 1)))
-       (defhydra my/quantified-hydra (:color blue)
-         "Quick tracking of Quantified Awesome stuff"
-         ("k" (my/org-clock-in-and-track-by-name "Clean the kitchen") "Kitchen")
-         ("D" (my/org-clock-in-and-track-by-name "Draw") "Draw")
-         ("w" (my/org-clock-in-and-track-by-name "Walk for 30+ minutes") "Walk")
-         ("r" (my/org-clock-in-and-track-by-name "Personal routines") "Routines")
-         ("R" (my/org-clock-in-and-track-by-name "Relax") "Relax")
-         ("b" (my/org-clock-in-and-track-by-name "Play Borderlands 2") "Borderlands 2")
-         ("l" (my/org-clock-in-and-track-by-name "Eat lunch") "Lunch")
-         ("d" (my/org-clock-in-and-track-by-name "Eat dinner") "Dinner")
-         )
-                               (defhydra my/key-chord-commands ()
-                                 "Main"
-                                 ("k" kill-sexp)
-                                 ("h" my/org-jump :color blue)
-                                 ("x" my/org-finish-previous-task-and-clock-in-new-one "Finish and clock in" :color blue)
-                                 ("i" my/org-quick-clock-in-task "Clock in" :color blue)
-                                 ("b" helm-buffers-list :color blue)
-                                 ("f" find-file :color blue)
-                                 ("a" my/org-check-agenda :color blue)
-                                 ("c" (call-interactively 'org-capture) "capture" :color blue)
-                                 ("t" (org-capture nil "T") "Capture task")
-                                 ("." repeat)
-                                 ("C-t" transpose-chars)
-                                 ("o" my/org-off-my-computer :color blue)
-                                 ("w" my/engine-mode-hydra/body "web" :exit t)
-                                 ("m" imenu :color blue)
-                                 ("q" quantified-track :color blue)
-                                 ("l" org-insert-last-stored-link)
-                                 ("L" my/org-insert-link)
-                                 ("+" text-scale-increase)
-                                 ("-" text-scale-decrease))
-      (defhydra my/engine-mode-hydra (:color blue)
-        "Engine mode"
-        ("b" engine/search-my-blog "blog")
-        ("f" engine/search-my-photos "flickr")
-        ("m" engine/search-mail "mail")
-        ("g" engine/search-google "google")
-        ("e" engine/search-emacswiki "emacswiki"))
+    (defhydra my/quantified-hydra (:color blue)
+      "Quick tracking of Quantified Awesome stuff"
+      ("k" (my/org-clock-in-and-track-by-name "Clean the kitchen") "Kitchen")
+      ("D" (my/org-clock-in-and-track-by-name "Draw") "Draw")
+      ("w" (my/org-clock-in-and-track-by-name "Walk for 30+ minutes") "Walk")
+      ("r" (my/org-clock-in-and-track-by-name "Personal routines") "Routines")
+      ("R" (my/org-clock-in-and-track-by-name "Relax") "Relax")
+      ("b" (my/org-clock-in-and-track-by-name "Play Borderlands 2") "Borderlands 2")
+      ("l" (my/org-clock-in-and-track-by-name "Eat lunch") "Lunch")
+      ("d" (my/org-clock-in-and-track-by-name "Eat dinner") "Dinner")
+      )
+    (defhydra my/key-chord-commands ()
+      "Main"
+      ("k" kill-sexp)
+      ("h" my/org-jump :color blue)
+      ("x" my/org-finish-previous-task-and-clock-in-new-one "Finish and clock in" :color blue)
+      ("i" my/org-quick-clock-in-task "Clock in" :color blue)
+      ("b" helm-buffers-list :color blue)
+      ("f" find-file :color blue)
+      ("a" my/org-check-agenda :color blue)
+      ("c" (call-interactively 'org-capture) "capture" :color blue)
+      ("t" (org-capture nil "T") "Capture task")
+      ("." repeat)
+      ("C-t" transpose-chars)
+      ("o" my/org-off-my-computer :color blue)
+      ("w" my/engine-mode-hydra/body "web" :exit t)
+      ("m" imenu :color blue)
+      ("q" quantified-track :color blue)
+      ("l" org-insert-last-stored-link)
+      ("L" my/org-insert-link)
+      ("+" text-scale-increase)
+      ("-" text-scale-decrease))
+    (defhydra my/engine-mode-hydra (:color blue)
+      "Engine mode"
+      ("b" engine/search-my-blog "blog")
+      ("f" engine/search-my-photos "flickr")
+      ("m" engine/search-mail "mail")
+      ("g" engine/search-google "google")
+      ("e" engine/search-emacswiki "emacswiki"))
     )
 
 
-    (defun my/org-insert-link ()
-      (interactive)
-      (when (org-in-regexp org-bracket-link-regexp 1)
-	(goto-char (match-end 0))
-	(insert "\n"))
-      (call-interactively 'org-insert-link))
+  (defun my/org-insert-link ()
+    (interactive)
+    (when (org-in-regexp org-bracket-link-regexp 1)
+      (goto-char (match-end 0))
+      (insert "\n"))
+    (call-interactively 'org-insert-link))
 #+END_SRC
 
 Now let's set up the actual keychords.
@@ -942,7 +942,6 @@ Now let's set up the actual keychords.
       (key-chord-define-global "FF"     'find-file)
       (key-chord-define-global "qq"     'my/quantified-hydra/body)
       (key-chord-define-global "hh"     'my/key-chord-commands/body)
-      (key-chord-define-global "hc"     'emms-seek-forward)
       (key-chord-define-global "xx"     'er/expand-region)
       (key-chord-define-global "  "     'my/insert-space-or-expand)
       (key-chord-define-global "JJ"     'my/switch-to-previous-buffer)))
@@ -3846,7 +3845,7 @@ From https://github.com/pcmantz/elisp/blob/master/my-bindings.el
     (or (abbrev--before-point) (yasnippet-can-fire-p)))
 
                                           ; As pointed out by Dmitri, this will make sure it will update color when needed.
-  (add-hook 'post-command-hook 'my/change-cursor-color-when-can-expand)
+  (remove-hook 'post-command-hook 'my/change-cursor-color-when-can-expand)
 
   (defun my/insert-space-or-expand ()
     "For binding to the SPC SPC keychord."
@@ -4316,7 +4315,7 @@ with HTTPS sites.
   :defer t
   :config
   (bind-key "C-c C-c" 'compile tern-mode-keymap)
-  (setq tern-command '("cmd" "/c" "tern"))
+  (when (eq system-type 'windows-nt) (setq tern-command '("cmd" "/c" "tern")))
   (add-hook 'js2-mode-hook 'tern-mode))
 
 (use-package company-tern
@@ -4866,8 +4865,8 @@ Ace-isearch switches between ace-jump and helm-swoop automatically.
 
 #+begin_src emacs-lisp
 (use-package ace-isearch
-  :ensure t :defer t
-  :init (global-ace-isearch-mode 1))
+  :enable t 
+  :config (global-ace-isearch-mode 1))
 #+end_src
 
 And ace-jump-zap...

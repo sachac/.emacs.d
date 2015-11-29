@@ -67,7 +67,8 @@ I like using =(setq ...)= more than Customize because I can neatly organize my c
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 (unless (assoc-default "melpa" package-archives)
   (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
-  (package-refresh-contents))
+;  (package-refresh-contents)
+)
 #+END_SRC
 
 Use =M-x package-refresh-contents= to reload the list of packages
@@ -161,8 +162,7 @@ When you're starting out, tooltips, menus, and the tool bar can be very helpful.
 #+BEGIN_SRC emacs-lisp
 (use-package winner
   :ensure t
-  :defer t
-  :idle (winner-mode 1))
+  :defer t)
 #+END_SRC
 *** Sentences end with a single space
 
@@ -216,6 +216,7 @@ Great for describing bindings. I'll replace the binding for =where-is= too.
 #+BEGIN_SRC emacs-lisp
 (use-package helm-descbinds
   :defer t
+  :ensure t
   :bind (("C-h b" . helm-descbinds)
          ("C-h w" . helm-descbinds)))
 #+END_SRC
@@ -553,26 +554,8 @@ Display a more compact mode line
 
 #+BEGIN_SRC emacs-lisp
 (use-package smart-mode-line
-  :defer t
-  :idle
-  (progn
-  (setq-default
-   mode-line-format
-   '("%e"
-     mode-line-front-space
-     mode-line-mule-info
-     mode-line-client
-     mode-line-modified
-     mode-line-remote
-     mode-line-frame-identification
-     mode-line-buffer-identification
-     "   "
-     mode-line-position
-     (vc-mode vc-mode)
-     "  "
-     mode-line-modes
-     mode-line-misc-info
-     mode-line-end-spaces))))
+  :ensure t
+  :defer t)
 #+END_SRC
 
 *** Change "yes or no" to "y or n"
@@ -657,7 +640,7 @@ This lets you use =C-x u= (=undo-tree-visualize=) to visually walk through the c
   :defer t
   :ensure t
   :diminish undo-tree-mode
-  :idle
+  :config
   (progn
     (global-undo-tree-mode)
     (setq undo-tree-visualizer-timestamps t)
@@ -672,7 +655,7 @@ It's hard to remember keyboard shortcuts. The =guide-key= package pops up help a
 (use-package guide-key
   :defer t
   :diminish guide-key-mode
-  :idle
+  :config
   (progn
   (setq guide-key/guide-key-sequence '("C-x r" "C-x 4" "C-c"))
   (guide-key-mode 1)))  ; Enable guide-key-mode
@@ -738,7 +721,7 @@ This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= t
 
 #+BEGIN_SRC emacs-lisp
 (use-package helm-swoop
- :defer t
+ :ensure t
  :bind
  (("C-S-s" . helm-swoop)
   ("M-i" . helm-swoop)
@@ -762,6 +745,7 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
 
 #+BEGIN_SRC emacs-lisp
 (use-package windmove
+  :ensure t
   :defer t
   :bind
   (("<f2> <right>" . windmove-right)
@@ -774,6 +758,7 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
 
 #+begin_src emacs-lisp
 (use-package switch-window
+  :ensure t
   :bind (("C-x o" . switch-window)))
 #+end_src
 *** Frequently-accessed files
@@ -819,99 +804,71 @@ shortcuts that use ordinary keys.
 
 Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
 #+BEGIN_SRC emacs-lisp
-(defun my/key-chord-define (keymap keys command)
-  "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
-\nKEYS can be a string or a vector of two elements. Currently only elements
-that corresponds to ascii codes in the range 32 to 126 can be used.
-\nCOMMAND can be an interactive function, a string, or nil.
-If COMMAND is nil, the key-chord is removed.
+  (defun my/key-chord-define (keymap keys command)
+    "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
+  \nKEYS can be a string or a vector of two elements. Currently only elements
+  that corresponds to ascii codes in the range 32 to 126 can be used.
+  \nCOMMAND can be an interactive function, a string, or nil.
+  If COMMAND is nil, the key-chord is removed.
 
-MODIFICATION: Do not define the transposed key chord.
-"
-  (if (/= 2 (length keys))
-      (error "Key-chord keys must have two elements"))
-  ;; Exotic chars in a string are >255 but define-key wants 128..255 for those
-  (let ((key1 (logand 255 (aref keys 0)))
-        (key2 (logand 255 (aref keys 1))))
-    (define-key keymap (vector 'key-chord key1 key2) command)))
-(fset 'key-chord-define 'my/key-chord-define)
+  MODIFICATION: Do not define the transposed key chord.
+  "
+    (if (/= 2 (length keys))
+	(error "Key-chord keys must have two elements"))
+    ;; Exotic chars in a string are >255 but define-key wants 128..255 for those
+    (let ((key1 (logand 255 (aref keys 0)))
+          (key2 (logand 255 (aref keys 1))))
+      (define-key keymap (vector 'key-chord key1 key2) command)))
+  (fset 'key-chord-define 'my/key-chord-define)
 
-(defun my/switch-to-previous-buffer ()
-  "Switch to previously open buffer.
-Repeated invocations toggle between the two most recently open buffers."
-  (interactive)
-  (switch-to-buffer (other-buffer (current-buffer) 1)))
-
-(defun my/org-check-agenda ()
-  "Peek at agenda."
-  (interactive)
-  (cond
-   ((derived-mode-p 'org-agenda-mode)
-    (if (window-parent) (delete-window) (bury-buffer)))
-   ((get-buffer "*Org Agenda*")
-    (switch-to-buffer-other-window "*Org Agenda*"))
-   (t (org-agenda nil "a"))))
-
-(defun my/goto-random-char ()
-  (interactive)
-  (goto-char (random (point-max))))
-
-(defhydra my/goto-random-char-hydra ()
-  ("r" my/goto-random-char))
-
-  (defun my/org-insert-link ()
+  (defun my/switch-to-previous-buffer ()
+    "Switch to previously open buffer.
+  Repeated invocations toggle between the two most recently open buffers."
     (interactive)
-    (when (org-in-regexp org-bracket-link-regexp 1)
-      (goto-char (match-end 0))
-      (insert "\n"))
-    (call-interactively 'org-insert-link))
-#+END_SRC
+    (switch-to-buffer (other-buffer (current-buffer) 1)))
 
-Now let's set up the actual keychords.
+  (defun my/org-check-agenda ()
+    "Peek at agenda."
+    (interactive)
+    (cond
+     ((derived-mode-p 'org-agenda-mode)
+      (if (window-parent) (delete-window) (bury-buffer)))
+     ((get-buffer "*Org Agenda*")
+      (switch-to-buffer-other-window "*Org Agenda*"))
+     (t (org-agenda nil "a"))))
 
-#+BEGIN_SRC emacs-lisp
-  (use-package key-chord
-    :init
-    (progn
-      (fset 'key-chord-define 'my/key-chord-define)
-      (setq key-chord-one-key-delay 0.16)
-      (key-chord-mode 1)
-      ;; k can be bound too
-      (key-chord-define-global "uu"     'undo)
-      (key-chord-define-global "jr"     'my/goto-random-char-hydra/my/goto-random-char)
-      (key-chord-define-global "jj"     'ace-jump-word-mode)
-      (key-chord-define-global "yy"
-            (defhydra my/window-movement ()
-             ("<left>" windmove-left)
-             ("<right>" windmove-right)
-             ("<down>" windmove-down)
-             ("<up>" windmove-up)
-             ("y" other-window "other")
-             ("h" switch-window "switch-window")
-             ("f" find-file "file")
-             ("F" find-file-other-window "other file")
-             ("v" (progn (split-window-right) (windmove-right)))
-             ("o" delete-other-windows :color blue)
-             ("a" ace-window)
-             ("s" ace-swap-window)
-             ("d" delete-window "delete")
-             ("D" ace-delete-window "ace delete")
-             ("i" ace-maximize-window "maximize")
-             ("b" helm-buffers-list)
-             ("q" nil)))
-      (key-chord-define-global "jw"     'switch-window)
-      (key-chord-define-global "jl"     'ace-jump-line-mode)
-      (key-chord-define-global "j."
-                               (defhydra join-lines ()
-                                ("<up>" join-line)
-                                ("<down>" (join-line 1))
-                                ("t" join-line)
-                                ("n" (join-line 1)))))
-      ;; not an ace-jump, but still useful
-      ;(key-chord-define-global "jZ"     'ace-jump-zap-to-char)
-      (key-chord-define-global "FF"     'find-file)
-      (key-chord-define-global
-       "qq"
+  (defun my/goto-random-char ()
+    (interactive)
+    (goto-char (random (point-max))))
+
+  (use-package hydra :ensure t
+    :config
+    (defhydra my/goto-random-char-hydra ()
+      ("r" my/goto-random-char))
+    
+    (defhydra my/window-movement ()
+      ("<left>" windmove-left)
+      ("<right>" windmove-right)
+      ("<down>" windmove-down)
+      ("<up>" windmove-up)
+      ("y" other-window "other")
+      ("h" switch-window "switch-window")
+      ("f" find-file "file")
+      ("F" find-file-other-window "other file")
+      ("v" (progn (split-window-right) (windmove-right)))
+      ("o" delete-other-windows :color blue)
+      ("a" ace-window)
+      ("s" ace-swap-window)
+      ("d" delete-window "delete")
+      ("D" ace-delete-window "ace delete")
+      ("i" ace-maximize-window "maximize")
+      ("b" helm-buffers-list)
+      ("q" nil))
+    (defhydra join-lines ()
+      ("<up>" join-line)
+      ("<down>" (join-line 1))
+      ("t" join-line)
+      ("n" (join-line 1)))
        (defhydra my/quantified-hydra (:color blue)
          "Quick tracking of Quantified Awesome stuff"
          ("k" (my/org-clock-in-and-track-by-name "Clean the kitchen") "Kitchen")
@@ -923,8 +880,6 @@ Now let's set up the actual keychords.
          ("l" (my/org-clock-in-and-track-by-name "Eat lunch") "Lunch")
          ("d" (my/org-clock-in-and-track-by-name "Eat dinner") "Dinner")
          )
-       )
-      (key-chord-define-global "hh"
                                (defhydra my/key-chord-commands ()
                                  "Main"
                                  ("k" kill-sexp)
@@ -945,11 +900,52 @@ Now let's set up the actual keychords.
                                  ("l" org-insert-last-stored-link)
                                  ("L" my/org-insert-link)
                                  ("+" text-scale-increase)
-                                 ("-" text-scale-decrease)))
+                                 ("-" text-scale-decrease))
+      (defhydra my/engine-mode-hydra (:color blue)
+        "Engine mode"
+        ("b" engine/search-my-blog "blog")
+        ("f" engine/search-my-photos "flickr")
+        ("m" engine/search-mail "mail")
+        ("g" engine/search-google "google")
+        ("e" engine/search-emacswiki "emacswiki"))
+    )
+
+
+    (defun my/org-insert-link ()
+      (interactive)
+      (when (org-in-regexp org-bracket-link-regexp 1)
+	(goto-char (match-end 0))
+	(insert "\n"))
+      (call-interactively 'org-insert-link))
+#+END_SRC
+
+Now let's set up the actual keychords.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package key-chord
+    :ensure t
+    :init
+    (progn
+      (fset 'key-chord-define 'my/key-chord-define)
+      (setq key-chord-one-key-delay 0.16)
+      (key-chord-mode 1)
+      ;; k can be bound too
+      (key-chord-define-global "uu"     'undo)
+      (key-chord-define-global "jr"     'my/goto-random-char-hydra/my/goto-random-char)
+      (key-chord-define-global "jj"     'ace-jump-word-mode)
+      (key-chord-define-global "yy"    'my/window-movement/body)
+      (key-chord-define-global "jw"     'switch-window)
+      (key-chord-define-global "jl"     'ace-jump-line-mode)
+      (key-chord-define-global "j."     'join-lines/body)
+      ;; not an ace-jump, but still useful
+      ;(key-chord-define-global "jZ"     'ace-jump-zap-to-char)
+      (key-chord-define-global "FF"     'find-file)
+      (key-chord-define-global "qq"     'my/quantified-hydra/body)
+      (key-chord-define-global "hh"     'my/key-chord-commands/body)
       (key-chord-define-global "hc"     'emms-seek-forward)
       (key-chord-define-global "xx"     'er/expand-region)
       (key-chord-define-global "  "     'my/insert-space-or-expand)
-      (key-chord-define-global "JJ"     'my/switch-to-previous-buffer))
+      (key-chord-define-global "JJ"     'my/switch-to-previous-buffer)))
 #+END_SRC
 
 Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char=. It turns out I actually do use =C-t= a fair bit, but I can always add it back as an option.
@@ -973,7 +969,7 @@ From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el, this makes =M
 #+BEGIN_SRC emacs-lisp
 (use-package smartscan
   :defer t
-  :idle (global-smartscan-mode t))
+  :config (global-smartscan-mode t))
 #+END_SRC
 *** Dired
 
@@ -1058,7 +1054,7 @@ This command is convenient when reading novel, documentation."
     #+BEGIN_SRC emacs-lisp
     (use-package artbollocks-mode
       :defer t
-      :idle
+      :config
       (progn
         (setq artbollocks-weasel-words-regex
               (concat "\\b" (regexp-opt
@@ -1188,11 +1184,6 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
 I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of
 stuff.
 
-#+BEGIN_SRC emacs-lisp
-(use-package org
-  :diminish org-mode
-  )
-#+END_SRC
 *** My files
     :PROPERTIES:
     :CUSTOM_ID: org-files
@@ -3355,7 +3346,7 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
   :ensure t
   :defer t
   :commands (org-fstree-apply-maybe org-fstree-show-entry-maybe)
-  :idle
+  :config
   (progn (add-hook 'org-ctrl-c-ctrl-c-hook 'org-fstree-apply-maybe)
          (add-hook 'org-pre-cycle-hook 'org-fstree-show-entry-maybe)))
 #+end_src
@@ -3676,6 +3667,7 @@ This is something I have to get the hang of too. It gradually expands the select
 Eldoc provides minibuffer hints when working with Emacs Lisp.
 #+begin_src emacs-lisp
 (use-package "eldoc"
+  :ensure t
   :diminish eldoc-mode
   :commands turn-on-eldoc-mode
   :defer t
@@ -3720,8 +3712,9 @@ More things that I need to get used to...
     :config
     (define-key emacs-lisp-mode-map "\C-c\C-v" erefactor-map))
 
+  (use-package paredit :ensure t)
   (use-package redshank
-    :ensure t
+    :disabled t
     :defer t
     :init (add-hook 'emacs-lisp-mode-hook 'redshank-mode))
 
@@ -3782,11 +3775,11 @@ Borrowed from Steve Purcell's config. This pretty-prints the results.
     #+begin_src emacs-lisp
       (use-package yasnippet
         :ensure t
-        :defer t
         :diminish yas-minor-mode
         :commands yas-global-mode
-        :idle
+        :config
         (progn
+          (yas-global-mode)
           (add-hook 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
           (setq yas-key-syntaxes '("w_" "w_." "^ "))
           (setq yas-installed-snippets-dir "~/elisp/yasnippet-snippets")
@@ -3941,6 +3934,7 @@ I like js2-mode.
 Handy shortcuts:
 #+begin_src emacs-lisp
 (use-package js2-mode
+:ensure t
   :config
   (bind-key "C-c C-c" 'compile js2-mode-map)
   (add-hook 'js2-mode-hook 'jasminejs-mode))
@@ -3948,6 +3942,7 @@ Handy shortcuts:
 
 #+begin_src emacs-lisp
 (use-package jasminejs-mode
+:ensure t
   :config
   (add-hook 'jasminejs-mode-hook 'jasminejs-add-snippets-to-yas-snippet-dirs))
 #+end_src
@@ -4034,7 +4029,7 @@ And the rest of the js2 config:
 (use-package coffee-mode
 :ensure t
 :defer t
-:idle (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
+:config (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
 #+end_src
 
 *** HTML
@@ -4237,7 +4232,7 @@ options to add at the end of the command, but that can wait for another time (or
     (setq projectile-enable-caching t)
     (setq projectile-indexing-method 'alien)
     (add-to-list 'projectile-globally-ignored-files "node-modules"))
-  :idle
+  :config
   (projectile-global-mode))
 (use-package helm-projectile
    :defer t :ensure t
@@ -4321,10 +4316,8 @@ with HTTPS sites.
   :defer t
   :config
   (bind-key "C-c C-c" 'compile tern-mode-keymap)
-  :idle
-  (progn
   (setq tern-command '("cmd" "/c" "tern"))
-  (add-hook 'js2-mode-hook 'tern-mode)))
+  (add-hook 'js2-mode-hook 'tern-mode))
 
 (use-package company-tern
 :ensure t
@@ -4597,20 +4590,13 @@ http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en
 #+begin_src emacs-lisp
   (use-package engine-mode
     :ensure t
-    :init
+    :config
     (progn
-      (defengine my-blog "https://www.google.ca/search?q=site:sachachua.com+%s" "b")
-      (defengine my-photos "http://www.flickr.com/search/?w=65214961@N00&q=%s" "f")
-      (defengine mail "https://mail.google.com/mail/u/0/#search/%s" "m")
-      (defengine google "http://google.com/search?q=%s" "g")
-      (defengine emacswiki "http://google.com/search?q=site:emacswiki.org+%s" "e")
-      (defhydra my/engine-mode-hydra (:color blue)
-        "Engine mode"
-        ("b" engine/search-my-blog "blog")
-        ("f" engine/search-my-photos "flickr")
-        ("m" engine/search-mail "mail")
-        ("g" engine/search-google "google")
-        ("e" engine/search-emacswiki "emacswiki"))
+      (defengine my-blog "https://www.google.ca/search?q=site:sachachua.com+%s" :keybinding "b")
+      (defengine my-photos "http://www.flickr.com/search/?w=65214961@N00&q=%s" :keybinding "f")
+      (defengine mail "https://mail.google.com/mail/u/0/#search/%s" :keybinding "m")
+      (defengine google "http://google.com/search?q=%s" :keybinding "g")
+      (defengine emacswiki "http://google.com/search?q=site:emacswiki.org+%s" :keybinding "e")
       (bind-key* "C-c /" 'my/engine-mode-hydra/body)
       (engine-mode)))
 #+end_src
@@ -4695,10 +4681,13 @@ tries to display them. Sometimes my Gnus crashes when it tries to
 display HTML mail.
 
 #+begin_src emacs-lisp
+(use-package gnus
+:config
+(require 'mm-decode)
 (setq mm-discouraged-alternatives
       '("text/html" "text/richtext")
       mm-automatic-display
-      (-difference mm-automatic-display '("text/html" "text/enriched" "text/richtext")))
+      (-difference mm-automatic-display '("text/html" "text/enriched" "text/richtext"))))
 #+end_src
 
 Hide quoted text.
@@ -4940,8 +4929,7 @@ cool. On Windows, these things help a little.
 #+begin_src emacs-lisp
   (use-package smartparens
     :ensure t
-    :diminish smartparens
-    :idle
+    :config
     (progn
       (require 'smartparens-config)
       (add-hook 'emacs-lisp-mode-hook 'smartparens-mode)
@@ -5131,7 +5119,7 @@ cool. On Windows, these things help a little.
 
 Got sdic from http://namazu.org/~tsuchiya/sdic/ . Attempting to get this to work on Windows...
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 (add-to-list 'load-path "~/elisp/sdic-2.1.3/lisp")
 (require 'sdic)
 (cond ((file-exists-p "~/Dropbox/Japanese/edict.txt")
@@ -6504,7 +6492,7 @@ recently-opened files first.
   that they're scaled to the window size.
 
    #+begin_src emacs-lisp
-   (use-package image+ :defer t
+   (use-package image+ :defer t :ensure t
     :load-path "~/elisp/Emacs-imagex"
     :commands (imagex-global-sticky-mode imagex-auto-adjust-mode)
     :init (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))

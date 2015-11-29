@@ -5019,7 +5019,7 @@ cool. On Windows, these things help a little.
 <<links>>
 
 - [[http://doc.norang.ca/org-mode.html][Bernt Hansen]]: Lots of Org-related config. I picked up the graph-drawing stuff from this.
-- [[http://bzg.fr/emacs.html][Bastien Guerry]]: Org, Gnus, ERC - Explained in this [[http://sachachua.com/blog/2013/05/emacs-chat-bastien-guerry/][Emacs Chat (~1h)]]
+- [[https://github.com/bzg/dotemacs][Bastien Guerry]]: Org, Gnus, ERC - Explained in this [[http://sachachua.com/blog/2013/05/emacs-chat-bastien-guerry/][Emacs Chat (~1h)]]
 - [[https://github.com/iani/emacs-prelude][Iannis Zannos]]: Explained in this [[https://www.youtube.com/watch?v=0F8aCbC9z3A][Emacs Chat (~1h)]]
 - [[https://github.com/magnars/.emacs.d][Magnar Sveen]]: http://whattheemacsd.com/ has some explanations. [[http://sachachua.com/blog/2013/11/emacs-chat-magnar-sveen-emacs-rocks/][Emacs Chat (~1h)]]
 - [[https://github.com/jwiegley/dot-emacs][John Wiegley]]: Also see his [[http://www.youtube.com/watch?v=RvPFZL6NJNQ][Emacs Lisp Development talk]] (sorry, sucky video) and [[http://www.youtube.com/watch?v=ytNsHmRLZGM][Emacs Chat video]]
@@ -6043,12 +6043,16 @@ recently-opened files first.
   specified number of them) and then opens the last one for me to edit.
 
   #+begin_src emacs-lisp
-    (defvar my/autodesk-sketchbook-executable "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe")
+    (defvar my/sketch-executable "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe")
+    (defvar my/index-card-template-file "c:/data/drawing-templates/custom/0 - index.tif")
+    (when (eq system-type 'gnu/linux)
+      (setq my/sketch-executable "krita"
+            my/index-card-template-file "~/Dropbox/drawings/templates/index-card.psd"))
     (defun my/prepare-index-cards (n)
       (interactive (list (or current-prefix-arg 5)))
       (let ((counter 1)
             (directory "~/Dropbox/Inbox")
-            (template "c:/data/drawing-templates/custom/0 - index.tif")
+            (template my/index-card-template-file)
             (date (org-read-date nil nil "."))
             temp-file)
         (quantified-track "Drawing")
@@ -6088,13 +6092,15 @@ recently-opened files first.
 
     (defvar my/index-card-file-name nil "Most recent index card file name.")
     (defun my/rotate-screen (degrees)
-      (shell-command (format "c:/sacha/Dropbox/bin/orient /rotate:%d" degrees)))
+      (when (eq system-type 'windows-nt)
+        (shell-command (format "c:/sacha/Dropbox/bin/orient /rotate:%d" degrees))))
 
     (defvar my/sketch-directories
       '("~/Dropbox/Inbox"
         "~/Dropbox/Inbox/To blog"
         "~/Dropbox/sketches/private"
-        "g:/documents/photosync/sketchbook"))
+        "~/photosync/sketchbook"))
+
     (defun my/get-index-card-filename (base &optional as-regexp)
       "Check several directories for files matching BASE.
     Return the matching filename, if any.
@@ -6110,7 +6116,7 @@ recently-opened files first.
     (defun my/prepare-index-card-template (&optional name date)
       "Create the image file for NAME. Return the new filename."
       (let* ((directory "~/Dropbox/Inbox")
-             (template "c:/data/drawing-templates/custom/0 - index.tif")
+             (template my/index-card-template-file)
              (date (or date (org-read-date nil nil ".")))
              (counter ?a))
         (while (my/get-index-card-filename (concat date (char-to-string counter)))
@@ -6120,8 +6126,8 @@ recently-opened files first.
                             (if name
                                 (concat " "
                                         (my/convert-sketch-title-to-filename (or name "")))
-                              "")
-                            ".tif")
+                              "") 
+                              "." (file-name-extension my/index-card-template-file))
                     directory))
         (unless (file-exists-p name) (copy-file template name))
         name))
@@ -6135,7 +6141,7 @@ recently-opened files first.
       (save-window-excursion
         (my/rotate-screen 180)
         (shell-command
-         (concat (shell-quote-argument my/autodesk-sketchbook-executable)
+         (concat (shell-quote-argument my/sketch-executable)
                  " " (shell-quote-argument my/index-card-file-name) " &")))
       (with-current-buffer (get-buffer-create "*Done*")
         (let ((inhibit-read-only t))
@@ -6189,7 +6195,7 @@ recently-opened files first.
     (defun my/open-image (filename)
       "Open image in Autodesk Sketchbook Pro."
       (call-process
-       my/autodesk-sketchbook-executable
+       my/sketch-executable
        nil 0 nil filename))
 
     (defvar my/org-index-card-source nil)
@@ -6511,7 +6517,7 @@ recently-opened files first.
         (if (file-exists-p filename)
             (error "File already exists")
             (copy-file "g:/drawing-templates/custom/0 - base.tif" filename))
-          (shell-command (concat (shell-quote-argument my/autodesk-sketchbook-executable)
+          (shell-command (concat (shell-quote-argument my/sketch-executable)
                                  (shell-quote-argument filename) " &"))))
   #+end_src
 
@@ -6597,7 +6603,7 @@ Aspect ratio is width / height
                 (dired-get-marked-files)
               (mapcar 'my/get-index-card-filename
                       (reverse (my/extract-image-filenames beg end)))))
-           (output-file "c:/sacha/dropbox/inbox/output.png"))
+           (output-file "~/Dropbox/Inbox/output.png"))
       (unless tiles
         (setq tiles
               (format "%dx"

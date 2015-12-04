@@ -9,11 +9,9 @@
 <<babel-init>>
 
 Inspired by the [[http://eschulte.me/emacs24-starter-kit/#installation][Emacs Starter Kit]], I set up my configuration file
-using Org-babel. Because my username is Sacha, I can save this as
-Sacha.org in my =~/.emacs.d= directory to have it automatically load.
-You could load it with =(org-babel-load-file "/path/to/file")=,
-changing the path appropriately, but you'll probably want to tweak it
-extensively first.
+using Org-babel. You could load it with =(org-babel-load-file
+"/path/to/file")=, changing the path appropriately, but you'll
+probably want to tweak it extensively first.
 
 This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]] - [[https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org][Org]] - [[https://dl.dropbox.com/u/3968124/sacha-emacs.el][.el]] - [[http://github.com/sachac/.emacs.d/][Github]] - also, http://sach.ac/dotemacs
 
@@ -785,7 +783,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (my/defshortcut ?s "~/personal/sewing.org")
 (my/defshortcut ?b "~/personal/business.org")
 (my/defshortcut ?B "~/Dropbox/books")
-(my/defshortcut ?e "~/code/dev/emacs-notes/tasks.org")
+(my/defshortcut ?e "~/code/emacs-notes/tasks.org")
 (my/defshortcut ?w "~/Dropbox/public/sharing/index.org")
 (my/defshortcut ?W "~/Dropbox/public/sharing/blog.org")
 (my/defshortcut ?j "~/personal/journal.org")
@@ -879,6 +877,8 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       ("b" (my/org-clock-in-and-track-by-name "Play Borderlands 2") "Borderlands 2")
       ("l" (my/org-clock-in-and-track-by-name "Eat lunch") "Lunch")
       ("d" (my/org-clock-in-and-track-by-name "Eat dinner") "Dinner")
+      ("e" (my/org-clock-in-and-track-by-name "Process my inbox") "E-mail")
+    
       )
     (defhydra my/key-chord-commands ()
       "Main"
@@ -1416,7 +1416,7 @@ This quickly adds a same-level heading for the succeeding day.
            "* STARTED %^{Task}"
            :clock-in :clock-resume)
           ("e" "Emacs idea" entry
-           (file+headline "~/code/dev/emacs-notes/tasks.org" "Emacs")
+           (file+headline "~/code/emacs-notes/tasks.org" "Emacs")
            "* TODO %^{Task}"
            :immediate-finish t)
           ("b" "Business task" entry
@@ -1936,7 +1936,7 @@ only a few of them them for faster scanning.
                         "~/Dropbox/tasker/summary.txt"
                         "~/Dropbox/public/sharing/index.org"
                         "~/dropbox/public/sharing/learning.org"
-                        "~/code/dev/emacs-notes/tasks.org"
+                        "~/code/emacs-notes/tasks.org"
                         "~/sachac.github.io/evil-plans/index.org"
                         "~/personal/cooking.org"
                         "~/personal/routines.org"))))
@@ -1950,6 +1950,7 @@ I can get a sense of how appointments are spread out.
 
 #+begin_src emacs-lisp
   (setq org-agenda-span 2)
+  (setq org-agenda-tags-column -100) ; take advantage of the screen width
   (setq org-agenda-sticky nil)
   (setq org-agenda-inhibit-startup t)
   (setq org-agenda-use-tag-inheritance t)
@@ -2312,7 +2313,7 @@ this with to-do items than with projects or headings."
 
 #+begin_src emacs-lisp
   (setq org-agenda-sorting-strategy
-        '((agenda time-up priority-down tag-up effort-up category-keep)
+        '((agenda time-up priority-down tag-up category-keep effort-up)
           (todo user-defined-up todo-state-up priority-down effort-up)
           (tags user-defined-up)
           (search category-keep)))
@@ -2652,11 +2653,19 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
      (defun my/flickr-export-and-extract (start end &optional do-insert update-db)
        "Download Flickr metadata and extract the relevant part."
        (interactive (list (org-read-date) (org-read-date) t current-prefix-arg))
-       (when update-db (shell-command "c:/sacha/dropbox/bin/flickr.bat"))
-       (if do-insert
-           (insert (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
-         (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end)))
+       (cond
+        ((eq system-type 'windows-nt)
+         (when update-db (shell-command "c:/sacha/dropbox/bin/flickr.bat"))
+         (if do-insert
+             (insert (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
+           (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end)))
+        ((eq system-type 'gnu/linux)
+         (let ((value (shell-command-to-string (format "cd /home/sacha/code/node; nodejs flickr-list.js -b %s -e %s" start end))))
+           (if do-insert
+               (insert value)
+             value)))))
 
+   ;; (my/flickr-export-and-extract "2015-11-01" "2015-12-01")
 
      (defun my/flickr-extract-links-for-review (filename start end)
      "Extract Flickr titles and URLs from FILENAME from START to END.
@@ -2994,6 +3003,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
   (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
   (add-to-list 'org-speed-commands-user '("." call-interactively 'my/org-refile-to-previous-in-file))
   (add-to-list 'org-speed-commands-user '("W" call-interactively 'my/org-refile-in-file))
+  (add-to-list 'org-speed-commands-user '("S" call-interactively 'org-sort))
 #+end_src
 
 *** Publishing
@@ -3325,6 +3335,120 @@ Probably should make this a dblock someday."
                 (replace-regexp-in-string "-mode$" "" mode)
                 contents))))
  #+end_src
+*** Invoices
+
+#+begin_src emacs-lisp
+  (setq calendar-week-start-day 6) ;; My weeks start on Saturday
+
+  (defun my/org-get-invoice-range-based-on-date (date)
+    (let* ((invoice-date (org-date-to-gregorian date))
+           (start (list (1- (car invoice-date)) 1 (elt invoice-date 2)))
+           (end (list (car invoice-date) 1 (elt invoice-date 2))))
+      (mapcar (lambda (date)
+                (format-time-string "%F" (encode-time 0 0 0 1 (elt date 0) (elt date 2))))
+              (list start end))))
+
+  (defun my/org-quantified-get-hours-based-on-range (category start end)
+    "Return the number of hours for the specified category."
+    (/ (assoc-default category
+                      (quantified-summarize-time start end)) 3600.0))
+
+  (defun my/org-quantified-get-detailed-hours-based-on-range (category start end)
+    "Return a list of (date week-ending-date dow seconds) for CATEGORY from START to END."
+    (let ((entries
+           (gethash "entries"
+                    (quantified-parse-json
+                     (quantified-request (format "records.json?start=%s&end=%s&filter_string=%s&split=split" start end (url-encode-url category))
+                                         nil "GET")))))
+      (mapcar
+       (lambda (entry)
+         (let ((time (date-to-time (gethash "timestamp" entry))))
+           (list
+            (format-time-string "%F" time)
+            (format-time-string "%F" (my/get-week-end-for-time time))
+            (format-time-string "%a" time)
+            (gethash "duration" entry))))
+       entries)))
+
+  (defun my/get-week-end-for-time (time &optional week-ends-on-day)
+    "WEEK-ENDS-ON-DAY: 0 is Sunday"
+    (let* ((decoded (decode-time time))
+           (dow (elt decoded 6))
+           (end-week (or week-ends-on-day (% (+ 6 calendar-week-start-day) 7))))
+      (encode-time
+       (elt decoded 0)
+       (elt decoded 1)
+       (elt decoded 2)
+       (+ (elt decoded 3)
+          (% (+ 7 (- end-week dow)) 7))
+       (elt decoded 4)
+       (elt decoded 5))))
+
+  (ert-deftest my/org-get-week-ending-date ()
+    (let ((calendar-week-start-day 6)
+          (tests '(
+                   ("2015-09-03" . "2015-09-04")
+                   ("2015-12-01" . "2015-12-04")
+                   ("2015-12-03" . "2015-12-04")
+                   ("2015-12-04" . "2015-12-04")
+                   ("2015-12-05" . "2015-12-11"))))
+      (dolist (test tests)
+        (should (string=
+                 (format-time-string
+                  "%F"
+                  (my/get-week-end-for-time (org-time-string-to-time (car test))))
+                 (cdr test)))
+        (should (string=
+                 (format-time-string
+                  "%F"
+                  (my/get-week-end-for-time (org-time-string-to-time (car test)) 5))
+                 (cdr test))))))
+
+
+
+  (defun my/org-quantified-format-detailed-hours-as-table (list)
+    "Return a table with rows for LIST.
+  | Week ending ____ | Sat | Sun | Mon | Tue | Wed | Thu | Fri | Total |
+  LIST elements should be in the form (date week-end-date dow seconds).
+  See `my/org-quantified-get-detailed-hours-based-on-range'."
+    ;; Group by week ending date
+    (let ((days '("Sat" "Sun" "Mon" "Tue" "Wed" "Thu" "Fri")))
+      (append
+       (list (append '("Week ending") days '("Total")))
+       (mapcar
+        (lambda (row)
+          (let ((day-values (-group-by (lambda (x) (elt x 2)) (cdr row)))
+                (week-total 0))
+            (append
+             (list (format "Week ending %s" (format-time-string "%b %-e" (org-time-string-to-time (car row)))))
+             (mapcar (lambda (day)
+                       (if (assoc-default day day-values)
+                           (format "%.1f"
+                                   (apply '+
+                                          (mapcar
+                                           (lambda (day-val) (/ (elt day-val 3) 3600.0))
+                                           (assoc-default day day-values))))
+                         ""))
+                     days)
+             (list (format "%.1f"
+                           (apply '+ (mapcar (lambda (day-val) (/ (elt day-val 3) 3600.0)) (cdr row)))))
+             ))
+          )
+        (-sort (lambda (a b) (string< (car a) (car b))) (-group-by (lambda (x) (elt x 1)) list))))))
+
+
+(defun my/org-quantified-hours-table ()
+  (my/org-quantified-format-detailed-hours-as-table
+   (apply 'my/org-quantified-get-detailed-hours-based-on-range 
+    (org-entry-get-with-inheritance "QUANTIFIED_CATEGORY")
+    (my/org-get-invoice-range-based-on-date (org-entry-get-with-inheritance "INVOICE_DATE")))))
+
+  (ert-deftest my/org-get-invoice-range-based-on-date ()
+    "Check if invoice range is sane."
+    (should (equal (my/org-get-invoice-range-based-on-date "2015-12-05")
+                   '("2015-11-01" "2015-12-01"))))
+#+end_src
+
 *** Archiving
 
 From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-tasks-using-a-single-command
@@ -3775,7 +3899,7 @@ Borrowed from Steve Purcell's config. This pretty-prints the results.
       (use-package yasnippet
         :ensure t
         :diminish yas-minor-mode
-        :commands yas-global-mode
+        :init (yas-global-mode)
         :config
         (progn
           (yas-global-mode)
@@ -4365,7 +4489,9 @@ with HTTPS sites.
     "Start the clock running. Clock into Quantified Awesome."
     (interactive)
     (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
-    (call-interactively 'my/org-quantified-track))
+    (call-interactively 'my/org-quantified-track)
+    (when (org-entry-get (point) "AUTO")
+      (org-open-link-from-string (org-entry-get (point) "AUTO"))))
   (bind-key "!" 'my/org-clock-in-and-track org-agenda-mode-map)
 
   (defmacro my/with-org-task (&rest body)
@@ -4599,7 +4725,8 @@ http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en
       (bind-key* "C-c /" 'my/engine-mode-hydra/body)
       (engine-mode)))
 #+end_src
-** Mail with Gnus
+** Mail
+*** Gnus
    :PROPERTIES:
    :ID:       o2b:c696259a-146e-4f47-8828-e7ca45cc2215
    :POST_DATE: [2015-11-20 Fri 12:36]
@@ -4622,14 +4749,27 @@ handy, so I've added it to my public [[http://sachacuha.com/dotemacs][Emacs conf
 I like using [[http://gmane.org][Gmane]] to read mailing lists, and I use IMAP to read my Gmail.
 
 #+begin_src emacs-lisp
-(setq gnus-select-method '(nnnil ""))
-(setq gnus-secondary-select-methods
-      '((nntp "news.gmane.org")
-        (nnimap "imap.gmail.com"
-                (nnimap-address "imap.gmail.com")
-                (nnimap-server-port 993)
-                (nnimap-stream ssl)
-                (nnimap-authenticator login))))
+  (setq gnus-select-method '(nnnil ""))
+  (setq gnus-secondary-select-methods
+        '((nntp "news.gmane.org")
+          ;; (nnmaildir "mail"
+          ;;            (directory "~/Maildir")
+          ;;            (directory-files nnheader-directory-files-safe) 
+          ;;            (get-new-mail nil))
+          ;; (nnimap "imap.gmail.com"
+          ;;         (nnimap-address "imap.gmail.com")
+          ;;         (nnimap-server-port 993)
+          ;;         (nnimap-stream ssl)
+          ;;         (nnimap-authenticator login))
+          (nnimap "localhost" 
+            (nnimap-address "localhost")
+            (nnimap-stream network)
+            (nnimap-user "sacha")
+            (nnimap-authenticator login)
+            (nnimap-authinfo-file "~/.authinfo.gpg")
+)
+          
+          ))
 #+end_src
 
 I have two-factor authentication enabled for Gmail, so I set up an
@@ -4706,6 +4846,11 @@ Get smarter about filtering depending on what I reed or mark. I use =!= (tick) f
        (gnus-catchup-mark (subject -1))))
 #+end_src
 
+*** Notmuch
+
+#+begin_src emacs-lisp
+(setq notmuch-message-headers '("Subject" "To" "Cc" "Date" "Reply-To"))
+#+end_src
 ** Ledger (personal finance)
 
 Make it easier to review my credit card transactions
@@ -4771,6 +4916,17 @@ This permits the use of =emacsclient=, =emacsclientw=, and =org-protocol=.
 #+begin_src emacs-lisp
 (server-start)
 #+end_src
+
+** Menus
+
+Handy when I'm in tablet mode.
+
+#+begin_src emacs-lisp
+  (define-key-after global-map [menu-bar my-menu] (cons "Shortcuts" (make-sparse-keymap "Custom shortcuts")) 'tools)
+  (define-key global-map [menu-bar my-menu journal] '("Show journal entries" . my/show-missing-journal-entries))
+  (define-key global-map [menu-bar my-menu agenda] '("Org agenda" . (lambda () (interactive) (org-agenda nil "a"))))
+#+end_src
+
 
 ** Advanced stuff / things I tend to forget about
 *** Editing multiple things
@@ -4859,14 +5015,6 @@ Quickly jump to a position in the current view.
   (use-package ace-jump-mode
     :ensure t)
   ;; I use the jj key-chord for this; see the definitions for key-chord
-#+end_src
-
-Ace-isearch switches between ace-jump and helm-swoop automatically.
-
-#+begin_src emacs-lisp
-(use-package ace-isearch
-  :enable t 
-  :config (global-ace-isearch-mode 1))
 #+end_src
 
 And ace-jump-zap...
@@ -5012,6 +5160,11 @@ cool. On Windows, these things help a little.
         (sp-local-pair "(" nil :bind "C-("))))
 #+end_src
 
+** Encryption 
+
+#+begin_src emacs-lisp
+(setq epa-file-encrypt-to "sacha@sachachua.com")
+#+end_src
 * Other cool configs you may want to check out
   :PROPERTIES:
   :CUSTOM_ID: links
@@ -6047,7 +6200,7 @@ recently-opened files first.
     (defvar my/index-card-template-file "c:/data/drawing-templates/custom/0 - index.tif")
     (when (eq system-type 'gnu/linux)
       (setq my/sketch-executable "krita"
-            my/index-card-template-file "~/Dropbox/drawings/templates/index-card.psd"))
+            my/index-card-template-file "~/Dropbox/drawings/templates/0 - index.psd"))
     (defun my/prepare-index-cards (n)
       (interactive (list (or current-prefix-arg 5)))
       (let ((counter 1)
@@ -6068,7 +6221,6 @@ recently-opened files first.
                                      (delete-window)
                                      (my/rename-scanned-cards))
                            "Process files")
-          (widget-create 'push-button
                          :notify (lambda (&rest ignore)
                                    (my/open-image (my/prepare-index-card-template)))
                          "New")
@@ -6088,18 +6240,26 @@ recently-opened files first.
             (text-scale-set 10)
             (widget-setup)
             (widget-minor-mode)
-            (pop-to-buffer (current-buffer))))))
+            (pop-to-buffer (current-buffer)))))
 
     (defvar my/index-card-file-name nil "Most recent index card file name.")
     (defun my/rotate-screen (degrees)
-      (when (eq system-type 'windows-nt)
-        (shell-command (format "c:/sacha/Dropbox/bin/orient /rotate:%d" degrees))))
+      (cond
+       ((eq system-type 'windows-nt)
+        (shell-command (format "c:/sacha/Dropbox/bin/orient /rotate:%d" degrees)))
+       ((eq system-type 'gnu/linux)
+        (shell-command (format "~/bin/rotate-screen %s"
+                               (cond
+                                ((= degrees 0) "normal")
+                                ((= degrees 180) "inverted")
+                                ((= degrees 90) "left")
+                                ((= degrees 270) "right")))))))
 
     (defvar my/sketch-directories
       '("~/Dropbox/Inbox"
         "~/Dropbox/Inbox/To blog"
         "~/Dropbox/sketches/private"
-        "~/photosync/sketchbook"))
+        "~/photosync/photostream"))
 
     (defun my/get-index-card-filename (base &optional as-regexp)
       "Check several directories for files matching BASE.
@@ -6109,8 +6269,9 @@ recently-opened files first.
             (delq nil
                   (mapcar
                    (lambda (dir)
-                     (directory-files dir t
-                                      (if as-regexp base (regexp-quote base))))
+                     (and (file-directory-p dir)
+                          (directory-files dir t
+                                           (if as-regexp base (regexp-quote base)))))
                    my/sketch-directories)))))
 
     (defun my/prepare-index-card-template (&optional name date)
@@ -6424,13 +6585,13 @@ recently-opened files first.
          (apply 'call-process "up" nil t nil files)))
 
      (defun my/convert-index-card-tiffs-to-pngs ()
-       (when (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.tif")
+       (when (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.\\(tif\\|psd\\)")
          ;; Convert the TIFFs first
-         (apply 'call-process "mogrify" nil nil nil "-format" "png" "-quality" "1"
-                (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.tif"))
+         (apply 'call-process "mogrify" nil nil nil "-flatten" "-format" "png" "-quality" "1"
+                (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.\\(tif\\|psd\\)"))
          (mapc (lambda (x)
                  (rename-file x "~/Dropbox/Inbox/backup" t))
-               (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.tif"))))
+               (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.\\(tif\\|psd\\)"))))
 
      (defun my/convert-and-upload-cards ()
        "Trust in existing filenames, upload without modification."
@@ -6451,10 +6612,10 @@ recently-opened files first.
                                               (concat (match-string 1 filename) " "))))
                    (when (> (length new-name) 0)
                      (revert-buffer t t)
-                     (rename-file filename (concat (s-trim new-name) ".png"))
+                     (rename-file filename (concat (s-trim new-name) ".png") t)
                      (kill-buffer)))))
              (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.png"))
-             (my/upload-scanned-cards))
+        (my/upload-scanned-cards))
 
      (defun my/clean-index-card-directory ()
        "Remove files marked for deletion and move private files."
@@ -6471,7 +6632,15 @@ recently-opened files first.
          (switch-to-buffer (current-buffer))
          (delete-other-windows))
        (when (yes-or-no-p "Upload files?")
-         (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png")))
+         (cond
+          ((eq system-type 'windows-nt)
+           (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png")))
+          ((eq system-type 'gnu/linux)
+           (with-temp-buffer
+            (cd "~/code/node")
+            (apply 'call-process "node" nil nil nil (expand-file-name "flickr-upload.js")
+                   (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png")))
+           )))
        (sleep-for 3)
        (find-file "~/personal/questions.org")
        (goto-char (point-min))
@@ -6609,7 +6778,7 @@ Aspect ratio is width / height
               (format "%dx"
                 (car (my/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
       (with-temp-buffer
-        (cd "~/Dropbox/Inbox/To Blog")
+        (cd "~/Dropbox/Inbox/To blog")
         (apply 'call-process
                "montage" nil nil nil
                (append
@@ -6617,7 +6786,7 @@ Aspect ratio is width / height
                 (list
                  "-geometry" "+0+0"
                  "-tile" tiles
-                 output-file))))
+                 (expand-file-name output-file)))))
       (find-file output-file)))
 
   (defun my/create-week-montage (beg end)
@@ -6628,9 +6797,24 @@ Aspect ratio is width / height
           (my/open-image full-filename)
         (my/prepare-index-card filename
                                (org-read-date nil nil "."))))
-    (my/create-sketch-montage beg end "2x"))
+    (my/create-sketch-montage beg end "2x")
+    (when (eq system-type 'gnu/linux) (shell-command "~/bin/add-output-png")))
 #+end_src
 
+add-output-png is:
+
+#+begin_src sh
+#!/bin/bash
+
+xdotool windowactivate --sync $(xdotool search --name krita | tail -1); sleep 1
+xdotool key --delay 50 Alt+l n m ; sleep 3
+xdotool type ~/Dropbox/Inbox/output.png ; sleep 1
+xdotool key Return ; sleep 3
+xdotool key Alt+l l ; sleep 1
+xdotool key Tab Tab ; sleep 1
+xdotool type 896 ; sleep 1
+xdotool key Return
+#+end_src
 *** Sketched books
     :PROPERTIES:
     :CUSTOM_ID: insert-point

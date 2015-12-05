@@ -1409,13 +1409,16 @@ This quickly adds a same-level heading for the succeeding day.
 
 
   (defvar my/org-basic-task-template "* TODO %^{Task}
-  SCHEDULED: %^t
-  :PROPERTIES:
-  :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
-  :END:
-  %<%Y-%m-%d %H:%M>
-  %?
-  " "Basic task data")
+:PROPERTIES:
+:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
+:END:
+Captured %<%Y-%m-%d %H:%M>
+%?
+
+%a
+
+%i
+" "Basic task data")
   (setq org-capture-templates
         `(("t" "Tasks" entry
            (file+headline "~/personal/organizer.org" "Tasks")
@@ -3067,6 +3070,7 @@ If a file is in a publishing project, publish it.
 
 #+begin_src emacs-lisp
   (defun my/org-publish-maybe ()
+    (require 'ox-publish)
     (interactive)
     (save-excursion
       (if (org-publish-get-project-from-filename
@@ -3491,6 +3495,39 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
 #+begin_src emacs-lisp
 (use-package ox-reveal :disabled t)
 #+end_src
+*** Allow dashes in tags 
+
+ #+begin_src emacs-lisp
+ (defun my/org-add-dashes-to-tag-regexps ()
+   (setq org-complex-heading-regexp
+         (concat "^\\(\\*+\\)"
+                 "\\(?: +" org-todo-regexp "\\)?"
+                 "\\(?: +\\(\\[#.\\]\\)\\)?"
+                 "\\(?: +\\(.*?\\)\\)??"
+                 (org-re "\\(?:[ \t]+\\(:[-[:alnum:]_@#%:]+:\\)\\)?")
+                 "[ \t]*$")
+         org-complex-heading-regexp-format
+         (concat "^\\(\\*+\\)"
+                 "\\(?: +" org-todo-regexp "\\)?"
+                 "\\(?: +\\(\\[#.\\]\\)\\)?"
+                 "\\(?: +"
+                 ;; Stats cookies can be stuck to body.
+                 "\\(?:\\[[0-9%%/]+\\] *\\)*"
+                 "\\(%s\\)"
+                 "\\(?: *\\[[0-9%%/]+\\]\\)*"
+                 "\\)"
+                 (org-re "\\(?:[ \t]+\\(:[-[:alnum:]_@#%%:]+:\\)\\)?")
+                 "[ \t]*$")
+         org-todo-line-tags-regexp
+         (concat "^\\(\\*+\\)"
+                 "\\(?: +" org-todo-regexp "\\)?"
+                 "\\(?: +\\(.*?\\)\\)??"
+                 (org-re "\\(?:[ \t]+\\(:[-[:alnum:]:_@#%]+:\\)\\)?")
+                 "[ \t]*$")))
+ (add-hook 'org-mode-hook 'my/org-add-dashes-to-tag-regexps)
+ #+end_src
+
+
 *** Copying information from my phone
 
 I have a tiny Tasker script that makes it easy to log timestamped
@@ -4498,13 +4535,22 @@ with HTTPS sites.
 <<clock-in>>
 
 #+begin_src emacs-lisp
+  (defmacro my/org-with-current-task (&rest body)
+    "Execute BODY with the point at the subtree of the current task."
+    `(if (derived-mode-p 'org-agenda-mode)
+         (save-window-excursion
+           (org-agenda-switch-to)
+           ,@body)
+       ,@body))
+
   (defun my/org-clock-in-and-track ()
     "Start the clock running. Clock into Quantified Awesome."
     (interactive)
-    (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
-    (call-interactively 'my/org-quantified-track)
-    (when (org-entry-get (point) "AUTO")
-      (org-open-link-from-string (org-entry-get (point) "AUTO"))))
+    (my/org-with-current-task
+     (org-clock-in)
+     (call-interactively 'my/org-quantified-track)
+     (when (org-entry-get (point) "AUTO")
+       (org-open-link-from-string (org-entry-get (point) "AUTO")))))
   (bind-key "!" 'my/org-clock-in-and-track org-agenda-mode-map)
 
   (defmacro my/with-org-task (&rest body)

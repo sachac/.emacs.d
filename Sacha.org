@@ -1048,6 +1048,19 @@ This command is convenient when reading novel, documentation."
       (set-window-margins nil 0 (- (window-body-width) fill-column))
     (set-window-margins nil 0 0)))
 #+END_SRC
+
+** Shuffling lines
+
+#+begin_src emacs-lisp
+(defun my/shuffle-lines-in-region (beg end)
+  (interactive "r")
+  (let ((list (split-string (buffer-substring beg end) "[\r\n]+")))
+    (delete-region beg end)
+    (insert (mapconcat 'identity (shuffle-list list) "\n"))))
+#+end_src
+
+
+
 ** Writing
 *** Avoiding weasel words
     #+BEGIN_SRC emacs-lisp
@@ -3450,7 +3463,7 @@ Probably should make this a dblock someday."
 #+end_src
 
 *** Archiving
-
+    
 From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-tasks-using-a-single-command
 #+begin_src emacs-lisp
 (defun my/org-archive-done-tasks ()
@@ -5177,6 +5190,116 @@ cool. On Windows, these things help a little.
 - [[https://github.com/magnars/.emacs.d][Magnar Sveen]]: http://whattheemacsd.com/ has some explanations. [[http://sachachua.com/blog/2013/11/emacs-chat-magnar-sveen-emacs-rocks/][Emacs Chat (~1h)]]
 - [[https://github.com/jwiegley/dot-emacs][John Wiegley]]: Also see his [[http://www.youtube.com/watch?v=RvPFZL6NJNQ][Emacs Lisp Development talk]] (sorry, sucky video) and [[http://www.youtube.com/watch?v=ytNsHmRLZGM][Emacs Chat video]]
 
+* Temporary workarounds
+** Tablet clicks count as drags
+
+#+begin_src emacs-lisp
+  (defun widget-button-click (event)
+    "Invoke the button that the mouse is pointing at."
+    (interactive "e")
+    (if (widget-event-point event)
+        (let* ((oevent event)
+	       (mouse-1 (memq (event-basic-type event) '(mouse-1 down-mouse-1)))
+	       (pos (widget-event-point event))
+	       (start (event-start event))
+	       (button (get-char-property
+		        pos 'button (and (windowp (posn-window start))
+				         (window-buffer (posn-window start)))))
+	       newpoint)
+	  (when (or (null button)
+		    (catch 'button-press-cancelled
+	        ;; Mouse click on a widget button.  Do the following
+	        ;; in a save-excursion so that the click on the button
+	        ;; doesn't change point.
+	        (save-selected-window
+		  (select-window (posn-window (event-start event)))
+		  (save-excursion
+		    (goto-char (posn-point (event-start event)))
+		    (let* ((overlay (widget-get button :button-overlay))
+			   (pressed-face (or (widget-get button :pressed-face)
+					     widget-button-pressed-face))
+			   (face (overlay-get overlay 'face))
+			   (mouse-face (overlay-get overlay 'mouse-face)))
+		      (unwind-protect
+			  ;; Read events, including mouse-movement
+			  ;; events, waiting for a release event.  If we
+			  ;; began with a mouse-1 event and receive a
+			  ;; movement event, that means the user wants
+			  ;; to perform drag-selection, so cancel the
+			  ;; button press and do the default mouse-1
+			  ;; action.  For mouse-2, just highlight/
+			  ;; unhighlight the button the mouse was
+			  ;; initially on when we move over it.
+			  (save-excursion
+			    (when face	; avoid changing around image
+			      (overlay-put overlay 'face pressed-face)
+			      (overlay-put overlay 'mouse-face pressed-face))
+			    (unless (widget-apply button :mouse-down-action event)
+			      (let ((track-mouse t))
+			        (while (not (widget-button-release-event-p event))
+                (setq event (read-event))
+
+                ;; Sacha: Commented this section out so that my stylus
+                ;; clicks don't get reported as mouse movement
+              
+				  ;; (when (and mouse-1 (mouse-movement-p event))
+				  ;;   (push event unread-command-events)
+				  ;;   (setq event oevent)
+				  ;;   (throw 'button-press-cancelled t))
+				  (unless (or (integerp event)
+					      (memq (car event) '(switch-frame select-window))
+					      (eq (car event) 'scroll-bar-movement))
+				    (setq pos (widget-event-point event))
+				    (if (and pos
+					     (eq (get-char-property pos 'button)
+					         button))
+				        (when face
+					  (overlay-put overlay 'face pressed-face)
+					  (overlay-put overlay 'mouse-face pressed-face))
+				      (overlay-put overlay 'face face)
+				      (overlay-put overlay 'mouse-face mouse-face))))))
+
+			    ;; When mouse is released over the button, run
+			    ;; its action function.
+			    (when (and pos (eq (get-char-property pos 'button) button))
+			      (goto-char pos)
+			      (widget-apply-action button event)
+			      (if widget-button-click-moves-point
+				  (setq newpoint (point)))))
+		        (overlay-put overlay 'face face)
+		        (overlay-put overlay 'mouse-face mouse-face))))
+
+		  (if newpoint (goto-char newpoint))
+		  ;; This loses if the widget action switches windows. -- cyd
+		  ;; (unless (pos-visible-in-window-p (widget-event-point event))
+		  ;;   (mouse-set-point event)
+		  ;;   (beginning-of-line)
+		  ;;   (recenter))
+		  )
+	        nil))
+	    (let ((up t) command)
+	      ;; Mouse click not on a widget button.  Find the global
+	      ;; command to run, and check whether it is bound to an
+	      ;; up event.
+	      (if mouse-1
+		  (cond ((setq command	;down event
+			       (lookup-key widget-global-map [down-mouse-1]))
+		         (setq up nil))
+		        ((setq command	;up event
+			       (lookup-key widget-global-map [mouse-1]))))
+	        (cond ((setq command	;down event
+			     (lookup-key widget-global-map [down-mouse-2]))
+		       (setq up nil))
+		      ((setq command	;up event
+			     (lookup-key widget-global-map [mouse-2])))))
+	      (when up
+	        ;; Don't execute up events twice.
+	        (while (not (widget-button-release-event-p event))
+		  (setq event (read-event))))
+	      (when command
+	        (call-interactively command)))))
+      (message "You clicked somewhere weird.")))
+#+end_src
 * Inactive/infrequent things
 ** Org - mapping blog posts and image URLs from bulk exports
 #+begin_src emacs-lisp  :tangle no
@@ -6196,6 +6319,58 @@ recently-opened files first.
   specified number of them) and then opens the last one for me to edit.
 
   #+begin_src emacs-lisp
+    (defun my/set-up-sketch-buffer ()
+      "Populate a widget buffer with a few handy buttons."
+      (with-current-buffer (get-buffer-create "*Done*")
+          (let ((inhibit-read-only t))
+            (erase-buffer)
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/org-clock-in-and-track-by-name "Draw"))
+                           "Track: Draw")        
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/org-clock-in-and-track-by-name "Draw journal entries"))
+                           "Track: Journal")
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/open-image (my/prepare-index-card-template)))
+                           "New")
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/open-image (my/prepare-index-card-template nil (org-read-date))))
+                           "Date")
+            (insert "\n")        
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/rotate-screen 0)
+                                     (kill-buffer)
+                                     (my/rename-scanned-cards))
+                           "Process")
+        
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/rotate-screen 0)
+                                     (delete-window)
+                                     (my/rename-scanned-cards))
+                           "Rename")        
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/rotate-screen 0)
+                                     (delete-window)
+                                     (my/convert-and-upload-cards))
+                           "Upload")
+            (widget-create 'push-button
+                           :notify (lambda (&rest ignore)
+                                     (my/rotate-screen 0)
+                                     (org-clock-out)
+                                     (kill-buffer))
+                           "Quit")
+            (text-scale-set 10)
+            (widget-setup)
+            (widget-minor-mode)
+            (pop-to-buffer (current-buffer)))))
+
     (defvar my/sketch-executable "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe")
     (defvar my/index-card-template-file "c:/data/drawing-templates/custom/0 - index.tif")
     (when (eq system-type 'gnu/linux)
@@ -6212,35 +6387,7 @@ recently-opened files first.
         (dotimes (i 5) (setq temp-file (my/prepare-index-card-template)))
         (my/rotate-screen 180)
         (my/open-image temp-file)
-        (with-current-buffer (get-buffer-create "*Done*")
-          (let ((inhibit-read-only t))
-            (erase-buffer)
-            (widget-create 'push-button
-                           :notify (lambda (&rest ignore)
-                                     (my/rotate-screen 0)
-                                     (delete-window)
-                                     (my/rename-scanned-cards))
-                           "Process files")
-                         :notify (lambda (&rest ignore)
-                                   (my/open-image (my/prepare-index-card-template)))
-                         "New")
-          (widget-create 'push-button
-                         :notify (lambda (&rest ignore)
-                                   (my/open-image (my/prepare-index-card-template nil (org-read-date))))
-                         "Date")
-          (widget-create 'push-button
-                         :notify (lambda (&rest ignore)
-                                   (my/open-image (my/prepare-index-card-template nil (org-read-date nil nil "-1"))))
-                         "Yesterday")
-            (widget-create 'push-button
-                           :notify (lambda (&rest ignore)
-                                     (my/rotate-screen 0)
-                                     (delete-window))
-                           "Done")
-            (text-scale-set 10)
-            (widget-setup)
-            (widget-minor-mode)
-            (pop-to-buffer (current-buffer)))))
+        (my/set-up-sketch-buffer)))
 
     (defvar my/index-card-file-name nil "Most recent index card file name.")
     (defun my/rotate-screen (degrees)
@@ -6304,37 +6451,7 @@ recently-opened files first.
         (shell-command
          (concat (shell-quote-argument my/sketch-executable)
                  " " (shell-quote-argument my/index-card-file-name) " &")))
-      (with-current-buffer (get-buffer-create "*Done*")
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (widget-create 'push-button
-                         :notify (lambda (&rest ignore)
-                                   (my/open-image (my/prepare-index-card-template)))
-                         "New")
-          (widget-create 'push-button
-                         :notify (lambda (&rest ignore)
-                                   (my/open-image (my/prepare-index-card-template nil (org-read-date nil nil "-1"))))
-                         "Yesterday")
-          (widget-create 'push-button
-                         :notify (lambda (&rest ignore)
-                                   (my/open-image (my/prepare-index-card-template nil (org-read-date))))
-                         "Date")
-          (widget-create 'push-button
-                         :notify (lambda (&rest ignore)
-                                   (my/rotate-screen 0)
-                                   (delete-window)
-                                   (my/process-tiff (list my/index-card-file-name)))
-                         "Upload")
-
-          (widget-create 'push-button
-                         :notify (lambda (&rest ignore)
-                                   (my/rotate-screen 0)
-                                   (delete-window))
-                         "Done")
-          (text-scale-set 10)
-          (widget-setup)
-          (widget-minor-mode)
-          (pop-to-buffer (current-buffer)))))
+      (my/set-up-sketch-buffer))
 
     (defun my/prepare-index-card-for-subtree ()
       "Create an index card template for the current subtree."
@@ -6369,55 +6486,29 @@ recently-opened files first.
                       '< :key (lambda (x) (or (elt x 3) 100)))))
         (setq my/org-index-card-source (current-buffer))
         (my/rotate-screen 180)
-        (with-current-buffer (get-buffer-create "*Sketches*")
-          (let ((inhibit-read-only t))
-            (quantified-track "Drawing")
-            (erase-buffer)
-            (widget-create 'push-button
-                           :notify (lambda (&rest ignore)
-                                     (my/open-image (my/prepare-index-card-template)))
-                           "New")
-            (widget-create 'push-button
-                           :notify (lambda (&rest ignore)
-                                     (my/open-image (my/prepare-index-card-template nil (org-read-date nil nil "-1"))))
-                           "Yesterday")
-            (insert "\n")
-            (mapc (lambda (q)
-                    (widget-create 'push-button
-                                   :notify (lambda (widget &rest ignore)
-                                             (my/open-image
-                                              (my/prepare-index-card-template
-                                               (widget-value widget)))
-                                             (with-current-buffer my/org-index-card-source
-                                               (save-excursion
-                                                 (goto-char (org-find-exact-headline-in-buffer (widget-value widget) my/org-index-card-source t))
-                                                 (org-set-property "Effort" "0:15")
-                                                 (org-clock-in)
-                                                 (org-todo "LINK")))
-                                             (widget-delete widget))
-                                   (elt q 4))
-                    (insert "\n"))
-                  questions)
-            (insert "\n")
-            (widget-create 'push-button
-                           :notify (lambda (&rest ignore)
-                                     (my/rotate-screen 0)
-                                     (kill-buffer)
-                                     (my/rename-scanned-cards))
-                           "Process")
-            (widget-create 'push-button
-                           :notify (lambda (&rest ignore)
-                                     (my/rotate-screen 0)
-                                     (org-clock-out)
-                                     (kill-buffer))
-                           "Quit")
-            (text-scale-set 5)
-            (widget-setup)
-            (widget-minor-mode)
-            (goto-char (point-min))
-            (scroll-bar-mode)
-            (switch-to-buffer (current-buffer))
-            (delete-other-windows)))))
+        (my/set-up-sketch-buffer)
+        (mapc (lambda (q)
+                (widget-create 'push-button
+                               :notify (lambda (widget &rest ignore)
+                                         (my/open-image
+                                          (my/prepare-index-card-template
+                                           (widget-value widget)))
+                                         (with-current-buffer my/org-index-card-source
+                                           (save-excursion
+                                             (goto-char (org-find-exact-headline-in-buffer (widget-value widget) my/org-index-card-source t))
+                                             (org-set-property "Effort" "0:15")
+                                             (org-clock-in)
+                                             (org-todo "LINK")))
+                                         (widget-delete widget))
+                               (elt q 4))
+                (insert "\n"))
+              questions)
+        (text-scale-set 5)
+        (widget-setup)
+        (widget-minor-mode)
+        (goto-char (point-min))
+        (scroll-bar-mode)
+        (switch-to-buffer (current-buffer))))
 
     (defun my/prepare-index-card-for-journal ()
       "Create an index card for my process journal."
@@ -6509,47 +6600,17 @@ recently-opened files first.
     (defun my/show-missing-journal-entries (since)
       (interactive (list (if current-prefix-arg (org-read-date) (org-read-date nil nil "-7"))))
       (let ((missing-dates (my/get-missing-journal-dates since (org-read-date nil nil "."))))
-        (with-current-buffer (get-buffer-create "*Done*")
-          (let ((inhibit-read-only t))
-            (erase-buffer)
-            (widget-create 'push-button
-                           :notify (lambda (&rest ignore)
-                                     (my/org-clock-in-and-track-by-name "Draw")
-                                     )
-                           "Draw")
-            (widget-create 'push-button
-                           :notify (lambda (&rest ignore)
-                                     (my/org-clock-in-and-track-by-name "Draw journal entries")
-                                     )
-                           "Journal")
-            (widget-create 'push-button
-                           :notify (lambda (&rest ignore)
-                                     (my/open-image (my/prepare-index-card-template)))
-                           "New")
-            (mapc
-             (lambda (date)
-               (widget-create 'push-button
-                              :date date
-                              :notify (lambda (widget &rest ignore)
-                                        (my/draw-journal-entry (plist-get (cdr widget) :date)))
-                              date))
-             missing-dates)
-            (widget-create 'push-button
-                           :notify (lambda (&rest ignore)
-                                     (my/rotate-screen 0)
-                                     (delete-window)
-                                     (my/rename-scanned-cards))
-                           "Rename")
-            (widget-create 'push-button
-                           :notify (lambda (&rest ignore)
-                                     (my/rotate-screen 0)
-                                     (delete-window)
-                                     (my/convert-and-upload-cards))
-                           "Upload")
-            (text-scale-set 10)
-            (widget-setup)
-            (widget-minor-mode)
-            (pop-to-buffer (current-buffer))))))
+        (my/set-up-sketch-buffer)
+        (mapc
+         (lambda (date)
+           (widget-create 'push-button
+                          :date date
+                          :notify (lambda (widget &rest ignore)
+                                    (my/draw-journal-entry (plist-get (cdr widget) :date)))
+                          date))
+         missing-dates)
+        (widget-setup)
+        (widget-minor-mode)))
   #+end_src
 
 **** Rename scanned index cards
@@ -6585,13 +6646,14 @@ recently-opened files first.
          (apply 'call-process "up" nil t nil files)))
 
      (defun my/convert-index-card-tiffs-to-pngs ()
-       (when (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.\\(tif\\|psd\\)")
+       (interactive)
+       (when (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.\\(tif\\|psd\\)$")
          ;; Convert the TIFFs first
          (apply 'call-process "mogrify" nil nil nil "-flatten" "-format" "png" "-quality" "1"
-                (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.\\(tif\\|psd\\)"))
+                (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.\\(tif\\|psd\\)$"))
          (mapc (lambda (x)
                  (rename-file x "~/Dropbox/Inbox/backup" t))
-               (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.\\(tif\\|psd\\)"))))
+               (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.\\(tif\\|psd\\)$"))))
 
      (defun my/convert-and-upload-cards ()
        "Trust in existing filenames, upload without modification."
@@ -6644,11 +6706,12 @@ recently-opened files first.
        (sleep-for 3)
        (find-file "~/personal/questions.org")
        (goto-char (point-min))
-       (when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))
-         (forward-line 1)
-         (org-end-of-item-list)
-         (save-excursion (yank) (insert "\n"))
-         (my/org-guess-uncategorized)))
+       ;;(when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))
+       ;;  (forward-line 1)
+       ;;  (org-end-of-item-list)
+       ;;  (save-excursion (yank) (insert "\n"))
+       ;;  (my/org-guess-uncategorized))
+      )
    #+end_src
 
    #+RESULTS:

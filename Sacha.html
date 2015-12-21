@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2015-12-18 Fri 16:46 -->
+<!-- 2015-12-21 Mon 15:21 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
@@ -2436,7 +2436,7 @@ entries, notes, and other semi-structured pieces of information.
     <span class="org-doc">"Try to return the contact email for a template.</span>
 <span class="org-doc">  If not found return RETURN-VALUE or something that would ask the user."</span>
     (<span class="org-keyword">or</span> (cadr (<span class="org-keyword">if</span> (gnus-alive-p)
-                  (gnus-with-article-headers
+                  (<span class="org-keyword">gnus-with-article-headers</span>
                     (mail-extract-address-components
                      (<span class="org-keyword">or</span> (mail-fetch-field <span class="org-string">"Reply-To"</span>) (mail-fetch-field <span class="org-string">"From"</span>) <span class="org-string">""</span>)))))
         return-value
@@ -2817,6 +2817,7 @@ That way, it's easy to see short tasks that I can finish.
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">org</span>
+ <span class="org-builtin">:load-path</span> <span class="org-string">"~/elisp/org-mode/lisp"</span>
  <span class="org-builtin">:init</span>
  (<span class="org-keyword">progn</span>
   (<span class="org-keyword">setq</span> org-clock-idle-time nil)
@@ -5127,16 +5128,49 @@ This setting puts Org ASCII export links right after the text instead of in a se
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/share-emacs-news</span> ()
-  (<span class="org-keyword">interactive</span>)
-  <span class="org-comment-delimiter">;; </span><span class="org-comment">Draft Gnus article</span>
-  (<span class="org-keyword">let</span> (body)
-    (<span class="org-keyword">save-window-excursion</span>
-      (org-ascii-export-as-ascii nil t nil t)
-      (<span class="org-keyword">setq</span> body (buffer-substring-no-properties (point-min) (point-max))))
-    (gnus-post-news 'post <span class="org-string">"nntp+news.gmane.org:gmane.emacs.tangents"</span>)
-    (message-goto-body)
-    (insert body)))
+<pre class="src src-emacs-lisp">  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-list-from-rss</span> (url date)
+    <span class="org-doc">"Convert URL to an Org list"</span>
+    (<span class="org-keyword">with-current-buffer</span> (url-retrieve-synchronously url)
+      (re-search-forward <span class="org-string">"&lt;\\?xml"</span>)
+      (goto-char (match-beginning 0))
+      (<span class="org-keyword">let</span> ((feed (xml-parse-region (point) (point-max))))
+        (mapconcat (<span class="org-keyword">lambda</span> (entry)
+          (format <span class="org-string">"- [[%s][%s]]"</span> 
+           (xml-get-attribute (car (xml-get-children entry 'link)) 'href)
+           (elt (car (xml-get-children entry 'title)) 2)))
+          (-filter (<span class="org-keyword">lambda</span> (entry)
+            (org-string&lt;= date (elt (car (xml-get-children entry 'updated)) 2)))
+            (xml-get-children (car feed) 'entry)) <span class="org-string">"\n"</span>))))
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/list-new-packages</span> ()
+   (package-refresh-contents)
+   (<span class="org-keyword">with-temp-buffer</span>
+     (insert-file-contents <span class="org-string">"~/.emacs.d/.package-list"</span>)
+     (goto-char (point-min))
+     (<span class="org-keyword">let</span> ((old-list (read (current-buffer))))
+       (mapconcat (<span class="org-keyword">lambda</span> (symbol)
+                 (<span class="org-keyword">let</span> ((package-desc (assoc symbol package-archive-contents)))
+                   (format <span class="org-string">"- [[package:%s][%s]]: %s"</span>
+                           (symbol-name symbol)
+                           (symbol-name symbol)
+                           (package-desc-summary (cadr package-desc)))))
+               (-difference (mapcar 'car package-archive-contents) old-list)
+               <span class="org-string">"\n"</span>))))
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/save-new-packages</span> ()
+ (<span class="org-keyword">interactive</span>)
+ (<span class="org-keyword">with-temp-file</span> <span class="org-string">"~/.emacs.d/.package-list"</span>
+   (prin1 (mapcar 'car package-archive-contents) (current-buffer))
+   nil))
+
+  (<span class="org-keyword">defun</span> <span class="org-function-name">my/share-emacs-news</span> ()
+    (<span class="org-keyword">interactive</span>)
+    <span class="org-comment-delimiter">;; </span><span class="org-comment">Draft Gnus article</span>
+    (<span class="org-keyword">let</span> (body)
+      (<span class="org-keyword">save-window-excursion</span>
+        (org-ascii-export-as-ascii nil t nil t)
+        (<span class="org-keyword">setq</span> body (buffer-substring-no-properties (point-min) (point-max))))
+      (gnus-post-news 'post <span class="org-string">"nntp+news.gmane.org:gmane.emacs.tangents"</span>)
+      (message-goto-body)
+      (insert body)))
 </pre>
 </div>
 </div>
@@ -7293,9 +7327,13 @@ creates interactive functions, and some code that calls it for my <a href="https
              (<span class="org-keyword">let</span> ((function-name (intern (concat <span class="org-string">"my/shell/"</span> (file-name-nondirectory filename)))))
                `(<span class="org-keyword">defun</span> ,function-name (<span class="org-type">&amp;rest</span> args)
                   (<span class="org-keyword">interactive</span>)
-                  (<span class="org-keyword">if</span> (region-active-p)
-                      (apply 'call-process-region (point) (mark) ,filename nil (<span class="org-keyword">if</span> current-prefix-arg t nil) t args)
-                    (apply 'call-process ,filename nil (<span class="org-keyword">if</span> current-prefix-arg t nil) nil args)))))
+                  (<span class="org-keyword">cond</span>
+                   ((not (called-interactively-p 'any))
+                    (shell-command-to-string (mapconcat 'shell-quote-argument (cons ,filename args) <span class="org-string">" "</span>)))
+                   ((region-active-p)
+                    (apply 'call-process-region (point) (mark) ,filename nil (<span class="org-keyword">if</span> current-prefix-arg t nil) t args))
+                   (t
+                    (apply 'call-process ,filename nil (<span class="org-keyword">if</span> current-prefix-arg t nil) nil args))))))
            (-filter (-not #'file-directory-p)
                     (-filter #'file-executable-p (directory-files directory t))))))
 

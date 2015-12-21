@@ -1740,6 +1740,7 @@ able to clock in on them.
 
  #+begin_src emacs-lisp
    (use-package org
+    :load-path "~/elisp/org-mode/lisp"
     :init
     (progn
      (setq org-clock-idle-time nil)
@@ -3607,16 +3608,49 @@ This setting puts Org ASCII export links right after the text instead of in a se
 #+end_src
 
 #+begin_src emacs-lisp
-  (defun my/share-emacs-news ()
-    (interactive)
-    ;; Draft Gnus article
-    (let (body)
-      (save-window-excursion
-        (org-ascii-export-as-ascii nil t nil t)
-        (setq body (buffer-substring-no-properties (point-min) (point-max))))
-      (gnus-post-news 'post "nntp+news.gmane.org:gmane.emacs.tangents")
-      (message-goto-body)
-      (insert body)))
+    (defun my/org-list-from-rss (url date)
+      "Convert URL to an Org list"
+      (with-current-buffer (url-retrieve-synchronously url)
+        (re-search-forward "<\\?xml")
+        (goto-char (match-beginning 0))
+        (let ((feed (xml-parse-region (point) (point-max))))
+          (mapconcat (lambda (entry)
+            (format "- [[%s][%s]]" 
+             (xml-get-attribute (car (xml-get-children entry 'link)) 'href)
+             (elt (car (xml-get-children entry 'title)) 2)))
+            (-filter (lambda (entry)
+              (org-string<= date (elt (car (xml-get-children entry 'updated)) 2)))
+              (xml-get-children (car feed) 'entry)) "\n"))))
+  (defun my/list-new-packages ()
+     (package-refresh-contents)
+     (with-temp-buffer
+       (insert-file-contents "~/.emacs.d/.package-list")
+       (goto-char (point-min))
+       (let ((old-list (read (current-buffer))))
+         (mapconcat (lambda (symbol)
+                   (let ((package-desc (assoc symbol package-archive-contents)))
+                     (format "- [[package:%s][%s]]: %s"
+                             (symbol-name symbol)
+                             (symbol-name symbol)
+                             (package-desc-summary (cadr package-desc)))))
+                 (-difference (mapcar 'car package-archive-contents) old-list)
+                 "\n"))))
+  (defun my/save-new-packages ()
+   (interactive)
+   (with-temp-file "~/.emacs.d/.package-list"
+     (prin1 (mapcar 'car package-archive-contents) (current-buffer))
+     nil))
+
+    (defun my/share-emacs-news ()
+      (interactive)
+      ;; Draft Gnus article
+      (let (body)
+        (save-window-excursion
+          (org-ascii-export-as-ascii nil t nil t)
+          (setq body (buffer-substring-no-properties (point-min) (point-max))))
+        (gnus-post-news 'post "nntp+news.gmane.org:gmane.emacs.tangents")
+        (message-goto-body)
+        (insert body)))
 #+end_src
 
 *** DONE Org Mode tables and fill-in quizzes - Latin verb conjugations in Emacs
@@ -5301,9 +5335,13 @@ creates interactive functions, and some code that calls it for my [[https://gith
                (let ((function-name (intern (concat "my/shell/" (file-name-nondirectory filename)))))
                  `(defun ,function-name (&rest args)
                     (interactive)
-                    (if (region-active-p)
-                        (apply 'call-process-region (point) (mark) ,filename nil (if current-prefix-arg t nil) t args)
-                      (apply 'call-process ,filename nil (if current-prefix-arg t nil) nil args)))))
+                    (cond
+                     ((not (called-interactively-p 'any))
+                      (shell-command-to-string (mapconcat 'shell-quote-argument (cons ,filename args) " ")))
+                     ((region-active-p)
+                      (apply 'call-process-region (point) (mark) ,filename nil (if current-prefix-arg t nil) t args))
+                     (t
+                      (apply 'call-process ,filename nil (if current-prefix-arg t nil) nil args))))))
              (-filter (-not #'file-directory-p)
                       (-filter #'file-executable-p (directory-files directory t))))))
 

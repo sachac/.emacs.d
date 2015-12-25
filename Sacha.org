@@ -315,7 +315,6 @@ helm-grep? Bit slow and hard to read, though.
             nil
             (point)))
 
-
     (defun my/helm-org-create-task (candidate)
       "Creates the task and returns the location."
       (let ((entry (org-capture-select-template "T")))
@@ -1291,6 +1290,13 @@ I don't use the diary, but I do use the clock a lot.
 
  These are great for quickly acting on tasks.
 
+- hello
+  - world
+  - this
+- world here
+
+
+
  #+begin_src emacs-lisp
    (setq org-use-effective-time t)
 
@@ -1420,8 +1426,6 @@ This quickly adds a same-level heading for the succeeding day.
   Captured %<%Y-%m-%d %H:%M>
   %?
 
-  %a
-
   %i
   " "Basic task data")
     (setq org-capture-templates
@@ -1531,12 +1535,15 @@ they could inherit the QUANTIFIED property that I use to track time
 able to clock in on them.
 
 #+begin_src emacs-lisp
-  (defun my/org-capture-refile-and-jump ()
+  (defun my/org-refile-and-jump ()
     (interactive)
-    (org-capture-refile)
+    (if (derived-mode-p 'org-capture-mode)
+        (org-capture-refile)
+      (call-interactively 'org-refile))
     (org-refile-goto-last-stored))
-  (require 'org-capture)
-  (bind-key "C-c C-r" 'my/org-capture-refile-and-jump org-capture-mode-map)
+  (eval-after-load 'org-capture
+   '(bind-key "C-c C-r" 'my/org-refile-and-jump org-capture-mode-map))
+  (bind-key "C-c C-r" 'my/org-refile-and-jump org-mode-map)
 #+end_src
 
 **** Refiling
@@ -1724,7 +1731,7 @@ able to clock in on them.
                                      ("@reading" . ?r)
                                      ("@computer" . ?l)
                                      ("quantified" . ?q)
-                                     ("lowenergy" . ?0)
+                                     ("fuzzy" . ?0)
                                      ("highenergy" . ?1)))
       #+end_src
 ***** Enable filtering by effort estimates
@@ -2182,6 +2189,7 @@ hang of using these more!
           `(("t" tags-todo "-cooking")
             ("T" tags-todo "TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}" nil "~/Dropbox/agenda/nonroutine.html")
             ("f" tags-todo "fuzzy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
+            ("F" tags-todo "highenergy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
             ("b" todo ""
              ((org-agenda-files '("~/personal/business.org"))))
             ("B" todo ""
@@ -3280,6 +3288,24 @@ This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone
    (org-tags-view (null current-prefix-arg) tag))
  #+end_quote
 
+**** Links from org-protocol
+
+
+So that I can easily add links at point. Formatted as an Org list for now.
+
+#+begin_src emacs-lisp
+  (defun my/org-protocol-insert-link (info) 
+    "Store and insert the link at point based on INFO."
+    (org-protocol-store-link info)
+    (with-current-buffer (window-buffer (selected-window))
+      (insert "- ")
+      (org-insert-last-stored-link 1)
+      (insert "\n")))
+  (eval-after-load 'org-protocol
+   '(add-to-list 'org-protocol-protocol-alist
+      '("insert-link" :protocol "insert-link" :function my/org-protocol-insert-link)))
+#+end_src
+
 *** Attachments
 
 Org lets you attach files to an Org file. Haven't gotten the hang of this yet, but looks interesting.
@@ -3587,9 +3613,27 @@ code pulls that information into my ~/Dropbox/tasker/
     (interactive "MPackage name: ")
     (describe-package (intern package-name)))
 
+  (ert-deftest my/org-package-export ()
+    (should
+     (string=
+      (my/org-package-export "transcribe" "transcribe" 'html)
+      "<a target=\"_blank\" href=\"https://elpa.gnu.org/packages/transcribe.html\">transcribe</a>"
+      ))
+    (should
+     (string=
+      (my/org-package-export "fireplace" "fireplace" 'html)
+      "<a target=\"_blank\" href=\"http://melpa.org/#/fireplace\">fireplace</a>"
+      )))
   (defun my/org-package-export (link description format)
-    (let ((path (format "http://melpa.org/#/%s" link))
-          (desc (or description link)))
+    (let* ((package-info (car (assoc-default (intern link) package-archive-contents)))
+           (package-source (package-desc-archive package-info))
+           (path (format
+                  (cond
+                   ((string= package-source "gnu") "https://elpa.gnu.org/packages/%s.html")
+                   ((string= package-source "melpa") "http://melpa.org/#/%s")
+                   (t (throw 'unknown-source)))
+                  link))
+           (desc (or description link)))
       (cond
        ((eq format 'html) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
        ((eq format 'wp) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
@@ -4166,6 +4210,13 @@ Handy shortcuts:
   :config
   (bind-key "C-c C-c" 'compile js2-mode-map)
   (add-hook 'js2-mode-hook 'jasminejs-mode))
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package coffee-mode
+:ensure t
+  :config
+  (bind-key "C-c C-c" 'compile coffee-mode-map))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -4879,26 +4930,31 @@ I like using [[http://gmane.org][Gmane]] to read mailing lists, and I use IMAP t
             (nnimap-stream network)
             (nnimap-user "sacha")
             (nnimap-authenticator login)
-            (nnimap-authinfo-file "~/.authinfo.gpg")
-)
-          
-          ))
+            (nnimap-authinfo-file "~/.authinfo.gpg"))))
 #+end_src
 
-I have two-factor authentication enabled for Gmail, so I set up an
-app-specific password for Gnus. I have an =~/.authinfo= file set up
-with something like:
+I now use Dovecot with OfflineIMAP for local IMAP access to my mail
+and synchronization with Gmail, but you can see the commented-out
+information for Gmail in case you prefer that. I have two-factor
+authentication enabled for Gmail, so I set up an app-specific password
+for Gnus. I have GPG set up for encryption, and an =~/.authinfo.gpg=
+file set up with something like:
 
 #+begin_example
 machine imap.gmail.com login sacha@sachachua.com password mysecretapppassword
 machine imap.gmail.com login sacha@sachachua.com password mysecretapppassword port 993
 machine smtp.gmail.com login sacha@sachachua.com password mysecretapppassword port 587
+machine localhost login sacha password mysecretlocalpassword port 993
+machine localhost login sacha password mysecretlocalpassword port 143
 #+end_example
 
-(I should probably get around to using GPG to automatically encrypt and decrypt this file.)
+If you don't have GPG set up and you don't mind saving your passwords
+in the clear, you can set up an =~/.authinfo= file instead.
 
-Sending e-mail on Windows was a bit of a pain. Fortunately, I eventually found something that works.
-I've configured [[http://emailrelay.sourceforge.net/][emailrelay]] to accept the mail and forward it to Gmail. The server starts with this batch file:
+Sending e-mail on Windows was a bit of a pain. Fortunately, I
+eventually found something that works. I've configured [[http://emailrelay.sourceforge.net/][emailrelay]] to
+accept the mail and forward it to Gmail. The server starts with this
+batch file:
 
 #+begin_example
 start "emailrelay" "C:\Program Files (x86)\emailrelay\emailrelay.exe" --as-proxy smtp.gmail.com:25 --client-auth "C:/sacha/.emailrelay" --client-tls --log --pid-file "C:\Program Files (x86)\emailrelay\emailrelay.pid" --spool-dir C:\sacha\tmp\emailrelay
@@ -4911,6 +4967,9 @@ Sending queued mail works with this batch file:
 #+end_example
 
 I should probably get around to using =--as-proxy= properly, since it still seems to hold mail until I explicitly send it.
+
+On Linux, it's simply a matter of setting up a mail server such as
+[[https://easyengine.io/tutorials/linux/ubuntu-postfix-gmail-smtp/][Postfix]].
 
 Some more config. Not sure how much of this is needed.
 

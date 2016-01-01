@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2015-12-25 Fri 11:36 -->
+<!-- 2016-01-01 Fri 18:41 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
@@ -156,7 +156,7 @@ for the JavaScript code in this tag.
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#orgheadline192">Configuration</a>
+<li><a href="#orgheadline193">Configuration</a>
 <ul>
 <li><a href="#babel-init">About this file</a></li>
 <li><a href="#orgheadline3">Personal information</a></li>
@@ -298,204 +298,205 @@ for the JavaScript code in this tag.
 <li><a href="#orgheadline107">Share my Emacs configuration</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline111">Links</a>
+<li><a href="#orgheadline112">Links</a>
 <ul>
 <li><a href="#orgheadline108">Quick links</a></li>
 <li><a href="#orgheadline109">Custom links</a></li>
 <li><a href="#orgheadline110">Links from org-protocol</a></li>
+<li><a href="#org-dired">Dired</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline112">Attachments</a></li>
-<li><a href="#orgheadline113">Diagrams and graphics</a></li>
-<li><a href="#orgheadline114">Counting</a></li>
-<li><a href="#orgheadline115">Spreadsheets</a></li>
-<li><a href="#orgheadline118">Literate programming</a>
+<li><a href="#orgheadline113">Attachments</a></li>
+<li><a href="#orgheadline114">Diagrams and graphics</a></li>
+<li><a href="#orgheadline115">Counting</a></li>
+<li><a href="#orgheadline116">Spreadsheets</a></li>
+<li><a href="#orgheadline119">Literate programming</a>
 <ul>
-<li><a href="#orgheadline116">Editing source code</a></li>
-<li><a href="#orgheadline117">Copying and sharing code</a></li>
+<li><a href="#orgheadline117">Editing source code</a></li>
+<li><a href="#orgheadline118">Copying and sharing code</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline119">Invoices</a></li>
-<li><a href="#orgheadline120">Archiving</a></li>
-<li><a href="#orgheadline121">Filesystem</a>
+<li><a href="#orgheadline120">Invoices</a></li>
+<li><a href="#orgheadline121">Archiving</a></li>
+<li><a href="#orgheadline122">Filesystem</a>
 <ul>
-<li><a href="#orgheadline122"><span class="todo nilTODO">TODO</span> check out org-fstree</a></li>
+<li><a href="#orgheadline123"><span class="todo nilTODO">TODO</span> check out org-fstree</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline123">Presentations</a></li>
-<li><a href="#orgheadline124">Allow dashes in tags</a></li>
-<li><a href="#orgheadline125">Copying information from my phone</a></li>
-<li><a href="#orgheadline126">Emacs packages, other settings for easy Emacs News generation</a></li>
-<li><a href="#orgheadline127"><span class="done nilDONE">DONE</span> Org Mode tables and fill-in quizzes - Latin verb conjugations in Emacs</a></li>
+<li><a href="#orgheadline124">Presentations</a></li>
+<li><a href="#orgheadline125">Allow dashes in tags</a></li>
+<li><a href="#orgheadline126">Copying information from my phone</a></li>
+<li><a href="#orgheadline127">Emacs packages, other settings for easy Emacs News generation</a></li>
+<li><a href="#orgheadline128"><span class="done nilDONE">DONE</span> Org Mode tables and fill-in quizzes - Latin verb conjugations in Emacs</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline155">Coding</a>
+<li><a href="#orgheadline156">Coding</a>
 <ul>
-<li><a href="#orgheadline128">Web development</a></li>
-<li><a href="#orgheadline129">Tab width of 2 is compact and readable</a></li>
-<li><a href="#orgheadline130">New lines are always indented</a></li>
-<li><a href="#orgheadline131">Adapt to being on Windows</a></li>
-<li><a href="#orgheadline132">Expand region</a></li>
-<li><a href="#orgheadline133">Compilation</a></li>
-<li><a href="#orgheadline139">Emacs Lisp</a>
+<li><a href="#orgheadline129">Web development</a></li>
+<li><a href="#orgheadline130">Tab width of 2 is compact and readable</a></li>
+<li><a href="#orgheadline131">New lines are always indented</a></li>
+<li><a href="#orgheadline132">Adapt to being on Windows</a></li>
+<li><a href="#orgheadline133">Expand region</a></li>
+<li><a href="#orgheadline134">Compilation</a></li>
+<li><a href="#orgheadline140">Emacs Lisp</a>
 <ul>
-<li><a href="#orgheadline134">Eldoc</a></li>
-<li><a href="#orgheadline135">Refactoring&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
-<li><a href="#orgheadline136">Jumping to code</a></li>
-<li><a href="#orgheadline137">Sorting</a></li>
-<li><a href="#orgheadline138">Evaluation</a></li>
+<li><a href="#orgheadline135">Eldoc</a></li>
+<li><a href="#orgheadline136">Refactoring&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#orgheadline137">Jumping to code</a></li>
+<li><a href="#orgheadline138">Sorting</a></li>
+<li><a href="#orgheadline139">Evaluation</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline140">Snippets</a></li>
-<li><a href="#orgheadline141">Show column number</a></li>
-<li><a href="#orgheadline142">Don't show whitespace in diff, but show context</a></li>
-<li><a href="#orgheadline143">Javascript</a></li>
-<li><a href="#orgheadline144">HTML</a></li>
+<li><a href="#orgheadline141">Snippets</a></li>
+<li><a href="#orgheadline142">Show column number</a></li>
+<li><a href="#orgheadline143">Don't show whitespace in diff, but show context</a></li>
+<li><a href="#orgheadline144">Javascript</a></li>
+<li><a href="#orgheadline145">HTML</a></li>
 <li><a href="#magit">Magit - nice git interface</a>
 <ul>
-<li><a href="#orgheadline145"><span class="todo nilTODO">TODO</span> Make this better by adding a post command options variable</a></li>
+<li><a href="#orgheadline146"><span class="todo nilTODO">TODO</span> Make this better by adding a post command options variable</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline147">git-messenger - shows commit message</a></li>
-<li><a href="#orgheadline148">Tag files</a></li>
-<li><a href="#orgheadline149">Projects</a></li>
-<li><a href="#orgheadline150">Exploring MELPA recipes</a></li>
-<li><a href="#orgheadline151">Ruby</a></li>
-<li><a href="#orgheadline152">Skewer</a></li>
-<li><a href="#orgheadline153">Autocomplete</a></li>
-<li><a href="#orgheadline154">Tern - for Javascript</a></li>
+<li><a href="#orgheadline148">git-messenger - shows commit message</a></li>
+<li><a href="#orgheadline149">Tag files</a></li>
+<li><a href="#orgheadline150">Projects</a></li>
+<li><a href="#orgheadline151">Exploring MELPA recipes</a></li>
+<li><a href="#orgheadline152">Ruby</a></li>
+<li><a href="#orgheadline153">Skewer</a></li>
+<li><a href="#orgheadline154">Autocomplete</a></li>
+<li><a href="#orgheadline155">Tern - for Javascript</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline156">Internet Relay Chat</a></li>
-<li><a href="#orgheadline163">Self-tracking, statistics, and other data transformations</a>
+<li><a href="#orgheadline157">Internet Relay Chat</a></li>
+<li><a href="#orgheadline164">Self-tracking, statistics, and other data transformations</a>
 <ul>
 <li><a href="#clock-in">Quantified Awesome</a></li>
 <li><a href="#compare-time">Compare times and effort estimates</a></li>
-<li><a href="#orgheadline159">R</a></li>
-<li><a href="#orgheadline160">Workrave</a></li>
-<li><a href="#orgheadline161">Blog</a></li>
-<li><a href="#orgheadline162">Artrage</a></li>
+<li><a href="#orgheadline160">R</a></li>
+<li><a href="#orgheadline161">Workrave</a></li>
+<li><a href="#orgheadline162">Blog</a></li>
+<li><a href="#orgheadline163">Artrage</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline168">Workarounds</a>
+<li><a href="#orgheadline169">Workarounds</a>
 <ul>
-<li><a href="#orgheadline164">GnuTLS on Windows</a></li>
-<li><a href="#orgheadline165">color-theme sometimes comes across lists. Odd!</a></li>
-<li><a href="#orgheadline166">ido-sort-mtime stopped working when I upgraded to Windows 8</a></li>
-<li><a href="#orgheadline167">Cygwin mogrify doesn't work for me, but ImageMagick does</a></li>
+<li><a href="#orgheadline165">GnuTLS on Windows</a></li>
+<li><a href="#orgheadline166">color-theme sometimes comes across lists. Odd!</a></li>
+<li><a href="#orgheadline167">ido-sort-mtime stopped working when I upgraded to Windows 8</a></li>
+<li><a href="#orgheadline168">Cygwin mogrify doesn't work for me, but ImageMagick does</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline169">Display</a></li>
-<li><a href="#orgheadline170">Web browsing</a></li>
-<li><a href="#orgheadline171">Clipboard</a></li>
-<li><a href="#orgheadline172">Search</a></li>
-<li><a href="#orgheadline175">Mail</a>
+<li><a href="#orgheadline170">Display</a></li>
+<li><a href="#orgheadline171">Web browsing</a></li>
+<li><a href="#orgheadline172">Clipboard</a></li>
+<li><a href="#orgheadline173">Search</a></li>
+<li><a href="#orgheadline176">Mail</a>
 <ul>
-<li><a href="#orgheadline173">Gnus</a></li>
-<li><a href="#orgheadline174">Notmuch</a></li>
+<li><a href="#orgheadline174">Gnus</a></li>
+<li><a href="#orgheadline175">Notmuch</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline176">Ledger (personal finance)</a></li>
-<li><a href="#orgheadline177">Emacs server</a></li>
-<li><a href="#orgheadline178">Menus</a></li>
-<li><a href="#orgheadline186">Advanced stuff / things I tend to forget about</a>
+<li><a href="#orgheadline177">Ledger (personal finance)</a></li>
+<li><a href="#orgheadline178">Emacs server</a></li>
+<li><a href="#orgheadline179">Menus</a></li>
+<li><a href="#orgheadline187">Advanced stuff / things I tend to forget about</a>
 <ul>
-<li><a href="#orgheadline180">Editing multiple things</a>
+<li><a href="#orgheadline181">Editing multiple things</a>
 <ul>
-<li><a href="#orgheadline179">Multiple cursors mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#orgheadline180">Multiple cursors mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
 </ul>
 </li>
-<li><a href="#orgheadline181">Edit list&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
-<li><a href="#orgheadline182">Ace Jump mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
-<li><a href="#orgheadline183">Deleting things</a>
+<li><a href="#orgheadline182">Edit list&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#orgheadline183">Quickly jump to positions</a></li>
+<li><a href="#orgheadline184">Deleting things</a>
 <ul>
-<li><a href="#orgheadline184"><span class="todo nilTODO">TODO</span> Get zap-to-isearch to work with helm-swoop</a></li>
+<li><a href="#orgheadline185"><span class="todo nilTODO">TODO</span> Get zap-to-isearch to work with helm-swoop</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline185">Network: TRAMP and editing files over SSH</a></li>
+<li><a href="#orgheadline186">Network: TRAMP and editing files over SSH</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline188">Other nifty Emacs things I want to learn</a>
+<li><a href="#orgheadline189">Other nifty Emacs things I want to learn</a>
 <ul>
-<li><a href="#orgheadline187">Smartparens mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#orgheadline188">Smartparens mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
 </ul>
 </li>
-<li><a href="#orgheadline189">Weather forecast</a></li>
-<li><a href="#orgheadline190">Encryption</a></li>
-<li><a href="#orgheadline191"><span class="done nilDONE">DONE</span> Scan ~/bin and turn the scripts into interactive commands</a></li>
+<li><a href="#orgheadline190">Weather forecast</a></li>
+<li><a href="#orgheadline191">Encryption</a></li>
+<li><a href="#orgheadline192"><span class="done nilDONE">DONE</span> Scan ~/bin and turn the scripts into interactive commands</a></li>
 </ul>
 </li>
 <li><a href="#links">Other cool configs you may want to check out</a></li>
-<li><a href="#orgheadline195">Temporary workarounds</a>
+<li><a href="#orgheadline196">Temporary workarounds</a>
 <ul>
-<li><a href="#orgheadline194">Tablet clicks count as drags</a></li>
+<li><a href="#orgheadline195">Tablet clicks count as drags</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline231">Inactive/infrequent things</a>
+<li><a href="#orgheadline232">Inactive/infrequent things</a>
 <ul>
-<li><a href="#orgheadline196">Org - mapping blog posts and image URLs from bulk exports</a></li>
-<li><a href="#orgheadline197">Transcript editing</a></li>
-<li><a href="#orgheadline198">Japanese</a></li>
+<li><a href="#orgheadline197">Org - mapping blog posts and image URLs from bulk exports</a></li>
+<li><a href="#orgheadline198">Transcript editing</a></li>
+<li><a href="#orgheadline199">Japanese</a></li>
 <li><a href="#beeminder">Beeminder</a></li>
-<li><a href="#orgheadline200">Strike through DONE headlines</a></li>
-<li><a href="#orgheadline201">Rainbow delimiters</a></li>
-<li><a href="#orgheadline202">Drupal</a></li>
-<li><a href="#orgheadline203">Autoconnect to IRC so that I don't forget</a></li>
-<li><a href="#orgheadline204">Org - send things to the bottom of the list</a></li>
-<li><a href="#orgheadline205">Time tracking, previous weekly review</a>
+<li><a href="#orgheadline201">Strike through DONE headlines</a></li>
+<li><a href="#orgheadline202">Rainbow delimiters</a></li>
+<li><a href="#orgheadline203">Drupal</a></li>
+<li><a href="#orgheadline204">Autoconnect to IRC so that I don't forget</a></li>
+<li><a href="#orgheadline205">Org - send things to the bottom of the list</a></li>
+<li><a href="#orgheadline206">Time tracking, previous weekly review</a>
 <ul>
-<li><a href="#orgheadline206">List upcoming tasks so that I can see if I'm overloaded</a></li>
-<li><a href="#orgheadline207">Compare time use</a></li>
+<li><a href="#orgheadline207">List upcoming tasks so that I can see if I'm overloaded</a></li>
+<li><a href="#orgheadline208">Compare time use</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline208">Animation for Emacs chats</a></li>
-<li><a href="#orgheadline209">Idle timer</a></li>
-<li><a href="#orgheadline210">Old Flickr/Evernote export</a></li>
+<li><a href="#orgheadline209">Animation for Emacs chats</a></li>
+<li><a href="#orgheadline210">Idle timer</a></li>
+<li><a href="#orgheadline211">Old Flickr/Evernote export</a></li>
 <li><a href="#emacsconf2013">Presentation code for Emacs Conference</a></li>
-<li><a href="#orgheadline212">Enable minibuffer completion</a></li>
-<li><a href="#orgheadline216">Because I'm trying to use helm instead of ido&#x2026;</a>
+<li><a href="#orgheadline213">Enable minibuffer completion</a></li>
+<li><a href="#orgheadline217">Because I'm trying to use helm instead of ido&#x2026;</a>
 <ul>
-<li><a href="#orgheadline213">Ido-mode: Much better navigationy things</a></li>
-<li><a href="#orgheadline214">Ido and Org</a></li>
-<li><a href="#orgheadline215">Finding files</a></li>
+<li><a href="#orgheadline214">Ido-mode: Much better navigationy things</a></li>
+<li><a href="#orgheadline215">Ido and Org</a></li>
+<li><a href="#orgheadline216">Finding files</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline217">Keywiz - keyboard quizzes</a></li>
-<li><a href="#orgheadline218">MobileOrg for Android</a></li>
-<li><a href="#orgheadline219">Encryption</a></li>
-<li><a href="#orgheadline230">Drawing</a>
+<li><a href="#orgheadline218">Keywiz - keyboard quizzes</a></li>
+<li><a href="#orgheadline219">MobileOrg for Android</a></li>
+<li><a href="#orgheadline220">Encryption</a></li>
+<li><a href="#orgheadline231">Drawing</a>
 <ul>
-<li><a href="#orgheadline220">Digital index piles with Emacs</a></li>
-<li><a href="#orgheadline221">Using Emacs to prepare files for external applications like Autodesk Sketchbook Pro</a>
+<li><a href="#orgheadline221">Digital index piles with Emacs</a></li>
+<li><a href="#orgheadline222">Using Emacs to prepare files for external applications like Autodesk Sketchbook Pro</a>
 <ul>
-<li><a href="#orgheadline222">Index cards</a></li>
-<li><a href="#orgheadline223">Easily backfilling my journal</a></li>
-<li><a href="#orgheadline224">Rename scanned index cards</a></li>
-<li><a href="#orgheadline225">Automatically resize images</a></li>
-<li><a href="#orgheadline226">Get information for sketched books</a></li>
+<li><a href="#orgheadline223">Index cards</a></li>
+<li><a href="#orgheadline224">Easily backfilling my journal</a></li>
+<li><a href="#orgheadline225">Rename scanned index cards</a></li>
+<li><a href="#orgheadline226">Automatically resize images</a></li>
+<li><a href="#orgheadline227">Get information for sketched books</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline227"><span class="todo nilTODO">TODO</span> Move to-blog sketches to a staging folder for easier upload</a></li>
-<li><a href="#orgheadline228">Other sketches</a></li>
+<li><a href="#orgheadline228"><span class="todo nilTODO">TODO</span> Move to-blog sketches to a staging folder for easier upload</a></li>
+<li><a href="#orgheadline229">Other sketches</a></li>
 <li><a href="#insert-point">Sketched books</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#orgheadline233">Games</a>
+<li><a href="#orgheadline234">Games</a>
 <ul>
-<li><a href="#orgheadline232">Typing of Emacs</a></li>
+<li><a href="#orgheadline233">Typing of Emacs</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline234">Speech synthesis (experimental)</a></li>
-<li><a href="#orgheadline235">Path</a></li>
+<li><a href="#orgheadline235">Speech synthesis (experimental)</a></li>
+<li><a href="#orgheadline236">Path</a></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-orgheadline192" class="outline-2">
-<h2 id="orgheadline192">Configuration</h2>
-<div class="outline-text-2" id="text-orgheadline192">
+<div id="outline-container-orgheadline193" class="outline-2">
+<h2 id="orgheadline193">Configuration</h2>
+<div class="outline-text-2" id="text-orgheadline193">
 </div><div id="outline-container-orgheadline2" class="outline-3">
 <h3 id="babel-init"><a id="orgheadline2"></a>About this file</h3>
 <div class="outline-text-3" id="text-babel-init">
@@ -583,8 +584,7 @@ I like using <code>(setq ...)</code> more than Customize because I can neatly or
 <div class="outline-text-4" id="text-orgheadline1">
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(add-to-list 'package-archives '(<span class="org-string">"org"</span> . <span class="org-string">"http://orgmode.org/elpa/"</span>) t)
-(<span class="org-keyword">unless</span> (assoc-default <span class="org-string">"melpa"</span> package-archives)
+<pre class="src src-emacs-lisp">(<span class="org-keyword">unless</span> (assoc-default <span class="org-string">"melpa"</span> package-archives)
   (add-to-list 'package-archives '(<span class="org-string">"melpa"</span> . <span class="org-string">"http://melpa.org/packages/"</span>) t)
 <span class="org-comment-delimiter">;  </span><span class="org-comment">(package-refresh-contents)</span>
 )
@@ -1585,6 +1585,7 @@ Some code from <a href="http://emacsredux.com/blog/2013/04/28/switch-to-previous
     (<span class="org-string">"t"</span> (my/org-clock-in-and-track-by-name <span class="org-string">"Tidy"</span>) <span class="org-string">"Tidy"</span>)
     (<span class="org-string">"b"</span> (my/org-clock-in-and-track-by-name <span class="org-string">"Play Borderlands 2"</span>) <span class="org-string">"Borderlands 2"</span>)
     (<span class="org-string">"l"</span> (my/org-clock-in-and-track-by-name <span class="org-string">"Eat lunch"</span>) <span class="org-string">"Lunch"</span>)
+    (<span class="org-string">"L"</span> (my/org-clock-in-and-track-by-name <span class="org-string">"Do laundry"</span>) <span class="org-string">"Laundry"</span>)
     (<span class="org-string">"d"</span> (my/org-clock-in-and-track-by-name <span class="org-string">"Eat dinner"</span>) <span class="org-string">"Dinner"</span>)
     (<span class="org-string">"e"</span> (my/org-clock-in-and-track-by-name <span class="org-string">"Process my inbox"</span>) <span class="org-string">"E-mail"</span>)
     )
@@ -1649,13 +1650,12 @@ Now let's set up the actual keychords.
     (key-chord-define-global <span class="org-string">"uu"</span>     'undo)
     (key-chord-define-global <span class="org-string">"jr"</span>     'my/goto-random-char-hydra/my/goto-random-char)
     (key-chord-define-global <span class="org-string">"kk"</span>     'my/org/body)
-    (key-chord-define-global <span class="org-string">"jj"</span>     'ace-jump-word-mode)
+    (key-chord-define-global <span class="org-string">"jj"</span>     'avy-goto-word-1)
     (key-chord-define-global <span class="org-string">"yy"</span>    'my/window-movement/body)
     (key-chord-define-global <span class="org-string">"jw"</span>     'switch-window)
-    (key-chord-define-global <span class="org-string">"jl"</span>     'ace-jump-line-mode)
+    (key-chord-define-global <span class="org-string">"jl"</span>     'avy-goto-line)
     (key-chord-define-global <span class="org-string">"j."</span>     'join-lines/body)
-    <span class="org-comment-delimiter">;; </span><span class="org-comment">not an ace-jump, but still useful</span>
-    <span class="org-comment-delimiter">;</span><span class="org-comment">(key-chord-define-global "jZ"     'ace-jump-zap-to-char)</span>
+    <span class="org-comment-delimiter">;</span><span class="org-comment">(key-chord-define-global "jZ"     'avy-zap-to-char)</span>
     (key-chord-define-global <span class="org-string">"FF"</span>     'find-file)
     (key-chord-define-global <span class="org-string">"qq"</span>     'my/quantified-hydra/body)
     (key-chord-define-global <span class="org-string">"hh"</span>     'my/key-chord-commands/body)
@@ -2447,7 +2447,7 @@ entries, notes, and other semi-structured pieces of information.
     <span class="org-doc">"Try to return the contact email for a template.</span>
 <span class="org-doc">  If not found return RETURN-VALUE or something that would ask the user."</span>
     (<span class="org-keyword">or</span> (cadr (<span class="org-keyword">if</span> (gnus-alive-p)
-                  (<span class="org-keyword">gnus-with-article-headers</span>
+                  (gnus-with-article-headers
                     (mail-extract-address-components
                      (<span class="org-keyword">or</span> (mail-fetch-field <span class="org-string">"Reply-To"</span>) (mail-fetch-field <span class="org-string">"From"</span>) <span class="org-string">""</span>)))))
         return-value
@@ -3432,7 +3432,8 @@ hang of using these more!
   (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-agenda-skip-scheduled</span> ()
     (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp <span class="org-string">"\n]+&gt;"</span>))
   (<span class="org-keyword">setq</span> org-agenda-custom-commands
-        `((<span class="org-string">"t"</span> tags-todo <span class="org-string">"-cooking"</span>)
+        `((<span class="org-string">"t"</span> tags-todo <span class="org-string">"-cooking"</span>
+           ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
           (<span class="org-string">"T"</span> tags-todo <span class="org-string">"TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}"</span> nil <span class="org-string">"~/Dropbox/agenda/nonroutine.html"</span>)
           (<span class="org-string">"f"</span> tags-todo <span class="org-string">"fuzzy-TODO=\"DONE\"-TODO=\"CANCELLED\""</span>)
           (<span class="org-string">"F"</span> tags-todo <span class="org-string">"highenergy-TODO=\"DONE\"-TODO=\"CANCELLED\""</span>)
@@ -4686,9 +4687,9 @@ don't need this any more&#x2026;
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline111" class="outline-4">
-<h4 id="orgheadline111">Links</h4>
-<div class="outline-text-4" id="text-orgheadline111">
+<div id="outline-container-orgheadline112" class="outline-4">
+<h4 id="orgheadline112">Links</h4>
+<div class="outline-text-4" id="text-orgheadline112">
 </div><div id="outline-container-orgheadline108" class="outline-5">
 <h5 id="orgheadline108">Quick links</h5>
 <div class="outline-text-5" id="text-orgheadline108">
@@ -4747,11 +4748,47 @@ So that I can easily add links at point. Formatted as an Org list for now.
 </div>
 </div>
 </div>
+
+<div id="outline-container-orgheadline111" class="outline-5">
+<h5 id="org-dired"><a id="orgheadline111"></a>Dired</h5>
+<div class="outline-text-5" id="text-org-dired">
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-get-links-in-region</span> (beg end)
+  (<span class="org-keyword">save-excursion</span>
+    (<span class="org-keyword">let</span> (results)
+      (goto-char (min beg end))
+      (<span class="org-keyword">while</span> (re-search-forward org-any-link-re (max beg end) t)
+        (add-to-list 'results (org-element-context)))
+      results)))
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-dired-file-links-in-region</span> (beg end)
+  <span class="org-doc">"Display a Dired buffer for the file links in the selected region."</span>
+  (<span class="org-keyword">interactive</span> <span class="org-string">"r"</span>)
+  (<span class="org-keyword">let</span> ((files
+         (-map
+          (<span class="org-keyword">lambda</span> (x)
+            (expand-file-name (org-link-unescape (plist-get (cadr x) <span class="org-builtin">:path</span>))))
+          (-filter
+           (<span class="org-keyword">lambda</span> (x)
+             (string= (plist-get (cadr x) <span class="org-builtin">:type</span>) <span class="org-string">"file"</span>))
+           (my/org-get-links-in-region beg end)))))
+    (<span class="org-keyword">with-current-buffer</span> (get-buffer-create <span class="org-string">"*Files*"</span>)
+      (<span class="org-keyword">let</span> ((inhibit-read-only t))
+        (erase-buffer)
+        (apply 'call-process <span class="org-string">"ls"</span> nil t nil <span class="org-string">"-lR"</span> files))
+      (dired-virtual <span class="org-string">"/"</span>)
+      (switch-to-buffer (current-buffer)))))
+</pre>
+</div>
+</div>
+</div>
 </div>
 
-<div id="outline-container-orgheadline112" class="outline-4">
-<h4 id="orgheadline112">Attachments</h4>
-<div class="outline-text-4" id="text-orgheadline112">
+
+<div id="outline-container-orgheadline113" class="outline-4">
+<h4 id="orgheadline113">Attachments</h4>
+<div class="outline-text-4" id="text-orgheadline113">
 <p>
 Org lets you attach files to an Org file. Haven't gotten the hang of this yet, but looks interesting.
 </p>
@@ -4765,9 +4802,9 @@ Org lets you attach files to an Org file. Haven't gotten the hang of this yet, b
 </div>
 </div>
 
-<div id="outline-container-orgheadline113" class="outline-4">
-<h4 id="orgheadline113">Diagrams and graphics</h4>
-<div class="outline-text-4" id="text-orgheadline113">
+<div id="outline-container-orgheadline114" class="outline-4">
+<h4 id="orgheadline114">Diagrams and graphics</h4>
+<div class="outline-text-4" id="text-orgheadline114">
 <p>
 Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See <a href="http://sachachua.com/evil-plans">http://sachachua.com/evil-plans</a> for examples and source.
 </p>
@@ -4792,9 +4829,9 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See <a h
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline114" class="outline-4">
-<h4 id="orgheadline114">Counting</h4>
-<div class="outline-text-4" id="text-orgheadline114">
+<div id="outline-container-orgheadline115" class="outline-4">
+<h4 id="orgheadline115">Counting</h4>
+<div class="outline-text-4" id="text-orgheadline115">
 <p>
 Good way to remind myself that I have lots of STARTED tasks.
 </p>
@@ -4820,9 +4857,9 @@ Good way to remind myself that I have lots of STARTED tasks.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline115" class="outline-4">
-<h4 id="orgheadline115">Spreadsheets</h4>
-<div class="outline-text-4" id="text-orgheadline115">
+<div id="outline-container-orgheadline116" class="outline-4">
+<h4 id="orgheadline116">Spreadsheets</h4>
+<div class="outline-text-4" id="text-orgheadline116">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-days-between</span> (start end)
@@ -4834,12 +4871,12 @@ Good way to remind myself that I have lots of STARTED tasks.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline118" class="outline-4">
-<h4 id="orgheadline118">Literate programming</h4>
-<div class="outline-text-4" id="text-orgheadline118">
-</div><div id="outline-container-orgheadline116" class="outline-5">
-<h5 id="orgheadline116">Editing source code</h5>
-<div class="outline-text-5" id="text-orgheadline116">
+<div id="outline-container-orgheadline119" class="outline-4">
+<h4 id="orgheadline119">Literate programming</h4>
+<div class="outline-text-4" id="text-orgheadline119">
+</div><div id="outline-container-orgheadline117" class="outline-5">
+<h5 id="orgheadline117">Editing source code</h5>
+<div class="outline-text-5" id="text-orgheadline117">
 <p>
 I don't want to get distracted by the same code in the other window, so I want org src to use the current window.
 </p>
@@ -4852,9 +4889,9 @@ I don't want to get distracted by the same code in the other window, so I want o
 </div>
 </div>
 
-<div id="outline-container-orgheadline117" class="outline-5">
-<h5 id="orgheadline117">Copying and sharing code</h5>
-<div class="outline-text-5" id="text-orgheadline117">
+<div id="outline-container-orgheadline118" class="outline-5">
+<h5 id="orgheadline118">Copying and sharing code</h5>
+<div class="outline-text-5" id="text-orgheadline118">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/copy-code-as-org-block-and-gist</span> (beg end)
@@ -4874,9 +4911,9 @@ I don't want to get distracted by the same code in the other window, so I want o
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline119" class="outline-4">
-<h4 id="orgheadline119">Invoices</h4>
-<div class="outline-text-4" id="text-orgheadline119">
+<div id="outline-container-orgheadline120" class="outline-4">
+<h4 id="orgheadline120">Invoices</h4>
+<div class="outline-text-4" id="text-orgheadline120">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">  (<span class="org-keyword">setq</span> calendar-week-start-day 6) <span class="org-comment-delimiter">;; </span><span class="org-comment">My weeks start on Saturday</span>
@@ -4993,9 +5030,9 @@ I don't want to get distracted by the same code in the other window, so I want o
 </div>
 </div>
 
-<div id="outline-container-orgheadline120" class="outline-4">
-<h4 id="orgheadline120">Archiving</h4>
-<div class="outline-text-4" id="text-orgheadline120">
+<div id="outline-container-orgheadline121" class="outline-4">
+<h4 id="orgheadline121">Archiving</h4>
+<div class="outline-text-4" id="text-orgheadline121">
 <p>
 From <a href="http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-tasks-using-a-single-command">http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-tasks-using-a-single-command</a>
 </p>
@@ -5013,9 +5050,9 @@ From <a href="http://stackoverflow.com/questions/6997387/how-to-archive-all-the-
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline121" class="outline-4">
-<h4 id="orgheadline121">Filesystem</h4>
-<div class="outline-text-4" id="text-orgheadline121">
+<div id="outline-container-orgheadline122" class="outline-4">
+<h4 id="orgheadline122">Filesystem</h4>
+<div class="outline-text-4" id="text-orgheadline122">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">org-fstree</span>
@@ -5028,13 +5065,13 @@ From <a href="http://stackoverflow.com/questions/6997387/how-to-archive-all-the-
 </pre>
 </div>
 </div>
-<div id="outline-container-orgheadline122" class="outline-5">
-<h5 id="orgheadline122"><span class="todo TODO">TODO</span> check out org-fstree</h5>
+<div id="outline-container-orgheadline123" class="outline-5">
+<h5 id="orgheadline123"><span class="todo TODO">TODO</span> check out org-fstree</h5>
 </div>
 </div>
-<div id="outline-container-orgheadline123" class="outline-4">
-<h4 id="orgheadline123">Presentations</h4>
-<div class="outline-text-4" id="text-orgheadline123">
+<div id="outline-container-orgheadline124" class="outline-4">
+<h4 id="orgheadline124">Presentations</h4>
+<div class="outline-text-4" id="text-orgheadline124">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">ox-reveal</span> <span class="org-builtin">:disabled</span> t)
@@ -5042,9 +5079,9 @@ From <a href="http://stackoverflow.com/questions/6997387/how-to-archive-all-the-
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline124" class="outline-4">
-<h4 id="orgheadline124">Allow dashes in tags</h4>
-<div class="outline-text-4" id="text-orgheadline124">
+<div id="outline-container-orgheadline125" class="outline-4">
+<h4 id="orgheadline125">Allow dashes in tags</h4>
+<div class="outline-text-4" id="text-orgheadline125">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-add-dashes-to-tag-regexps</span> ()
@@ -5080,9 +5117,9 @@ From <a href="http://stackoverflow.com/questions/6997387/how-to-archive-all-the-
 </div>
 
 
-<div id="outline-container-orgheadline125" class="outline-4">
-<h4 id="orgheadline125">Copying information from my phone</h4>
-<div class="outline-text-4" id="text-orgheadline125">
+<div id="outline-container-orgheadline126" class="outline-4">
+<h4 id="orgheadline126">Copying information from my phone</h4>
+<div class="outline-text-4" id="text-orgheadline126">
 <p>
 I have a tiny Tasker script that makes it easy to log timestamped
 entries as files in a directory that I synchronize with Dropbox. This
@@ -5129,9 +5166,9 @@ code pulls that information into my ~/Dropbox/tasker/
 </div>
 </div>
 
-<div id="outline-container-orgheadline126" class="outline-4">
-<h4 id="orgheadline126">Emacs packages, other settings for easy Emacs News generation</h4>
-<div class="outline-text-4" id="text-orgheadline126">
+<div id="outline-container-orgheadline127" class="outline-4">
+<h4 id="orgheadline127">Emacs packages, other settings for easy Emacs News generation</h4>
+<div class="outline-text-4" id="text-orgheadline127">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-package-open</span> (package-name)
@@ -5231,9 +5268,9 @@ This setting puts Org ASCII export links right after the text instead of in a se
 </div>
 </div>
 
-<div id="outline-container-orgheadline127" class="outline-4">
-<h4 id="orgheadline127"><a id="o2b:1583ec79-b64c-4c6e-b910-80b985c94a90"></a><span class="done DONE">DONE</span> Org Mode tables and fill-in quizzes - Latin verb conjugations in Emacs</h4>
-<div class="outline-text-4" id="text-orgheadline127">
+<div id="outline-container-orgheadline128" class="outline-4">
+<h4 id="orgheadline128"><a id="o2b:1583ec79-b64c-4c6e-b910-80b985c94a90"></a><span class="done DONE">DONE</span> Org Mode tables and fill-in quizzes - Latin verb conjugations in Emacs</h4>
+<div class="outline-text-4" id="text-orgheadline128">
 <p>
 I've been working on memorizing Latin verb conjugations. I was looking
 for a conjugation drill similar to these ones for and <a href="http://www.latintests.net/grammar/nouns.php">nouns</a> and
@@ -5486,12 +5523,12 @@ getting the hang of thinking properly functionally&#x2026; =)
 </div>
 </div>
 
-<div id="outline-container-orgheadline155" class="outline-3">
-<h3 id="orgheadline155">Coding</h3>
-<div class="outline-text-3" id="text-orgheadline155">
-</div><div id="outline-container-orgheadline128" class="outline-4">
-<h4 id="orgheadline128">Web development</h4>
-<div class="outline-text-4" id="text-orgheadline128">
+<div id="outline-container-orgheadline156" class="outline-3">
+<h3 id="orgheadline156">Coding</h3>
+<div class="outline-text-3" id="text-orgheadline156">
+</div><div id="outline-container-orgheadline129" class="outline-4">
+<h4 id="orgheadline129">Web development</h4>
+<div class="outline-text-4" id="text-orgheadline129">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">from FAQ at http://web-mode.org/ for smartparens</span>
@@ -5519,9 +5556,9 @@ getting the hang of thinking properly functionally&#x2026; =)
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline129" class="outline-4">
-<h4 id="orgheadline129">Tab width of 2 is compact and readable</h4>
-<div class="outline-text-4" id="text-orgheadline129">
+<div id="outline-container-orgheadline130" class="outline-4">
+<h4 id="orgheadline130">Tab width of 2 is compact and readable</h4>
+<div class="outline-text-4" id="text-orgheadline130">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">setq-default</span> tab-width 2)
@@ -5529,9 +5566,9 @@ getting the hang of thinking properly functionally&#x2026; =)
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline130" class="outline-4">
-<h4 id="orgheadline130">New lines are always indented</h4>
-<div class="outline-text-4" id="text-orgheadline130">
+<div id="outline-container-orgheadline131" class="outline-4">
+<h4 id="orgheadline131">New lines are always indented</h4>
+<div class="outline-text-4" id="text-orgheadline131">
 <p>
 I almost always want to go to the right indentation on the next line.
 </p>
@@ -5558,9 +5595,9 @@ From <a href="https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-u
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline131" class="outline-4">
-<h4 id="orgheadline131">Adapt to being on Windows</h4>
-<div class="outline-text-4" id="text-orgheadline131">
+<div id="outline-container-orgheadline132" class="outline-4">
+<h4 id="orgheadline132">Adapt to being on Windows</h4>
+<div class="outline-text-4" id="text-orgheadline132">
 <p>
 I'm on Windows, so I use Cygwin to add Unix-y tools to make my life easier.
 These config snippets seem to help too.
@@ -5577,9 +5614,9 @@ These config snippets seem to help too.
 </div>
 </div>
 
-<div id="outline-container-orgheadline132" class="outline-4">
-<h4 id="orgheadline132">Expand region</h4>
-<div class="outline-text-4" id="text-orgheadline132">
+<div id="outline-container-orgheadline133" class="outline-4">
+<h4 id="orgheadline133">Expand region</h4>
+<div class="outline-text-4" id="text-orgheadline133">
 <p>
 This is something I have to get the hang of too. It gradually expands the selection. Handy for Emacs Lisp.
 </p>
@@ -5594,9 +5631,9 @@ This is something I have to get the hang of too. It gradually expands the select
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline133" class="outline-4">
-<h4 id="orgheadline133">Compilation</h4>
-<div class="outline-text-4" id="text-orgheadline133">
+<div id="outline-container-orgheadline134" class="outline-4">
+<h4 id="orgheadline134">Compilation</h4>
+<div class="outline-text-4" id="text-orgheadline134">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(eval-after-load 'python-mode
@@ -5605,12 +5642,12 @@ This is something I have to get the hang of too. It gradually expands the select
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline139" class="outline-4">
-<h4 id="orgheadline139">Emacs Lisp</h4>
-<div class="outline-text-4" id="text-orgheadline139">
-</div><div id="outline-container-orgheadline134" class="outline-5">
-<h5 id="orgheadline134">Eldoc</h5>
-<div class="outline-text-5" id="text-orgheadline134">
+<div id="outline-container-orgheadline140" class="outline-4">
+<h4 id="orgheadline140">Emacs Lisp</h4>
+<div class="outline-text-4" id="text-orgheadline140">
+</div><div id="outline-container-orgheadline135" class="outline-5">
+<h5 id="orgheadline135">Eldoc</h5>
+<div class="outline-text-5" id="text-orgheadline135">
 <p>
 Eldoc provides minibuffer hints when working with Emacs Lisp.
 </p>
@@ -5630,9 +5667,9 @@ Eldoc provides minibuffer hints when working with Emacs Lisp.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline135" class="outline-5">
-<h5 id="orgheadline135"><a id="ID-99ac7ddb-08ef-46c4-8fa8-8a45164f9ef4"></a>Refactoring&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
-<div class="outline-text-5" id="text-orgheadline135">
+<div id="outline-container-orgheadline136" class="outline-5">
+<h5 id="orgheadline136"><a id="ID-99ac7ddb-08ef-46c4-8fa8-8a45164f9ef4"></a>Refactoring&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
+<div class="outline-text-5" id="text-orgheadline136">
 <p>
 More things that I need to get used to&#x2026;
 </p>
@@ -5667,9 +5704,9 @@ More things that I need to get used to&#x2026;
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline136" class="outline-5">
-<h5 id="orgheadline136">Jumping to code</h5>
-<div class="outline-text-5" id="text-orgheadline136">
+<div id="outline-container-orgheadline137" class="outline-5">
+<h5 id="orgheadline137">Jumping to code</h5>
+<div class="outline-text-5" id="text-orgheadline137">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(define-key emacs-lisp-mode-map (kbd <span class="org-string">"C-c ."</span>) 'find-function-at-point)
@@ -5678,9 +5715,9 @@ More things that I need to get used to&#x2026;
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline137" class="outline-5">
-<h5 id="orgheadline137">Sorting</h5>
-<div class="outline-text-5" id="text-orgheadline137">
+<div id="outline-container-orgheadline138" class="outline-5">
+<h5 id="orgheadline138">Sorting</h5>
+<div class="outline-text-5" id="text-orgheadline138">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">  (<span class="org-keyword">defun</span> <span class="org-function-name">my/sort-sexps-in-region</span> (beg end)
@@ -5713,9 +5750,9 @@ More things that I need to get used to&#x2026;
 </div>
 </div>
 
-<div id="outline-container-orgheadline138" class="outline-5">
-<h5 id="orgheadline138">Evaluation</h5>
-<div class="outline-text-5" id="text-orgheadline138">
+<div id="outline-container-orgheadline139" class="outline-5">
+<h5 id="orgheadline139">Evaluation</h5>
+<div class="outline-text-5" id="text-orgheadline139">
 <p>
 Borrowed from Steve Purcell's config. This pretty-prints the results.
 </p>
@@ -5737,9 +5774,9 @@ Borrowed from Steve Purcell's config. This pretty-prints the results.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline140" class="outline-4">
-<h4 id="orgheadline140">Snippets</h4>
-<div class="outline-text-4" id="text-orgheadline140">
+<div id="outline-container-orgheadline141" class="outline-4">
+<h4 id="orgheadline141">Snippets</h4>
+<div class="outline-text-4" id="text-orgheadline141">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">yasnippet</span>
@@ -5895,9 +5932,9 @@ Because
 </div>
 </div>
 
-<div id="outline-container-orgheadline141" class="outline-4">
-<h4 id="orgheadline141">Show column number</h4>
-<div class="outline-text-4" id="text-orgheadline141">
+<div id="outline-container-orgheadline142" class="outline-4">
+<h4 id="orgheadline142">Show column number</h4>
+<div class="outline-text-4" id="text-orgheadline142">
 <p>
 I sometimes need to know where I am in a line.
 </p>
@@ -5909,9 +5946,9 @@ I sometimes need to know where I am in a line.
 </div>
 </div>
 
-<div id="outline-container-orgheadline142" class="outline-4">
-<h4 id="orgheadline142">Don't show whitespace in diff, but show context</h4>
-<div class="outline-text-4" id="text-orgheadline142">
+<div id="outline-container-orgheadline143" class="outline-4">
+<h4 id="orgheadline143">Don't show whitespace in diff, but show context</h4>
+<div class="outline-text-4" id="text-orgheadline143">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">setq</span> vc-diff-switches '(<span class="org-string">"-b"</span> <span class="org-string">"-B"</span> <span class="org-string">"-u"</span>))
@@ -5920,9 +5957,9 @@ I sometimes need to know where I am in a line.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline143" class="outline-4">
-<h4 id="orgheadline143">Javascript</h4>
-<div class="outline-text-4" id="text-orgheadline143">
+<div id="outline-container-orgheadline144" class="outline-4">
+<h4 id="orgheadline144">Javascript</h4>
+<div class="outline-text-4" id="text-orgheadline144">
 <p>
 I like js2-mode.
 </p>
@@ -6064,9 +6101,9 @@ And the rest of the js2 config:
 </div>
 </div>
 
-<div id="outline-container-orgheadline144" class="outline-4">
-<h4 id="orgheadline144">HTML</h4>
-<div class="outline-text-4" id="text-orgheadline144">
+<div id="outline-container-orgheadline145" class="outline-4">
+<h4 id="orgheadline145">HTML</h4>
+<div class="outline-text-4" id="text-orgheadline145">
 <p>
 Convenience function for getting rid of annoying spans
 offby1 says there's (setq nxml-sexp-element-flag t)
@@ -6117,8 +6154,8 @@ offby1 says there's (setq nxml-sexp-element-flag t)
 </div>
 </div>
 
-<div id="outline-container-orgheadline146" class="outline-4">
-<h4 id="magit"><a id="orgheadline146"></a><a id="o2b:9a42a292-7b75-4c7f-8da2-7a0d8c22d0c6"></a>Magit - nice git interface</h4>
+<div id="outline-container-orgheadline147" class="outline-4">
+<h4 id="magit"><a id="orgheadline147"></a><a id="o2b:9a42a292-7b75-4c7f-8da2-7a0d8c22d0c6"></a>Magit - nice git interface</h4>
 <div class="outline-text-4" id="text-magit">
 <p>
 <a id="orgtarget7"></a>
@@ -6229,13 +6266,13 @@ options to add at the end of the command, but that can wait for another time (or
 </p>
 </div>
 
-<div id="outline-container-orgheadline145" class="outline-5">
-<h5 id="orgheadline145"><span class="todo TODO">TODO</span> Make this better by adding a post command options variable</h5>
+<div id="outline-container-orgheadline146" class="outline-5">
+<h5 id="orgheadline146"><span class="todo TODO">TODO</span> Make this better by adding a post command options variable</h5>
 </div>
 </div>
-<div id="outline-container-orgheadline147" class="outline-4">
-<h4 id="orgheadline147">git-messenger - shows commit message</h4>
-<div class="outline-text-4" id="text-orgheadline147">
+<div id="outline-container-orgheadline148" class="outline-4">
+<h4 id="orgheadline148">git-messenger - shows commit message</h4>
+<div class="outline-text-4" id="text-orgheadline148">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">git-messenger</span>
@@ -6245,9 +6282,9 @@ options to add at the end of the command, but that can wait for another time (or
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline148" class="outline-4">
-<h4 id="orgheadline148">Tag files</h4>
-<div class="outline-text-4" id="text-orgheadline148">
+<div id="outline-container-orgheadline149" class="outline-4">
+<h4 id="orgheadline149">Tag files</h4>
+<div class="outline-text-4" id="text-orgheadline149">
 <p>
 I don't often use a TAGS file, but when I do, I don't want to have
 to set my tags file per project. I search for it in the directory
@@ -6277,9 +6314,9 @@ tree instead.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline149" class="outline-4">
-<h4 id="orgheadline149">Projects</h4>
-<div class="outline-text-4" id="text-orgheadline149">
+<div id="outline-container-orgheadline150" class="outline-4">
+<h4 id="orgheadline150">Projects</h4>
+<div class="outline-text-4" id="text-orgheadline150">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">projectile</span>
@@ -6302,9 +6339,9 @@ tree instead.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline150" class="outline-4">
-<h4 id="orgheadline150">Exploring MELPA recipes</h4>
-<div class="outline-text-4" id="text-orgheadline150">
+<div id="outline-container-orgheadline151" class="outline-4">
+<h4 id="orgheadline151">Exploring MELPA recipes</h4>
+<div class="outline-text-4" id="text-orgheadline151">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"></pre>
@@ -6312,9 +6349,9 @@ tree instead.
 </div>
 </div>
 
-<div id="outline-container-orgheadline151" class="outline-4">
-<h4 id="orgheadline151">Ruby</h4>
-<div class="outline-text-4" id="text-orgheadline151">
+<div id="outline-container-orgheadline152" class="outline-4">
+<h4 id="orgheadline152">Ruby</h4>
+<div class="outline-text-4" id="text-orgheadline152">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">rinari</span> <span class="org-builtin">:ensure</span> t <span class="org-builtin">:defer</span> t)
@@ -6365,9 +6402,9 @@ SASS
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline152" class="outline-4">
-<h4 id="orgheadline152">Skewer</h4>
-<div class="outline-text-4" id="text-orgheadline152">
+<div id="outline-container-orgheadline153" class="outline-4">
+<h4 id="orgheadline153">Skewer</h4>
+<div class="outline-text-4" id="text-orgheadline153">
 <p>
 This lets you send HTML, CSS, and Javascript fragments to Google
 Chrome. You may need to start Chrome with <code>chrome
@@ -6385,9 +6422,9 @@ with HTTPS sites.
 </div>
 </div>
 
-<div id="outline-container-orgheadline153" class="outline-4">
-<h4 id="orgheadline153">Autocomplete</h4>
-<div class="outline-text-4" id="text-orgheadline153">
+<div id="outline-container-orgheadline154" class="outline-4">
+<h4 id="orgheadline154">Autocomplete</h4>
+<div class="outline-text-4" id="text-orgheadline154">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">company</span>
@@ -6398,9 +6435,9 @@ with HTTPS sites.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline154" class="outline-4">
-<h4 id="orgheadline154">Tern - for Javascript</h4>
-<div class="outline-text-4" id="text-orgheadline154">
+<div id="outline-container-orgheadline155" class="outline-4">
+<h4 id="orgheadline155">Tern - for Javascript</h4>
+<div class="outline-text-4" id="text-orgheadline155">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">tern</span>
@@ -6421,9 +6458,9 @@ with HTTPS sites.
 </div>
 </div>
 
-<div id="outline-container-orgheadline156" class="outline-3">
-<h3 id="orgheadline156">Internet Relay Chat</h3>
-<div class="outline-text-3" id="text-orgheadline156">
+<div id="outline-container-orgheadline157" class="outline-3">
+<h3 id="orgheadline157">Internet Relay Chat</h3>
+<div class="outline-text-3" id="text-orgheadline157">
 <p>
 IRC is a great way to hang out with other Emacs geeks.
 </p>
@@ -6457,11 +6494,11 @@ IRC is a great way to hang out with other Emacs geeks.
 </div>
 </div>
 
-<div id="outline-container-orgheadline163" class="outline-3">
-<h3 id="orgheadline163">Self-tracking, statistics, and other data transformations</h3>
-<div class="outline-text-3" id="text-orgheadline163">
-</div><div id="outline-container-orgheadline157" class="outline-4">
-<h4 id="clock-in"><a id="orgheadline157"></a>Quantified Awesome</h4>
+<div id="outline-container-orgheadline164" class="outline-3">
+<h3 id="orgheadline164">Self-tracking, statistics, and other data transformations</h3>
+<div class="outline-text-3" id="text-orgheadline164">
+</div><div id="outline-container-orgheadline158" class="outline-4">
+<h4 id="clock-in"><a id="orgheadline158"></a>Quantified Awesome</h4>
 <div class="outline-text-4" id="text-clock-in">
 <p>
 <a id="orgtarget8"></a>
@@ -6541,8 +6578,8 @@ IRC is a great way to hang out with other Emacs geeks.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline158" class="outline-4">
-<h4 id="compare-time"><a id="orgheadline158"></a>Compare times and effort estimates</h4>
+<div id="outline-container-orgheadline159" class="outline-4">
+<h4 id="compare-time"><a id="orgheadline159"></a>Compare times and effort estimates</h4>
 <div class="outline-text-4" id="text-compare-time">
 <p>
 <a id="orgtarget9"></a>
@@ -6575,9 +6612,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 
-<div id="outline-container-orgheadline159" class="outline-4">
-<h4 id="orgheadline159">R</h4>
-<div class="outline-text-4" id="text-orgheadline159">
+<div id="outline-container-orgheadline160" class="outline-4">
+<h4 id="orgheadline160">R</h4>
+<div class="outline-text-4" id="text-orgheadline160">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">ess-site</span>
@@ -6588,9 +6625,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 
-<div id="outline-container-orgheadline160" class="outline-4">
-<h4 id="orgheadline160">Workrave</h4>
-<div class="outline-text-4" id="text-orgheadline160">
+<div id="outline-container-orgheadline161" class="outline-4">
+<h4 id="orgheadline161">Workrave</h4>
+<div class="outline-text-4" id="text-orgheadline161">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">    (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/workrave-file</span> (expand-file-name <span class="org-string">".\\Workrave\\historystats"</span> (getenv <span class="org-string">"AppData"</span>)))
@@ -6625,9 +6662,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline161" class="outline-4">
-<h4 id="orgheadline161">Blog</h4>
-<div class="outline-text-4" id="text-orgheadline161">
+<div id="outline-container-orgheadline162" class="outline-4">
+<h4 id="orgheadline162">Blog</h4>
+<div class="outline-text-4" id="text-orgheadline162">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/strip-blog-share</span> ()
@@ -6642,9 +6679,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline162" class="outline-4">
-<h4 id="orgheadline162">Artrage</h4>
-<div class="outline-text-4" id="text-orgheadline162">
+<div id="outline-container-orgheadline163" class="outline-4">
+<h4 id="orgheadline163">Artrage</h4>
+<div class="outline-text-4" id="text-orgheadline163">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">        (<span class="org-keyword">defun</span> <span class="org-function-name">my/artrage-export-png</span> (directory <span class="org-type">&amp;optional</span> prefix)
@@ -6668,12 +6705,12 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline168" class="outline-3">
-<h3 id="orgheadline168">Workarounds</h3>
-<div class="outline-text-3" id="text-orgheadline168">
-</div><div id="outline-container-orgheadline164" class="outline-4">
-<h4 id="orgheadline164">GnuTLS on Windows</h4>
-<div class="outline-text-4" id="text-orgheadline164">
+<div id="outline-container-orgheadline169" class="outline-3">
+<h3 id="orgheadline169">Workarounds</h3>
+<div class="outline-text-3" id="text-orgheadline169">
+</div><div id="outline-container-orgheadline165" class="outline-4">
+<h4 id="orgheadline165">GnuTLS on Windows</h4>
+<div class="outline-text-4" id="text-orgheadline165">
 <p>
 <a href="http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en.html">http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en.html</a> has lots of tips.
 </p>
@@ -6686,9 +6723,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 
-<div id="outline-container-orgheadline165" class="outline-4">
-<h4 id="orgheadline165">color-theme sometimes comes across lists. Odd!</h4>
-<div class="outline-text-4" id="text-orgheadline165">
+<div id="outline-container-orgheadline166" class="outline-4">
+<h4 id="orgheadline166">color-theme sometimes comes across lists. Odd!</h4>
+<div class="outline-text-4" id="text-orgheadline166">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defadvice</span> <span class="org-function-name">face-attribute</span> (around sacha activate)
@@ -6699,9 +6736,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 
-<div id="outline-container-orgheadline166" class="outline-4">
-<h4 id="orgheadline166">ido-sort-mtime stopped working when I upgraded to Windows 8</h4>
-<div class="outline-text-4" id="text-orgheadline166">
+<div id="outline-container-orgheadline167" class="outline-4">
+<h4 id="orgheadline167">ido-sort-mtime stopped working when I upgraded to Windows 8</h4>
+<div class="outline-text-4" id="text-orgheadline167">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defadvice</span> <span class="org-function-name">ido-sort-mtime</span> (around sacha activate)
@@ -6722,9 +6759,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline167" class="outline-4">
-<h4 id="orgheadline167">Cygwin mogrify doesn't work for me, but ImageMagick does</h4>
-<div class="outline-text-4" id="text-orgheadline167">
+<div id="outline-container-orgheadline168" class="outline-4">
+<h4 id="orgheadline168">Cygwin mogrify doesn't work for me, but ImageMagick does</h4>
+<div class="outline-text-4" id="text-orgheadline168">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;</span><span class="org-comment">(setq eimp-mogrify-program "c:/Program Files/ImageMagick-6.8.3-Q16/mogrify.exe")</span>
@@ -6734,9 +6771,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 
-<div id="outline-container-orgheadline169" class="outline-3">
-<h3 id="orgheadline169">Display</h3>
-<div class="outline-text-3" id="text-orgheadline169">
+<div id="outline-container-orgheadline170" class="outline-3">
+<h3 id="orgheadline170">Display</h3>
+<div class="outline-text-3" id="text-orgheadline170">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sanityinc/adjust-opacity</span> (frame incr)
@@ -6752,9 +6789,9 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 </div>
 </div>
 
-<div id="outline-container-orgheadline170" class="outline-3">
-<h3 id="orgheadline170">Web browsing</h3>
-<div class="outline-text-3" id="text-orgheadline170">
+<div id="outline-container-orgheadline171" class="outline-3">
+<h3 id="orgheadline171">Web browsing</h3>
+<div class="outline-text-3" id="text-orgheadline171">
 <p>
 Minor tweak for Firefox on Windows. Otherwise I get "Searching for
 program" "permission denied" "firefox".
@@ -6768,9 +6805,9 @@ program" "permission denied" "firefox".
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline171" class="outline-3">
-<h3 id="orgheadline171">Clipboard</h3>
-<div class="outline-text-3" id="text-orgheadline171">
+<div id="outline-container-orgheadline172" class="outline-3">
+<h3 id="orgheadline172">Clipboard</h3>
+<div class="outline-text-3" id="text-orgheadline172">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">clipmon</span>
@@ -6780,9 +6817,9 @@ program" "permission denied" "firefox".
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline172" class="outline-3">
-<h3 id="orgheadline172">Search</h3>
-<div class="outline-text-3" id="text-orgheadline172">
+<div id="outline-container-orgheadline173" class="outline-3">
+<h3 id="orgheadline173">Search</h3>
+<div class="outline-text-3" id="text-orgheadline173">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">engine-mode</span>
@@ -6800,12 +6837,12 @@ program" "permission denied" "firefox".
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline175" class="outline-3">
-<h3 id="orgheadline175">Mail</h3>
-<div class="outline-text-3" id="text-orgheadline175">
-</div><div id="outline-container-orgheadline173" class="outline-4">
-<h4 id="orgheadline173"><a id="o2b:c696259a-146e-4f47-8828-e7ca45cc2215"></a>Gnus</h4>
-<div class="outline-text-4" id="text-orgheadline173">
+<div id="outline-container-orgheadline176" class="outline-3">
+<h3 id="orgheadline176">Mail</h3>
+<div class="outline-text-3" id="text-orgheadline176">
+</div><div id="outline-container-orgheadline174" class="outline-4">
+<h4 id="orgheadline174"><a id="o2b:c696259a-146e-4f47-8828-e7ca45cc2215"></a>Gnus</h4>
+<div class="outline-text-4" id="text-orgheadline174">
 <p>
 I use Gmail for my mail because it:
 </p>
@@ -6968,9 +7005,9 @@ Get smarter about filtering depending on what I reed or mark. I use <code>!</cod
 </div>
 </div>
 
-<div id="outline-container-orgheadline174" class="outline-4">
-<h4 id="orgheadline174">Notmuch</h4>
-<div class="outline-text-4" id="text-orgheadline174">
+<div id="outline-container-orgheadline175" class="outline-4">
+<h4 id="orgheadline175">Notmuch</h4>
+<div class="outline-text-4" id="text-orgheadline175">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">setq</span> notmuch-message-headers '(<span class="org-string">"Subject"</span> <span class="org-string">"To"</span> <span class="org-string">"Cc"</span> <span class="org-string">"Date"</span> <span class="org-string">"Reply-To"</span>))
@@ -6979,9 +7016,9 @@ Get smarter about filtering depending on what I reed or mark. I use <code>!</cod
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline176" class="outline-3">
-<h3 id="orgheadline176">Ledger (personal finance)</h3>
-<div class="outline-text-3" id="text-orgheadline176">
+<div id="outline-container-orgheadline177" class="outline-3">
+<h3 id="orgheadline177">Ledger (personal finance)</h3>
+<div class="outline-text-3" id="text-orgheadline177">
 <p>
 Make it easier to review my credit card transactions
 </p>
@@ -7044,9 +7081,9 @@ Make it easier to review my credit card transactions
 </div>
 </div>
 
-<div id="outline-container-orgheadline177" class="outline-3">
-<h3 id="orgheadline177">Emacs server</h3>
-<div class="outline-text-3" id="text-orgheadline177">
+<div id="outline-container-orgheadline178" class="outline-3">
+<h3 id="orgheadline178">Emacs server</h3>
+<div class="outline-text-3" id="text-orgheadline178">
 <p>
 This permits the use of <code>emacsclient</code>, <code>emacsclientw</code>, and <code>org-protocol</code>.
 </p>
@@ -7059,9 +7096,9 @@ This permits the use of <code>emacsclient</code>, <code>emacsclientw</code>, and
 </div>
 </div>
 
-<div id="outline-container-orgheadline178" class="outline-3">
-<h3 id="orgheadline178">Menus</h3>
-<div class="outline-text-3" id="text-orgheadline178">
+<div id="outline-container-orgheadline179" class="outline-3">
+<h3 id="orgheadline179">Menus</h3>
+<div class="outline-text-3" id="text-orgheadline179">
 <p>
 Handy when I'm in tablet mode.
 </p>
@@ -7077,15 +7114,15 @@ Handy when I'm in tablet mode.
 </div>
 
 
-<div id="outline-container-orgheadline186" class="outline-3">
-<h3 id="orgheadline186">Advanced stuff / things I tend to forget about</h3>
-<div class="outline-text-3" id="text-orgheadline186">
-</div><div id="outline-container-orgheadline180" class="outline-4">
-<h4 id="orgheadline180">Editing multiple things</h4>
-<div class="outline-text-4" id="text-orgheadline180">
-</div><div id="outline-container-orgheadline179" class="outline-5">
-<h5 id="orgheadline179"><a id="o2b:61b0ffae-669b-4360-98fd-a6f0ea6f018e"></a>Multiple cursors mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
-<div class="outline-text-5" id="text-orgheadline179">
+<div id="outline-container-orgheadline187" class="outline-3">
+<h3 id="orgheadline187">Advanced stuff / things I tend to forget about</h3>
+<div class="outline-text-3" id="text-orgheadline187">
+</div><div id="outline-container-orgheadline181" class="outline-4">
+<h4 id="orgheadline181">Editing multiple things</h4>
+<div class="outline-text-4" id="text-orgheadline181">
+</div><div id="outline-container-orgheadline180" class="outline-5">
+<h5 id="orgheadline180"><a id="o2b:61b0ffae-669b-4360-98fd-a6f0ea6f018e"></a>Multiple cursors mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h5>
+<div class="outline-text-5" id="text-orgheadline180">
 <p>
 I often define keyboard macros to process multiple lines in a region.
 Maybe <code>multiple-cursors</code> will be an even better way. Looks promising!
@@ -7126,9 +7163,9 @@ Thanks to <a href="http://irreal.org/blog/?p=1733">Irreal</a> and <a href="http:
 </div>
 </div>
 
-<div id="outline-container-orgheadline181" class="outline-4">
-<h4 id="orgheadline181"><a id="ID-e9147cb0-bad0-421c-9396-4f9045d6ebbb"></a>Edit list&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
-<div class="outline-text-4" id="text-orgheadline181">
+<div id="outline-container-orgheadline182" class="outline-4">
+<h4 id="orgheadline182"><a id="ID-e9147cb0-bad0-421c-9396-4f9045d6ebbb"></a>Edit list&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
+<div class="outline-text-4" id="text-orgheadline182">
 <p>
 M-x edit-list makes it easier to edit an Emacs Lisp list.
 </p>
@@ -7143,40 +7180,30 @@ M-x edit-list makes it easier to edit an Emacs Lisp list.
 </div>
 </div>
 
-<div id="outline-container-orgheadline182" class="outline-4">
-<h4 id="orgheadline182"><a id="ID-56f173e7-d2a2-4589-84d7-c6b435c8a5f8"></a>Ace Jump mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
-<div class="outline-text-4" id="text-orgheadline182">
+<div id="outline-container-orgheadline183" class="outline-4">
+<h4 id="orgheadline183"><a id="ID-56f173e7-d2a2-4589-84d7-c6b435c8a5f8"></a>Quickly jump to positions</h4>
+<div class="outline-text-4" id="text-orgheadline183">
 <p>
 Quickly jump to a position in the current view.
 </p>
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">ace-jump-mode</span>
-  <span class="org-builtin">:ensure</span> t)
-<span class="org-comment-delimiter">;; </span><span class="org-comment">I use the jj key-chord for this; see the definitions for key-chord</span>
-</pre>
-</div>
-
-<p>
-And ace-jump-zap&#x2026;
-</p>
-
-<div class="org-src-container">
-
-<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">ace-jump-zap</span>
-  <span class="org-builtin">:ensure</span> t <span class="org-builtin">:defer</span> t
+<pre class="src src-emacs-lisp">  (<span class="org-keyword">use-package</span> <span class="org-constant">avy</span> <span class="org-builtin">:ensure</span> t)
+  <span class="org-comment-delimiter">;; </span><span class="org-comment">I use the jj key-chord for this; see the definitions for key-chord</span>
+(<span class="org-keyword">use-package</span> <span class="org-constant">avy-zap</span>
+  <span class="org-builtin">:ensure</span> t
   <span class="org-builtin">:bind</span>
-  ((<span class="org-string">"M-z"</span> . ace-jump-zap-up-to-char-dwim)
-   (<span class="org-string">"M-Z"</span> . ace-jump-zap-to-char-dwim)))
+  ((<span class="org-string">"M-z"</span> . avy-zap-up-to-char-dwim)
+   (<span class="org-string">"M-Z"</span> . avy-zap-to-char-dwim)))
 </pre>
 </div>
 </div>
 </div>
 
-<div id="outline-container-orgheadline183" class="outline-4">
-<h4 id="orgheadline183">Deleting things</h4>
-<div class="outline-text-4" id="text-orgheadline183">
+<div id="outline-container-orgheadline184" class="outline-4">
+<h4 id="orgheadline184">Deleting things</h4>
+<div class="outline-text-4" id="text-orgheadline184">
 <p>
 From Steve Purcell, who linked to <a href="http://www.emacswiki.org/emacs/ZapToISearch">http://www.emacswiki.org/emacs/ZapToISearch</a>
 </p>
@@ -7213,13 +7240,13 @@ From Steve Purcell, who linked to <a href="http://www.emacswiki.org/emacs/ZapToI
 </pre>
 </div>
 </div>
-<div id="outline-container-orgheadline184" class="outline-5">
-<h5 id="orgheadline184"><span class="todo TODO">TODO</span> Get zap-to-isearch to work with helm-swoop</h5>
+<div id="outline-container-orgheadline185" class="outline-5">
+<h5 id="orgheadline185"><span class="todo TODO">TODO</span> Get zap-to-isearch to work with helm-swoop</h5>
 </div>
 </div>
-<div id="outline-container-orgheadline185" class="outline-4">
-<h4 id="orgheadline185">Network: TRAMP and editing files over SSH</h4>
-<div class="outline-text-4" id="text-orgheadline185">
+<div id="outline-container-orgheadline186" class="outline-4">
+<h4 id="orgheadline186">Network: TRAMP and editing files over SSH</h4>
+<div class="outline-text-4" id="text-orgheadline186">
 <p>
 Emacs lets you edit files on remote servers, which is pretty darn
 cool. On Windows, these things help a little.
@@ -7236,12 +7263,12 @@ cool. On Windows, these things help a little.
 </div>
 </div>
 
-<div id="outline-container-orgheadline188" class="outline-3">
-<h3 id="orgheadline188">Other nifty Emacs things I want to learn</h3>
-<div class="outline-text-3" id="text-orgheadline188">
-</div><div id="outline-container-orgheadline187" class="outline-4">
-<h4 id="orgheadline187">Smartparens mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
-<div class="outline-text-4" id="text-orgheadline187">
+<div id="outline-container-orgheadline189" class="outline-3">
+<h3 id="orgheadline189">Other nifty Emacs things I want to learn</h3>
+<div class="outline-text-3" id="text-orgheadline189">
+</div><div id="outline-container-orgheadline188" class="outline-4">
+<h4 id="orgheadline188">Smartparens mode&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></h4>
+<div class="outline-text-4" id="text-orgheadline188">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">smartparens</span>
@@ -7334,9 +7361,9 @@ cool. On Windows, these things help a little.
 </div>
 </div>
 
-<div id="outline-container-orgheadline189" class="outline-3">
-<h3 id="orgheadline189">Weather forecast</h3>
-<div class="outline-text-3" id="text-orgheadline189">
+<div id="outline-container-orgheadline190" class="outline-3">
+<h3 id="orgheadline190">Weather forecast</h3>
+<div class="outline-text-3" id="text-orgheadline190">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">forecast</span>
@@ -7350,9 +7377,9 @@ cool. On Windows, these things help a little.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline190" class="outline-3">
-<h3 id="orgheadline190">Encryption</h3>
-<div class="outline-text-3" id="text-orgheadline190">
+<div id="outline-container-orgheadline191" class="outline-3">
+<h3 id="orgheadline191">Encryption</h3>
+<div class="outline-text-3" id="text-orgheadline191">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">setq</span> epa-file-encrypt-to '(<span class="org-string">"sacha@sachachua.com"</span>))
@@ -7360,9 +7387,9 @@ cool. On Windows, these things help a little.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline191" class="outline-3">
-<h3 id="orgheadline191"><a id="o2b:39fb2260-d161-4a78-929c-5443f551a5fe"></a><span class="done DONE">DONE</span> Scan ~/bin and turn the scripts into interactive commands</h3>
-<div class="outline-text-3" id="text-orgheadline191">
+<div id="outline-container-orgheadline192" class="outline-3">
+<h3 id="orgheadline192"><a id="o2b:39fb2260-d161-4a78-929c-5443f551a5fe"></a><span class="done DONE">DONE</span> Scan ~/bin and turn the scripts into interactive commands</h3>
+<div class="outline-text-3" id="text-orgheadline192">
 <p>
 I want to automate little things on my computer so that I don't have
 to look up command lines or stitch together different applications.
@@ -7423,8 +7450,8 @@ Let's see how that goes!
 </div>
 
 
-<div id="outline-container-orgheadline193" class="outline-2">
-<h2 id="links"><a id="orgheadline193"></a>Other cool configs you may want to check out</h2>
+<div id="outline-container-orgheadline194" class="outline-2">
+<h2 id="links"><a id="orgheadline194"></a>Other cool configs you may want to check out</h2>
 <div class="outline-text-2" id="text-links">
 <p>
 <a id="orgtarget10"></a>
@@ -7440,12 +7467,12 @@ Let's see how that goes!
 </div>
 </div>
 
-<div id="outline-container-orgheadline195" class="outline-2">
-<h2 id="orgheadline195">Temporary workarounds</h2>
-<div class="outline-text-2" id="text-orgheadline195">
-</div><div id="outline-container-orgheadline194" class="outline-3">
-<h3 id="orgheadline194">Tablet clicks count as drags</h3>
-<div class="outline-text-3" id="text-orgheadline194">
+<div id="outline-container-orgheadline196" class="outline-2">
+<h2 id="orgheadline196">Temporary workarounds</h2>
+<div class="outline-text-2" id="text-orgheadline196">
+</div><div id="outline-container-orgheadline195" class="outline-3">
+<h3 id="orgheadline195">Tablet clicks count as drags</h3>
+<div class="outline-text-3" id="text-orgheadline195">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">widget-button-click</span> (event)
@@ -7558,12 +7585,12 @@ Let's see how that goes!
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline231" class="outline-2">
-<h2 id="orgheadline231">Inactive/infrequent things</h2>
-<div class="outline-text-2" id="text-orgheadline231">
-</div><div id="outline-container-orgheadline196" class="outline-3">
-<h3 id="orgheadline196">Org - mapping blog posts and image URLs from bulk exports</h3>
-<div class="outline-text-3" id="text-orgheadline196">
+<div id="outline-container-orgheadline232" class="outline-2">
+<h2 id="orgheadline232">Inactive/infrequent things</h2>
+<div class="outline-text-2" id="text-orgheadline232">
+</div><div id="outline-container-orgheadline197" class="outline-3">
+<h3 id="orgheadline197">Org - mapping blog posts and image URLs from bulk exports</h3>
+<div class="outline-text-3" id="text-orgheadline197">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-map-blog-and-image-urls</span> ()
@@ -7591,9 +7618,9 @@ Let's see how that goes!
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline197" class="outline-3">
-<h3 id="orgheadline197">Transcript editing</h3>
-<div class="outline-text-3" id="text-orgheadline197">
+<div id="outline-container-orgheadline198" class="outline-3">
+<h3 id="orgheadline198">Transcript editing</h3>
+<div class="outline-text-3" id="text-orgheadline198">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">emms</span>
@@ -7659,9 +7686,9 @@ Let's see how that goes!
 </div>
 </div>
 
-<div id="outline-container-orgheadline198" class="outline-3">
-<h3 id="orgheadline198">Japanese</h3>
-<div class="outline-text-3" id="text-orgheadline198">
+<div id="outline-container-orgheadline199" class="outline-3">
+<h3 id="orgheadline199">Japanese</h3>
+<div class="outline-text-3" id="text-orgheadline199">
 <p>
 Got sdic from <a href="http://namazu.org/~tsuchiya/sdic/">http://namazu.org/~tsuchiya/sdic/</a> . Attempting to get this to work on Windows&#x2026;
 </p>
@@ -7685,8 +7712,8 @@ Got sdic from <a href="http://namazu.org/~tsuchiya/sdic/">http://namazu.org/~tsu
 </div>
 </div>
 
-<div id="outline-container-orgheadline199" class="outline-3">
-<h3 id="beeminder"><a id="orgheadline199"></a>Beeminder</h3>
+<div id="outline-container-orgheadline200" class="outline-3">
+<h3 id="beeminder"><a id="orgheadline200"></a>Beeminder</h3>
 <div class="outline-text-3" id="text-beeminder">
 <p>
 <a id="orgtarget11"></a>
@@ -7726,9 +7753,9 @@ And this loads the beeminder code:
 </div>
 </div>
 
-<div id="outline-container-orgheadline200" class="outline-3">
-<h3 id="orgheadline200">Strike through DONE headlines</h3>
-<div class="outline-text-3" id="text-orgheadline200">
+<div id="outline-container-orgheadline201" class="outline-3">
+<h3 id="orgheadline201">Strike through DONE headlines</h3>
+<div class="outline-text-3" id="text-orgheadline201">
 <p>
 I wanted a quick way to visually distinguish DONE tasks from tasks I
 still need to do. This <a href="http://lists.gnu.org/archive/html/emacs-orgmode/2007-03/msg00179.html">handy snippet from the Emacs Org-mode mailing list</a> does the trick by striking through the headlines for DONE tasks.
@@ -7749,9 +7776,9 @@ still need to do. This <a href="http://lists.gnu.org/archive/html/emacs-orgmode/
 </div>
 </div>
 
-<div id="outline-container-orgheadline201" class="outline-3">
-<h3 id="orgheadline201">Rainbow delimiters</h3>
-<div class="outline-text-3" id="text-orgheadline201">
+<div id="outline-container-orgheadline202" class="outline-3">
+<h3 id="orgheadline202">Rainbow delimiters</h3>
+<div class="outline-text-3" id="text-orgheadline202">
 <p>
 I don't automatically turn this on because I think it slows things down a little.
 </p>
@@ -7764,9 +7791,9 @@ I don't automatically turn this on because I think it slows things down a little
 </div>
 </div>
 
-<div id="outline-container-orgheadline202" class="outline-3">
-<h3 id="orgheadline202">Drupal</h3>
-<div class="outline-text-3" id="text-orgheadline202">
+<div id="outline-container-orgheadline203" class="outline-3">
+<h3 id="orgheadline203">Drupal</h3>
+<div class="outline-text-3" id="text-orgheadline203">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">define-derived-mode</span> <span class="org-function-name">drupal-mode</span> php-mode <span class="org-string">"Drupal"</span>
@@ -7812,9 +7839,9 @@ I don't automatically turn this on because I think it slows things down a little
 </div>
 
 
-<div id="outline-container-orgheadline203" class="outline-3">
-<h3 id="orgheadline203">Autoconnect to IRC so that I don't forget</h3>
-<div class="outline-text-3" id="text-orgheadline203">
+<div id="outline-container-orgheadline204" class="outline-3">
+<h3 id="orgheadline204">Autoconnect to IRC so that I don't forget</h3>
+<div class="outline-text-3" id="text-orgheadline204">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(erc <span class="org-builtin">:server</span> <span class="org-string">"irc.freenode.net"</span> <span class="org-builtin">:port</span> 6667 <span class="org-builtin">:nick</span> <span class="org-string">"sachac"</span>)
@@ -7823,9 +7850,9 @@ I don't automatically turn this on because I think it slows things down a little
 </div>
 </div>
 
-<div id="outline-container-orgheadline204" class="outline-3">
-<h3 id="orgheadline204">Org - send things to the bottom of the list</h3>
-<div class="outline-text-3" id="text-orgheadline204">
+<div id="outline-container-orgheadline205" class="outline-3">
+<h3 id="orgheadline205">Org - send things to the bottom of the list</h3>
+<div class="outline-text-3" id="text-orgheadline205">
 <p>
 Handy for collecting items together.
 </p>
@@ -7844,9 +7871,9 @@ Handy for collecting items together.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline205" class="outline-3">
-<h3 id="orgheadline205">Time tracking, previous weekly review</h3>
-<div class="outline-text-3" id="text-orgheadline205">
+<div id="outline-container-orgheadline206" class="outline-3">
+<h3 id="orgheadline206">Time tracking, previous weekly review</h3>
+<div class="outline-text-3" id="text-orgheadline206">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">  (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/org-quantified-categories</span>
@@ -7909,9 +7936,9 @@ Handy for collecting items together.
 </div>
 </div>
 
-<div id="outline-container-orgheadline206" class="outline-4">
-<h4 id="orgheadline206">List upcoming tasks so that I can see if I'm overloaded</h4>
-<div class="outline-text-4" id="text-orgheadline206">
+<div id="outline-container-orgheadline207" class="outline-4">
+<h4 id="orgheadline207">List upcoming tasks so that I can see if I'm overloaded</h4>
+<div class="outline-text-4" id="text-orgheadline207">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-summarize-upcoming-week</span> ()
@@ -7992,9 +8019,9 @@ to see which items I'd planned ahead, and which ones were new tasks.
 </div>
 </div>
 
-<div id="outline-container-orgheadline207" class="outline-4">
-<h4 id="orgheadline207">Compare time use</h4>
-<div class="outline-text-4" id="text-orgheadline207">
+<div id="outline-container-orgheadline208" class="outline-4">
+<h4 id="orgheadline208">Compare time use</h4>
+<div class="outline-text-4" id="text-orgheadline208">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/quantified-compare</span> (start1 end1 start2 end2)
@@ -8027,9 +8054,9 @@ to see which items I'd planned ahead, and which ones were new tasks.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline208" class="outline-3">
-<h3 id="orgheadline208">Animation for Emacs chats</h3>
-<div class="outline-text-3" id="text-orgheadline208">
+<div id="outline-container-orgheadline209" class="outline-3">
+<h3 id="orgheadline209">Animation for Emacs chats</h3>
+<div class="outline-text-3" id="text-orgheadline209">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/animate-emacs-chat</span> ()
@@ -8058,9 +8085,9 @@ to see which items I'd planned ahead, and which ones were new tasks.
 </div>
 </div>
 
-<div id="outline-container-orgheadline209" class="outline-3">
-<h3 id="orgheadline209">Idle timer</h3>
-<div class="outline-text-3" id="text-orgheadline209">
+<div id="outline-container-orgheadline210" class="outline-3">
+<h3 id="orgheadline210">Idle timer</h3>
+<div class="outline-text-3" id="text-orgheadline210">
 <p>
 This snippet is from John Wiegley -
 <a href="http://lists.gnu.org/archive/html/emacs-orgmode/2010-03/msg00367.html">http://lists.gnu.org/archive/html/emacs-orgmode/2010-03/msg00367.html</a>.
@@ -8101,9 +8128,9 @@ left.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline210" class="outline-3">
-<h3 id="orgheadline210">Old Flickr/Evernote export</h3>
-<div class="outline-text-3" id="text-orgheadline210">
+<div id="outline-container-orgheadline211" class="outline-3">
+<h3 id="orgheadline211">Old Flickr/Evernote export</h3>
+<div class="outline-text-3" id="text-orgheadline211">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">I don't use these as much now that I have the functions above.</span>
@@ -8144,8 +8171,8 @@ left.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline211" class="outline-3">
-<h3 id="emacsconf2013"><a id="orgheadline211"></a>Presentation code for Emacs Conference</h3>
+<div id="outline-container-orgheadline212" class="outline-3">
+<h3 id="emacsconf2013"><a id="orgheadline212"></a>Presentation code for Emacs Conference</h3>
 <div class="outline-text-3" id="text-emacsconf2013">
 <p>
 <a id="orgtarget12"></a>
@@ -8226,9 +8253,9 @@ left.
 </div>
 </div>
 
-<div id="outline-container-orgheadline212" class="outline-3">
-<h3 id="orgheadline212">Enable minibuffer completion</h3>
-<div class="outline-text-3" id="text-orgheadline212">
+<div id="outline-container-orgheadline213" class="outline-3">
+<h3 id="orgheadline213">Enable minibuffer completion</h3>
+<div class="outline-text-3" id="text-orgheadline213">
 <p>
 <span class="timestamp-wrapper"><span class="timestamp">[2013-03-31 Sun] </span></span> Superseded by ido-hacks?
 </p>
@@ -8247,12 +8274,12 @@ easier to discover commands.
 </div>
 </div>
 
-<div id="outline-container-orgheadline216" class="outline-3">
-<h3 id="orgheadline216">Because I'm trying to use helm instead of ido&#x2026;</h3>
-<div class="outline-text-3" id="text-orgheadline216">
-</div><div id="outline-container-orgheadline213" class="outline-4">
-<h4 id="orgheadline213">Ido-mode: Much better navigationy things</h4>
-<div class="outline-text-4" id="text-orgheadline213">
+<div id="outline-container-orgheadline217" class="outline-3">
+<h3 id="orgheadline217">Because I'm trying to use helm instead of ido&#x2026;</h3>
+<div class="outline-text-3" id="text-orgheadline217">
+</div><div id="outline-container-orgheadline214" class="outline-4">
+<h4 id="orgheadline214">Ido-mode: Much better navigationy things</h4>
+<div class="outline-text-4" id="text-orgheadline214">
 <p>
 <span class="timestamp-wrapper"><span class="timestamp">[2013-03-31 Sun]</span></span>: Let's try using Helm instead.
 </p>
@@ -8289,9 +8316,9 @@ recently-opened files first.
 </div>
 </div>
 
-<div id="outline-container-orgheadline214" class="outline-4">
-<h4 id="orgheadline214">Ido and Org</h4>
-<div class="outline-text-4" id="text-orgheadline214">
+<div id="outline-container-orgheadline215" class="outline-4">
+<h4 id="orgheadline215">Ido and Org</h4>
+<div class="outline-text-4" id="text-orgheadline215">
 <p>
 When I use <code>org-refile</code> to organize my notes, I like seeing the
 latest entries on top. Ido-related and verify-related snippets
@@ -8311,9 +8338,9 @@ refile)" in <a href="http://orgmode.org/worg/org-hacks.html">Org Hacks</a>.
 </div>
 </div>
 
-<div id="outline-container-orgheadline215" class="outline-4">
-<h4 id="orgheadline215">Finding files</h4>
-<div class="outline-text-4" id="text-orgheadline215">
+<div id="outline-container-orgheadline216" class="outline-4">
+<h4 id="orgheadline216">Finding files</h4>
+<div class="outline-text-4" id="text-orgheadline216">
 <p>
 I don't want to think about directory structures, I just want to
 open files.
@@ -8372,9 +8399,9 @@ searches for files within the specified directories.
 </div>
 </div>
 
-<div id="outline-container-orgheadline217" class="outline-3">
-<h3 id="orgheadline217">Keywiz - keyboard quizzes</h3>
-<div class="outline-text-3" id="text-orgheadline217">
+<div id="outline-container-orgheadline218" class="outline-3">
+<h3 id="orgheadline218">Keywiz - keyboard quizzes</h3>
+<div class="outline-text-3" id="text-orgheadline218">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">keywiz</span> <span class="org-builtin">:disabled</span> t)
@@ -8413,9 +8440,9 @@ searches for files within the specified directories.
 </div>
 </div>
 
-<div id="outline-container-orgheadline218" class="outline-3">
-<h3 id="orgheadline218">MobileOrg for Android</h3>
-<div class="outline-text-3" id="text-orgheadline218">
+<div id="outline-container-orgheadline219" class="outline-3">
+<h3 id="orgheadline219">MobileOrg for Android</h3>
+<div class="outline-text-3" id="text-orgheadline219">
 <p>
 I've been playing around with MobileOrg so that I can review my
 agenda and capture notes on my smartphone. My main Org file is too
@@ -8442,9 +8469,9 @@ big to open easily there, though.
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline219" class="outline-3">
-<h3 id="orgheadline219">Encryption</h3>
-<div class="outline-text-3" id="text-orgheadline219">
+<div id="outline-container-orgheadline220" class="outline-3">
+<h3 id="orgheadline220">Encryption</h3>
+<div class="outline-text-3" id="text-orgheadline220">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">require</span> '<span class="org-constant">org-crypt</span>)
@@ -8469,12 +8496,12 @@ big to open easily there, though.
 </div>
 </div>
 
-<div id="outline-container-orgheadline230" class="outline-3">
-<h3 id="orgheadline230">Drawing</h3>
-<div class="outline-text-3" id="text-orgheadline230">
-</div><div id="outline-container-orgheadline220" class="outline-4">
-<h4 id="orgheadline220"><a id="o2b:243ed83f-244f-417d-b251-53a3fef813aa"></a>Digital index piles with Emacs</h4>
-<div class="outline-text-4" id="text-orgheadline220">
+<div id="outline-container-orgheadline231" class="outline-3">
+<h3 id="orgheadline231">Drawing</h3>
+<div class="outline-text-3" id="text-orgheadline231">
+</div><div id="outline-container-orgheadline221" class="outline-4">
+<h4 id="orgheadline221"><a id="o2b:243ed83f-244f-417d-b251-53a3fef813aa"></a>Digital index piles with Emacs</h4>
+<div class="outline-text-4" id="text-orgheadline221">
 <p>
 Somewhat daunted by the prospect of categorizing more than a hundred
 sketches and blog posts for my monthly review, I spent some time
@@ -8767,9 +8794,9 @@ of images. Whee!
 </div>
 
 
-<div id="outline-container-orgheadline221" class="outline-4">
-<h4 id="orgheadline221"><a id="o2b:3ca1d203-722f-42c0-a95a-387dcd6e27bc"></a>Using Emacs to prepare files for external applications like Autodesk Sketchbook Pro</h4>
-<div class="outline-text-4" id="text-orgheadline221">
+<div id="outline-container-orgheadline222" class="outline-4">
+<h4 id="orgheadline222"><a id="o2b:3ca1d203-722f-42c0-a95a-387dcd6e27bc"></a>Using Emacs to prepare files for external applications like Autodesk Sketchbook Pro</h4>
+<div class="outline-text-4" id="text-orgheadline222">
 <p>
 To make it easier to draw using Autodesk Sketchbook Pro on my laptop
 (a Lenovo X220 tablet PC), I've created several templates with
@@ -8782,9 +8809,9 @@ ready.
 </p>
 </div>
 
-<div id="outline-container-orgheadline222" class="outline-5">
-<h5 id="orgheadline222">Index cards</h5>
-<div class="outline-text-5" id="text-orgheadline222">
+<div id="outline-container-orgheadline223" class="outline-5">
+<h5 id="orgheadline223">Index cards</h5>
+<div class="outline-text-5" id="text-orgheadline223">
 <p>
 I've been experimenting with a habit of drawing at least five index
 cards every day. Here's a function that creates five index cards (or a
@@ -9043,9 +9070,9 @@ properly.
 </div>
 
 
-<div id="outline-container-orgheadline223" class="outline-5">
-<h5 id="orgheadline223">Easily backfilling my journal</h5>
-<div class="outline-text-5" id="text-orgheadline223">
+<div id="outline-container-orgheadline224" class="outline-5">
+<h5 id="orgheadline224">Easily backfilling my journal</h5>
+<div class="outline-text-5" id="text-orgheadline224">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/draw-journal-entry</span> (date)
@@ -9111,9 +9138,9 @@ properly.
 </div>
 </div>
 
-<div id="outline-container-orgheadline224" class="outline-5">
-<h5 id="orgheadline224">Rename scanned index cards</h5>
-<div class="outline-text-5" id="text-orgheadline224">
+<div id="outline-container-orgheadline225" class="outline-5">
+<h5 id="orgheadline225">Rename scanned index cards</h5>
+<div class="outline-text-5" id="text-orgheadline225">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">s</span> <span class="org-builtin">:ensure</span> t)
@@ -9225,9 +9252,9 @@ learning outline.
 </div>
 </div>
 
-<div id="outline-container-orgheadline225" class="outline-5">
-<h5 id="orgheadline225">Automatically resize images</h5>
-<div class="outline-text-5" id="text-orgheadline225">
+<div id="outline-container-orgheadline226" class="outline-5">
+<h5 id="orgheadline226">Automatically resize images</h5>
+<div class="outline-text-5" id="text-orgheadline226">
 <p>
 The <code>image+</code> package is handy for displaying the images so
 that they're scaled to the window size.
@@ -9244,9 +9271,9 @@ that they're scaled to the window size.
 </div>
 </div>
 
-<div id="outline-container-orgheadline226" class="outline-5">
-<h5 id="orgheadline226">Get information for sketched books</h5>
-<div class="outline-text-5" id="text-orgheadline226">
+<div id="outline-container-orgheadline227" class="outline-5">
+<h5 id="orgheadline227">Get information for sketched books</h5>
+<div class="outline-text-5" id="text-orgheadline227">
 <p>
 For sketchnotes of books, I set up the filename based on properties in
 my Org Mode tree for that book.
@@ -9282,9 +9309,9 @@ use Emacs Lisp to make setup or processing easier?
 </div>
 
 
-<div id="outline-container-orgheadline227" class="outline-4">
-<h4 id="orgheadline227"><span class="todo TODO">TODO</span> Move to-blog sketches to a staging folder for easier upload</h4>
-<div class="outline-text-4" id="text-orgheadline227">
+<div id="outline-container-orgheadline228" class="outline-4">
+<h4 id="orgheadline228"><span class="todo TODO">TODO</span> Move to-blog sketches to a staging folder for easier upload</h4>
+<div class="outline-text-4" id="text-orgheadline228">
 <p>
 This function moves the specified files from my <code>To blog</code> folder to my
 <code>Selection</code> folder. That makes it easier to upload them to Wordpress
@@ -9317,9 +9344,9 @@ looked into debugging that yet.
 </div>
 </div>
 
-<div id="outline-container-orgheadline228" class="outline-4">
-<h4 id="orgheadline228">Other sketches</h4>
-<div class="outline-text-4" id="text-orgheadline228">
+<div id="outline-container-orgheadline229" class="outline-4">
+<h4 id="orgheadline229">Other sketches</h4>
+<div class="outline-text-4" id="text-orgheadline229">
 <p>
 Based on <a href="http://williamedwardscoder.tumblr.com/post/84505278488/making-image-mosaics">http://williamedwardscoder.tumblr.com/post/84505278488/making-image-mosaics</a>
 Aspect ratio is width / height
@@ -9424,8 +9451,8 @@ xdotool key Return
 </div>
 </div>
 </div>
-<div id="outline-container-orgheadline229" class="outline-4">
-<h4 id="insert-point"><a id="orgheadline229"></a>Sketched books</h4>
+<div id="outline-container-orgheadline230" class="outline-4">
+<h4 id="insert-point"><a id="orgheadline230"></a>Sketched books</h4>
 <div class="outline-text-4" id="text-insert-point">
 <p>
 Convenience functions to make my life easier when sketchnoting books.
@@ -9498,12 +9525,12 @@ Convenience functions to make my life easier when sketchnoting books.
 </div>
 </div>
 
-<div id="outline-container-orgheadline233" class="outline-2">
-<h2 id="orgheadline233">Games</h2>
-<div class="outline-text-2" id="text-orgheadline233">
-</div><div id="outline-container-orgheadline232" class="outline-3">
-<h3 id="orgheadline232">Typing of Emacs</h3>
-<div class="outline-text-3" id="text-orgheadline232">
+<div id="outline-container-orgheadline234" class="outline-2">
+<h2 id="orgheadline234">Games</h2>
+<div class="outline-text-2" id="text-orgheadline234">
+</div><div id="outline-container-orgheadline233" class="outline-3">
+<h3 id="orgheadline233">Typing of Emacs</h3>
+<div class="outline-text-3" id="text-orgheadline233">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">typing</span> <span class="org-builtin">:disabled</span> t
@@ -9520,9 +9547,9 @@ Convenience functions to make my life easier when sketchnoting books.
 </div>
 </div>
 
-<div id="outline-container-orgheadline234" class="outline-2">
-<h2 id="orgheadline234">Speech synthesis (experimental)</h2>
-<div class="outline-text-2" id="text-orgheadline234">
+<div id="outline-container-orgheadline235" class="outline-2">
+<h2 id="orgheadline235">Speech synthesis (experimental)</h2>
+<div class="outline-text-2" id="text-orgheadline235">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defvar</span> <span class="org-variable-name">my/espeak-command</span> <span class="org-string">"c:/program files (x86)/espeak/command_line/espeak.exe"</span>)
@@ -9535,9 +9562,9 @@ Convenience functions to make my life easier when sketchnoting books.
 </div>
 </div>
 
-<div id="outline-container-orgheadline235" class="outline-2">
-<h2 id="orgheadline235">Path</h2>
-<div class="outline-text-2" id="text-orgheadline235">
+<div id="outline-container-orgheadline236" class="outline-2">
+<h2 id="orgheadline236">Path</h2>
+<div class="outline-text-2" id="text-orgheadline236">
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(setenv <span class="org-string">"PATH"</span> (concat <span class="org-string">"\"c:/program files/postgresql/9.3/bin;\""</span> (getenv <span class="org-string">"PATH"</span>)))

@@ -62,7 +62,6 @@ I like using =(setq ...)= more than Customize because I can neatly organize my c
 *** Add package sources
 
 #+BEGIN_SRC emacs-lisp
-(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 (unless (assoc-default "melpa" package-archives)
   (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
 ;  (package-refresh-contents)
@@ -876,6 +875,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       ("t" (my/org-clock-in-and-track-by-name "Tidy") "Tidy")
       ("b" (my/org-clock-in-and-track-by-name "Play Borderlands 2") "Borderlands 2")
       ("l" (my/org-clock-in-and-track-by-name "Eat lunch") "Lunch")
+      ("L" (my/org-clock-in-and-track-by-name "Do laundry") "Laundry")
       ("d" (my/org-clock-in-and-track-by-name "Eat dinner") "Dinner")
       ("e" (my/org-clock-in-and-track-by-name "Process my inbox") "E-mail")
       )
@@ -936,13 +936,12 @@ Now let's set up the actual keychords.
       (key-chord-define-global "uu"     'undo)
       (key-chord-define-global "jr"     'my/goto-random-char-hydra/my/goto-random-char)
       (key-chord-define-global "kk"     'my/org/body)
-      (key-chord-define-global "jj"     'ace-jump-word-mode)
+      (key-chord-define-global "jj"     'avy-goto-word-1)
       (key-chord-define-global "yy"    'my/window-movement/body)
       (key-chord-define-global "jw"     'switch-window)
-      (key-chord-define-global "jl"     'ace-jump-line-mode)
+      (key-chord-define-global "jl"     'avy-goto-line)
       (key-chord-define-global "j."     'join-lines/body)
-      ;; not an ace-jump, but still useful
-      ;(key-chord-define-global "jZ"     'ace-jump-zap-to-char)
+      ;(key-chord-define-global "jZ"     'avy-zap-to-char)
       (key-chord-define-global "FF"     'find-file)
       (key-chord-define-global "qq"     'my/quantified-hydra/body)
       (key-chord-define-global "hh"     'my/key-chord-commands/body)
@@ -1404,6 +1403,8 @@ This quickly adds a same-level heading for the succeeding day.
 		(insert (format-time-string "%Y-%m-%d\n\n" new-date))))
 #+end_src
 **** Templates
+     :PROPERTIES:
+     :END:
 
      I use =org-capture= templates to quickly jot down tasks, ledger
      entries, notes, and other semi-structured pieces of information.
@@ -2186,7 +2187,8 @@ hang of using these more!
     (defun my/org-agenda-skip-scheduled ()
       (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
     (setq org-agenda-custom-commands
-          `(("t" tags-todo "-cooking")
+          `(("t" tags-todo "-cooking"
+             ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
             ("T" tags-todo "TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}" nil "~/Dropbox/agenda/nonroutine.html")
             ("f" tags-todo "fuzzy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
             ("F" tags-todo "highenergy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
@@ -3305,6 +3307,40 @@ So that I can easily add links at point. Formatted as an Org list for now.
    '(add-to-list 'org-protocol-protocol-alist
       '("insert-link" :protocol "insert-link" :function my/org-protocol-insert-link)))
 #+end_src
+
+**** Dired
+     :PROPERTIES:
+     :CUSTOM_ID: org-dired
+     :END:
+
+#+begin_src emacs-lisp
+  (defun my/org-get-links-in-region (beg end)
+    (save-excursion
+      (let (results)
+        (goto-char (min beg end))
+        (while (re-search-forward org-any-link-re (max beg end) t)
+          (add-to-list 'results (org-element-context)))
+        results)))
+
+  (defun my/org-dired-file-links-in-region (beg end)
+    "Display a Dired buffer for the file links in the selected region."
+    (interactive "r")
+    (let ((files
+           (-map
+            (lambda (x)
+              (expand-file-name (org-link-unescape (plist-get (cadr x) :path))))
+            (-filter
+             (lambda (x)
+               (string= (plist-get (cadr x) :type) "file"))
+             (my/org-get-links-in-region beg end)))))
+      (with-current-buffer (get-buffer-create "*Files*")
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (apply 'call-process "ls" nil t nil "-lR" files))
+        (dired-virtual "/")
+        (switch-to-buffer (current-buffer)))))
+#+end_src
+
 
 *** Attachments
 
@@ -5168,7 +5204,7 @@ M-x edit-list makes it easier to edit an Emacs Lisp list.
   :commands edit-list)
 #+end_src
 
-*** Ace Jump mode  :drill:
+*** Quickly jump to positions                                         
     :PROPERTIES:
     :ID:       56f173e7-d2a2-4589-84d7-c6b435c8a5f8
     :DRILL_LAST_INTERVAL: 0.0
@@ -5184,19 +5220,13 @@ M-x edit-list makes it easier to edit an Emacs Lisp list.
 Quickly jump to a position in the current view.
 
 #+begin_src emacs-lisp
-  (use-package ace-jump-mode
-    :ensure t)
+  (use-package avy :ensure t)
   ;; I use the jj key-chord for this; see the definitions for key-chord
-#+end_src
-
-And ace-jump-zap...
-
-#+begin_src emacs-lisp
-(use-package ace-jump-zap
-  :ensure t :defer t
+(use-package avy-zap
+  :ensure t
   :bind
-  (("M-z" . ace-jump-zap-up-to-char-dwim)
-   ("M-Z" . ace-jump-zap-to-char-dwim)))
+  (("M-z" . avy-zap-up-to-char-dwim)
+   ("M-Z" . avy-zap-to-char-dwim)))
 #+end_src
 
 *** Deleting things

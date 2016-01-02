@@ -16,10 +16,9 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(canlock-password "f9fb36b6c1ce6eadca8799d7f777ff3929d312ba" t)
  '(package-selected-packages
    (quote
-    (avy-zap apu org-alert alert flycheck forecast sunshine magit paradox evil-magit pcsv ledger-mode org-gcal elnode yaoddmuse notmuch helm-recoll metaweblog swoop paredit image+ yasnippet web-mode use-package undo-tree switch-window smartparens smart-mode-line skewer-mode rspec-mode robe rinari redshank phi-search-mc org-fstree miniedit mc-extras magit-gh-pulls key-chord jasminejs-mode hydra htmlize helm-projectile helm-descbinds git-messenger expand-region ess erefactor engine-mode emms edit-list company-tern color-theme-solarized coffee-mode bundler auto-compile ace-jump-zap ace-isearch)))
+    (dired-hacks-utils avy-zap apu org-alert alert flycheck forecast sunshine magit paradox evil-magit pcsv ledger-mode org-gcal elnode yaoddmuse notmuch helm-recoll metaweblog swoop paredit image+ yasnippet web-mode use-package undo-tree switch-window smartparens smart-mode-line skewer-mode rspec-mode robe rinari redshank phi-search-mc org-fstree miniedit mc-extras magit-gh-pulls key-chord jasminejs-mode hydra htmlize helm-projectile helm-descbinds git-messenger expand-region ess erefactor engine-mode emms edit-list company-tern color-theme-solarized coffee-mode bundler auto-compile ace-jump-zap ace-isearch)))
  '(paradox-github-token t))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.

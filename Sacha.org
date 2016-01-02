@@ -5923,31 +5923,31 @@ to see which items I'd planned ahead, and which ones were new tasks.
 
 *** Compare time use
 #+begin_src emacs-lisp
-(defun my/quantified-compare (start1 end1 start2 end2)
-  "Return a table comparing the times for START1 - END1 and START2 - END2."
-  (let* ((start2 (org-read-date nil nil "-sat"))
-         (end2 (org-read-date nil nil "+1"))
-         (start1 (org-read-date nil nil "-4sat"))
-         (end1 (org-read-date nil nil "-sat"))
-         (time2 (quantified-summarize-time start2 end2))
-         (time1 (quantified-summarize-time start1 end1))
-         (total2 (* 0.01 (apply '+ (mapcar 'cdr time2))))
-         (total1 (* 0.01 (apply '+ (mapcar 'cdr time1))))
-         (keys (-union (mapcar 'car time1) (mapcar 'car time2))))
-    ;; Build a list comparing the two
-    (append
-    '(("Category" "Period 1 %" "Period 2 %" "Diff" "h/wk"))
-    (mapcar (lambda (key)
-              (list
-               key
-               (format "%.1f" (/ (or (assoc-default key time1) 0) total1))
-               (format "%.1f" (/ (or (assoc-default key time2) 0) total2))
-               (format "%.1f" (- (/ (or (assoc-default key time2) 0) total2)
-                                 (/ (or (assoc-default key time1) 0) total1)))
-               (format "%.1f"
-                       (* (- (/ (or (assoc-default key time2) 0) total2)
-                             (/ (or (assoc-default key time1) 0) total1)) 1.68))
-               )) keys))))
+  (defun my/quantified-compare (start1 end1 start2 end2 &optional categories)
+    "Return a table comparing the times for START1 - END1 and START2 - END2."
+    (let* ((start2 (org-read-date nil nil (or start2 "-sat")))
+           (end2 (org-read-date nil nil (or end2 "+1")))
+           (start1 (org-read-date nil nil (or start1 "-4sat")))
+           (end1 (org-read-date nil nil (or end1 "-sat")))
+           (time2 (quantified-summarize-time start2 end2))
+           (time1 (quantified-summarize-time start1 end1))
+           (total2 (* 0.01 (- (org-time-string-to-seconds end2) (org-time-string-to-seconds start2))))
+           (total1 (* 0.01 (- (org-time-string-to-seconds end1) (org-time-string-to-seconds start1))))
+           (keys (or categories (-union (mapcar 'car time1) (mapcar 'car time2)))))
+      ;; Build a list comparing the two
+      (append
+      '(("Category" "Period 1 %" "Period 2 %" "Diff" "h/wk"))
+      (mapcar (lambda (key)
+                (list
+                 key
+                 (format "%.1f" (/ (or (assoc-default key time1) 0) total1))
+                 (format "%.1f" (/ (or (assoc-default key time2) 0) total2))
+                 (format "%.1f" (- (/ (or (assoc-default key time2) 0) total2)
+                                   (/ (or (assoc-default key time1) 0) total1)))
+                 (format "%.1f"
+                         (* (- (/ (or (assoc-default key time2) 0) total2)
+                               (/ (or (assoc-default key time1) 0) total1)) 1.68))
+                 )) keys))))
 #+end_src
 ** Animation for Emacs chats
 

@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2016-01-01 Fri 18:41 -->
+<!-- 2016-01-02 Sat 12:53 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
@@ -8024,17 +8024,17 @@ to see which items I'd planned ahead, and which ones were new tasks.
 <div class="outline-text-4" id="text-orgheadline208">
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/quantified-compare</span> (start1 end1 start2 end2)
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/quantified-compare</span> (start1 end1 start2 end2 <span class="org-type">&amp;optional</span> categories)
   <span class="org-doc">"Return a table comparing the times for START1 - END1 and START2 - END2."</span>
-  (<span class="org-keyword">let*</span> ((start2 (org-read-date nil nil <span class="org-string">"-sat"</span>))
-         (end2 (org-read-date nil nil <span class="org-string">"+1"</span>))
-         (start1 (org-read-date nil nil <span class="org-string">"-4sat"</span>))
-         (end1 (org-read-date nil nil <span class="org-string">"-sat"</span>))
+  (<span class="org-keyword">let*</span> ((start2 (org-read-date nil nil (<span class="org-keyword">or</span> start2 <span class="org-string">"-sat"</span>)))
+         (end2 (org-read-date nil nil (<span class="org-keyword">or</span> end2 <span class="org-string">"+1"</span>)))
+         (start1 (org-read-date nil nil (<span class="org-keyword">or</span> start1 <span class="org-string">"-4sat"</span>)))
+         (end1 (org-read-date nil nil (<span class="org-keyword">or</span> end1 <span class="org-string">"-sat"</span>)))
          (time2 (quantified-summarize-time start2 end2))
          (time1 (quantified-summarize-time start1 end1))
-         (total2 (* 0.01 (apply '+ (mapcar 'cdr time2))))
-         (total1 (* 0.01 (apply '+ (mapcar 'cdr time1))))
-         (keys (-union (mapcar 'car time1) (mapcar 'car time2))))
+         (total2 (* 0.01 (- (org-time-string-to-seconds end2) (org-time-string-to-seconds start2))))
+         (total1 (* 0.01 (- (org-time-string-to-seconds end1) (org-time-string-to-seconds start1))))
+         (keys (<span class="org-keyword">or</span> categories (-union (mapcar 'car time1) (mapcar 'car time2)))))
     <span class="org-comment-delimiter">;; </span><span class="org-comment">Build a list comparing the two</span>
     (append
     '((<span class="org-string">"Category"</span> <span class="org-string">"Period 1 %"</span> <span class="org-string">"Period 2 %"</span> <span class="org-string">"Diff"</span> <span class="org-string">"h/wk"</span>))

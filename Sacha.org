@@ -867,6 +867,8 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       ("n" (join-line 1)))
     (defhydra my/quantified-hydra (:color blue)
       "Quick tracking of Quantified Awesome stuff"
+      ("f" (my/org-clock-in-and-track-by-name "Family") "Family")
+      ("F" (my/org-clock-in-and-track-by-name "Read fiction") "Fiction")
       ("k" (my/org-clock-in-and-track-by-name "Clean the kitchen") "Kitchen")
       ("D" (my/org-clock-in-and-track-by-name "Draw") "Draw")
       ("w" (my/org-clock-in-and-track-by-name "Walk for 30+ minutes") "Walk")
@@ -3055,6 +3057,11 @@ complicated than they are. Let's turn them off by default.
 (setq org-export-htmlize-output-type 'css)
 #+end_src
 
+Don't wrap ASCII exports.
+
+#+begin_src emacs-lisp
+(setq org-ascii-text-width 10000)
+#+end_src
 This makes it easier to publish my files:
 
 #+begin_src emacs-lisp
@@ -3643,6 +3650,9 @@ code pulls that information into my ~/Dropbox/tasker/
 #+end_src
 
 *** Emacs packages, other settings for easy Emacs News generation
+    :PROPERTIES:
+    :CUSTOM_ID: emacs-news
+    :END:
 
 #+begin_src emacs-lisp
   (defun my/org-package-open (package-name)
@@ -3720,18 +3730,67 @@ This setting puts Org ASCII export links right after the text instead of in a se
    (with-temp-file "~/.emacs.d/.package-list"
      (prin1 (mapcar 'car package-archive-contents) (current-buffer))
      nil))
-
-    (defun my/share-emacs-news ()
-      (interactive)
-      ;; Draft Gnus article
-      (let (body)
-        (save-window-excursion
-          (org-ascii-export-as-ascii nil t nil t)
-          (setq body (buffer-substring-no-properties (point-min) (point-max))))
-        (gnus-post-news 'post "nntp+news.gmane.org:gmane.emacs.tangents")
-        (message-goto-body)
-        (insert body)))
 #+end_src
+
+**** DONE Publishing Emacs News as plain text, HTML, and attached Org file
+     :PROPERTIES:
+     :ID:       o2b:0a59c00b-7c40-48d5-a8c4-7a0d67e6e479
+     :POST_DATE: [2016-02-01 Mon 21:25]
+     :POSTID:   28599
+     :BLOG:     sacha
+     :END:
+
+I've been publishing these weekly summaries of Emacs-related links on
+my blog and to the [[https://lists.gnu.org/mailman/listinfo/emacs-tangents][emacs-tangents mailing list]] / [[http://news.gmane.org/gmane.emacs.tangents][newsgroup]]. I started
+by posting plain text from Org Mode's ASCII export, and people asked
+for Org Mode and HTML formats. So here's some code that prepares
+things for pasting into a Gnus message buffer.
+
+It turns out that order matters for multipart/alternative - start with
+plain text, then include richer alternatives. First time around, I put
+the HTML version first, so people didn't end up seeing it. Anyway,
+here's something that shows up properly now: text/plain, then
+text/html, with text/x-org attached. The heavy lifting is done with
+=org-export-string-as=, which exports into different formats.
+
+#+begin_src emacs-lisp
+  (defun my/share-emacs-news ()
+    "Prepare current subtree for yanking into post."
+    (interactive)
+    ;; Draft Gnus article
+    (save-restriction
+      (org-narrow-to-subtree)
+      (let ((org-export-html-preamble nil)
+            (org-html-toplevel-hlevel 3)
+            output)
+        (setq output
+              (apply
+               'format
+               "<#multipart type=alternative>
+<#part type=\"text/plain\" disposition=inline>
+%s
+<#/part>
+<#part type=\"text/html\" disposition=inline>
+%s
+<#/part>
+<#/multipart>
+<#part type=\"text/x-org\" disposition=attachment name=\"emacs-news.org\">
+%s
+<#/part>
+"
+               (mapcar
+                (lambda (format)
+                  (org-export-string-as (buffer-substring (point-min) (point-max)) format t))
+                '(ascii html org))))
+        (kill-new output))))
+#+end_src
+
+[[http://howardism.org][Howard Abrams]] showed me something like this in [[http://sachachua.com/blog/2015/06/emacs-hangout-june-2015/][June 2015's Emacs
+Hangout]] ([[https://www.youtube.com/watch?v=jzFI8knL5BY&t=1h18m26s][~1:18:26]]) using [[http://orgmode.org/worg/org-contrib/org-mime.html][org-mime-org-buffer-htmlize]], which probably
+does the job in a much cooler way. =) I thought he had a blog post
+about it, but I can't seem to find it. Anyway, there's my little hack
+above!
+
 
 *** DONE Org Mode tables and fill-in quizzes - Latin verb conjugations in Emacs
     CLOSED: [2015-11-26 Thu 21:48]
@@ -5923,7 +5982,7 @@ to see which items I'd planned ahead, and which ones were new tasks.
 
 *** Compare time use
 #+begin_src emacs-lisp
-  (defun my/quantified-compare (start1 end1 start2 end2 &optional categories)
+  (defun my/quantified-compare (start1 end1 start2 end2 &optional categories label1 label2)
     "Return a table comparing the times for START1 - END1 and START2 - END2."
     (let* ((start2 (org-read-date nil nil (or start2 "-sat")))
            (end2 (org-read-date nil nil (or end2 "+1")))
@@ -5931,12 +5990,14 @@ to see which items I'd planned ahead, and which ones were new tasks.
            (end1 (org-read-date nil nil (or end1 "-sat")))
            (time2 (quantified-summarize-time start2 end2))
            (time1 (quantified-summarize-time start1 end1))
+           (label1 (or label1 "Period 1 %"))
+           (label2 (or label2 "Period 2 %"))
            (total2 (* 0.01 (- (org-time-string-to-seconds end2) (org-time-string-to-seconds start2))))
            (total1 (* 0.01 (- (org-time-string-to-seconds end1) (org-time-string-to-seconds start1))))
            (keys (or categories (-union (mapcar 'car time1) (mapcar 'car time2)))))
       ;; Build a list comparing the two
       (append
-      '(("Category" "Period 1 %" "Period 2 %" "Diff" "h/wk"))
+      `(("Category" ,label1 ,label2 "Diff" "h/wk" "Diff h/wk"))
       (mapcar (lambda (key)
                 (list
                  key
@@ -5944,6 +6005,7 @@ to see which items I'd planned ahead, and which ones were new tasks.
                  (format "%.1f" (/ (or (assoc-default key time2) 0) total2))
                  (format "%.1f" (- (/ (or (assoc-default key time2) 0) total2)
                                    (/ (or (assoc-default key time1) 0) total1)))
+                 (format "%.1f" (* (/ (or (assoc-default key time2) 0) total1) 1.68))
                  (format "%.1f"
                          (* (- (/ (or (assoc-default key time2) 0) total2)
                                (/ (or (assoc-default key time1) 0) total1)) 1.68))
@@ -6678,9 +6740,8 @@ recently-opened files first.
                 (date (org-read-date nil nil "."))
                 temp-file)
             (quantified-track "Drawing")
-            (dotimes (i 5) (setq temp-file (my/prepare-index-card-template)))
+            (dotimes (i 5) (my/open-image (my/prepare-index-card-template)))
             (my/rotate-screen 180)
-            (my/open-image temp-file)
             (my/set-up-sketch-buffer)))
 
         (defvar my/index-card-file-name nil "Most recent index card file name.")
@@ -6700,6 +6761,7 @@ recently-opened files first.
           '("~/Dropbox/Inbox"
             "~/Dropbox/Inbox/To blog"
             "~/Dropbox/sketches/private"
+            "~/sketches"
             "~/photosync/photostream"))
 
     (defun my/get-index-card-filenames (base &optional as-regexp)
@@ -6730,12 +6792,14 @@ recently-opened files first.
     (defun my/list-sketches (regexp &optional full-filename directories)
       "Return a list of sketch filenames matching REGEXP."
       (interactive "MFilter: ")
-      (let ((my/sketch-directories (or directories '("~/photosync/photostream"))))
-        (funcall (if (called-interactively-p 'interactive) 'prin1 'identity)
+      (let ((my/sketch-directories (or directories '("~/sketches"))))
+        (funcall (if (called-interactively-p 'interactive)
+                     (lambda (x) (insert (mapconcat (lambda (y) (concat "- " y)) x "\n"))) 'identity)
                  (sort (-uniq
                         (mapcar (if full-filename 'identity
                                   'file-name-nondirectory)
-                                (my/get-index-card-filenames regexp t))) 'string>))))
+                                (my/get-index-card-filenames regexp t)))
+                       'string>))))
 
     (defun my/show-sketches-as-slideshow (list &optional shuffle)
       "Display a quick slideshow of sketches in LIST.
@@ -6868,6 +6932,31 @@ recently-opened files first.
     the TIFFs to PNGs, display the files and ask me to rename them
     properly.
 
+Make it easy to follow up:
+
+#+begin_src emacs-lisp
+    (defun my/follow-up-on-sketch (filename)
+      "Prompt for FILENAME to follow up on.
+  Create an index card with it as a layer, and add the ref to the filename."
+      (interactive (list (helm-read-file-name "Image: " :initial-input "~/sketches/")))
+      ;; Allow the specification of a short identifier
+      (unless (file-exists-p filename) 
+        (setq filename (car (directory-files "~/sketches" t (concat "^" filename)))))
+      (let ((async-shell-command-buffer 'new-buffer)
+            (index-card (my/prepare-index-card-template      
+                         (format "-- index card ref %s"
+                                 (and (string-match "^[^ \\.]+" (file-name-nondirectory filename))
+                                      (match-string 0 (file-name-nondirectory filename)))))))
+        (shell-command (format "convert %s %s -colorspace cmyk %s"
+                               (shell-quote-argument (expand-file-name my/index-card-template-file))
+                               (shell-quote-argument (expand-file-name filename))
+                               (shell-quote-argument (expand-file-name index-card))))
+        (shell-command (format "%s %s &"
+                               (shell-quote-argument my/sketch-executable)
+                               (shell-quote-argument (expand-file-name index-card))))
+        (my/rotate-screen 180)
+        (my/set-up-sketch-buffer)))
+#+end_src
 
 **** Easily backfilling my journal
      CLOSED: [2015-07-19 Sun 11:53]
@@ -7031,6 +7120,7 @@ recently-opened files first.
             (apply 'call-process "node" nil nil nil (expand-file-name "flickr-upload.js")
                    (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png")))
            )))
+       (shell-command "~/bin/copy-sketches")
        (sleep-for 3)
        (find-file "~/personal/questions.org")
        (goto-char (point-min))
@@ -7150,7 +7240,7 @@ Aspect ratio is width / height
     (let (files)
       (save-excursion
         (goto-char (min beg end))
-        (while (re-search-forward "\\[\\[https://www.flickr.com/photos/[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
+        (while (re-search-forward "\\[\\[[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
           (add-to-list 'files (match-string-no-properties 1))))
       files))
   (ert-deftest my/extract-image-filenames ()
@@ -7161,16 +7251,17 @@ Aspect ratio is width / height
       (should (equal (my/extract-image-filenames (point-min) (point-max))
                      '("Test 2" "Test")))))
 
-  (defun my/create-sketch-montage (beg end tiles)
+  (defun my/create-sketch-montage (files &optional tiles)
     "Combine the sketches in the region."
-    (interactive (list (point) (mark) (if current-prefix-arg (read-string "Tiling: "))))
+    (interactive
+     (list
+      (if (derived-mode-p 'dired-mode)
+          (dired-get-marked-files)
+        (mapcar 'my/get-index-card-filename
+                (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))
+      (if current-prefix-arg (read-string "Tiling: "))))
     ;; Extract the links
-    (let* ((files
-            (if (derived-mode-p 'dired-mode)
-                (dired-get-marked-files)
-              (mapcar 'my/get-index-card-filename
-                      (reverse (my/extract-image-filenames beg end)))))
-           (output-file "~/Dropbox/Inbox/output.png"))
+    (let ((output-file "~/Dropbox/Inbox/output.png"))
       (unless tiles
         (setq tiles
               (format "%dx"
@@ -7185,7 +7276,7 @@ Aspect ratio is width / height
                  "-geometry" "+0+0"
                  "-tile" tiles
                  (expand-file-name output-file)))))
-      (find-file output-file)))
+      (if (called-interactively-p 'any) (find-file output-file))))
 
   (defun my/create-week-montage (beg end)
     (interactive "r")
@@ -7197,6 +7288,28 @@ Aspect ratio is width / height
                                (org-read-date nil nil "."))))
     (my/create-sketch-montage beg end "2x")
     (when (eq system-type 'gnu/linux) (shell-command "/home/sacha/bin/add-output-png")))
+
+  (defun my/prepare-index-card-montage (files)
+    "Prepare an index card with a montage of the selected sketches as a layer."
+    (interactive
+     (list
+      (if (derived-mode-p 'dired-mode)
+          (dired-get-marked-files)
+        (mapcar 'my/get-index-card-filename
+                (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))))
+    (let ((async-shell-command-buffer 'new-buffer)
+          (index-card (my/prepare-index-card-template)))
+      (my/create-sketch-montage files)
+      (shell-command (format "convert %s %s -resize 1497x896  -colorspace cmyk %s"
+                             (shell-quote-argument (expand-file-name my/index-card-template-file))
+                             (shell-quote-argument (expand-file-name "~/Dropbox/Inbox/output.png"))
+                             (shell-quote-argument (expand-file-name index-card))))
+      (shell-command (format "%s %s &"
+                             (shell-quote-argument my/sketch-executable)
+                             (shell-quote-argument (expand-file-name index-card))))
+      (my/rotate-screen 180)
+      (my/set-up-sketch-buffer)))
+
 #+end_src
 
 add-output-png is:

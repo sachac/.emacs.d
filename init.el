@@ -6,6 +6,10 @@
 (add-to-list 'load-path "~/code/org2blog")
 (add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
+
+;; Prepare stuff for org-export-backends
+(setq org-export-backends '(org latex icalendar html ascii))
+
 ;; Load the rest of the packages
 (package-initialize nil)
 
@@ -18,7 +22,7 @@
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    (quote
-    (goto-last-change dired-hacks-utils avy-zap apu org-alert alert flycheck forecast sunshine magit paradox evil-magit pcsv ledger-mode org-gcal elnode yaoddmuse notmuch helm-recoll metaweblog swoop paredit image+ yasnippet web-mode use-package undo-tree switch-window smartparens smart-mode-line skewer-mode rspec-mode robe rinari redshank phi-search-mc org-fstree miniedit mc-extras magit-gh-pulls key-chord jasminejs-mode hydra htmlize helm-projectile helm-descbinds git-messenger expand-region ess erefactor engine-mode emms edit-list company-tern color-theme-solarized coffee-mode bundler auto-compile ace-jump-zap ace-isearch)))
+    (sauron goto-last-change dired-hacks-utils avy-zap apu org-alert alert flycheck forecast sunshine magit paradox evil-magit pcsv ledger-mode org-gcal elnode yaoddmuse notmuch helm-recoll metaweblog swoop paredit image+ yasnippet web-mode use-package undo-tree switch-window smartparens smart-mode-line skewer-mode rspec-mode robe rinari redshank phi-search-mc org-fstree miniedit mc-extras magit-gh-pulls key-chord jasminejs-mode hydra htmlize helm-projectile helm-descbinds git-messenger expand-region ess erefactor engine-mode emms edit-list company-tern color-theme-solarized coffee-mode bundler auto-compile ace-jump-zap ace-isearch)))
  '(paradox-github-token t))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.

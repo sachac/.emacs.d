@@ -1,4 +1,4 @@
-#+TITLE: Sacha Chua's Emacs configuration
+o#+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
 
 * Configuration
@@ -63,7 +63,7 @@ I like using =(setq ...)= more than Customize because I can neatly organize my c
 
 #+BEGIN_SRC emacs-lisp
 (unless (assoc-default "melpa" package-archives)
-  (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 ;  (package-refresh-contents)
 )
 #+END_SRC
@@ -793,7 +793,10 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (my/defshortcut ?q "~/personal/questions.org")
 #+END_SRC
 
-*** Key chords
+*** Key chords and Hydras
+    :PROPERTIES:
+    :CUSTOM_ID: key-chord
+    :END:
 I'm on a Dvorak keyboard, so these might not work for you.
 Experimenting with this. =key-chord= lets you define keyboard
 shortcuts that use ordinary keys.
@@ -872,6 +875,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       ("k" (my/org-clock-in-and-track-by-name "Clean the kitchen") "Kitchen")
       ("D" (my/org-clock-in-and-track-by-name "Draw") "Draw")
       ("w" (my/org-clock-in-and-track-by-name "Walk for 30+ minutes") "Walk")
+      ("W" (my/org-clock-in-and-track-by-name "Write") "Write")
       ("r" (my/org-clock-in-and-track-by-name "Personal routines") "Routines")
       ("R" (my/org-clock-in-and-track-by-name "Relax") "Relax")
       ("t" (my/org-clock-in-and-track-by-name "Tidy") "Tidy")
@@ -902,6 +906,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       ("w" my/engine-mode-hydra/body "web" :exit t)
       ("m" imenu :color blue)
       ("q" quantified-track :color blue)
+      ("r" my/describe-random-interactive-function)
       ("l" org-insert-last-stored-link)
       ("L" my/org-insert-link)
       ("+" text-scale-increase)
@@ -3698,38 +3703,47 @@ This setting puts Org ASCII export links right after the text instead of in a se
 #+end_src
 
 #+begin_src emacs-lisp
-    (defun my/org-list-from-rss (url date)
-      "Convert URL to an Org list"
-      (with-current-buffer (url-retrieve-synchronously url)
-        (re-search-forward "<\\?xml")
-        (goto-char (match-beginning 0))
-        (let ((feed (xml-parse-region (point) (point-max))))
-          (mapconcat (lambda (entry)
-            (format "- [[%s][%s]]" 
-             (xml-get-attribute (car (xml-get-children entry 'link)) 'href)
-             (elt (car (xml-get-children entry 'title)) 2)))
-            (-filter (lambda (entry)
-              (org-string<= date (elt (car (xml-get-children entry 'updated)) 2)))
-              (xml-get-children (car feed) 'entry)) "\n"))))
-  (defun my/list-new-packages ()
-     (package-refresh-contents)
-     (with-temp-buffer
-       (insert-file-contents "~/.emacs.d/.package-list")
-       (goto-char (point-min))
-       (let ((old-list (read (current-buffer))))
-         (mapconcat (lambda (symbol)
-                   (let ((package-desc (assoc symbol package-archive-contents)))
-                     (format "- [[package:%s][%s]]: %s"
-                             (symbol-name symbol)
-                             (symbol-name symbol)
-                             (package-desc-summary (cadr package-desc)))))
-                 (-difference (mapcar 'car package-archive-contents) old-list)
-                 "\n"))))
-  (defun my/save-new-packages ()
-   (interactive)
-   (with-temp-file "~/.emacs.d/.package-list"
-     (prin1 (mapcar 'car package-archive-contents) (current-buffer))
-     nil))
+      (defun my/org-list-from-rss (url date)
+        "Convert URL to an Org list"
+        (with-current-buffer (url-retrieve-synchronously url)
+          (re-search-forward "<\\?xml")
+          (goto-char (match-beginning 0))
+          (let ((feed (xml-parse-region (point) (point-max))))
+            (mapconcat (lambda (entry)
+              (format "- [[%s][%s]]" 
+               (xml-get-attribute (car (xml-get-children entry 'link)) 'href)
+               (elt (car (xml-get-children entry 'title)) 2)))
+              (-filter (lambda (entry)
+                (org-string<= date (elt (car (xml-get-children entry 'updated)) 2)))
+                       (xml-get-children (car feed) 'entry)) "\n"))))
+
+  (defun my/describe-packages (list)
+    "Return an Org list of package descriptions for LIST."
+    (mapconcat
+     (lambda (symbol)
+       (let ((package-desc (assoc symbol package-archive-contents)))
+         (if package-desc
+           (format "- [[package:%s][%s]]: %s"
+                   (symbol-name symbol)
+                   (symbol-name symbol)
+                   (package-desc-summary (cadr package-desc)))
+           "")))
+     list
+     "\n"))
+
+    (defun my/list-new-packages ()
+  ;     (package-refresh-contents)
+       (with-temp-buffer
+         (insert-file-contents "~/.emacs.d/.package-list")
+         (goto-char (point-min))
+         (my/describe-packages
+          (-difference (mapcar 'car package-archive-contents)
+                       (read (current-buffer))))))
+    (defun my/save-new-packages ()
+     (interactive)
+     (with-temp-file "~/.emacs.d/.package-list"
+       (prin1 (mapcar 'car package-archive-contents) (current-buffer))
+       nil))
 #+end_src
 
 **** DONE Publishing Emacs News as plain text, HTML, and attached Org file
@@ -5438,6 +5452,61 @@ cool. On Windows, these things help a little.
 #+begin_src emacs-lisp
 (setq epa-file-encrypt-to '("sacha@sachachua.com"))
 #+end_src
+** Yaoddmuse
+
+#+begin_src emacs-lisp
+(setq yaoddmuse-wikis
+  '(("EmacsWiki" "https://www.emacswiki.org/emacs" utf-8 "uihnscuskc=1;")))
+#+end_src
+** Building a today-I-learned habit, and displaying the documentation for random Emacs commands :emacs:
+
+I'd like to build a habit of regularly learning one small thing each
+day in one of three domains: tech, life, and learning. My measurable
+output would probably be in the form of index cards, tweets, blog
+posts, and notes (in org-capture, Dropbox, or Evernote). I can get
+input from various sources like blog posts, videos, books, webpages,
+and so on.
+
+A little bit of randomness might be useful for learning more about
+Emacs. Emacswiki has a [[http://www.emacswiki.org/emacs?action=random][random page]] function, but the chunks are often
+a little large or irrelevant. On the other hand, displaying a random
+command from the packages that I already have loaded into my Emacs -
+that might be a good way to discover interesting things.
+
+I started by looking at =apropos-command=, which led me to
+=apropos-internal=, which is a C function that referred to =obarray=.
+Using =obarray= by itself didn't work (suspiciously few elements, so I
+often ended up looking at emms-related functions). I eventually found
+[[http://www.gnu.org/software/emacs/manual/html_node/elisp/Creating-Symbols.html][mapatoms]], which seems to do a better job at listing an appreciable
+number of interactive functions. I filtered the list to include only
+documented functions that had not been marked as obsolete: 8,415 in
+my current Emacs, which should be plenty to go through. =)
+
+#+begin_src emacs-lisp
+(defun my/describe-random-interactive-function ()
+  (interactive)
+  "Show the documentation for a random interactive function.
+Consider only documented, non-obsolete functions."
+  (let (result)
+    (mapatoms
+     (lambda (s)
+       (when (and (commandp s) 
+                  (documentation s t)
+                  (null (get s 'byte-obsolete-info)))
+         (setq result (cons s result)))))
+    (describe-function (elt result (random (length result))))))
+#+end_src
+
+I've added this to a [[https://www.emacswiki.org/emacs/KeyChord][key-chord]] + [[https://github.com/abo-abo/hydra][hydra]] keymap as a repeatable
+function, so I can type =hh= to start my Hydra and then type =r= as
+many times as I want in order to show the documentation for a random
+interactive function. If you're curious about that, you can see the
+[[http://sachachua.com/dotemacs#key-chord][key-chord section of my config]].
+
+Anyway, today I learned more about =obarray= and =mapatoms= - they're
+not interactive functions, but they were handy for building this
+little bit of code. We'll see how it goes! =)
+
 ** DONE Scan ~/bin and turn the scripts into interactive commands
    CLOSED: [2015-12-14 Mon 21:24]
    :PROPERTIES:
@@ -6791,7 +6860,7 @@ recently-opened files first.
 
     (defun my/list-sketches (regexp &optional full-filename directories)
       "Return a list of sketch filenames matching REGEXP."
-      (interactive "MFilter: ")
+      (interactive "MFilter: \np")
       (let ((my/sketch-directories (or directories '("~/sketches"))))
         (funcall (if (called-interactively-p 'interactive)
                      (lambda (x) (insert (mapconcat (lambda (y) (concat "- " y)) x "\n"))) 'identity)
@@ -7213,102 +7282,105 @@ Based on [[http://williamedwardscoder.tumblr.com/post/84505278488/making-image-m
 Aspect ratio is width / height
 
 #+begin_src emacs-lisp
-  (defun my/get-tile-dimensions (num-items orig-width orig-height target-aspect-ratio)
-    (let ((rows 1) (cols 1)
-          (current-aspect (/ orig-width (float orig-height)))
-          add-col-aspect
-          add-row-aspect)
-      (while (< (* rows cols) num-items)
-        (setq add-col-aspect (/ (* (1+ cols) (float orig-width))
-                                (* rows orig-height))
-              add-row-aspect (/ (* cols (float orig-width))
-                                (* (1+ rows) orig-height)))
-        (if (<  (abs (- add-col-aspect target-aspect-ratio))
-                (abs (- add-row-aspect target-aspect-ratio)))
-            (setq cols (1+ cols))
-          (setq rows (1+ rows))))
-      (cons cols rows)))
-  (ert-deftest my/get-tile-dimensions ()
-    (should (equal (my/get-tile-dimensions 2 2 1 1) (cons 1 2)))
-    (should (equal (my/get-tile-dimensions 4 2 1 0.5) (cons 1 4)))
-    (should (equal (my/get-tile-dimensions 12 1 1 (/ 4.0 3.0)) (cons 4 3)))
-    (should (equal (my/get-tile-dimensions 11 1 1 (/ 4.0 3.0)) (cons 4 3)))
-    (should (equal (my/get-tile-dimensions 13 1 1 (/ 4.0 3.0)) (cons 4 4))))
+    (defun my/get-tile-dimensions (num-items orig-width orig-height target-aspect-ratio)
+      (let ((rows 1) (cols 1)
+            (current-aspect (/ orig-width (float orig-height)))
+            add-col-aspect
+            add-row-aspect)
+        (while (< (* rows cols) num-items)
+          (setq add-col-aspect (/ (* (1+ cols) (float orig-width))
+                                  (* rows orig-height))
+                add-row-aspect (/ (* cols (float orig-width))
+                                  (* (1+ rows) orig-height)))
+          (if (<  (abs (- add-col-aspect target-aspect-ratio))
+                  (abs (- add-row-aspect target-aspect-ratio)))
+              (setq cols (1+ cols))
+            (setq rows (1+ rows))))
+        (cons cols rows)))
+    (ert-deftest my/get-tile-dimensions ()
+      (should (equal (my/get-tile-dimensions 2 2 1 1) (cons 1 2)))
+      (should (equal (my/get-tile-dimensions 4 2 1 0.5) (cons 1 4)))
+      (should (equal (my/get-tile-dimensions 12 1 1 (/ 4.0 3.0)) (cons 4 3)))
+      (should (equal (my/get-tile-dimensions 11 1 1 (/ 4.0 3.0)) (cons 4 3)))
+      (should (equal (my/get-tile-dimensions 13 1 1 (/ 4.0 3.0)) (cons 4 4))))
 
-  (defun my/extract-image-filenames (beg end)
-    "Return the filenames from the links in this region."
-    (let (files)
-      (save-excursion
-        (goto-char (min beg end))
-        (while (re-search-forward "\\[\\[[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
-          (add-to-list 'files (match-string-no-properties 1))))
-      files))
-  (ert-deftest my/extract-image-filenames ()
-    "Check if it extracts the filenames properly."
-    (with-temp-buffer
-      (insert "- [[https://www.flickr.com/photos/somephotoid][Test]]\n")
-      (insert "- [[https://www.flickr.com/photos/somephotoid2][Test 2]]\n")
-      (should (equal (my/extract-image-filenames (point-min) (point-max))
-                     '("Test 2" "Test")))))
-
-  (defun my/create-sketch-montage (files &optional tiles)
-    "Combine the sketches in the region."
-    (interactive
-     (list
-      (if (derived-mode-p 'dired-mode)
-          (dired-get-marked-files)
-        (mapcar 'my/get-index-card-filename
-                (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))
-      (if current-prefix-arg (read-string "Tiling: "))))
-    ;; Extract the links
-    (let ((output-file "~/Dropbox/Inbox/output.png"))
-      (unless tiles
-        (setq tiles
-              (format "%dx"
-                (car (my/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
+    (defun my/extract-image-filenames (beg end)
+      "Return the filenames from the links in this region."
+      (let (files)
+        (save-excursion
+          (goto-char (min beg end))
+          (while (re-search-forward "\\[\\[[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
+            (add-to-list 'files (match-string-no-properties 1))))
+        files))
+    (ert-deftest my/extract-image-filenames ()
+      "Check if it extracts the filenames properly."
       (with-temp-buffer
-        (cd "~/Dropbox/Inbox/To blog")
-        (apply 'call-process
-               "montage" nil nil nil
-               (append
-                files
-                (list
-                 "-geometry" "+0+0"
-                 "-tile" tiles
-                 (expand-file-name output-file)))))
-      (if (called-interactively-p 'any) (find-file output-file))))
+        (insert "- [[https://www.flickr.com/photos/somephotoid][Test]]\n")
+        (insert "- [[https://www.flickr.com/photos/somephotoid2][Test 2]]\n")
+        (should (equal (my/extract-image-filenames (point-min) (point-max))
+                       '("Test 2" "Test")))))
 
-  (defun my/create-week-montage (beg end)
-    (interactive "r")
-    (let* ((filename (format "Week ending %s -- index card #journal #weekly" (org-read-date nil nil "-fri")))
-           (full-filename (my/get-index-card-filename filename)))
-      (if full-filename
-          (my/open-image full-filename)
-        (my/prepare-index-card filename
-                               (org-read-date nil nil "."))))
-    (my/create-sketch-montage beg end "2x")
-    (when (eq system-type 'gnu/linux) (shell-command "/home/sacha/bin/add-output-png")))
+    (defun my/create-sketch-montage (files &optional tiles)
+      "Combine the sketches in the region."
+      (interactive
+       (list
+        (if (derived-mode-p 'dired-mode)
+            (dired-get-marked-files)
+          (mapcar 'my/get-index-card-filename
+                  (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))
+        (if current-prefix-arg (read-string "Tiling: "))))
+      ;; Extract the links
+      (let ((output-file "~/Dropbox/Inbox/output.png"))
+        (unless tiles
+          (setq tiles
+                (format "%dx"
+                  (car (my/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
+        (with-temp-buffer
+          (cd "~/Dropbox/Inbox/To blog")
+          (apply 'call-process
+                 "montage" nil nil nil
+                 (append
+                  files
+                  (list
+                   "-geometry" "+0+0"
+                   "-tile" tiles
+                   (expand-file-name output-file)))))
+        (if (called-interactively-p 'any) (find-file output-file))))
 
-  (defun my/prepare-index-card-montage (files)
-    "Prepare an index card with a montage of the selected sketches as a layer."
-    (interactive
-     (list
-      (if (derived-mode-p 'dired-mode)
-          (dired-get-marked-files)
-        (mapcar 'my/get-index-card-filename
-                (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))))
-    (let ((async-shell-command-buffer 'new-buffer)
-          (index-card (my/prepare-index-card-template)))
-      (my/create-sketch-montage files)
-      (shell-command (format "convert %s %s -resize 1497x896  -colorspace cmyk %s"
-                             (shell-quote-argument (expand-file-name my/index-card-template-file))
-                             (shell-quote-argument (expand-file-name "~/Dropbox/Inbox/output.png"))
-                             (shell-quote-argument (expand-file-name index-card))))
-      (shell-command (format "%s %s &"
-                             (shell-quote-argument my/sketch-executable)
-                             (shell-quote-argument (expand-file-name index-card))))
-      (my/rotate-screen 180)
-      (my/set-up-sketch-buffer)))
+    (defun my/create-week-montage (beg end)
+      (interactive "r")
+      (let* ((filename (format "Week ending %s -- index card #journal #weekly" (org-read-date nil nil "-fri")))
+             (full-filename (my/get-index-card-filename filename)))
+        (if full-filename
+            (my/open-image full-filename)
+          (my/prepare-index-card filename
+                                 (org-read-date nil nil ".")))
+        (my/prepare-index-card-montage 
+         (mapcar 'my/get-index-card-filename
+                 (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))) 
+         "2x"
+         full-filename)))
+
+    (defun my/prepare-index-card-montage (files &optional tiling filename)
+      "Prepare an index card with a montage of the selected sketches as a layer."
+      (interactive
+       (list
+        (if (derived-mode-p 'dired-mode)
+            (dired-get-marked-files)
+          (mapcar 'my/get-index-card-filename
+                  (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))))
+      (let ((async-shell-command-buffer 'new-buffer)
+            (index-card (or filename (my/prepare-index-card-template))))
+        (my/create-sketch-montage files tiling)
+        (shell-command (format "convert %s %s -resize 1497x896  -colorspace cmyk %s"
+                               (shell-quote-argument (expand-file-name my/index-card-template-file))
+                               (shell-quote-argument (expand-file-name "~/Dropbox/Inbox/output.png"))
+                               (shell-quote-argument (expand-file-name index-card))))
+        (shell-command (format "%s %s &"
+                               (shell-quote-argument my/sketch-executable)
+                               (shell-quote-argument (expand-file-name index-card))))
+        (my/rotate-screen 180)
+        (my/set-up-sketch-buffer)))
 
 #+end_src
 
@@ -7423,4 +7495,9 @@ Convenience functions to make my life easier when sketchnoting books.
 #+begin_src emacs-lisp
 (setenv "PATH" (concat "\"c:/program files/postgresql/9.3/bin;\"" (getenv "PATH")))
 #+end_src
+
+#+begin_example
+,* foo
+,** bar
+#+end_example
 

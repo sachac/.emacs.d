@@ -870,6 +870,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       ("n" (join-line 1)))
     (defhydra my/quantified-hydra (:color blue)
       "Quick tracking of Quantified Awesome stuff"
+      ("c" (my/org-clock-in-and-track-by-name "Childcare") "Childcare")
       ("f" (my/org-clock-in-and-track-by-name "Family") "Family")
       ("F" (my/org-clock-in-and-track-by-name "Read fiction") "Fiction")
       ("k" (my/org-clock-in-and-track-by-name "Clean the kitchen") "Kitchen")
@@ -1967,6 +1968,7 @@ only a few of them them for faster scanning.
                         "~/personal/people.org"
                         "~/personal/business.org"
                         "~/personal/calendar.org"
+                        "~/Dropbox/wsmef/puppy.txt"
                         "~/Dropbox/tasker/summary.txt"
                         "~/Dropbox/public/sharing/index.org"
                         "~/dropbox/public/sharing/learning.org"
@@ -3982,10 +3984,11 @@ getting the hang of thinking properly functionally... =)
 
   (use-package web-mode
     :ensure t
-    :defer t
     :mode "\\.html?\\'"
     :config
     (progn
+      (setq web-mode-markup-indent-offset 2)
+      (setq web-mode-code-indent-offset 2)
       (setq web-mode-enable-current-element-highlight t)
       (setq web-mode-ac-sources-alist
             '(("css" . (ac-source-css-property))
@@ -5459,6 +5462,12 @@ cool. On Windows, these things help a little.
   '(("EmacsWiki" "https://www.emacswiki.org/emacs" utf-8 "uihnscuskc=1;")))
 #+end_src
 ** Building a today-I-learned habit, and displaying the documentation for random Emacs commands :emacs:
+   :PROPERTIES:
+   :ID:       o2b:f3c021e8-8b7a-4bd2-a035-3de1eaa206a2
+   :POST_DATE: [2016-02-19 Fri 17:11]
+   :POSTID:   28623
+   :BLOG:     sacha
+   :END:
 
 I'd like to build a habit of regularly learning one small thing each
 day in one of three domains: tech, life, and learning. My measurable
@@ -6794,6 +6803,7 @@ recently-opened files first.
               (widget-setup)
               (widget-minor-mode)
               (pop-to-buffer (current-buffer))
+              (goto-char (point-min))
               (current-buffer))))
 
         (defvar my/sketch-executable "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe")
@@ -7266,14 +7276,12 @@ looked into debugging that yet.
         (org-narrow-to-subtree)
         (goto-char (point-min))
         (while (re-search-forward org-bracket-link-regexp nil t)
-          (if (save-match-data (string-match "flickr.com" (match-string 0)))
-              (when (file-exists-p
-                     (expand-file-name (concat (match-string 3) ".png")
-                                       "~/Dropbox/Inbox/To blog"))
-                (rename-file
-                 (expand-file-name (concat (match-string 3) ".png")
-                                   "~/Dropbox/Inbox/To blog")
-                 "~/Dropbox/Inbox/Selection" )))))))
+          (let ((filename (file-name-nondirectory (or (match-string 3) (match-string 1)))))
+            (when (and (string-match "\\.png$" filename)
+                       (file-exists-p (expand-file-name filename "~/Dropbox/Inbox/To blog")))
+              (rename-file
+               (expand-file-name filename "~/Dropbox/Inbox/To blog")
+               "~/Dropbox/Inbox/Selection")))))))
 #+end_src
 
 *** Other sketches
@@ -7282,105 +7290,103 @@ Based on [[http://williamedwardscoder.tumblr.com/post/84505278488/making-image-m
 Aspect ratio is width / height
 
 #+begin_src emacs-lisp
-    (defun my/get-tile-dimensions (num-items orig-width orig-height target-aspect-ratio)
-      (let ((rows 1) (cols 1)
-            (current-aspect (/ orig-width (float orig-height)))
-            add-col-aspect
-            add-row-aspect)
-        (while (< (* rows cols) num-items)
-          (setq add-col-aspect (/ (* (1+ cols) (float orig-width))
-                                  (* rows orig-height))
-                add-row-aspect (/ (* cols (float orig-width))
-                                  (* (1+ rows) orig-height)))
-          (if (<  (abs (- add-col-aspect target-aspect-ratio))
-                  (abs (- add-row-aspect target-aspect-ratio)))
-              (setq cols (1+ cols))
-            (setq rows (1+ rows))))
-        (cons cols rows)))
-    (ert-deftest my/get-tile-dimensions ()
-      (should (equal (my/get-tile-dimensions 2 2 1 1) (cons 1 2)))
-      (should (equal (my/get-tile-dimensions 4 2 1 0.5) (cons 1 4)))
-      (should (equal (my/get-tile-dimensions 12 1 1 (/ 4.0 3.0)) (cons 4 3)))
-      (should (equal (my/get-tile-dimensions 11 1 1 (/ 4.0 3.0)) (cons 4 3)))
-      (should (equal (my/get-tile-dimensions 13 1 1 (/ 4.0 3.0)) (cons 4 4))))
+  (defun my/get-tile-dimensions (num-items orig-width orig-height target-aspect-ratio)
+    (let ((rows 1) (cols 1)
+          (current-aspect (/ orig-width (float orig-height)))
+          add-col-aspect
+          add-row-aspect)
+      (while (< (* rows cols) num-items)
+        (setq add-col-aspect (/ (* (1+ cols) (float orig-width))
+                                (* rows orig-height))
+              add-row-aspect (/ (* cols (float orig-width))
+                                (* (1+ rows) orig-height)))
+        (if (<  (abs (- add-col-aspect target-aspect-ratio))
+                (abs (- add-row-aspect target-aspect-ratio)))
+            (setq cols (1+ cols))
+          (setq rows (1+ rows))))
+      (cons cols rows)))
+  (ert-deftest my/get-tile-dimensions ()
+    (should (equal (my/get-tile-dimensions 2 2 1 1) (cons 1 2)))
+    (should (equal (my/get-tile-dimensions 4 2 1 0.5) (cons 1 4)))
+    (should (equal (my/get-tile-dimensions 12 1 1 (/ 4.0 3.0)) (cons 4 3)))
+    (should (equal (my/get-tile-dimensions 11 1 1 (/ 4.0 3.0)) (cons 4 3)))
+    (should (equal (my/get-tile-dimensions 13 1 1 (/ 4.0 3.0)) (cons 4 4))))
 
-    (defun my/extract-image-filenames (beg end)
-      "Return the filenames from the links in this region."
-      (let (files)
-        (save-excursion
-          (goto-char (min beg end))
-          (while (re-search-forward "\\[\\[[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
-            (add-to-list 'files (match-string-no-properties 1))))
-        files))
-    (ert-deftest my/extract-image-filenames ()
-      "Check if it extracts the filenames properly."
+  (defun my/extract-image-filenames (beg end)
+    "Return the filenames from the links in this region."
+    (let (files)
+      (save-excursion
+        (goto-char (min beg end))
+        (while (re-search-forward "\\[\\[[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
+          (add-to-list 'files (match-string-no-properties 1))))
+      files))
+  (ert-deftest my/extract-image-filenames ()
+    "Check if it extracts the filenames properly."
+    (with-temp-buffer
+      (insert "- [[https://www.flickr.com/photos/somephotoid][Test]]\n")
+      (insert "- [[https://www.flickr.com/photos/somephotoid2][Test 2]]\n")
+      (should (equal (my/extract-image-filenames (point-min) (point-max))
+                     '("Test 2" "Test")))))
+
+  (defun my/create-sketch-montage (files &optional tiles)
+    "Combine the sketches in the region."
+    (interactive
+     (list
+      (if (derived-mode-p 'dired-mode)
+          (dired-get-marked-files)
+        (mapcar 'my/get-index-card-filename
+                (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))
+      (if current-prefix-arg (read-string "Tiling: "))))
+    ;; Extract the links
+    (let ((output-file "~/Dropbox/Inbox/output.png"))
+      (unless tiles
+        (setq tiles
+              (format "%dx"
+                (car (my/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
       (with-temp-buffer
-        (insert "- [[https://www.flickr.com/photos/somephotoid][Test]]\n")
-        (insert "- [[https://www.flickr.com/photos/somephotoid2][Test 2]]\n")
-        (should (equal (my/extract-image-filenames (point-min) (point-max))
-                       '("Test 2" "Test")))))
+        (cd "~/Dropbox/Inbox/To blog")
+        (apply 'call-process
+               "montage" nil nil nil
+               (append
+                files
+                (list
+                 "-geometry" "+0+0"
+                 "-tile" tiles
+                 (expand-file-name output-file)))))
+      (if (called-interactively-p 'any) (find-file output-file))))
 
-    (defun my/create-sketch-montage (files &optional tiles)
-      "Combine the sketches in the region."
-      (interactive
-       (list
-        (if (derived-mode-p 'dired-mode)
-            (dired-get-marked-files)
-          (mapcar 'my/get-index-card-filename
-                  (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))
-        (if current-prefix-arg (read-string "Tiling: "))))
-      ;; Extract the links
-      (let ((output-file "~/Dropbox/Inbox/output.png"))
-        (unless tiles
-          (setq tiles
-                (format "%dx"
-                  (car (my/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
-        (with-temp-buffer
-          (cd "~/Dropbox/Inbox/To blog")
-          (apply 'call-process
-                 "montage" nil nil nil
-                 (append
-                  files
-                  (list
-                   "-geometry" "+0+0"
-                   "-tile" tiles
-                   (expand-file-name output-file)))))
-        (if (called-interactively-p 'any) (find-file output-file))))
-
-    (defun my/create-week-montage (beg end)
-      (interactive "r")
-      (let* ((filename (format "Week ending %s -- index card #journal #weekly" (org-read-date nil nil "-fri")))
-             (full-filename (my/get-index-card-filename filename)))
-        (if full-filename
-            (my/open-image full-filename)
-          (my/prepare-index-card filename
-                                 (org-read-date nil nil ".")))
+  (defun my/create-week-montage (beg end)
+    (interactive "r")
+    (let* ((filename (format "Week ending %s -- index card #journal #weekly" (org-read-date nil nil "-fri")))
+           (full-filename (my/get-index-card-filename filename)))
+      (if full-filename
+          (my/open-image full-filename)
         (my/prepare-index-card-montage 
          (mapcar 'my/get-index-card-filename
                  (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))) 
          "2x"
-         full-filename)))
+         (my/prepare-index-card-template filename)))))
 
-    (defun my/prepare-index-card-montage (files &optional tiling filename)
-      "Prepare an index card with a montage of the selected sketches as a layer."
-      (interactive
-       (list
-        (if (derived-mode-p 'dired-mode)
-            (dired-get-marked-files)
-          (mapcar 'my/get-index-card-filename
-                  (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))))
-      (let ((async-shell-command-buffer 'new-buffer)
-            (index-card (or filename (my/prepare-index-card-template))))
-        (my/create-sketch-montage files tiling)
-        (shell-command (format "convert %s %s -resize 1497x896  -colorspace cmyk %s"
-                               (shell-quote-argument (expand-file-name my/index-card-template-file))
-                               (shell-quote-argument (expand-file-name "~/Dropbox/Inbox/output.png"))
-                               (shell-quote-argument (expand-file-name index-card))))
-        (shell-command (format "%s %s &"
-                               (shell-quote-argument my/sketch-executable)
-                               (shell-quote-argument (expand-file-name index-card))))
-        (my/rotate-screen 180)
-        (my/set-up-sketch-buffer)))
+  (defun my/prepare-index-card-montage (files &optional tiling filename)
+    "Prepare an index card with a montage of the selected sketches as a layer."
+    (interactive
+     (list
+      (if (derived-mode-p 'dired-mode)
+          (dired-get-marked-files)
+        (mapcar 'my/get-index-card-filename
+                (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))))
+    (let ((async-shell-command-buffer 'new-buffer)
+          (index-card (or filename (my/prepare-index-card-template))))
+      (my/create-sketch-montage files tiling)
+      (shell-command (format "convert %s %s -resize 1497x896  -colorspace cmyk %s"
+                             (shell-quote-argument (expand-file-name my/index-card-template-file))
+                             (shell-quote-argument (expand-file-name "~/Dropbox/Inbox/output.png"))
+                             (shell-quote-argument (expand-file-name index-card))))
+      (shell-command (format "%s %s &"
+                             (shell-quote-argument my/sketch-executable)
+                             (shell-quote-argument (expand-file-name index-card))))
+      (my/rotate-screen 180)
+      (my/set-up-sketch-buffer)))
 
 #+end_src
 

@@ -3,12 +3,12 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2016-02-19 Fri 17:10 -->
-<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
-<meta  name="viewport" content="width=device-width, initial-scale=1" />
+<!-- 2016-02-29 Mon 22:24 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title></title>
-<meta  name="generator" content="Org-mode" />
-<meta  name="author" content="Sacha Chua" />
+<meta name="generator" content="Org-mode" />
+<meta name="author" content="Sacha Chua" />
 <style type="text/css">
  <!--/*--><![CDATA[/*><!--*/
   .title  { text-align: center;
@@ -188,7 +188,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgheadline21">Killing text</a></li>
 <li><a href="#orgheadline22">Repeatable commands</a>
 <ul>
-<li><a href="#orgheadline23"><span class="todo nilTODO">TODO</span> Look for opportunities to use this</a></li>
+<li><a href="#orgheadline23"><span class="todo TODO">TODO</span> Look for opportunities to use this</a></li>
 </ul>
 </li>
 </ul>
@@ -319,7 +319,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgheadline121">Archiving</a></li>
 <li><a href="#orgheadline122">Filesystem</a>
 <ul>
-<li><a href="#orgheadline123"><span class="todo nilTODO">TODO</span> check out org-fstree</a></li>
+<li><a href="#orgheadline123"><span class="todo TODO">TODO</span> check out org-fstree</a></li>
 </ul>
 </li>
 <li><a href="#orgheadline124">Presentations</a></li>
@@ -327,10 +327,10 @@ for the JavaScript code in this tag.
 <li><a href="#orgheadline126">Copying information from my phone</a></li>
 <li><a href="#emacs-news">Emacs packages, other settings for easy Emacs News generation</a>
 <ul>
-<li><a href="#orgheadline127"><span class="done nilDONE">DONE</span> Publishing Emacs News as plain text, HTML, and attached Org file</a></li>
+<li><a href="#orgheadline127"><span class="done DONE">DONE</span> Publishing Emacs News as plain text, HTML, and attached Org file</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline129"><span class="done nilDONE">DONE</span> Org Mode tables and fill-in quizzes - Latin verb conjugations in Emacs</a></li>
+<li><a href="#orgheadline129"><span class="done DONE">DONE</span> Org Mode tables and fill-in quizzes - Latin verb conjugations in Emacs</a></li>
 </ul>
 </li>
 <li><a href="#orgheadline157">Coding</a>
@@ -357,7 +357,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgheadline146">HTML</a></li>
 <li><a href="#magit">Magit - nice git interface</a>
 <ul>
-<li><a href="#orgheadline147"><span class="todo nilTODO">TODO</span> Make this better by adding a post command options variable</a></li>
+<li><a href="#orgheadline147"><span class="todo TODO">TODO</span> Make this better by adding a post command options variable</a></li>
 </ul>
 </li>
 <li><a href="#orgheadline149">git-messenger - shows commit message</a></li>
@@ -413,7 +413,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgheadline184">Quickly jump to positions</a></li>
 <li><a href="#orgheadline185">Deleting things</a>
 <ul>
-<li><a href="#orgheadline186"><span class="todo nilTODO">TODO</span> Get zap-to-isearch to work with helm-swoop</a></li>
+<li><a href="#orgheadline186"><span class="todo TODO">TODO</span> Get zap-to-isearch to work with helm-swoop</a></li>
 </ul>
 </li>
 <li><a href="#orgheadline187">Network: TRAMP and editing files over SSH</a></li>
@@ -428,7 +428,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgheadline192">Encryption</a></li>
 <li><a href="#orgheadline193">Yaoddmuse</a></li>
 <li><a href="#orgheadline194">Building a today-I-learned habit, and displaying the documentation for random Emacs commands&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></a></li>
-<li><a href="#orgheadline195"><span class="done nilDONE">DONE</span> Scan ~/bin and turn the scripts into interactive commands</a></li>
+<li><a href="#orgheadline195"><span class="done DONE">DONE</span> Scan ~/bin and turn the scripts into interactive commands</a></li>
 </ul>
 </li>
 <li><a href="#links">Other cool configs you may want to check out</a></li>
@@ -481,7 +481,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgheadline230">Get information for sketched books</a></li>
 </ul>
 </li>
-<li><a href="#orgheadline231"><span class="todo nilTODO">TODO</span> Move to-blog sketches to a staging folder for easier upload</a></li>
+<li><a href="#orgheadline231"><span class="todo TODO">TODO</span> Move to-blog sketches to a staging folder for easier upload</a></li>
 <li><a href="#orgheadline232">Other sketches</a></li>
 <li><a href="#insert-point">Sketched books</a></li>
 </ul>
@@ -1585,6 +1585,7 @@ Some code from <a href="http://emacsredux.com/blog/2013/04/28/switch-to-previous
     (<span class="org-string">"n"</span> (join-line 1)))
   (<span class="org-keyword">defhydra</span> my/quantified-hydra (<span class="org-builtin">:color</span> blue)
     <span class="org-string">"Quick tracking of Quantified Awesome stuff"</span>
+    (<span class="org-string">"c"</span> (my/org-clock-in-and-track-by-name <span class="org-string">"Childcare"</span>) <span class="org-string">"Childcare"</span>)
     (<span class="org-string">"f"</span> (my/org-clock-in-and-track-by-name <span class="org-string">"Family"</span>) <span class="org-string">"Family"</span>)
     (<span class="org-string">"F"</span> (my/org-clock-in-and-track-by-name <span class="org-string">"Read fiction"</span>) <span class="org-string">"Fiction"</span>)
     (<span class="org-string">"k"</span> (my/org-clock-in-and-track-by-name <span class="org-string">"Clean the kitchen"</span>) <span class="org-string">"Kitchen"</span>)
@@ -3112,6 +3113,7 @@ only a few of them them for faster scanning.
                       <span class="org-string">"~/personal/people.org"</span>
                       <span class="org-string">"~/personal/business.org"</span>
                       <span class="org-string">"~/personal/calendar.org"</span>
+                      <span class="org-string">"~/Dropbox/wsmef/puppy.txt"</span>
                       <span class="org-string">"~/Dropbox/tasker/summary.txt"</span>
                       <span class="org-string">"~/Dropbox/public/sharing/index.org"</span>
                       <span class="org-string">"~/dropbox/public/sharing/learning.org"</span>
@@ -5627,10 +5629,11 @@ getting the hang of thinking properly functionally&#x2026; =)
 
 (<span class="org-keyword">use-package</span> <span class="org-constant">web-mode</span>
   <span class="org-builtin">:ensure</span> t
-  <span class="org-builtin">:defer</span> t
   <span class="org-builtin">:mode</span> <span class="org-string">"\\.html?\\'"</span>
   <span class="org-builtin">:config</span>
   (<span class="org-keyword">progn</span>
+    (<span class="org-keyword">setq</span> web-mode-markup-indent-offset 2)
+    (<span class="org-keyword">setq</span> web-mode-code-indent-offset 2)
     (<span class="org-keyword">setq</span> web-mode-enable-current-element-highlight t)
     (<span class="org-keyword">setq</span> web-mode-ac-sources-alist
           '((<span class="org-string">"css"</span> . (ac-source-css-property))
@@ -7483,7 +7486,7 @@ cool. On Windows, these things help a little.
 </div>
 </div>
 <div id="outline-container-orgheadline194" class="outline-3">
-<h3 id="orgheadline194">Building a today-I-learned habit, and displaying the documentation for random Emacs commands&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></h3>
+<h3 id="orgheadline194"><a id="o2b:f3c021e8-8b7a-4bd2-a035-3de1eaa206a2"></a>Building a today-I-learned habit, and displaying the documentation for random Emacs commands&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></h3>
 <div class="outline-text-3" id="text-orgheadline194">
 <p>
 I'd like to build a habit of regularly learning one small thing each
@@ -9036,6 +9039,7 @@ specified number of them) and then opens the last one for me to edit.
           (widget-setup)
           (widget-minor-mode)
           (pop-to-buffer (current-buffer))
+          (goto-char (point-min))
           (current-buffer))))
 
     (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/sketch-executable</span> <span class="org-string">"C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe"</span>)
@@ -9525,14 +9529,12 @@ looked into debugging that yet.
       (org-narrow-to-subtree)
       (goto-char (point-min))
       (<span class="org-keyword">while</span> (re-search-forward org-bracket-link-regexp nil t)
-        (<span class="org-keyword">if</span> (<span class="org-keyword">save-match-data</span> (string-match <span class="org-string">"flickr.com"</span> (match-string 0)))
-            (<span class="org-keyword">when</span> (file-exists-p
-                   (expand-file-name (concat (match-string 3) <span class="org-string">".png"</span>)
-                                     <span class="org-string">"~/Dropbox/Inbox/To blog"</span>))
-              (rename-file
-               (expand-file-name (concat (match-string 3) <span class="org-string">".png"</span>)
-                                 <span class="org-string">"~/Dropbox/Inbox/To blog"</span>)
-               <span class="org-string">"~/Dropbox/Inbox/Selection"</span> )))))))
+        (<span class="org-keyword">let</span> ((filename (file-name-nondirectory (<span class="org-keyword">or</span> (match-string 3) (match-string 1)))))
+          (<span class="org-keyword">when</span> (<span class="org-keyword">and</span> (string-match <span class="org-string">"\\.png$"</span> filename)
+                     (file-exists-p (expand-file-name filename <span class="org-string">"~/Dropbox/Inbox/To blog"</span>)))
+            (rename-file
+             (expand-file-name filename <span class="org-string">"~/Dropbox/Inbox/To blog"</span>)
+             <span class="org-string">"~/Dropbox/Inbox/Selection"</span>)))))))
 </pre>
 </div>
 </div>
@@ -9619,13 +9621,11 @@ Aspect ratio is width / height
          (full-filename (my/get-index-card-filename filename)))
     (<span class="org-keyword">if</span> full-filename
         (my/open-image full-filename)
-      (my/prepare-index-card filename
-                             (org-read-date nil nil <span class="org-string">"."</span>)))
-    (my/prepare-index-card-montage 
-     (mapcar 'my/get-index-card-filename
-             (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))) 
-     <span class="org-string">"2x"</span>
-     full-filename)))
+      (my/prepare-index-card-montage 
+       (mapcar 'my/get-index-card-filename
+               (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))) 
+       <span class="org-string">"2x"</span>
+       (my/prepare-index-card-template filename)))))
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/prepare-index-card-montage</span> (files <span class="org-type">&amp;optional</span> tiling filename)
   <span class="org-doc">"Prepare an index card with a montage of the selected sketches as a layer."</span>

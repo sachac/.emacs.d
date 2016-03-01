@@ -1,4 +1,4 @@
-o#+TITLE: Sacha Chua's Emacs configuration
+#+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
 
 * Configuration

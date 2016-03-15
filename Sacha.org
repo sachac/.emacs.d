@@ -2706,17 +2706,17 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                ((eq system-type 'windows-nt)
                 (when update-db (shell-command "c:/sacha/dropbox/bin/flickr.bat"))
                 (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
-               ((eq system-type 'gnu/linux)
-                ;; Create links to sketches.sachachua.com/URL-encoded
+               ((eq system-type 'gnu/linux)  ; Flickr
+                (shell-command-to-string (format "cd /home/sacha/code/node; nodejs flickr-list.js -b %s -e %s" start end))))
+              ((eq system-type 'gnu/linux) ;; Create links to sketches.sachachua.com/URL-encoded; not used at the moment
+               ;; because Org does weird things with escaped # links
                 (mapconcat
                  (lambda (filename)
                    (format "- [[http://sketches.sachachua.com/%s][%s]]\n"
-                           (url-encode-url (file-name-nondirectory filename))
+                           (browse-url-url-encode-chars (file-name-nondirectory filename) "[ #]")
                            (file-name-base filename)))
                  (let ((my/sketch-directories '("~/sketches"))) (my/get-index-card-filenames-between-dates start end))
                  ""))
-               ((and nil (eq system-type 'gnu/linux))  ; no longer used; was based on Flickr
-                (shell-command-to-string (format "cd /home/sacha/code/node; nodejs flickr-list.js -b %s -e %s" start end))))
               ))
          (if do-insert
              (insert value)

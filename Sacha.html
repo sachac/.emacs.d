@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2016-03-15 Tue 12:08 -->
+<!-- 2016-03-15 Tue 12:14 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
@@ -4015,17 +4015,17 @@ Now we put it all together&#x2026;
             ((eq system-type 'windows-nt)
              (<span class="org-keyword">when</span> update-db (shell-command <span class="org-string">"c:/sacha/dropbox/bin/flickr.bat"</span>))
              (my/flickr-extract-links-for-review <span class="org-string">"c:/sacha/dropbox/bin/flickr_metadata.csv"</span> start end))
-            ((eq system-type 'gnu/linux)
-             <span class="org-comment-delimiter">;; </span><span class="org-comment">Create links to sketches.sachachua.com/URL-encoded</span>
+            ((eq system-type 'gnu/linux)  <span class="org-comment-delimiter">; </span><span class="org-comment">Flickr</span>
+             (shell-command-to-string (format <span class="org-string">"cd /home/sacha/code/node; nodejs flickr-list.js -b %s -e %s"</span> start end))))
+           ((eq system-type 'gnu/linux) <span class="org-comment-delimiter">;; </span><span class="org-comment">Create links to sketches.sachachua.com/URL-encoded; not used at the moment</span>
+            <span class="org-comment-delimiter">;; </span><span class="org-comment">because Org does weird things with escaped # links</span>
              (mapconcat
               (<span class="org-keyword">lambda</span> (filename)
                 (format <span class="org-string">"- [[http://sketches.sachachua.com/%s][%s]]\n"</span>
-                        (url-encode-url (file-name-nondirectory filename))
+                        (browse-url-url-encode-chars (file-name-nondirectory filename) <span class="org-string">"[ #]"</span>)
                         (file-name-base filename)))
               (<span class="org-keyword">let</span> ((my/sketch-directories '(<span class="org-string">"~/sketches"</span>))) (my/get-index-card-filenames-between-dates start end))
               <span class="org-string">""</span>))
-            ((<span class="org-keyword">and</span> nil (eq system-type 'gnu/linux))  <span class="org-comment-delimiter">; </span><span class="org-comment">no longer used; was based on Flickr</span>
-             (shell-command-to-string (format <span class="org-string">"cd /home/sacha/code/node; nodejs flickr-list.js -b %s -e %s"</span> start end))))
            ))
       (<span class="org-keyword">if</span> do-insert
           (insert value)

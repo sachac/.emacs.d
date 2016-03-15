@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2016-02-29 Mon 22:25 -->
+<!-- 2016-03-15 Tue 12:08 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
@@ -2458,7 +2458,7 @@ entries, notes, and other semi-structured pieces of information.
     <span class="org-doc">"Try to return the contact email for a template.</span>
 <span class="org-doc">  If not found return RETURN-VALUE or something that would ask the user."</span>
     (<span class="org-keyword">or</span> (cadr (<span class="org-keyword">if</span> (gnus-alive-p)
-                  (<span class="org-keyword">gnus-with-article-headers</span>
+                  (gnus-with-article-headers
                     (mail-extract-address-components
                      (<span class="org-keyword">or</span> (mail-fetch-field <span class="org-string">"Reply-To"</span>) (mail-fetch-field <span class="org-string">"From"</span>) <span class="org-string">""</span>)))))
         return-value
@@ -3845,7 +3845,7 @@ then breaking it down into previous/next week.
   <span class="org-doc">"Summarize previous and upcoming tasks as a list."</span>
   (<span class="org-keyword">interactive</span> (list (org-read-date-analyze (<span class="org-keyword">if</span> current-prefix-arg (org-read-date) <span class="org-string">"-fri"</span>) nil '(0 0 0))))
   (<span class="org-keyword">let</span> (business relationships life business-next relationships-next life-next string emacs emacs-next
-                 start end time-summary biz-time ignore)
+                 start end time-summary biz-time ignore base-date)
     (<span class="org-keyword">setq</span> base-date (apply 'encode-time date))
     (<span class="org-keyword">setq</span> start (format-time-string <span class="org-string">"%Y-%m-%d"</span> (days-to-time (- (time-to-number-of-days base-date) 6))))
     (<span class="org-keyword">setq</span> end (format-time-string <span class="org-string">"%Y-%m-%d"</span> (days-to-time (1+ (time-to-number-of-days base-date)))))
@@ -3904,6 +3904,9 @@ then breaking it down into previous/next week.
            (format <span class="org-string">"- *Unpaid work* (%.1fh - %d%%)\n"</span>
                    (my/quantified-get-hours <span class="org-string">"Unpaid work"</span> time-summary)
                    (/ (my/quantified-get-hours <span class="org-string">"Unpaid work"</span> time-summary) 1.68))
+           (format <span class="org-string">"  - *Childcare* (%.1fh - %d%% of total)\n"</span>
+                   (my/quantified-get-hours '(<span class="org-string">"Unpaid work - Childcare"</span>) time-summary)
+                   (/ (my/quantified-get-hours '(<span class="org-string">"Unpaid work - Childcare"</span>) time-summary) 1.68))
            (format <span class="org-string">"- *Sleep* (%.1fh - %d%% - average of %.1f per day)\n"</span>
                    (my/quantified-get-hours <span class="org-string">"Sleep"</span> time-summary)
                    (/ (my/quantified-get-hours <span class="org-string">"Sleep"</span> time-summary) 1.68)
@@ -3956,7 +3959,7 @@ Now we put it all together&#x2026;
        <span class="org-string">"*** Weekly review: Week ending "</span> (format-time-string <span class="org-string">"%B %e, %Y"</span> base-date) <span class="org-string">"  :weekly:\n"</span>
        <span class="org-string">"*Blog posts*\n\n"</span>
        <span class="org-string">"*Sketches*\n\n"</span>
-       (my/flickr-export-and-extract start end) <span class="org-string">"\n"</span>
+       (my/sketches-export-and-extract start end) <span class="org-string">"\n"</span>
        <span class="org-string">"\n\n*Focus areas and time review*\n\n"</span>
        (my/org-summarize-focus-areas date)
        <span class="org-string">"\n"</span>)))
@@ -4004,22 +4007,31 @@ Now we put it all together&#x2026;
                 (assoc-default <span class="org-string">"FileName"</span> b)))))
 
 
-  (<span class="org-keyword">defun</span> <span class="org-function-name">my/flickr-export-and-extract</span> (start end <span class="org-type">&amp;optional</span> do-insert update-db)
-    <span class="org-doc">"Download Flickr metadata and extract the relevant part."</span>
+  (<span class="org-keyword">defun</span> <span class="org-function-name">my/sketches-export-and-extract</span> (start end <span class="org-type">&amp;optional</span> do-insert update-db)
+    <span class="org-doc">"Create a list of links to sketches."</span>
     (<span class="org-keyword">interactive</span> (list (org-read-date) (org-read-date) t current-prefix-arg))
-    (<span class="org-keyword">cond</span>
-     ((eq system-type 'windows-nt)
-      (<span class="org-keyword">when</span> update-db (shell-command <span class="org-string">"c:/sacha/dropbox/bin/flickr.bat"</span>))
+    (<span class="org-keyword">let</span> ((value
+           (<span class="org-keyword">cond</span>
+            ((eq system-type 'windows-nt)
+             (<span class="org-keyword">when</span> update-db (shell-command <span class="org-string">"c:/sacha/dropbox/bin/flickr.bat"</span>))
+             (my/flickr-extract-links-for-review <span class="org-string">"c:/sacha/dropbox/bin/flickr_metadata.csv"</span> start end))
+            ((eq system-type 'gnu/linux)
+             <span class="org-comment-delimiter">;; </span><span class="org-comment">Create links to sketches.sachachua.com/URL-encoded</span>
+             (mapconcat
+              (<span class="org-keyword">lambda</span> (filename)
+                (format <span class="org-string">"- [[http://sketches.sachachua.com/%s][%s]]\n"</span>
+                        (url-encode-url (file-name-nondirectory filename))
+                        (file-name-base filename)))
+              (<span class="org-keyword">let</span> ((my/sketch-directories '(<span class="org-string">"~/sketches"</span>))) (my/get-index-card-filenames-between-dates start end))
+              <span class="org-string">""</span>))
+            ((<span class="org-keyword">and</span> nil (eq system-type 'gnu/linux))  <span class="org-comment-delimiter">; </span><span class="org-comment">no longer used; was based on Flickr</span>
+             (shell-command-to-string (format <span class="org-string">"cd /home/sacha/code/node; nodejs flickr-list.js -b %s -e %s"</span> start end))))
+           ))
       (<span class="org-keyword">if</span> do-insert
-          (insert (my/flickr-extract-links-for-review <span class="org-string">"c:/sacha/dropbox/bin/flickr_metadata.csv"</span> start end))
-        (my/flickr-extract-links-for-review <span class="org-string">"c:/sacha/dropbox/bin/flickr_metadata.csv"</span> start end)))
-     ((eq system-type 'gnu/linux)
-      (<span class="org-keyword">let</span> ((value (shell-command-to-string (format <span class="org-string">"cd /home/sacha/code/node; nodejs flickr-list.js -b %s -e %s"</span> start end))))
-        (<span class="org-keyword">if</span> do-insert
-            (insert value)
-          value)))))
+          (insert value)
+        value)))
 
-<span class="org-comment-delimiter">;; </span><span class="org-comment">(my/flickr-export-and-extract "2015-11-01" "2015-12-01")</span>
+<span class="org-comment-delimiter">;; </span><span class="org-comment">(my/sketches-export-and-extract "2015-11-01" "2015-12-01")</span>
 
   (<span class="org-keyword">defun</span> <span class="org-function-name">my/flickr-extract-links-for-review</span> (filename start end)
   <span class="org-doc">"Extract Flickr titles and URLs from FILENAME from START to END.</span>
@@ -4254,7 +4266,7 @@ Here's a function like <code>my/org-prepare-weekly-review</code>:
           posts (_my/extract-posts-from-webpage
                  (format <span class="org-string">"http://sachachua.com/blog/%4d/%d?org=1"</span>
                          year month))
-          sketches (my/flickr-export-and-extract start-date end-date nil t))
+          sketches (my/sketches-export-and-extract start-date end-date nil t))
     (goto-char (line-end-position))
     (insert
      <span class="org-string">"\n\n** Monthly review: "</span>
@@ -9077,24 +9089,34 @@ specified number of them) and then opens the last one for me to edit.
         <span class="org-string">"~/sketches"</span>
         <span class="org-string">"~/photosync/photostream"</span>))
 
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/get-index-card-filenames-between-dates</span> (start end)
+  <span class="org-doc">"Returns index card filenames between START and END."</span>
+  (my/get-index-card-filenames
+   (<span class="org-keyword">lambda</span> (filename)
+     (<span class="org-keyword">and</span> (string&gt; (file-name-nondirectory filename) start)
+          (string&gt; end (file-name-nondirectory filename))))))
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/get-index-card-filenames</span> (base <span class="org-type">&amp;optional</span> as-regexp)
   <span class="org-doc">"Check several directories for files matching BASE.</span>
 <span class="org-doc">Return the matching filenames, if any.</span>
-<span class="org-doc">If AS-REGEXP is non-nil, treat BASE as a regular expression."</span>
-  (-flatten
-   (delq nil
-         (mapcar
-          (<span class="org-keyword">lambda</span> (dir)
-            (<span class="org-keyword">and</span> (file-directory-p dir)
-                 (directory-files
-                  dir t
-                  (concat 
-                   <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">"</span>
-                   (<span class="org-keyword">if</span> as-regexp base (regexp-quote base))
-                   <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>
-                   <span class="org-string">".*\\.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">tiff</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?$"</span>
-                   ))))
-          my/sketch-directories))))
+<span class="org-doc">If AS-REGEXP is non-nil, treat BASE as a regular expression.</span>
+<span class="org-doc">If BASE is a function, use that to filter."</span>
+  (sort (-flatten
+         (delq nil
+               (mapcar
+                (<span class="org-keyword">lambda</span> (dir)
+                  (<span class="org-keyword">and</span> (file-directory-p dir)
+                       (<span class="org-keyword">if</span> (functionp base)
+                           (-filter base (directory-files dir t <span class="org-string">".*\\.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">tiff</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?$"</span>))
+                         (directory-files
+                          dir t
+                          (concat 
+                           <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">"</span>
+                           (<span class="org-keyword">if</span> as-regexp base (regexp-quote base))
+                           <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>
+                           <span class="org-string">".*\\.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">tiff</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?$"</span>
+                           )))))
+                my/sketch-directories)))
+        'string&lt;))
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/get-index-card-filename</span> (base <span class="org-type">&amp;optional</span> as-regexp)
   <span class="org-doc">"Check several directories for files matching BASE.</span>

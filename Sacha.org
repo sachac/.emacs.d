@@ -2548,7 +2548,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
      "Summarize previous and upcoming tasks as a list."
      (interactive (list (org-read-date-analyze (if current-prefix-arg (org-read-date) "-fri") nil '(0 0 0))))
      (let (business relationships life business-next relationships-next life-next string emacs emacs-next
-                    start end time-summary biz-time ignore)
+                    start end time-summary biz-time ignore base-date)
        (setq base-date (apply 'encode-time date))
        (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
        (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
@@ -2607,6 +2607,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
               (format "- *Unpaid work* (%.1fh - %d%%)\n"
                       (my/quantified-get-hours "Unpaid work" time-summary)
                       (/ (my/quantified-get-hours "Unpaid work" time-summary) 1.68))
+              (format "  - *Childcare* (%.1fh - %d%% of total)\n"
+                      (my/quantified-get-hours '("Unpaid work - Childcare") time-summary)
+                      (/ (my/quantified-get-hours '("Unpaid work - Childcare") time-summary) 1.68))
               (format "- *Sleep* (%.1fh - %d%% - average of %.1f per day)\n"
                       (my/quantified-get-hours "Sleep" time-summary)
                       (/ (my/quantified-get-hours "Sleep" time-summary) 1.68)
@@ -2649,7 +2652,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
        "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
        "*Blog posts*\n\n"
        "*Sketches*\n\n"
-       (my/flickr-export-and-extract start end) "\n"
+       (my/sketches-export-and-extract start end) "\n"
        "\n\n*Focus areas and time review*\n\n"
        (my/org-summarize-focus-areas date)
        "\n")))
@@ -2695,22 +2698,31 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                    (assoc-default "FileName" b)))))
 
 
-     (defun my/flickr-export-and-extract (start end &optional do-insert update-db)
-       "Download Flickr metadata and extract the relevant part."
+     (defun my/sketches-export-and-extract (start end &optional do-insert update-db)
+       "Create a list of links to sketches."
        (interactive (list (org-read-date) (org-read-date) t current-prefix-arg))
-       (cond
-        ((eq system-type 'windows-nt)
-         (when update-db (shell-command "c:/sacha/dropbox/bin/flickr.bat"))
+       (let ((value
+              (cond
+               ((eq system-type 'windows-nt)
+                (when update-db (shell-command "c:/sacha/dropbox/bin/flickr.bat"))
+                (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
+               ((eq system-type 'gnu/linux)
+                ;; Create links to sketches.sachachua.com/URL-encoded
+                (mapconcat
+                 (lambda (filename)
+                   (format "- [[http://sketches.sachachua.com/%s][%s]]\n"
+                           (url-encode-url (file-name-nondirectory filename))
+                           (file-name-base filename)))
+                 (let ((my/sketch-directories '("~/sketches"))) (my/get-index-card-filenames-between-dates start end))
+                 ""))
+               ((and nil (eq system-type 'gnu/linux))  ; no longer used; was based on Flickr
+                (shell-command-to-string (format "cd /home/sacha/code/node; nodejs flickr-list.js -b %s -e %s" start end))))
+              ))
          (if do-insert
-             (insert (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
-           (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end)))
-        ((eq system-type 'gnu/linux)
-         (let ((value (shell-command-to-string (format "cd /home/sacha/code/node; nodejs flickr-list.js -b %s -e %s" start end))))
-           (if do-insert
-               (insert value)
-             value)))))
+             (insert value)
+           value)))
 
-   ;; (my/flickr-export-and-extract "2015-11-01" "2015-12-01")
+   ;; (my/sketches-export-and-extract "2015-11-01" "2015-12-01")
 
      (defun my/flickr-extract-links-for-review (filename start end)
      "Extract Flickr titles and URLs from FILENAME from START to END.
@@ -2930,7 +2942,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
              posts (_my/extract-posts-from-webpage
                     (format "http://sachachua.com/blog/%4d/%d?org=1"
                             year month))
-             sketches (my/flickr-export-and-extract start-date end-date nil t))
+             sketches (my/sketches-export-and-extract start-date end-date nil t))
        (goto-char (line-end-position))
        (insert
         "\n\n** Monthly review: "
@@ -6843,24 +6855,34 @@ recently-opened files first.
             "~/sketches"
             "~/photosync/photostream"))
 
+    (defun my/get-index-card-filenames-between-dates (start end)
+      "Returns index card filenames between START and END."
+      (my/get-index-card-filenames
+       (lambda (filename)
+         (and (string> (file-name-nondirectory filename) start)
+              (string> end (file-name-nondirectory filename))))))
     (defun my/get-index-card-filenames (base &optional as-regexp)
       "Check several directories for files matching BASE.
     Return the matching filenames, if any.
-    If AS-REGEXP is non-nil, treat BASE as a regular expression."
-      (-flatten
-       (delq nil
-             (mapcar
-              (lambda (dir)
-                (and (file-directory-p dir)
-                     (directory-files
-                      dir t
-                      (concat 
-                       "\\("
-                       (if as-regexp base (regexp-quote base))
-                       "\\)"
-                       ".*\\.\\(png\\|psd\\|tiff\\)?$"
-                       ))))
-              my/sketch-directories))))
+    If AS-REGEXP is non-nil, treat BASE as a regular expression.
+    If BASE is a function, use that to filter."
+      (sort (-flatten
+             (delq nil
+                   (mapcar
+                    (lambda (dir)
+                      (and (file-directory-p dir)
+                           (if (functionp base)
+                               (-filter base (directory-files dir t ".*\\.\\(png\\|psd\\|tiff\\)?$"))
+                             (directory-files
+                              dir t
+                              (concat 
+                               "\\("
+                               (if as-regexp base (regexp-quote base))
+                               "\\)"
+                               ".*\\.\\(png\\|psd\\|tiff\\)?$"
+                               )))))
+                    my/sketch-directories)))
+            'string<))
 
     (defun my/get-index-card-filename (base &optional as-regexp)
       "Check several directories for files matching BASE.

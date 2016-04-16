@@ -82,9 +82,9 @@ in a directory in my =load-path=, Emacs can find them.
 (unless (package-installed-p 'use-package)
   (package-install 'use-package))
 (setq use-package-verbose t)
+(setq use-package-always-ensure t)
 (require 'use-package)
 (use-package auto-compile
-  :ensure t
   :config (auto-compile-on-load-mode))
 (setq load-prefer-newer t)
 #+END_SRC
@@ -98,6 +98,12 @@ I keep slightly more sensitive information in a separate file so that I can easi
 #+END_SRC
 
 ** General configuration
+*** Libraries
+
+#+begin_src emacs-lisp
+(use-package dash)
+#+end_src
+
 *** Backups
 
 This is one of the things people usually want to change right away. By default, Emacs saves backup files in the current directory. These are the files ending in =~= that are cluttering up your directory lists. The following code stashes them all in =~/.emacs.d/backups=, where I can find them with =C-x C-f= (=find-file=) if I really need to.
@@ -143,14 +149,10 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
     :DRILL_LAST_REVIEWED: [2013-02-27 Wed 23:14]
     :END:
 
-When you're starting out, tooltips, menus, and the tool bar can be very helpful. [[http://sachachua.com/blog/2014/03/emacs-basics-using-mouse/][(Emacs Basics: Using the Mouse]]). Eventually, you may want to reclaim that extra little bit of screenspace. The following code turns those things off when using a graphical Emacs. (Although I changed my mind about the menu - I want that again.)
+When you're starting out, the tool bar can be very helpful. [[http://sachachua.com/blog/2014/03/emacs-basics-using-mouse/][(Emacs Basics: Using the Mouse]]). Eventually, you may want to reclaim that extra little bit of screenspace. The following code turns that thing off. (Although I changed my mind about the menu - I want that again.)
 
 #+BEGIN_SRC emacs-lisp
-(when window-system
-  (tooltip-mode -1)
-  (tool-bar-mode -1)
-  (menu-bar-mode 1)
-  (scroll-bar-mode -1))
+(tool-bar-mode -1)
 #+END_SRC
 *** Winner mode - undo and redo window configuration
 
@@ -158,7 +160,6 @@ When you're starting out, tooltips, menus, and the tool bar can be very helpful.
 
 #+BEGIN_SRC emacs-lisp
 (use-package winner
-  :ensure t
   :defer t)
 #+END_SRC
 *** Sentences end with a single space
@@ -178,7 +179,6 @@ possible, although I prefer ido's way of switching buffers.
 
 #+BEGIN_SRC emacs-lisp
 (use-package helm
-  :ensure t
   :diminish helm-mode
   :init
   (progn
@@ -213,7 +213,6 @@ Great for describing bindings. I'll replace the binding for =where-is= too.
 #+BEGIN_SRC emacs-lisp
 (use-package helm-descbinds
   :defer t
-  :ensure t
   :bind (("C-h b" . helm-descbinds)
          ("C-h w" . helm-descbinds)))
 #+END_SRC
@@ -549,9 +548,7 @@ helm-grep? Bit slow and hard to read, though.
 Display a more compact mode line
 
 #+BEGIN_SRC emacs-lisp
-(use-package smart-mode-line
-  :ensure t
-  :defer t)
+(use-package smart-mode-line)
 #+END_SRC
 
 *** Change "yes or no" to "y or n"
@@ -572,8 +569,6 @@ Lazy people like me never want to type "yes" when "y" will suffice.
 
 #+BEGIN_SRC emacs-lisp
 (use-package miniedit
-  :defer t
-  :ensure t
   :commands minibuffer-edit
   :init (miniedit-install))
 #+END_SRC
@@ -589,8 +584,8 @@ it work. Some things still aren't quite right.
   (if (ad-get-arg 0)
       ad-do-it
     nil))
-(use-package color-theme :ensure t)
-(use-package color-theme-solarized :ensure t)
+(use-package color-theme)
+(use-package color-theme-solarized)
 (defun my/setup-color-theme ()
   (interactive)
   (color-theme-solarized-dark)
@@ -602,9 +597,7 @@ it work. Some things still aren't quite right.
   (set-face-foreground 'org-todo "green")
   (set-face-background 'org-todo "black"))
 
-(eval-after-load 'color-theme
-  '(when window-system
-    (my/setup-color-theme)))
+(eval-after-load 'color-theme (my/setup-color-theme))
 #+END_SRC
 
 I sometimes need to switch to a lighter background for screenshots.
@@ -633,8 +626,6 @@ This lets you use =C-x u= (=undo-tree-visualize=) to visually walk through the c
 
 #+BEGIN_SRC emacs-lisp
 (use-package undo-tree
-  :defer t
-  :ensure t
   :diminish undo-tree-mode
   :config
   (progn
@@ -717,7 +708,6 @@ This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= t
 
 #+BEGIN_SRC emacs-lisp
 (use-package helm-swoop
- :ensure t
  :bind
  (("C-S-s" . helm-swoop)
   ("M-i" . helm-swoop)
@@ -741,8 +731,6 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
 
 #+BEGIN_SRC emacs-lisp
 (use-package windmove
-  :ensure t
-  :defer t
   :bind
   (("<f2> <right>" . windmove-right)
    ("<f2> <left>" . windmove-left)
@@ -754,7 +742,6 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
 
 #+begin_src emacs-lisp
 (use-package switch-window
-  :ensure t
   :bind (("C-x o" . switch-window)))
 #+end_src
 *** Frequently-accessed files
@@ -840,7 +827,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
     (interactive)
     (goto-char (random (point-max))))
 
-  (use-package hydra :ensure t
+  (use-package hydra
     :config
     (defhydra my/goto-random-char-hydra ()
       ("r" my/goto-random-char))
@@ -934,7 +921,6 @@ Now let's set up the actual keychords.
 
 #+BEGIN_SRC emacs-lisp
   (use-package key-chord
-    :ensure t
     :init
     (progn
       (fset 'key-chord-define 'my/key-chord-define)
@@ -989,6 +975,40 @@ From http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-di
 (require 'find-dired)
 (setq find-ls-option '("-print0 | xargs -0 ls -ld" . "-ld"))
 #+END_SRC
+**** peep-dired
+
+Allow my use of =C-x C-q= while in peep-dired mode.
+
+#+begin_src emacs-lisp  :tangle no
+(use-package peep-dired
+  :bind (:map peep-dired-mode-map 
+         ("SPC" . nil)
+         ("<backspace>" . nil)))
+#+end_src
+
+**** Saving photos
+
+#+begin_src emacs-lisp
+  (defun my/save-photo (name)
+    (interactive "MName: ")
+    (let* ((file (dired-get-filename))
+           new-name)
+      (when (string-match "CameraZOOM-\\([0-9][0-9][0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9][0-9]\\)" file)
+        (setq new-name
+              (format "%s-%s-%s %s.%s.%s.%s %s.jpg"
+                      (match-string 1 file)
+                      (match-string 2 file)
+                      (match-string 3 file)
+                      (match-string 4 file)
+                      (match-string 5 file)
+                      (match-string 6 file)
+                      (match-string 7 file)
+                      name))
+        (when (string-match "A-" name)
+          (copy-file file (concat my/kid-photo-directory new-name)))
+        (rename-file file (concat "~/archives/2016/photos/selected/" new-name)))))
+  (bind-key "b" 'my/save-photo dired-mode-map)
+#+end_src
 *** Move to beginning of line
 Copied from http://emacsredux.com/blog/2013/05/22/smarter-navigation-to-the-beginning-of-a-line/
 
@@ -1235,6 +1255,8 @@ Here are the Org files I use. I should probably organize them better. =)
 | latin.org            | Latin notes                                                              |
 | 101things.org        | Old goals for 101 things in 1001 days                                    |
 | life.org             | Questions, processes, tools                                              |
+
+- [[http://stackoverflow.com/questions/8146313/emacs-auto-save-for-org-mode-only][emacs auto save for org-mode only - Stack Overflow]]
 
 *** Modules
 Org has a whole bunch of optional modules. These are the ones I'm
@@ -1698,6 +1720,9 @@ able to clock in on them.
          ("SOMEDAY" . (:foreground "gray" :weight bold))))
  #+end_src
 
+#+begin_src emacs-lisp
+(setq org-log-done 'time)
+#+end_src
 ***** Projects
 
  Projects are headings with the =:project:= tag, so we generally don't
@@ -1736,6 +1761,7 @@ able to clock in on them.
                                      ("@errands" . ?e)
                                      ("@drawing" . ?d)
                                      ("@coding" . ?c)
+                                     ("kaizen" . ?k)
                                      ("@phone" . ?p)
                                      ("@reading" . ?r)
                                      ("@computer" . ?l)
@@ -2228,14 +2254,15 @@ hang of using these more!
              ((org-agenda-view-columns-initially t)))
             ("gw" "Writing" tags-todo "@writing"
              ((org-agenda-view-columns-initially t)))
-            ("gp" "Publishing" tags-todo "@publishing"
-             ((org-agenda-view-columns-initially t)))
-            ("gP" "Phone" tags-todo "@phone"
+            ("gp" "Phone" tags-todo "@phone"
              ((org-agenda-view-columns-initially t)))
             ("gd" "Drawing" tags-todo "@drawing"
              ((org-agenda-view-columns-initially t)))
             ("gh" "Home" tags-todo "@home"
              ((org-agenda-view-columns-initially t)))
+            ("gk" "Kaizen" tags-todo "kaizen"
+             ((org-agenda-view-columns-initially t))
+             ("~/Dropbox/agenda/errands.html"))
             ("ge" "Errands" tags-todo "@errands"
              ((org-agenda-view-columns-initially t))
              ("~/Dropbox/agenda/errands.html"))
@@ -2707,16 +2734,19 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                 (when update-db (shell-command "c:/sacha/dropbox/bin/flickr.bat"))
                 (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
                ((eq system-type 'gnu/linux)  ; Flickr
-                (shell-command-to-string (format "cd /home/sacha/code/node; nodejs flickr-list.js -b %s -e %s" start end))))
-              ((eq system-type 'gnu/linux) ;; Create links to sketches.sachachua.com/URL-encoded; not used at the moment
-               ;; because Org does weird things with escaped # links
+                (shell-command-to-string
+                 (if end
+                     (format "cd /home/sacha/code/node; nodejs flickr-list.js -b %s -e %s" start end)
+                   (format "cd /home/sacha/code/node; nodejs flickr-list.js -b %s" start))))
+               ((and nil  (eq system-type 'gnu/linux)) ;; Create links to sketches.sachachua.com/URL-encoded; not used at the moment
+                ;; because Org does weird things with escaped # links
                 (mapconcat
                  (lambda (filename)
                    (format "- [[http://sketches.sachachua.com/%s][%s]]\n"
                            (browse-url-url-encode-chars (file-name-nondirectory filename) "[ #]")
                            (file-name-base filename)))
                  (let ((my/sketch-directories '("~/sketches"))) (my/get-index-card-filenames-between-dates start end))
-                 ""))
+                 "")))
               ))
          (if do-insert
              (insert value)
@@ -2942,7 +2972,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
              posts (_my/extract-posts-from-webpage
                     (format "http://sachachua.com/blog/%4d/%d?org=1"
                             year month))
-             sketches (my/sketches-export-and-extract start-date end-date nil t))
+             sketches (my/sketches-export-and-extract start-date nil nil t))
        (goto-char (line-end-position))
        (insert
         "\n\n** Monthly review: "
@@ -3165,7 +3195,7 @@ I can use thumbnail support for now...
     (shell-command "start c:\\sacha\\dropbox\\inbox\\selection")
     (browse-url "http://sachachua.com/blog/wp-admin/edit.php?page=cal"))
 
-  (use-package htmlize :ensure t :defer t)
+  (use-package htmlize)
 #+end_src
 
 **** Publish without prompting
@@ -3376,6 +3406,11 @@ Org lets you attach files to an Org file. Haven't gotten the hang of this yet, b
 (setq org-attach-store-link-p 'attached)
 (setq org-attach-auto-tag nil)
 #+end_src
+*** HTTP
+
+#+begin_src emacs-lisp
+(use-package ob-http)
+#+end_src
 
 *** Diagrams and graphics
 
@@ -3393,6 +3428,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
    '((dot . t)
      (ditaa . t)
      (sh . t)
+     (http . t)
      (shell . t)
      (R . t)))
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))))
@@ -3581,8 +3617,6 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
 
 #+begin_src emacs-lisp
 (use-package org-fstree
-  :ensure t
-  :defer t
   :commands (org-fstree-apply-maybe org-fstree-show-entry-maybe)
   :config
   (progn (add-hook 'org-ctrl-c-ctrl-c-hook 'org-fstree-apply-maybe)
@@ -3995,7 +4029,6 @@ getting the hang of thinking properly functionally... =)
       t))
 
   (use-package web-mode
-    :ensure t
     :mode "\\.html?\\'"
     :config
     (progn
@@ -4048,7 +4081,6 @@ This is something I have to get the hang of too. It gradually expands the select
 
 #+begin_src emacs-lisp
   (use-package expand-region
-    :ensure expand-region
     :defer t
     :bind ("C-=" . er/expand-region))
 #+end_src
@@ -4063,7 +4095,6 @@ This is something I have to get the hang of too. It gradually expands the select
 Eldoc provides minibuffer hints when working with Emacs Lisp.
 #+begin_src emacs-lisp
 (use-package "eldoc"
-  :ensure t
   :diminish eldoc-mode
   :commands turn-on-eldoc-mode
   :defer t
@@ -4103,12 +4134,10 @@ More things that I need to get used to...
 ;; C-c C-v ? : Display flymake elint warnings/errors
 
   (use-package erefactor
-    :ensure t
-    :defer t
     :config
     (define-key emacs-lisp-mode-map "\C-c\C-v" erefactor-map))
 
-  (use-package paredit :ensure t)
+  (use-package paredit)
   (use-package redshank
     :disabled t
     :defer t
@@ -4170,7 +4199,6 @@ Borrowed from Steve Purcell's config. This pretty-prints the results.
 *** Snippets
     #+begin_src emacs-lisp
       (use-package yasnippet
-        :ensure t
         :diminish yas-minor-mode
         :init (yas-global-mode)
         :config
@@ -4330,7 +4358,6 @@ I like js2-mode.
 Handy shortcuts:
 #+begin_src emacs-lisp
 (use-package js2-mode
-:ensure t
   :config
   (bind-key "C-c C-c" 'compile js2-mode-map)
   (add-hook 'js2-mode-hook 'jasminejs-mode))
@@ -4338,14 +4365,13 @@ Handy shortcuts:
 
 #+begin_src emacs-lisp
 (use-package coffee-mode
-:ensure t
   :config
-  (bind-key "C-c C-c" 'compile coffee-mode-map))
+  (bind-key "C-c C-c" 'compile coffee-mode-map)
+  )
 #+end_src
 
 #+begin_src emacs-lisp
 (use-package jasminejs-mode
-:ensure t
   :config
   (add-hook 'jasminejs-mode-hook 'jasminejs-add-snippets-to-yas-snippet-dirs))
 #+end_src
@@ -4408,8 +4434,6 @@ And the rest of the js2 config:
 
 #+begin_src emacs-lisp
   (use-package js2-mode
-    :ensure t
-    :defer t
     :commands js2-mode
     :init
     (progn
@@ -4429,8 +4453,6 @@ And the rest of the js2 config:
 
 #+begin_src emacs-lisp
 (use-package coffee-mode
-:ensure t
-:defer t
 :config (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
 #+end_src
 
@@ -4501,8 +4523,6 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
         (call-interactively 'magit-log-edit))
 
       (use-package magit
-        :ensure t
-        :defer t
         :load-path "~/elisp/magit"
         :config
         (progn
@@ -4579,8 +4599,7 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
     (magit-gh-pulls-mode 1)
     (magit-gh-pulls-reload))
 
-  (use-package magit-gh-pulls
-    :ensure t :defer t)
+  (use-package magit-gh-pulls)
 #+end_src
 
 The proper way to implement this is probably to patch or override the
@@ -4592,7 +4611,6 @@ options to add at the end of the command, but that can wait for another time (or
 
 #+begin_src emacs-lisp
 (use-package git-messenger
-  :ensure t :defer t
   :bind (("C-x v m" . git-messenger:popup-message)))
 #+end_src
 *** Tag files
@@ -4624,8 +4642,6 @@ options to add at the end of the command, but that can wait for another time (or
 
 #+begin_src emacs-lisp
 (use-package projectile
-  :ensure t
-  :defer t
   :diminish projectile-mode
   :config
   (progn
@@ -4636,9 +4652,7 @@ options to add at the end of the command, but that can wait for another time (or
     (add-to-list 'projectile-globally-ignored-files "node-modules"))
   :config
   (projectile-global-mode))
-(use-package helm-projectile
-   :defer t :ensure t
-   :ensure helm-projectile)
+(use-package helm-projectile)
 #+end_src
 *** Exploring MELPA recipes
 
@@ -4649,10 +4663,9 @@ options to add at the end of the command, but that can wait for another time (or
 *** Ruby
 
 		#+begin_src emacs-lisp
-(use-package rinari :ensure t :defer t)
-(use-package bundler :ensure t :defer t)
+(use-package rinari)
+(use-package bundler)
     (use-package robe
-      :ensure t :defer t
       :init
 		  (progn (add-hook 'ruby-mode-hook 'robe-mode)
              (add-hook 'robe-mode-hook 'ac-robe-setup)
@@ -4673,7 +4686,6 @@ options to add at the end of the command, but that can wait for another time (or
    (rspec-core-options)))
 
 (use-package rspec-mode
-  :ensure t :defer t
   :config
   (progn
     (setq rspec-command-options "--fail-fast --format documentation")
@@ -4698,7 +4710,6 @@ with HTTPS sites.
 
 #+begin_src emacs-lisp
 (use-package skewer-mode
-  :ensure t :defer t
   :config (skewer-setup))
 #+end_src
 
@@ -4706,24 +4717,18 @@ with HTTPS sites.
 
 #+begin_src emacs-lisp
 (use-package company
-  :ensure t
-  :config
-  (add-hook 'prog-mode-hook 'company-mode))
+  :config (add-hook 'prog-mode-hook 'company-mode))
 #+end_src
 *** Tern - for Javascript
 
 #+begin_src emacs-lisp
 (use-package tern
-  :ensure t
-  :defer t
   :config
   (bind-key "C-c C-c" 'compile tern-mode-keymap)
   (when (eq system-type 'windows-nt) (setq tern-command '("cmd" "/c" "tern")))
   (add-hook 'js2-mode-hook 'tern-mode))
 
 (use-package company-tern
-:ensure t
-:defer t
 :init (add-to-list 'company-backends 'company-tern))
 #+end_src
 
@@ -4732,7 +4737,6 @@ with HTTPS sites.
    IRC is a great way to hang out with other Emacs geeks.
    #+begin_src emacs-lisp
           (use-package erc
-            :ensure t :defer t
             :config
             (setq erc-hide-list '("PART" "QUIT" "JOIN"))
             (setq erc-autojoin-channels-alist '(("freenode.net"
@@ -4814,9 +4818,12 @@ with HTTPS sites.
          (org-set-property "QUANTIFIED" category))
         ((string= category "ask")
          (setq category (read-string "Category: "))))
-       (unless (string= (or (org-entry-get-with-inheritance "QUANTIFIEDQUIET") "") "t")
-         (setq note
-               (or note (elt (org-heading-components) 4) (read-string "Note: "))))))
+       (setq note
+             (concat
+              (if (string= (or (org-entry-get-with-inheritance "QUANTIFIEDQUIET") "") "t")
+                  "!private "
+                "")
+              (or note (elt (org-heading-components) 4) (read-string "Note: "))))))
     (quantified-track (concat category " | " note)))
 
   (defun my/org-quick-clock-in-task (location jump)
@@ -4831,7 +4838,7 @@ with HTTPS sites.
           (my/org-clock-in-and-track)))))
   (bind-key "C-c q" 'my/org-quick-clock-in-task)
 
-  (use-package quantified)
+  (require 'quantified)
 #+end_src
 *** Compare times and effort estimates
     :PROPERTIES:
@@ -4858,9 +4865,8 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 
 *** R
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
   (use-package ess-site
-    :ensure ess :defer t
     :commands R)
 #+end_src
 
@@ -4969,6 +4975,25 @@ http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en
 ;(setq eimp-mogrify-program "c:/Program Files/ImageMagick-6.8.3-Q16/mogrify.exe")
 #+end_src
 
+*** SSH and --daemon
+
+From https://github.com/nhoffman/.emacs.d/blob/master/init.org
+
+#+begin_src emacs-lisp
+  (defun my/ssh-refresh ()
+    "Reset the environment variable SSH_AUTH_SOCK"
+    (interactive)
+    (let (ssh-auth-sock-old (getenv "SSH_AUTH_SOCK"))
+      (setenv "SSH_AUTH_SOCK"
+              (car (split-string
+                    (shell-command-to-string
+                     "ls -t $(find /tmp/ssh-* -user $USER -name 'agent.*' 2> /dev/null)"))))
+      (message
+       (format "SSH_AUTH_SOCK %s --> %s"
+               ssh-auth-sock-old (getenv "SSH_AUTH_SOCK")))))
+  (my/ssh-refresh)
+#+end_src
+
 ** Display
 
 #+begin_src emacs-lisp
@@ -4991,6 +5016,14 @@ http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en
 	 (setq browse-url-firefox-program
          "C:/Program Files (x86)/Mozilla Firefox/firefox.exe")
 	 #+end_src
+
+=emacs --daemon= doesn't seem to pick up that Chrome is my default browser, so we'll just use the generic browser function.
+
+#+begin_src emacs-lisp
+(setq browse-url-generic-program "google-chrome")
+(setq browse-url-browser-function 'browse-url-generic)
+#+end_src
+
 ** Clipboard
 
 #+begin_src emacs-lisp
@@ -5002,7 +5035,6 @@ http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en
 
 #+begin_src emacs-lisp
   (use-package engine-mode
-    :ensure t
     :config
     (progn
       (defengine my-blog "https://www.google.ca/search?q=site:sachachua.com+%s" :keybinding "b")
@@ -5207,12 +5239,19 @@ Make it easier to review my credit card transactions
 
 ** Emacs server
 
-This permits the use of =emacsclient=, =emacsclientw=, and =org-protocol=.
+=(server-start)= permits the use of =emacsclient=, =emacsclientw=, and
+=org-protocol=. I used to start a server as part of my config. Now I'm
+switching to using =emacs --daemon=, which starts a server
+automatically. Anyway, with =--daemon=, Emacs doesn't start off in a
+graphical environment, so the frames that =emacsclient -c= creates
+don't get the theme applied. This fixes that:
 
 #+begin_src emacs-lisp
-(server-start)
+  (add-hook 'after-make-frame-functions
+            (lambda (frame)
+              (select-frame frame)
+              (my/setup-color-theme)))
 #+end_src
-
 ** Menus
 
 Handy when I'm in tablet mode.
@@ -5246,7 +5285,6 @@ Maybe =multiple-cursors= will be an even better way. Looks promising!
 
 #+begin_src emacs-lisp
   (use-package multiple-cursors
-    :ensure t :defer t
     :bind
      (("C-c m t" . mc/mark-all-like-this)
       ("C-c m m" . mc/mark-all-like-this-dwim)
@@ -5257,16 +5295,9 @@ Maybe =multiple-cursors= will be an even better way. Looks promising!
       ("C-c m p" . mc/mark-previous-like-this)
       ("C-c m s" . mc/mark-sgml-tag-pair)
       ("C-c m d" . mc/mark-all-like-this-in-defun)))
-  (use-package phi-search
-    :ensure t :defer t)
-  (use-package phi-search-mc
-    :ensure t :defer t
-    :config
-    (phi-search-mc/setup-keys))
-  (use-package mc-extras
-    :ensure t :defer t
-    :config
-      (define-key mc/keymap (kbd "C-. =") 'mc/compare-chars))
+  (use-package phi-search)
+  (use-package phi-search-mc :config (phi-search-mc/setup-keys))
+  (use-package mc-extras :config (define-key mc/keymap (kbd "C-. =") 'mc/compare-chars))
 #+end_src
 
 Thanks to [[http://irreal.org/blog/?p=1733][Irreal]] and [[http://planet.emacsen.org/][Planet Emacsen]] for the link!
@@ -5287,9 +5318,7 @@ Thanks to [[http://irreal.org/blog/?p=1733][Irreal]] and [[http://planet.emacsen
 M-x edit-list makes it easier to edit an Emacs Lisp list.
 
 #+begin_src emacs-lisp
-(use-package edit-list
-  :ensure t :defer t
-  :commands edit-list)
+(use-package edit-list :commands edit-list)
 #+end_src
 
 *** Quickly jump to positions                                         
@@ -5308,10 +5337,9 @@ M-x edit-list makes it easier to edit an Emacs Lisp list.
 Quickly jump to a position in the current view.
 
 #+begin_src emacs-lisp
-  (use-package avy :ensure t)
+  (use-package avy)
   ;; I use the jj key-chord for this; see the definitions for key-chord
 (use-package avy-zap
-  :ensure t
   :bind
   (("M-z" . avy-zap-up-to-char-dwim)
    ("M-Z" . avy-zap-to-char-dwim)))
@@ -5366,7 +5394,6 @@ cool. On Windows, these things help a little.
 
 #+begin_src emacs-lisp
   (use-package smartparens
-    :ensure t
     :config
     (progn
       (require 'smartparens-config)
@@ -5740,7 +5767,6 @@ Let's see how that goes!
 
 #+begin_src emacs-lisp
   (use-package emms
-    :ensure t :defer t
     :config
     (progn
       (require 'emms-player-simple)
@@ -7059,6 +7085,30 @@ Make it easy to follow up:
         (my/set-up-sketch-buffer)))
 #+end_src
 
+**** STARTED Roughly organize stuff in lists
+     :PROPERTIES:
+     :Effort:   2:00
+     :END:
+     :LOGBOOK:
+     CLOCK: [2016-03-19 Sat 12:40]--[2016-03-19 Sat 13:13] =>  0:33
+     :END:
+
+Categories can be derived from tags or a function. The ideal grouping
+is to have entries in the most specific category that results in 2 or
+more entries, with everything else filed under "Other".
+
+#+begin_src emacs-lisp
+  (defun my/extract-categories (item)
+    "Return a list of potential categories for ITEM.
+  For now, this looks for tags."
+    )
+
+  (ert-deftest my/extract-categories ()
+    (expect (equal (my/extract-categories "- [[http://example.com][This is a test #programming #geek]]")
+                   '("programming" "geek"))))
+
+#+end_src
+
 **** Easily backfilling my journal
      CLOSED: [2015-07-19 Sun 11:53]
      :PROPERTIES:
@@ -7134,7 +7184,7 @@ Make it easy to follow up:
 **** Rename scanned index cards
 
    #+begin_src emacs-lisp
-     (use-package s :ensure t)
+     (use-package s)
      (defun my/process-tiff (files)
        "Convert, display, rename, and upload FILES."
        (interactive (list (dired-get-marked-files)))
@@ -7248,7 +7298,7 @@ Make it easy to follow up:
   that they're scaled to the window size.
 
    #+begin_src emacs-lisp
-   (use-package image+ :defer t :ensure t
+   (use-package image+
     :load-path "~/elisp/Emacs-imagex"
     :commands (imagex-global-sticky-mode imagex-auto-adjust-mode)
     :init (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))
@@ -7383,13 +7433,13 @@ Aspect ratio is width / height
            (full-filename (my/get-index-card-filename filename)))
       (if full-filename
           (my/open-image full-filename)
-        (my/prepare-index-card-montage 
+        (my/create-index-card-montage 
          (mapcar 'my/get-index-card-filename
                  (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))) 
          "2x"
          (my/prepare-index-card-template filename)))))
 
-  (defun my/prepare-index-card-montage (files &optional tiling filename)
+  (defun my/create-index-card-montage (files &optional tiling filename)
     "Prepare an index card with a montage of the selected sketches as a layer."
     (interactive
      (list

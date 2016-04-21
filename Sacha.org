@@ -5260,6 +5260,7 @@ Handy when I'm in tablet mode.
   (define-key-after global-map [menu-bar my-menu] (cons "Shortcuts" (make-sparse-keymap "Custom shortcuts")) 'tools)
   (define-key global-map [menu-bar my-menu journal] '("Show journal entries" . my/show-missing-journal-entries))
   (define-key global-map [menu-bar my-menu agenda] '("Org agenda" . (lambda () (interactive) (org-agenda nil "a"))))
+  (define-key global-map [menu-bar my-menu audio] '("Process audio" . (lambda () (interactive) (shell-command "~/bin/process-audio &"))))
 #+end_src
 
 

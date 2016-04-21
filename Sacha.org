@@ -8,7 +8,7 @@
    :END:
 <<babel-init>>
 
-Inspired by the [[http://eschulte.me/emacs24-starter-kit/#installation][Emacs Starter Kit]], I set up my configuration file
+Inspired by the [[https://eschulte.github.io/emacs24-starter-kit/#installation][Emacs Starter Kit]], I set up my configuration file
 using Org-babel. You could load it with =(org-babel-load-file
 "/path/to/file")=, changing the path appropriately, but you'll
 probably want to tweak it extensively first.

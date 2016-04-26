@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2016-04-21 Thu 10:23 -->
+<!-- 2016-04-26 Tue 15:54 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
@@ -521,33 +521,24 @@ for the JavaScript code in this tag.
 
 <p>
 Inspired by the <a href="https://eschulte.github.io/emacs24-starter-kit/#installation">Emacs Starter Kit</a>, I set up my configuration file
-using Org-babel. You could load it with <code>(org-babel-load-file
-"/path/to/file")</code>, changing the path appropriately, but you'll
-probably want to tweak it extensively first.
-</p>
-
-<p>
-This page: <a href="http://sachac.github.io/.emacs.d/Sacha.html">HTML</a> - <a href="https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org">Org</a> - <a href="https://dl.dropbox.com/u/3968124/sacha-emacs.el">.el</a> - <a href="http://github.com/sachac/.emacs.d/">Github</a> - also, <a href="http://sach.ac/dotemacs">http://sach.ac/dotemacs</a>
-</p>
-
-<p>
-To be precise, this is what's in the first part of my <code>~/.emacs.d/init.el</code> (what used to be the <code>~/.emacs</code> file):
+using Org-babel.This page: <a href="http://sachac.github.io/.emacs.d/Sacha.html">HTML</a> - <a href="https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org">Org</a> - <a href="https://dl.dropbox.com/u/3968124/sacha-emacs.el">.el</a> - <a href="http://github.com/sachac/.emacs.d/">Github</a> - also, <a href="http://sach.ac/dotemacs">http://sach.ac/dotemacs</a>. My <code>~/.emacs.d/init.el</code> is now a symlink to <code>Sacha.el</code>, which is what <code>M-x org-babel-tangle</code> produces.
 </p>
 
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">This sets up the load path so that we can override it</span>
-(package-initialize nil)
+(package-initialize)
 <span class="org-comment-delimiter">;; </span><span class="org-comment">Override the packages with the git version of Org and other packages</span>
 (add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/lisp"</span>)
 (add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/contrib/lisp"</span>)
 (add-to-list 'load-path <span class="org-string">"~/code/org2blog"</span>)
 (add-to-list 'load-path <span class="org-string">"~/Dropbox/2014/presentations/org-reveal"</span>)
 (add-to-list 'load-path <span class="org-string">"/usr/local/share/emacs/site-lisp"</span>)
-<span class="org-comment-delimiter">;; </span><span class="org-comment">Load the rest of the packages</span>
-(package-initialize nil)
 (<span class="org-keyword">setq</span> package-enable-at-startup nil)
-(org-babel-load-file <span class="org-string">"~/.emacs.d/Sacha.org"</span>)
+<span class="org-comment-delimiter">;; </span><span class="org-comment">Prepare stuff for org-export-backends</span>
+(<span class="org-keyword">setq</span> org-export-backends '(org latex icalendar html ascii))
+(<span class="org-keyword">setq</span> custom-file <span class="org-string">"~/.emacs.d/custom-settings.el"</span>)
+(load custom-file t)
 </pre>
 </div>
 
@@ -1317,6 +1308,7 @@ It's hard to remember keyboard shortcuts. The <code>guide-key</code> package pop
 <p>
 From <a href="http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html">http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html</a>
 </p>
+
 <div class="org-src-container">
 
 <pre class="src src-emacs-lisp">(prefer-coding-system 'utf-8)
@@ -2297,10 +2289,6 @@ currently experimenting with.
 (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c O"</span> 'org-open-at-point-global)
 (<span class="org-keyword">bind-key</span> <span class="org-string">"&lt;f9&gt; &lt;f9&gt;"</span> 'org-agenda-list)
 (<span class="org-keyword">bind-key</span> <span class="org-string">"&lt;f9&gt; &lt;f8&gt;"</span> (<span class="org-keyword">lambda</span> () (<span class="org-keyword">interactive</span>) (org-capture nil <span class="org-string">"r"</span>)))
-(<span class="org-keyword">bind-key</span> <span class="org-string">"C-TAB"</span> 'org-cycle org-mode-map)
-(<span class="org-keyword">bind-key</span> <span class="org-string">"C-c v"</span> 'org-show-todo-tree org-mode-map)
-(<span class="org-keyword">bind-key</span> <span class="org-string">"C-c C-r"</span> 'org-refile org-mode-map)
-(<span class="org-keyword">bind-key</span> <span class="org-string">"C-c R"</span> 'org-reveal org-mode-map)
 </pre>
 </div>
 
@@ -2310,8 +2298,21 @@ currently experimenting with.
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(eval-after-load 'org
-  '(bind-key <span class="org-string">"C-M-w"</span> 'append-next-kill org-mode-map))
+<pre class="src src-emacs-lisp">(<span class="org-keyword">with-eval-after-load</span> 'org
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-M-w"</span> 'append-next-kill org-mode-map)
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-TAB"</span> 'org-cycle org-mode-map)
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c v"</span> 'org-show-todo-tree org-mode-map)
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c C-r"</span> 'org-refile org-mode-map)
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c R"</span> 'org-reveal org-mode-map)
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c o"</span> 'my/org-follow-entry-link org-mode-map)
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c d"</span> 'my/org-move-line-to-destination org-mode-map)
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c f"</span> 'my/org-file-blog-index-entries org-mode-map)
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c t s"</span>  'my/split-sentence-and-capitalize org-mode-map)
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c t -"</span>  'my/split-sentence-delete-word-and-capitalize org-mode-map)
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c t d"</span>  'my/delete-word-and-capitalize org-mode-map)
+
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c C-p C-p"</span> 'my/org-publish-maybe org-mode-map)
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c C-r"</span> 'my/org-refile-and-jump org-mode-map))
 </pre>
 </div>
 
@@ -2321,8 +2322,8 @@ I don't use the diary, but I do use the clock a lot.
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(eval-after-load 'org-agenda
-  '(bind-key <span class="org-string">"i"</span> 'org-agenda-clock-in org-agenda-mode-map))
+<pre class="src src-emacs-lisp">(<span class="org-keyword">with-eval-after-load</span> 'org-agenda
+  (<span class="org-keyword">bind-key</span> <span class="org-string">"i"</span> 'org-agenda-clock-in org-agenda-mode-map))
 </pre>
 </div>
 </div>
@@ -2347,24 +2348,25 @@ These are great for quickly acting on tasks.
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(<span class="org-keyword">setq</span> org-use-effective-time t)
+<pre class="src src-emacs-lisp">   (<span class="org-keyword">setq</span> org-use-effective-time t)
 
-(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-use-speed-commands-for-headings-and-lists</span> ()
-  <span class="org-doc">"Activate speed commands on list items too."</span>
-  (<span class="org-keyword">or</span> (<span class="org-keyword">and</span> (looking-at org-outline-regexp) (looking-back <span class="org-string">"^\**"</span>))
-      (<span class="org-keyword">save-excursion</span> (<span class="org-keyword">and</span> (looking-at (org-item-re)) (looking-back <span class="org-string">"^[ \t]*"</span>)))))
-(<span class="org-keyword">setq</span> org-use-speed-commands 'my/org-use-speed-commands-for-headings-and-lists)
+   (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-use-speed-commands-for-headings-and-lists</span> ()
+     <span class="org-doc">"Activate speed commands on list items too."</span>
+     (<span class="org-keyword">or</span> (<span class="org-keyword">and</span> (looking-at org-outline-regexp) (looking-back <span class="org-string">"^\**"</span>))
+         (<span class="org-keyword">save-excursion</span> (<span class="org-keyword">and</span> (looking-at (org-item-re)) (looking-back <span class="org-string">"^[ \t]*"</span>)))))
+   (<span class="org-keyword">setq</span> org-use-speed-commands 'my/org-use-speed-commands-for-headings-and-lists)
 
-(add-to-list 'org-speed-commands-user '(<span class="org-string">"x"</span> org-todo <span class="org-string">"DONE"</span>))
-(add-to-list 'org-speed-commands-user '(<span class="org-string">"y"</span> org-todo-yesterday <span class="org-string">"DONE"</span>))
-(add-to-list 'org-speed-commands-user '(<span class="org-string">"!"</span> my/org-clock-in-and-track))
-(add-to-list 'org-speed-commands-user '(<span class="org-string">"s"</span> call-interactively 'org-schedule))
-(add-to-list 'org-speed-commands-user '(<span class="org-string">"d"</span> my/org-move-line-to-destination))
-(add-to-list 'org-speed-commands-user '(<span class="org-string">"i"</span> call-interactively 'org-clock-in))
-(add-to-list 'org-speed-commands-user '(<span class="org-string">"P"</span> call-interactively 'org2blog/wp-post-subtree))
-(add-to-list 'org-speed-commands-user '(<span class="org-string">"o"</span> call-interactively 'org-clock-out))
-(add-to-list 'org-speed-commands-user '(<span class="org-string">"$"</span> call-interactively 'org-archive-subtree))
-(<span class="org-keyword">bind-key</span> <span class="org-string">"!"</span> 'my/org-clock-in-and-track org-agenda-mode-map)
+(<span class="org-keyword">with-eval-after-load</span> 'org
+   (add-to-list 'org-speed-commands-user '(<span class="org-string">"x"</span> org-todo <span class="org-string">"DONE"</span>))
+   (add-to-list 'org-speed-commands-user '(<span class="org-string">"y"</span> org-todo-yesterday <span class="org-string">"DONE"</span>))
+   (add-to-list 'org-speed-commands-user '(<span class="org-string">"!"</span> my/org-clock-in-and-track))
+   (add-to-list 'org-speed-commands-user '(<span class="org-string">"s"</span> call-interactively 'org-schedule))
+   (add-to-list 'org-speed-commands-user '(<span class="org-string">"d"</span> my/org-move-line-to-destination))
+   (add-to-list 'org-speed-commands-user '(<span class="org-string">"i"</span> call-interactively 'org-clock-in))
+   (add-to-list 'org-speed-commands-user '(<span class="org-string">"P"</span> call-interactively 'org2blog/wp-post-subtree))
+   (add-to-list 'org-speed-commands-user '(<span class="org-string">"o"</span> call-interactively 'org-clock-out))
+   (add-to-list 'org-speed-commands-user '(<span class="org-string">"$"</span> call-interactively 'org-archive-subtree))
+   (<span class="org-keyword">bind-key</span> <span class="org-string">"!"</span> 'my/org-clock-in-and-track org-agenda-mode-map))
 </pre>
 </div>
 </div>
@@ -2406,8 +2408,6 @@ The following code makes it easier for me to link trees with entries, as in <a h
       (org-open-link-from-string (org-entry-get (point) <span class="org-string">"LINK"</span>))
     (org-open-at-point)))
 
-(<span class="org-keyword">bind-key</span> <span class="org-string">"C-c o"</span> 'my/org-follow-entry-link org-mode-map)
-
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-link-projects</span> (location)
   <span class="org-doc">"Add link properties between the current subtree and the one specified by LOCATION."</span>
   (<span class="org-keyword">interactive</span>
@@ -2433,10 +2433,9 @@ something and paste it elsewhere in the hierarchy.
 </p>
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(eval-after-load 'org
-  '(<span class="org-keyword">progn</span>
+<pre class="src src-emacs-lisp">(<span class="org-keyword">with-eval-after-load</span> 'org
      (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c k"</span> 'org-cut-subtree org-mode-map)
-     (<span class="org-keyword">setq</span> org-yank-adjusted-subtrees t)))
+     (<span class="org-keyword">setq</span> org-yank-adjusted-subtrees t))
 </pre>
 </div>
 </div>
@@ -2508,7 +2507,7 @@ entries, notes, and other semi-structured pieces of information.
     <span class="org-doc">"Try to return the contact email for a template.</span>
 <span class="org-doc">  If not found return RETURN-VALUE or something that would ask the user."</span>
     (<span class="org-keyword">or</span> (cadr (<span class="org-keyword">if</span> (gnus-alive-p)
-                  (<span class="org-keyword">gnus-with-article-headers</span>
+                  (gnus-with-article-headers
                     (mail-extract-address-components
                      (<span class="org-keyword">or</span> (mail-fetch-field <span class="org-string">"Reply-To"</span>) (mail-fetch-field <span class="org-string">"From"</span>) <span class="org-string">""</span>)))))
         return-value
@@ -2643,7 +2642,6 @@ able to clock in on them.
   (org-refile-goto-last-stored))
 (eval-after-load 'org-capture
  '(bind-key <span class="org-string">"C-c C-r"</span> 'my/org-refile-and-jump org-capture-mode-map))
-(<span class="org-keyword">bind-key</span> <span class="org-string">"C-c C-r"</span> 'my/org-refile-and-jump org-mode-map)
 </pre>
 </div>
 </div></li></ul>
@@ -4373,7 +4371,6 @@ This makes it easier to reorganize lines in my weekly review.
             (<span class="org-keyword">unless</span> found
               (org-end-of-item-list)
               (insert string <span class="org-string">"\n"</span>))))))
-    (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c d"</span> 'my/org-move-line-to-destination org-mode-map)
 </pre>
 </div>
 
@@ -4425,7 +4422,6 @@ This makes it easier to reorganize lines in my weekly review.
             (goto-char (line-beginning-position))
             (insert s)
             (org-update-statistics-cookies nil)))))))
-(<span class="org-keyword">bind-key</span> <span class="org-string">"C-c f"</span> 'my/org-file-blog-index-entries org-mode-map)
 </pre>
 </div>
 </div>
@@ -4546,7 +4542,6 @@ If a file is in a publishing project, publish it.
            (buffer-file-name (buffer-base-buffer)) 'up)
            (org-publish-current-file t)
            (my/org-html-export-trustingly))))
-(<span class="org-keyword">bind-key</span> <span class="org-string">"C-c C-p C-p"</span> 'my/org-publish-maybe org-mode-map)
 </pre>
 </div>
 
@@ -7887,10 +7882,6 @@ Let's see how that goes!
    (<span class="org-string">"C-c e ["</span> . my/emms-player-mplayer-slow-down)
    (<span class="org-string">"C-c e ]"</span> . my/emms-player-mplayer-speed-up)))
 
-(<span class="org-keyword">bind-key</span> <span class="org-string">"C-c t s"</span>  'my/split-sentence-and-capitalize org-mode-map)
-(<span class="org-keyword">bind-key</span> <span class="org-string">"C-c t -"</span>  'my/split-sentence-delete-word-and-capitalize org-mode-map)
-(<span class="org-keyword">bind-key</span> <span class="org-string">"C-c t d"</span>  'my/delete-word-and-capitalize org-mode-map)
-
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/split-sentence-and-capitalize</span> ()
   (<span class="org-keyword">interactive</span>)
   (delete-char 1)
@@ -9903,14 +9894,10 @@ Convenience functions to make my life easier when sketchnoting books.
 <div class="outline-text-2" id="text-org8b6d0da">
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp">(setenv <span class="org-string">"PATH"</span> (concat <span class="org-string">"\"c:/program files/postgresql/9.3/bin;\""</span> (getenv <span class="org-string">"PATH"</span>)))
+<pre class="src src-emacs-lisp">(<span class="org-keyword">when</span> (eq system-type 'windows-nt)
+(setenv <span class="org-string">"PATH"</span> (concat <span class="org-string">"\"c:/program files/postgresql/9.3/bin;\""</span> (getenv <span class="org-string">"PATH"</span>))))
 </pre>
 </div>
-
-<pre class="example">
-* foo
-** bar
-</pre>
 </div>
 </div>
 </div>

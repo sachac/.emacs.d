@@ -9,17 +9,17 @@
 <<babel-init>>
 
 Inspired by the [[https://eschulte.github.io/emacs24-starter-kit/#installation][Emacs Starter Kit]], I set up my configuration file
-using Org-babel.This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]] - [[https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org][Org]] - [[https://dl.dropbox.com/u/3968124/sacha-emacs.el][.el]] - [[http://github.com/sachac/.emacs.d/][Github]] - also, http://sach.ac/dotemacs. My =~/.emacs.d/init.el= is now a symlink to =Sacha.el=, which is what =M-x org-babel-tangle= produces.
+using Org-babel.This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]] - [[https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org][Org]] - [[https://dl.dropbox.com/u/3968124/sacha-emacs.el][.el]] - [[http://github.com/sachac/.emacs.d/][Github]] - also, http://sach.ac/dotemacs. My =~/.emacs.d/init.el= is now a symlink to =Sacha.el=, which is what =M-x org-babel-tangle= (=C-c C-v t=) produces.
 
 #+begin_src emacs-lisp :tangle yes
-;; This sets up the load path so that we can override it
-(package-initialize)
 ;; Override the packages with the git version of Org and other packages
 (add-to-list 'load-path "~/elisp/org-mode/lisp")
 (add-to-list 'load-path "~/elisp/org-mode/contrib/lisp")
 (add-to-list 'load-path "~/code/org2blog")
 (add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
+;; This sets up the load path so that we can override it
+(package-initialize)
 (setq package-enable-at-startup nil)
 ;; Prepare stuff for org-export-backends
 (setq org-export-backends '(org latex icalendar html ascii))
@@ -3326,6 +3326,43 @@ This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone
                                        "sacha-emacs.el" destination-dir) "emacs-lisp")
                (org-html-export-to-html)))))))
      #+end_src
+*** Fix incompatible changes from Org 8 to Org 9
+
+http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS
+
+#+begin_src emacs-lisp
+(defun org-repair-export-blocks ()
+  "Repair export blocks and INCLUDE keywords in current buffer."
+  (when (eq major-mode 'org-mode)
+    (let ((case-fold-search t)
+          (back-end-re (regexp-opt
+                        '("HTML" "ASCII" "LATEX" "ODT" "MARKDOWN" "MD" "ORG"
+                          "MAN" "BEAMER" "TEXINFO" "GROFF" "KOMA-LETTER")
+                        t)))
+      (org-with-wide-buffer
+       (goto-char (point-min))
+       (let ((block-re (concat "^[ \t]*#\\+BEGIN_" back-end-re)))
+         (save-excursion
+           (while (re-search-forward block-re nil t)
+             (let ((element (save-match-data (org-element-at-point))))
+               (when (eq (org-element-type element) 'special-block)
+                 (save-excursion
+                   (goto-char (org-element-property :end element))
+                   (save-match-data (search-backward "_"))
+                   (forward-char)
+                   (insert "EXPORT")
+                   (delete-region (point) (line-end-position)))
+                 (replace-match "EXPORT \\1" nil nil nil 1))))))
+       (let ((include-re
+              (format "^[ \t]*#\\+INCLUDE: .*?%s[ \t]*$" back-end-re)))
+         (while (re-search-forward include-re nil t)
+           (let ((element (save-match-data (org-element-at-point))))
+             (when (and (eq (org-element-type element) 'keyword)
+                        (string= (org-element-property :key element) "INCLUDE"))
+               (replace-match "EXPORT \\1" nil nil nil 1)))))))))
+(with-eval-after-load 'org
+  (add-to-list 'org-mode-hook 'org-repair-export-blocks))
+#+end_src
 *** Links
 **** Quick links
      #+begin_src emacs-lisp :tangle yes
@@ -5262,6 +5299,8 @@ Handy when I'm in tablet mode.
   (define-key global-map [menu-bar my-menu journal] '("Show journal entries" . my/show-missing-journal-entries))
   (define-key global-map [menu-bar my-menu agenda] '("Org agenda" . (lambda () (interactive) (org-agenda nil "a"))))
   (define-key global-map [menu-bar my-menu audio] '("Process audio" . (lambda () (interactive) (shell-command "~/bin/process-audio &"))))
+  (define-key global-map [menu-bar my-menu new-index-card] '("New index card" . (lambda () (interactive)
+                                       (my/open-image (my/prepare-index-card-template)))))
 #+end_src
 
 
@@ -7448,7 +7487,7 @@ Aspect ratio is width / height
     (let ((async-shell-command-buffer 'new-buffer)
           (index-card (or filename (my/prepare-index-card-template))))
       (my/create-sketch-montage files tiling)
-      (shell-command (format "convert %s %s -resize 1497x896  -colorspace cmyk %s"
+      (shell-command (format "convert %s \\( %s -resize 1497x896 \\) -colorspace cmyk %s"
                              (shell-quote-argument (expand-file-name my/index-card-template-file))
                              (shell-quote-argument (expand-file-name "~/Dropbox/Inbox/output.png"))
                              (shell-quote-argument (expand-file-name index-card))))

@@ -12,14 +12,14 @@ Inspired by the [[https://eschulte.github.io/emacs24-starter-kit/#installation][
 using Org-babel.This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]] - [[https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org][Org]] - [[https://dl.dropbox.com/u/3968124/sacha-emacs.el][.el]] - [[http://github.com/sachac/.emacs.d/][Github]] - also, http://sach.ac/dotemacs. My =~/.emacs.d/init.el= is now a symlink to =Sacha.el=, which is what =M-x org-babel-tangle= (=C-c C-v t=) produces.
 
 #+begin_src emacs-lisp :tangle yes
+;; This sets up the load path so that we can override it
+(package-initialize)
 ;; Override the packages with the git version of Org and other packages
 (add-to-list 'load-path "~/elisp/org-mode/lisp")
 (add-to-list 'load-path "~/elisp/org-mode/contrib/lisp")
 (add-to-list 'load-path "~/code/org2blog")
 (add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
-;; This sets up the load path so that we can override it
-(package-initialize)
 (setq package-enable-at-startup nil)
 ;; Prepare stuff for org-export-backends
 (setq org-export-backends '(org latex icalendar html ascii))
@@ -2622,6 +2622,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                       (/ (my/quantified-get-hours "Discretionary - Productive - Emacs" time-summary) 1.68))
               (mapconcat 'identity emacs "\n") "\n"
               (mapconcat 'identity emacs-next "\n") "\n"
+              (format "  - *Coding* (%.1fh - %d%% of all)\n"
+                      (my/quantified-get-hours "Discretionary - Productive - Coding" time-summary)
+                      (/ (my/quantified-get-hours "Discretionary - Productive - Coding" time-summary) 1.68))
               (mapconcat 'identity life "\n") "\n"
               (mapconcat 'identity life-next "\n") "\n"
               (format "  - *Sewing* (%.1fh)\n"

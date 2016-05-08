@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2016-05-02 Mon 14:37 -->
+<!-- 2016-05-08 Sun 14:13 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
@@ -527,14 +527,14 @@ using Org-babel.This page: <a href="http://sachac.github.io/.emacs.d/Sacha.html"
 
 <div class="org-src-container">
 
-<pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">Override the packages with the git version of Org and other packages</span>
+<pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">This sets up the load path so that we can override it</span>
+(package-initialize)
+<span class="org-comment-delimiter">;; </span><span class="org-comment">Override the packages with the git version of Org and other packages</span>
 (add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/lisp"</span>)
 (add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/contrib/lisp"</span>)
 (add-to-list 'load-path <span class="org-string">"~/code/org2blog"</span>)
 (add-to-list 'load-path <span class="org-string">"~/Dropbox/2014/presentations/org-reveal"</span>)
 (add-to-list 'load-path <span class="org-string">"/usr/local/share/emacs/site-lisp"</span>)
-<span class="org-comment-delimiter">;; </span><span class="org-comment">This sets up the load path so that we can override it</span>
-(package-initialize)
 (<span class="org-keyword">setq</span> package-enable-at-startup nil)
 <span class="org-comment-delimiter">;; </span><span class="org-comment">Prepare stuff for org-export-backends</span>
 (<span class="org-keyword">setq</span> org-export-backends '(org latex icalendar html ascii))
@@ -2508,7 +2508,7 @@ entries, notes, and other semi-structured pieces of information.
     <span class="org-doc">"Try to return the contact email for a template.</span>
 <span class="org-doc">  If not found return RETURN-VALUE or something that would ask the user."</span>
     (<span class="org-keyword">or</span> (cadr (<span class="org-keyword">if</span> (gnus-alive-p)
-                  (<span class="org-keyword">gnus-with-article-headers</span>
+                  (gnus-with-article-headers
                     (mail-extract-address-components
                      (<span class="org-keyword">or</span> (mail-fetch-field <span class="org-string">"Reply-To"</span>) (mail-fetch-field <span class="org-string">"From"</span>) <span class="org-string">""</span>)))))
         return-value
@@ -3945,6 +3945,9 @@ then breaking it down into previous/next week.
                    (/ (my/quantified-get-hours <span class="org-string">"Discretionary - Productive - Emacs"</span> time-summary) 1.68))
            (mapconcat 'identity emacs <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
            (mapconcat 'identity emacs-next <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
+           (format <span class="org-string">"  - *Coding* (%.1fh - %d%% of all)\n"</span>
+                   (my/quantified-get-hours <span class="org-string">"Discretionary - Productive - Coding"</span> time-summary)
+                   (/ (my/quantified-get-hours <span class="org-string">"Discretionary - Productive - Coding"</span> time-summary) 1.68))
            (mapconcat 'identity life <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
            (mapconcat 'identity life-next <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
            (format <span class="org-string">"  - *Sewing* (%.1fh)\n"</span>

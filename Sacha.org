@@ -9,7 +9,7 @@
 <<babel-init>>
 
 Inspired by the [[https://eschulte.github.io/emacs24-starter-kit/#installation][Emacs Starter Kit]], I set up my configuration file
-using Org-babel.This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]] - [[https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org][Org]] - [[https://dl.dropbox.com/u/3968124/sacha-emacs.el][.el]] - [[http://github.com/sachac/.emacs.d/][Github]] - also, http://sach.ac/dotemacs. My =~/.emacs.d/init.el= is now a symlink to =Sacha.el=, which is what =M-x org-babel-tangle= (=C-c C-v t=) produces.
+using Org-babel.This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]] - [[Https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org][Org]] - [[Https://dl.dropbox.com/u/3968124/sacha-emacs.el][.el]] - [[http://github.com/sachac/.emacs.d/][Github]] - also, http://sach.ac/dotemacs. My =~/.emacs.d/init.el= is now a symlink to =Sacha.el=, which is what =M-x org-babel-tangle= (=C-c C-v t=) produces.
 
 #+begin_src emacs-lisp :tangle yes
 ;; This sets up the load path so that we can override it
@@ -989,7 +989,8 @@ Allow my use of =C-x C-q= while in peep-dired mode.
     (interactive "MName: ")
     (let* ((file (dired-get-filename))
            new-name)
-      (when (string-match "CameraZOOM-\\([0-9][0-9][0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9][0-9]\\)" file)
+      (cond 
+      ((string-match "CameraZOOM-\\([0-9][0-9][0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9][0-9]\\)" file)
         (setq new-name
               (format "%s-%s-%s %s.%s.%s.%s %s.jpg"
                       (match-string 1 file)
@@ -999,11 +1000,34 @@ Allow my use of =C-x C-q= while in peep-dired mode.
                       (match-string 5 file)
                       (match-string 6 file)
                       (match-string 7 file)
-                      name))
-        (when (string-match "A-" name)
-          (copy-file file (concat my/kid-photo-directory new-name)))
-        (rename-file file (concat "~/archives/2016/photos/selected/" new-name)))))
+                      name)))
+      ((string-match "\\([0-9][0-9][0-9][0-9]\\)-\\([0-9][0-9]\\)-\\([0-9][0-9]\\) \\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)" file)
+        (setq new-name
+              (format "%s-%s-%s %s.%s.%s %s.jpg"
+                      (match-string 1 file)
+                      (match-string 2 file)
+                      (match-string 3 file)
+                      (match-string 4 file)
+                      (match-string 5 file)
+                      (match-string 6 file)
+                      name))))
+      (when (string-match "A-" name)
+        (copy-file file (expand-file-name new-name my/kid-photo-directory)))
+      (rename-file file (expand-file-name new-name "~/archives/2016/photos/selected/"))))
+  (defun my/backup-media ()
+    (interactive)
+    (mapcar (lambda (file)
+              (rename-file
+               file
+               (expand-file-name
+                (file-name-nondirectory file)
+                (cond
+                 ((string-match "mp4" file) "~/archives/2016/videos/")
+                 ((string-match "mp3\\|wav" file) "~/archives/2016/audio/")
+                 (t "~/archives/2016/photos/backup/")))))
+            (dired-get-marked-files)))
   (bind-key "b" 'my/save-photo dired-mode-map)
+  (bind-key "r" 'my/backup-media dired-mode-map)
 #+end_src
 *** Move to beginning of line
 Copied from http://emacsredux.com/blog/2013/05/22/smarter-navigation-to-the-beginning-of-a-line/

@@ -58,7 +58,7 @@ I like using =(setq ...)= more than Customize because I can neatly organize my c
 
 #+BEGIN_SRC emacs-lisp :tangle yes
 (unless (assoc-default "melpa" package-archives)
-  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+  (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
 ;  (package-refresh-contents)
 )
 #+END_SRC
@@ -1001,7 +1001,7 @@ Allow my use of =C-x C-q= while in peep-dired mode.
                       (match-string 6 file)
                       (match-string 7 file)
                       name)))
-      ((string-match "\\([0-9][0-9][0-9][0-9]\\)-\\([0-9][0-9]\\)-\\([0-9][0-9]\\) \\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)" file)
+      ((string-match "\\([0-9][0-9][0-9][0-9]\\)[\\.-]\\([0-9][0-9]\\)[\\.-]\\([0-9][0-9]\\)[\\.- ]\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)" file)
         (setq new-name
               (format "%s-%s-%s %s.%s.%s %s.jpg"
                       (match-string 1 file)
@@ -1010,7 +1010,8 @@ Allow my use of =C-x C-q= while in peep-dired mode.
                       (match-string 4 file)
                       (match-string 5 file)
                       (match-string 6 file)
-                      name))))
+                      name)))
+      (t (setq new-name (concat (file-name-sans-extension (file-name-nondirectory file)) " " name ".jpg"))))
       (when (string-match "A-" name)
         (copy-file file (expand-file-name new-name my/kid-photo-directory)))
       (rename-file file (expand-file-name new-name "~/archives/2016/photos/selected/"))))
@@ -1580,7 +1581,7 @@ This quickly adds a same-level heading for the succeeding day.
               :immediate-finish t)
              ("r" "Notes" entry
               (file+datetree "~/personal/organizer.org")
-              "* %?\n\n%i\n"
+              "* %?\n\n%i\n%U\n"
               )))
     (bind-key "C-M-r" 'org-capture)
 #+end_src
@@ -2019,6 +2020,7 @@ only a few of them them for faster scanning.
                       '("~/personal/organizer.org"
                         "~/personal/sewing.org"
                         "~/personal/people.org"
+                        "~/Dropbox/wsmef/trip.txt"
                         "~/personal/business.org"
                         "~/personal/calendar.org"
                         "~/Dropbox/wsmef/puppy.txt"
@@ -2028,7 +2030,7 @@ only a few of them them for faster scanning.
                         "~/code/emacs-notes/tasks.org"
                         "~/sachac.github.io/evil-plans/index.org"
                         "~/personal/cooking.org"
-                        "~/personal/routines.org"))))
+                        "~/personal/routines.org"))))t
   (add-to-list 'auto-mode-alist '("\\.txt$" . org-mode))
 #+end_src
 
@@ -2622,11 +2624,6 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
               (format "  - *Build* (%.1fh - %d%% of Business)\n"
                       (my/quantified-get-hours "Business - Build" time-summary)
                       (/ (my/quantified-get-hours "Business - Build" time-summary) (* 0.01 biz-time)))
-              (format "    - *Drawing* (%.1fh)\n"
-                      (my/quantified-get-hours '("Business - Build - Drawing"
-                                                    "Business - Build - Book review")  time-summary))
-              (format "    - *Paperwork* (%.1fh)\n"
-                      (my/quantified-get-hours "Business - Build - Paperwork"  time-summary))
               (format "  - *Connect* (%.1fh - %d%% of Business)\n"
                       (my/quantified-get-hours "Business - Connect" time-summary)
                       (/ (my/quantified-get-hours "Business - Connect" time-summary) (* 0.01 biz-time)))
@@ -2641,14 +2638,14 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
               (format "- *Discretionary - Productive* (%.1fh - %d%%)\n"
                       (my/quantified-get-hours "Discretionary - Productive" time-summary)
                       (/ (my/quantified-get-hours "Discretionary - Productive" time-summary) 1.68))
-              (format "  - *Emacs* (%.1fh - %d%% of all)\n"
-                      (my/quantified-get-hours "Discretionary - Productive - Emacs" time-summary)
-                      (/ (my/quantified-get-hours "Discretionary - Productive - Emacs" time-summary) 1.68))
+              (format "  - *Drawing* (%.1fh)\n"
+                      (my/quantified-get-hours '("Discretionary - Productive - Drawing")  time-summary))
+              (format "  - *Emacs* (%.1fh)\n"
+                      (my/quantified-get-hours "Discretionary - Productive - Emacs" time-summary))
               (mapconcat 'identity emacs "\n") "\n"
               (mapconcat 'identity emacs-next "\n") "\n"
-              (format "  - *Coding* (%.1fh - %d%% of all)\n"
-                      (my/quantified-get-hours "Discretionary - Productive - Coding" time-summary)
-                      (/ (my/quantified-get-hours "Discretionary - Productive - Coding" time-summary) 1.68))
+              (format "  - *Coding* (%.1fh)\n"
+                      (my/quantified-get-hours "Discretionary - Productive - Coding" time-summary))
               (mapconcat 'identity life "\n") "\n"
               (mapconcat 'identity life-next "\n") "\n"
               (format "  - *Sewing* (%.1fh)\n"
@@ -2755,9 +2752,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                    (assoc-default "FileName" b)))))
 
 
-     (defun my/sketches-export-and-extract (start end &optional do-insert update-db)
+     (defun my/sketches-export-and-extract (start end &optional do-insert update-db filter)
        "Create a list of links to sketches."
-       (interactive (list (org-read-date) (org-read-date) t current-prefix-arg))
+       (interactive (list (org-read-date) (org-read-date) t current-prefix-arg (read-string "Filter: ")))
        (let ((value
               (cond
                ((eq system-type 'windows-nt)
@@ -2765,10 +2762,10 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                 (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
                ((eq system-type 'gnu/linux)  ; Flickr
                 (shell-command-to-string
-                 (if end
-                     (format "cd /home/sacha/code/node; nodejs flickr-list.js -b %s -e %s" start end)
-                   (format "cd /home/sacha/code/node; nodejs flickr-list.js -b %s" start))))
-               ((and nil  (eq system-type 'gnu/linux)) ;; Create links to sketches.sachachua.com/URL-encoded; not used at the moment
+                (format "cd /home/sacha/code/node; nodejs flickr-list.js -b \"%s\" -e \"%s\" -f \"%s\"" 
+                 (or start "") (or end "") (or filter ""))))
+               ;; below method not used at the moment, but useful if flickr is being weird
+               ((and t (eq system-type 'gnu/linux)) ;; Create links to sketches.sachachua.com/URL-encoded; not used at the moment
                 ;; because Org does weird things with escaped # links
                 (mapconcat
                  (lambda (filename)
@@ -2776,7 +2773,8 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                            (browse-url-url-encode-chars (file-name-nondirectory filename) "[ #]")
                            (file-name-base filename)))
                  (let ((my/sketch-directories '("~/sketches"))) (my/get-index-card-filenames-between-dates start end))
-                 "")))
+                 ""))
+               )
               ))
          (if do-insert
              (insert value)
@@ -3806,7 +3804,7 @@ code pulls that information into my ~/Dropbox/tasker/
        ((eq format 'ascii) (format "%s <%s>" desc path))
        (t path))))
 
-  (org-add-link-type "package" 'my/org-package-open 'my/org-package-export)
+  (org-link-set-parameters "package" :follow 'my/org-package-open :export 'my/org-package-export)
 #+end_src
 
 This setting puts Org ASCII export links right after the text instead of in a separate section:
@@ -3909,8 +3907,15 @@ text/html, with text/x-org attached. The heavy lifting is done with
                 (lambda (format)
                   (org-export-string-as (buffer-substring (point-min) (point-max)) format t))
                 '(ascii html org))))
-        (kill-new output))))
+        (kill-new output)))
+  (gnus))
 #+end_src
+
+For cleaning things up:
+#+begin_src emacs-lisp :eval no :tangle no
+(replace-regexp "    - \\[\\|[][()]" "")
+#+end_src
+
 
 [[http://howardism.org][Howard Abrams]] showed me something like this in [[http://sachachua.com/blog/2015/06/emacs-hangout-june-2015/][June 2015's Emacs
 Hangout]] ([[https://www.youtube.com/watch?v=jzFI8knL5BY&t=1h18m26s][~1:18:26]]) using [[http://orgmode.org/worg/org-contrib/org-mime.html][org-mime-org-buffer-htmlize]], which probably
@@ -7210,7 +7215,7 @@ more entries, with everything else filed under "Other".
       (car
        (-filter (lambda (x) (not (string-match "weekly" x)))
                 (my/get-index-card-filenames
-                 (format "%s.* -- index card #journal" date)
+                 (format "%s.* -- index card.*#journal" date)
                  t))))
 
     (defun my/get-missing-journal-dates (start-date end-date)
@@ -7279,13 +7284,14 @@ more entries, with everything else filed under "Other".
 
      (defun my/convert-index-card-tiffs-to-pngs ()
        (interactive)
-       (when (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.\\(tif\\|psd\\)$")
-         ;; Convert the TIFFs first
-         (apply 'call-process "mogrify" nil nil nil "-flatten" "-format" "png" "-quality" "1"
-                (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.\\(tif\\|psd\\)$"))
-         (mapc (lambda (x)
-                 (rename-file x "~/Dropbox/Inbox/backup" t))
-               (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.\\(tif\\|psd\\)$"))))
+       (let ((pattern "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(tif\\|psd\\|jpg\\)$"))
+         (when (directory-files "~/Dropbox/Inbox" t pattern)
+           ;; Convert the TIFFs first
+           (apply 'call-process "mogrify" nil nil nil "-flatten" "-format" "png" "-quality" "1"
+                  (directory-files "~/Dropbox/Inbox" t pattern))
+           (mapc (lambda (x)
+                   (rename-file x "~/Dropbox/Inbox/backup" t))
+                 (directory-files "~/Dropbox/Inbox" t pattern)))))
 
      (defun my/convert-and-upload-cards ()
        "Trust in existing filenames, upload without modification."
@@ -7300,7 +7306,7 @@ more entries, with everything else filed under "Other".
        (mapc (lambda (filename)
                (find-file filename)
                (delete-other-windows)
-               (when (string-match "/\\(\\([0-9]+-[0-9]+-[0-9]+\\)\\( ?.*\\)?\\)\\.png" filename)
+               (when (string-match "/\\(IMG.*\\|\\([0-9]+-[0-9]+-[0-9]+\\)\\( ?.*\\)?\\)\\.png" filename)
                  (let ((kill-buffer-query-functions nil)
                        (new-name (read-string "New name: "
                                               (concat (match-string 1 filename) " "))))
@@ -7308,7 +7314,7 @@ more entries, with everything else filed under "Other".
                      (revert-buffer t t)
                      (rename-file filename (concat (s-trim new-name) ".png") t)
                      (kill-buffer)))))
-             (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+.*.png"))
+             (directory-files "~/Dropbox/Inbox" t "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.png"))
         (my/upload-scanned-cards))
 
      (defun my/clean-index-card-directory ()
@@ -7486,7 +7492,7 @@ Aspect ratio is width / height
                (append
                 files
                 (list
-                 "-geometry" "+0+0"
+                 "-geometry" "1497x896>+0+0"
                  "-tile" tiles
                  (expand-file-name output-file)))))
       (if (called-interactively-p 'any) (find-file output-file))))

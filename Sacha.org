@@ -3491,6 +3491,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
    '((dot . t)
      (ditaa . t)
      (sh . t)
+     (sqlite . t)
      (http . t)
      (shell . t)
      (R . t)))
@@ -6967,14 +6968,14 @@ recently-opened files first.
                     (lambda (dir)
                       (and (file-directory-p dir)
                            (if (functionp base)
-                               (-filter base (directory-files dir t ".*\\.\\(png\\|psd\\|tiff\\)?$"))
+                               (-filter base (directory-files dir t ".*\\.\\(png\\|psd\\|tiff\\|jpg\\)?$"))
                              (directory-files
                               dir t
                               (concat 
                                "\\("
                                (if as-regexp base (regexp-quote base))
                                "\\)"
-                               ".*\\.\\(png\\|psd\\|tiff\\)?$"
+                               ".*\\.\\(png\\|psd\\|tiff\\|jpg\\)?$"
                                )))))
                     my/sketch-directories)))
             'string<))
@@ -7499,7 +7500,7 @@ Aspect ratio is width / height
 
   (defun my/create-week-montage (beg end)
     (interactive "r")
-    (let* ((filename (format "Week ending %s -- index card #journal #weekly" (org-read-date nil nil "-fri")))
+    (let* ((filename (format "Week ending %s #journal #weekly" (org-read-date nil nil "-fri")))
            (full-filename (my/get-index-card-filename filename)))
       (if full-filename
           (my/open-image full-filename)

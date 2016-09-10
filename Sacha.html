@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2016-09-08 Thu 17:57 -->
+<!-- 2016-09-09 Fri 23:38 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
@@ -4939,6 +4939,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See <a h
  '((dot . t)
    (ditaa . t)
    (sh . t)
+   (sqlite . t)
    (http . t)
    (shell . t)
    (R . t)))
@@ -9074,14 +9075,14 @@ specified number of them) and then opens the last one for me to edit.
                 (<span class="org-keyword">lambda</span> (dir)
                   (<span class="org-keyword">and</span> (file-directory-p dir)
                        (<span class="org-keyword">if</span> (functionp base)
-                           (-filter base (directory-files dir t <span class="org-string">".*\\.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">tiff</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?$"</span>))
+                           (-filter base (directory-files dir t <span class="org-string">".*\\.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">tiff</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?$"</span>))
                          (directory-files
                           dir t
                           (concat 
                            <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">"</span>
                            (<span class="org-keyword">if</span> as-regexp base (regexp-quote base))
                            <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>
-                           <span class="org-string">".*\\.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">tiff</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?$"</span>
+                           <span class="org-string">".*\\.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">tiff</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?$"</span>
                            )))))
                 my/sketch-directories)))
         'string&lt;))
@@ -9622,7 +9623,7 @@ Aspect ratio is width / height
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/create-week-montage</span> (beg end)
   (<span class="org-keyword">interactive</span> <span class="org-string">"r"</span>)
-  (<span class="org-keyword">let*</span> ((filename (format <span class="org-string">"Week ending %s -- index card #journal #weekly"</span> (org-read-date nil nil <span class="org-string">"-fri"</span>)))
+  (<span class="org-keyword">let*</span> ((filename (format <span class="org-string">"Week ending %s #journal #weekly"</span> (org-read-date nil nil <span class="org-string">"-fri"</span>)))
          (full-filename (my/get-index-card-filename filename)))
     (<span class="org-keyword">if</span> full-filename
         (my/open-image full-filename)

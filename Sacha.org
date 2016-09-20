@@ -7285,7 +7285,7 @@ more entries, with everything else filed under "Other".
 
      (defun my/convert-index-card-tiffs-to-pngs ()
        (interactive)
-       (let ((pattern "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(tif\\|psd\\|jpg\\)$"))
+       (let ((pattern "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(tif\\|psd\\)$"))
          (when (directory-files "~/Dropbox/Inbox" t pattern)
            ;; Convert the TIFFs first
            (apply 'call-process "mogrify" nil nil nil "-flatten" "-format" "png" "-quality" "1"
@@ -7307,15 +7307,15 @@ more entries, with everything else filed under "Other".
        (mapc (lambda (filename)
                (find-file filename)
                (delete-other-windows)
-               (when (string-match "/\\(IMG.*\\|\\([0-9]+-[0-9]+-[0-9]+\\)\\( ?.*\\)?\\)\\.png" filename)
+               (when (string-match "/\\(IMG.*\\|\\([0-9]+-[0-9]+-[0-9]+\\)\\( ?.*\\)?\\)\\.\\(png\\|jpg\\)" filename)
                  (let ((kill-buffer-query-functions nil)
                        (new-name (read-string "New name: "
                                               (concat (match-string 1 filename) " "))))
                    (when (> (length new-name) 0)
                      (revert-buffer t t)
-                     (rename-file filename (concat (s-trim new-name) ".png") t)
+                     (rename-file filename (concat (s-trim new-name) "." (file-name-extension filename)) t)
                      (kill-buffer)))))
-             (directory-files "~/Dropbox/Inbox" t "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.png"))
+             (directory-files "~/Dropbox/Inbox" t "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(png\\|jpg\\)"))
         (my/upload-scanned-cards))
 
      (defun my/clean-index-card-directory ()
@@ -7328,24 +7328,21 @@ more entries, with everything else filed under "Other".
        (my/clean-index-card-directory)
        (with-current-buffer (get-buffer-create "*Files to be uploaded*")
          (erase-buffer)
-         (insert (mapconcat 'identity (directory-files "~/Dropbox/Inbox" nil "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png") "\n"))
+         (insert (mapconcat 'identity (directory-files "~/Dropbox/Inbox" nil "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)") "\n"))
          (goto-char (point-min))
          (switch-to-buffer (current-buffer))
          (delete-other-windows))
        (when (yes-or-no-p "Upload files?")
          (cond
           ((eq system-type 'windows-nt)
-           (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png")))
+           (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
           ((eq system-type 'gnu/linux)
            (with-temp-buffer
             (cd "~/code/node")
             (apply 'call-process "node" nil nil nil (expand-file-name "flickr-upload.js")
-                   (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png")))
+                   (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
            )))
        (shell-command "~/bin/copy-sketches")
-       (sleep-for 3)
-       (find-file "~/personal/questions.org")
-       (goto-char (point-min))
        ;;(when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))
        ;;  (forward-line 1)
        ;;  (org-end-of-item-list)
@@ -7481,7 +7478,7 @@ Aspect ratio is width / height
                 (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))
       (if current-prefix-arg (read-string "Tiling: "))))
     ;; Extract the links
-    (let ((output-file "~/Dropbox/Inbox/output.png"))
+    (let ((output-file "~/Dropbox/Inbox/output.jpg"))
       (unless tiles
         (setq tiles
               (format "%dx"

@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2016-09-09 Fri 23:38 -->
+<!-- 2016-09-20 Tue 08:34 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
@@ -243,6 +243,7 @@ for the JavaScript code in this tag.
 <li><a href="#org332b2fd">Configuration</a>
 <ul>
 <li><a href="#babel-init">About this file</a></li>
+<li><a href="#org0477c97">Starting up</a></li>
 <li><a href="#org7ebbf96">Personal information</a></li>
 <li><a href="#org898cd11">Emacs initialization</a>
 <ul>
@@ -605,26 +606,13 @@ for the JavaScript code in this tag.
 </p>
 
 <p>
-Inspired by the <a href="https://eschulte.github.io/emacs24-starter-kit/#installation">Emacs Starter Kit</a>, I set up my configuration file
-using Org-babel.This page: <a href="http://sachac.github.io/.emacs.d/Sacha.html">HTML</a> - <a href="//github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org">Org</a> - <a href="//dl.dropbox.com/u/3968124/sacha-emacs.el">.el</a> - <a href="http://github.com/sachac/.emacs.d/">Github</a> - also, <a href="http://sach.ac/dotemacs">http://sach.ac/dotemacs</a>. My <code>~/.emacs.d/init.el</code> is now a symlink to <code>Sacha.el</code>, which is what <code>M-x org-babel-tangle</code> (<code>C-c C-v t</code>) produces.
+This is my personal config. It's really long, but that's partly
+because I sometimes leave blog posts in it as commentary. (And also
+because I've got a lot of little customizations that I might not even
+remember. =) ). If you want to see a table of contents and other
+useful niceties, go to <a href="http://sachachua.com/dotemacs">http://sachachua.com/dotemacs</a> . Other links for
+this page: <a href="https://raw.githubusercontent.com/sachac/.emacs.d/gh-pages/Sacha.org">Org Mode version</a>, <a href="http://github.com/sachac/.emacs.d/">Github repository</a>
 </p>
-
-<div class="org-src-container">
-<pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">This sets up the load path so that we can override it</span>
-(package-initialize)
-<span class="org-comment-delimiter">;; </span><span class="org-comment">Override the packages with the git version of Org and other packages</span>
-(add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/lisp"</span>)
-(add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/contrib/lisp"</span>)
-(add-to-list 'load-path <span class="org-string">"~/code/org2blog"</span>)
-(add-to-list 'load-path <span class="org-string">"~/Dropbox/2014/presentations/org-reveal"</span>)
-(add-to-list 'load-path <span class="org-string">"/usr/local/share/emacs/site-lisp"</span>)
-(<span class="org-keyword">setq</span> package-enable-at-startup nil)
-<span class="org-comment-delimiter">;; </span><span class="org-comment">Prepare stuff for org-export-backends</span>
-(<span class="org-keyword">setq</span> org-export-backends '(org latex icalendar html ascii))
-(<span class="org-keyword">setq</span> custom-file <span class="org-string">"~/.emacs.d/custom-settings.el"</span>)
-(load custom-file t)
-</pre>
-</div>
 
 <p>
 If you're new to Emacs Lisp, you probably don't want to copy and paste
@@ -632,7 +620,9 @@ large chunks of this code. Instead, copy small parts of it (always
 making sure to copy a complete set of parentheses) into your
 <code>*scratch*</code> buffer or some other buffer in <code>emacs-lisp-mode</code>. Use <code>M-x
 eval-buffer</code> to evaluate the code and see if you like the way that
-Emacs behaves. See <a href="https://www.gnu.org/software/emacs/manual/html_mono/eintr.html">An Introduction to Programming in Emacs Lisp</a> for more details on Emacs Lisp. You can also find the manual by using <code>C-h i</code> (<code>info</code>) and choosing "Emacs Lisp Intro".
+Emacs behaves. See <a href="https://www.gnu.org/software/emacs/manual/html_mono/eintr.html">An Introduction to Programming in Emacs Lisp</a> for
+more details on Emacs Lisp. You can also find the manual by using <code>C-h
+i</code> (<code>info</code>) and choosing "Emacs Lisp Intro".
 </p>
 
 <p>
@@ -645,12 +635,60 @@ provided by a package, so you'll probably want to install that and
 </p>
 
 <p>
-If you're viewing the Org file, you can open source code blocks (those are the ones in begin_src) in a separate buffer by moving your point inside them and typing C-c ' (<code>org-edit-special</code>). This opens another buffer in <code>emacs-lisp-mode</code>, so you can use <code>M-x eval-buffer</code> to load the changes. If you want to explore how functions work, use <code>M-x edebug-defun</code> to set up debugging for that function, and then call it. You can learn more about edebug in the <a href="http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html">Emacs Lisp</a> manual.
+If you're viewing the Org file, you can open source code blocks (those
+are the ones in begin_src) in a separate buffer by moving your point
+inside them and typing C-c ' (<code>org-edit-special</code>). This opens another
+buffer in <code>emacs-lisp-mode</code>, so you can use <code>M-x eval-buffer</code> to load
+the changes. If you want to explore how functions work, use <code>M-x
+edebug-defun</code> to set up debugging for that function, and then call it.
+You can learn more about edebug in the <a href="http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html">Emacs Lisp</a> manual.
 </p>
 
 <p>
-I like using <code>(setq ...)</code> more than Customize because I can neatly organize my configuration that way.
+I like using <code>(setq ...)</code> more than Customize because I can neatly
+organize my configuration that way. Ditto for <code>use-package</code> - I mostly
+use it to group together package-related config without lots of
+<code>with-eval-after-load</code> calls, and it also makes declaring keybindings
+easier.
 </p>
+
+<p>
+My <code>~/.emacs.d/init.el</code> is now a symlink to <code>Sacha.el</code>, which is what
+<code>M-x org-babel-tangle</code> (<code>C-c C-v t</code>) produces. <b>A note about Org
+updates:</b> I like running Org Mode from checked-out source code instead
+of package.el. I add the Lisp directories to my <code>load-path</code>, and I
+also use the <code>:load-path</code> option in my first <code>use-package org</code> call to
+set the load path. One of those is probably doing the trick and the
+other one is redundant, but maybe it's a belt-and-suspenders sort of
+thing. Using the git checkout also makes upgrading Org easy. All I
+have to do is <code>git pull; make</code>, and stuff happens in an external Emacs
+process. Since I create <code>Sacha.el</code> via <code>org-babel-tangle</code>, my Emacs
+config can load <code>Sacha.el</code> without loading Org first.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org0477c97" class="outline-3">
+<h3 id="org0477c97">Starting up</h3>
+<div class="outline-text-3" id="text-org0477c97">
+<p>
+Here's how we start:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">This sets up the load path so that we can override it</span>
+(package-initialize)
+<span class="org-comment-delimiter">;; </span><span class="org-comment">Override the packages with the git version of Org and other packages</span>
+(add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/lisp"</span>)
+(add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/contrib/lisp"</span>)
+(add-to-list 'load-path <span class="org-string">"~/code/org2blog"</span>)
+(add-to-list 'load-path <span class="org-string">"~/Dropbox/2014/presentations/org-reveal"</span>)
+(add-to-list 'load-path <span class="org-string">"/usr/local/share/emacs/site-lisp"</span>)
+(<span class="org-keyword">setq</span> package-enable-at-startup nil)
+(<span class="org-keyword">setq</span> custom-file <span class="org-string">"~/.emacs.d/custom-settings.el"</span>)
+(load custom-file t)
+</pre>
+</div>
 </div>
 </div>
 
@@ -696,7 +734,6 @@ in a directory in my <code>load-path</code>, Emacs can find them.
 
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(add-to-list 'load-path <span class="org-string">"~/elisp"</span>)
-(add-to-list 'load-path <span class="org-string">"~/elisp/artbollocks-mode"</span>)
 (<span class="org-keyword">unless</span> (package-installed-p 'use-package)
   (package-install 'use-package))
 (<span class="org-keyword">setq</span> use-package-verbose t)
@@ -768,7 +805,7 @@ Disk space is cheap. Save lots.
 <h4 id="orgdfcb533">History</h4>
 <div class="outline-text-4" id="text-orgdfcb533">
 <p>
-From <a href="http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html">http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html</a>
+From <a href="http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html">http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html</a>:
 </p>
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">setq</span> savehist-file <span class="org-string">"~/.emacs.d/savehist"</span>)
@@ -1958,6 +1995,7 @@ From Xah Lee:
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">artbollocks-mode</span>
   <span class="org-builtin">:defer</span> t
+  <span class="org-builtin">:load-path</span>  <span class="org-string">"~/elisp/artbollocks-mode"</span>
   <span class="org-builtin">:config</span>
   (<span class="org-keyword">progn</span>
     (<span class="org-keyword">setq</span> artbollocks-weasel-words-regex
@@ -2325,7 +2363,8 @@ currently experimenting with.
                       org-toc))
 (eval-after-load 'org
  '(org-load-modules-maybe t))
-(<span class="org-keyword">setq</span> org-expiry-inactive-timestamps t)
+<span class="org-comment-delimiter">;; </span><span class="org-comment">Prepare stuff for org-export-backends</span>
+(<span class="org-keyword">setq</span> org-export-backends '(org latex icalendar html ascii))
 </pre>
 </div>
 </div>
@@ -2927,6 +2966,7 @@ That way, it's easy to see short tasks that I can finish.
  <span class="org-builtin">:load-path</span> <span class="org-string">"~/elisp/org-mode/lisp"</span>
  <span class="org-builtin">:init</span>
  (<span class="org-keyword">progn</span>
+  (<span class="org-keyword">setq</span> org-expiry-inactive-timestamps t)
   (<span class="org-keyword">setq</span> org-clock-idle-time nil)
   (<span class="org-keyword">setq</span> org-log-done 'time)
   (<span class="org-keyword">setq</span> org-clock-continuously nil)
@@ -9380,7 +9420,7 @@ more entries, with everything else filed under "Other".
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/convert-index-card-tiffs-to-pngs</span> ()
   (<span class="org-keyword">interactive</span>)
-  (<span class="org-keyword">let</span> ((pattern <span class="org-string">"^</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">IMG</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">[0-9]+-[0-9]+-[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">.*.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">tif</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">$"</span>))
+  (<span class="org-keyword">let</span> ((pattern <span class="org-string">"^</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">IMG</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">[0-9]+-[0-9]+-[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">.*.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">tif</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">$"</span>))
     (<span class="org-keyword">when</span> (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t pattern)
       <span class="org-comment-delimiter">;; </span><span class="org-comment">Convert the TIFFs first</span>
       (apply 'call-process <span class="org-string">"mogrify"</span> nil nil nil <span class="org-string">"-flatten"</span> <span class="org-string">"-format"</span> <span class="org-string">"png"</span> <span class="org-string">"-quality"</span> <span class="org-string">"1"</span>
@@ -9402,15 +9442,15 @@ more entries, with everything else filed under "Other".
   (mapc (<span class="org-keyword">lambda</span> (filename)
           (find-file filename)
           (delete-other-windows)
-          (<span class="org-keyword">when</span> (string-match <span class="org-string">"/</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">IMG.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[0-9]+-[0-9]+-[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string"> ?.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">\\.png"</span> filename)
+          (<span class="org-keyword">when</span> (string-match <span class="org-string">"/</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">IMG.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[0-9]+-[0-9]+-[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string"> ?.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">\\.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span> filename)
             (<span class="org-keyword">let</span> ((kill-buffer-query-functions nil)
                   (new-name (read-string <span class="org-string">"New name: "</span>
                                          (concat (match-string 1 filename) <span class="org-string">" "</span>))))
               (<span class="org-keyword">when</span> (&gt; (length new-name) 0)
                 (revert-buffer t t)
-                (rename-file filename (concat (s-trim new-name) <span class="org-string">".png"</span>) t)
+                (rename-file filename (concat (s-trim new-name) <span class="org-string">"."</span> (file-name-extension filename)) t)
                 (kill-buffer)))))
-        (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">IMG</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">[0-9]+-[0-9]+-[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">.*.png"</span>))
+        (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">IMG</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">[0-9]+-[0-9]+-[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">.*.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>))
    (my/upload-scanned-cards))
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/clean-index-card-directory</span> ()
@@ -9423,24 +9463,21 @@ more entries, with everything else filed under "Other".
   (my/clean-index-card-directory)
   (<span class="org-keyword">with-current-buffer</span> (get-buffer-create <span class="org-string">"*Files to be uploaded*"</span>)
     (erase-buffer)
-    (insert (mapconcat 'identity (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> nil <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string"> ]? .*.png"</span>) <span class="org-string">"\n"</span>))
+    (insert (mapconcat 'identity (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> nil <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string"> ]? .*.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>) <span class="org-string">"\n"</span>))
     (goto-char (point-min))
     (switch-to-buffer (current-buffer))
     (delete-other-windows))
   (<span class="org-keyword">when</span> (yes-or-no-p <span class="org-string">"Upload files?"</span>)
     (<span class="org-keyword">cond</span>
      ((eq system-type 'windows-nt)
-      (apply 'call-process <span class="org-string">"up"</span> nil nil nil (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string"> ]? .*.png"</span>)))
+      (apply 'call-process <span class="org-string">"up"</span> nil nil nil (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string"> ]? .*.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>)))
      ((eq system-type 'gnu/linux)
       (<span class="org-keyword">with-temp-buffer</span>
        (cd <span class="org-string">"~/code/node"</span>)
        (apply 'call-process <span class="org-string">"node"</span> nil nil nil (expand-file-name <span class="org-string">"flickr-upload.js"</span>)
-              (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string"> ]? .*.png"</span>)))
+              (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string"> ]? .*.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>)))
       )))
   (shell-command <span class="org-string">"~/bin/copy-sketches"</span>)
-  (sleep-for 3)
-  (find-file <span class="org-string">"~/personal/questions.org"</span>)
-  (goto-char (point-min))
   <span class="org-comment-delimiter">;;</span><span class="org-comment">(when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))</span>
   <span class="org-comment-delimiter">;;  </span><span class="org-comment">(forward-line 1)</span>
   <span class="org-comment-delimiter">;;  </span><span class="org-comment">(org-end-of-item-list)</span>
@@ -9604,7 +9641,7 @@ Aspect ratio is width / height
               (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))
     (<span class="org-keyword">if</span> current-prefix-arg (read-string <span class="org-string">"Tiling: "</span>))))
   <span class="org-comment-delimiter">;; </span><span class="org-comment">Extract the links</span>
-  (<span class="org-keyword">let</span> ((output-file <span class="org-string">"~/Dropbox/Inbox/output.png"</span>))
+  (<span class="org-keyword">let</span> ((output-file <span class="org-string">"~/Dropbox/Inbox/output.jpg"</span>))
     (<span class="org-keyword">unless</span> tiles
       (<span class="org-keyword">setq</span> tiles
             (format <span class="org-string">"%dx"</span>

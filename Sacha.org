@@ -8,8 +8,58 @@
    :END:
 <<babel-init>>
 
-Inspired by the [[https://eschulte.github.io/emacs24-starter-kit/#installation][Emacs Starter Kit]], I set up my configuration file
-using Org-babel.This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]] - [[Https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org][Org]] - [[Https://dl.dropbox.com/u/3968124/sacha-emacs.el][.el]] - [[http://github.com/sachac/.emacs.d/][Github]] - also, http://sach.ac/dotemacs. My =~/.emacs.d/init.el= is now a symlink to =Sacha.el=, which is what =M-x org-babel-tangle= (=C-c C-v t=) produces.
+This is my personal config. It's really long, but that's partly
+because I sometimes leave blog posts in it as commentary. (And also
+because I've got a lot of little customizations that I might not even
+remember. =) ). If you want to see a table of contents and other
+useful niceties, go to http://sachachua.com/dotemacs . Other links for
+this page: [[https://raw.githubusercontent.com/sachac/.emacs.d/gh-pages/Sacha.org][Org Mode version]], [[http://github.com/sachac/.emacs.d/][Github repository]]
+
+If you're new to Emacs Lisp, you probably don't want to copy and paste
+large chunks of this code. Instead, copy small parts of it (always
+making sure to copy a complete set of parentheses) into your
+=*scratch*= buffer or some other buffer in =emacs-lisp-mode=. Use =M-x
+eval-buffer= to evaluate the code and see if you like the way that
+Emacs behaves. See [[https://www.gnu.org/software/emacs/manual/html_mono/eintr.html][An Introduction to Programming in Emacs Lisp]] for
+more details on Emacs Lisp. You can also find the manual by using =C-h
+i= (=info=) and choosing "Emacs Lisp Intro".
+
+I've installed a lot of packages. See the [[*Add%20package%20sources][package sources]] section to
+add the repositories to your configuration. When you see =use-package=
+and a package name you might like, you can use =M-x package-install=
+to install the package of that name. Note that use-package is itself
+provided by a package, so you'll probably want to install that and
+=bind-key=.
+
+If you're viewing the Org file, you can open source code blocks (those
+are the ones in begin_src) in a separate buffer by moving your point
+inside them and typing C-c ' (=org-edit-special=). This opens another
+buffer in =emacs-lisp-mode=, so you can use =M-x eval-buffer= to load
+the changes. If you want to explore how functions work, use =M-x
+edebug-defun= to set up debugging for that function, and then call it.
+You can learn more about edebug in the [[http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html][Emacs Lisp]] manual.
+
+I like using =(setq ...)= more than Customize because I can neatly
+organize my configuration that way. Ditto for =use-package= - I mostly
+use it to group together package-related config without lots of
+=with-eval-after-load= calls, and it also makes declaring keybindings
+easier.
+
+My =~/.emacs.d/init.el= is now a symlink to =Sacha.el=, which is what
+=M-x org-babel-tangle= (=C-c C-v t=) produces. *A note about Org
+updates:* I like running Org Mode from checked-out source code instead
+of package.el. I add the Lisp directories to my =load-path=, and I
+also use the =:load-path= option in my first =use-package org= call to
+set the load path. One of those is probably doing the trick and the
+other one is redundant, but maybe it's a belt-and-suspenders sort of
+thing. Using the git checkout also makes upgrading Org easy. All I
+have to do is =git pull; make=, and stuff happens in an external Emacs
+process. Since I create =Sacha.el= via =org-babel-tangle=, my Emacs
+config can load =Sacha.el= without loading Org first.
+
+** Starting up
+
+Here's how we start:
 
 #+begin_src emacs-lisp :tangle yes
 ;; This sets up the load path so that we can override it
@@ -21,29 +71,9 @@ using Org-babel.This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]]
 (add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
 (setq package-enable-at-startup nil)
-;; Prepare stuff for org-export-backends
-(setq org-export-backends '(org latex icalendar html ascii))
 (setq custom-file "~/.emacs.d/custom-settings.el")
 (load custom-file t)
 #+END_SRC
-
-If you're new to Emacs Lisp, you probably don't want to copy and paste
-large chunks of this code. Instead, copy small parts of it (always
-making sure to copy a complete set of parentheses) into your
-=*scratch*= buffer or some other buffer in =emacs-lisp-mode=. Use =M-x
-eval-buffer= to evaluate the code and see if you like the way that
-Emacs behaves. See [[https://www.gnu.org/software/emacs/manual/html_mono/eintr.html][An Introduction to Programming in Emacs Lisp]] for more details on Emacs Lisp. You can also find the manual by using =C-h i= (=info=) and choosing "Emacs Lisp Intro".
-
-I've installed a lot of packages. See the [[*Add%20package%20sources][package sources]] section to
-add the repositories to your configuration. When you see =use-package=
-and a package name you might like, you can use =M-x package-install=
-to install the package of that name. Note that use-package is itself
-provided by a package, so you'll probably want to install that and
-=bind-key=.
-
-If you're viewing the Org file, you can open source code blocks (those are the ones in begin_src) in a separate buffer by moving your point inside them and typing C-c ' (=org-edit-special=). This opens another buffer in =emacs-lisp-mode=, so you can use =M-x eval-buffer= to load the changes. If you want to explore how functions work, use =M-x edebug-defun= to set up debugging for that function, and then call it. You can learn more about edebug in the [[http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html][Emacs Lisp]] manual.
-
-I like using =(setq ...)= more than Customize because I can neatly organize my configuration that way.
 
 ** Personal information
 
@@ -73,7 +103,6 @@ in a directory in my =load-path=, Emacs can find them.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
 (add-to-list 'load-path "~/elisp")
-(add-to-list 'load-path "~/elisp/artbollocks-mode")
 (unless (package-installed-p 'use-package)
   (package-install 'use-package))
 (setq use-package-verbose t)
@@ -118,7 +147,7 @@ Disk space is cheap. Save lots.
 
 *** History
 
-From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
+From http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html:
 #+BEGIN_SRC emacs-lisp :tangle yes
 (setq savehist-file "~/.emacs.d/savehist")
 (savehist-mode 1)
@@ -1118,6 +1147,7 @@ This command is convenient when reading novel, documentation."
     #+BEGIN_SRC emacs-lisp :tangle yes
     (use-package artbollocks-mode
       :defer t
+      :load-path  "~/elisp/artbollocks-mode"
       :config
       (progn
         (setq artbollocks-weasel-words-regex
@@ -1303,7 +1333,8 @@ currently experimenting with.
                       org-toc))
 (eval-after-load 'org
  '(org-load-modules-maybe t))
-(setq org-expiry-inactive-timestamps t)
+;; Prepare stuff for org-export-backends
+(setq org-export-backends '(org latex icalendar html ascii))
 #+END_SRC
 
 *** Keyboard shortcuts
@@ -1813,6 +1844,7 @@ able to clock in on them.
     :load-path "~/elisp/org-mode/lisp"
     :init
     (progn
+     (setq org-expiry-inactive-timestamps t)
      (setq org-clock-idle-time nil)
      (setq org-log-done 'time)
      (setq org-clock-continuously nil)

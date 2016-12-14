@@ -3600,12 +3600,13 @@ Probably should make this a dblock someday."
     (/ (assoc-default category
                       (quantified-summarize-time start end)) 3600.0))
 
+  ;; TODO: paginate
   (defun my/org-quantified-get-detailed-hours-based-on-range (category start end)
     "Return a list of (date week-ending-date dow seconds) for CATEGORY from START to END."
     (let ((entries
            (gethash "entries"
                     (quantified-parse-json
-                     (quantified-request (format "records.json?start=%s&end=%s&filter_string=%s&split=split" start end (url-encode-url category))
+                     (quantified-request (format "records.json?start=%s&end=%s&filter_string=%s&per_page=1000&split=split" start end (url-encode-url category))
                                          nil "GET")))))
       (mapcar
        (lambda (entry)
@@ -3655,9 +3656,9 @@ Probably should make this a dblock someday."
 
   (defun my/org-quantified-format-detailed-hours-as-table (list)
     "Return a table with rows for LIST.
-  | Week ending ____ | Sat | Sun | Mon | Tue | Wed | Thu | Fri | Total |
-  LIST elements should be in the form (date week-end-date dow seconds).
-  See `my/org-quantified-get-detailed-hours-based-on-range'."
+    | Week ending ____ | Sat | Sun | Mon | Tue | Wed | Thu | Fri | Total |
+    LIST elements should be in the form (date week-end-date dow seconds).
+    See `my/org-quantified-get-detailed-hours-based-on-range'."
     ;; Group by week ending date
     (let ((days '("Sat" "Sun" "Mon" "Tue" "Wed" "Thu" "Fri")))
       (append
@@ -3684,11 +3685,11 @@ Probably should make this a dblock someday."
         (-sort (lambda (a b) (string< (car a) (car b))) (-group-by (lambda (x) (elt x 1)) list))))))
 
 
-(defun my/org-quantified-hours-table ()
-  (my/org-quantified-format-detailed-hours-as-table
-   (apply 'my/org-quantified-get-detailed-hours-based-on-range 
-    (org-entry-get-with-inheritance "QUANTIFIED_CATEGORY")
-    (my/org-get-invoice-range-based-on-date (org-entry-get-with-inheritance "INVOICE_DATE")))))
+  (defun my/org-quantified-hours-table ()
+    (my/org-quantified-format-detailed-hours-as-table
+     (apply 'my/org-quantified-get-detailed-hours-based-on-range 
+            (org-entry-get-with-inheritance "QUANTIFIED_CATEGORY")
+            (my/org-get-invoice-range-based-on-date (org-entry-get-with-inheritance "INVOICE_DATE")))))
 
   (ert-deftest my/org-get-invoice-range-based-on-date ()
     "Check if invoice range is sane."

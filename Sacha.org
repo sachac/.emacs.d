@@ -1,4 +1,4 @@
-#+TITLE: Sacha Chua's Emacs configuration
+a#+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
 
 * Configuration
@@ -1645,7 +1645,7 @@ able to clock in on them.
       (setq org-refile-use-outline-path nil)
       (setq org-refile-allow-creating-parent-nodes 'confirm)
       (setq org-refile-use-cache nil)
-      (setq org-refile-targets '((org-agenda-files . (:maxlevel . 6))))
+      (setq org-refile-targets '((org-agenda-files . (:maxlevel . 3))))
       (setq org-blank-before-new-entry nil)
     #+end_src
 
@@ -2062,7 +2062,7 @@ only a few of them them for faster scanning.
                         "~/code/emacs-notes/tasks.org"
                         "~/sachac.github.io/evil-plans/index.org"
                         "~/personal/cooking.org"
-                        "~/personal/routines.org"))))t
+                        "~/personal/routines.org"))))
   (add-to-list 'auto-mode-alist '("\\.txt$" . org-mode))
 #+end_src
 
@@ -2270,128 +2270,130 @@ hang of using these more!
 | 2           | Projects with tasks                                                                            |
 
 #+begin_src emacs-lisp :tangle yes
-    (defvar my/org-agenda-contexts
-      '((tags-todo "+@phone")
-        (tags-todo "+@work")
-        (tags-todo "+@drawing")
-        (tags-todo "+@coding")
-        (tags-todo "+@writing")
-        (tags-todo "+@computer")
-        (tags-todo "+@home")
-        (tags-todo "+@errands"))
-      "Usual list of contexts.")
-    (defun my/org-agenda-skip-scheduled ()
-      (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
-    (setq org-agenda-custom-commands
-          `(("t" tags-todo "-cooking"
-             ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
-            ("T" tags-todo "TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}" nil "~/Dropbox/agenda/nonroutine.html")
-            ("f" tags-todo "fuzzy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
-            ("F" tags-todo "highenergy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
-            ("b" todo ""
-             ((org-agenda-files '("~/personal/business.org"))))
-            ("B" todo ""
-             ((org-agenda-files '("~/Dropbox/books"))))
-            ("o" todo ""
-             ((org-agenda-files '("~/personal/organizer.org"))))
-            ("c" todo ""
-             ((org-agenda-prefix-format "")
-              (org-agenda-cmp-user-defined 'my/org-sort-agenda-items-todo)
-              (org-agenda-view-columns-initially t)
-              ))
-            ;; Weekly review
-            ("w" "Weekly review" agenda ""
-             ((org-agenda-span 7)
-              (org-agenda-log-mode 1)) "~/Dropbox/agenda/this-week.html")
-            ("W" "Weekly review sans routines" agenda ""
-             ((org-agenda-span 7)
-              (org-agenda-log-mode 1)
-              (org-agenda-tag-filter-preset '("-routine"))) "~/Dropbox/agenda/this-week-nonroutine.html")
-            ("2" "Bi-weekly review" agenda "" ((org-agenda-span 14) (org-agenda-log-mode 1)))
-            ("gb" "Business" todo ""
-             ((org-agenda-files '("~/personal/business.org"))
-              (org-agenda-view-columns-initially t)))
-            ("gc" "Coding" tags-todo "@coding"
-             ((org-agenda-view-columns-initially t)))
-            ("gw" "Writing" tags-todo "@writing"
-             ((org-agenda-view-columns-initially t)))
-            ("gp" "Phone" tags-todo "@phone"
-             ((org-agenda-view-columns-initially t)))
-            ("gd" "Drawing" tags-todo "@drawing"
-             ((org-agenda-view-columns-initially t)))
-            ("gh" "Home" tags-todo "@home"
-             ((org-agenda-view-columns-initially t)))
-            ("gk" "Kaizen" tags-todo "kaizen"
-             ((org-agenda-view-columns-initially t))
-             ("~/Dropbox/agenda/errands.html"))
-            ("ge" "Errands" tags-todo "@errands"
-             ((org-agenda-view-columns-initially t))
-             ("~/Dropbox/agenda/errands.html"))
-            ("0" "Top 3 by context"
-             ,my/org-agenda-contexts
-             ((org-agenda-sorting-strategy '(priority-up effort-down))
-              (my/org-agenda-limit-items 3)))
-            (")" "All by context"
-             ,my/org-agenda-contexts
-             ((org-agenda-sorting-strategy '(priority-down effort-down))
-              (my/org-agenda-limit-items nil)))
-            ("9" "Unscheduled top 3 by context"
-             ,my/org-agenda-contexts
-             ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
-              (org-agenda-sorting-strategy '(priority-down effort-down))
-              (my/org-agenda-limit-items 3)))
-            ("(" "All unscheduled by context"
-             ,my/org-agenda-contexts
-             ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
-              (org-agenda-sorting-strategy '(priority-down effort-down))
-              ))
-            ("d" "Timeline for today" ((agenda "" ))
-             ((org-agenda-ndays 1)
-              (org-agenda-show-log t)
-              (org-agenda-log-mode-items '(clock closed))
-              (org-agenda-clockreport-mode t)
-              (org-agenda-entry-types '())))
-            ("." "Waiting for" todo "WAITING")
-            ("u" "Unscheduled tasks" tags-todo "-someday-TODO=\"SOMEDAY\"-TODO=\"DELEGATED\"-TODO=\"WAITING\"-project"
-             ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
-              (org-agenda-view-columns-initially t)
-              (org-tags-exclude-from-inheritance '("project"))
-              (org-agenda-overriding-header "Unscheduled TODO entries: ")
-              (org-columns-default-format "%50ITEM %TODO %3PRIORITY %Effort{:} %TAGS")
-              (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))))
-            ("U" "Unscheduled tasks outside projects" tags-todo "-project"
-             ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
-              (org-tags-exclude-from-inheritance nil)
-              (org-agenda-view-columns-initially t)
-              (org-agenda-overriding-header "Unscheduled TODO entries outside projects: ")
-              (org-agenda-sorting-strategy '(todo-state-up priority-down tag-up category-keep effort-down))))
-            ("P" "By priority"
-             ((tags-todo "+PRIORITY=\"A\"")
-              (tags-todo "+PRIORITY=\"B\"")
-              (tags-todo "+PRIORITY=\"\"")
-              (tags-todo "+PRIORITY=\"C\""))
-             ((org-agenda-prefix-format "%-10c %-10T %e ")
-              (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
-            ("pp" tags "+project-someday-TODO=\"DONE\"-TODO=\"SOMEDAY\"-inactive"
-             ((org-tags-exclude-from-inheritance '("project"))
-              (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
-            ("p." tags "+project-TODO=\"DONE\""
-             ((org-tags-exclude-from-inheritance '("project"))
-              (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
-            ("S" tags-todo "TODO=\"STARTED\"")
-            ("C" "Cooking"
-             ((tags "vegetables")
-              (tags "chicken")
-              (tags "beef")
-              (tags "pork")
-              (tags "other"))
-             ((org-agenda-files '("~/personal/cooking.org"))
-              (org-agenda-view-columns-initially t)
-              (org-agenda-sorting-strategy '(scheduled-up time-down todo-state-up)))
-             )
-            ("2" "List projects with tasks" my/org-agenda-projects-and-tasks
-             "+PROJECT"
-               ((my/org-agenda-limit-items 3)))))
+  (defvar my/org-agenda-contexts
+    '((tags-todo "+@phone")
+      (tags-todo "+@work")
+      (tags-todo "+@drawing")
+      (tags-todo "+@coding")
+      (tags-todo "+@writing")
+      (tags-todo "+@computer")
+      (tags-todo "+@home")
+      (tags-todo "+@errands"))
+    "Usual list of contexts.")
+  (defun my/org-agenda-skip-scheduled ()
+    (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
+  (setq org-agenda-custom-commands
+        `(("t" tags-todo "-cooking"
+           ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
+          ("T" tags-todo "TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}" nil "~/Dropbox/agenda/nonroutine.html")
+          ("f" tags-todo "fuzzy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
+          ("F" tags-todo "highenergy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
+          ("b" todo ""
+           ((org-agenda-files '("~/personal/business.org"))))
+          ("B" todo ""
+           ((org-agenda-files '("~/Dropbox/books"))))
+          ("o" todo ""
+           ((org-agenda-files '("~/personal/organizer.org"))))
+          ("c" todo ""
+           ((org-agenda-prefix-format "")
+            (org-agenda-cmp-user-defined 'my/org-sort-agenda-items-todo)
+            (org-agenda-view-columns-initially t)
+            ))
+          ;; Weekly review
+          ("w" "Weekly review" agenda ""
+           ((org-agenda-span 7)
+            (org-agenda-log-mode 1)) "~/Dropbox/agenda/this-week.html")
+          ("W" "Weekly review sans routines" agenda ""
+           ((org-agenda-span 7)
+            (org-agenda-log-mode 1)
+            (org-agenda-tag-filter-preset '("-routine"))) "~/Dropbox/agenda/this-week-nonroutine.html")
+          ("2" "Bi-weekly review" agenda "" ((org-agenda-span 14) (org-agenda-log-mode 1)))
+          ("5" "Quick tasks" tags-todo "EFFORT>=\"0:05\"&EFFORT<=\"0:15\"")
+          ("0" "Unestimated tasks" tags-todo "EFFORT=\"\"")
+          ("gb" "Business" todo ""
+           ((org-agenda-files '("~/personal/business.org"))
+            (org-agenda-view-columns-initially t)))
+          ("gc" "Coding" tags-todo "@coding"
+           ((org-agenda-view-columns-initially t)))
+          ("gw" "Writing" tags-todo "@writing"
+           ((org-agenda-view-columns-initially t)))
+          ("gp" "Phone" tags-todo "@phone"
+           ((org-agenda-view-columns-initially t)))
+          ("gd" "Drawing" tags-todo "@drawing"
+           ((org-agenda-view-columns-initially t)))
+          ("gh" "Home" tags-todo "@home"
+           ((org-agenda-view-columns-initially t)))
+          ("gk" "Kaizen" tags-todo "kaizen"
+           ((org-agenda-view-columns-initially t))
+           ("~/Dropbox/agenda/errands.html"))
+          ("ge" "Errands" tags-todo "@errands"
+           ((org-agenda-view-columns-initially t))
+           ("~/Dropbox/agenda/errands.html"))
+          ("0" "Top 3 by context"
+           ,my/org-agenda-contexts
+           ((org-agenda-sorting-strategy '(priority-up effort-down))
+            (my/org-agenda-limit-items 3)))
+          (")" "All by context"
+           ,my/org-agenda-contexts
+           ((org-agenda-sorting-strategy '(priority-down effort-down))
+            (my/org-agenda-limit-items nil)))
+          ("9" "Unscheduled top 3 by context"
+           ,my/org-agenda-contexts
+           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+            (org-agenda-sorting-strategy '(priority-down effort-down))
+            (my/org-agenda-limit-items 3)))
+          ("(" "All unscheduled by context"
+           ,my/org-agenda-contexts
+           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+            (org-agenda-sorting-strategy '(priority-down effort-down))
+            ))
+          ("d" "Timeline for today" ((agenda "" ))
+           ((org-agenda-ndays 1)
+            (org-agenda-show-log t)
+            (org-agenda-log-mode-items '(clock closed))
+            (org-agenda-clockreport-mode t)
+            (org-agenda-entry-types '())))
+          ("." "Waiting for" todo "WAITING")
+          ("u" "Unscheduled tasks" tags-todo "-someday-TODO=\"SOMEDAY\"-TODO=\"DELEGATED\"-TODO=\"WAITING\"-project"
+           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+            (org-agenda-view-columns-initially t)
+            (org-tags-exclude-from-inheritance '("project"))
+            (org-agenda-overriding-header "Unscheduled TODO entries: ")
+            (org-columns-default-format "%50ITEM %TODO %3PRIORITY %Effort{:} %TAGS")
+            (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))))
+          ("U" "Unscheduled tasks outside projects" tags-todo "-project"
+           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+            (org-tags-exclude-from-inheritance nil)
+            (org-agenda-view-columns-initially t)
+            (org-agenda-overriding-header "Unscheduled TODO entries outside projects: ")
+            (org-agenda-sorting-strategy '(todo-state-up priority-down tag-up category-keep effort-down))))
+          ("P" "By priority"
+           ((tags-todo "+PRIORITY=\"A\"")
+            (tags-todo "+PRIORITY=\"B\"")
+            (tags-todo "+PRIORITY=\"\"")
+            (tags-todo "+PRIORITY=\"C\""))
+           ((org-agenda-prefix-format "%-10c %-10T %e ")
+            (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+          ("pp" tags "+project-someday-TODO=\"DONE\"-TODO=\"SOMEDAY\"-inactive"
+           ((org-tags-exclude-from-inheritance '("project"))
+            (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+          ("p." tags "+project-TODO=\"DONE\""
+           ((org-tags-exclude-from-inheritance '("project"))
+            (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+          ("S" tags-todo "TODO=\"STARTED\"")
+          ("C" "Cooking"
+           ((tags "vegetables")
+            (tags "chicken")
+            (tags "beef")
+            (tags "pork")
+            (tags "other"))
+           ((org-agenda-files '("~/personal/cooking.org"))
+            (org-agenda-view-columns-initially t)
+            (org-agenda-sorting-strategy '(scheduled-up time-down todo-state-up)))
+           )
+          ("2" "List projects with tasks" my/org-agenda-projects-and-tasks
+           "+PROJECT"
+           ((my/org-agenda-limit-items 3)))))
   (bind-key "<apps> a" 'org-agenda)
 #+end_src
 **** Make it easy to mark a task as done
@@ -2862,13 +2864,14 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                                             (match-string 0))) t t nil)))))
 
    (defun my/open-urls-in-region (beg end)
-     "Open URLs between BEG and END."
+     "Open URLs between BEG and END.
+   TODO: Get better at detecting and opening all URLs"
      (interactive "r")
      (save-excursion
        (save-restriction
          (narrow-to-region beg end)
          (goto-char (point-min))
-         (while (re-search-forward org-plain-link-re nil t)
+         (while (re-search-forward org-any-link-re nil t)
            (org-open-at-point)))))
  #+end_src
 
@@ -7228,7 +7231,8 @@ more entries, with everything else filed under "Other".
       "Creates a blank journal entry for DATE and brings up the log."
       (interactive (list (org-read-date)))
       ;; Open the Quantified Awesome time log for that date
-      (let ((filename (my/get-journal-entry date)))
+      (let ((filename (my/get-journal-entry date))
+            (day (format-time-string "%A" (org-time-string-to-time date))))
         (if filename
             (my/open-image filename)
           (browse-url (format "http://quantifiedawesome.com/records?start=%s&end=%s"
@@ -7237,19 +7241,16 @@ more entries, with everything else filed under "Other".
                                "%Y-%m-%d"
                                (seconds-to-time
                                 (+ (org-time-string-to-seconds date) 86400)))))
-          (my/open-image
-            (my/prepare-index-card-template
-             (format-time-string
-              "%A -- index card #journal"
-              (org-time-string-to-time date))
-             date)))))
+          (setq filename
+                (my/prepare-index-card-template (concat day " #daily #journal") date))
+          (my/open-image filename))))
 
     (defun my/get-journal-entry (date)
       "Returns the filename for the journal sketch for DATE."
       (car
        (-filter (lambda (x) (not (string-match "weekly" x)))
                 (my/get-index-card-filenames
-                 (format "%s.* -- index card.*#journal" date)
+                 (format "%s.* .*#daily" date)
                  t))))
 
     (defun my/get-missing-journal-dates (start-date end-date)
@@ -7333,21 +7334,43 @@ more entries, with everything else filed under "Other".
        (my/convert-index-card-tiffs-to-pngs)
        (my/upload-scanned-cards))
 
+     (defun my/rename-scanned-card (filename)
+       (find-file filename)
+       (delete-other-windows)
+       (let ((base (file-name-sans-extension filename))
+             notes)
+         (when (string-match "/IMG.*\\|\\(\\([0-9]+-[0-9]+-[0-9]+\\)\\( ?.*\\)?\\)" base)
+           (let ((kill-buffer-query-functions nil)
+                 old-name
+                 (new-name (read-string "New name: "
+                                        (if (match-string 1 base)
+                                            (concat (match-string 1 base))
+                                          ""))))
+             (while (and (string-match "^[0-9]+-[0-9]+-[0-9]+[a-z]" new-name)
+                         (setq old-name (my/get-index-card-filename (match-string 0 new-name)))
+                         (and old-name
+                              (not (string= old-name filename))
+                              (not (string= (file-name-nondirectory old-name)
+                                            (concat (s-trim new-name) "." (file-name-extension filename))))))
+               (setq new-name
+                     (read-string (format "Already exists (%s) - new name: " old-name)
+                                  new-name)))
+             (when (string-match new-name "^\\(.*?\\) *| *\\(.*\\)")
+               (with-current-buffer (find-file "~/Dropbox/orgzly/Inbox.org")
+                 (goto-char (point-max))
+                 (insert "\n* " (match-string 1 new-name) "\n" (match-string 2 new-name))
+                 (save-buffer))
+               (setq new-name (match-string 1 new-name)))
+             (when (> (length new-name) 0)
+               (revert-buffer t t)
+               (rename-file filename (concat (s-trim new-name) "." (file-name-extension filename)) t)
+               (kill-buffer))))))
+
      (defun my/rename-scanned-cards ()
        "Display and rename the scanned or saved files."
        (interactive)
        (my/convert-index-card-tiffs-to-pngs)
-       (mapc (lambda (filename)
-               (find-file filename)
-               (delete-other-windows)
-               (when (string-match "/\\(IMG.*\\|\\([0-9]+-[0-9]+-[0-9]+\\)\\( ?.*\\)?\\)\\.\\(png\\|jpg\\)" filename)
-                 (let ((kill-buffer-query-functions nil)
-                       (new-name (read-string "New name: "
-                                              (concat (match-string 1 filename) " "))))
-                   (when (> (length new-name) 0)
-                     (revert-buffer t t)
-                     (rename-file filename (concat (s-trim new-name) "." (file-name-extension filename)) t)
-                     (kill-buffer)))))
+       (mapc 'my/rename-scanned-card
              (directory-files "~/Dropbox/Inbox" t "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(png\\|jpg\\)"))
         (my/upload-scanned-cards))
 
@@ -7511,7 +7534,7 @@ Aspect ratio is width / height
                 (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))
       (if current-prefix-arg (read-string "Tiling: "))))
     ;; Extract the links
-    (let ((output-file "~/Dropbox/Inbox/output.jpg"))
+    (let ((output-file "~/Dropbox/Inbox/output.png"))
       (unless tiles
         (setq tiles
               (format "%dx"
@@ -7530,7 +7553,8 @@ Aspect ratio is width / height
 
   (defun my/create-week-montage (beg end)
     (interactive "r")
-    (let* ((filename (format "Week ending %s #journal #weekly" (org-read-date nil nil "-fri")))
+    (let* ((date (org-read-date nil nil (unless current-prefix-arg "-fri")))
+           (filename (format "Week ending %s #journal #weekly" date))
            (full-filename (my/get-index-card-filename filename)))
       (if full-filename
           (my/open-image full-filename)
@@ -7551,10 +7575,11 @@ Aspect ratio is width / height
     (let ((async-shell-command-buffer 'new-buffer)
           (index-card (or filename (my/prepare-index-card-template))))
       (my/create-sketch-montage files tiling)
-      (shell-command (format "convert %s \\( %s -resize 1497x896 \\) -colorspace cmyk %s"
-                             (shell-quote-argument (expand-file-name my/index-card-template-file))
-                             (shell-quote-argument (expand-file-name "~/Dropbox/Inbox/output.png"))
-                             (shell-quote-argument (expand-file-name index-card))))
+      (shell-command
+       (format "convert %s \\( %s -resize 1497x896 \\) -colorspace cmyk %s"
+               (shell-quote-argument (expand-file-name my/index-card-template-file))
+               (shell-quote-argument (expand-file-name "~/Dropbox/Inbox/output.png"))
+               (shell-quote-argument (expand-file-name index-card))))
       (shell-command (format "%s %s &"
                              (shell-quote-argument my/sketch-executable)
                              (shell-quote-argument (expand-file-name index-card))))

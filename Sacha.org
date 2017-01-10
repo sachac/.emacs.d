@@ -2872,7 +2872,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
          (narrow-to-region beg end)
          (goto-char (point-min))
          (while (re-search-forward org-any-link-re nil t)
-           (org-open-at-point)))))
+           (save-excursion
+             (backward-char)
+             (org-open-at-point))))))
  #+end_src
 
 ***** Evernote-related extract

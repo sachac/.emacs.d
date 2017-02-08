@@ -2049,13 +2049,13 @@ only a few of them them for faster scanning.
   (setq org-agenda-files
         (delq nil
               (mapcar (lambda (x) (and (file-exists-p x) x))
-                      '("~/personal/organizer.org"
+                      `("~/personal/organizer.org"
                         "~/personal/sewing.org"
                         "~/personal/people.org"
                         "~/Dropbox/wsmef/trip.txt"
+                        ,my/kid-org-file
                         "~/personal/business.org"
                         "~/personal/calendar.org"
-                        "~/Dropbox/wsmef/puppy.txt"
                         "~/Dropbox/tasker/summary.txt"
                         "~/Dropbox/public/sharing/index.org"
                         "~/dropbox/public/sharing/learning.org"
@@ -3530,6 +3530,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
      (sh . t)
      (sqlite . t)
      (http . t)
+     (ledger . t)
      (shell . t)
      (R . t)))
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))))
@@ -3714,6 +3715,12 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
      (org-archive-subtree)
      (setq org-map-continue-from (outline-previous-heading)))
    "TODO=\"DONE\"|TODO=\"CANCELLED\"" (if (org-before-first-heading-p) 'file 'tree)))
+#+end_src
+
+Also, don't ask me for confirmation:
+
+#+begin_src emacs-lisp
+(add-to-list 'org-speed-commands-user '("a" call-interactively 'org-archive-subtree-default))
 #+end_src
 *** Filesystem
 
@@ -7540,7 +7547,7 @@ Aspect ratio is width / height
       (unless tiles
         (setq tiles
               (format "%dx"
-                (car (my/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
+                (car (my/get-tile-dimensions (length files) 1500 900 (/ 4.0 3))))))
       (with-temp-buffer
         (cd "~/Dropbox/Inbox/To blog")
         (apply 'call-process
@@ -7548,7 +7555,7 @@ Aspect ratio is width / height
                (append
                 files
                 (list
-                 "-geometry" "1497x896>+0+0"
+                 "-geometry" "1500x900>+0+0"
                  "-tile" tiles
                  (expand-file-name output-file)))))
       (if (called-interactively-p 'any) (find-file output-file))))
@@ -7578,7 +7585,7 @@ Aspect ratio is width / height
           (index-card (or filename (my/prepare-index-card-template))))
       (my/create-sketch-montage files tiling)
       (shell-command
-       (format "convert %s \\( %s -resize 1497x896 \\) -colorspace cmyk %s"
+       (format "convert %s \\( %s -resize 1500x900 \\) -colorspace cmyk %s"
                (shell-quote-argument (expand-file-name my/index-card-template-file))
                (shell-quote-argument (expand-file-name "~/Dropbox/Inbox/output.png"))
                (shell-quote-argument (expand-file-name index-card))))

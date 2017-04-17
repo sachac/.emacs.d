@@ -1,4 +1,4 @@
-a#+TITLE: Sacha Chua's Emacs configuration
+#+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
 
 * Configuration
@@ -792,6 +792,8 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (my/defshortcut ?o "~/personal/organizer.org")
 (my/defshortcut ?s "~/personal/sewing.org")
 (my/defshortcut ?b "~/personal/business.org")
+(my/defshortcut ?p "~/personal/google-inbox.org")
+(my/defshortcut ?P "~/personal/google-ideas.org")
 (my/defshortcut ?B "~/Dropbox/books")
 (my/defshortcut ?e "~/code/emacs-notes/tasks.org")
 (my/defshortcut ?w "~/Dropbox/public/sharing/index.org")
@@ -3029,8 +3031,11 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
             (year (elt date 5))
             start-date
             end-date
+            previous-date
             posts
-            sketches)
+            sketches
+            org-date
+            time)
        (calendar-increment-month month year -1)
        (setq start-date (format "%4d-%02d-01" year month)
              end-date (format "%4d-%02d-01" (elt date 5) (elt date 4))
@@ -3038,6 +3043,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                     (format "http://sachachua.com/blog/%4d/%d?org=1"
                             year month))
              sketches (my/sketches-export-and-extract start-date nil nil t))
+       (calendar-increment-month month year -1)
+       (setq previous-date (format "%4d-%02d-01" year month))
+       (setq time (my/quantified-compare previous-date start-date start-date end-date '("Business - Build" "Discretionary - Play" "Unpaid work" "Unpaid work - Childcare" "Discretionary - Social" "Discretionary - Family" "Sleep" "Business - Connect" "Business - Earn" "Discretionary - Productive" "Personal") "Previous month" "This month"))
        (goto-char (line-end-position))
        (insert
         "\n\n** Monthly review: "
@@ -3046,7 +3054,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
         "*Blog posts*\n"
         posts "\n\n"
         "*Sketches*\n\n"
-        sketches)))
+        sketches
+        "*Time*\n\n"
+        time)))
  #+end_src
 
 *** Filing
@@ -3375,6 +3385,7 @@ This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone
      (interactive)
      (let* ((destination-dir "~/Dropbox/Public/")
             (destination-filename "sacha-emacs.org"))
+       (my/save-new-packages)
        (with-current-buffer (find-file "~/.emacs.d/Sacha.org")
          (save-restriction
            (save-excursion
@@ -3559,10 +3570,10 @@ Probably should make this a dblock someday."
 *** Spreadsheets
 #+begin_src emacs-lisp :tangle yes
   (defun my/org-days-between (start end)
-    "Number of days between START and END.
-  This includes START and END."
-    (1+ (- (calendar-absolute-from-gregorian (org-date-to-gregorian end))
-        (calendar-absolute-from-gregorian (org-date-to-gregorian start)))))
+    "Number of days between START and END (exclusive).
+  This includes START but not END."
+    (- (calendar-absolute-from-gregorian (org-date-to-gregorian end))
+       (calendar-absolute-from-gregorian (org-date-to-gregorian start))))
 #+end_src
 *** Literate programming
 **** Editing source code
@@ -4198,7 +4209,9 @@ This is something I have to get the hang of too. It gradually expands the select
 #+begin_src emacs-lisp :tangle yes
   (use-package expand-region
     :defer t
-    :bind ("C-=" . er/expand-region))
+    :bind ("C-=" . er/expand-region)
+    ("C-<prior>" . er/expand-region)
+    ("C-<next>" . er/contract-region))
 #+end_src
 *** Compilation
 
@@ -5299,6 +5312,12 @@ Get smarter about filtering depending on what I reed or mark. I use =!= (tick) f
 
 Make it easier to review my credit card transactions
 
+#+begin_src emacs-lisp :tangle yes
+(use-package ledger-mode
+:load-path "~/vendor/ledger/lisp"
+)
+
+#+end_src
 #+begin_src emacs-lisp :tangle yes
 (defun my/ledger-go-to-beginning-of-entry ()
   "Move to the beginning of the current entry."
@@ -7522,16 +7541,16 @@ Aspect ratio is width / height
     (let (files)
       (save-excursion
         (goto-char (min beg end))
-        (while (re-search-forward "\\[\\[[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
-          (add-to-list 'files (match-string-no-properties 1))))
+        (while (re-search-forward "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][a-z]" (max beg end) t)
+          (add-to-list 'files (match-string-no-properties 0) t)))
       files))
   (ert-deftest my/extract-image-filenames ()
     "Check if it extracts the filenames properly."
     (with-temp-buffer
-      (insert "- [[https://www.flickr.com/photos/somephotoid][Test]]\n")
-      (insert "- [[https://www.flickr.com/photos/somephotoid2][Test 2]]\n")
+      (insert "- [[https://www.flickr.com/photos/somephotoid][2016-01-01a test]]\n")
+      (insert "- [[https://www.flickr.com/photos/somephotoid2][2016-02-01a again]]\n")
       (should (equal (my/extract-image-filenames (point-min) (point-max))
-                     '("Test 2" "Test")))))
+                     '("2016-01-01a" "2016-02-01a")))))
 
   (defun my/create-sketch-montage (files &optional tiles)
     "Combine the sketches in the region."
@@ -7540,7 +7559,7 @@ Aspect ratio is width / height
       (if (derived-mode-p 'dired-mode)
           (dired-get-marked-files)
         (mapcar 'my/get-index-card-filename
-                (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))
+                (my/extract-image-filenames (min (point) (mark)) (max (point) (mark)))))
       (if current-prefix-arg (read-string "Tiling: "))))
     ;; Extract the links
     (let ((output-file "~/Dropbox/Inbox/output.png"))
@@ -7569,7 +7588,7 @@ Aspect ratio is width / height
           (my/open-image full-filename)
         (my/create-index-card-montage 
          (mapcar 'my/get-index-card-filename
-                 (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))) 
+                 (my/extract-image-filenames (min (point) (mark)) (max (point) (mark)))) 
          "2x"
          (my/prepare-index-card-template filename)))))
 
@@ -7580,7 +7599,7 @@ Aspect ratio is width / height
       (if (derived-mode-p 'dired-mode)
           (dired-get-marked-files)
         (mapcar 'my/get-index-card-filename
-                (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))))
+                (my/extract-image-filenames (min (point) (mark)) (max (point) (mark)))))))
     (let ((async-shell-command-buffer 'new-buffer)
           (index-card (or filename (my/prepare-index-card-template))))
       (my/create-sketch-montage files tiling)

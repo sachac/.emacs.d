@@ -64,13 +64,9 @@ Here's how we start:
 #+begin_src emacs-lisp :tangle yes
 ;; This sets up the load path so that we can override it
 (package-initialize)
-;; Override the packages with the git version of Org and other packages
-(add-to-list 'load-path "~/elisp/org-mode/lisp")
-(add-to-list 'load-path "~/elisp/org-mode/contrib/lisp")
 (add-to-list 'load-path "~/code/org2blog")
 (add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
-(setq package-enable-at-startup nil)
 (setq custom-file "~/.emacs.d/custom-settings.el")
 (load custom-file t)
 #+END_SRC
@@ -88,9 +84,9 @@ Here's how we start:
 
 #+BEGIN_SRC emacs-lisp :tangle yes
 (unless (assoc-default "melpa" package-archives)
-  (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
-;  (package-refresh-contents)
-)
+  (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t))
+(unless (assoc-default "org" package-archives)
+  (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t))
 #+END_SRC
 
 Use =M-x package-refresh-contents= to reload the list of packages
@@ -178,6 +174,15 @@ When you're starting out, the tool bar can be very helpful. [[http://sachachua.c
 #+BEGIN_SRC emacs-lisp :tangle yes
 (tool-bar-mode -1)
 #+END_SRC
+
+*** Time in the modeline
+
+I like having the clock.
+
+#+begin_src emacs-lisp
+(display-time-mode 1)
+#+end_src
+
 *** Winner mode - undo and redo window configuration
 
 =winner-mode= lets you use =C-c <left>= and =C-c <right>= to switch between window configurations. This is handy when something has popped up a buffer that you want to look at briefly before returning to whatever you were working on. When you're done, press =C-c <left>=.
@@ -1843,7 +1848,6 @@ able to clock in on them.
 
  #+begin_src emacs-lisp :tangle yes
    (use-package org
-    :load-path "~/elisp/org-mode/lisp"
     :init
     (progn
      (setq org-expiry-inactive-timestamps t)
@@ -2697,9 +2701,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
               (format "- *Unpaid work* (%.1fh - %d%%)\n"
                       (my/quantified-get-hours "Unpaid work" time-summary)
                       (/ (my/quantified-get-hours "Unpaid work" time-summary) 1.68))
-              (format "  - *Childcare* (%.1fh - %d%% of total)\n"
-                      (my/quantified-get-hours '("Unpaid work - Childcare") time-summary)
-                      (/ (my/quantified-get-hours '("Unpaid work - Childcare") time-summary) 1.68))
+              (format "- *A- (Childcare)* (%.1fh - %d%% of total)\n"
+                      (my/quantified-get-hours '("A-") time-summary)
+                      (/ (my/quantified-get-hours '("A-") time-summary) 1.68))
               (format "- *Sleep* (%.1fh - %d%% - average of %.1f per day)\n"
                       (my/quantified-get-hours "Sleep" time-summary)
                       (/ (my/quantified-get-hours "Sleep" time-summary) 1.68)
@@ -3045,7 +3049,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
              sketches (my/sketches-export-and-extract start-date nil nil t))
        (calendar-increment-month month year -1)
        (setq previous-date (format "%4d-%02d-01" year month))
-       (setq time (my/quantified-compare previous-date start-date start-date end-date '("Business - Build" "Discretionary - Play" "Unpaid work" "Unpaid work - Childcare" "Discretionary - Social" "Discretionary - Family" "Sleep" "Business - Connect" "Business - Earn" "Discretionary - Productive" "Personal") "Previous month" "This month"))
+       (setq time (my/quantified-compare previous-date start-date start-date end-date '("Business - Build" "Discretionary - Play" "Unpaid work" "Unpaid work - Childcare" "Discretionary - Social" "Discretionary - Family" "Sleep" "Business - Connect" "Business - Earn" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
        (goto-char (line-end-position))
        (insert
         "\n\n** Monthly review: "
@@ -3056,7 +3060,8 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
         "*Sketches*\n\n"
         sketches
         "*Time*\n\n"
-        time)))
+        (orgtbl-to-orgtbl time nil))))
+
  #+end_src
 
 *** Filing
@@ -3909,9 +3914,13 @@ This setting puts Org ASCII export links right after the text instead of in a se
                        (read (current-buffer))))))
     (defun my/save-new-packages ()
      (interactive)
-     (with-temp-file "~/.emacs.d/.package-list"
+     (when package-archive-contents
+     (with-temp-buffer
+       (find-file "~/.emacs.d/.package-list")
+       (erase-buffer)
        (prin1 (mapcar 'car package-archive-contents) (current-buffer))
-       nil))
+       (save-buffer)
+       nil)))
 #+end_src
 
 **** DONE Publishing Emacs News as plain text, HTML, and attached Org file
@@ -5315,6 +5324,7 @@ Make it easier to review my credit card transactions
 #+begin_src emacs-lisp :tangle yes
 (use-package ledger-mode
 :load-path "~/vendor/ledger/lisp"
+:mode "\\.ledger$" 
 )
 
 #+end_src
@@ -5753,7 +5763,13 @@ creates interactive functions, and some code that calls it for my [[https://gith
 
 Let's see how that goes!
 
+** Search logs
 
+#+begin_src emacs-lisp
+(defun my/search-irc-logs (string)
+  (interactive "MSearch for: ")
+  (grep (concat "grep -nH -r -P " (shell-quote-argument string) " ~/backups/server/home/.znc/users/sacha/moddata/log/freenode")))
+#+end_src
 * Other cool configs you may want to check out
   :PROPERTIES:
   :CUSTOM_ID: links

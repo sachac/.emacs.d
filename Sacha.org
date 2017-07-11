@@ -793,6 +793,9 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
                (current-prefix-arg (or current-prefix-arg '(4))))
            (call-interactively 'org-refile))))))
 
+
+  (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
+
 (my/defshortcut ?i "~/.emacs.d/Sacha.org")
 (my/defshortcut ?o "~/personal/organizer.org")
 (my/defshortcut ?s "~/personal/sewing.org")
@@ -1816,6 +1819,11 @@ able to clock in on them.
 
  There's probably a proper way to do this, maybe with =<=. Oh, that would work nicely. =< C-c a t= too.
 
+And sorting:
+
+#+begin_src emacs-lisp :tangle yes
+  (add-to-list 'org-speed-commands-user '("S" call-interactively 'org-sort))
+#+end_src
 ***** Tag tasks with GTD-ish contexts
 
  This defines keyboard shortcuts for those, too.
@@ -3049,7 +3057,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
              sketches (my/sketches-export-and-extract start-date nil nil t))
        (calendar-increment-month month year -1)
        (setq previous-date (format "%4d-%02d-01" year month))
-       (setq time (my/quantified-compare previous-date start-date start-date end-date '("Business - Build" "Discretionary - Play" "Unpaid work" "Unpaid work - Childcare" "Discretionary - Social" "Discretionary - Family" "Sleep" "Business - Connect" "Business - Earn" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
+       (setq time (my/quantified-compare previous-date start-date start-date end-date '("Business - Build" "Discretionary - Play" "Unpaid work" "A-" "Discretionary - Social" "Discretionary - Family" "Sleep" "Business - Connect" "Business - Earn" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
        (goto-char (line-end-position))
        (insert
         "\n\n** Monthly review: "
@@ -3140,37 +3148,55 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                (org-update-statistics-cookies nil)))))))
  #+end_src
 
-**** Quickly refiling to the same file
+**** Quickly refiling Org Mode notes to headings in the same file
+
+I wanted a quick way to organize random notes from my inbox into an
+outline, organizing from the bottom up instead of starting with a
+top-down hierarchy. My old code for refiling to an Org heading in the
+current buffer didn't work any more, but =helm-org-in-buffer-headings=
+seems to be promising. I made it a speed command (see the value of
+=org-use-speed-commands= elsewhere in my config) so that I can easily
+refile. 
 
 #+begin_src emacs-lisp :tangle yes
-  (defun my/org-refile-in-file (prefix)
+  (defvar my/org-last-refile-marker nil "Marker for last refile")
+  (defun my/org-refile-in-file (&optional prefix)
     "Refile to a target within the current file."
     (interactive)
-    (let ((org-refile-targets `(((,(buffer-file-name)) :maxlevel . 6))))
-      (call-interactively 'org-refile)))
-  (define-key my/refile-map "." 'my/org-refile-in-file)
-
-  (defun my/org-refile-to-previous-in-file ()
-    (interactive)
-    "Refile to the previous target."
-    (let ((org-refile-targets `(((,(buffer-file-name)) :maxlevel . 6))))
+    (let ((helm-org-headings-actions
+           '(("Refile to this heading" . helm-org-heading-refile))))
       (save-excursion
-        (org-refile nil nil (my/org-refile-get-location-exact (car org-refile-history))))))
+        (helm-org-in-buffer-headings)
+        (org-end-of-subtree t)
+        (setq my/org-last-refile-marker (point-marker)))))
 
-;; TODO Get this to work
   (defun my/org-refile-to-previous ()
+    "Refile subtree to last position from `my/org-refile-in-file'."
     (interactive)
-    "Refile to the previous target."
-    (save-excursion
-      (org-refile nil nil my/org-refile-last-location)))
+    (save-selected-window
+      (when (eq major-mode 'org-agenda-mode)
+        (org-agenda-switch-to))
+      (org-cut-subtree)
+      (save-excursion
+        (let* ((marker my/org-last-refile-marker)
+               (target-level
+                (with-current-buffer (marker-buffer marker)
+                  (goto-char (marker-position marker))
+                  (org-current-level))))
+          (helm-org-goto-marker marker)
+          (org-end-of-subtree t t)
+          (org-paste-subtree target-level)))))
 
-  (add-to-list 'org-speed-commands-user '("G" call-interactively 'my/org-refile-to-previous))
-
-  (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
-  (add-to-list 'org-speed-commands-user '("." call-interactively 'my/org-refile-to-previous-in-file))
-  (add-to-list 'org-speed-commands-user '("W" call-interactively 'my/org-refile-in-file))
-  (add-to-list 'org-speed-commands-user '("S" call-interactively 'org-sort))
+  (add-to-list 'org-speed-commands-user '("w" call-interactively 'my/org-refile-in-file))
+  (add-to-list 'org-speed-commands-user '("." call-interactively 'my/org-refile-to-previous))
 #+end_src
+
+TODO: Figure out why I'm getting duplicates. Next step might be to fiddle with =helm-org-in-buffer-headings= so that it preselects the previous candidate, but that can happen later.
+
+Tech note: helm-org doesn't use the usual org-refile mechanism. Instead, it
+cuts the subtree, goes to the marker, and pastes it in at the
+appropriate level.
+
 
 *** Publishing
 Timestamps and section numbers make my published files look more
@@ -5765,7 +5791,7 @@ Let's see how that goes!
 
 ** Search logs
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle yes
 (defun my/search-irc-logs (string)
   (interactive "MSearch for: ")
   (grep (concat "grep -nH -r -P " (shell-quote-argument string) " ~/backups/server/home/.znc/users/sacha/moddata/log/freenode")))

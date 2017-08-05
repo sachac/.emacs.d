@@ -1,5 +1,6 @@
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
+#+STARTUP: showeverything
 
 * Configuration
 ** About this file
@@ -5036,34 +5037,34 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 
 *** Workrave
     #+begin_src emacs-lisp :tangle yes
-    (defvar my/workrave-file (expand-file-name ".\\Workrave\\historystats" (getenv "AppData")))
+      (defvar my/workrave-file (expand-file-name ".\\Workrave\\historystats" (getenv "AppData")))
 
-(defun my/workrave-transform-statistics (&optional file)
-  (interactive (list my/workrave-file))
-  (with-current-buffer (find-file-noselect file)
-  ;; D day month-1 year hour min day month-1 year hour min
-    (let ((result "Date\tStart\tEnd\tClicks\tKeystrokes\n"))
-      (goto-char (point-min))
-      (while (re-search-forward "^D \\(.*\\)" nil t)
-	(let ((dates (split-string (match-string 1))))
-	  (if (re-search-forward "^m \\(.*\\)" nil t)
-	      (let ((info (split-string (match-string 1))))
-		(setq result
-		      (concat result
-			      (format "%d-%d-%s\t%s:%02d\t%s:%02d\t%s\t%s\n"
-				      (+ 1900 (string-to-number (elt dates 2))) ; year
-				      (1+ (string-to-number (elt dates 1))) ; month
-				      (elt dates 0) ; day
-				      (elt dates 3) ; start hour
-				      (string-to-number (elt dates 4)) ; start min
-				      (elt dates 8) ; end hour
-				      (string-to-number (elt dates 9)) ; end min
-				      (elt info 5) ; clicks
-				      (elt info 6) ; keystrokes
-				      )))))))
-      (if (interactive-p)
-	  (kill-new result)
-	result))))
+      (defun my/workrave-transform-statistics (&optional file)
+        (interactive (list my/workrave-file))
+        (with-current-buffer (find-file-noselect file)
+        ;; D day month-1 year hour min day month-1 year hour min
+          (let ((result "Date\tStart\tEnd\tClicks\tKeystrokes\n"))
+            (goto-char (point-min))
+            (while (re-search-forward "^D \\(.*\\)" nil t)
+        (let ((dates (split-string (match-string 1))))
+          (if (re-search-forward "^m \\(.*\\)" nil t)
+              (let ((info (split-string (match-string 1))))
+          (setq result
+                (concat result
+                  (format "%d-%d-%s\t%s:%02d\t%s:%02d\t%s\t%s\n"
+                    (+ 1900 (string-to-number (elt dates 2))) ; year
+                    (1+ (string-to-number (elt dates 1))) ; month
+                    (elt dates 0) ; day
+                    (elt dates 3) ; start hour
+                    (string-to-number (elt dates 4)) ; start min
+                    (elt dates 8) ; end hour
+                    (string-to-number (elt dates 9)) ; end min
+                    (elt info 5) ; clicks
+                    (elt info 6) ; keystrokes
+                    )))))))
+            (if (interactive-p)
+          (kill-new result)
+        result))))
     #+end_src
 *** Blog
 #+begin_src emacs-lisp :tangle yes

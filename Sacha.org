@@ -7335,12 +7335,12 @@ more entries, with everything else filed under "Other".
             (day (format-time-string "%A" (org-time-string-to-time date))))
         (if filename
             (my/open-image filename)
-          (browse-url (format "http://quantifiedawesome.com/records?start=%s&end=%s"
-                              date
-                              (format-time-string
-                               "%Y-%m-%d"
-                               (seconds-to-time
-                                (+ (org-time-string-to-seconds date) 86400)))))
+          ;; (browse-url (format "http://quantifiedawesome.com/records?start=%s&end=%s"
+          ;;                     date
+          ;;                     (format-time-string
+          ;;                      "%Y-%m-%d"
+          ;;                      (seconds-to-time
+          ;;                       (+ (org-time-string-to-seconds date) 86400)))))
           (setq filename
                 (my/prepare-index-card-template (concat day " #daily #journal") date))
           (my/open-image filename))))

@@ -2663,6 +2663,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
        (_my/get-previous-tasks)
        (setq string
              (concat
+              (format "- *A- (Childcare)* (%.1fh - %d%% of total)\n"
+                      (my/quantified-get-hours '("A-") time-summary)
+                      (/ (my/quantified-get-hours '("A-") time-summary) 1.68))
               (format "- *Business* (%.1fh - %d%%)\n" biz-time (/ biz-time 1.68))
               (mapconcat 'identity business "\n") "\n"
               (mapconcat 'identity business-next "\n")
@@ -2710,9 +2713,6 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
               (format "- *Unpaid work* (%.1fh - %d%%)\n"
                       (my/quantified-get-hours "Unpaid work" time-summary)
                       (/ (my/quantified-get-hours "Unpaid work" time-summary) 1.68))
-              (format "- *A- (Childcare)* (%.1fh - %d%% of total)\n"
-                      (my/quantified-get-hours '("A-") time-summary)
-                      (/ (my/quantified-get-hours '("A-") time-summary) 1.68))
               (format "- *Sleep* (%.1fh - %d%% - average of %.1f per day)\n"
                       (my/quantified-get-hours "Sleep" time-summary)
                       (/ (my/quantified-get-hours "Sleep" time-summary) 1.68)
@@ -3901,6 +3901,35 @@ This setting puts Org ASCII export links right after the text instead of in a se
 #+begin_src emacs-lisp :tangle yes
 (setq org-ascii-links-to-notes nil)
 #+end_src
+
+This one exports links from my secret =my/reddit-upvoted-json=. You
+can get your Reddit upvoted JSON URL at
+https://www.reddit.com/prefs/feeds/ .
+
+#+begin_src emacs-lisp :tangle yes
+  (defun my/reddit-list-upvoted (date)
+    (let ((threshold (org-read-date nil t date)))
+      (with-current-buffer (url-retrieve-synchronously my/reddit-upvoted-json)      
+        (goto-char (point-min))
+        (re-search-forward "^$")
+        (let* ((data (json-read))
+               (items (assoc-default 'children (assoc-default 'data data))))
+          (mapconcat
+           (lambda (item)
+             (let* ((o (assoc-default 'data item))
+                    (title (assoc-default 'title o))
+                    (url (assoc-default 'url o))
+                    (date (seconds-to-time (assoc-default 'created_utc o)))
+                    (permalink (concat "https://reddit.com" (assoc-default 'permalink o)))
+                    (num-comments (assoc-default 'num_comments o 'eq 0)))
+               (when (time-less-p threshold date)
+                 (if (> num-comments 0)
+                     (format "- [[%s][%s]] ([[%s][Reddit]])\n" url title permalink)
+                   (format "- [[%s][%s]]\n" url title)))))
+           items "")))))
+#+end_src
+
+Other functions:
 
 #+begin_src emacs-lisp :tangle yes
       (defun my/org-list-from-rss (url date)

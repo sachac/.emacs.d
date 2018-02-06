@@ -14,6 +14,7 @@ using Org-babel.This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]]
 #+begin_src emacs-lisp :tangle yes
 ;; This sets up the load path so that we can override it
 (package-initialize)
+(setq use-package-always-ensure t)
 ;; Override the packages with the git version of Org and other packages
 (add-to-list 'load-path "~/elisp/org-mode/lisp")
 (add-to-list 'load-path "~/elisp/org-mode/contrib/lisp")

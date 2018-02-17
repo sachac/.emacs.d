@@ -1,0 +1,7 @@
+This is my personal config. It's really long, but that's partly
+because I sometimes leave blog posts in it as commentary. (And also
+because I've got a lot of little customizations that I might not even
+remember. =) ). If you want to see a table of contents and other
+useful niceties, go to http://sachachua.com/dotemacs . Other links for
+this page: [[https://raw.githubusercontent.com/sachac/.emacs.d/gh-pages/Sacha.org][Org Mode version]], [[http://github.com/sachac/.emacs.d/][Github repository]]
+

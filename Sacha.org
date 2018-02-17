@@ -1,5 +1,6 @@
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
+#+STARTUP: showeverything
 
 * Configuration
 ** About this file
@@ -8,32 +9,21 @@
    :END:
 <<babel-init>>
 
-Inspired by the [[https://eschulte.github.io/emacs24-starter-kit/#installation][Emacs Starter Kit]], I set up my configuration file
-using Org-babel.This page: [[http://sachac.github.io/.emacs.d/Sacha.html][HTML]] - [[Https://github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org][Org]] - [[Https://dl.dropbox.com/u/3968124/sacha-emacs.el][.el]] - [[http://github.com/sachac/.emacs.d/][Github]] - also, http://sach.ac/dotemacs. My =~/.emacs.d/init.el= is now a symlink to =Sacha.el=, which is what =M-x org-babel-tangle= (=C-c C-v t=) produces.
-
-#+begin_src emacs-lisp :tangle yes
-;; This sets up the load path so that we can override it
-(package-initialize)
-(setq use-package-always-ensure t)
-;; Override the packages with the git version of Org and other packages
-(add-to-list 'load-path "~/elisp/org-mode/lisp")
-(add-to-list 'load-path "~/elisp/org-mode/contrib/lisp")
-(add-to-list 'load-path "~/code/org2blog")
-(add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
-(add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
-(setq package-enable-at-startup nil)
-;; Prepare stuff for org-export-backends
-(setq org-export-backends '(org latex icalendar html ascii))
-(setq custom-file "~/.emacs.d/custom-settings.el")
-(load custom-file t)
-#+END_SRC
+This is my personal config. It's really long, but that's partly
+because I sometimes leave blog posts in it as commentary. (And also
+because I've got a lot of little customizations that I might not even
+remember. =) ). If you want to see a table of contents and other
+useful niceties, go to http://sachachua.com/dotemacs . Other links for
+this page: [[https://raw.githubusercontent.com/sachac/.emacs.d/gh-pages/Sacha.org][Org Mode version]], [[http://github.com/sachac/.emacs.d/][Github repository]]
 
 If you're new to Emacs Lisp, you probably don't want to copy and paste
 large chunks of this code. Instead, copy small parts of it (always
 making sure to copy a complete set of parentheses) into your
 =*scratch*= buffer or some other buffer in =emacs-lisp-mode=. Use =M-x
 eval-buffer= to evaluate the code and see if you like the way that
-Emacs behaves. See [[https://www.gnu.org/software/emacs/manual/html_mono/eintr.html][An Introduction to Programming in Emacs Lisp]] for more details on Emacs Lisp. You can also find the manual by using =C-h i= (=info=) and choosing "Emacs Lisp Intro".
+Emacs behaves. See [[https://www.gnu.org/software/emacs/manual/html_mono/eintr.html][An Introduction to Programming in Emacs Lisp]] for
+more details on Emacs Lisp. You can also find the manual by using =C-h
+i= (=info=) and choosing "Emacs Lisp Intro".
 
 I've installed a lot of packages. See the [[*Add%20package%20sources][package sources]] section to
 add the repositories to your configuration. When you see =use-package=
@@ -42,9 +32,46 @@ to install the package of that name. Note that use-package is itself
 provided by a package, so you'll probably want to install that and
 =bind-key=.
 
-If you're viewing the Org file, you can open source code blocks (those are the ones in begin_src) in a separate buffer by moving your point inside them and typing C-c ' (=org-edit-special=). This opens another buffer in =emacs-lisp-mode=, so you can use =M-x eval-buffer= to load the changes. If you want to explore how functions work, use =M-x edebug-defun= to set up debugging for that function, and then call it. You can learn more about edebug in the [[http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html][Emacs Lisp]] manual.
+If you're viewing the Org file, you can open source code blocks (those
+are the ones in begin_src) in a separate buffer by moving your point
+inside them and typing C-c ' (=org-edit-special=). This opens another
+buffer in =emacs-lisp-mode=, so you can use =M-x eval-buffer= to load
+the changes. If you want to explore how functions work, use =M-x
+edebug-defun= to set up debugging for that function, and then call it.
+You can learn more about edebug in the [[http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html][Emacs Lisp]] manual.
 
-I like using =(setq ...)= more than Customize because I can neatly organize my configuration that way.
+I like using =(setq ...)= more than Customize because I can neatly
+organize my configuration that way. Ditto for =use-package= - I mostly
+use it to group together package-related config without lots of
+=with-eval-after-load= calls, and it also makes declaring keybindings
+easier.
+
+My =~/.emacs.d/init.el= is now a symlink to =Sacha.el=, which is what
+=M-x org-babel-tangle= (=C-c C-v t=) produces. *A note about Org
+updates:* I like running Org Mode from checked-out source code instead
+of package.el. I add the Lisp directories to my =load-path=, and I
+also use the =:load-path= option in my first =use-package org= call to
+set the load path. One of those is probably doing the trick and the
+other one is redundant, but maybe it's a belt-and-suspenders sort of
+thing. Using the git checkout also makes upgrading Org easy. All I
+have to do is =git pull; make=, and stuff happens in an external Emacs
+process. Since I create =Sacha.el= via =org-babel-tangle=, my Emacs
+config can load =Sacha.el= without loading Org first.
+
+** Starting up
+
+Here's how we start:
+
+#+begin_src emacs-lisp :tangle yes
+;; This sets up the load path so that we can override it
+(package-initialize)
+(setq use-package-always-ensure t)
+(add-to-list 'load-path "~/code/org2blog")
+(add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
+(add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
+(setq custom-file "~/.emacs.d/custom-settings.el")
+(load custom-file t)
+#+END_SRC
 
 ** Personal information
 
@@ -59,9 +86,9 @@ I like using =(setq ...)= more than Customize because I can neatly organize my c
 
 #+BEGIN_SRC emacs-lisp :tangle yes
 (unless (assoc-default "melpa" package-archives)
-  (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
-;  (package-refresh-contents)
-)
+  (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t))
+(unless (assoc-default "org" package-archives)
+  (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t))
 #+END_SRC
 
 Use =M-x package-refresh-contents= to reload the list of packages
@@ -74,7 +101,6 @@ in a directory in my =load-path=, Emacs can find them.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
 (add-to-list 'load-path "~/elisp")
-(add-to-list 'load-path "~/elisp/artbollocks-mode")
 (unless (package-installed-p 'use-package)
   (package-install 'use-package))
 (setq use-package-verbose t)
@@ -119,7 +145,7 @@ Disk space is cheap. Save lots.
 
 *** History
 
-From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
+From http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html:
 #+BEGIN_SRC emacs-lisp :tangle yes
 (setq savehist-file "~/.emacs.d/savehist")
 (savehist-mode 1)
@@ -150,6 +176,15 @@ When you're starting out, the tool bar can be very helpful. [[http://sachachua.c
 #+BEGIN_SRC emacs-lisp :tangle yes
 (tool-bar-mode -1)
 #+END_SRC
+
+*** Time in the modeline
+
+I like having the clock.
+
+#+begin_src emacs-lisp
+(display-time-mode 1)
+#+end_src
+
 *** Winner mode - undo and redo window configuration
 
 =winner-mode= lets you use =C-c <left>= and =C-c <right>= to switch between window configurations. This is handy when something has popped up a buffer that you want to look at briefly before returning to whatever you were working on. When you're done, press =C-c <left>=.
@@ -576,15 +611,16 @@ color-theme in ELPA was a little odd, though, so we define some advice to make
 it work. Some things still aren't quite right.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package color-theme)
 (defadvice color-theme-alist (around sacha activate)
   (if (ad-get-arg 0)
       ad-do-it
     nil))
-(use-package color-theme)
-(use-package color-theme-solarized)
 (defun my/setup-color-theme ()
   (interactive)
-  (color-theme-solarized-dark)
+  (when (display-graphic-p) 
+     (color-theme-solarized))
+  (set-background-color "black")
   (set-face-foreground 'secondary-selection "darkblue")
   (set-face-background 'secondary-selection "lightblue")
   (set-face-background 'font-lock-doc-face "black")
@@ -592,8 +628,7 @@ it work. Some things still aren't quite right.
   (set-face-background 'font-lock-string-face "black")
   (set-face-foreground 'org-todo "green")
   (set-face-background 'org-todo "black"))
-
-(eval-after-load 'color-theme (my/setup-color-theme))
+(use-package color-theme-solarized :config (my/setup-color-theme))
 #+END_SRC
 
 I sometimes need to switch to a lighter background for screenshots.
@@ -760,10 +795,15 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
                (current-prefix-arg (or current-prefix-arg '(4))))
            (call-interactively 'org-refile))))))
 
+
+  (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
+
 (my/defshortcut ?i "~/.emacs.d/Sacha.org")
 (my/defshortcut ?o "~/personal/organizer.org")
 (my/defshortcut ?s "~/personal/sewing.org")
 (my/defshortcut ?b "~/personal/business.org")
+(my/defshortcut ?p "~/personal/google-inbox.org")
+(my/defshortcut ?P "~/personal/google-ideas.org")
 (my/defshortcut ?B "~/Dropbox/books")
 (my/defshortcut ?e "~/code/emacs-notes/tasks.org")
 (my/defshortcut ?w "~/Dropbox/public/sharing/index.org")
@@ -1119,6 +1159,7 @@ This command is convenient when reading novel, documentation."
     #+BEGIN_SRC emacs-lisp :tangle yes
     (use-package artbollocks-mode
       :defer t
+      :load-path  "~/elisp/artbollocks-mode"
       :config
       (progn
         (setq artbollocks-weasel-words-regex
@@ -1304,7 +1345,8 @@ currently experimenting with.
                       org-toc))
 (eval-after-load 'org
  '(org-load-modules-maybe t))
-(setq org-expiry-inactive-timestamps t)
+;; Prepare stuff for org-export-backends
+(setq org-export-backends '(org latex icalendar html ascii))
 #+END_SRC
 
 *** Keyboard shortcuts
@@ -1615,7 +1657,7 @@ able to clock in on them.
       (setq org-refile-use-outline-path nil)
       (setq org-refile-allow-creating-parent-nodes 'confirm)
       (setq org-refile-use-cache nil)
-      (setq org-refile-targets '((org-agenda-files . (:maxlevel . 6))))
+      (setq org-refile-targets '((org-agenda-files . (:maxlevel . 3))))
       (setq org-blank-before-new-entry nil)
     #+end_src
 
@@ -1779,6 +1821,11 @@ able to clock in on them.
 
  There's probably a proper way to do this, maybe with =<=. Oh, that would work nicely. =< C-c a t= too.
 
+And sorting:
+
+#+begin_src emacs-lisp :tangle yes
+  (add-to-list 'org-speed-commands-user '("S" call-interactively 'org-sort))
+#+end_src
 ***** Tag tasks with GTD-ish contexts
 
  This defines keyboard shortcuts for those, too.
@@ -1811,9 +1858,9 @@ able to clock in on them.
 
  #+begin_src emacs-lisp :tangle yes
    (use-package org
-    :load-path "~/elisp/org-mode/lisp"
     :init
     (progn
+     (setq org-expiry-inactive-timestamps t)
      (setq org-clock-idle-time nil)
      (setq org-log-done 'time)
      (setq org-clock-continuously nil)
@@ -2015,23 +2062,24 @@ I have quite a few Org files, but I keep my agenda items and TODOs in
 only a few of them them for faster scanning.
 
 #+begin_src emacs-lisp :tangle yes
+  (defvar my/kid-org-file nil "Defined in secrets")
   (setq org-agenda-files
         (delq nil
-              (mapcar (lambda (x) (and (file-exists-p x) x))
-                      '("~/personal/organizer.org"
+              (mapcar (lambda (x) (and x (file-exists-p x) x))
+                      `("~/personal/organizer.org"
                         "~/personal/sewing.org"
                         "~/personal/people.org"
                         "~/Dropbox/wsmef/trip.txt"
+                        ,my/kid-org-file
                         "~/personal/business.org"
                         "~/personal/calendar.org"
-                        "~/Dropbox/wsmef/puppy.txt"
                         "~/Dropbox/tasker/summary.txt"
                         "~/Dropbox/public/sharing/index.org"
                         "~/dropbox/public/sharing/learning.org"
                         "~/code/emacs-notes/tasks.org"
                         "~/sachac.github.io/evil-plans/index.org"
                         "~/personal/cooking.org"
-                        "~/personal/routines.org"))))t
+                        "~/personal/routines.org"))))
   (add-to-list 'auto-mode-alist '("\\.txt$" . org-mode))
 #+end_src
 
@@ -2239,128 +2287,130 @@ hang of using these more!
 | 2           | Projects with tasks                                                                            |
 
 #+begin_src emacs-lisp :tangle yes
-    (defvar my/org-agenda-contexts
-      '((tags-todo "+@phone")
-        (tags-todo "+@work")
-        (tags-todo "+@drawing")
-        (tags-todo "+@coding")
-        (tags-todo "+@writing")
-        (tags-todo "+@computer")
-        (tags-todo "+@home")
-        (tags-todo "+@errands"))
-      "Usual list of contexts.")
-    (defun my/org-agenda-skip-scheduled ()
-      (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
-    (setq org-agenda-custom-commands
-          `(("t" tags-todo "-cooking"
-             ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
-            ("T" tags-todo "TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}" nil "~/Dropbox/agenda/nonroutine.html")
-            ("f" tags-todo "fuzzy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
-            ("F" tags-todo "highenergy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
-            ("b" todo ""
-             ((org-agenda-files '("~/personal/business.org"))))
-            ("B" todo ""
-             ((org-agenda-files '("~/Dropbox/books"))))
-            ("o" todo ""
-             ((org-agenda-files '("~/personal/organizer.org"))))
-            ("c" todo ""
-             ((org-agenda-prefix-format "")
-              (org-agenda-cmp-user-defined 'my/org-sort-agenda-items-todo)
-              (org-agenda-view-columns-initially t)
-              ))
-            ;; Weekly review
-            ("w" "Weekly review" agenda ""
-             ((org-agenda-span 7)
-              (org-agenda-log-mode 1)) "~/Dropbox/agenda/this-week.html")
-            ("W" "Weekly review sans routines" agenda ""
-             ((org-agenda-span 7)
-              (org-agenda-log-mode 1)
-              (org-agenda-tag-filter-preset '("-routine"))) "~/Dropbox/agenda/this-week-nonroutine.html")
-            ("2" "Bi-weekly review" agenda "" ((org-agenda-span 14) (org-agenda-log-mode 1)))
-            ("gb" "Business" todo ""
-             ((org-agenda-files '("~/personal/business.org"))
-              (org-agenda-view-columns-initially t)))
-            ("gc" "Coding" tags-todo "@coding"
-             ((org-agenda-view-columns-initially t)))
-            ("gw" "Writing" tags-todo "@writing"
-             ((org-agenda-view-columns-initially t)))
-            ("gp" "Phone" tags-todo "@phone"
-             ((org-agenda-view-columns-initially t)))
-            ("gd" "Drawing" tags-todo "@drawing"
-             ((org-agenda-view-columns-initially t)))
-            ("gh" "Home" tags-todo "@home"
-             ((org-agenda-view-columns-initially t)))
-            ("gk" "Kaizen" tags-todo "kaizen"
-             ((org-agenda-view-columns-initially t))
-             ("~/Dropbox/agenda/errands.html"))
-            ("ge" "Errands" tags-todo "@errands"
-             ((org-agenda-view-columns-initially t))
-             ("~/Dropbox/agenda/errands.html"))
-            ("0" "Top 3 by context"
-             ,my/org-agenda-contexts
-             ((org-agenda-sorting-strategy '(priority-up effort-down))
-              (my/org-agenda-limit-items 3)))
-            (")" "All by context"
-             ,my/org-agenda-contexts
-             ((org-agenda-sorting-strategy '(priority-down effort-down))
-              (my/org-agenda-limit-items nil)))
-            ("9" "Unscheduled top 3 by context"
-             ,my/org-agenda-contexts
-             ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
-              (org-agenda-sorting-strategy '(priority-down effort-down))
-              (my/org-agenda-limit-items 3)))
-            ("(" "All unscheduled by context"
-             ,my/org-agenda-contexts
-             ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
-              (org-agenda-sorting-strategy '(priority-down effort-down))
-              ))
-            ("d" "Timeline for today" ((agenda "" ))
-             ((org-agenda-ndays 1)
-              (org-agenda-show-log t)
-              (org-agenda-log-mode-items '(clock closed))
-              (org-agenda-clockreport-mode t)
-              (org-agenda-entry-types '())))
-            ("." "Waiting for" todo "WAITING")
-            ("u" "Unscheduled tasks" tags-todo "-someday-TODO=\"SOMEDAY\"-TODO=\"DELEGATED\"-TODO=\"WAITING\"-project"
-             ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
-              (org-agenda-view-columns-initially t)
-              (org-tags-exclude-from-inheritance '("project"))
-              (org-agenda-overriding-header "Unscheduled TODO entries: ")
-              (org-columns-default-format "%50ITEM %TODO %3PRIORITY %Effort{:} %TAGS")
-              (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))))
-            ("U" "Unscheduled tasks outside projects" tags-todo "-project"
-             ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
-              (org-tags-exclude-from-inheritance nil)
-              (org-agenda-view-columns-initially t)
-              (org-agenda-overriding-header "Unscheduled TODO entries outside projects: ")
-              (org-agenda-sorting-strategy '(todo-state-up priority-down tag-up category-keep effort-down))))
-            ("P" "By priority"
-             ((tags-todo "+PRIORITY=\"A\"")
-              (tags-todo "+PRIORITY=\"B\"")
-              (tags-todo "+PRIORITY=\"\"")
-              (tags-todo "+PRIORITY=\"C\""))
-             ((org-agenda-prefix-format "%-10c %-10T %e ")
-              (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
-            ("pp" tags "+project-someday-TODO=\"DONE\"-TODO=\"SOMEDAY\"-inactive"
-             ((org-tags-exclude-from-inheritance '("project"))
-              (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
-            ("p." tags "+project-TODO=\"DONE\""
-             ((org-tags-exclude-from-inheritance '("project"))
-              (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
-            ("S" tags-todo "TODO=\"STARTED\"")
-            ("C" "Cooking"
-             ((tags "vegetables")
-              (tags "chicken")
-              (tags "beef")
-              (tags "pork")
-              (tags "other"))
-             ((org-agenda-files '("~/personal/cooking.org"))
-              (org-agenda-view-columns-initially t)
-              (org-agenda-sorting-strategy '(scheduled-up time-down todo-state-up)))
-             )
-            ("2" "List projects with tasks" my/org-agenda-projects-and-tasks
-             "+PROJECT"
-               ((my/org-agenda-limit-items 3)))))
+  (defvar my/org-agenda-contexts
+    '((tags-todo "+@phone")
+      (tags-todo "+@work")
+      (tags-todo "+@drawing")
+      (tags-todo "+@coding")
+      (tags-todo "+@writing")
+      (tags-todo "+@computer")
+      (tags-todo "+@home")
+      (tags-todo "+@errands"))
+    "Usual list of contexts.")
+  (defun my/org-agenda-skip-scheduled ()
+    (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
+  (setq org-agenda-custom-commands
+        `(("t" tags-todo "-cooking"
+           ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
+          ("T" tags-todo "TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}" nil "~/cloud/agenda/nonroutine.html")
+          ("f" tags-todo "fuzzy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
+          ("F" tags-todo "highenergy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
+          ("b" todo ""
+           ((org-agenda-files '("~/personal/business.org"))))
+          ("B" todo ""
+           ((org-agenda-files '("~/Dropbox/books"))))
+          ("o" todo ""
+           ((org-agenda-files '("~/personal/organizer.org"))))
+          ("c" todo ""
+           ((org-agenda-prefix-format "")
+            (org-agenda-cmp-user-defined 'my/org-sort-agenda-items-todo)
+            (org-agenda-view-columns-initially t)
+            ))
+          ;; Weekly review
+          ("w" "Weekly review" agenda ""
+           ((org-agenda-span 7)
+            (org-agenda-log-mode 1)) "~/cloud/agenda/this-week.html")
+          ("W" "Weekly review sans routines" agenda ""
+           ((org-agenda-span 7)
+            (org-agenda-log-mode 1)
+            (org-agenda-tag-filter-preset '("-routine"))) "~/cloud/agenda/this-week-nonroutine.html")
+          ("2" "Bi-weekly review" agenda "" ((org-agenda-span 14) (org-agenda-log-mode 1)))
+          ("5" "Quick tasks" tags-todo "EFFORT>=\"0:05\"&EFFORT<=\"0:15\"")
+          ("0" "Unestimated tasks" tags-todo "EFFORT=\"\"")
+          ("gb" "Business" todo ""
+           ((org-agenda-files '("~/personal/business.org"))
+            (org-agenda-view-columns-initially t)))
+          ("gc" "Coding" tags-todo "@coding"
+           ((org-agenda-view-columns-initially t)))
+          ("gw" "Writing" tags-todo "@writing"
+           ((org-agenda-view-columns-initially t)))
+          ("gp" "Phone" tags-todo "@phone"
+           ((org-agenda-view-columns-initially t)))
+          ("gd" "Drawing" tags-todo "@drawing"
+           ((org-agenda-view-columns-initially t)))
+          ("gh" "Home" tags-todo "@home"
+           ((org-agenda-view-columns-initially t)))
+          ("gk" "Kaizen" tags-todo "kaizen"
+           ((org-agenda-view-columns-initially t))
+           ("~/cloud/agenda/kaizen.html"))
+          ("ge" "Errands" tags-todo "@errands"
+           ((org-agenda-view-columns-initially t))
+           ("~/cloud/agenda/errands.html"))
+          ("0" "Top 3 by context"
+           ,my/org-agenda-contexts
+           ((org-agenda-sorting-strategy '(priority-up effort-down))
+            (my/org-agenda-limit-items 3)))
+          (")" "All by context"
+           ,my/org-agenda-contexts
+           ((org-agenda-sorting-strategy '(priority-down effort-down))
+            (my/org-agenda-limit-items nil)))
+          ("9" "Unscheduled top 3 by context"
+           ,my/org-agenda-contexts
+           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+            (org-agenda-sorting-strategy '(priority-down effort-down))
+            (my/org-agenda-limit-items 3)))
+          ("(" "All unscheduled by context"
+           ,my/org-agenda-contexts
+           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+            (org-agenda-sorting-strategy '(priority-down effort-down))
+            ))
+          ("d" "Timeline for today" ((agenda "" ))
+           ((org-agenda-ndays 1)
+            (org-agenda-show-log t)
+            (org-agenda-log-mode-items '(clock closed))
+            (org-agenda-clockreport-mode t)
+            (org-agenda-entry-types '())))
+          ("." "Waiting for" todo "WAITING")
+          ("u" "Unscheduled tasks" tags-todo "-someday-TODO=\"SOMEDAY\"-TODO=\"DELEGATED\"-TODO=\"WAITING\"-project"
+           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+            (org-agenda-view-columns-initially t)
+            (org-tags-exclude-from-inheritance '("project"))
+            (org-agenda-overriding-header "Unscheduled TODO entries: ")
+            (org-columns-default-format "%50ITEM %TODO %3PRIORITY %Effort{:} %TAGS")
+            (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))))
+          ("U" "Unscheduled tasks outside projects" tags-todo "-project"
+           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+            (org-tags-exclude-from-inheritance nil)
+            (org-agenda-view-columns-initially t)
+            (org-agenda-overriding-header "Unscheduled TODO entries outside projects: ")
+            (org-agenda-sorting-strategy '(todo-state-up priority-down tag-up category-keep effort-down))))
+          ("P" "By priority"
+           ((tags-todo "+PRIORITY=\"A\"")
+            (tags-todo "+PRIORITY=\"B\"")
+            (tags-todo "+PRIORITY=\"\"")
+            (tags-todo "+PRIORITY=\"C\""))
+           ((org-agenda-prefix-format "%-10c %-10T %e ")
+            (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+          ("pp" tags "+project-someday-TODO=\"DONE\"-TODO=\"SOMEDAY\"-inactive"
+           ((org-tags-exclude-from-inheritance '("project"))
+            (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+          ("p." tags "+project-TODO=\"DONE\""
+           ((org-tags-exclude-from-inheritance '("project"))
+            (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+          ("S" tags-todo "TODO=\"STARTED\"")
+          ("C" "Cooking"
+           ((tags "vegetables")
+            (tags "chicken")
+            (tags "beef")
+            (tags "pork")
+            (tags "other"))
+           ((org-agenda-files '("~/personal/cooking.org"))
+            (org-agenda-view-columns-initially t)
+            (org-agenda-sorting-strategy '(scheduled-up time-down todo-state-up)))
+           )
+          ("2" "List projects with tasks" my/org-agenda-projects-and-tasks
+           "+PROJECT"
+           ((my/org-agenda-limit-items 3)))))
   (bind-key "<apps> a" 'org-agenda)
 #+end_src
 **** Make it easy to mark a task as done
@@ -2502,7 +2552,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 
 **** Synchronizing with Google Calendar
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp :tangle no :eval no
 (defun my/org-gcal-notify (title mes)
   (message "%s - %s" title mes))
 (use-package org-gcal
@@ -2615,6 +2665,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
        (_my/get-previous-tasks)
        (setq string
              (concat
+              (format "- *A- (Childcare)* (%.1fh - %d%% of total)\n"
+                      (my/quantified-get-hours '("A-") time-summary)
+                      (/ (my/quantified-get-hours '("A-") time-summary) 1.68))
               (format "- *Business* (%.1fh - %d%%)\n" biz-time (/ biz-time 1.68))
               (mapconcat 'identity business "\n") "\n"
               (mapconcat 'identity business-next "\n")
@@ -2662,9 +2715,6 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
               (format "- *Unpaid work* (%.1fh - %d%%)\n"
                       (my/quantified-get-hours "Unpaid work" time-summary)
                       (/ (my/quantified-get-hours "Unpaid work" time-summary) 1.68))
-              (format "  - *Childcare* (%.1fh - %d%% of total)\n"
-                      (my/quantified-get-hours '("Unpaid work - Childcare") time-summary)
-                      (/ (my/quantified-get-hours '("Unpaid work - Childcare") time-summary) 1.68))
               (format "- *Sleep* (%.1fh - %d%% - average of %.1f per day)\n"
                       (my/quantified-get-hours "Sleep" time-summary)
                       (/ (my/quantified-get-hours "Sleep" time-summary) 1.68)
@@ -2831,14 +2881,17 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                                             (match-string 0))) t t nil)))))
 
    (defun my/open-urls-in-region (beg end)
-     "Open URLs between BEG and END."
+     "Open URLs between BEG and END.
+   TODO: Get better at detecting and opening all URLs"
      (interactive "r")
      (save-excursion
        (save-restriction
          (narrow-to-region beg end)
          (goto-char (point-min))
-         (while (re-search-forward org-plain-link-re nil t)
-           (org-open-at-point)))))
+         (while (re-search-forward org-any-link-re nil t)
+           (save-excursion
+             (backward-char)
+             (org-open-at-point))))))
  #+end_src
 
 ***** Evernote-related extract
@@ -2993,8 +3046,11 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
             (year (elt date 5))
             start-date
             end-date
+            previous-date
             posts
-            sketches)
+            sketches
+            org-date
+            time)
        (calendar-increment-month month year -1)
        (setq start-date (format "%4d-%02d-01" year month)
              end-date (format "%4d-%02d-01" (elt date 5) (elt date 4))
@@ -3002,6 +3058,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                     (format "http://sachachua.com/blog/%4d/%d?org=1"
                             year month))
              sketches (my/sketches-export-and-extract start-date nil nil t))
+       (calendar-increment-month month year -1)
+       (setq previous-date (format "%4d-%02d-01" year month))
+       (setq time (my/quantified-compare previous-date start-date start-date end-date '("Business - Build" "Discretionary - Play" "Unpaid work" "A-" "Discretionary - Social" "Discretionary - Family" "Sleep" "Business - Connect" "Business - Earn" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
        (goto-char (line-end-position))
        (insert
         "\n\n** Monthly review: "
@@ -3010,7 +3069,10 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
         "*Blog posts*\n"
         posts "\n\n"
         "*Sketches*\n\n"
-        sketches)))
+        sketches
+        "*Time*\n\n"
+        (orgtbl-to-orgtbl time nil))))
+
  #+end_src
 
 *** Filing
@@ -3089,37 +3151,55 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                (org-update-statistics-cookies nil)))))))
  #+end_src
 
-**** Quickly refiling to the same file
+**** Quickly refiling Org Mode notes to headings in the same file
+
+I wanted a quick way to organize random notes from my inbox into an
+outline, organizing from the bottom up instead of starting with a
+top-down hierarchy. My old code for refiling to an Org heading in the
+current buffer didn't work any more, but =helm-org-in-buffer-headings=
+seems to be promising. I made it a speed command (see the value of
+=org-use-speed-commands= elsewhere in my config) so that I can easily
+refile. 
 
 #+begin_src emacs-lisp :tangle yes
-  (defun my/org-refile-in-file (prefix)
+  (defvar my/org-last-refile-marker nil "Marker for last refile")
+  (defun my/org-refile-in-file (&optional prefix)
     "Refile to a target within the current file."
     (interactive)
-    (let ((org-refile-targets `(((,(buffer-file-name)) :maxlevel . 6))))
-      (call-interactively 'org-refile)))
-  (define-key my/refile-map "." 'my/org-refile-in-file)
-
-  (defun my/org-refile-to-previous-in-file ()
-    (interactive)
-    "Refile to the previous target."
-    (let ((org-refile-targets `(((,(buffer-file-name)) :maxlevel . 6))))
+    (let ((helm-org-headings-actions
+           '(("Refile to this heading" . helm-org-heading-refile))))
       (save-excursion
-        (org-refile nil nil (my/org-refile-get-location-exact (car org-refile-history))))))
+        (helm-org-in-buffer-headings)
+        (org-end-of-subtree t)
+        (setq my/org-last-refile-marker (point-marker)))))
 
-;; TODO Get this to work
   (defun my/org-refile-to-previous ()
+    "Refile subtree to last position from `my/org-refile-in-file'."
     (interactive)
-    "Refile to the previous target."
-    (save-excursion
-      (org-refile nil nil my/org-refile-last-location)))
+    (save-selected-window
+      (when (eq major-mode 'org-agenda-mode)
+        (org-agenda-switch-to))
+      (org-cut-subtree)
+      (save-excursion
+        (let* ((marker my/org-last-refile-marker)
+               (target-level
+                (with-current-buffer (marker-buffer marker)
+                  (goto-char (marker-position marker))
+                  (org-current-level))))
+          (helm-org-goto-marker marker)
+          (org-end-of-subtree t t)
+          (org-paste-subtree target-level)))))
 
-  (add-to-list 'org-speed-commands-user '("G" call-interactively 'my/org-refile-to-previous))
-
-  (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
-  (add-to-list 'org-speed-commands-user '("." call-interactively 'my/org-refile-to-previous-in-file))
-  (add-to-list 'org-speed-commands-user '("W" call-interactively 'my/org-refile-in-file))
-  (add-to-list 'org-speed-commands-user '("S" call-interactively 'org-sort))
+  (add-to-list 'org-speed-commands-user '("w" call-interactively 'my/org-refile-in-file))
+  (add-to-list 'org-speed-commands-user '("." call-interactively 'my/org-refile-to-previous))
 #+end_src
+
+TODO: Figure out why I'm getting duplicates. Next step might be to fiddle with =helm-org-in-buffer-headings= so that it preselects the previous candidate, but that can happen later.
+
+Tech note: helm-org doesn't use the usual org-refile mechanism. Instead, it
+cuts the subtree, goes to the marker, and pastes it in at the
+appropriate level.
+
 
 *** Publishing
 Timestamps and section numbers make my published files look more
@@ -3339,6 +3419,7 @@ This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone
      (interactive)
      (let* ((destination-dir "~/Dropbox/Public/")
             (destination-filename "sacha-emacs.org"))
+       (my/save-new-packages)
        (with-current-buffer (find-file "~/.emacs.d/Sacha.org")
          (save-restriction
            (save-excursion
@@ -3491,8 +3572,10 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
    'org-babel-load-languages
    '((dot . t)
      (ditaa . t)
-     (sh . t)
+     (shell . t)
+     (sqlite . t)
      (http . t)
+     (ledger . t)
      (shell . t)
      (R . t)))
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))))
@@ -3521,10 +3604,10 @@ Probably should make this a dblock someday."
 *** Spreadsheets
 #+begin_src emacs-lisp :tangle yes
   (defun my/org-days-between (start end)
-    "Number of days between START and END.
-  This includes START and END."
-    (1+ (- (calendar-absolute-from-gregorian (org-date-to-gregorian end))
-        (calendar-absolute-from-gregorian (org-date-to-gregorian start)))))
+    "Number of days between START and END (exclusive).
+  This includes START but not END."
+    (- (calendar-absolute-from-gregorian (org-date-to-gregorian end))
+       (calendar-absolute-from-gregorian (org-date-to-gregorian start))))
 #+end_src
 *** Literate programming
 **** Editing source code
@@ -3568,12 +3651,13 @@ Probably should make this a dblock someday."
     (/ (assoc-default category
                       (quantified-summarize-time start end)) 3600.0))
 
+  ;; TODO: paginate
   (defun my/org-quantified-get-detailed-hours-based-on-range (category start end)
     "Return a list of (date week-ending-date dow seconds) for CATEGORY from START to END."
     (let ((entries
            (gethash "entries"
                     (quantified-parse-json
-                     (quantified-request (format "records.json?start=%s&end=%s&filter_string=%s&split=split" start end (url-encode-url category))
+                     (quantified-request (format "records.json?start=%s&end=%s&filter_string=%s&per_page=1000&split=split" start end (url-encode-url category))
                                          nil "GET")))))
       (mapcar
        (lambda (entry)
@@ -3623,9 +3707,9 @@ Probably should make this a dblock someday."
 
   (defun my/org-quantified-format-detailed-hours-as-table (list)
     "Return a table with rows for LIST.
-  | Week ending ____ | Sat | Sun | Mon | Tue | Wed | Thu | Fri | Total |
-  LIST elements should be in the form (date week-end-date dow seconds).
-  See `my/org-quantified-get-detailed-hours-based-on-range'."
+    | Week ending ____ | Sat | Sun | Mon | Tue | Wed | Thu | Fri | Total |
+    LIST elements should be in the form (date week-end-date dow seconds).
+    See `my/org-quantified-get-detailed-hours-based-on-range'."
     ;; Group by week ending date
     (let ((days '("Sat" "Sun" "Mon" "Tue" "Wed" "Thu" "Fri")))
       (append
@@ -3652,11 +3736,11 @@ Probably should make this a dblock someday."
         (-sort (lambda (a b) (string< (car a) (car b))) (-group-by (lambda (x) (elt x 1)) list))))))
 
 
-(defun my/org-quantified-hours-table ()
-  (my/org-quantified-format-detailed-hours-as-table
-   (apply 'my/org-quantified-get-detailed-hours-based-on-range 
-    (org-entry-get-with-inheritance "QUANTIFIED_CATEGORY")
-    (my/org-get-invoice-range-based-on-date (org-entry-get-with-inheritance "INVOICE_DATE")))))
+  (defun my/org-quantified-hours-table ()
+    (my/org-quantified-format-detailed-hours-as-table
+     (apply 'my/org-quantified-get-detailed-hours-based-on-range 
+            (org-entry-get-with-inheritance "QUANTIFIED_CATEGORY")
+            (my/org-get-invoice-range-based-on-date (org-entry-get-with-inheritance "INVOICE_DATE")))))
 
   (ert-deftest my/org-get-invoice-range-based-on-date ()
     "Check if invoice range is sane."
@@ -3676,6 +3760,12 @@ From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-task
      (org-archive-subtree)
      (setq org-map-continue-from (outline-previous-heading)))
    "TODO=\"DONE\"|TODO=\"CANCELLED\"" (if (org-before-first-heading-p) 'file 'tree)))
+#+end_src
+
+Also, don't ask me for confirmation:
+
+#+begin_src emacs-lisp
+(add-to-list 'org-speed-commands-user '("a" call-interactively 'org-archive-subtree-default))
 #+end_src
 *** Filesystem
 
@@ -3814,6 +3904,35 @@ This setting puts Org ASCII export links right after the text instead of in a se
 (setq org-ascii-links-to-notes nil)
 #+end_src
 
+This one exports links from my secret =my/reddit-upvoted-json=. You
+can get your Reddit upvoted JSON URL at
+https://www.reddit.com/prefs/feeds/ .
+
+#+begin_src emacs-lisp :tangle yes
+  (defun my/reddit-list-upvoted (date)
+    (let ((threshold (org-read-date nil t date)))
+      (with-current-buffer (url-retrieve-synchronously my/reddit-upvoted-json)      
+        (goto-char (point-min))
+        (re-search-forward "^$")
+        (let* ((data (json-read))
+               (items (assoc-default 'children (assoc-default 'data data))))
+          (mapconcat
+           (lambda (item)
+             (let* ((o (assoc-default 'data item))
+                    (title (assoc-default 'title o))
+                    (url (assoc-default 'url o))
+                    (date (seconds-to-time (assoc-default 'created_utc o)))
+                    (permalink (concat "https://reddit.com" (assoc-default 'permalink o)))
+                    (num-comments (assoc-default 'num_comments o 'eq 0)))
+               (when (time-less-p threshold date)
+                 (if (> num-comments 0)
+                     (format "- [[%s][%s]] ([[%s][Reddit]])\n" url title permalink)
+                   (format "- [[%s][%s]]\n" url title)))))
+           items "")))))
+#+end_src
+
+Other functions:
+
 #+begin_src emacs-lisp :tangle yes
       (defun my/org-list-from-rss (url date)
         "Convert URL to an Org list"
@@ -3853,9 +3972,13 @@ This setting puts Org ASCII export links right after the text instead of in a se
                        (read (current-buffer))))))
     (defun my/save-new-packages ()
      (interactive)
-     (with-temp-file "~/.emacs.d/.package-list"
+     (when package-archive-contents
+     (with-temp-buffer
+       (find-file "~/.emacs.d/.package-list")
+       (erase-buffer)
        (prin1 (mapcar 'car package-archive-contents) (current-buffer))
-       nil))
+       (save-buffer)
+       nil)))
 #+end_src
 
 **** DONE Publishing Emacs News as plain text, HTML, and attached Org file
@@ -4153,7 +4276,9 @@ This is something I have to get the hang of too. It gradually expands the select
 #+begin_src emacs-lisp :tangle yes
   (use-package expand-region
     :defer t
-    :bind ("C-=" . er/expand-region))
+    :bind ("C-=" . er/expand-region)
+    ("C-<prior>" . er/expand-region)
+    ("C-<next>" . er/contract-region))
 #+end_src
 *** Compilation
 
@@ -4909,7 +5034,7 @@ with HTTPS sites.
           (my/org-clock-in-and-track)))))
   (bind-key "C-c q" 'my/org-quick-clock-in-task)
 
-  (require 'quantified)
+  (require 'quantified nil t)
 #+end_src
 *** Compare times and effort estimates
     :PROPERTIES:
@@ -4943,34 +5068,34 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 
 *** Workrave
     #+begin_src emacs-lisp :tangle yes
-    (defvar my/workrave-file (expand-file-name ".\\Workrave\\historystats" (getenv "AppData")))
+      (defvar my/workrave-file (expand-file-name ".\\Workrave\\historystats" (getenv "AppData")))
 
-(defun my/workrave-transform-statistics (&optional file)
-  (interactive (list my/workrave-file))
-  (with-current-buffer (find-file-noselect file)
-  ;; D day month-1 year hour min day month-1 year hour min
-    (let ((result "Date\tStart\tEnd\tClicks\tKeystrokes\n"))
-      (goto-char (point-min))
-      (while (re-search-forward "^D \\(.*\\)" nil t)
-	(let ((dates (split-string (match-string 1))))
-	  (if (re-search-forward "^m \\(.*\\)" nil t)
-	      (let ((info (split-string (match-string 1))))
-		(setq result
-		      (concat result
-			      (format "%d-%d-%s\t%s:%02d\t%s:%02d\t%s\t%s\n"
-				      (+ 1900 (string-to-number (elt dates 2))) ; year
-				      (1+ (string-to-number (elt dates 1))) ; month
-				      (elt dates 0) ; day
-				      (elt dates 3) ; start hour
-				      (string-to-number (elt dates 4)) ; start min
-				      (elt dates 8) ; end hour
-				      (string-to-number (elt dates 9)) ; end min
-				      (elt info 5) ; clicks
-				      (elt info 6) ; keystrokes
-				      )))))))
-      (if (interactive-p)
-	  (kill-new result)
-	result))))
+      (defun my/workrave-transform-statistics (&optional file)
+        (interactive (list my/workrave-file))
+        (with-current-buffer (find-file-noselect file)
+        ;; D day month-1 year hour min day month-1 year hour min
+          (let ((result "Date\tStart\tEnd\tClicks\tKeystrokes\n"))
+            (goto-char (point-min))
+            (while (re-search-forward "^D \\(.*\\)" nil t)
+        (let ((dates (split-string (match-string 1))))
+          (if (re-search-forward "^m \\(.*\\)" nil t)
+              (let ((info (split-string (match-string 1))))
+          (setq result
+                (concat result
+                  (format "%d-%d-%s\t%s:%02d\t%s:%02d\t%s\t%s\n"
+                    (+ 1900 (string-to-number (elt dates 2))) ; year
+                    (1+ (string-to-number (elt dates 1))) ; month
+                    (elt dates 0) ; day
+                    (elt dates 3) ; start hour
+                    (string-to-number (elt dates 4)) ; start min
+                    (elt dates 8) ; end hour
+                    (string-to-number (elt dates 9)) ; end min
+                    (elt info 5) ; clicks
+                    (elt info 6) ; keystrokes
+                    )))))))
+            (if (interactive-p)
+          (kill-new result)
+        result))))
     #+end_src
 *** Blog
 #+begin_src emacs-lisp :tangle yes
@@ -5254,6 +5379,13 @@ Get smarter about filtering depending on what I reed or mark. I use =!= (tick) f
 
 Make it easier to review my credit card transactions
 
+#+begin_src emacs-lisp :tangle yes
+(use-package ledger-mode
+:load-path "~/vendor/ledger-mode"
+:mode "\\.ledger$" 
+)
+
+#+end_src
 #+begin_src emacs-lisp :tangle yes
 (defun my/ledger-go-to-beginning-of-entry ()
   "Move to the beginning of the current entry."
@@ -5689,7 +5821,13 @@ creates interactive functions, and some code that calls it for my [[https://gith
 
 Let's see how that goes!
 
+** Search logs
 
+#+begin_src emacs-lisp :tangle yes
+(defun my/search-irc-logs (string)
+  (interactive "MSearch for: ")
+  (grep (concat "grep -nH -r -P " (shell-quote-argument string) " ~/backups/server/home/.znc/users/sacha/moddata/log/freenode")))
+#+end_src
 * Other cool configs you may want to check out
   :PROPERTIES:
   :CUSTOM_ID: links
@@ -5971,6 +6109,7 @@ I don't automatically turn this on because I think it slows things down a little
 ** Drupal
 
 #+begin_src emacs-lisp :eval no :tangle no
+  (use-package php-mode)
   (define-derived-mode drupal-mode php-mode "Drupal"
     "Major mode for Drupal source code.
   \\{drupal-mode-map}"
@@ -6056,7 +6195,6 @@ Handy for collecting items together.
       "Categories for time summary.")
 
     (defun my/org-summarize-time-use (&optional start end)
-      (require 'quantified)
       (interactive (list (org-read-date) (org-read-date)))
       (let ((time-summary (quantified-summarize-time start end))
             (categories my/org-quantified-categories)
@@ -6968,14 +7106,14 @@ recently-opened files first.
                     (lambda (dir)
                       (and (file-directory-p dir)
                            (if (functionp base)
-                               (-filter base (directory-files dir t ".*\\.\\(png\\|psd\\|tiff\\)?$"))
+                               (-filter base (directory-files dir t ".*\\.\\(png\\|psd\\|tiff\\|jpg\\)?$"))
                              (directory-files
                               dir t
                               (concat 
                                "\\("
                                (if as-regexp base (regexp-quote base))
                                "\\)"
-                               ".*\\.\\(png\\|psd\\|tiff\\)?$"
+                               ".*\\.\\(png\\|psd\\|tiff\\|jpg\\)?$"
                                )))))
                     my/sketch-directories)))
             'string<))
@@ -7195,28 +7333,26 @@ more entries, with everything else filed under "Other".
       "Creates a blank journal entry for DATE and brings up the log."
       (interactive (list (org-read-date)))
       ;; Open the Quantified Awesome time log for that date
-      (let ((filename (my/get-journal-entry date)))
+      (let ((filename (my/get-journal-entry date))
+            (day (format-time-string "%A" (org-time-string-to-time date))))
         (if filename
             (my/open-image filename)
-          (browse-url (format "http://quantifiedawesome.com/records?start=%s&end=%s"
-                              date
-                              (format-time-string
-                               "%Y-%m-%d"
-                               (seconds-to-time
-                                (+ (org-time-string-to-seconds date) 86400)))))
-          (my/open-image
-            (my/prepare-index-card-template
-             (format-time-string
-              "%A -- index card #journal"
-              (org-time-string-to-time date))
-             date)))))
+          ;; (browse-url (format "http://quantifiedawesome.com/records?start=%s&end=%s"
+          ;;                     date
+          ;;                     (format-time-string
+          ;;                      "%Y-%m-%d"
+          ;;                      (seconds-to-time
+          ;;                       (+ (org-time-string-to-seconds date) 86400)))))
+          (setq filename
+                (my/prepare-index-card-template (concat day " #daily #journal") date))
+          (my/open-image filename))))
 
     (defun my/get-journal-entry (date)
       "Returns the filename for the journal sketch for DATE."
       (car
        (-filter (lambda (x) (not (string-match "weekly" x)))
                 (my/get-index-card-filenames
-                 (format "%s.* -- index card.*#journal" date)
+                 (format "%s.* .*#daily" date)
                  t))))
 
     (defun my/get-missing-journal-dates (start-date end-date)
@@ -7285,7 +7421,7 @@ more entries, with everything else filed under "Other".
 
      (defun my/convert-index-card-tiffs-to-pngs ()
        (interactive)
-       (let ((pattern "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(tif\\|psd\\|jpg\\)$"))
+       (let ((pattern "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(tif\\|psd\\)$"))
          (when (directory-files "~/Dropbox/Inbox" t pattern)
            ;; Convert the TIFFs first
            (apply 'call-process "mogrify" nil nil nil "-flatten" "-format" "png" "-quality" "1"
@@ -7300,22 +7436,44 @@ more entries, with everything else filed under "Other".
        (my/convert-index-card-tiffs-to-pngs)
        (my/upload-scanned-cards))
 
+     (defun my/rename-scanned-card (filename)
+       (find-file filename)
+       (delete-other-windows)
+       (let ((base (file-name-sans-extension filename))
+             notes)
+         (when (string-match "/IMG.*\\|\\(\\([0-9]+-[0-9]+-[0-9]+\\)\\( ?.*\\)?\\)" base)
+           (let ((kill-buffer-query-functions nil)
+                 old-name
+                 (new-name (read-string "New name: "
+                                        (if (match-string 1 base)
+                                            (concat (match-string 1 base))
+                                          ""))))
+             (while (and (string-match "^[0-9]+-[0-9]+-[0-9]+[a-z]" new-name)
+                         (setq old-name (my/get-index-card-filename (match-string 0 new-name)))
+                         (and old-name
+                              (not (string= old-name filename))
+                              (not (string= (file-name-nondirectory old-name)
+                                            (concat (s-trim new-name) "." (file-name-extension filename))))))
+               (setq new-name
+                     (read-string (format "Already exists (%s) - new name: " old-name)
+                                  new-name)))
+             (when (string-match new-name "^\\(.*?\\) *| *\\(.*\\)")
+               (with-current-buffer (find-file "~/Dropbox/orgzly/Inbox.org")
+                 (goto-char (point-max))
+                 (insert "\n* " (match-string 1 new-name) "\n" (match-string 2 new-name))
+                 (save-buffer))
+               (setq new-name (match-string 1 new-name)))
+             (when (> (length new-name) 0)
+               (revert-buffer t t)
+               (rename-file filename (concat (s-trim new-name) "." (file-name-extension filename)) t)
+               (kill-buffer))))))
+
      (defun my/rename-scanned-cards ()
        "Display and rename the scanned or saved files."
        (interactive)
        (my/convert-index-card-tiffs-to-pngs)
-       (mapc (lambda (filename)
-               (find-file filename)
-               (delete-other-windows)
-               (when (string-match "/\\(IMG.*\\|\\([0-9]+-[0-9]+-[0-9]+\\)\\( ?.*\\)?\\)\\.png" filename)
-                 (let ((kill-buffer-query-functions nil)
-                       (new-name (read-string "New name: "
-                                              (concat (match-string 1 filename) " "))))
-                   (when (> (length new-name) 0)
-                     (revert-buffer t t)
-                     (rename-file filename (concat (s-trim new-name) ".png") t)
-                     (kill-buffer)))))
-             (directory-files "~/Dropbox/Inbox" t "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.png"))
+       (mapc 'my/rename-scanned-card
+             (directory-files "~/Dropbox/Inbox" t "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(png\\|jpg\\)"))
         (my/upload-scanned-cards))
 
      (defun my/clean-index-card-directory ()
@@ -7328,24 +7486,21 @@ more entries, with everything else filed under "Other".
        (my/clean-index-card-directory)
        (with-current-buffer (get-buffer-create "*Files to be uploaded*")
          (erase-buffer)
-         (insert (mapconcat 'identity (directory-files "~/Dropbox/Inbox" nil "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png") "\n"))
+         (insert (mapconcat 'identity (directory-files "~/Dropbox/Inbox" nil "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)") "\n"))
          (goto-char (point-min))
          (switch-to-buffer (current-buffer))
          (delete-other-windows))
        (when (yes-or-no-p "Upload files?")
          (cond
           ((eq system-type 'windows-nt)
-           (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png")))
+           (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
           ((eq system-type 'gnu/linux)
            (with-temp-buffer
             (cd "~/code/node")
             (apply 'call-process "node" nil nil nil (expand-file-name "flickr-upload.js")
-                   (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.png")))
+                   (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
            )))
        (shell-command "~/bin/copy-sketches")
-       (sleep-for 3)
-       (find-file "~/personal/questions.org")
-       (goto-char (point-min))
        ;;(when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))
        ;;  (forward-line 1)
        ;;  (org-end-of-item-list)
@@ -7370,7 +7525,7 @@ more entries, with everything else filed under "Other".
 
    #+begin_src emacs-lisp :tangle yes
    (use-package image+
-    :load-path "~/elisp/Emacs-imagex"
+;    :load-path "~/elisp/Emacs-imagex"
     :commands (imagex-global-sticky-mode imagex-auto-adjust-mode)
     :init (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))
    #+end_src
@@ -7460,16 +7615,16 @@ Aspect ratio is width / height
     (let (files)
       (save-excursion
         (goto-char (min beg end))
-        (while (re-search-forward "\\[\\[[^]]+\\]\\[\\([^]]+\\)]\\]" (max beg end) t)
-          (add-to-list 'files (match-string-no-properties 1))))
+        (while (re-search-forward "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][a-z]" (max beg end) t)
+          (add-to-list 'files (match-string-no-properties 0) t)))
       files))
   (ert-deftest my/extract-image-filenames ()
     "Check if it extracts the filenames properly."
     (with-temp-buffer
-      (insert "- [[https://www.flickr.com/photos/somephotoid][Test]]\n")
-      (insert "- [[https://www.flickr.com/photos/somephotoid2][Test 2]]\n")
+      (insert "- [[https://www.flickr.com/photos/somephotoid][2016-01-01a test]]\n")
+      (insert "- [[https://www.flickr.com/photos/somephotoid2][2016-02-01a again]]\n")
       (should (equal (my/extract-image-filenames (point-min) (point-max))
-                     '("Test 2" "Test")))))
+                     '("2016-01-01a" "2016-02-01a")))))
 
   (defun my/create-sketch-montage (files &optional tiles)
     "Combine the sketches in the region."
@@ -7478,14 +7633,14 @@ Aspect ratio is width / height
       (if (derived-mode-p 'dired-mode)
           (dired-get-marked-files)
         (mapcar 'my/get-index-card-filename
-                (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))
+                (my/extract-image-filenames (min (point) (mark)) (max (point) (mark)))))
       (if current-prefix-arg (read-string "Tiling: "))))
     ;; Extract the links
     (let ((output-file "~/Dropbox/Inbox/output.png"))
       (unless tiles
         (setq tiles
               (format "%dx"
-                (car (my/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
+                (car (my/get-tile-dimensions (length files) 1500 900 (/ 4.0 3))))))
       (with-temp-buffer
         (cd "~/Dropbox/Inbox/To blog")
         (apply 'call-process
@@ -7493,20 +7648,21 @@ Aspect ratio is width / height
                (append
                 files
                 (list
-                 "-geometry" "1497x896>+0+0"
+                 "-geometry" "1500x900>+0+0"
                  "-tile" tiles
                  (expand-file-name output-file)))))
       (if (called-interactively-p 'any) (find-file output-file))))
 
   (defun my/create-week-montage (beg end)
     (interactive "r")
-    (let* ((filename (format "Week ending %s -- index card #journal #weekly" (org-read-date nil nil "-fri")))
+    (let* ((date (org-read-date nil nil (unless current-prefix-arg "-fri")))
+           (filename (format "Week ending %s #journal #weekly" date))
            (full-filename (my/get-index-card-filename filename)))
       (if full-filename
           (my/open-image full-filename)
         (my/create-index-card-montage 
          (mapcar 'my/get-index-card-filename
-                 (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))) 
+                 (my/extract-image-filenames (min (point) (mark)) (max (point) (mark)))) 
          "2x"
          (my/prepare-index-card-template filename)))))
 
@@ -7517,14 +7673,15 @@ Aspect ratio is width / height
       (if (derived-mode-p 'dired-mode)
           (dired-get-marked-files)
         (mapcar 'my/get-index-card-filename
-                (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))))
+                (my/extract-image-filenames (min (point) (mark)) (max (point) (mark)))))))
     (let ((async-shell-command-buffer 'new-buffer)
           (index-card (or filename (my/prepare-index-card-template))))
       (my/create-sketch-montage files tiling)
-      (shell-command (format "convert %s \\( %s -resize 1497x896 \\) -colorspace cmyk %s"
-                             (shell-quote-argument (expand-file-name my/index-card-template-file))
-                             (shell-quote-argument (expand-file-name "~/Dropbox/Inbox/output.png"))
-                             (shell-quote-argument (expand-file-name index-card))))
+      (shell-command
+       (format "convert %s \\( %s -resize 1500x900 \\) -colorspace cmyk %s"
+               (shell-quote-argument (expand-file-name my/index-card-template-file))
+               (shell-quote-argument (expand-file-name "~/Dropbox/Inbox/output.png"))
+               (shell-quote-argument (expand-file-name index-card))))
       (shell-command (format "%s %s &"
                              (shell-quote-argument my/sketch-executable)
                              (shell-quote-argument (expand-file-name index-card))))

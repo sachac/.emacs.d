@@ -3,11 +3,11 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2016-09-08 Thu 17:57 -->
+<!-- 2017-12-12 Tue 00:11 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
-<meta name="generator" content="Org-mode" />
+<meta name="generator" content="Org mode" />
 <meta name="author" content="Sacha Chua" />
 <style type="text/css">
  <!--/*--><![CDATA[/*><!--*/
@@ -74,6 +74,7 @@
   pre.src-ledger:before { content: 'Ledger'; }
   pre.src-lisp:before { content: 'Lisp'; }
   pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
   pre.src-matlab:before { content: 'MATLAB'; }
   pre.src-mscgen:before { content: 'Mscgen'; }
   pre.src-ocaml:before { content: 'Objective Caml'; }
@@ -188,7 +189,7 @@ href="http://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/founda
 @licstart  The following is the entire license notice for the
 JavaScript code in this tag.
 
-Copyright (C) 2012-2013 Free Software Foundation, Inc.
+Copyright (C) 2012-2017 Free Software Foundation, Inc.
 
 The JavaScript code in this tag is free software: you can
 redistribute it and/or modify it under the terms of the GNU
@@ -243,6 +244,7 @@ for the JavaScript code in this tag.
 <li><a href="#org332b2fd">Configuration</a>
 <ul>
 <li><a href="#babel-init">About this file</a></li>
+<li><a href="#org0477c97">Starting up</a></li>
 <li><a href="#org7ebbf96">Personal information</a></li>
 <li><a href="#org898cd11">Emacs initialization</a>
 <ul>
@@ -257,6 +259,7 @@ for the JavaScript code in this tag.
 <li><a href="#org7b1ada1">Backups</a></li>
 <li><a href="#orgdfcb533">History</a></li>
 <li><a href="#org09cecbf">Windows configuration&#xa0;&#xa0;&#xa0;<span class="tag"><span class="drill">drill</span></span></a></li>
+<li><a href="#org36e775c">Time in the modeline</a></li>
 <li><a href="#org59481f4">Winner mode - undo and redo window configuration</a></li>
 <li><a href="#org892ee89">Sentences end with a single space</a></li>
 <li><a href="#org04e47b9">Helm - interactive completion</a>
@@ -279,7 +282,7 @@ for the JavaScript code in this tag.
 </li>
 </ul>
 </li>
-<li><a href="#org7c78adb">Navigation</a>
+<li><a href="#org432d1e6">Navigation</a>
 <ul>
 <li><a href="#org43a846b">Pop to mark</a></li>
 <li><a href="#orga9c79c3">Helm-swoop - quickly finding lines</a></li>
@@ -288,7 +291,7 @@ for the JavaScript code in this tag.
 <li><a href="#org9750649">Frequently-accessed files</a></li>
 <li><a href="#key-chord">Key chords and Hydras</a></li>
 <li><a href="#orgfdfb418">Smartscan</a></li>
-<li><a href="#org7fc30f8">Dired</a>
+<li><a href="#org9d37c7d">Dired</a>
 <ul>
 <li><a href="#org4c65021">peep-dired</a></li>
 <li><a href="#org6ccec83">Saving photos</a></li>
@@ -320,7 +323,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgca8e067">Speed commands</a></li>
 </ul>
 </li>
-<li><a href="#org7c78adb">Navigation</a>
+<li><a href="#org4abb563">Navigation</a>
 <ul>
 <li><a href="#org1587f43">Link Org subtrees and navigate between them</a></li>
 <li><a href="#orgb362383">Viewing, navigating, and editing the Org tree</a></li>
@@ -329,7 +332,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgc79d737">Taking notes</a>
 <ul>
 <li><a href="#org8b3b235">Date trees</a></li>
-<li><a href="#org5b9f9d2">Templates</a></li>
+<li><a href="#org4e9961e">Templates</a></li>
 <li><a href="#org2789cb5">Refiling</a></li>
 <li><a href="#org5973465">Estimating WPM</a></li>
 </ul>
@@ -343,7 +346,7 @@ for the JavaScript code in this tag.
 <li><a href="#orge24726a">Task dependencies</a></li>
 </ul>
 </li>
-<li><a href="#org5b9f9d2">Templates</a>
+<li><a href="#orgb371156">Templates</a>
 <ul>
 <li><a href="#org74bcbb3">Structure templates</a></li>
 <li><a href="#org60eb191">Emacs chats, Emacs hangouts</a></li>
@@ -361,7 +364,7 @@ for the JavaScript code in this tag.
 <li><a href="#org9f0afd0">Sorting by date and priority</a></li>
 <li><a href="#org231ff51">Preventing things from falling through the cracks</a></li>
 <li><a href="#org63e1206">Synchronizing with Google Calendar</a></li>
-<li><a href="#orgb55dab4">Projects</a></li>
+<li><a href="#org342f89c">Projects</a></li>
 </ul>
 </li>
 <li><a href="#org557a3c3">Reviews</a>
@@ -374,7 +377,7 @@ for the JavaScript code in this tag.
 <ul>
 <li><a href="#destination">Moving lines around</a></li>
 <li><a href="#org0914f89">Organizing my blog index</a></li>
-<li><a href="#org87138d3">Quickly refiling to the same file</a></li>
+<li><a href="#orgfbdf12b">Quickly refiling Org Mode notes to headings in the same file</a></li>
 </ul>
 </li>
 <li><a href="#org763275b">Publishing</a>
@@ -455,7 +458,7 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#orgb10c800">git-messenger - shows commit message</a></li>
 <li><a href="#orgfb77d93">Tag files</a></li>
-<li><a href="#orgb55dab4">Projects</a></li>
+<li><a href="#orge26f0d4">Projects</a></li>
 <li><a href="#orgf50520e">Exploring MELPA recipes</a></li>
 <li><a href="#orgd60ed51">Ruby</a></li>
 <li><a href="#org915393b">Skewer</a></li>
@@ -519,10 +522,11 @@ for the JavaScript code in this tag.
 </ul>
 </li>
 <li><a href="#org44c51ff">Weather forecast</a></li>
-<li><a href="#org8b733ec">Encryption</a></li>
+<li><a href="#org969843d">Encryption</a></li>
 <li><a href="#org681e73a">Yaoddmuse</a></li>
 <li><a href="#orgfb9b12e">Building a today-I-learned habit, and displaying the documentation for random Emacs commands&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></a></li>
 <li><a href="#org323ef6c"><span class="done DONE">DONE</span> Scan ~/bin and turn the scripts into interactive commands</a></li>
+<li><a href="#org725bc13">Search logs</a></li>
 </ul>
 </li>
 <li><a href="#links">Other cool configs you may want to check out</a></li>
@@ -562,7 +566,7 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#org0b984fa">Keywiz - keyboard quizzes</a></li>
 <li><a href="#orgf62ed27">MobileOrg for Android</a></li>
-<li><a href="#org8b733ec">Encryption</a></li>
+<li><a href="#orgd9dbc17">Encryption</a></li>
 <li><a href="#org3028b7b">Drawing</a>
 <ul>
 <li><a href="#org8dce88c">Digital index piles with Emacs</a></li>
@@ -605,26 +609,13 @@ for the JavaScript code in this tag.
 </p>
 
 <p>
-Inspired by the <a href="https://eschulte.github.io/emacs24-starter-kit/#installation">Emacs Starter Kit</a>, I set up my configuration file
-using Org-babel.This page: <a href="http://sachac.github.io/.emacs.d/Sacha.html">HTML</a> - <a href="//github.com/sachac/.emacs.d/blob/gh-pages/Sacha.org">Org</a> - <a href="//dl.dropbox.com/u/3968124/sacha-emacs.el">.el</a> - <a href="http://github.com/sachac/.emacs.d/">Github</a> - also, <a href="http://sach.ac/dotemacs">http://sach.ac/dotemacs</a>. My <code>~/.emacs.d/init.el</code> is now a symlink to <code>Sacha.el</code>, which is what <code>M-x org-babel-tangle</code> (<code>C-c C-v t</code>) produces.
+This is my personal config. It's really long, but that's partly
+because I sometimes leave blog posts in it as commentary. (And also
+because I've got a lot of little customizations that I might not even
+remember. =) ). If you want to see a table of contents and other
+useful niceties, go to <a href="http://sachachua.com/dotemacs">http://sachachua.com/dotemacs</a> . Other links for
+this page: <a href="https://raw.githubusercontent.com/sachac/.emacs.d/gh-pages/Sacha.org">Org Mode version</a>, <a href="http://github.com/sachac/.emacs.d/">Github repository</a>
 </p>
-
-<div class="org-src-container">
-<pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">This sets up the load path so that we can override it</span>
-(package-initialize)
-<span class="org-comment-delimiter">;; </span><span class="org-comment">Override the packages with the git version of Org and other packages</span>
-(add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/lisp"</span>)
-(add-to-list 'load-path <span class="org-string">"~/elisp/org-mode/contrib/lisp"</span>)
-(add-to-list 'load-path <span class="org-string">"~/code/org2blog"</span>)
-(add-to-list 'load-path <span class="org-string">"~/Dropbox/2014/presentations/org-reveal"</span>)
-(add-to-list 'load-path <span class="org-string">"/usr/local/share/emacs/site-lisp"</span>)
-(<span class="org-keyword">setq</span> package-enable-at-startup nil)
-<span class="org-comment-delimiter">;; </span><span class="org-comment">Prepare stuff for org-export-backends</span>
-(<span class="org-keyword">setq</span> org-export-backends '(org latex icalendar html ascii))
-(<span class="org-keyword">setq</span> custom-file <span class="org-string">"~/.emacs.d/custom-settings.el"</span>)
-(load custom-file t)
-</pre>
-</div>
 
 <p>
 If you're new to Emacs Lisp, you probably don't want to copy and paste
@@ -632,7 +623,9 @@ large chunks of this code. Instead, copy small parts of it (always
 making sure to copy a complete set of parentheses) into your
 <code>*scratch*</code> buffer or some other buffer in <code>emacs-lisp-mode</code>. Use <code>M-x
 eval-buffer</code> to evaluate the code and see if you like the way that
-Emacs behaves. See <a href="https://www.gnu.org/software/emacs/manual/html_mono/eintr.html">An Introduction to Programming in Emacs Lisp</a> for more details on Emacs Lisp. You can also find the manual by using <code>C-h i</code> (<code>info</code>) and choosing "Emacs Lisp Intro".
+Emacs behaves. See <a href="https://www.gnu.org/software/emacs/manual/html_mono/eintr.html">An Introduction to Programming in Emacs Lisp</a> for
+more details on Emacs Lisp. You can also find the manual by using <code>C-h
+i</code> (<code>info</code>) and choosing "Emacs Lisp Intro".
 </p>
 
 <p>
@@ -645,12 +638,56 @@ provided by a package, so you'll probably want to install that and
 </p>
 
 <p>
-If you're viewing the Org file, you can open source code blocks (those are the ones in begin_src) in a separate buffer by moving your point inside them and typing C-c ' (<code>org-edit-special</code>). This opens another buffer in <code>emacs-lisp-mode</code>, so you can use <code>M-x eval-buffer</code> to load the changes. If you want to explore how functions work, use <code>M-x edebug-defun</code> to set up debugging for that function, and then call it. You can learn more about edebug in the <a href="http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html">Emacs Lisp</a> manual.
+If you're viewing the Org file, you can open source code blocks (those
+are the ones in begin_src) in a separate buffer by moving your point
+inside them and typing C-c ' (<code>org-edit-special</code>). This opens another
+buffer in <code>emacs-lisp-mode</code>, so you can use <code>M-x eval-buffer</code> to load
+the changes. If you want to explore how functions work, use <code>M-x
+edebug-defun</code> to set up debugging for that function, and then call it.
+You can learn more about edebug in the <a href="http://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html">Emacs Lisp</a> manual.
 </p>
 
 <p>
-I like using <code>(setq ...)</code> more than Customize because I can neatly organize my configuration that way.
+I like using <code>(setq ...)</code> more than Customize because I can neatly
+organize my configuration that way. Ditto for <code>use-package</code> - I mostly
+use it to group together package-related config without lots of
+<code>with-eval-after-load</code> calls, and it also makes declaring keybindings
+easier.
 </p>
+
+<p>
+My <code>~/.emacs.d/init.el</code> is now a symlink to <code>Sacha.el</code>, which is what
+<code>M-x org-babel-tangle</code> (<code>C-c C-v t</code>) produces. <b>A note about Org
+updates:</b> I like running Org Mode from checked-out source code instead
+of package.el. I add the Lisp directories to my <code>load-path</code>, and I
+also use the <code>:load-path</code> option in my first <code>use-package org</code> call to
+set the load path. One of those is probably doing the trick and the
+other one is redundant, but maybe it's a belt-and-suspenders sort of
+thing. Using the git checkout also makes upgrading Org easy. All I
+have to do is <code>git pull; make</code>, and stuff happens in an external Emacs
+process. Since I create <code>Sacha.el</code> via <code>org-babel-tangle</code>, my Emacs
+config can load <code>Sacha.el</code> without loading Org first.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org0477c97" class="outline-3">
+<h3 id="org0477c97">Starting up</h3>
+<div class="outline-text-3" id="text-org0477c97">
+<p>
+Here's how we start:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">This sets up the load path so that we can override it</span>
+(package-initialize)
+(add-to-list 'load-path <span class="org-string">"~/code/org2blog"</span>)
+(add-to-list 'load-path <span class="org-string">"~/Dropbox/2014/presentations/org-reveal"</span>)
+(add-to-list 'load-path <span class="org-string">"/usr/local/share/emacs/site-lisp"</span>)
+(<span class="org-keyword">setq</span> custom-file <span class="org-string">"~/.emacs.d/custom-settings.el"</span>)
+(load custom-file t)
+</pre>
+</div>
 </div>
 </div>
 
@@ -673,9 +710,9 @@ I like using <code>(setq ...)</code> more than Customize because I can neatly or
 <div class="outline-text-4" id="text-org47943cc">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">unless</span> (assoc-default <span class="org-string">"melpa"</span> package-archives)
-  (add-to-list 'package-archives '(<span class="org-string">"melpa"</span> . <span class="org-string">"http://melpa.org/packages/"</span>) t)
-<span class="org-comment-delimiter">;  </span><span class="org-comment">(package-refresh-contents)</span>
-)
+  (add-to-list 'package-archives '(<span class="org-string">"melpa"</span> . <span class="org-string">"http://melpa.org/packages/"</span>) t))
+(<span class="org-keyword">unless</span> (assoc-default <span class="org-string">"org"</span> package-archives)
+  (add-to-list 'package-archives '(<span class="org-string">"org"</span> . <span class="org-string">"http://orgmode.org/elpa/"</span>) t))
 </pre>
 </div>
 
@@ -696,7 +733,6 @@ in a directory in my <code>load-path</code>, Emacs can find them.
 
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(add-to-list 'load-path <span class="org-string">"~/elisp"</span>)
-(add-to-list 'load-path <span class="org-string">"~/elisp/artbollocks-mode"</span>)
 (<span class="org-keyword">unless</span> (package-installed-p 'use-package)
   (package-install 'use-package))
 (<span class="org-keyword">setq</span> use-package-verbose t)
@@ -768,7 +804,7 @@ Disk space is cheap. Save lots.
 <h4 id="orgdfcb533">History</h4>
 <div class="outline-text-4" id="text-orgdfcb533">
 <p>
-From <a href="http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html">http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html</a>
+From <a href="http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html">http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html</a>:
 </p>
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">setq</span> savehist-file <span class="org-string">"~/.emacs.d/savehist"</span>)
@@ -798,6 +834,21 @@ When you're starting out, the tool bar can be very helpful. <a href="http://sach
 </div>
 </div>
 </div>
+
+<div id="outline-container-org36e775c" class="outline-4">
+<h4 id="org36e775c">Time in the modeline</h4>
+<div class="outline-text-4" id="text-org36e775c">
+<p>
+I like having the clock.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(display-time-mode 1)
+</pre>
+</div>
+</div>
+</div>
+
 <div id="outline-container-org59481f4" class="outline-4">
 <h4 id="org59481f4">Winner mode - undo and redo window configuration</h4>
 <div class="outline-text-4" id="text-org59481f4">
@@ -812,6 +863,7 @@ When you're starting out, the tool bar can be very helpful. <a href="http://sach
 </div>
 </div>
 </div>
+
 <div id="outline-container-org892ee89" class="outline-4">
 <h4 id="org892ee89">Sentences end with a single space</h4>
 <div class="outline-text-4" id="text-org892ee89">
@@ -1314,6 +1366,7 @@ Some more tweaks to solarized:
    '(org-clock-overlay ((t (<span class="org-builtin">:background</span> <span class="org-string">"SkyBlue4"</span> <span class="org-builtin">:foreground</span> <span class="org-string">"black"</span>))))
    '(org-headline-done ((((class color) (min-colors 16) (background dark)) (<span class="org-builtin">:foreground</span> <span class="org-string">"LightSalmon"</span> <span class="org-builtin">:strike-through</span> t))))
    '(outline-1 ((t (<span class="org-builtin">:inherit</span> font-lock-function-name-face <span class="org-builtin">:foreground</span> <span class="org-string">"cornflower blue"</span>))))))
+
 </pre>
 </div>
 </div>
@@ -1378,6 +1431,7 @@ From <a href="http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/0
 </div>
 </div>
 </div>
+
 <div id="outline-container-org577e46c" class="outline-4">
 <h4 id="org577e46c">Killing text</h4>
 <div class="outline-text-4" id="text-org577e46c">
@@ -1396,6 +1450,7 @@ From <a href="https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el">http
 </div>
 </div>
 </div>
+
 <div id="outline-container-orgfdc65f7" class="outline-4">
 <h4 id="orgfdc65f7">Repeatable commands</h4>
 <div class="outline-text-4" id="text-orgfdc65f7">
@@ -1424,15 +1479,16 @@ command by default, and to use <code>kbd</code> for the keybinding definitions.
 </pre>
 </div>
 </div>
+
 <div id="outline-container-org88381f7" class="outline-5">
 <h5 id="org88381f7"><span class="todo TODO">TODO</span> Look for opportunities to use this</h5>
 </div>
 </div>
 </div>
 
-<div id="outline-container-org7c78adb" class="outline-3">
-<h3 id="org7c78adb">Navigation</h3>
-<div class="outline-text-3" id="text-org7c78adb">
+<div id="outline-container-org432d1e6" class="outline-3">
+<h3 id="org432d1e6">Navigation</h3>
+<div class="outline-text-3" id="text-org432d1e6">
 </div><div id="outline-container-org43a846b" class="outline-4">
 <h4 id="org43a846b">Pop to mark</h4>
 <div class="outline-text-4" id="text-org43a846b">
@@ -1447,6 +1503,7 @@ Handy way of getting back to previous places.
 </div>
 </div>
 </div>
+
 <div id="outline-container-orga9c79c3" class="outline-4">
 <h4 id="orga9c79c3">Helm-swoop - quickly finding lines</h4>
 <div class="outline-text-4" id="text-orga9c79c3">
@@ -1495,6 +1552,7 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
 </div>
 </div>
 </div>
+
 <div id="outline-container-org7c77581" class="outline-4">
 <h4 id="org7c77581">More window movement</h4>
 <div class="outline-text-4" id="text-org7c77581">
@@ -1505,6 +1563,7 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
 </div>
 </div>
 </div>
+
 <div id="outline-container-org9750649" class="outline-4">
 <h4 id="org9750649">Frequently-accessed files</h4>
 <div class="outline-text-4" id="text-org9750649">
@@ -1528,10 +1587,15 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
                (current-prefix-arg (<span class="org-keyword">or</span> current-prefix-arg '(4))))
            (call-interactively 'org-refile))))))
 
+
+  (define-key my/refile-map <span class="org-string">","</span> 'my/org-refile-to-previous-in-file)
+
 (<span class="org-keyword">my/defshortcut</span> ?i <span class="org-string">"~/.emacs.d/Sacha.org"</span>)
 (<span class="org-keyword">my/defshortcut</span> ?o <span class="org-string">"~/personal/organizer.org"</span>)
 (<span class="org-keyword">my/defshortcut</span> ?s <span class="org-string">"~/personal/sewing.org"</span>)
 (<span class="org-keyword">my/defshortcut</span> ?b <span class="org-string">"~/personal/business.org"</span>)
+(<span class="org-keyword">my/defshortcut</span> ?p <span class="org-string">"~/personal/google-inbox.org"</span>)
+(<span class="org-keyword">my/defshortcut</span> ?P <span class="org-string">"~/personal/google-ideas.org"</span>)
 (<span class="org-keyword">my/defshortcut</span> ?B <span class="org-string">"~/Dropbox/books"</span>)
 (<span class="org-keyword">my/defshortcut</span> ?e <span class="org-string">"~/code/emacs-notes/tasks.org"</span>)
 (<span class="org-keyword">my/defshortcut</span> ?w <span class="org-string">"~/Dropbox/public/sharing/index.org"</span>)
@@ -1755,9 +1819,10 @@ From <a href="https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el">http
 </div>
 </div>
 </div>
-<div id="outline-container-org7fc30f8" class="outline-4">
-<h4 id="org7fc30f8">Dired</h4>
-<div class="outline-text-4" id="text-org7fc30f8">
+
+<div id="outline-container-org9d37c7d" class="outline-4">
+<h4 id="org9d37c7d">Dired</h4>
+<div class="outline-text-4" id="text-org9d37c7d">
 <p>
 From <a href="http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/">http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/</a>
 </p>
@@ -1768,6 +1833,7 @@ From <a href="http://www.masteringemacs.org/articles/2011/03/25/working-multiple
 </pre>
 </div>
 </div>
+
 <div id="outline-container-org4c65021" class="outline-5">
 <h5 id="org4c65021">peep-dired</h5>
 <div class="outline-text-5" id="text-org4c65021">
@@ -1958,6 +2024,7 @@ From Xah Lee:
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">artbollocks-mode</span>
   <span class="org-builtin">:defer</span> t
+  <span class="org-builtin">:load-path</span>  <span class="org-string">"~/elisp/artbollocks-mode"</span>
   <span class="org-builtin">:config</span>
   (<span class="org-keyword">progn</span>
     (<span class="org-keyword">setq</span> artbollocks-weasel-words-regex
@@ -2325,7 +2392,8 @@ currently experimenting with.
                       org-toc))
 (eval-after-load 'org
  '(org-load-modules-maybe t))
-(<span class="org-keyword">setq</span> org-expiry-inactive-timestamps t)
+<span class="org-comment-delimiter">;; </span><span class="org-comment">Prepare stuff for org-export-backends</span>
+(<span class="org-keyword">setq</span> org-export-backends '(org latex icalendar html ascii))
 </pre>
 </div>
 </div>
@@ -2423,9 +2491,9 @@ These are great for quickly acting on tasks.
 </div>
 </div>
 
-<div id="outline-container-org7c78adb" class="outline-4">
-<h4 id="org7c78adb">Navigation</h4>
-<div class="outline-text-4" id="text-org7c78adb">
+<div id="outline-container-org4abb563" class="outline-4">
+<h4 id="org4abb563">Navigation</h4>
+<div class="outline-text-4" id="text-org4abb563">
 <p>
 From <a href="http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-command-to-jump-to-an-org-heading">http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-command-to-jump-to-an-org-heading</a>
 </p>
@@ -2538,9 +2606,9 @@ This quickly adds a same-level heading for the succeeding day.
 </div>
 </div>
 </div>
-<div id="outline-container-org5b9f9d2" class="outline-5">
-<h5 id="org5b9f9d2">Templates</h5>
-<div class="outline-text-5" id="text-org5b9f9d2">
+<div id="outline-container-org4e9961e" class="outline-5">
+<h5 id="org4e9961e">Templates</h5>
+<div class="outline-text-5" id="text-org4e9961e">
 <p>
 I use <code>org-capture</code> templates to quickly jot down tasks, ledger
 entries, notes, and other semi-structured pieces of information.
@@ -2666,7 +2734,7 @@ entries, notes, and other semi-structured pieces of information.
 </pre>
 </div>
 </div>
-<ul class="org-ul"><li><a id="org90b314b"></a>Allow refiling in the middle(ish) of a capture<br  /><div class="outline-text-6" id="text-org90b314b">
+<ul class="org-ul"><li><a id="org90b314b"></a>Allow refiling in the middle(ish) of a capture<br /><div class="outline-text-6" id="text-org90b314b">
 <p>
 This lets me use <code>C-c C-r</code> to refile a capture and then jump to the
 new location. I wanted to be able to file tasks under projects so that
@@ -2684,6 +2752,7 @@ able to clock in on them.
   (org-refile-goto-last-stored))
 (eval-after-load 'org-capture
  '(bind-key <span class="org-string">"C-c C-r"</span> 'my/org-refile-and-jump org-capture-mode-map))
+
 </pre>
 </div>
 </div></li></ul>
@@ -2701,13 +2770,13 @@ able to clock in on them.
 (<span class="org-keyword">setq</span> org-refile-use-outline-path nil)
 (<span class="org-keyword">setq</span> org-refile-allow-creating-parent-nodes 'confirm)
 (<span class="org-keyword">setq</span> org-refile-use-cache nil)
-(<span class="org-keyword">setq</span> org-refile-targets '((org-agenda-files . (<span class="org-builtin">:maxlevel</span> . 6))))
+(<span class="org-keyword">setq</span> org-refile-targets '((org-agenda-files . (<span class="org-builtin">:maxlevel</span> . 3))))
 (<span class="org-keyword">setq</span> org-blank-before-new-entry nil)
 </pre>
 </div>
 </div>
 
-<ul class="org-ul"><li><a id="orgc813bf0"></a><span class="todo TEACH">TEACH</span> Jump to Org location by substring<br  /><div class="outline-text-6" id="text-orgc813bf0">
+<ul class="org-ul"><li><a id="orgc813bf0"></a><span class="todo TEACH">TEACH</span> Jump to Org location by substring<br /><div class="outline-text-6" id="text-orgc813bf0">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">Example: (org-refile 4 nil (my/org-refile-get-location-by-substring "Other Emacs"))</span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-refile-get-location-by-substring</span> (regexp <span class="org-type">&amp;optional</span> file)
@@ -2770,7 +2839,7 @@ able to clock in on them.
 </div>
 </div></li>
 
-<li><a id="org3389dcd"></a>Quick way to jump<br  /><div class="outline-text-6" id="text-org3389dcd">
+<li><a id="org3389dcd"></a>Quick way to jump<br /><div class="outline-text-6" id="text-org3389dcd">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-jump</span> ()
   (<span class="org-keyword">interactive</span>)
@@ -2812,7 +2881,7 @@ I'm curious about how fast I type some things.
 </div><div id="outline-container-org68b5ede" class="outline-5">
 <h5 id="org68b5ede">Managing tasks</h5>
 <div class="outline-text-5" id="text-org68b5ede">
-</div><ul class="org-ul"><li><a id="todo-keywords"></a><a id="org563aeef"></a>Track TODO state<br  /><div class="outline-text-6" id="text-todo-keywords">
+</div><ul class="org-ul"><li><a id="todo-keywords"></a><a id="org563aeef"></a>Track TODO state<br /><div class="outline-text-6" id="text-todo-keywords">
 <p>
 <a id="orgf3c188c"></a>
 </p>
@@ -2852,7 +2921,7 @@ and <code>!</code> automatically logs the timestamp of the state change.
 </pre>
 </div>
 </div></li>
-<li><a id="orgb55dab4"></a>Projects<br  /><div class="outline-text-6" id="text-orgb55dab4">
+<li><a id="org8b22f1c"></a>Projects<br /><div class="outline-text-6" id="text-org8b22f1c">
 <p>
 Projects are headings with the <code>:project:</code> tag, so we generally don't
 want that tag inherited, except when we display unscheduled tasks that
@@ -2885,9 +2954,17 @@ This code makes it easy for me to focus on one project and its tasks.
 <p>
 There's probably a proper way to do this, maybe with <code>&lt;</code>. Oh, that would work nicely. <code>&lt; C-c a t</code> too.
 </p>
-</div></li>
 
-<li><a id="orga80c2e9"></a>Tag tasks with GTD-ish contexts<br  /><div class="outline-text-6" id="text-orga80c2e9">
+<p>
+And sorting:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(add-to-list 'org-speed-commands-user '(<span class="org-string">"S"</span> call-interactively 'org-sort))
+</pre>
+</div>
+</div></li>
+<li><a id="orga80c2e9"></a>Tag tasks with GTD-ish contexts<br /><div class="outline-text-6" id="text-orga80c2e9">
 <p>
 This defines keyboard shortcuts for those, too.
 </p>
@@ -2909,7 +2986,7 @@ This defines keyboard shortcuts for those, too.
 </pre>
 </div>
 </div></li>
-<li><a id="org65894dc"></a>Enable filtering by effort estimates<br  /><div class="outline-text-6" id="text-org65894dc">
+<li><a id="org65894dc"></a>Enable filtering by effort estimates<br /><div class="outline-text-6" id="text-org65894dc">
 <p>
 That way, it's easy to see short tasks that I can finish.
 </p>
@@ -2921,12 +2998,12 @@ That way, it's easy to see short tasks that I can finish.
 </div>
 </div></li>
 
-<li><a id="org0c5d380"></a>Track time<br  /><div class="outline-text-6" id="text-org0c5d380">
+<li><a id="org0c5d380"></a>Track time<br /><div class="outline-text-6" id="text-org0c5d380">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">org</span>
- <span class="org-builtin">:load-path</span> <span class="org-string">"~/elisp/org-mode/lisp"</span>
  <span class="org-builtin">:init</span>
  (<span class="org-keyword">progn</span>
+  (<span class="org-keyword">setq</span> org-expiry-inactive-timestamps t)
   (<span class="org-keyword">setq</span> org-clock-idle-time nil)
   (<span class="org-keyword">setq</span> org-log-done 'time)
   (<span class="org-keyword">setq</span> org-clock-continuously nil)
@@ -2951,7 +3028,7 @@ Too many clock entries clutter up a heading.
 </div>
 </div></li>
 
-<li><a id="org8f3cccb"></a>Habits<br  /><div class="outline-text-6" id="text-org8f3cccb">
+<li><a id="org8f3cccb"></a>Habits<br /><div class="outline-text-6" id="text-org8f3cccb">
 <p>
 I like using org-habits to track consistency. My task names tend
 to be a bit long, though, so I've configured the graph column to
@@ -2995,7 +3072,6 @@ From "Add an effort estimate on the fly when clocking in" on the
 </div>
 </div>
 </div>
-
 <div id="outline-container-orgfb59bfc" class="outline-5">
 <h5 id="orgfb59bfc">Modifying org agenda so that I can display a subset of tasks</h5>
 <div class="outline-text-5" id="text-orgfb59bfc">
@@ -3058,9 +3134,9 @@ of every month. Fortunately, <a href="http://stackoverflow.com/questions/1355538
 </div>
 </div>
 </div>
-<div id="outline-container-org5b9f9d2" class="outline-4">
-<h4 id="org5b9f9d2">Templates</h4>
-<div class="outline-text-4" id="text-org5b9f9d2">
+<div id="outline-container-orgb371156" class="outline-4">
+<h4 id="orgb371156">Templates</h4>
+<div class="outline-text-4" id="text-orgb371156">
 </div><div id="outline-container-org74bcbb3" class="outline-5">
 <h5 id="org74bcbb3">Structure templates</h5>
 <div class="outline-text-5" id="text-org74bcbb3">
@@ -3180,20 +3256,20 @@ only a few of them them for faster scanning.
 <pre class="src src-emacs-lisp">(<span class="org-keyword">setq</span> org-agenda-files
       (delq nil
             (mapcar (<span class="org-keyword">lambda</span> (x) (<span class="org-keyword">and</span> (file-exists-p x) x))
-                    '(<span class="org-string">"~/personal/organizer.org"</span>
+                    `(<span class="org-string">"~/personal/organizer.org"</span>
                       <span class="org-string">"~/personal/sewing.org"</span>
                       <span class="org-string">"~/personal/people.org"</span>
                       <span class="org-string">"~/Dropbox/wsmef/trip.txt"</span>
+                      ,my/kid-org-file
                       <span class="org-string">"~/personal/business.org"</span>
                       <span class="org-string">"~/personal/calendar.org"</span>
-                      <span class="org-string">"~/Dropbox/wsmef/puppy.txt"</span>
                       <span class="org-string">"~/Dropbox/tasker/summary.txt"</span>
                       <span class="org-string">"~/Dropbox/public/sharing/index.org"</span>
                       <span class="org-string">"~/dropbox/public/sharing/learning.org"</span>
                       <span class="org-string">"~/code/emacs-notes/tasks.org"</span>
                       <span class="org-string">"~/sachac.github.io/evil-plans/index.org"</span>
                       <span class="org-string">"~/personal/cooking.org"</span>
-                      <span class="org-string">"~/personal/routines.org"</span>))))<span class="org-warning">t</span>
+                      <span class="org-string">"~/personal/routines.org"</span>))))
 (add-to-list 'auto-mode-alist '(<span class="org-string">"\\.txt$"</span> . org-mode))
 </pre>
 </div>
@@ -3233,7 +3309,6 @@ Some other keyboard shortcuts:
 </div>
 </div>
 </div>
-
 <div id="outline-container-orgabc55d6" class="outline-5">
 <h5 id="orgabc55d6">Starting my weeks on Saturday</h5>
 <div class="outline-text-5" id="text-orgabc55d6">
@@ -3501,128 +3576,130 @@ hang of using these more!
 </table>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp">  (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/org-agenda-contexts</span>
-    '((tags-todo <span class="org-string">"+@phone"</span>)
-      (tags-todo <span class="org-string">"+@work"</span>)
-      (tags-todo <span class="org-string">"+@drawing"</span>)
-      (tags-todo <span class="org-string">"+@coding"</span>)
-      (tags-todo <span class="org-string">"+@writing"</span>)
-      (tags-todo <span class="org-string">"+@computer"</span>)
-      (tags-todo <span class="org-string">"+@home"</span>)
-      (tags-todo <span class="org-string">"+@errands"</span>))
-    <span class="org-doc">"Usual list of contexts."</span>)
-  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-agenda-skip-scheduled</span> ()
-    (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp <span class="org-string">"\n]+&gt;"</span>))
-  (<span class="org-keyword">setq</span> org-agenda-custom-commands
-        `((<span class="org-string">"t"</span> tags-todo <span class="org-string">"-cooking"</span>
-           ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
-          (<span class="org-string">"T"</span> tags-todo <span class="org-string">"TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}"</span> nil <span class="org-string">"~/Dropbox/agenda/nonroutine.html"</span>)
-          (<span class="org-string">"f"</span> tags-todo <span class="org-string">"fuzzy-TODO=\"DONE\"-TODO=\"CANCELLED\""</span>)
-          (<span class="org-string">"F"</span> tags-todo <span class="org-string">"highenergy-TODO=\"DONE\"-TODO=\"CANCELLED\""</span>)
-          (<span class="org-string">"b"</span> todo <span class="org-string">""</span>
-           ((org-agenda-files '(<span class="org-string">"~/personal/business.org"</span>))))
-          (<span class="org-string">"B"</span> todo <span class="org-string">""</span>
-           ((org-agenda-files '(<span class="org-string">"~/Dropbox/books"</span>))))
-          (<span class="org-string">"o"</span> todo <span class="org-string">""</span>
-           ((org-agenda-files '(<span class="org-string">"~/personal/organizer.org"</span>))))
-          (<span class="org-string">"c"</span> todo <span class="org-string">""</span>
-           ((org-agenda-prefix-format <span class="org-string">""</span>)
-            (org-agenda-cmp-user-defined 'my/org-sort-agenda-items-todo)
-            (org-agenda-view-columns-initially t)
-            ))
-          <span class="org-comment-delimiter">;; </span><span class="org-comment">Weekly review</span>
-          (<span class="org-string">"w"</span> <span class="org-string">"Weekly review"</span> agenda <span class="org-string">""</span>
-           ((org-agenda-span 7)
-            (org-agenda-log-mode 1)) <span class="org-string">"~/Dropbox/agenda/this-week.html"</span>)
-          (<span class="org-string">"W"</span> <span class="org-string">"Weekly review sans routines"</span> agenda <span class="org-string">""</span>
-           ((org-agenda-span 7)
-            (org-agenda-log-mode 1)
-            (org-agenda-tag-filter-preset '(<span class="org-string">"-routine"</span>))) <span class="org-string">"~/Dropbox/agenda/this-week-nonroutine.html"</span>)
-          (<span class="org-string">"2"</span> <span class="org-string">"Bi-weekly review"</span> agenda <span class="org-string">""</span> ((org-agenda-span 14) (org-agenda-log-mode 1)))
-          (<span class="org-string">"gb"</span> <span class="org-string">"Business"</span> todo <span class="org-string">""</span>
-           ((org-agenda-files '(<span class="org-string">"~/personal/business.org"</span>))
-            (org-agenda-view-columns-initially t)))
-          (<span class="org-string">"gc"</span> <span class="org-string">"Coding"</span> tags-todo <span class="org-string">"@coding"</span>
-           ((org-agenda-view-columns-initially t)))
-          (<span class="org-string">"gw"</span> <span class="org-string">"Writing"</span> tags-todo <span class="org-string">"@writing"</span>
-           ((org-agenda-view-columns-initially t)))
-          (<span class="org-string">"gp"</span> <span class="org-string">"Phone"</span> tags-todo <span class="org-string">"@phone"</span>
-           ((org-agenda-view-columns-initially t)))
-          (<span class="org-string">"gd"</span> <span class="org-string">"Drawing"</span> tags-todo <span class="org-string">"@drawing"</span>
-           ((org-agenda-view-columns-initially t)))
-          (<span class="org-string">"gh"</span> <span class="org-string">"Home"</span> tags-todo <span class="org-string">"@home"</span>
-           ((org-agenda-view-columns-initially t)))
-          (<span class="org-string">"gk"</span> <span class="org-string">"Kaizen"</span> tags-todo <span class="org-string">"kaizen"</span>
-           ((org-agenda-view-columns-initially t))
-           (<span class="org-string">"~/Dropbox/agenda/errands.html"</span>))
-          (<span class="org-string">"ge"</span> <span class="org-string">"Errands"</span> tags-todo <span class="org-string">"@errands"</span>
-           ((org-agenda-view-columns-initially t))
-           (<span class="org-string">"~/Dropbox/agenda/errands.html"</span>))
-          (<span class="org-string">"0"</span> <span class="org-string">"Top 3 by context"</span>
-           ,my/org-agenda-contexts
-           ((org-agenda-sorting-strategy '(priority-up effort-down))
-            (my/org-agenda-limit-items 3)))
-          (<span class="org-string">")"</span> <span class="org-string">"All by context"</span>
-           ,my/org-agenda-contexts
-           ((org-agenda-sorting-strategy '(priority-down effort-down))
-            (my/org-agenda-limit-items nil)))
-          (<span class="org-string">"9"</span> <span class="org-string">"Unscheduled top 3 by context"</span>
-           ,my/org-agenda-contexts
-           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
-            (org-agenda-sorting-strategy '(priority-down effort-down))
-            (my/org-agenda-limit-items 3)))
-          (<span class="org-string">"("</span> <span class="org-string">"All unscheduled by context"</span>
-           ,my/org-agenda-contexts
-           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
-            (org-agenda-sorting-strategy '(priority-down effort-down))
-            ))
-          (<span class="org-string">"d"</span> <span class="org-string">"Timeline for today"</span> ((agenda <span class="org-string">""</span> ))
-           ((org-agenda-ndays 1)
-            (org-agenda-show-log t)
-            (org-agenda-log-mode-items '(clock closed))
-            (org-agenda-clockreport-mode t)
-            (org-agenda-entry-types '())))
-          (<span class="org-string">"."</span> <span class="org-string">"Waiting for"</span> todo <span class="org-string">"WAITING"</span>)
-          (<span class="org-string">"u"</span> <span class="org-string">"Unscheduled tasks"</span> tags-todo <span class="org-string">"-someday-TODO=\"SOMEDAY\"-TODO=\"DELEGATED\"-TODO=\"WAITING\"-project"</span>
-           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
-            (org-agenda-view-columns-initially t)
-            (org-tags-exclude-from-inheritance '(<span class="org-string">"project"</span>))
-            (org-agenda-overriding-header <span class="org-string">"Unscheduled TODO entries: "</span>)
-            (org-columns-default-format <span class="org-string">"%50ITEM %TODO %3PRIORITY %Effort{:} %TAGS"</span>)
-            (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))))
-          (<span class="org-string">"U"</span> <span class="org-string">"Unscheduled tasks outside projects"</span> tags-todo <span class="org-string">"-project"</span>
-           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
-            (org-tags-exclude-from-inheritance nil)
-            (org-agenda-view-columns-initially t)
-            (org-agenda-overriding-header <span class="org-string">"Unscheduled TODO entries outside projects: "</span>)
-            (org-agenda-sorting-strategy '(todo-state-up priority-down tag-up category-keep effort-down))))
-          (<span class="org-string">"P"</span> <span class="org-string">"By priority"</span>
-           ((tags-todo <span class="org-string">"+PRIORITY=\"A\""</span>)
-            (tags-todo <span class="org-string">"+PRIORITY=\"B\""</span>)
-            (tags-todo <span class="org-string">"+PRIORITY=\"\""</span>)
-            (tags-todo <span class="org-string">"+PRIORITY=\"C\""</span>))
-           ((org-agenda-prefix-format <span class="org-string">"%-10c %-10T %e "</span>)
-            (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
-          (<span class="org-string">"pp"</span> tags <span class="org-string">"+project-someday-TODO=\"DONE\"-TODO=\"SOMEDAY\"-inactive"</span>
-           ((org-tags-exclude-from-inheritance '(<span class="org-string">"project"</span>))
-            (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
-          (<span class="org-string">"p."</span> tags <span class="org-string">"+project-TODO=\"DONE\""</span>
-           ((org-tags-exclude-from-inheritance '(<span class="org-string">"project"</span>))
-            (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
-          (<span class="org-string">"S"</span> tags-todo <span class="org-string">"TODO=\"STARTED\""</span>)
-          (<span class="org-string">"C"</span> <span class="org-string">"Cooking"</span>
-           ((tags <span class="org-string">"vegetables"</span>)
-            (tags <span class="org-string">"chicken"</span>)
-            (tags <span class="org-string">"beef"</span>)
-            (tags <span class="org-string">"pork"</span>)
-            (tags <span class="org-string">"other"</span>))
-           ((org-agenda-files '(<span class="org-string">"~/personal/cooking.org"</span>))
-            (org-agenda-view-columns-initially t)
-            (org-agenda-sorting-strategy '(scheduled-up time-down todo-state-up)))
-           )
-          (<span class="org-string">"2"</span> <span class="org-string">"List projects with tasks"</span> my/org-agenda-projects-and-tasks
-           <span class="org-string">"+PROJECT"</span>
-             ((my/org-agenda-limit-items 3)))))
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defvar</span> <span class="org-variable-name">my/org-agenda-contexts</span>
+  '((tags-todo <span class="org-string">"+@phone"</span>)
+    (tags-todo <span class="org-string">"+@work"</span>)
+    (tags-todo <span class="org-string">"+@drawing"</span>)
+    (tags-todo <span class="org-string">"+@coding"</span>)
+    (tags-todo <span class="org-string">"+@writing"</span>)
+    (tags-todo <span class="org-string">"+@computer"</span>)
+    (tags-todo <span class="org-string">"+@home"</span>)
+    (tags-todo <span class="org-string">"+@errands"</span>))
+  <span class="org-doc">"Usual list of contexts."</span>)
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-agenda-skip-scheduled</span> ()
+  (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp <span class="org-string">"\n]+&gt;"</span>))
+(<span class="org-keyword">setq</span> org-agenda-custom-commands
+      `((<span class="org-string">"t"</span> tags-todo <span class="org-string">"-cooking"</span>
+         ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
+        (<span class="org-string">"T"</span> tags-todo <span class="org-string">"TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}"</span> nil <span class="org-string">"~/Dropbox/agenda/nonroutine.html"</span>)
+        (<span class="org-string">"f"</span> tags-todo <span class="org-string">"fuzzy-TODO=\"DONE\"-TODO=\"CANCELLED\""</span>)
+        (<span class="org-string">"F"</span> tags-todo <span class="org-string">"highenergy-TODO=\"DONE\"-TODO=\"CANCELLED\""</span>)
+        (<span class="org-string">"b"</span> todo <span class="org-string">""</span>
+         ((org-agenda-files '(<span class="org-string">"~/personal/business.org"</span>))))
+        (<span class="org-string">"B"</span> todo <span class="org-string">""</span>
+         ((org-agenda-files '(<span class="org-string">"~/Dropbox/books"</span>))))
+        (<span class="org-string">"o"</span> todo <span class="org-string">""</span>
+         ((org-agenda-files '(<span class="org-string">"~/personal/organizer.org"</span>))))
+        (<span class="org-string">"c"</span> todo <span class="org-string">""</span>
+         ((org-agenda-prefix-format <span class="org-string">""</span>)
+          (org-agenda-cmp-user-defined 'my/org-sort-agenda-items-todo)
+          (org-agenda-view-columns-initially t)
+          ))
+        <span class="org-comment-delimiter">;; </span><span class="org-comment">Weekly review</span>
+        (<span class="org-string">"w"</span> <span class="org-string">"Weekly review"</span> agenda <span class="org-string">""</span>
+         ((org-agenda-span 7)
+          (org-agenda-log-mode 1)) <span class="org-string">"~/Dropbox/agenda/this-week.html"</span>)
+        (<span class="org-string">"W"</span> <span class="org-string">"Weekly review sans routines"</span> agenda <span class="org-string">""</span>
+         ((org-agenda-span 7)
+          (org-agenda-log-mode 1)
+          (org-agenda-tag-filter-preset '(<span class="org-string">"-routine"</span>))) <span class="org-string">"~/Dropbox/agenda/this-week-nonroutine.html"</span>)
+        (<span class="org-string">"2"</span> <span class="org-string">"Bi-weekly review"</span> agenda <span class="org-string">""</span> ((org-agenda-span 14) (org-agenda-log-mode 1)))
+        (<span class="org-string">"5"</span> <span class="org-string">"Quick tasks"</span> tags-todo <span class="org-string">"EFFORT&gt;=\"0:05\"&amp;EFFORT&lt;=\"0:15\""</span>)
+        (<span class="org-string">"0"</span> <span class="org-string">"Unestimated tasks"</span> tags-todo <span class="org-string">"EFFORT=\"\""</span>)
+        (<span class="org-string">"gb"</span> <span class="org-string">"Business"</span> todo <span class="org-string">""</span>
+         ((org-agenda-files '(<span class="org-string">"~/personal/business.org"</span>))
+          (org-agenda-view-columns-initially t)))
+        (<span class="org-string">"gc"</span> <span class="org-string">"Coding"</span> tags-todo <span class="org-string">"@coding"</span>
+         ((org-agenda-view-columns-initially t)))
+        (<span class="org-string">"gw"</span> <span class="org-string">"Writing"</span> tags-todo <span class="org-string">"@writing"</span>
+         ((org-agenda-view-columns-initially t)))
+        (<span class="org-string">"gp"</span> <span class="org-string">"Phone"</span> tags-todo <span class="org-string">"@phone"</span>
+         ((org-agenda-view-columns-initially t)))
+        (<span class="org-string">"gd"</span> <span class="org-string">"Drawing"</span> tags-todo <span class="org-string">"@drawing"</span>
+         ((org-agenda-view-columns-initially t)))
+        (<span class="org-string">"gh"</span> <span class="org-string">"Home"</span> tags-todo <span class="org-string">"@home"</span>
+         ((org-agenda-view-columns-initially t)))
+        (<span class="org-string">"gk"</span> <span class="org-string">"Kaizen"</span> tags-todo <span class="org-string">"kaizen"</span>
+         ((org-agenda-view-columns-initially t))
+         (<span class="org-string">"~/Dropbox/agenda/errands.html"</span>))
+        (<span class="org-string">"ge"</span> <span class="org-string">"Errands"</span> tags-todo <span class="org-string">"@errands"</span>
+         ((org-agenda-view-columns-initially t))
+         (<span class="org-string">"~/Dropbox/agenda/errands.html"</span>))
+        (<span class="org-string">"0"</span> <span class="org-string">"Top 3 by context"</span>
+         ,my/org-agenda-contexts
+         ((org-agenda-sorting-strategy '(priority-up effort-down))
+          (my/org-agenda-limit-items 3)))
+        (<span class="org-string">")"</span> <span class="org-string">"All by context"</span>
+         ,my/org-agenda-contexts
+         ((org-agenda-sorting-strategy '(priority-down effort-down))
+          (my/org-agenda-limit-items nil)))
+        (<span class="org-string">"9"</span> <span class="org-string">"Unscheduled top 3 by context"</span>
+         ,my/org-agenda-contexts
+         ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+          (org-agenda-sorting-strategy '(priority-down effort-down))
+          (my/org-agenda-limit-items 3)))
+        (<span class="org-string">"("</span> <span class="org-string">"All unscheduled by context"</span>
+         ,my/org-agenda-contexts
+         ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+          (org-agenda-sorting-strategy '(priority-down effort-down))
+          ))
+        (<span class="org-string">"d"</span> <span class="org-string">"Timeline for today"</span> ((agenda <span class="org-string">""</span> ))
+         ((org-agenda-ndays 1)
+          (org-agenda-show-log t)
+          (org-agenda-log-mode-items '(clock closed))
+          (org-agenda-clockreport-mode t)
+          (org-agenda-entry-types '())))
+        (<span class="org-string">"."</span> <span class="org-string">"Waiting for"</span> todo <span class="org-string">"WAITING"</span>)
+        (<span class="org-string">"u"</span> <span class="org-string">"Unscheduled tasks"</span> tags-todo <span class="org-string">"-someday-TODO=\"SOMEDAY\"-TODO=\"DELEGATED\"-TODO=\"WAITING\"-project"</span>
+         ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+          (org-agenda-view-columns-initially t)
+          (org-tags-exclude-from-inheritance '(<span class="org-string">"project"</span>))
+          (org-agenda-overriding-header <span class="org-string">"Unscheduled TODO entries: "</span>)
+          (org-columns-default-format <span class="org-string">"%50ITEM %TODO %3PRIORITY %Effort{:} %TAGS"</span>)
+          (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))))
+        (<span class="org-string">"U"</span> <span class="org-string">"Unscheduled tasks outside projects"</span> tags-todo <span class="org-string">"-project"</span>
+         ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+          (org-tags-exclude-from-inheritance nil)
+          (org-agenda-view-columns-initially t)
+          (org-agenda-overriding-header <span class="org-string">"Unscheduled TODO entries outside projects: "</span>)
+          (org-agenda-sorting-strategy '(todo-state-up priority-down tag-up category-keep effort-down))))
+        (<span class="org-string">"P"</span> <span class="org-string">"By priority"</span>
+         ((tags-todo <span class="org-string">"+PRIORITY=\"A\""</span>)
+          (tags-todo <span class="org-string">"+PRIORITY=\"B\""</span>)
+          (tags-todo <span class="org-string">"+PRIORITY=\"\""</span>)
+          (tags-todo <span class="org-string">"+PRIORITY=\"C\""</span>))
+         ((org-agenda-prefix-format <span class="org-string">"%-10c %-10T %e "</span>)
+          (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+        (<span class="org-string">"pp"</span> tags <span class="org-string">"+project-someday-TODO=\"DONE\"-TODO=\"SOMEDAY\"-inactive"</span>
+         ((org-tags-exclude-from-inheritance '(<span class="org-string">"project"</span>))
+          (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+        (<span class="org-string">"p."</span> tags <span class="org-string">"+project-TODO=\"DONE\""</span>
+         ((org-tags-exclude-from-inheritance '(<span class="org-string">"project"</span>))
+          (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+        (<span class="org-string">"S"</span> tags-todo <span class="org-string">"TODO=\"STARTED\""</span>)
+        (<span class="org-string">"C"</span> <span class="org-string">"Cooking"</span>
+         ((tags <span class="org-string">"vegetables"</span>)
+          (tags <span class="org-string">"chicken"</span>)
+          (tags <span class="org-string">"beef"</span>)
+          (tags <span class="org-string">"pork"</span>)
+          (tags <span class="org-string">"other"</span>))
+         ((org-agenda-files '(<span class="org-string">"~/personal/cooking.org"</span>))
+          (org-agenda-view-columns-initially t)
+          (org-agenda-sorting-strategy '(scheduled-up time-down todo-state-up)))
+         )
+        (<span class="org-string">"2"</span> <span class="org-string">"List projects with tasks"</span> my/org-agenda-projects-and-tasks
+         <span class="org-string">"+PROJECT"</span>
+         ((my/org-agenda-limit-items 3)))))
 (<span class="org-keyword">bind-key</span> <span class="org-string">"&lt;apps&gt; a"</span> 'org-agenda)
 </pre>
 </div>
@@ -3803,9 +3880,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 </div>
 </div>
 </div>
-<div id="outline-container-orgb55dab4" class="outline-5">
-<h5 id="orgb55dab4">Projects</h5>
-<div class="outline-text-5" id="text-orgb55dab4">
+<div id="outline-container-org342f89c" class="outline-5">
+<h5 id="org342f89c">Projects</h5>
+<div class="outline-text-5" id="text-org342f89c">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-show-active-projects</span> ()
   <span class="org-doc">"Show my current projects."</span>
@@ -3918,6 +3995,9 @@ then breaking it down into previous/next week.
     (_my/get-previous-tasks)
     (<span class="org-keyword">setq</span> string
           (concat
+           (format <span class="org-string">"- *A- (Childcare)* (%.1fh - %d%% of total)\n"</span>
+                   (my/quantified-get-hours '(<span class="org-string">"A-"</span>) time-summary)
+                   (/ (my/quantified-get-hours '(<span class="org-string">"A-"</span>) time-summary) 1.68))
            (format <span class="org-string">"- *Business* (%.1fh - %d%%)\n"</span> biz-time (/ biz-time 1.68))
            (mapconcat 'identity business <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
            (mapconcat 'identity business-next <span class="org-string">"\n"</span>)
@@ -3965,9 +4045,6 @@ then breaking it down into previous/next week.
            (format <span class="org-string">"- *Unpaid work* (%.1fh - %d%%)\n"</span>
                    (my/quantified-get-hours <span class="org-string">"Unpaid work"</span> time-summary)
                    (/ (my/quantified-get-hours <span class="org-string">"Unpaid work"</span> time-summary) 1.68))
-           (format <span class="org-string">"  - *Childcare* (%.1fh - %d%% of total)\n"</span>
-                   (my/quantified-get-hours '(<span class="org-string">"Unpaid work - Childcare"</span>) time-summary)
-                   (/ (my/quantified-get-hours '(<span class="org-string">"Unpaid work - Childcare"</span>) time-summary) 1.68))
            (format <span class="org-string">"- *Sleep* (%.1fh - %d%% - average of %.1f per day)\n"</span>
                    (my/quantified-get-hours <span class="org-string">"Sleep"</span> time-summary)
                    (/ (my/quantified-get-hours <span class="org-string">"Sleep"</span> time-summary) 1.68)
@@ -4025,7 +4102,7 @@ Now we put it all together&#x2026;
 </pre>
 </div>
 </div>
-<ul class="org-ul"><li><a id="org7affe3b"></a>Flickr extract<br  /><div class="outline-text-6" id="text-org7affe3b">
+<ul class="org-ul"><li><a id="org7affe3b"></a>Flickr extract<br /><div class="outline-text-6" id="text-org7affe3b">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">  (<span class="org-keyword">defun</span> <span class="org-function-name">_my/clean-up-flickr-list</span> (list)
     (<span class="org-keyword">setq</span> list
@@ -4117,7 +4194,7 @@ Now we put it all together&#x2026;
 </div>
 </div></li>
 
-<li><a id="org3ee4c9f"></a>Link-related convenience functions<br  /><div class="outline-text-6" id="text-org3ee4c9f">
+<li><a id="org3ee4c9f"></a>Link-related convenience functions<br /><div class="outline-text-6" id="text-org3ee4c9f">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">kensanata/resolve-redirect</span> (url)
   <span class="org-doc">"Resolve shortened URL by launching `curl --head' and parsing the result."</span>
@@ -4144,19 +4221,22 @@ Now we put it all together&#x2026;
                                          (match-string 0))) <span class="org-warning">t t nil)))))</span>
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/open-urls-in-region</span> (beg end)
-  <span class="org-doc">"Open URLs between BEG and END."</span>
+  <span class="org-doc">"Open URLs between BEG and END.</span>
+<span class="org-doc">TODO: Get better at detecting and opening all URLs"</span>
   (<span class="org-keyword">interactive</span> <span class="org-string">"r"</span>)
   (<span class="org-keyword">save-excursion</span>
     (<span class="org-keyword">save-restriction</span>
       (narrow-to-region beg end)
       (goto-char (point-min))
-      (<span class="org-keyword">while</span> (re-search-forward org-plain-link-re nil t)
-        (org-open-at-point)))))
+      (<span class="org-keyword">while</span> (re-search-forward org-any-link-re nil t)
+        (<span class="org-keyword">save-excursion</span>
+          (backward-char)
+          (org-open-at-point))))))
 </pre>
 </div>
 </div></li>
 
-<li><a id="org286c250"></a>Evernote-related extract<br  /><div class="outline-text-6" id="text-org286c250">
+<li><a id="org286c250"></a>Evernote-related extract<br /><div class="outline-text-6" id="text-org286c250">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/evernote-export-and-extract</span> (start-date end-date)
   <span class="org-doc">"Extract notes created on or after START-DATE and before END-DATE."</span>
@@ -4199,7 +4279,7 @@ Now we put it all together&#x2026;
 </pre>
 </div>
 </div>
-<ul class="org-ul"><li><a id="evernote-copy-journal"></a><a id="org5350cdf"></a>For copying journal entries<br  /><div class="outline-text-7" id="text-evernote-copy-journal">
+<ul class="org-ul"><li><a id="evernote-copy-journal"></a><a id="org5350cdf"></a>For copying journal entries<br /><div class="outline-text-7" id="text-evernote-copy-journal">
 <p>
 <a id="org0f70b5c"></a>
 </p>
@@ -4265,6 +4345,7 @@ Now we put it all together&#x2026;
     (<span class="org-keyword">while</span> (re-search-forward <span class="org-string">"\n\n\n+"</span> nil t)
      (replace-match <span class="org-string">"\n\n"</span>))
     (s-trim (buffer-string))))
+
 </pre>
 </div>
 </div></li></ul></li></ul>
@@ -4315,8 +4396,11 @@ Here's a function like <code>my/org-prepare-weekly-review</code>:
          (year (elt date 5))
          start-date
          end-date
+         previous-date
          posts
-         sketches)
+         sketches
+         org-date
+         time)
     (<span class="org-keyword">calendar-increment-month</span> month year -1)
     (<span class="org-keyword">setq</span> start-date (format <span class="org-string">"%4d-%02d-01"</span> year month)
           end-date (format <span class="org-string">"%4d-%02d-01"</span> (elt date 5) (elt date 4))
@@ -4324,6 +4408,9 @@ Here's a function like <code>my/org-prepare-weekly-review</code>:
                  (format <span class="org-string">"http://sachachua.com/blog/%4d/%d?org=1"</span>
                          year month))
           sketches (my/sketches-export-and-extract start-date nil nil t))
+    (<span class="org-keyword">calendar-increment-month</span> month year -1)
+    (<span class="org-keyword">setq</span> previous-date (format <span class="org-string">"%4d-%02d-01"</span> year month))
+    (<span class="org-keyword">setq</span> time (my/quantified-compare previous-date start-date start-date end-date '(<span class="org-string">"Business - Build"</span> <span class="org-string">"Discretionary - Play"</span> <span class="org-string">"Unpaid work"</span> <span class="org-string">"A-"</span> <span class="org-string">"Discretionary - Social"</span> <span class="org-string">"Discretionary - Family"</span> <span class="org-string">"Sleep"</span> <span class="org-string">"Business - Connect"</span> <span class="org-string">"Business - Earn"</span> <span class="org-string">"Discretionary - Productive"</span> <span class="org-string">"Personal"</span>) <span class="org-string">"Previous month %"</span> <span class="org-string">"This month %"</span>))
     (goto-char (line-end-position))
     (insert
      <span class="org-string">"\n\n** Monthly review: "</span>
@@ -4332,7 +4419,10 @@ Here's a function like <code>my/org-prepare-weekly-review</code>:
      <span class="org-string">"*Blog posts*\n"</span>
      posts <span class="org-string">"\n\n"</span>
      <span class="org-string">"*Sketches*\n\n"</span>
-     sketches)))
+     sketches
+     <span class="org-string">"*Time*\n\n"</span>
+     (orgtbl-to-orgtbl time nil))))
+
 </pre>
 </div>
 </div>
@@ -4369,6 +4459,7 @@ This makes it easier to reorganize lines in my weekly review.
             (<span class="org-keyword">unless</span> found
               (org-end-of-item-list)
               (insert string <span class="org-string">"\n"</span>))))))
+
 </pre>
 </div>
 
@@ -4382,6 +4473,7 @@ This makes it easier to reorganize lines in my weekly review.
       (delete-region (line-beginning-position) (1+ (line-end-position)))
       (org-end-of-item-list)
       (insert string))))
+
 </pre>
 </div>
 </div>
@@ -4423,42 +4515,66 @@ This makes it easier to reorganize lines in my weekly review.
 </div>
 </div>
 
-<div id="outline-container-org87138d3" class="outline-5">
-<h5 id="org87138d3">Quickly refiling to the same file</h5>
-<div class="outline-text-5" id="text-org87138d3">
+<div id="outline-container-orgfbdf12b" class="outline-5">
+<h5 id="orgfbdf12b">Quickly refiling Org Mode notes to headings in the same file</h5>
+<div class="outline-text-5" id="text-orgfbdf12b">
+<p>
+I wanted a quick way to organize random notes from my inbox into an
+outline, organizing from the bottom up instead of starting with a
+top-down hierarchy. My old code for refiling to an Org heading in the
+current buffer didn't work any more, but <code>helm-org-in-buffer-headings</code>
+seems to be promising. I made it a speed command (see the value of
+<code>org-use-speed-commands</code> elsewhere in my config) so that I can easily
+refile. 
+</p>
+
 <div class="org-src-container">
-<pre class="src src-emacs-lisp">  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-refile-in-file</span> (prefix)
-    <span class="org-doc">"Refile to a target within the current file."</span>
-    (<span class="org-keyword">interactive</span>)
-    (<span class="org-keyword">let</span> ((org-refile-targets `(((,(buffer-file-name)) <span class="org-builtin">:maxlevel</span> . 6))))
-      (call-interactively 'org-refile)))
-  (define-key my/refile-map <span class="org-string">"."</span> 'my/org-refile-in-file)
-
-  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-refile-to-previous-in-file</span> ()
-    (<span class="org-keyword">interactive</span>)
-    <span class="org-string">"Refile to the previous target."</span>
-    (<span class="org-keyword">let</span> ((org-refile-targets `(((,(buffer-file-name)) <span class="org-builtin">:maxlevel</span> . 6))))
-      (<span class="org-keyword">save-excursion</span>
-        (org-refile nil nil (my/org-refile-get-location-exact (car org-refile-history))))))
-
-<span class="org-comment-delimiter">;; </span><span class="org-comment">TODO Get this to work</span>
-  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-refile-to-previous</span> ()
-    (<span class="org-keyword">interactive</span>)
-    <span class="org-string">"Refile to the previous target."</span>
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defvar</span> <span class="org-variable-name">my/org-last-refile-marker</span> nil <span class="org-doc">"Marker for last refile"</span>)
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-refile-in-file</span> (<span class="org-type">&amp;optional</span> prefix)
+  <span class="org-doc">"Refile to a target within the current file."</span>
+  (<span class="org-keyword">interactive</span>)
+  (<span class="org-keyword">let</span> ((helm-org-headings-actions
+         '((<span class="org-string">"Refile to this heading"</span> . helm-org-heading-refile))))
     (<span class="org-keyword">save-excursion</span>
-      (org-refile nil nil my/org-refile-last-location)))
+      (helm-org-in-buffer-headings)
+      (org-end-of-subtree t)
+      (<span class="org-keyword">setq</span> my/org-last-refile-marker (point-marker)))))
 
-  (add-to-list 'org-speed-commands-user '(<span class="org-string">"G"</span> call-interactively 'my/org-refile-to-previous))
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-refile-to-previous</span> ()
+  <span class="org-doc">"Refile subtree to last position from `</span><span class="org-doc"><span class="org-constant">my/org-refile-in-file</span></span><span class="org-doc">'."</span>
+  (<span class="org-keyword">interactive</span>)
+  (<span class="org-keyword">save-selected-window</span>
+    (<span class="org-keyword">when</span> (eq major-mode 'org-agenda-mode)
+      (org-agenda-switch-to))
+    (org-cut-subtree)
+    (<span class="org-keyword">save-excursion</span>
+      (<span class="org-keyword">let*</span> ((marker my/org-last-refile-marker)
+             (target-level
+              (<span class="org-keyword">with-current-buffer</span> (marker-buffer marker)
+                (goto-char (marker-position marker))
+                (org-current-level))))
+        (helm-org-goto-marker marker)
+        (org-end-of-subtree t t)
+        (org-paste-subtree target-level)))))
 
-  (define-key my/refile-map <span class="org-string">","</span> 'my/org-refile-to-previous-in-file)
-  (add-to-list 'org-speed-commands-user '(<span class="org-string">"."</span> call-interactively 'my/org-refile-to-previous-in-file))
-  (add-to-list 'org-speed-commands-user '(<span class="org-string">"W"</span> call-interactively 'my/org-refile-in-file))
-  (add-to-list 'org-speed-commands-user '(<span class="org-string">"S"</span> call-interactively 'org-sort))
+(add-to-list 'org-speed-commands-user '(<span class="org-string">"w"</span> call-interactively 'my/org-refile-in-file))
+(add-to-list 'org-speed-commands-user '(<span class="org-string">"."</span> call-interactively 'my/org-refile-to-previous))
 </pre>
 </div>
+
+<p>
+TODO: Figure out why I'm getting duplicates. Next step might be to fiddle with <code>helm-org-in-buffer-headings</code> so that it preselects the previous candidate, but that can happen later.
+</p>
+
+<p>
+Tech note: helm-org doesn't use the usual org-refile mechanism. Instead, it
+cuts the subtree, goes to the marker, and pastes it in at the
+appropriate level.
+</p>
 </div>
 </div>
 </div>
+
 
 <div id="outline-container-org763275b" class="outline-4">
 <h4 id="org763275b">Publishing</h4>
@@ -4740,6 +4856,7 @@ don't need this any more&#x2026;
   (<span class="org-keyword">interactive</span>)
   (<span class="org-keyword">let*</span> ((destination-dir <span class="org-string">"~/Dropbox/Public/"</span>)
          (destination-filename <span class="org-string">"sacha-emacs.org"</span>))
+    (my/save-new-packages)
     (<span class="org-keyword">with-current-buffer</span> (find-file <span class="org-string">"~/.emacs.d/Sacha.org"</span>)
       (<span class="org-keyword">save-restriction</span>
         (<span class="org-keyword">save-excursion</span>
@@ -4860,8 +4977,8 @@ So that I can easily add links at point. Formatted as an Org list for now.
 </div>
 </div>
 
-<div id="outline-container-org7fc30f8" class="outline-5">
-<h5 id="org-dired"><a id="org7fc30f8"></a>Dired</h5>
+<div id="outline-container-orga2c647f" class="outline-5">
+<h5 id="org-dired"><a id="orga2c647f"></a>Dired</h5>
 <div class="outline-text-5" id="text-org-dired">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-get-links-in-region</span> (beg end)
@@ -4939,7 +5056,9 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See <a h
  '((dot . t)
    (ditaa . t)
    (sh . t)
+   (sqlite . t)
    (http . t)
+   (ledger . t)
    (shell . t)
    (R . t)))
 (add-to-list 'org-src-lang-modes '(<span class="org-string">"dot"</span> . graphviz-dot))))
@@ -4979,10 +5098,10 @@ Good way to remind myself that I have lots of STARTED tasks.
 <div class="outline-text-4" id="text-org979b970">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-days-between</span> (start end)
-  <span class="org-doc">"Number of days between START and END.</span>
-<span class="org-doc">This includes START and END."</span>
-  (1+ (- (calendar-absolute-from-gregorian (org-date-to-gregorian end))
-      (calendar-absolute-from-gregorian (org-date-to-gregorian start)))))
+  <span class="org-doc">"Number of days between START and END (exclusive).</span>
+<span class="org-doc">This includes START but not END."</span>
+  (- (calendar-absolute-from-gregorian (org-date-to-gregorian end))
+     (calendar-absolute-from-gregorian (org-date-to-gregorian start))))
 </pre>
 </div>
 </div>
@@ -5029,115 +5148,116 @@ I don't want to get distracted by the same code in the other window, so I want o
 <h4 id="org0d10995">Invoices</h4>
 <div class="outline-text-4" id="text-org0d10995">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp">  (<span class="org-keyword">setq</span> calendar-week-start-day 6) <span class="org-comment-delimiter">;; </span><span class="org-comment">My weeks start on Saturday</span>
+<pre class="src src-emacs-lisp">(<span class="org-keyword">setq</span> calendar-week-start-day 6) <span class="org-comment-delimiter">;; </span><span class="org-comment">My weeks start on Saturday</span>
 
-  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-get-invoice-range-based-on-date</span> (date)
-    (<span class="org-keyword">let*</span> ((invoice-date (org-date-to-gregorian date))
-           (start (list (1- (car invoice-date)) 1 (elt invoice-date 2)))
-           (end (list (car invoice-date) 1 (elt invoice-date 2))))
-      (mapcar (<span class="org-keyword">lambda</span> (date)
-                (format-time-string <span class="org-string">"%F"</span> (encode-time 0 0 0 1 (elt date 0) (elt date 2))))
-              (list start end))))
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-get-invoice-range-based-on-date</span> (date)
+  (<span class="org-keyword">let*</span> ((invoice-date (org-date-to-gregorian date))
+         (start (list (1- (car invoice-date)) 1 (elt invoice-date 2)))
+         (end (list (car invoice-date) 1 (elt invoice-date 2))))
+    (mapcar (<span class="org-keyword">lambda</span> (date)
+              (format-time-string <span class="org-string">"%F"</span> (encode-time 0 0 0 1 (elt date 0) (elt date 2))))
+            (list start end))))
 
-  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-quantified-get-hours-based-on-range</span> (category start end)
-    <span class="org-doc">"Return the number of hours for the specified category."</span>
-    (/ (assoc-default category
-                      (quantified-summarize-time start end)) <span class="org-warning">3600.0))</span>
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-quantified-get-hours-based-on-range</span> (category start end)
+  <span class="org-doc">"Return the number of hours for the specified category."</span>
+  (/ (assoc-default category
+                    (quantified-summarize-time start end)) <span class="org-warning">3600.0))</span>
 
-  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-quantified-get-detailed-hours-based-on-range</span> (category start end)
-    <span class="org-doc">"Return a list of (date week-ending-date dow seconds) for CATEGORY from START to END."</span>
-    (<span class="org-keyword">let</span> ((entries
-           (gethash <span class="org-string">"entries"</span>
-                    (quantified-parse-json
-                     (quantified-request (format <span class="org-string">"records.json?start=%s&amp;end=%s&amp;filter_string=%s&amp;split=split"</span> start end (url-encode-url category))
-                                         nil <span class="org-string">"GET"</span>)))))
-      (mapcar
-       (<span class="org-keyword">lambda</span> (entry)
-         (<span class="org-keyword">let</span> ((time (date-to-time (gethash <span class="org-string">"timestamp"</span> entry))))
-           (list
-            (format-time-string <span class="org-string">"%F"</span> time)
-            (format-time-string <span class="org-string">"%F"</span> (my/get-week-end-for-time time))
-            (format-time-string <span class="org-string">"%a"</span> time)
-            (gethash <span class="org-string">"duration"</span> entry))))
-       entries)))
+<span class="org-comment-delimiter">;; </span><span class="org-comment">TODO: paginate</span>
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-quantified-get-detailed-hours-based-on-range</span> (category start end)
+  <span class="org-doc">"Return a list of (date week-ending-date dow seconds) for CATEGORY from START to END."</span>
+  (<span class="org-keyword">let</span> ((entries
+         (gethash <span class="org-string">"entries"</span>
+                  (quantified-parse-json
+                   (quantified-request (format <span class="org-string">"records.json?start=%s&amp;end=%s&amp;filter_string=%s&amp;per_page=1000&amp;split=split"</span> start end (url-encode-url category))
+                                       nil <span class="org-string">"GET"</span>)))))
+    (mapcar
+     (<span class="org-keyword">lambda</span> (entry)
+       (<span class="org-keyword">let</span> ((time (date-to-time (gethash <span class="org-string">"timestamp"</span> entry))))
+         (list
+          (format-time-string <span class="org-string">"%F"</span> time)
+          (format-time-string <span class="org-string">"%F"</span> (my/get-week-end-for-time time))
+          (format-time-string <span class="org-string">"%a"</span> time)
+          (gethash <span class="org-string">"duration"</span> entry))))
+     entries)))
 
-  (<span class="org-keyword">defun</span> <span class="org-function-name">my/get-week-end-for-time</span> (time <span class="org-type">&amp;optional</span> week-ends-on-day)
-    <span class="org-doc">"WEEK-ENDS-ON-DAY: 0 is Sunday"</span>
-    (<span class="org-keyword">let*</span> ((decoded (decode-time time))
-           (dow (elt decoded 6))
-           (end-week (<span class="org-keyword">or</span> week-ends-on-day (% (+ 6 calendar-week-start-day) 7))))
-      (encode-time
-       (elt decoded 0)
-       (elt decoded 1)
-       (elt decoded 2)
-       (+ (elt decoded 3)
-          (% (+ 7 (- end-week dow)) 7))
-       (elt decoded 4)
-       (elt decoded 5))))
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/get-week-end-for-time</span> (time <span class="org-type">&amp;optional</span> week-ends-on-day)
+  <span class="org-doc">"WEEK-ENDS-ON-DAY: 0 is Sunday"</span>
+  (<span class="org-keyword">let*</span> ((decoded (decode-time time))
+         (dow (elt decoded 6))
+         (end-week (<span class="org-keyword">or</span> week-ends-on-day (% (+ 6 calendar-week-start-day) 7))))
+    (encode-time
+     (elt decoded 0)
+     (elt decoded 1)
+     (elt decoded 2)
+     (+ (elt decoded 3)
+        (% (+ 7 (- end-week dow)) 7))
+     (elt decoded 4)
+     (elt decoded 5))))
 
-  (<span class="org-keyword">ert-deftest</span> <span class="org-function-name">my/org-get-week-ending-date</span> ()
-    (<span class="org-keyword">let</span> ((calendar-week-start-day 6)
-          (tests '(
-                   (<span class="org-string">"2015-09-03"</span> . <span class="org-string">"2015-09-04"</span>)
-                   (<span class="org-string">"2015-12-01"</span> . <span class="org-string">"2015-12-04"</span>)
-                   (<span class="org-string">"2015-12-03"</span> . <span class="org-string">"2015-12-04"</span>)
-                   (<span class="org-string">"2015-12-04"</span> . <span class="org-string">"2015-12-04"</span>)
-                   (<span class="org-string">"2015-12-05"</span> . <span class="org-string">"2015-12-11"</span>))))
-      (<span class="org-keyword">dolist</span> (test tests)
-        (<span class="org-keyword">should</span> (string=
-                 (format-time-string
-                  <span class="org-string">"%F"</span>
-                  (my/get-week-end-for-time (org-time-string-to-time (car test))))
-                 (cdr test)))
-        (<span class="org-keyword">should</span> (string=
-                 (format-time-string
-                  <span class="org-string">"%F"</span>
-                  (my/get-week-end-for-time (org-time-string-to-time (car test)) 5))
-                 (cdr test))))))
+(<span class="org-keyword">ert-deftest</span> <span class="org-function-name">my/org-get-week-ending-date</span> ()
+  (<span class="org-keyword">let</span> ((calendar-week-start-day 6)
+        (tests '(
+                 (<span class="org-string">"2015-09-03"</span> . <span class="org-string">"2015-09-04"</span>)
+                 (<span class="org-string">"2015-12-01"</span> . <span class="org-string">"2015-12-04"</span>)
+                 (<span class="org-string">"2015-12-03"</span> . <span class="org-string">"2015-12-04"</span>)
+                 (<span class="org-string">"2015-12-04"</span> . <span class="org-string">"2015-12-04"</span>)
+                 (<span class="org-string">"2015-12-05"</span> . <span class="org-string">"2015-12-11"</span>))))
+    (<span class="org-keyword">dolist</span> (test tests)
+      (<span class="org-keyword">should</span> (string=
+               (format-time-string
+                <span class="org-string">"%F"</span>
+                (my/get-week-end-for-time (org-time-string-to-time (car test))))
+               (cdr test)))
+      (<span class="org-keyword">should</span> (string=
+               (format-time-string
+                <span class="org-string">"%F"</span>
+                (my/get-week-end-for-time (org-time-string-to-time (car test)) 5))
+               (cdr test))))))
 
 
 
-  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-quantified-format-detailed-hours-as-table</span> (list)
-    <span class="org-doc">"Return a table with rows for LIST.</span>
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-quantified-format-detailed-hours-as-table</span> (list)
+  <span class="org-doc">"Return a table with rows for LIST.</span>
 <span class="org-doc">  | Week ending ____ | Sat | Sun | Mon | Tue | Wed | Thu | Fri | Total |</span>
 <span class="org-doc">  LIST elements should be in the form (date week-end-date dow seconds).</span>
 <span class="org-doc">  See `</span><span class="org-doc"><span class="org-constant">my/org-quantified-get-detailed-hours-based-on-range</span></span><span class="org-doc">'."</span>
-    <span class="org-comment-delimiter">;; </span><span class="org-comment">Group by week ending date</span>
-    (<span class="org-keyword">let</span> ((days '(<span class="org-string">"Sat"</span> <span class="org-string">"Sun"</span> <span class="org-string">"Mon"</span> <span class="org-string">"Tue"</span> <span class="org-string">"Wed"</span> <span class="org-string">"Thu"</span> <span class="org-string">"Fri"</span>)))
-      (append
-       (list (append '(<span class="org-string">"Week ending"</span>) days '(<span class="org-string">"Total"</span>)))
-       (mapcar
-        (<span class="org-keyword">lambda</span> (row)
-          (<span class="org-keyword">let</span> ((day-values (-group-by (<span class="org-keyword">lambda</span> (x) (elt x 2)) (cdr row)))
-                (week-total 0))
-            (append
-             (list (format <span class="org-string">"Week ending %s"</span> (format-time-string <span class="org-string">"%b %-e"</span> (org-time-string-to-time (car row)))))
-             (mapcar (<span class="org-keyword">lambda</span> (day)
-                       (<span class="org-keyword">if</span> (assoc-default day day-values)
-                           (format <span class="org-string">"%.1f"</span>
-                                   (apply '+
-                                          (mapcar
-                                           (<span class="org-keyword">lambda</span> (day-val) (/ (elt day-val 3) 3600.0))
-                                           (assoc-default day day-values))))
-                         <span class="org-string">""</span>))
-                     days)
-             (list (format <span class="org-string">"%.1f"</span>
-                           (apply '+ (mapcar (<span class="org-keyword">lambda</span> (day-val) (/ (elt day-val 3) 3600.0)) (cdr row)))))
-             ))
-          )
-        (-sort (<span class="org-keyword">lambda</span> (a b) (string&lt; (car a) (car b))) (-group-by (<span class="org-keyword">lambda</span> (x) (elt x 1)) list))))))
+  <span class="org-comment-delimiter">;; </span><span class="org-comment">Group by week ending date</span>
+  (<span class="org-keyword">let</span> ((days '(<span class="org-string">"Sat"</span> <span class="org-string">"Sun"</span> <span class="org-string">"Mon"</span> <span class="org-string">"Tue"</span> <span class="org-string">"Wed"</span> <span class="org-string">"Thu"</span> <span class="org-string">"Fri"</span>)))
+    (append
+     (list (append '(<span class="org-string">"Week ending"</span>) days '(<span class="org-string">"Total"</span>)))
+     (mapcar
+      (<span class="org-keyword">lambda</span> (row)
+        (<span class="org-keyword">let</span> ((day-values (-group-by (<span class="org-keyword">lambda</span> (x) (elt x 2)) (cdr row)))
+              (week-total 0))
+          (append
+           (list (format <span class="org-string">"Week ending %s"</span> (format-time-string <span class="org-string">"%b %-e"</span> (org-time-string-to-time (car row)))))
+           (mapcar (<span class="org-keyword">lambda</span> (day)
+                     (<span class="org-keyword">if</span> (assoc-default day day-values)
+                         (format <span class="org-string">"%.1f"</span>
+                                 (apply '+
+                                        (mapcar
+                                         (<span class="org-keyword">lambda</span> (day-val) (/ (elt day-val 3) 3600.0))
+                                         (assoc-default day day-values))))
+                       <span class="org-string">""</span>))
+                   days)
+           (list (format <span class="org-string">"%.1f"</span>
+                         (apply '+ (mapcar (<span class="org-keyword">lambda</span> (day-val) (/ (elt day-val 3) 3600.0)) (cdr row)))))
+           ))
+        )
+      (-sort (<span class="org-keyword">lambda</span> (a b) (string&lt; (car a) (car b))) (-group-by (<span class="org-keyword">lambda</span> (x) (elt x 1)) list))))))
 
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-quantified-hours-table</span> ()
   (my/org-quantified-format-detailed-hours-as-table
    (apply 'my/org-quantified-get-detailed-hours-based-on-range 
-    (org-entry-get-with-inheritance <span class="org-string">"QUANTIFIED_CATEGORY"</span>)
-    (my/org-get-invoice-range-based-on-date (org-entry-get-with-inheritance <span class="org-string">"INVOICE_DATE"</span>)))))
+          (org-entry-get-with-inheritance <span class="org-string">"QUANTIFIED_CATEGORY"</span>)
+          (my/org-get-invoice-range-based-on-date (org-entry-get-with-inheritance <span class="org-string">"INVOICE_DATE"</span>)))))
 
-  (<span class="org-keyword">ert-deftest</span> <span class="org-function-name">my/org-get-invoice-range-based-on-date</span> ()
-    <span class="org-doc">"Check if invoice range is sane."</span>
-    (<span class="org-keyword">should</span> (equal (my/org-get-invoice-range-based-on-date <span class="org-string">"2015-12-05"</span>)
-                   '(<span class="org-string">"2015-11-01"</span> <span class="org-string">"2015-12-01"</span>))))
+(<span class="org-keyword">ert-deftest</span> <span class="org-function-name">my/org-get-invoice-range-based-on-date</span> ()
+  <span class="org-doc">"Check if invoice range is sane."</span>
+  (<span class="org-keyword">should</span> (equal (my/org-get-invoice-range-based-on-date <span class="org-string">"2015-12-05"</span>)
+                 '(<span class="org-string">"2015-11-01"</span> <span class="org-string">"2015-12-01"</span>))))
 </pre>
 </div>
 </div>
@@ -5158,6 +5278,15 @@ From <a href="http://stackoverflow.com/questions/6997387/how-to-archive-all-the-
      (org-archive-subtree)
      (<span class="org-keyword">setq</span> org-map-continue-from (outline-previous-heading)))
    <span class="org-string">"TODO=\"DONE\"|TODO=\"CANCELLED\""</span> (<span class="org-keyword">if</span> (org-before-first-heading-p) 'file 'tree)))
+</pre>
+</div>
+
+<p>
+Also, don't ask me for confirmation:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(add-to-list 'org-speed-commands-user '(<span class="org-string">"a"</span> call-interactively 'org-archive-subtree-default))
 </pre>
 </div>
 </div>
@@ -5322,6 +5451,40 @@ This setting puts Org ASCII export links right after the text instead of in a se
 </pre>
 </div>
 
+<p>
+This one exports links from my secret <code>my/reddit-upvoted-json</code>. You
+can get your Reddit upvoted JSON URL at
+<a href="https://www.reddit.com/prefs/feeds/">https://www.reddit.com/prefs/feeds/</a> .
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/reddit-list-upvoted</span> (date)
+  (<span class="org-keyword">let</span> ((threshold (org-read-date nil t date)))
+    (<span class="org-keyword">with-current-buffer</span> (url-retrieve-synchronously my/reddit-upvoted-json)      
+      (goto-char (point-min))
+      (re-search-forward <span class="org-string">"^$"</span>)
+      (<span class="org-keyword">let*</span> ((data (json-read))
+             (items (assoc-default 'children (assoc-default 'data data))))
+        (mapconcat
+         (<span class="org-keyword">lambda</span> (item)
+           (<span class="org-keyword">let*</span> ((o (assoc-default 'data item))
+                  (title (assoc-default 'title o))
+                  (url (assoc-default 'url o))
+                  (date (seconds-to-time (assoc-default 'created_utc o)))
+                  (permalink (concat <span class="org-string">"https://reddit.com"</span> (assoc-default 'permalink o)))
+                  (num-comments (assoc-default 'num_comments o 'eq 0)))
+             (<span class="org-keyword">when</span> (time-less-p threshold date)
+               (<span class="org-keyword">if</span> (&gt; num-comments 0)
+                   (format <span class="org-string">"- [[%s][%s]] ([[%s][Reddit]])\n"</span> url title permalink)
+                 (format <span class="org-string">"- [[%s][%s]]\n"</span> url title)))))
+         items <span class="org-string">""</span>)))))
+</pre>
+</div>
+
+<p>
+Other functions:
+</p>
+
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">    (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-list-from-rss</span> (url date)
       <span class="org-doc">"Convert URL to an Org list"</span>
@@ -5361,9 +5524,13 @@ This setting puts Org ASCII export links right after the text instead of in a se
                      (read (current-buffer))))))
   (<span class="org-keyword">defun</span> <span class="org-function-name">my/save-new-packages</span> ()
    (<span class="org-keyword">interactive</span>)
-   (<span class="org-keyword">with-temp-file</span> <span class="org-string">"~/.emacs.d/.package-list"</span>
+   (<span class="org-keyword">when</span> package-archive-contents
+   (<span class="org-keyword">with-temp-buffer</span>
+     (find-file <span class="org-string">"~/.emacs.d/.package-list"</span>)
+     (erase-buffer)
      (prin1 (mapcar 'car package-archive-contents) (current-buffer))
-     nil))
+     (save-buffer)
+     nil)))
 </pre>
 </div>
 </div>
@@ -5723,6 +5890,7 @@ getting the hang of thinking properly functionally&#x2026; =)
           '((<span class="org-string">"css"</span> . (ac-source-css-property))
             (<span class="org-string">"html"</span> . (ac-source-words-in-buffer ac-source-abbrev)))
           )))
+
 </pre>
 </div>
 </div>
@@ -5791,7 +5959,9 @@ This is something I have to get the hang of too. It gradually expands the select
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">expand-region</span>
   <span class="org-builtin">:defer</span> t
-  <span class="org-builtin">:bind</span> (<span class="org-string">"C-="</span> . er/expand-region))
+  <span class="org-builtin">:bind</span> (<span class="org-string">"C-="</span> . er/expand-region)
+  (<span class="org-string">"C-&lt;prior&gt;"</span> . er/expand-region)
+  (<span class="org-string">"C-&lt;next&gt;"</span> . er/contract-region))
 </pre>
 </div>
 </div>
@@ -5859,6 +6029,7 @@ More things that I need to get used to&#x2026;
     <span class="org-builtin">:disabled</span> t
     <span class="org-builtin">:defer</span> t
     <span class="org-builtin">:init</span> (add-hook 'emacs-lisp-mode-hook 'redshank-mode))
+
 </pre>
 </div>
 </div>
@@ -6067,6 +6238,7 @@ This requires me to modify the behaviour of hippie-expand so that it doesn't din
           (<span class="org-keyword">if</span> (<span class="org-keyword">and</span> hippie-expand-verbose
                    (not (window-minibuffer-p)))
               (message <span class="org-string">"Undoing expansions"</span>))))))
+
 </pre>
 </div>
 
@@ -6441,9 +6613,9 @@ tree instead.
 </div>
 </div>
 </div>
-<div id="outline-container-orgb55dab4" class="outline-4">
-<h4 id="orgb55dab4">Projects</h4>
-<div class="outline-text-4" id="text-orgb55dab4">
+<div id="outline-container-orge26f0d4" class="outline-4">
+<h4 id="orge26f0d4">Projects</h4>
+<div class="outline-text-4" id="text-orge26f0d4">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">projectile</span>
   <span class="org-builtin">:diminish</span> projectile-mode
@@ -6465,7 +6637,8 @@ tree instead.
 <h4 id="orgf50520e">Exploring MELPA recipes</h4>
 <div class="outline-text-4" id="text-orgf50520e">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp"></pre>
+<pre class="src src-emacs-lisp">
+</pre>
 </div>
 </div>
 </div>
@@ -6503,6 +6676,7 @@ tree instead.
     (<span class="org-keyword">setq</span> rspec-command-options <span class="org-string">"--fail-fast --format documentation"</span>)
     (<span class="org-keyword">bind-key</span> <span class="org-string">"C-c , ,"</span> 'rspec-rerun rspec-mode-map)
     (fset 'rspec-verify-single 'my/rspec-verify-single)))
+
 </pre>
 </div>
 
@@ -6731,7 +6905,7 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 <h4 id="orgf73304f">Workrave</h4>
 <div class="outline-text-4" id="text-orgf73304f">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp">    (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/workrave-file</span> (expand-file-name <span class="org-string">".\\Workrave\\historystats"</span> (getenv <span class="org-string">"AppData"</span>)))
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defvar</span> <span class="org-variable-name">my/workrave-file</span> (expand-file-name <span class="org-string">".\\Workrave\\historystats"</span> (getenv <span class="org-string">"AppData"</span>)))
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/workrave-transform-statistics</span> (<span class="org-type">&amp;optional</span> file)
   (<span class="org-keyword">interactive</span> (list my/workrave-file))
@@ -6799,6 +6973,7 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
                             <span class="org-string">"/"</span> (<span class="org-keyword">or</span> prefix <span class="org-string">"image-"</span>)
                             <span class="org-string">".png\"</span>
 <span class="org-string">&lt;StrokeEvent&gt;"</span>) t t)))
+
 </pre>
 </div>
 </div>
@@ -6851,6 +7026,7 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
          (delq nil (mapcar
                     (<span class="org-keyword">lambda</span> (x) (<span class="org-keyword">if</span> (string-equal (substring x 0 1) <span class="org-string">"."</span>) x))
                     ido-temp-list)))))
+
 </pre>
 </div>
 </div>
@@ -7143,6 +7319,14 @@ Get smarter about filtering depending on what I reed or mark. I use <code>!</cod
 Make it easier to review my credit card transactions
 </p>
 
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">ledger-mode</span>
+<span class="org-builtin">:load-path</span> <span class="org-string">"~/vendor/ledger/lisp"</span>
+<span class="org-builtin">:mode</span> <span class="org-string">"\\.ledger$"</span> 
+)
+
+</pre>
+</div>
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/ledger-go-to-beginning-of-entry</span> ()
   <span class="org-doc">"Move to the beginning of the current entry."</span>
@@ -7485,9 +7669,9 @@ cool. On Windows, these things help a little.
 </div>
 </div>
 </div>
-<div id="outline-container-org8b733ec" class="outline-3">
-<h3 id="org8b733ec">Encryption</h3>
-<div class="outline-text-3" id="text-org8b733ec">
+<div id="outline-container-org969843d" class="outline-3">
+<h3 id="org969843d">Encryption</h3>
+<div class="outline-text-3" id="text-org969843d">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">setq</span> epa-file-encrypt-to '(<span class="org-string">"sacha@sachachua.com"</span>))
 </pre>
@@ -7626,9 +7810,19 @@ Let's see how that goes!
 </p>
 </div>
 </div>
+
+<div id="outline-container-org725bc13" class="outline-3">
+<h3 id="org725bc13">Search logs</h3>
+<div class="outline-text-3" id="text-org725bc13">
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/search-irc-logs</span> (string)
+  (<span class="org-keyword">interactive</span> <span class="org-string">"MSearch for: "</span>)
+  (grep (concat <span class="org-string">"grep -nH -r -P "</span> (shell-quote-argument string) <span class="org-string">" ~/backups/server/home/.znc/users/sacha/moddata/log/freenode"</span>)))
+</pre>
 </div>
-
-
+</div>
+</div>
+</div>
 <div id="outline-container-org9d4d8b1" class="outline-2">
 <h2 id="links"><a id="org9d4d8b1"></a>Other cool configs you may want to check out</h2>
 <div class="outline-text-2" id="text-links">
@@ -7852,6 +8046,8 @@ Let's see how that goes!
   (<span class="org-keyword">interactive</span>)
   (process-send-string emms-player-simple-process-name
      (format <span class="org-string">"speed_incr %f\n"</span> (- 0 my/emms-player-mplayer-speed-increment))))
+
+
 </pre>
 </div>
 </div>
@@ -7998,6 +8194,7 @@ I don't automatically turn this on because I think it slows things down a little
   <span class="org-doc">"Return the Drupal module name for .module and .install files."</span>    (file-name-sans-extension (file-name-nondirectory
                              (buffer-file-name))))
 (add-to-list 'hs-special-modes-alist '(drupal-mode <span class="org-string">"{"</span> <span class="org-string">"}"</span> <span class="org-string">"/[*/]"</span> nil hs-c-like-adjust-block-beginning))
+
 </pre>
 </div>
 </div>
@@ -8174,6 +8371,7 @@ to see which items I'd planned ahead, and which ones were new tasks.
     (<span class="org-keyword">if</span> (called-interactively-p)
         (kill-new string)
       string))))
+
 </pre>
 </div>
 </div>
@@ -8284,6 +8482,7 @@ left.
   )
 
 (run-with-idle-timer 300 t 'jump-to-org-agenda)
+
 </pre>
 </div>
 </div>
@@ -8620,9 +8819,9 @@ big to open easily there, though.
 </div>
 </div>
 </div>
-<div id="outline-container-org8b733ec" class="outline-3">
-<h3 id="org8b733ec">Encryption</h3>
-<div class="outline-text-3" id="text-org8b733ec">
+<div id="outline-container-orgd9dbc17" class="outline-3">
+<h3 id="orgd9dbc17">Encryption</h3>
+<div class="outline-text-3" id="text-orgd9dbc17">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">require</span> '<span class="org-constant">org-crypt</span>)
 (org-crypt-use-before-save-magic)
@@ -8641,6 +8840,7 @@ big to open easily there, though.
   <span class="org-comment-delimiter">;; </span><span class="org-comment">To turn it off only locally, you can insert this:</span>
   <span class="org-comment-delimiter">;;</span>
   <span class="org-comment-delimiter">;; </span><span class="org-comment"># -*- buffer-auto-save-file-name: nil; -*-</span>
+
 </pre>
 </div>
 </div>
@@ -9074,14 +9274,14 @@ specified number of them) and then opens the last one for me to edit.
                 (<span class="org-keyword">lambda</span> (dir)
                   (<span class="org-keyword">and</span> (file-directory-p dir)
                        (<span class="org-keyword">if</span> (functionp base)
-                           (-filter base (directory-files dir t <span class="org-string">".*\\.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">tiff</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?$"</span>))
+                           (-filter base (directory-files dir t <span class="org-string">".*\\.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">tiff</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?$"</span>))
                          (directory-files
                           dir t
                           (concat 
                            <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">"</span>
                            (<span class="org-keyword">if</span> as-regexp base (regexp-quote base))
                            <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>
-                           <span class="org-string">".*\\.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">tiff</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?$"</span>
+                           <span class="org-string">".*\\.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">tiff</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?$"</span>
                            )))))
                 my/sketch-directories)))
         'string&lt;))
@@ -9272,6 +9472,7 @@ more entries, with everything else filed under "Other".
 (<span class="org-keyword">ert-deftest</span> <span class="org-function-name">my/extract-categories</span> ()
   (expect (equal (my/extract-categories <span class="org-string">"- [[http://example.com][This is a test #programming #geek]]"</span>)
                  '(<span class="org-string">"programming"</span> <span class="org-string">"geek"</span>))))
+
 </pre>
 </div>
 </div>
@@ -9285,28 +9486,26 @@ more entries, with everything else filed under "Other".
   <span class="org-doc">"Creates a blank journal entry for DATE and brings up the log."</span>
   (<span class="org-keyword">interactive</span> (list (org-read-date)))
   <span class="org-comment-delimiter">;; </span><span class="org-comment">Open the Quantified Awesome time log for that date</span>
-  (<span class="org-keyword">let</span> ((filename (my/get-journal-entry date)))
+  (<span class="org-keyword">let</span> ((filename (my/get-journal-entry date))
+        (day (format-time-string <span class="org-string">"%A"</span> (org-time-string-to-time date))))
     (<span class="org-keyword">if</span> filename
         (my/open-image filename)
-      (browse-url (format <span class="org-string">"http://quantifiedawesome.com/records?start=%s&amp;end=%s"</span>
-                          date
-                          (format-time-string
-                           <span class="org-string">"%Y-%m-%d"</span>
-                           (seconds-to-time
-                            (+ (org-time-string-to-seconds date) 86400)))))
-      (my/open-image
-        (my/prepare-index-card-template
-         (format-time-string
-          <span class="org-string">"%A -- index card #journal"</span>
-          (org-time-string-to-time date))
-         date)))))
+      <span class="org-comment-delimiter">;; </span><span class="org-comment">(browse-url (format "http://quantifiedawesome.com/records?start=%s&amp;end=%s"</span>
+      <span class="org-comment-delimiter">;;                     </span><span class="org-comment">date</span>
+      <span class="org-comment-delimiter">;;                     </span><span class="org-comment">(format-time-string</span>
+      <span class="org-comment-delimiter">;;                      </span><span class="org-comment">"%Y-%m-%d"</span>
+      <span class="org-comment-delimiter">;;                      </span><span class="org-comment">(seconds-to-time</span>
+      <span class="org-comment-delimiter">;;                       </span><span class="org-comment">(+ (org-time-string-to-seconds date) 86400)))))</span>
+      (<span class="org-keyword">setq</span> filename
+            (my/prepare-index-card-template (concat day <span class="org-string">" #daily #journal"</span>) date))
+      (my/open-image filename))))
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/get-journal-entry</span> (date)
   <span class="org-doc">"Returns the filename for the journal sketch for DATE."</span>
   (car
    (-filter (<span class="org-keyword">lambda</span> (x) (not (string-match <span class="org-string">"weekly"</span> x)))
             (my/get-index-card-filenames
-             (format <span class="org-string">"%s.* -- index card.*#journal"</span> date)
+             (format <span class="org-string">"%s.* .*#daily"</span> date)
              t))))
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/get-missing-journal-dates</span> (start-date end-date)
@@ -9379,7 +9578,7 @@ more entries, with everything else filed under "Other".
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/convert-index-card-tiffs-to-pngs</span> ()
   (<span class="org-keyword">interactive</span>)
-  (<span class="org-keyword">let</span> ((pattern <span class="org-string">"^</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">IMG</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">[0-9]+-[0-9]+-[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">.*.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">tif</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">$"</span>))
+  (<span class="org-keyword">let</span> ((pattern <span class="org-string">"^</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">IMG</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">[0-9]+-[0-9]+-[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">.*.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">tif</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">psd</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">$"</span>))
     (<span class="org-keyword">when</span> (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t pattern)
       <span class="org-comment-delimiter">;; </span><span class="org-comment">Convert the TIFFs first</span>
       (apply 'call-process <span class="org-string">"mogrify"</span> nil nil nil <span class="org-string">"-flatten"</span> <span class="org-string">"-format"</span> <span class="org-string">"png"</span> <span class="org-string">"-quality"</span> <span class="org-string">"1"</span>
@@ -9394,22 +9593,44 @@ more entries, with everything else filed under "Other".
   (my/convert-index-card-tiffs-to-pngs)
   (my/upload-scanned-cards))
 
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/rename-scanned-card</span> (filename)
+  (find-file filename)
+  (delete-other-windows)
+  (<span class="org-keyword">let</span> ((base (file-name-sans-extension filename))
+        notes)
+    (<span class="org-keyword">when</span> (string-match <span class="org-string">"/IMG.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[0-9]+-[0-9]+-[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string"> ?.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span> base)
+      (<span class="org-keyword">let</span> ((kill-buffer-query-functions nil)
+            old-name
+            (new-name (read-string <span class="org-string">"New name: "</span>
+                                   (<span class="org-keyword">if</span> (match-string 1 base)
+                                       (concat (match-string 1 base))
+                                     <span class="org-string">""</span>))))
+        (<span class="org-keyword">while</span> (<span class="org-keyword">and</span> (string-match <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+[a-z]"</span> new-name)
+                    (<span class="org-keyword">setq</span> old-name (my/get-index-card-filename (match-string 0 new-name)))
+                    (<span class="org-keyword">and</span> old-name
+                         (not (string= old-name filename))
+                         (not (string= (file-name-nondirectory old-name)
+                                       (concat (s-trim new-name) <span class="org-string">"."</span> (file-name-extension filename))))))
+          (<span class="org-keyword">setq</span> new-name
+                (read-string (format <span class="org-string">"Already exists (%s) - new name: "</span> old-name)
+                             new-name)))
+        (<span class="org-keyword">when</span> (string-match new-name <span class="org-string">"^</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"> *| *</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>)
+          (<span class="org-keyword">with-current-buffer</span> (find-file <span class="org-string">"~/Dropbox/orgzly/Inbox.org"</span>)
+            (goto-char (point-max))
+            (insert <span class="org-string">"\n* "</span> (match-string 1 new-name) <span class="org-string">"\n"</span> (match-string 2 new-name))
+            (save-buffer))
+          (<span class="org-keyword">setq</span> new-name (match-string 1 new-name)))
+        (<span class="org-keyword">when</span> (&gt; (length new-name) 0)
+          (revert-buffer t t)
+          (rename-file filename (concat (s-trim new-name) <span class="org-string">"."</span> (file-name-extension filename)) t)
+          (kill-buffer))))))
+
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/rename-scanned-cards</span> ()
   <span class="org-doc">"Display and rename the scanned or saved files."</span>
   (<span class="org-keyword">interactive</span>)
   (my/convert-index-card-tiffs-to-pngs)
-  (mapc (<span class="org-keyword">lambda</span> (filename)
-          (find-file filename)
-          (delete-other-windows)
-          (<span class="org-keyword">when</span> (string-match <span class="org-string">"/</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">IMG.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[0-9]+-[0-9]+-[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string"> ?.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">\\.png"</span> filename)
-            (<span class="org-keyword">let</span> ((kill-buffer-query-functions nil)
-                  (new-name (read-string <span class="org-string">"New name: "</span>
-                                         (concat (match-string 1 filename) <span class="org-string">" "</span>))))
-              (<span class="org-keyword">when</span> (&gt; (length new-name) 0)
-                (revert-buffer t t)
-                (rename-file filename (concat (s-trim new-name) <span class="org-string">".png"</span>) t)
-                (kill-buffer)))))
-        (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">IMG</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">[0-9]+-[0-9]+-[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">.*.png"</span>))
+  (mapc 'my/rename-scanned-card
+        (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">IMG</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">[0-9]+-[0-9]+-[0-9]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">.*.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>))
    (my/upload-scanned-cards))
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/clean-index-card-directory</span> ()
@@ -9422,24 +9643,21 @@ more entries, with everything else filed under "Other".
   (my/clean-index-card-directory)
   (<span class="org-keyword">with-current-buffer</span> (get-buffer-create <span class="org-string">"*Files to be uploaded*"</span>)
     (erase-buffer)
-    (insert (mapconcat 'identity (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> nil <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string"> ]? .*.png"</span>) <span class="org-string">"\n"</span>))
+    (insert (mapconcat 'identity (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> nil <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string"> ]? .*.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>) <span class="org-string">"\n"</span>))
     (goto-char (point-min))
     (switch-to-buffer (current-buffer))
     (delete-other-windows))
   (<span class="org-keyword">when</span> (yes-or-no-p <span class="org-string">"Upload files?"</span>)
     (<span class="org-keyword">cond</span>
      ((eq system-type 'windows-nt)
-      (apply 'call-process <span class="org-string">"up"</span> nil nil nil (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string"> ]? .*.png"</span>)))
+      (apply 'call-process <span class="org-string">"up"</span> nil nil nil (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string"> ]? .*.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>)))
      ((eq system-type 'gnu/linux)
       (<span class="org-keyword">with-temp-buffer</span>
        (cd <span class="org-string">"~/code/node"</span>)
        (apply 'call-process <span class="org-string">"node"</span> nil nil nil (expand-file-name <span class="org-string">"flickr-upload.js"</span>)
-              (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string"> ]? .*.png"</span>)))
+              (directory-files <span class="org-string">"~/Dropbox/Inbox"</span> t <span class="org-string">"^[0-9]+-[0-9]+-[0-9]+[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string"> ]? .*.</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">png</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">jpg</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>)))
       )))
   (shell-command <span class="org-string">"~/bin/copy-sketches"</span>)
-  (sleep-for 3)
-  (find-file <span class="org-string">"~/personal/questions.org"</span>)
-  (goto-char (point-min))
   <span class="org-comment-delimiter">;;</span><span class="org-comment">(when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))</span>
   <span class="org-comment-delimiter">;;  </span><span class="org-comment">(forward-line 1)</span>
   <span class="org-comment-delimiter">;;  </span><span class="org-comment">(org-end-of-item-list)</span>
@@ -9582,16 +9800,16 @@ Aspect ratio is width / height
   (<span class="org-keyword">let</span> (files)
     (<span class="org-keyword">save-excursion</span>
       (goto-char (min beg end))
-      (<span class="org-keyword">while</span> (re-search-forward <span class="org-string">"\\[\\[[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">]]+\\]\\[</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">]]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">]\\]"</span> (max beg end) t)
-        (add-to-list 'files (match-string-no-properties 1))))
+      (<span class="org-keyword">while</span> (re-search-forward <span class="org-string">"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][a-z]"</span> (max beg end) t)
+        (add-to-list 'files (match-string-no-properties 0) t)))
     files))
 (<span class="org-keyword">ert-deftest</span> <span class="org-function-name">my/extract-image-filenames</span> ()
   <span class="org-doc">"Check if it extracts the filenames properly."</span>
   (<span class="org-keyword">with-temp-buffer</span>
-    (insert <span class="org-string">"- [[https://www.flickr.com/photos/somephotoid][Test]]\n"</span>)
-    (insert <span class="org-string">"- [[https://www.flickr.com/photos/somephotoid2][Test 2]]\n"</span>)
+    (insert <span class="org-string">"- [[https://www.flickr.com/photos/somephotoid][2016-01-01a test]]\n"</span>)
+    (insert <span class="org-string">"- [[https://www.flickr.com/photos/somephotoid2][2016-02-01a again]]\n"</span>)
     (<span class="org-keyword">should</span> (equal (my/extract-image-filenames (point-min) (point-max))
-                   '(<span class="org-string">"Test 2"</span> <span class="org-string">"Test"</span>)))))
+                   '(<span class="org-string">"2016-01-01a"</span> <span class="org-string">"2016-02-01a"</span>)))))
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/create-sketch-montage</span> (files <span class="org-type">&amp;optional</span> tiles)
   <span class="org-doc">"Combine the sketches in the region."</span>
@@ -9600,14 +9818,14 @@ Aspect ratio is width / height
     (<span class="org-keyword">if</span> (derived-mode-p 'dired-mode)
         (dired-get-marked-files)
       (mapcar 'my/get-index-card-filename
-              (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))
+              (my/extract-image-filenames (min (point) (mark)) (max (point) (mark)))))
     (<span class="org-keyword">if</span> current-prefix-arg (read-string <span class="org-string">"Tiling: "</span>))))
   <span class="org-comment-delimiter">;; </span><span class="org-comment">Extract the links</span>
   (<span class="org-keyword">let</span> ((output-file <span class="org-string">"~/Dropbox/Inbox/output.png"</span>))
     (<span class="org-keyword">unless</span> tiles
       (<span class="org-keyword">setq</span> tiles
             (format <span class="org-string">"%dx"</span>
-              (car (my/get-tile-dimensions (length files) 1497 896 (/ 4.0 3))))))
+              (car (my/get-tile-dimensions (length files) 1500 900 (/ 4.0 3))))))
     (<span class="org-keyword">with-temp-buffer</span>
       (cd <span class="org-string">"~/Dropbox/Inbox/To blog"</span>)
       (apply 'call-process
@@ -9615,20 +9833,21 @@ Aspect ratio is width / height
              (append
               files
               (list
-               <span class="org-string">"-geometry"</span> <span class="org-string">"1497x896&gt;+0+0"</span>
+               <span class="org-string">"-geometry"</span> <span class="org-string">"1500x900&gt;+0+0"</span>
                <span class="org-string">"-tile"</span> tiles
                (expand-file-name output-file)))))
     (<span class="org-keyword">if</span> (called-interactively-p 'any) (find-file output-file))))
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/create-week-montage</span> (beg end)
   (<span class="org-keyword">interactive</span> <span class="org-string">"r"</span>)
-  (<span class="org-keyword">let*</span> ((filename (format <span class="org-string">"Week ending %s -- index card #journal #weekly"</span> (org-read-date nil nil <span class="org-string">"-fri"</span>)))
+  (<span class="org-keyword">let*</span> ((date (org-read-date nil nil (<span class="org-keyword">unless</span> current-prefix-arg <span class="org-string">"-fri"</span>)))
+         (filename (format <span class="org-string">"Week ending %s #journal #weekly"</span> date))
          (full-filename (my/get-index-card-filename filename)))
     (<span class="org-keyword">if</span> full-filename
         (my/open-image full-filename)
       (my/create-index-card-montage 
        (mapcar 'my/get-index-card-filename
-               (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))) 
+               (my/extract-image-filenames (min (point) (mark)) (max (point) (mark)))) 
        <span class="org-string">"2x"</span>
        (my/prepare-index-card-template filename)))))
 
@@ -9639,19 +9858,21 @@ Aspect ratio is width / height
     (<span class="org-keyword">if</span> (derived-mode-p 'dired-mode)
         (dired-get-marked-files)
       (mapcar 'my/get-index-card-filename
-              (reverse (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))))))
+              (my/extract-image-filenames (min (point) (mark)) (max (point) (mark)))))))
   (<span class="org-keyword">let</span> ((async-shell-command-buffer 'new-buffer)
         (index-card (<span class="org-keyword">or</span> filename (my/prepare-index-card-template))))
     (my/create-sketch-montage files tiling)
-    (shell-command (format <span class="org-string">"convert %s </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string"> %s -resize 1497x896 </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"> -colorspace cmyk %s"</span>
-                           (shell-quote-argument (expand-file-name my/index-card-template-file))
-                           (shell-quote-argument (expand-file-name <span class="org-string">"~/Dropbox/Inbox/output.png"</span>))
-                           (shell-quote-argument (expand-file-name index-card))))
+    (shell-command
+     (format <span class="org-string">"convert %s </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string"> %s -resize 1500x900 </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"> -colorspace cmyk %s"</span>
+             (shell-quote-argument (expand-file-name my/index-card-template-file))
+             (shell-quote-argument (expand-file-name <span class="org-string">"~/Dropbox/Inbox/output.png"</span>))
+             (shell-quote-argument (expand-file-name index-card))))
     (shell-command (format <span class="org-string">"%s %s &amp;"</span>
                            (shell-quote-argument my/sketch-executable)
                            (shell-quote-argument (expand-file-name index-card))))
     (my/rotate-screen 180)
     (my/set-up-sketch-buffer)))
+
 </pre>
 </div>
 
@@ -9740,6 +9961,7 @@ Convenience functions to make my life easier when sketchnoting books.
            (org-entry-get-with-inheritance <span class="org-string">"BASENAME"</span>)
            (org-entry-get-with-inheritance <span class="org-string">"SHORT_TITLE"</span>)
            (org-entry-get-with-inheritance <span class="org-string">"AUTHOR"</span>))))
+
 </pre>
 </div>
 </div>

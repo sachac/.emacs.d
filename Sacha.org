@@ -3200,7 +3200,25 @@ Tech note: helm-org doesn't use the usual org-refile mechanism. Instead, it
 cuts the subtree, goes to the marker, and pastes it in at the
 appropriate level.
 
+*** Inserting code
 
+#+begin_src emacs-lisp :tangle yes :eval no
+  (defun my/org-insert-defun (function)
+    "Inserts an Org source block with the definition for FUNCTION."
+    (interactive (find-function-read))
+    (let* ((buffer-point (condition-case nil (find-definition-noselect function nil) (error nil)))
+           (new-buf (car buffer-point))
+           (new-point (cdr buffer-point))
+           definition)
+      (if buffer-point        
+        (with-current-buffer new-buf ;; Try to get original definition
+          (save-excursion
+            (goto-char new-point)
+            (setq definition (buffer-substring-no-properties (point) (save-excursion (end-of-defun) (point))))))
+        ;; Fallback: Print function definition
+        (setq definition (concat (prin1-to-string (symbol-function function)) "\n")))
+      (insert "#+begin_src emacs-lisp\n" definition "#+end_src\n")))
+#+end_src
 *** Publishing
 Timestamps and section numbers make my published files look more
 complicated than they are. Let's turn them off by default.
@@ -3861,6 +3879,7 @@ code pulls that information into my ~/Dropbox/tasker/
     :CUSTOM_ID: emacs-news
     :END:
 
+**** Package links
 #+begin_src emacs-lisp :tangle yes
   (defun my/org-package-open (package-name)
     (interactive "MPackage name: ")
@@ -3898,11 +3917,15 @@ code pulls that information into my ~/Dropbox/tasker/
   (org-link-set-parameters "package" :follow 'my/org-package-open :export 'my/org-package-export)
 #+end_src
 
+**** ASCII export
+
 This setting puts Org ASCII export links right after the text instead of in a separate section:
 
 #+begin_src emacs-lisp :tangle yes
 (setq org-ascii-links-to-notes nil)
 #+end_src
+
+**** Reddit
 
 This one exports links from my secret =my/reddit-upvoted-json=. You
 can get your Reddit upvoted JSON URL at
@@ -3910,28 +3933,113 @@ https://www.reddit.com/prefs/feeds/ .
 
 #+begin_src emacs-lisp :tangle yes
   (defun my/reddit-list-upvoted (date)
+    (interactive (list (org-read-date)))
     (let ((threshold (org-read-date nil t date)))
       (with-current-buffer (url-retrieve-synchronously my/reddit-upvoted-json)      
         (goto-char (point-min))
         (re-search-forward "^$")
         (let* ((data (json-read))
-               (items (assoc-default 'children (assoc-default 'data data))))
-          (mapconcat
-           (lambda (item)
-             (let* ((o (assoc-default 'data item))
-                    (title (assoc-default 'title o))
-                    (url (assoc-default 'url o))
-                    (date (seconds-to-time (assoc-default 'created_utc o)))
-                    (permalink (concat "https://reddit.com" (assoc-default 'permalink o)))
-                    (num-comments (assoc-default 'num_comments o 'eq 0)))
-               (when (time-less-p threshold date)
-                 (if (and (> num-comments 0) (not (string-match "https://reddit.com" url)))
-                     (format "- [[%s][%s]] ([[%s][Reddit]])\n" url title permalink)
-                   (format "- [[%s][%s]]\n" url title)))))
-           items "")))))
+               (items (assoc-default 'children (assoc-default 'data data)))
+               (result
+                (mapconcat
+                 (lambda (item)
+                   (let* ((o (assoc-default 'data item))
+                          (title (assoc-default 'title o))
+                          (url (assoc-default 'url o))
+                          (date (seconds-to-time (assoc-default 'created_utc o)))
+                          (permalink (concat "https://reddit.com" (assoc-default 'permalink o)))
+                          (num-comments (assoc-default 'num_comments o 'eq 0)))
+                     (when (time-less-p threshold date)
+                       (if (and (> num-comments 0) (not (string-match "reddit\\.com" url)))
+                           (format "- [[%s][%s]] ([[%s][Reddit]])\n" url title permalink)
+                         (format "- [[%s][%s]]\n" url title)))))
+                 items "")))
+          (if (called-interactively-p)
+              (message "%s" result)
+            result)))))
 #+end_src
 
-Other functions:
+**** Sorting Org Mode lists using a sequence of regular expressions  :emacs:org:
+     :PROPERTIES:
+     :ID:       o2b:ab84dc77-bea4-4e71-ae7f-e91fb34bfa28
+     :POST_DATE: [2017-12-21 Thu 12:08]
+     :POSTID:   29132
+     :BLOG:     sacha
+     :END:
+
+I manually categorize Emacs News links into an Org unordered list, and
+then I reorganize the list by using M-S-up (org-shiftmetaup) and
+M-S-down (org-shiftmetadown). I decide to combine or split categories
+depending on the number of links. I have a pretty consistent order.
+John Wiegley suggested promoting Emacs Lisp and Emacs development
+links at the top of the list. I like to sort the rest of the list
+roughly by interest: general links first, then Org, then coding, then
+other links at the bottom. 
+
+Here's some code that sorts Org lists in a custom sequence, with
+unknown items at the bottom for easy re-ordering. It will take a list like:
+
+#+begin_example
+- Other:
+  - Link A
+  - Link B
+- Emacs development:
+  - Link A
+  - Link B
+- Emacs Lisp:
+  - Link A
+  - Link B
+#+end_example
+
+and turn it into:
+
+#+begin_example
+- Emacs Lisp:
+  - Link A
+  - Link B
+- Emacs development:
+  - Link A
+  - Link B
+- Other:
+  - Link A
+  - Link B
+#+end_example
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/org-sort-list-in-custom-order (order)
+  "Sort the current Org list so that items are in the specified order.
+ORDER is a list of regexps."
+  (org-sort-list
+   nil ?f
+   (lambda ()
+     (let ((case-fold-search t)
+           (item
+            (when (looking-at "[ \t]*[-+*0-9.)]+\\([ \t]+\\[[- X]\\]\\)?[ \t]+")
+              (org-sort-remove-invisible (buffer-substring (match-end 0) (point-at-eol))))))
+       (or (cl-position item order :test (lambda (a b) (string-match b a))) (1+ (length order)))))
+   '<))
+  
+(defun my/emacs-news-sort-list ()
+  (interactive)
+  (my/org-sort-list-in-custom-order
+   '("Emacs Lisp"
+     "Emacs development"
+     "Appearance"
+     "Navigation"
+     "Dired"
+     "Org Mode"
+     "Coding"
+     "Calc"
+     "Email and news"
+     "Other"
+     "Discussion"
+     "Outside Emacs"
+     "New packages?")))
+#+end_src
+
+One more little thing automated...
+
+**** Other functions
 
 #+begin_src emacs-lisp :tangle yes
       (defun my/org-list-from-rss (url date)
@@ -4047,6 +4155,14 @@ does the job in a much cooler way. =) I thought he had a blog post
 about it, but I can't seem to find it. Anyway, there's my little hack
 above!
 
+*** Autosave
+
+Could be handy, especially when synchronizing with Orgzly.
+From https://www.reddit.com/r/orgmode/comments/7ke3hv/orgzly_best_practice/
+
+#+begin_src emacs-lisp :tangle yes
+(run-with-idle-timer 30 t 'org-save-all-org-buffers)
+#+end_src
 
 *** DONE Org Mode tables and fill-in quizzes - Latin verb conjugations in Emacs
     CLOSED: [2015-11-26 Thu 21:48]
@@ -4932,28 +5048,44 @@ with HTTPS sites.
 
    IRC is a great way to hang out with other Emacs geeks.
    #+begin_src emacs-lisp :tangle yes
-          (use-package erc
-            :config
-            (setq erc-hide-list '("PART" "QUIT" "JOIN"))
-            (setq erc-autojoin-channels-alist '(("freenode.net"
-   					      "#org-mode"
-   					      "#hacklabto"
-   					      "#emacs"
-                   "#emacs-beginners"
-                   "#emacs-ops"))
-   	       erc-server "irc.freenode.net"
-   	       erc-nick "sachac")
-            (defun erc-cmd-OPME ()
-              "Request chanserv to op me."
-              (erc-message "PRIVMSG"
-                           (format "chanserv op %s %s"
-                                   (erc-default-target)
-                                   (erc-current-nick)) nil))
-       
-            (defun erc-cmd-DEOPME ()
-              "Deop myself from current channel."
-              (erc-cmd-DEOP (format "%s" (erc-current-nick))))
-            )
+     (use-package erc
+       :config
+       (setq erc-hide-list '("PART" "QUIT" "JOIN"))
+       (setq erc-autojoin-channels-alist '(("freenode.net"
+                                            "#org-mode"
+                                            "#emacs"
+                                            "#emacs-beginners"
+                                            "#emacs-ops"))
+             erc-server "irc.freenode.net"
+             erc-nick "sachac")
+       (defun erc-cmd-OPME ()
+         "Request chanserv to op me."
+         (erc-message "PRIVMSG"
+                      (format "chanserv op %s %s"
+                              (erc-default-target)
+                              (erc-current-nick)) nil))
+  
+       (defun erc-cmd-DEOPME ()
+         "Deop myself from current channel."
+         (erc-cmd-DEOP (format "%s" (erc-current-nick))))
+       (defun erc-cmd-BAN (nick)
+         (let* ((chan (erc-default-target))
+                (who (erc-get-server-user nick))
+                (host (erc-server-user-host who))
+                (user (erc-server-user-login who)))
+           (erc-server-send (format "MODE %s +b *!%s@%s" chan user host))))
+
+       (defun erc-cmd-KICKBAN (nick &rest reason)
+         (setq reason (mapconcat #'identity reason " "))
+         (and (string= reason "")
+              (setq reason nil))
+         (erc-cmd-BAN nick)
+         (erc-server-send (format "KICK %s %s %s"
+                                  (erc-default-target)
+                                  nick
+                                  (or reason
+                                      "Kicked (kickban)"))))
+       )
    #+end_src
 
 ** Self-tracking, statistics, and other data transformations

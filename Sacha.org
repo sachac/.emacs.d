@@ -3925,7 +3925,7 @@ https://www.reddit.com/prefs/feeds/ .
                     (permalink (concat "https://reddit.com" (assoc-default 'permalink o)))
                     (num-comments (assoc-default 'num_comments o 'eq 0)))
                (when (time-less-p threshold date)
-                 (if (> num-comments 0)
+                 (if (and (> num-comments 0) (not (string-match "https://reddit.com" url)))
                      (format "- [[%s][%s]] ([[%s][Reddit]])\n" url title permalink)
                    (format "- [[%s][%s]]\n" url title)))))
            items "")))))

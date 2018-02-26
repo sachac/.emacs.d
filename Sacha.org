@@ -3232,6 +3232,12 @@ complicated than they are. Let's turn them off by default.
 (setq org-export-htmlize-output-type 'css)
 #+end_src
 
+Sometimes I have broken or local links, and that's okay.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-export-with-broken-links t)
+#+end_src
+
 Don't wrap ASCII exports.
 
 #+begin_src emacs-lisp :tangle yes
@@ -4018,7 +4024,7 @@ ORDER is a list of regexps."
               (org-sort-remove-invisible (buffer-substring (match-end 0) (point-at-eol))))))
        (or (cl-position item order :test (lambda (a b) (string-match b a))) (1+ (length order)))))
    '<))
-  
+
 (defun my/emacs-news-sort-list ()
   (interactive)
   (my/org-sort-list-in-custom-order

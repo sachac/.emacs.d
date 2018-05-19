@@ -3481,6 +3481,17 @@ This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone
                                        "sacha-emacs.el" destination-dir) "emacs-lisp")
                (org-html-export-to-html)))))))
      #+end_src
+**** Beamer
+#+begin_src emacs-lisp :tangle yes 
+(with-eval-after-load 'org
+  (require 'ox-latex)
+  (add-to-list 'org-latex-classes
+             '("beamer"
+               "\\documentclass\[presentation\]\{beamer\}"
+               ("\\section\{%s\}" . "\\section*\{%s\}")
+               ("\\subsection\{%s\}" . "\\subsection*\{%s\}")
+               ("\\subsubsection\{%s\}" . "\\subsubsection*\{%s\}"))))
+#+end_src
 *** Fix incompatible changes from Org 8 to Org 9
 
 http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS

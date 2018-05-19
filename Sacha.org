@@ -3695,6 +3695,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
    '((dot . t)
      (ditaa . t)
      (shell . t)
+     (calc . t)
      (sqlite . t)
      (http . t)
      (ledger . t)

@@ -3055,47 +3055,64 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 
  #+begin_src emacs-lisp :tangle yes
 
-   (defun _my/extract-posts-from-webpage (url)
-     (with-current-buffer (url-retrieve-synchronously url)
-       (goto-char (point-min))
-       (re-search-forward "<pre>")
-       (buffer-substring
-        (point)
-        (progn (re-search-forward "</pre>") (match-beginning 0)))))
+      (defun _my/extract-posts-from-webpage (url)
+        (with-current-buffer (url-retrieve-synchronously url)
+          (goto-char (point-min))
+          (re-search-forward "<pre>")
+          (buffer-substring
+           (point)
+           (progn (re-search-forward "</pre>") (match-beginning 0)))))
+      (defun my/org-get-last-week ()
+        "Return dates for filtering last week."
+        (if (string= (format-time-string "%u") "6") ;; my week starts on Saturday
+            (cons (org-read-date nil nil "-1w") (org-read-date nil nil "."))
+          (cons (org-read-date nil nil "-2sat") (org-read-date nil nil "-sat"))))
+      (defun my/org-get-month (&optional date-string)
+        "Return start of month containing DATE and start of following month.
+   Result is (START . NEXT)."
+        (let* ((date (decode-time (if (stringp date-string) (org-read-date nil t date-string) date-string)))
+               (month (elt date 4))
+               (year (elt date 5))
+               start-date
+               end-date)
+          (calendar-increment-month month year 1)
+          (cons 
+           (format "%4d-%02d-01" (elt date 5) (elt date 4))
+           (format "%4d-%02d-01" year month))))
 
-   (defun my/org-prepare-monthly-review ()
-     (interactive)
-     (let* ((date (decode-time))
-            (month (elt date 4))
-            (year (elt date 5))
-            start-date
-            end-date
-            previous-date
-            posts
-            sketches
-            org-date
-            time)
-       (calendar-increment-month month year -1)
-       (setq start-date (format "%4d-%02d-01" year month)
-             end-date (format "%4d-%02d-01" (elt date 5) (elt date 4))
-             posts (_my/extract-posts-from-webpage
-                    (format "http://sachachua.com/blog/%4d/%d?org=1"
-                            year month))
-             sketches (my/sketches-export-and-extract start-date nil nil t))
-       (calendar-increment-month month year -1)
-       (setq previous-date (format "%4d-%02d-01" year month))
-       (setq time (my/quantified-compare previous-date start-date start-date end-date '("Business - Build" "Discretionary - Play" "Unpaid work" "A-" "Discretionary - Social" "Discretionary - Family" "Sleep" "Business - Connect" "Business - Earn" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
-       (goto-char (line-end-position))
-       (insert
-        "\n\n** Monthly review: "
-        (format-time-string "%B %Y" (encode-time 0 0 0 1 month year))
-        "  :monthly:review:\n"
-        "*Blog posts*\n"
-        posts "\n\n"
-        "*Sketches*\n\n"
-        sketches
-        "*Time*\n\n"
-        (orgtbl-to-orgtbl time nil))))
+      (defun my/org-prepare-monthly-review ()
+        (interactive)
+        (let* ((date (decode-time))
+               (month (elt date 4))
+               (year (elt date 5))
+               start-date
+               end-date
+               previous-date
+               posts
+               sketches
+               org-date
+               time)
+          (calendar-increment-month month year -1)
+          (setq start-date (format "%4d-%02d-01" year month)
+                end-date (format "%4d-%02d-01" (elt date 5) (elt date 4))
+                posts (_my/extract-posts-from-webpage
+                       (format "http://sachachua.com/blog/%4d/%d?org=1"
+                               year month))
+                sketches (my/sketches-export-and-extract start-date nil nil t))
+          (calendar-increment-month month year -1)
+          (setq previous-date (format "%4d-%02d-01" year month))
+          (setq time (my/quantified-compare previous-date start-date start-date end-date '("Business - Build" "Discretionary - Play" "Unpaid work" "A-" "Discretionary - Social" "Discretionary - Family" "Sleep" "Business - Connect" "Business - Earn" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
+          (goto-char (line-end-position))
+          (insert
+           "\n\n** Monthly review: "
+           (format-time-string "%B %Y" (encode-time 0 0 0 1 month year))
+           "  :monthly:review:\n"
+           "*Blog posts*\n"
+           posts "\n\n"
+           "*Sketches*\n\n"
+           sketches
+           "*Time*\n\n"
+           (orgtbl-to-orgtbl time nil))))
 
  #+end_src
 

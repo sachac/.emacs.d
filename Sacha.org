@@ -4166,19 +4166,19 @@ One more little thing automated...
 **** Other functions
 
 #+begin_src emacs-lisp :tangle yes
-      (defun my/org-list-from-rss (url date)
-        "Convert URL to an Org list"
-        (with-current-buffer (url-retrieve-synchronously url)
-          (re-search-forward "<\\?xml")
-          (goto-char (match-beginning 0))
-          (let ((feed (xml-parse-region (point) (point-max))))
-            (mapconcat (lambda (entry)
-              (format "- [[%s][%s]]" 
-               (xml-get-attribute (car (xml-get-children entry 'link)) 'href)
-               (elt (car (xml-get-children entry 'title)) 2)))
-              (-filter (lambda (entry)
-                (org-string<= date (elt (car (xml-get-children entry 'updated)) 2)))
-                       (xml-get-children (car feed) 'entry)) "\n"))))
+  (defun my/org-list-from-rss (url date)
+    "Convert URL to an Org list"
+    (with-current-buffer (url-retrieve-synchronously url)
+      (re-search-forward "<\\?xml")
+      (goto-char (match-beginning 0))
+      (let ((feed (xml-parse-region (point) (point-max))))
+        (mapconcat (lambda (entry)
+                     (format "- [[%s][%s]]" 
+                             (xml-get-attribute (car (xml-get-children entry 'link)) 'href)
+                             (elt (car (xml-get-children entry 'title)) 2)))
+                   (-filter (lambda (entry)
+                              (org-string<= date (elt (car (xml-get-children entry 'updated)) 2)))
+                            (xml-get-children (car feed) 'entry)) "\n"))))
 
   (defun my/describe-packages (list)
     "Return an Org list of package descriptions for LIST."
@@ -4186,33 +4186,56 @@ One more little thing automated...
      (lambda (symbol)
        (let ((package-desc (assoc symbol package-archive-contents)))
          (if package-desc
-           (format "- [[package:%s][%s]]: %s"
-                   (symbol-name symbol)
-                   (symbol-name symbol)
-                   (package-desc-summary (cadr package-desc)))
+             (format "  - [[package:%s][%s]]: %s"
+                     (symbol-name symbol)
+                     (symbol-name symbol)
+                     (package-desc-summary (cadr package-desc)))
            "")))
      list
      "\n"))
 
-    (defun my/list-new-packages ()
-  ;     (package-refresh-contents)
-       (with-temp-buffer
-         (insert-file-contents "~/.emacs.d/.package-list")
-         (goto-char (point-min))
-         (my/describe-packages
-          (-difference (mapcar 'car package-archive-contents)
-                       (read (current-buffer))))))
-    (defun my/save-new-packages ()
-     (interactive)
-     (when package-archive-contents
-     (with-temp-buffer
-       (find-file "~/.emacs.d/.package-list")
-       (erase-buffer)
-       (prin1 (mapcar 'car package-archive-contents) (current-buffer))
-       (save-buffer)
-       nil)))
+  (defun my/list-new-packages ()
+    (interactive)
+    (let ((packages
+           (with-temp-buffer
+             (insert-file-contents "~/.emacs.d/.package-list")
+             (goto-char (point-min))
+             (my/describe-packages
+              (-difference (mapcar 'car package-archive-contents)
+                           (read (current-buffer)))))))
+      (if (called-interactively-p 'any)
+          (insert packages)
+        packages)))
+
+  (defun my/save-new-packages ()
+    (interactive)
+    (require 'dash)
+    (when package-archive-contents
+      (with-temp-buffer
+        (find-file "~/.emacs.d/.package-list")
+        (let ((old-list (read (current-buffer))))
+          (erase-buffer)
+          (prin1 (-union old-list (mapcar 'car package-archive-contents)) (current-buffer))
+          (save-buffer)
+          )
+        nil)))
 #+end_src
 
+**** Get info from the Emacs NEWS file in the git repository
+
+#+begin_src emacs-lisp :tangle yes
+  (defun my/insert-emacs-news-from-git (date)
+    (interactive (list (org-read-date)))
+    (let ((result 
+           (shell-command-to-string (format "cd ~/vendor/emacs; git pull > /dev/null; git log --pretty=oneline --after=%s etc/NEWS" date))))
+      (with-temp-buffer
+        (insert result)
+        (goto-char (point-min))
+        (while (re-search-forward "^\\([0-9a-f]+\\) \\(.+\\)$" nil t)
+          (replace-match "  - [[http://git.savannah.gnu.org/cgit/emacs.git/commit/etc/NEWS?id=\\1][\\2]]"))
+        (setq result (buffer-string)))
+      (if (called-interactively-p 'any) (insert result) result)))
+#+end_src
 **** DONE Publishing Emacs News as plain text, HTML, and attached Org file
      :PROPERTIES:
      :ID:       o2b:0a59c00b-7c40-48d5-a8c4-7a0d67e6e479
@@ -4235,36 +4258,42 @@ text/html, with text/x-org attached. The heavy lifting is done with
 =org-export-string-as=, which exports into different formats.
 
 #+begin_src emacs-lisp :tangle yes
-  (defun my/share-emacs-news ()
-    "Prepare current subtree for yanking into post."
-    (interactive)
-    ;; Draft Gnus article
-    (save-restriction
-      (org-narrow-to-subtree)
-      (let ((org-export-html-preamble nil)
-            (org-html-toplevel-hlevel 3)
-            output)
-        (setq output
-              (apply
-               'format
-               "<#multipart type=alternative>
-<#part type=\"text/plain\" disposition=inline>
-%s
-<#/part>
-<#part type=\"text/html\" disposition=inline>
-%s
-<#/part>
-<#/multipart>
-<#part type=\"text/x-org\" disposition=attachment name=\"emacs-news.org\">
-%s
-<#/part>
-"
-               (mapcar
-                (lambda (format)
-                  (org-export-string-as (buffer-substring (point-min) (point-max)) format t))
-                '(ascii html org))))
-        (kill-new output)))
-  (gnus))
+    (defun my/share-emacs-news ()
+      "Prepare current subtree for yanking into post."
+      (interactive)
+      ;; Draft Gnus article
+      (save-restriction
+        (org-narrow-to-subtree)
+        (let ((org-export-html-preamble nil)
+              (org-html-toplevel-hlevel 3)
+              (title (org-get-heading))
+              output)
+          (setq output
+                (apply
+                 'format
+                 "<#multipart type=alternative>
+  <#part type=\"text/plain\" disposition=inline>
+  %s
+  <#/part>
+  <#part type=\"text/html\" disposition=inline>
+  %s
+  <#/part>
+  <#/multipart>
+  <#part type=\"text/x-org\" disposition=attachment name=\"emacs-news.org\">
+  %s
+  <#/part>
+  "
+                 (mapcar
+                  (lambda (format)
+                    (org-export-string-as (buffer-substring (point-min) (point-max)) format t))
+                  '(ascii html org))))
+          (kill-new output)
+          (gnus)
+          (let ((gnus-newsgroup-name "nntp+news.gmane.org:gmane.emacs.tangents"))
+            (gnus-summary-post-news)
+                    (insert title)
+          (message-goto-body)
+          (insert output)))))
 #+end_src
 
 For cleaning things up:
@@ -4279,6 +4308,45 @@ does the job in a much cooler way. =) I thought he had a blog post
 about it, but I can't seem to find it. Anyway, there's my little hack
 above!
 
+**** TODO Prepare Emacs News
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/prepare-emacs-news (date)
+  (interactive (list (org-read-date nil nil "-mon")))
+  (concat
+      "** " (org-read-date nil nil "++1" nil (org-read-date nil t "-sun")) " Emacs news\n\n"
+      "- Emacs Lisp:
+- Emacs development:\n" 
+(my/insert-emacs-news-from-git date) "
+- Navigation:
+- Org Mode:
+- Coding:
+- Other:
+"
+       (my/org-list-from-rss "http://planet.emacsen.org/atom.xml" date) "\n"
+      (my/reddit-list-upvoted date)
+       (mapconcat (lambda (x) 
+         (shell-command-to-string (concat "~/bin/list-rss-links.coffee " x " " date)))
+         '("https://www.wisdomandwonder.com/tag/emacs/feed"
+  "https://tcluri.github.io/rss.xml"
+  "http://howardism.org/index.xml"
+  "http://feeds.feedburner.com/KrisJenkinsBlog"
+  "http://cachestocaches.com/tag/emacs/feed"
+  "https://fuco1.github.io/rss.xml"
+  "http://whyarethingsthewaytheyare.com/index.xml"
+  "https://blog.aaronbieber.com/feed.xml"
+  "http://anbasile.github.io/feed.xml"
+  "http://kitchingroup.cheme.cmu.edu/blog/feed"
+  "https://manuel-uberti.github.io/feed"
+  "http://cestlaz.github.io/rss.xml"
+  "http://www.wilfred.me.uk/rss.xml"
+  "http://fasciism.com/feed.xml") "\n") "\n"
+       "- New packages:\n"
+       (my/list-new-packages) 
+       "
+
+Links from [[http://reddit.com/r/emacs/new][reddit.com/r/emacs]], [[http://reddit.com/r/orgmode][/r/orgmode]], [[http://reddit.com/r/spacemacs][/r/spacemacs]], [[https://hn.algolia.com/?query=emacs&sort=byDate&prefix&page=0&dateRange=all&type=story][Hacker News]], [[http://planet.emacsen.org][planet.emacsen.org]], [[https://www.youtube.com/results?search_query=emacs&search_sort=video_date_uploaded][YouTube]], the changes to the [[http://git.savannah.gnu.org/cgit/emacs.git/log/etc/NEWS][Emacs NEWS file]], and [[http://lists.gnu.org/archive/html/emacs-devel/" (format-time-string "%Y-%m") "][emacs-devel]]."))
+#+end_src
 *** Autosave
 
 Could be handy, especially when synchronizing with Orgzly.

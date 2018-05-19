@@ -1127,6 +1127,30 @@ https://github.com/bbatsov/prelude
       (message "Copied buffer file name '%s' to the clipboard." filename))))
 #+END_SRC
 
+*** Open files externally
+
+Copied from Prelude: http://emacsredux.com/blog/2013/03/27/open-file-in-external-program/
+
+#+begin_src emacs-lisp
+(defun prelude-open-with (arg)
+  "Open visited file in default external program.
+
+With a prefix ARG always prompt for command to use."
+  (interactive "P")
+  (when buffer-file-name
+    (shell-command (concat
+                    (cond
+                     ((and (not arg) (eq system-type 'darwin)) "open")
+                     ((and (not arg) (member system-type '(gnu gnu/linux gnu/kfreebsd))) "xdg-open")
+                     (t (read-shell-command "Open current file with: ")))
+                    " "
+                    (shell-quote-argument buffer-file-name)))))
+
+#+end_src
+
+Don't use docview for PDFs.
+(add-to-list 'org-file-apps '("pdf" . "evince %s"))
+
 ** Reading
 
 https://github.com/xahlee/xah_emacs_init/blob/master/xah_emacs_font.el

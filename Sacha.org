@@ -6594,7 +6594,7 @@ Handy for collecting items together.
         (mapconcat 'identity relationships "\n")
         "\n- Life\n"
         (mapconcat 'identity life "\n")))
-      (if (called-interactively-p)
+      (if (called-interactively-p 'any)
           (kill-new string)
         string)))
 #+end_src
@@ -6634,7 +6634,7 @@ to see which items I'd planned ahead, and which ones were new tasks.
              (mapconcat 'identity relationships "\n")
              "\n- Life\n"
              (mapconcat 'identity life "\n")))
-      (if (called-interactively-p)
+      (if (called-interactively-p 'any)
           (kill-new string)
         string))))
 
@@ -6713,7 +6713,7 @@ left.
     (if buf
         (if (setq wind (get-buffer-window buf))
             (select-window wind)
-          (if (called-interactively-p)
+          (if (called-interactively-p 'any)
               (progn
                 (select-window (display-buffer buf t t))
                 (org-fit-window-to-buffer)

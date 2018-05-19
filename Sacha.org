@@ -4429,6 +4429,18 @@ This uses =dash.el= for the =-zip-with= and =-cycle= functions.
 There's probably a much better way to process the lists, but I'm still
 getting the hang of thinking properly functionally... =)
 
+*** Converting from Markdown
+
+#+begin_src emacs-lisp
+(defun my/org-convert-from-markdown (beg end)
+  (interactive "r")
+  (shell-command-on-region beg end "pandoc -f markdown -t org" nil t))
+(defun my/org-convert-to-markdown (beg end)
+  (interactive "r")
+  (shell-command-on-region beg end "pandoc -t markdown -f org" nil t))
+
+
+#+end_src
 ** Coding
 *** Web development
 #+begin_src emacs-lisp :tangle yes

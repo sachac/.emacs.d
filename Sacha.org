@@ -3622,7 +3622,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
 
 *** Journal from Memento Database
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle yes
     (defvar my/journal-category-map
       '(("Gross" . "Gross motor")
         ("Fine" . "Fine motor")

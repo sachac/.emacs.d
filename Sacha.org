@@ -3601,7 +3601,70 @@ So that I can easily add links at point. Formatted as an Org list for now.
         (switch-to-buffer (current-buffer)))))
 #+end_src
 
+*** Journal from Memento Database
 
+#+begin_src emacs-lisp
+    (defvar my/journal-category-map
+      '(("Gross" . "Gross motor")
+        ("Fine" . "Fine motor")
+        ("8 - Kaizen" . "Kaizen")
+        ("9 - Us" . "Us"))
+      "Alist of string replacements for journal categories.")
+    (defvar my/journal-categories
+      '("Field trip" "Gross motor" "Fine motor"
+        "Sensory" "Language" "Music" "Art"
+        "Self-care" "Eating" "Sleep" "Emotion"
+        "Household" "Social" "Pretend" "Other" "Kaizen" "Us" "Oops")
+      "List of categories to display. 
+  Unknown categories will be added to the end.")
+    (defun my/org-summarize-journal-csv (filename from to highlight &optional category-map categories)
+      (interactive
+       (list (read-file-name "File: ") 
+             (org-read-date nil nil nil "From: ")
+             (org-read-date nil nil nil "To: ")
+             (let ((choice
+                    (read-char-choice "Highlight (m: month, w: week, a: all): " "mwa")))
+               (cond ((= choice ?m) "month")
+                     ((= choice ?w) "week")
+                     (t "all")))
+             my/journal-category-map
+             my/journal-categories))
+      (let* ((data (pcsv-parse-file filename))
+             (filtered
+              (-filter
+               (lambda (o)
+                 (and (string< from (cadr o)) 
+                      (string< (cadr o) to)
+                      (string-equal
+                       "true"
+                       (cond
+                        ((string-equal highlight "month") (elt o 4))
+                        ((string-equal highlight "week") (elt o 2))
+                        (t "true")))))
+               data))
+             (grouped (-group-by
+                       (lambda (o) (elt o 3)) filtered))
+             (mapped-list
+              (mapcar 
+               (lambda (o)
+                 (cons (or (assoc-default (car o) category-map) (car o))
+                       (cdr o)))
+               grouped))
+             (sorted-list
+              (delq nil
+                    (append
+                     (mapcar (lambda (cat)
+                               (when (assoc-default cat mapped-list)
+                                 (cons cat (assoc-default cat mapped-list))))
+                             categories)
+                     (-remove (lambda (o) (member (car o) categories)) mapped-list))))
+             (list (mapconcat
+                    (lambda (o)
+                      (concat "- *" (car o) "*\n"
+                              (mapconcat (lambda (i) (concat "  - " (car i) "\n")) (reverse (cdr o)) "")))
+                    sorted-list "")))    
+        (if (called-interactively-p 'any) (insert list) list)))
+#+end_src
 *** Attachments
 
 Org lets you attach files to an Org file. Haven't gotten the hang of this yet, but looks interesting.

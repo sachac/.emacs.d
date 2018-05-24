@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2018-02-17 Sat 18:54 -->
+<!-- 2018-05-24 Thu 03:11 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
@@ -282,7 +282,7 @@ for the JavaScript code in this tag.
 </li>
 </ul>
 </li>
-<li><a href="#org4abb563">Navigation</a>
+<li><a href="#org265bf58">Navigation</a>
 <ul>
 <li><a href="#org43a846b">Pop to mark</a></li>
 <li><a href="#orga9c79c3">Helm-swoop - quickly finding lines</a></li>
@@ -291,7 +291,7 @@ for the JavaScript code in this tag.
 <li><a href="#org9750649">Frequently-accessed files</a></li>
 <li><a href="#key-chord">Key chords and Hydras</a></li>
 <li><a href="#orgfdfb418">Smartscan</a></li>
-<li><a href="#orga2c647f">Dired</a>
+<li><a href="#org0be8fa1">Dired</a>
 <ul>
 <li><a href="#org4c65021">peep-dired</a></li>
 <li><a href="#org6ccec83">Saving photos</a></li>
@@ -300,6 +300,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgbe917dd">Move to beginning of line</a></li>
 <li><a href="#org0676afd">Recent files</a></li>
 <li><a href="#orgf0cd9ae">Copy filename to clipboard</a></li>
+<li><a href="#org5ffc13a">Open files externally</a></li>
 </ul>
 </li>
 <li><a href="#org4345333">Reading</a></li>
@@ -323,7 +324,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgca8e067">Speed commands</a></li>
 </ul>
 </li>
-<li><a href="#org265bf58">Navigation</a>
+<li><a href="#orgd267928">Navigation</a>
 <ul>
 <li><a href="#org1587f43">Link Org subtrees and navigate between them</a></li>
 <li><a href="#orgb362383">Viewing, navigating, and editing the Org tree</a></li>
@@ -332,7 +333,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgc79d737">Taking notes</a>
 <ul>
 <li><a href="#org8b3b235">Date trees</a></li>
-<li><a href="#orgb371156">Templates</a></li>
+<li><a href="#orgcbe1ae7">Templates</a></li>
 <li><a href="#org2789cb5">Refiling</a></li>
 <li><a href="#org5973465">Estimating WPM</a></li>
 </ul>
@@ -346,7 +347,7 @@ for the JavaScript code in this tag.
 <li><a href="#orge24726a">Task dependencies</a></li>
 </ul>
 </li>
-<li><a href="#orgcbe1ae7">Templates</a>
+<li><a href="#org599f21e">Templates</a>
 <ul>
 <li><a href="#org74bcbb3">Structure templates</a></li>
 <li><a href="#org60eb191">Emacs chats, Emacs hangouts</a></li>
@@ -364,7 +365,7 @@ for the JavaScript code in this tag.
 <li><a href="#org9f0afd0">Sorting by date and priority</a></li>
 <li><a href="#org231ff51">Preventing things from falling through the cracks</a></li>
 <li><a href="#org63e1206">Synchronizing with Google Calendar</a></li>
-<li><a href="#org118d52f">Projects</a></li>
+<li><a href="#org73bd617">Projects</a></li>
 </ul>
 </li>
 <li><a href="#org557a3c3">Reviews</a>
@@ -390,6 +391,7 @@ for the JavaScript code in this tag.
 <li><a href="#org85bc27c">Copy region</a></li>
 <li><a href="#org4de00d3">UTF-8 checkboxes</a></li>
 <li><a href="#orgf074d83">Share my Emacs configuration</a></li>
+<li><a href="#org42ec6e5">Beamer</a></li>
 </ul>
 </li>
 <li><a href="#org1cdd108">Fix incompatible changes from Org 8 to Org 9</a></li>
@@ -401,6 +403,7 @@ for the JavaScript code in this tag.
 <li><a href="#org-dired">Dired</a></li>
 </ul>
 </li>
+<li><a href="#org021c5bb">Journal from Memento Database</a></li>
 <li><a href="#org5347368">Attachments</a></li>
 <li><a href="#orgec322c8">HTTP</a></li>
 <li><a href="#org1683357">Diagrams and graphics</a></li>
@@ -429,11 +432,14 @@ for the JavaScript code in this tag.
 <li><a href="#org1807373">Reddit</a></li>
 <li><a href="#org9884039">Sorting Org Mode lists using a sequence of regular expressions&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span>&#xa0;<span class="org">org</span></span></a></li>
 <li><a href="#org999100e">Other functions</a></li>
+<li><a href="#orgeeae0cf">Get info from the Emacs NEWS file in the git repository</a></li>
 <li><a href="#org09e2860"><span class="done DONE">DONE</span> Publishing Emacs News as plain text, HTML, and attached Org file</a></li>
+<li><a href="#org0735445"><span class="todo TODO">TODO</span> Prepare Emacs News</a></li>
 </ul>
 </li>
 <li><a href="#org99aac8e">Autosave</a></li>
 <li><a href="#orgfd87beb"><span class="done DONE">DONE</span> Org Mode tables and fill-in quizzes - Latin verb conjugations in Emacs</a></li>
+<li><a href="#orgfafae76">Converting from Markdown</a></li>
 </ul>
 </li>
 <li><a href="#orga73f95f">Coding</a>
@@ -465,7 +471,7 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#orgb10c800">git-messenger - shows commit message</a></li>
 <li><a href="#orgfb77d93">Tag files</a></li>
-<li><a href="#orga3249c5">Projects</a></li>
+<li><a href="#org8642a2a">Projects</a></li>
 <li><a href="#orgf50520e">Exploring MELPA recipes</a></li>
 <li><a href="#orgd60ed51">Ruby</a></li>
 <li><a href="#org915393b">Skewer</a></li>
@@ -529,7 +535,7 @@ for the JavaScript code in this tag.
 </ul>
 </li>
 <li><a href="#org44c51ff">Weather forecast</a></li>
-<li><a href="#orgd9dbc17">Encryption</a></li>
+<li><a href="#org5823ab5">Encryption</a></li>
 <li><a href="#org681e73a">Yaoddmuse</a></li>
 <li><a href="#orgfb9b12e">Building a today-I-learned habit, and displaying the documentation for random Emacs commands&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></a></li>
 <li><a href="#org323ef6c"><span class="done DONE">DONE</span> Scan ~/bin and turn the scripts into interactive commands</a></li>
@@ -573,7 +579,7 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#org0b984fa">Keywiz - keyboard quizzes</a></li>
 <li><a href="#orgf62ed27">MobileOrg for Android</a></li>
-<li><a href="#org5823ab5">Encryption</a></li>
+<li><a href="#org4f8db00">Encryption</a></li>
 <li><a href="#org3028b7b">Drawing</a>
 <ul>
 <li><a href="#org8dce88c">Digital index piles with Emacs</a></li>
@@ -1490,9 +1496,9 @@ command by default, and to use <code>kbd</code> for the keybinding definitions.
 </div>
 </div>
 
-<div id="outline-container-org4abb563" class="outline-3">
-<h3 id="org4abb563">Navigation</h3>
-<div class="outline-text-3" id="text-org4abb563">
+<div id="outline-container-org265bf58" class="outline-3">
+<h3 id="org265bf58">Navigation</h3>
+<div class="outline-text-3" id="text-org265bf58">
 </div><div id="outline-container-org43a846b" class="outline-4">
 <h4 id="org43a846b">Pop to mark</h4>
 <div class="outline-text-4" id="text-org43a846b">
@@ -1599,6 +1605,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (<span class="org-keyword">my/defshortcut</span> ?P <span class="org-string">"~/personal/google-ideas.org"</span>)
 (<span class="org-keyword">my/defshortcut</span> ?B <span class="org-string">"~/Dropbox/books"</span>)
 (<span class="org-keyword">my/defshortcut</span> ?e <span class="org-string">"~/code/emacs-notes/tasks.org"</span>)
+(<span class="org-keyword">my/defshortcut</span> ?n <span class="org-string">"~/cloud/Notes"</span>)
 (<span class="org-keyword">my/defshortcut</span> ?w <span class="org-string">"~/Dropbox/public/sharing/index.org"</span>)
 (<span class="org-keyword">my/defshortcut</span> ?W <span class="org-string">"~/Dropbox/public/sharing/blog.org"</span>)
 (<span class="org-keyword">my/defshortcut</span> ?j <span class="org-string">"~/personal/journal.org"</span>)
@@ -1768,7 +1775,7 @@ Now let's set up the actual keychords.
     <span class="org-comment-delimiter">;; </span><span class="org-comment">k can be bound too</span>
     (key-chord-define-global <span class="org-string">"uu"</span>     'undo)
     (key-chord-define-global <span class="org-string">"jr"</span>     'my/goto-random-char-hydra/my/goto-random-char)
-    (key-chord-define-global <span class="org-string">"kk"</span>     'my/org/body)
+    (key-chord-define-global <span class="org-string">"kk"</span>     'kill-whole-line)
     (key-chord-define-global <span class="org-string">"jj"</span>     'avy-goto-word-1)
     (key-chord-define-global <span class="org-string">"yy"</span>    'my/window-movement/body)
     (key-chord-define-global <span class="org-string">"jw"</span>     'switch-window)
@@ -1780,6 +1787,7 @@ Now let's set up the actual keychords.
     (key-chord-define-global <span class="org-string">"hh"</span>     'my/key-chord-commands/body)
     (key-chord-define-global <span class="org-string">"xx"</span>     'er/expand-region)
     (key-chord-define-global <span class="org-string">"  "</span>     'my/insert-space-or-expand)
+    (key-chord-define-global <span class="org-string">"vv"</span> 'god-mode-all)
     (key-chord-define-global <span class="org-string">"JJ"</span>     'my/switch-to-previous-buffer)))
 </pre>
 </div>
@@ -1820,9 +1828,9 @@ From <a href="https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el">http
 </div>
 </div>
 </div>
-<div id="outline-container-orga2c647f" class="outline-4">
-<h4 id="orga2c647f">Dired</h4>
-<div class="outline-text-4" id="text-orga2c647f">
+<div id="outline-container-org0be8fa1" class="outline-4">
+<h4 id="org0be8fa1">Dired</h4>
+<div class="outline-text-4" id="text-org0be8fa1">
 <p>
 From <a href="http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/">http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/</a>
 </p>
@@ -1973,6 +1981,38 @@ Copied from <a href="http://emacsredux.com/blog/2013/05/22/smarter-navigation-to
       (message <span class="org-string">"Copied buffer file name '%s' to the clipboard."</span> filename))))
 </pre>
 </div>
+</div>
+</div>
+
+<div id="outline-container-org5ffc13a" class="outline-4">
+<h4 id="org5ffc13a">Open files externally</h4>
+<div class="outline-text-4" id="text-org5ffc13a">
+<p>
+Copied from Prelude: <a href="http://emacsredux.com/blog/2013/03/27/open-file-in-external-program/">http://emacsredux.com/blog/2013/03/27/open-file-in-external-program/</a>
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">prelude-open-with</span> (arg)
+  <span class="org-doc">"Open visited file in default external program.</span>
+
+<span class="org-doc">With a prefix ARG always prompt for command to use."</span>
+  (<span class="org-keyword">interactive</span> <span class="org-string">"P"</span>)
+  (<span class="org-keyword">when</span> buffer-file-name
+    (shell-command (concat
+                    (<span class="org-keyword">cond</span>
+                     ((<span class="org-keyword">and</span> (not arg) (eq system-type 'darwin)) <span class="org-string">"open"</span>)
+                     ((<span class="org-keyword">and</span> (not arg) (member system-type '(gnu gnu/linux gnu/kfreebsd))) <span class="org-string">"xdg-open"</span>)
+                     (t (read-shell-command <span class="org-string">"Open current file with: "</span>)))
+                    <span class="org-string">" "</span>
+                    (shell-quote-argument buffer-file-name)))))
+
+</pre>
+</div>
+
+<p>
+Don't use docview for PDFs.
+(add-to-list 'org-file-apps '("pdf" . "evince %s"))
+</p>
 </div>
 </div>
 </div>
@@ -2490,9 +2530,9 @@ These are great for quickly acting on tasks.
 </div>
 </div>
 
-<div id="outline-container-org265bf58" class="outline-4">
-<h4 id="org265bf58">Navigation</h4>
-<div class="outline-text-4" id="text-org265bf58">
+<div id="outline-container-orgd267928" class="outline-4">
+<h4 id="orgd267928">Navigation</h4>
+<div class="outline-text-4" id="text-orgd267928">
 <p>
 From <a href="http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-command-to-jump-to-an-org-heading">http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-command-to-jump-to-an-org-heading</a>
 </p>
@@ -2605,9 +2645,9 @@ This quickly adds a same-level heading for the succeeding day.
 </div>
 </div>
 </div>
-<div id="outline-container-orgb371156" class="outline-5">
-<h5 id="orgb371156">Templates</h5>
-<div class="outline-text-5" id="text-orgb371156">
+<div id="outline-container-orgcbe1ae7" class="outline-5">
+<h5 id="orgcbe1ae7">Templates</h5>
+<div class="outline-text-5" id="text-orgcbe1ae7">
 <p>
 I use <code>org-capture</code> templates to quickly jot down tasks, ledger
 entries, notes, and other semi-structured pieces of information.
@@ -2920,7 +2960,7 @@ and <code>!</code> automatically logs the timestamp of the state change.
 </pre>
 </div>
 </div></li>
-<li><a id="orge26f0d4"></a>Projects<br /><div class="outline-text-6" id="text-orge26f0d4">
+<li><a id="orga3249c5"></a>Projects<br /><div class="outline-text-6" id="text-orga3249c5">
 <p>
 Projects are headings with the <code>:project:</code> tag, so we generally don't
 want that tag inherited, except when we display unscheduled tasks that
@@ -3133,9 +3173,9 @@ of every month. Fortunately, <a href="http://stackoverflow.com/questions/1355538
 </div>
 </div>
 </div>
-<div id="outline-container-orgcbe1ae7" class="outline-4">
-<h4 id="orgcbe1ae7">Templates</h4>
-<div class="outline-text-4" id="text-orgcbe1ae7">
+<div id="outline-container-org599f21e" class="outline-4">
+<h4 id="org599f21e">Templates</h4>
+<div class="outline-text-4" id="text-org599f21e">
 </div><div id="outline-container-org74bcbb3" class="outline-5">
 <h5 id="org74bcbb3">Structure templates</h5>
 <div class="outline-text-5" id="text-org74bcbb3">
@@ -3880,9 +3920,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 </div>
 </div>
 </div>
-<div id="outline-container-org118d52f" class="outline-5">
-<h5 id="org118d52f">Projects</h5>
-<div class="outline-text-5" id="text-org118d52f">
+<div id="outline-container-org73bd617" class="outline-5">
+<h5 id="org73bd617">Projects</h5>
+<div class="outline-text-5" id="text-org73bd617">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-show-active-projects</span> ()
   <span class="org-doc">"Show my current projects."</span>
@@ -4381,47 +4421,64 @@ Here's a function like <code>my/org-prepare-weekly-review</code>:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">_my/extract-posts-from-webpage</span> (url)
-  (<span class="org-keyword">with-current-buffer</span> (url-retrieve-synchronously url)
-    (goto-char (point-min))
-    (re-search-forward <span class="org-string">"&lt;pre&gt;"</span>)
-    (buffer-substring
-     (point)
-     (<span class="org-keyword">progn</span> (re-search-forward <span class="org-string">"&lt;/pre&gt;"</span>) (match-beginning 0)))))
+<pre class="src src-emacs-lisp">   (<span class="org-keyword">defun</span> <span class="org-function-name">_my/extract-posts-from-webpage</span> (url)
+     (<span class="org-keyword">with-current-buffer</span> (url-retrieve-synchronously url)
+       (goto-char (point-min))
+       (re-search-forward <span class="org-string">"&lt;pre&gt;"</span>)
+       (buffer-substring
+        (point)
+        (<span class="org-keyword">progn</span> (re-search-forward <span class="org-string">"&lt;/pre&gt;"</span>) (match-beginning 0)))))
+   (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-get-last-week</span> ()
+     <span class="org-doc">"Return dates for filtering last week."</span>
+     (<span class="org-keyword">if</span> (string= (format-time-string <span class="org-string">"%u"</span>) <span class="org-string">"6"</span>) <span class="org-comment-delimiter">;; </span><span class="org-comment">my week starts on Saturday</span>
+         (cons (org-read-date nil nil <span class="org-string">"-1w"</span>) (org-read-date nil nil <span class="org-string">"."</span>))
+       (cons (org-read-date nil nil <span class="org-string">"-2sat"</span>) (org-read-date nil nil <span class="org-string">"-sat"</span>))))
+   (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-get-month</span> (<span class="org-type">&amp;optional</span> date-string)
+     <span class="org-doc">"Return start of month containing DATE and start of following month.</span>
+<span class="org-doc">Result is (START . NEXT)."</span>
+     (<span class="org-keyword">let*</span> ((date (decode-time (<span class="org-keyword">if</span> (stringp date-string) (org-read-date nil t date-string) date-string)))
+            (month (elt date 4))
+            (year (elt date 5))
+            start-date
+            end-date)
+       (<span class="org-keyword">calendar-increment-month</span> month year 1)
+       (cons 
+        (format <span class="org-string">"%4d-%02d-01"</span> (elt date 5) (elt date 4))
+        (format <span class="org-string">"%4d-%02d-01"</span> year month))))
 
-(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-prepare-monthly-review</span> ()
-  (<span class="org-keyword">interactive</span>)
-  (<span class="org-keyword">let*</span> ((date (decode-time))
-         (month (elt date 4))
-         (year (elt date 5))
-         start-date
-         end-date
-         previous-date
-         posts
-         sketches
-         org-date
-         time)
-    (<span class="org-keyword">calendar-increment-month</span> month year -1)
-    (<span class="org-keyword">setq</span> start-date (format <span class="org-string">"%4d-%02d-01"</span> year month)
-          end-date (format <span class="org-string">"%4d-%02d-01"</span> (elt date 5) (elt date 4))
-          posts (_my/extract-posts-from-webpage
-                 (format <span class="org-string">"http://sachachua.com/blog/%4d/%d?org=1"</span>
-                         year month))
-          sketches (my/sketches-export-and-extract start-date nil nil t))
-    (<span class="org-keyword">calendar-increment-month</span> month year -1)
-    (<span class="org-keyword">setq</span> previous-date (format <span class="org-string">"%4d-%02d-01"</span> year month))
-    (<span class="org-keyword">setq</span> time (my/quantified-compare previous-date start-date start-date end-date '(<span class="org-string">"Business - Build"</span> <span class="org-string">"Discretionary - Play"</span> <span class="org-string">"Unpaid work"</span> <span class="org-string">"A-"</span> <span class="org-string">"Discretionary - Social"</span> <span class="org-string">"Discretionary - Family"</span> <span class="org-string">"Sleep"</span> <span class="org-string">"Business - Connect"</span> <span class="org-string">"Business - Earn"</span> <span class="org-string">"Discretionary - Productive"</span> <span class="org-string">"Personal"</span>) <span class="org-string">"Previous month %"</span> <span class="org-string">"This month %"</span>))
-    (goto-char (line-end-position))
-    (insert
-     <span class="org-string">"\n\n** Monthly review: "</span>
-     (format-time-string <span class="org-string">"%B %Y"</span> (encode-time 0 0 0 1 month year))
-     <span class="org-string">"  :monthly:review:\n"</span>
-     <span class="org-string">"*Blog posts*\n"</span>
-     posts <span class="org-string">"\n\n"</span>
-     <span class="org-string">"*Sketches*\n\n"</span>
-     sketches
-     <span class="org-string">"*Time*\n\n"</span>
-     (orgtbl-to-orgtbl time nil))))
+   (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-prepare-monthly-review</span> ()
+     (<span class="org-keyword">interactive</span>)
+     (<span class="org-keyword">let*</span> ((date (decode-time))
+            (month (elt date 4))
+            (year (elt date 5))
+            start-date
+            end-date
+            previous-date
+            posts
+            sketches
+            org-date
+            time)
+       (<span class="org-keyword">calendar-increment-month</span> month year -1)
+       (<span class="org-keyword">setq</span> start-date (format <span class="org-string">"%4d-%02d-01"</span> year month)
+             end-date (format <span class="org-string">"%4d-%02d-01"</span> (elt date 5) (elt date 4))
+             posts (_my/extract-posts-from-webpage
+                    (format <span class="org-string">"http://sachachua.com/blog/%4d/%d?org=1"</span>
+                            year month))
+             sketches (my/sketches-export-and-extract start-date nil nil t))
+       (<span class="org-keyword">calendar-increment-month</span> month year -1)
+       (<span class="org-keyword">setq</span> previous-date (format <span class="org-string">"%4d-%02d-01"</span> year month))
+       (<span class="org-keyword">setq</span> time (my/quantified-compare previous-date start-date start-date end-date '(<span class="org-string">"Business - Build"</span> <span class="org-string">"Discretionary - Play"</span> <span class="org-string">"Unpaid work"</span> <span class="org-string">"A-"</span> <span class="org-string">"Discretionary - Social"</span> <span class="org-string">"Discretionary - Family"</span> <span class="org-string">"Sleep"</span> <span class="org-string">"Business - Connect"</span> <span class="org-string">"Business - Earn"</span> <span class="org-string">"Discretionary - Productive"</span> <span class="org-string">"Personal"</span>) <span class="org-string">"Previous month %"</span> <span class="org-string">"This month %"</span>))
+       (goto-char (line-end-position))
+       (insert
+        <span class="org-string">"\n\n** Monthly review: "</span>
+        (format-time-string <span class="org-string">"%B %Y"</span> (encode-time 0 0 0 1 month year))
+        <span class="org-string">"  :monthly:review:\n"</span>
+        <span class="org-string">"*Blog posts*\n"</span>
+        posts <span class="org-string">"\n\n"</span>
+        <span class="org-string">"*Sketches*\n\n"</span>
+        sketches
+        <span class="org-string">"*Time*\n\n"</span>
+        (orgtbl-to-orgtbl time nil))))
 
 </pre>
 </div>
@@ -4904,6 +4961,22 @@ don't need this any more&#x2026;
 </div>
 </div>
 </div>
+<div id="outline-container-org42ec6e5" class="outline-5">
+<h5 id="org42ec6e5">Beamer</h5>
+<div class="outline-text-5" id="text-org42ec6e5">
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span class="org-keyword">with-eval-after-load</span> 'org
+  (<span class="org-keyword">require</span> '<span class="org-constant">ox-latex</span>)
+  (add-to-list 'org-latex-classes
+             '(<span class="org-string">"beamer"</span>
+               <span class="org-string">"\\documentclass\[presentation\]\{beamer\}"</span>
+               (<span class="org-string">"\\section\{%s\}"</span> . <span class="org-string">"\\section*\{%s\}"</span>)
+               (<span class="org-string">"\\subsection\{%s\}"</span> . <span class="org-string">"\\subsection*\{%s\}"</span>)
+               (<span class="org-string">"\\subsubsection\{%s\}"</span> . <span class="org-string">"\\subsubsection*\{%s\}"</span>))))
+</pre>
+</div>
+</div>
+</div>
 </div>
 <div id="outline-container-org1cdd108" class="outline-4">
 <h4 id="org1cdd108">Fix incompatible changes from Org 8 to Org 9</h4>
@@ -5008,8 +5081,8 @@ So that I can easily add links at point. Formatted as an Org list for now.
 </div>
 </div>
 
-<div id="outline-container-org0be8fa1" class="outline-5">
-<h5 id="org-dired"><a id="org0be8fa1"></a>Dired</h5>
+<div id="outline-container-org4974a09" class="outline-5">
+<h5 id="org-dired"><a id="org4974a09"></a>Dired</h5>
 <div class="outline-text-5" id="text-org-dired">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-get-links-in-region</span> (beg end)
@@ -5043,7 +5116,74 @@ So that I can easily add links at point. Formatted as an Org list for now.
 </div>
 </div>
 
-
+<div id="outline-container-org021c5bb" class="outline-4">
+<h4 id="org021c5bb">Journal from Memento Database</h4>
+<div class="outline-text-4" id="text-org021c5bb">
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">  (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/journal-category-map</span>
+    '((<span class="org-string">"Gross"</span> . <span class="org-string">"Gross motor"</span>)
+      (<span class="org-string">"Fine"</span> . <span class="org-string">"Fine motor"</span>)
+      (<span class="org-string">"8 - Kaizen"</span> . <span class="org-string">"Kaizen"</span>)
+      (<span class="org-string">"9 - Us"</span> . <span class="org-string">"Us"</span>))
+    <span class="org-doc">"Alist of string replacements for journal categories."</span>)
+  (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/journal-categories</span>
+    '(<span class="org-string">"Field trip"</span> <span class="org-string">"Gross motor"</span> <span class="org-string">"Fine motor"</span>
+      <span class="org-string">"Sensory"</span> <span class="org-string">"Language"</span> <span class="org-string">"Music"</span> <span class="org-string">"Art"</span>
+      <span class="org-string">"Self-care"</span> <span class="org-string">"Eating"</span> <span class="org-string">"Sleep"</span> <span class="org-string">"Emotion"</span>
+      <span class="org-string">"Household"</span> <span class="org-string">"Social"</span> <span class="org-string">"Pretend"</span> <span class="org-string">"Other"</span> <span class="org-string">"Kaizen"</span> <span class="org-string">"Us"</span> <span class="org-string">"Oops"</span>)
+    <span class="org-doc">"List of categories to display. </span>
+<span class="org-doc">Unknown categories will be added to the end."</span>)
+  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-summarize-journal-csv</span> (filename from to highlight <span class="org-type">&amp;optional</span> category-map categories)
+    (<span class="org-keyword">interactive</span>
+     (list (read-file-name <span class="org-string">"File: "</span>) 
+           (org-read-date nil nil nil <span class="org-string">"From: "</span>)
+           (org-read-date nil nil nil <span class="org-string">"To: "</span>)
+           (<span class="org-keyword">let</span> ((choice
+                  (read-char-choice <span class="org-string">"Highlight (m: month, w: week, a: all): "</span> <span class="org-string">"mwa"</span>)))
+             (<span class="org-keyword">cond</span> ((= choice ?m) <span class="org-string">"month"</span>)
+                   ((= choice ?w) <span class="org-string">"week"</span>)
+                   (t <span class="org-string">"all"</span>)))
+           my/journal-category-map
+           my/journal-categories))
+    (<span class="org-keyword">let*</span> ((data (pcsv-parse-file filename))
+           (filtered
+            (-filter
+             (<span class="org-keyword">lambda</span> (o)
+               (<span class="org-keyword">and</span> (string&lt; from (cadr o)) 
+                    (string&lt; (cadr o) to)
+                    (string-equal
+                     <span class="org-string">"true"</span>
+                     (<span class="org-keyword">cond</span>
+                      ((string-equal highlight <span class="org-string">"month"</span>) (elt o 4))
+                      ((string-equal highlight <span class="org-string">"week"</span>) (elt o 2))
+                      (t <span class="org-string">"true"</span>)))))
+             data))
+           (grouped (-group-by
+                     (<span class="org-keyword">lambda</span> (o) (elt o 3)) filtered))
+           (mapped-list
+            (mapcar 
+             (<span class="org-keyword">lambda</span> (o)
+               (cons (<span class="org-keyword">or</span> (assoc-default (car o) category-map) (car o))
+                     (cdr o)))
+             grouped))
+           (sorted-list
+            (delq nil
+                  (append
+                   (mapcar (<span class="org-keyword">lambda</span> (cat)
+                             (<span class="org-keyword">when</span> (assoc-default cat mapped-list)
+                               (cons cat (assoc-default cat mapped-list))))
+                           categories)
+                   (-remove (<span class="org-keyword">lambda</span> (o) (member (car o) categories)) mapped-list))))
+           (list (mapconcat
+                  (<span class="org-keyword">lambda</span> (o)
+                    (concat <span class="org-string">"- *"</span> (car o) <span class="org-string">"*\n"</span>
+                            (mapconcat (<span class="org-keyword">lambda</span> (i) (concat <span class="org-string">"  - "</span> (car i) <span class="org-string">"\n"</span>)) (reverse (cdr o)) <span class="org-string">""</span>)))
+                  sorted-list <span class="org-string">""</span>)))    
+      (<span class="org-keyword">if</span> (called-interactively-p 'any) (insert list) list)))
+</pre>
+</div>
+</div>
+</div>
 <div id="outline-container-org5347368" class="outline-4">
 <h4 id="org5347368">Attachments</h4>
 <div class="outline-text-4" id="text-org5347368">
@@ -5087,6 +5227,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See <a h
  '((dot . t)
    (ditaa . t)
    (shell . t)
+   (calc . t)
    (sqlite . t)
    (http . t)
    (ledger . t)
@@ -5624,19 +5765,19 @@ One more little thing automated&#x2026;
 <h5 id="org999100e">Other functions</h5>
 <div class="outline-text-5" id="text-org999100e">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp">    (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-list-from-rss</span> (url date)
-      <span class="org-doc">"Convert URL to an Org list"</span>
-      (<span class="org-keyword">with-current-buffer</span> (url-retrieve-synchronously url)
-        (re-search-forward <span class="org-string">"&lt;\\?xml"</span>)
-        (goto-char (match-beginning 0))
-        (<span class="org-keyword">let</span> ((feed (xml-parse-region (point) (point-max))))
-          (mapconcat (<span class="org-keyword">lambda</span> (entry)
-            (format <span class="org-string">"- [[%s][%s]]"</span> 
-             (xml-get-attribute (car (xml-get-children entry 'link)) 'href)
-             (elt (car (xml-get-children entry 'title)) 2)))
-            (-filter (<span class="org-keyword">lambda</span> (entry)
-              (org-string&lt;= date (elt (car (xml-get-children entry 'updated)) 2)))
-                     (xml-get-children (car feed) 'entry)) <span class="org-string">"\n"</span>))))
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-list-from-rss</span> (url date)
+  <span class="org-doc">"Convert URL to an Org list"</span>
+  (<span class="org-keyword">with-current-buffer</span> (url-retrieve-synchronously url)
+    (re-search-forward <span class="org-string">"&lt;\\?xml"</span>)
+    (goto-char (match-beginning 0))
+    (<span class="org-keyword">let</span> ((feed (xml-parse-region (point) (point-max))))
+      (mapconcat (<span class="org-keyword">lambda</span> (entry)
+                   (format <span class="org-string">"- [[%s][%s]]"</span> 
+                           (xml-get-attribute (car (xml-get-children entry 'link)) 'href)
+                           (elt (car (xml-get-children entry 'title)) 2)))
+                 (-filter (<span class="org-keyword">lambda</span> (entry)
+                            (org-string&lt;= date (elt (car (xml-get-children entry 'updated)) 2)))
+                          (xml-get-children (car feed) 'entry)) <span class="org-string">"\n"</span>))))
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">my/describe-packages</span> (list)
   <span class="org-doc">"Return an Org list of package descriptions for LIST."</span>
@@ -5644,36 +5785,63 @@ One more little thing automated&#x2026;
    (<span class="org-keyword">lambda</span> (symbol)
      (<span class="org-keyword">let</span> ((package-desc (assoc symbol package-archive-contents)))
        (<span class="org-keyword">if</span> package-desc
-         (format <span class="org-string">"- [[package:%s][%s]]: %s"</span>
-                 (symbol-name symbol)
-                 (symbol-name symbol)
-                 (package-desc-summary (cadr package-desc)))
+           (format <span class="org-string">"  - [[package:%s][%s]]: %s"</span>
+                   (symbol-name symbol)
+                   (symbol-name symbol)
+                   (package-desc-summary (cadr package-desc)))
          <span class="org-string">""</span>)))
    list
    <span class="org-string">"\n"</span>))
 
-  (<span class="org-keyword">defun</span> <span class="org-function-name">my/list-new-packages</span> ()
-<span class="org-comment-delimiter">;     </span><span class="org-comment">(package-refresh-contents)</span>
-     (<span class="org-keyword">with-temp-buffer</span>
-       (insert-file-contents <span class="org-string">"~/.emacs.d/.package-list"</span>)
-       (goto-char (point-min))
-       (my/describe-packages
-        (-difference (mapcar 'car package-archive-contents)
-                     (read (current-buffer))))))
-  (<span class="org-keyword">defun</span> <span class="org-function-name">my/save-new-packages</span> ()
-   (<span class="org-keyword">interactive</span>)
-   (<span class="org-keyword">when</span> package-archive-contents
-   (<span class="org-keyword">with-temp-buffer</span>
-     (find-file <span class="org-string">"~/.emacs.d/.package-list"</span>)
-     (erase-buffer)
-     (prin1 (mapcar 'car package-archive-contents) (current-buffer))
-     (save-buffer)
-     nil)))
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/list-new-packages</span> ()
+  (<span class="org-keyword">interactive</span>)
+  (<span class="org-keyword">let</span> ((packages
+         (<span class="org-keyword">with-temp-buffer</span>
+           (insert-file-contents <span class="org-string">"~/.emacs.d/.package-list"</span>)
+           (goto-char (point-min))
+           (my/describe-packages
+            (-difference (mapcar 'car package-archive-contents)
+                         (read (current-buffer)))))))
+    (<span class="org-keyword">if</span> (called-interactively-p 'any)
+        (insert packages)
+      packages)))
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/save-new-packages</span> ()
+  (<span class="org-keyword">interactive</span>)
+  (<span class="org-keyword">require</span> '<span class="org-constant">dash</span>)
+  (<span class="org-keyword">when</span> package-archive-contents
+    (<span class="org-keyword">with-temp-buffer</span>
+      (find-file <span class="org-string">"~/.emacs.d/.package-list"</span>)
+      (<span class="org-keyword">let</span> ((old-list (read (current-buffer))))
+        (erase-buffer)
+        (prin1 (-union old-list (mapcar 'car package-archive-contents)) (current-buffer))
+        (save-buffer)
+        )
+      nil)))
 </pre>
 </div>
 </div>
 </div>
 
+<div id="outline-container-orgeeae0cf" class="outline-5">
+<h5 id="orgeeae0cf">Get info from the Emacs NEWS file in the git repository</h5>
+<div class="outline-text-5" id="text-orgeeae0cf">
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/insert-emacs-news-from-git</span> (date)
+  (<span class="org-keyword">interactive</span> (list (org-read-date)))
+  (<span class="org-keyword">let</span> ((result 
+         (shell-command-to-string (format <span class="org-string">"cd ~/vendor/emacs; git pull &gt; /dev/null; git log --pretty=oneline --after=%s etc/NEWS"</span> date))))
+    (<span class="org-keyword">with-temp-buffer</span>
+      (insert result)
+      (goto-char (point-min))
+      (<span class="org-keyword">while</span> (re-search-forward <span class="org-string">"^</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[0-9a-f]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"> </span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">$"</span> nil t)
+        (replace-match <span class="org-string">"  - [[http://git.savannah.gnu.org/cgit/emacs.git/commit/etc/NEWS?id=\\1][\\2]]"</span>))
+      (<span class="org-keyword">setq</span> result (buffer-string)))
+    (<span class="org-keyword">if</span> (called-interactively-p 'any) (insert result) result)))
+</pre>
+</div>
+</div>
+</div>
 <div id="outline-container-org09e2860" class="outline-5">
 <h5 id="org09e2860"><a id="o2b:0a59c00b-7c40-48d5-a8c4-7a0d67e6e479"></a><span class="done DONE">DONE</span> Publishing Emacs News as plain text, HTML, and attached Org file</h5>
 <div class="outline-text-5" id="text-org09e2860">
@@ -5703,6 +5871,7 @@ text/html, with text/x-org attached. The heavy lifting is done with
       (org-narrow-to-subtree)
       (<span class="org-keyword">let</span> ((org-export-html-preamble nil)
             (org-html-toplevel-hlevel 3)
+            (title (org-get-heading))
             output)
         (<span class="org-keyword">setq</span> output
               (apply
@@ -5723,8 +5892,13 @@ text/html, with text/x-org attached. The heavy lifting is done with
                 (<span class="org-keyword">lambda</span> (format)
                   (org-export-string-as (buffer-substring (point-min) (point-max)) format t))
                 '(ascii html org))))
-        (kill-new output)))
-  (gnus))
+        (kill-new output)
+        (gnus)
+        (<span class="org-keyword">let</span> ((gnus-newsgroup-name <span class="org-string">"nntp+news.gmane.org:gmane.emacs.tangents"</span>))
+          (gnus-summary-post-news)
+                  (insert title)
+        (message-goto-body)
+        (insert output)))))
 </pre>
 </div>
 
@@ -5746,8 +5920,51 @@ above!
 </p>
 </div>
 </div>
-</div>
 
+<div id="outline-container-org0735445" class="outline-5">
+<h5 id="org0735445"><span class="todo TODO">TODO</span> Prepare Emacs News</h5>
+<div class="outline-text-5" id="text-org0735445">
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/prepare-emacs-news</span> (date)
+  (<span class="org-keyword">interactive</span> (list (org-read-date nil nil <span class="org-string">"-mon"</span>)))
+  (concat
+      <span class="org-string">"** "</span> (org-read-date nil nil <span class="org-string">"++1"</span> nil (org-read-date nil t <span class="org-string">"-sun"</span>)) <span class="org-string">" Emacs news\n\n"</span>
+      <span class="org-string">"- Emacs Lisp:</span>
+<span class="org-string">- Emacs development:\n"</span> 
+(my/insert-emacs-news-from-git date) <span class="org-string">"</span>
+<span class="org-string">- Navigation:</span>
+<span class="org-string">- Org Mode:</span>
+<span class="org-string">- Coding:</span>
+<span class="org-string">- Other:</span>
+<span class="org-string">"</span>
+       (my/org-list-from-rss <span class="org-string">"http://planet.emacsen.org/atom.xml"</span> date) <span class="org-string">"\n"</span>
+      (my/reddit-list-upvoted date)
+       (mapconcat (<span class="org-keyword">lambda</span> (x) 
+         (shell-command-to-string (concat <span class="org-string">"~/bin/list-rss-links.coffee "</span> x <span class="org-string">" "</span> date)))
+         '(<span class="org-string">"https://www.wisdomandwonder.com/tag/emacs/feed"</span>
+  <span class="org-string">"https://tcluri.github.io/rss.xml"</span>
+  <span class="org-string">"http://howardism.org/index.xml"</span>
+  <span class="org-string">"http://feeds.feedburner.com/KrisJenkinsBlog"</span>
+  <span class="org-string">"http://cachestocaches.com/tag/emacs/feed"</span>
+  <span class="org-string">"https://fuco1.github.io/rss.xml"</span>
+  <span class="org-string">"http://whyarethingsthewaytheyare.com/index.xml"</span>
+  <span class="org-string">"https://blog.aaronbieber.com/feed.xml"</span>
+  <span class="org-string">"http://anbasile.github.io/feed.xml"</span>
+  <span class="org-string">"http://kitchingroup.cheme.cmu.edu/blog/feed"</span>
+  <span class="org-string">"https://manuel-uberti.github.io/feed"</span>
+  <span class="org-string">"http://cestlaz.github.io/rss.xml"</span>
+  <span class="org-string">"http://www.wilfred.me.uk/rss.xml"</span>
+  <span class="org-string">"http://fasciism.com/feed.xml"</span>) <span class="org-string">"\n"</span>) <span class="org-string">"\n"</span>
+       <span class="org-string">"- New packages:\n"</span>
+       (my/list-new-packages) 
+       <span class="org-string">"</span>
+
+<span class="org-string">Links from [[http://reddit.com/r/emacs/new][reddit.com/r/emacs]], [[http://reddit.com/r/orgmode][/r/orgmode]], [[http://reddit.com/r/spacemacs][/r/spacemacs]], [[https://hn.algolia.com/?query=emacs&amp;sort=byDate&amp;prefix&amp;page=0&amp;dateRange=all&amp;type=story][Hacker News]], [[http://planet.emacsen.org][planet.emacsen.org]], [[https://www.youtube.com/results?search_query=emacs&amp;search_sort=video_date_uploaded][YouTube]], the changes to the [[http://git.savannah.gnu.org/cgit/emacs.git/log/etc/NEWS][Emacs NEWS file]], and [[http://lists.gnu.org/archive/html/emacs-devel/"</span> (format-time-string <span class="org-string">"%Y-%m"</span>) <span class="org-string">"][emacs-devel]]."</span>))
+</pre>
+</div>
+</div>
+</div>
+</div>
 <div id="outline-container-org99aac8e" class="outline-4">
 <h4 id="org99aac8e">Autosave</h4>
 <div class="outline-text-4" id="text-org99aac8e">
@@ -6013,8 +6230,24 @@ getting the hang of thinking properly functionally&#x2026; =)
 </p>
 </div>
 </div>
-</div>
 
+<div id="outline-container-orgfafae76" class="outline-4">
+<h4 id="orgfafae76">Converting from Markdown</h4>
+<div class="outline-text-4" id="text-orgfafae76">
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-convert-from-markdown</span> (beg end)
+  (<span class="org-keyword">interactive</span> <span class="org-string">"r"</span>)
+  (shell-command-on-region beg end <span class="org-string">"pandoc -f markdown -t org"</span> nil t))
+(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-convert-to-markdown</span> (beg end)
+  (<span class="org-keyword">interactive</span> <span class="org-string">"r"</span>)
+  (shell-command-on-region beg end <span class="org-string">"pandoc -t markdown -f org"</span> nil t))
+
+
+</pre>
+</div>
+</div>
+</div>
+</div>
 <div id="outline-container-orga73f95f" class="outline-3">
 <h3 id="orga73f95f">Coding</h3>
 <div class="outline-text-3" id="text-orga73f95f">
@@ -6766,9 +6999,9 @@ tree instead.
 </div>
 </div>
 </div>
-<div id="outline-container-orga3249c5" class="outline-4">
-<h4 id="orga3249c5">Projects</h4>
-<div class="outline-text-4" id="text-orga3249c5">
+<div id="outline-container-org8642a2a" class="outline-4">
+<h4 id="org8642a2a">Projects</h4>
+<div class="outline-text-4" id="text-org8642a2a">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">projectile</span>
   <span class="org-builtin">:diminish</span> projectile-mode
@@ -7838,9 +8071,9 @@ cool. On Windows, these things help a little.
 </div>
 </div>
 </div>
-<div id="outline-container-orgd9dbc17" class="outline-3">
-<h3 id="orgd9dbc17">Encryption</h3>
-<div class="outline-text-3" id="text-orgd9dbc17">
+<div id="outline-container-org5823ab5" class="outline-3">
+<h3 id="org5823ab5">Encryption</h3>
+<div class="outline-text-3" id="text-org5823ab5">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">setq</span> epa-file-encrypt-to '(<span class="org-string">"sacha@sachachua.com"</span>))
 </pre>
@@ -8494,7 +8727,7 @@ Handy for collecting items together.
       (mapconcat 'identity relationships <span class="org-string">"\n"</span>)
       <span class="org-string">"\n- Life\n"</span>
       (mapconcat 'identity life <span class="org-string">"\n"</span>)))
-    (<span class="org-keyword">if</span> (called-interactively-p)
+    (<span class="org-keyword">if</span> (called-interactively-p 'any)
         (kill-new string)
       string)))
 </pre>
@@ -8537,7 +8770,7 @@ to see which items I'd planned ahead, and which ones were new tasks.
            (mapconcat 'identity relationships <span class="org-string">"\n"</span>)
            <span class="org-string">"\n- Life\n"</span>
            (mapconcat 'identity life <span class="org-string">"\n"</span>)))
-    (<span class="org-keyword">if</span> (called-interactively-p)
+    (<span class="org-keyword">if</span> (called-interactively-p 'any)
         (kill-new string)
       string))))
 
@@ -8634,7 +8867,7 @@ left.
     (<span class="org-keyword">if</span> buf
         (<span class="org-keyword">if</span> (<span class="org-keyword">setq</span> wind (get-buffer-window buf))
             (select-window wind)
-          (<span class="org-keyword">if</span> (called-interactively-p)
+          (<span class="org-keyword">if</span> (called-interactively-p 'any)
               (<span class="org-keyword">progn</span>
                 (select-window (display-buffer buf t t))
                 (org-fit-window-to-buffer)
@@ -8988,9 +9221,9 @@ big to open easily there, though.
 </div>
 </div>
 </div>
-<div id="outline-container-org5823ab5" class="outline-3">
-<h3 id="org5823ab5">Encryption</h3>
-<div class="outline-text-3" id="text-org5823ab5">
+<div id="outline-container-org4f8db00" class="outline-3">
+<h3 id="org4f8db00">Encryption</h3>
+<div class="outline-text-3" id="text-org4f8db00">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">require</span> '<span class="org-constant">org-crypt</span>)
 (org-crypt-use-before-save-magic)

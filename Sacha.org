@@ -4529,6 +4529,44 @@ getting the hang of thinking properly functionally... =)
 
 
 #+end_src
+*** Saving new attachments to point
+    :PROPERTIES:
+    :Attachments: 20180612_114957%20(4).jpg
+    :ID:       4f84ac8e-0a54-4c50-8582-a6e949011b84
+    :END:
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-image-actual-width 300)
+
+  (defun my/org-add-new-file-as-attachment (event)
+    "Function for file-notify-add-watch."
+    (message "Event %S" event)
+    (when (eq (cadr event) 'created)
+      (let ((org-attach-store-link 'attached)
+            (filename (elt event 2)))
+        (unless (string-match  my/org-watch-ignore-regexps filename)
+          (org-attach-attach filename nil 'mv)
+          (insert "[[" (caar org-stored-links) "]]\n")
+          (org-display-inline-images)))))
+
+  (defvar my/org-watch-ignore-regexps "\\.crdownload\\|\\.com\\.google\\.Chrome\\|\\_sync\\_")
+  (defvar my/org-watch-directory-descriptor nil "file-notify watch for watching a directory.")
+  (defvar my/org-watch-directory "~/Downloads" "Directory to watch for new files.")
+  (defun my/org-toggle-watching-directory (&optional path)
+    "Watch the specified directory and add links to POINT."
+    (interactive (list (unless my/org-watch-directory-descriptor (read-file-name "Directory to watch: " my/org-watch-directory))))
+    (require 'org-attach)
+    (if my/org-watch-directory-descriptor
+        (progn
+          (file-notify-rm-watch my/org-watch-directory-descriptor)
+          (setq my/org-watch-directory-descriptor nil)
+          (message "Stopped."))
+      (when path (setq my/org-watch-directory path))
+      (setq my/org-watch-directory-descriptor
+            (file-notify-add-watch my/org-watch-directory '(change) 'my/org-add-new-file-as-attachment))
+      (message "Started.")))
+#+end_src
+
 ** Coding
 *** Web development
 #+begin_src emacs-lisp :tangle yes

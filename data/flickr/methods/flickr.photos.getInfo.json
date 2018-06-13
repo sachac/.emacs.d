@@ -1,0 +1,86 @@
+{
+  "method": {
+    "name": "flickr.photos.getInfo",
+    "needslogin": 0,
+    "needssigning": 0,
+    "requiredperms": 0,
+    "description": {
+      "_content": "Get information about a photo. The calling user must have permission to view the photo."
+    },
+    "response": {
+      "_content": "<photo id=\"2733\" secret=\"123456\" server=\"12\"\r\n\tisfavorite=\"0\" license=\"3\" rotation=\"90\" \r\n\toriginalsecret=\"1bc09ce34a\" originalformat=\"png\">\r\n\t<owner nsid=\"12037949754@N01\" username=\"Bees\"\r\n\t\trealname=\"Cal Henderson\" location=\"Bedford, UK\" />\r\n\t<title>orford_castle_taster</title>\r\n\t<description>hello!</description>\r\n\t<visibility ispublic=\"1\" isfriend=\"0\" isfamily=\"0\" />\r\n\t<dates posted=\"1100897479\" taken=\"2004-11-19 12:51:19\"\r\n\t\ttakengranularity=\"0\" lastupdate=\"1093022469\" />\r\n\t<permissions permcomment=\"3\" permaddmeta=\"2\" />\r\n\t<editability cancomment=\"1\" canaddmeta=\"1\" />\r\n\t<comments>1</comments>\r\n\t<notes>\r\n\t\t<note id=\"313\" author=\"12037949754@N01\"\r\n\t\t\tauthorname=\"Bees\" x=\"10\" y=\"10\"\r\n\t\t\tw=\"50\" h=\"50\">foo</note>\r\n\t</notes>\r\n\t<tags>\r\n\t\t<tag id=\"1234\" author=\"12037949754@N01\" raw=\"woo yay\">wooyay</tag>\r\n\t\t<tag id=\"1235\" author=\"12037949754@N01\" raw=\"hoopla\">hoopla</tag>\r\n\t</tags>\r\n\t<urls>\r\n\t\t<url type=\"photopage\">http://www.flickr.com/photos/bees/2733/</url> \r\n\t</urls>\r\n</photo>"
+    },
+    "explanation": {
+      "_content": "<p>The <code>&lt;permissions&gt;</code> element is only returned for photos owned by the calling user. The <code>isfavorite</code> attribute only makes sense for logged in users who don't own the photo. The <code>rotation</code> attribute is the current clockwise rotation, in degrees, by which the smaller image sizes differ from the original image.</p>\r\n\r\n<p>The <code>&lt;date&gt;</code> element's <code>lastupdate</code> attribute is a Unix timestamp indicating the last time the photo, or any of its metadata (tags, comments, etc.) was modified.</p>"
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      },
+      {
+        "name": "photo_id",
+        "optional": "0",
+        "_content": "The id of the photo to get information for."
+      },
+      {
+        "name": "secret",
+        "optional": "1",
+        "_content": "The secret for the photo. If the correct secret is passed then permissions checking is skipped. This enables the 'sharing' of individual photos by passing around the id and secret."
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": "1",
+        "message": "Photo not found.",
+        "_content": "The photo id was either invalid or was for a photo not viewable by the calling user."
+      },
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

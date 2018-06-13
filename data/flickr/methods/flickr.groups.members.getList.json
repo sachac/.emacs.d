@@ -1,0 +1,118 @@
+{
+  "method": {
+    "name": "flickr.groups.members.getList",
+    "needslogin": 1,
+    "needssigning": 1,
+    "requiredperms": "1",
+    "description": {
+      "_content": "Get a list of the members of a group.  The call must be signed on behalf of a Flickr member, and the ability to see the group membership will be determined by the Flickr member's group privileges."
+    },
+    "response": {
+      "_content": "<members page=\"1\" pages=\"1\" perpage=\"100\" total=\"33\">\r\n<member nsid=\"123456@N01\" username=\"foo\" iconserver=\"1\" iconfarm=\"1\" membertype=\"2\"/>\r\n<member nsid=\"118210@N07\" username=\"kewlchops666\" iconserver=\"0\" iconfarm=\"0\" membertype=\"4\"/>\r\n<member nsid=\"119377@N07\" username=\"Alpha Shanan\" iconserver=\"0\" iconfarm=\"0\" membertype=\"2\"/>\r\n<member nsid=\"67783977@N00\" username=\"fakedunstanp1\" iconserver=\"1003\" iconfarm=\"2\" membertype=\"3\"/>\r\n...\r\n</members>"
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      },
+      {
+        "name": "group_id",
+        "optional": "0",
+        "_content": "Return a list of members for this group.  The group must be viewable by the Flickr member on whose behalf the API call is made."
+      },
+      {
+        "name": "membertypes",
+        "optional": "1",
+        "_content": "Comma separated list of member types\r\n<ul>\r\n<li>2: member</li>\r\n<li>3: moderator</li>\r\n<li>4: admin</li>\r\n</ul>\r\nBy default returns all types.  (Returning super rare member type \"1: narwhal\" isn't supported by this API method)"
+      },
+      {
+        "name": "per_page",
+        "optional": "1",
+        "_content": "Number of members to return per page. If this argument is omitted, it defaults to 100. The maximum allowed value is 500."
+      },
+      {
+        "name": "page",
+        "optional": "1",
+        "_content": "The page of results to return. If this argument is omitted, it defaults to 1."
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": "1",
+        "message": "Group not found",
+        "_content": ""
+      },
+      {
+        "code": 95,
+        "message": "SSL is required",
+        "_content": "SSL is required to access the Flickr API."
+      },
+      {
+        "code": 96,
+        "message": "Invalid signature",
+        "_content": "The passed signature was invalid."
+      },
+      {
+        "code": 97,
+        "message": "Missing signature",
+        "_content": "The call required signing but no signature was sent."
+      },
+      {
+        "code": 98,
+        "message": "Login failed / Invalid auth token",
+        "_content": "The login details or auth token passed were invalid."
+      },
+      {
+        "code": 99,
+        "message": "User not logged in / Insufficient permissions",
+        "_content": "The method requires user authentication but the user was not logged in, or the authenticated method call did not have the required permissions."
+      },
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

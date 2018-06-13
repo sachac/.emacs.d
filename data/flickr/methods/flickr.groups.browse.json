@@ -1,0 +1,106 @@
+{
+  "method": {
+    "name": "flickr.groups.browse",
+    "needslogin": 1,
+    "needssigning": 1,
+    "requiredperms": "1",
+    "description": {
+      "_content": "Browse the group category tree, finding groups and sub-categories."
+    },
+    "response": {
+      "_content": "<category name=\"Alt\" path=\"/Alt\" pathids=\"/63\">\r\n\t<subcat id=\"80\" name=\"18+\" count=\"0\" /> \r\n\t<subcat id=\"82\" name=\"Absurd\" count=\"4\" /> \r\n\t<group nsid=\"34955637532@N01\" name=\"Cal's Public Test Group\"\r\n\t\tmembers=\"13\" online=\"1\" chatnsid=\"34955637533@N01\" inchat=\"0\" /> \r\n\t<group nsid=\"34158032587@N01\" name=\"Eric's Alt Group Test\"\r\n\t\tmembers=\"3\" online=\"0\" chatnsid=\"34158032588@N01\" inchat=\"0\" /> \r\n</category>\r\n"
+    },
+    "explanation": {
+      "_content": "<p>The <code>count</code> attribute of the <code>subcat</code> element gives the number of groups inside the subcat.</p>\r\n\r\n<p>The <code>members</code> attribute of the <code>group</code> element gives the total number of members in the group. The <code>online</code> attribute gives a count of the members who are currently online. The <code>inchat</code> attribute gives a count of the number of people in the group's chat, regardless of whether they are members of the group.</p>"
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      },
+      {
+        "name": "cat_id",
+        "optional": "1",
+        "_content": "The category id to fetch a list of groups and sub-categories for. If not specified, it defaults to zero, the root of the category tree."
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": "1",
+        "message": "Category not found",
+        "_content": "The value passed for cat_id was not a valid category id."
+      },
+      {
+        "code": 95,
+        "message": "SSL is required",
+        "_content": "SSL is required to access the Flickr API."
+      },
+      {
+        "code": 96,
+        "message": "Invalid signature",
+        "_content": "The passed signature was invalid."
+      },
+      {
+        "code": 97,
+        "message": "Missing signature",
+        "_content": "The call required signing but no signature was sent."
+      },
+      {
+        "code": 98,
+        "message": "Login failed / Invalid auth token",
+        "_content": "The login details or auth token passed were invalid."
+      },
+      {
+        "code": 99,
+        "message": "User not logged in / Insufficient permissions",
+        "_content": "The method requires user authentication but the user was not logged in, or the authenticated method call did not have the required permissions."
+      },
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

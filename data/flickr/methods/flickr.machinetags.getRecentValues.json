@@ -1,0 +1,83 @@
+{
+  "method": {
+    "name": "flickr.machinetags.getRecentValues",
+    "needslogin": 0,
+    "needssigning": 0,
+    "requiredperms": 0,
+    "description": {
+      "_content": "Fetch recently used (or created) machine tags values."
+    },
+    "response": {
+      "_content": "<values namespace=\"taxonomy\" predicate=\"common\" page=\"1\" total=\"500\" perpage=\"500\" pages=\"1\">\r\n    <value usage=\"4\" namespace=\"taxonomy\" predicate=\"common\"\r\n           first_added=\"1244232796\" last_added=\"1244232796\">maui chaff flower</value>\r\n\r\n    <!-- and so on... -->\r\n</values>"
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      },
+      {
+        "name": "namespace",
+        "optional": "1",
+        "_content": "A namespace that all values should be restricted to."
+      },
+      {
+        "name": "predicate",
+        "optional": "1",
+        "_content": "A predicate that all values should be restricted to."
+      },
+      {
+        "name": "added_since",
+        "optional": "1",
+        "_content": "Only return machine tags values that have been added since this timestamp, in epoch seconds.  "
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

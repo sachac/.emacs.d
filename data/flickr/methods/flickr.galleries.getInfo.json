@@ -1,0 +1,73 @@
+{
+  "method": {
+    "name": "flickr.galleries.getInfo",
+    "needslogin": 0,
+    "needssigning": 0,
+    "requiredperms": 0,
+    "description": {
+      "_content": ""
+    },
+    "response": {
+      "_content": "<gallery id=\"6065-72157617483228192\" url=\"http://www.flickr.com/photos/straup/galleries/72157617483228192\" \r\nowner=\"35034348999@N01\" \r\n         primary_photo_id=\"292882708\" date_create=\"1241028772\" date_update=\"1270111667\" count_photos=\"17\"\r\n count_videos=\"0\" primary_photo_server=\"112\" primary_photo_farm=\"1\" primary_photo_secret=\"7f29861bc4\">\r\n\t<title>Cat Pictures I've Sent To Kevin Collins</title>\r\n\t<description />\r\n</gallery>"
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      },
+      {
+        "name": "gallery_id",
+        "optional": "0",
+        "_content": "The gallery ID you are requesting information for."
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

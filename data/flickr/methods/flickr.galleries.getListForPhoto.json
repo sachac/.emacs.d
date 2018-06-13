@@ -1,0 +1,83 @@
+{
+  "method": {
+    "name": "flickr.galleries.getListForPhoto",
+    "needslogin": 0,
+    "needssigning": 0,
+    "requiredperms": 0,
+    "description": {
+      "_content": "Return the list of galleries to which a photo has been added.  Galleries are returned sorted by date which the photo was added to the gallery."
+    },
+    "response": {
+      "_content": "<galleries total=\"7\" page=\"1\" pages=\"1\" per_page=\"100\">\r\n    <gallery id=\"9634-72157621980433950\" \r\n             url=\"http://www.flickr.com/photos/revdancatt/galleries/72157621980433950\" \r\n             owner=\"35468159852@N01\" date_create=\"1249748647\" date_update=\"1260486168\" \r\n\t     primary_photo_id=\"2080242123\" primary_photo_server=\"2209\" \r\n\t     primary_photo_farm=\"3\" primary_photo_secret=\"55c9\"\r\n             count_photos=\"18\" count_videos=\"0\">\r\n        <title>Vivitar Ultra Wide &amp; Slim Selection</title>\r\n        <description>The cheap and cheerful camera that isn't quite as cheap as it used to be.</description>\r\n    </gallery>\r\n   <gallery id=\"22342631-72157622254010831\" \r\n             url=\"http://www.flickr.com/photos/22365685@N03/galleries/72157622254010831\" \r\n             owner=\"22365685@N03\" date_create=\"1253035020\" date_update=\"1260431618\" \r\n             primary_photo_id=\"3182914049\" primary_photo_server=\"3319\" \r\n             primary_photo_farm=\"4\" primary_photo_secret=\"b94fb\"\r\n             count_photos=\"13\" count_videos=\"0\">\r\n        <title>Awesome Pics</title>\r\n        <description />\r\n    </gallery>\r\n</galleries>"
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      },
+      {
+        "name": "photo_id",
+        "optional": "0",
+        "_content": "The ID of the photo to fetch a list of galleries for."
+      },
+      {
+        "name": "per_page",
+        "optional": "1",
+        "_content": "Number of galleries to return per page. If this argument is omitted, it defaults to 100. The maximum allowed value is 500."
+      },
+      {
+        "name": "page",
+        "optional": "1",
+        "_content": "The page of results to return. If this argument is omitted, it defaults to 1."
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

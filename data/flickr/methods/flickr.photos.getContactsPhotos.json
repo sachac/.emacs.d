@@ -1,0 +1,118 @@
+{
+  "method": {
+    "name": "flickr.photos.getContactsPhotos",
+    "needslogin": 1,
+    "needssigning": 1,
+    "requiredperms": "1",
+    "description": {
+      "_content": "Fetch a list of recent photos from the calling users' contacts."
+    },
+    "response": {
+      "_content": "<photos>\r\n\t<photo id=\"2801\" owner=\"12037949629@N01\"\r\n\t\tsecret=\"123456\" server=\"1\"\r\n\t\tusername=\"Eric is the best\" title=\"grease\" /> \r\n\t<photo id=\"2499\" owner=\"33853651809@N01\"\r\n\t\tsecret=\"123456\" server=\"1\"\r\n\t\tusername=\"cal18\" title=\"36679_o\" /> \r\n\t<photo id=\"2437\" owner=\"12037951898@N01\"\r\n\t\tsecret=\"123456\" server=\"1\"\r\n\t\tusername=\"georgie parker\" title=\"phoenix9_stewart\" /> \r\n</photos>"
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      },
+      {
+        "name": "count",
+        "optional": "1",
+        "_content": "Number of photos to return. Defaults to 10, maximum 50. This is only used if <code>single_photo</code> is not passed."
+      },
+      {
+        "name": "just_friends",
+        "optional": "1",
+        "_content": "set as 1 to only show photos from friends and family (excluding regular contacts)."
+      },
+      {
+        "name": "single_photo",
+        "optional": "1",
+        "_content": "Only fetch one photo (the latest) per contact, instead of all photos in chronological order."
+      },
+      {
+        "name": "include_self",
+        "optional": "1",
+        "_content": "Set to 1 to include photos from the calling user."
+      },
+      {
+        "name": "extras",
+        "optional": "1",
+        "_content": "A comma-delimited list of extra information to fetch for each returned record. Currently supported fields include: license, date_upload, date_taken, owner_name, icon_server, original_format, last_update. For more information see extras under <a href=\"/services/api/flickr.photos.search.html\">flickr.photos.search</a>."
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": 95,
+        "message": "SSL is required",
+        "_content": "SSL is required to access the Flickr API."
+      },
+      {
+        "code": 96,
+        "message": "Invalid signature",
+        "_content": "The passed signature was invalid."
+      },
+      {
+        "code": 97,
+        "message": "Missing signature",
+        "_content": "The call required signing but no signature was sent."
+      },
+      {
+        "code": 98,
+        "message": "Login failed / Invalid auth token",
+        "_content": "The login details or auth token passed were invalid."
+      },
+      {
+        "code": 99,
+        "message": "User not logged in / Insufficient permissions",
+        "_content": "The method requires user authentication but the user was not logged in, or the authenticated method call did not have the required permissions."
+      },
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

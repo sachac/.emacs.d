@@ -1,0 +1,93 @@
+{
+  "method": {
+    "name": "flickr.groups.discuss.replies.getList",
+    "needslogin": 0,
+    "needssigning": 0,
+    "requiredperms": 0,
+    "description": {
+      "_content": "Get a list of replies from a group discussion topic."
+    },
+    "response": {
+      "_content": "<rsp stat=\"ok\">\r\n  <replies>\r\n    <topic topic_id=\"72157625038324579\" subject=\"A long time ago in a galaxy far, far away...\" group_id=\"46744914@N00\" iconserver=\"1\" iconfarm=\"1\" name=\"Tell a story in 5 frames (Visual story telling)\" author=\"53930889@N04\" authorname=\"Smallportfolio_jm08\" role=\"member\" author_iconserver=\"5169\" author_iconfarm=\"6\" can_edit=\"0\" can_delete=\"0\" can_reply=\"0\" is_sticky=\"0\" is_locked=\"\" datecreate=\"1287070965\" datelastpost=\"1336905518\" total=\"8\" page=\"1\" per_page=\"3\" pages=\"2\">\r\n      <message>&lt;div&gt;&lt;span class=&quot;photo_container pc_m bbml_img&quot;&gt;&lt;a href=&quot;/photos/53930889@N04/5080874079/&quot; title=&quot;Star Wars 1 by Smallportfolio_jm08&quot;&gt;&lt;img class=&quot;notsowide&quot; src=&quot;http://farm5.staticflickr.com/4035/5080874079_684cf874e0_m.jpg&quot; width=&quot;240&quot; height=&quot;180&quot; alt=&quot;Star Wars 1 by Smallportfolio_jm08&quot;  class=&quot;pc_img&quot; border=&quot;0&quot; /&gt;&lt;/a&gt;&lt;/span&gt;&lt;/div&gt;\r\n\r\n&lt;div&gt;&lt;span class=&quot;photo_container pc_m bbml_img&quot;&gt;&lt;a href=&quot;/photos/53930889@N04/5081467846/&quot; title=&quot;Star Wars 2 by Smallportfolio_jm08&quot;&gt;&lt;img class=&quot;notsowide&quot; src=&quot;http://farm5.staticflickr.com/4071/5081467846_2eec86176d_m.jpg&quot; width=&quot;240&quot; height=&quot;180&quot; alt=&quot;Star Wars 2 by Smallportfolio_jm08&quot;  class=&quot;pc_img&quot; border=&quot;0&quot; /&gt;&lt;/a&gt;&lt;/span&gt;&lt;/div&gt;\r\n\r\n&lt;div&gt;&lt;span class=&quot;photo_container pc_m bbml_img&quot;&gt;&lt;a href=&quot;/photos/53930889@N04/5081467886/&quot; title=&quot;Star Wars 3 by Smallportfolio_jm08&quot;&gt;&lt;img class=&quot;notsowide&quot; src=&quot;http://farm5.staticflickr.com/4021/5081467886_d8cca6c8e8_m.jpg&quot; width=&quot;240&quot; height=&quot;180&quot; alt=&quot;Star Wars 3 by Smallportfolio_jm08&quot;  class=&quot;pc_img&quot; border=&quot;0&quot; /&gt;&lt;/a&gt;&lt;/span&gt;&lt;/div&gt;\r\n\r\n&lt;div&gt;&lt;span class=&quot;photo_container pc_m bbml_img&quot;&gt;&lt;a href=&quot;/photos/53930889@N04/5081467910/&quot; title=&quot;Star Wars 4 by Smallportfolio_jm08&quot;&gt;&lt;img class=&quot;notsowide&quot; src=&quot;http://farm5.staticflickr.com/4084/5081467910_274bb11fdc_m.jpg&quot; width=&quot;240&quot; height=&quot;180&quot; alt=&quot;Star Wars 4 by Smallportfolio_jm08&quot;  class=&quot;pc_img&quot; border=&quot;0&quot; /&gt;&lt;/a&gt;&lt;/span&gt;&lt;/div&gt;\r\n\r\n&lt;div&gt;&lt;span class=&quot;photo_container pc_m bbml_img&quot;&gt;&lt;a href=&quot;/photos/53930889@N04/5081467948/&quot; title=&quot;Star Wars 5 by Smallportfolio_jm08&quot;&gt;&lt;img class=&quot;notsowide&quot; src=&quot;http://farm5.staticflickr.com/4154/5081467948_1a5f200bc0_m.jpg&quot; width=&quot;240&quot; height=&quot;180&quot; alt=&quot;Star Wars 5 by Smallportfolio_jm08&quot;  class=&quot;pc_img&quot; border=&quot;0&quot; /&gt;&lt;/a&gt;&lt;/span&gt;&lt;/div&gt;</message>\r\n    </topic>\r\n    <reply id=\"72157625163054214\" author=\"41380738@N05\" authorname=\"BlueRidgeKitties\" role=\"member\" iconserver=\"2459\" iconfarm=\"3\" can_edit=\"0\" can_delete=\"0\" datecreate=\"1287071539\" lastedit=\"0\">\r\n      <message>*LOL* The universe is full of &lt;a href=&quot;http://www.flickr.com/groups/visualstory/discuss/72157622533160886/&quot;&gt;giant furry space monsters&lt;/a&gt; it seems! Love it.</message>\r\n    </reply>\r\n    <reply id=\"72157625163539300\" author=\"52101018@N00\" authorname=\"pterandon\" role=\"admin\" iconserver=\"1\" iconfarm=\"1\" can_edit=\"0\" can_delete=\"0\" datecreate=\"1287076748\" lastedit=\"0\">\r\n      <message>Great work. Good focus on different aspects of scene in each frame.  Funny ending-- even better that I didn't notice the cat right away!  Being a hopeless Trekkie, I was wondering why Han was doing the Vulcan death grip on one of his allies....</message>\r\n    </reply>\r\n    <reply id=\"72157625040116805\" author=\"54830408@N02\" authorname=\"tay.grisham\" role=\"member\" iconserver=\"0\" iconfarm=\"0\" can_edit=\"0\" can_delete=\"0\" datecreate=\"1287089858\" lastedit=\"0\">\r\n      <message>On a scale of 1 to 10 of awesome. This is a 15</message>\r\n    </reply>\r\n  </replies>\r\n</rsp>"
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      },
+      {
+        "name": "group_id",
+        "optional": "0",
+        "_content": "Pass in the group id to where the topic belongs. Can be NSID or group alias. Making this parameter optional for legacy reasons, but it is highly recommended to pass this in to get faster performance. "
+      },
+      {
+        "name": "topic_id",
+        "optional": "0",
+        "_content": "The ID of the topic to fetch replies for."
+      },
+      {
+        "name": "per_page",
+        "optional": "0",
+        "_content": "Number of photos to return per page. If this argument is omitted, it defaults to 100. The maximum allowed value is 500."
+      },
+      {
+        "name": "page",
+        "optional": "1",
+        "_content": "The page of results to return. If this argument is omitted, it defaults to 1."
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": "1",
+        "message": "Topic not found",
+        "_content": "The topic_id is invalid."
+      },
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

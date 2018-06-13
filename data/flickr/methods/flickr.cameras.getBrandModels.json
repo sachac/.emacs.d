@@ -1,0 +1,78 @@
+{
+  "method": {
+    "name": "flickr.cameras.getBrandModels",
+    "needslogin": 0,
+    "needssigning": 0,
+    "requiredperms": 0,
+    "description": {
+      "_content": "Retrieve all the models for a given camera brand."
+    },
+    "response": {
+      "_content": "<rsp stat=\"ok\">\r\n  <cameras brand=\"apple\">\r\n    <camera id=\"iphone_9000\">\r\n      <name>iPhone 9000</name>\r\n      <details>\r\n        <megapixels>22.0</megapixels>\r\n        <zoom>3.0</zoom>\r\n        <lcd_size>40.5</lcd_size>\r\n        <storage_type>Flash</storage_type>\r\n      </details>\r\n      <images>\r\n        <small>http://farm3.staticflickr.com/1234/cameras/123456_model_small_123456.jpg</small>\r\n        <large>http://farm3.staticflickr.com/1234/cameras/123456_model_large_123456.jpg</large>\r\n      </images>\r\n    </camera>\r\n  </cameras>\r\n</rsp>"
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      },
+      {
+        "name": "brand",
+        "optional": "0",
+        "_content": "The ID of the requested brand (as returned from flickr.cameras.getBrands)."
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": "1",
+        "message": "Brand not found",
+        "_content": "Unable to find the given brand ID."
+      },
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

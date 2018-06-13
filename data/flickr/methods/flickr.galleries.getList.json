@@ -1,0 +1,88 @@
+{
+  "method": {
+    "name": "flickr.galleries.getList",
+    "needslogin": 0,
+    "needssigning": 0,
+    "requiredperms": 0,
+    "description": {
+      "_content": "Return the list of galleries created by a user.  Sorted from newest to oldest."
+    },
+    "response": {
+      "_content": "<galleries total=\"9\" page=\"1\" pages=\"1\" per_page=\"100\" user_id=\"34427469121@N01\">\r\n   <gallery id=\"5704-72157622637971865\" \r\n             url=\"http://www.flickr.com/photos/george/galleries/72157622637971865\" \r\n             owner=\"34427469121@N01\" date_create=\"1257711422\" date_update=\"1260360756\"\r\n             primary_photo_id=\"107391222\"  primary_photo_server=\"39\" \r\n             primary_photo_farm=\"1\" primary_photo_secret=\"ffa\"\r\n             count_photos=\"16\" count_videos=\"2\" >\r\n       <title>I like me some black &amp; white</title>\r\n       <description>black and whites</description>\r\n   </gallery>\r\n   <gallery id=\"5704-72157622566655097\" \r\n            url=\"http://www.flickr.com/photos/george/galleries/72157622566655097\" \r\n            owner=\"34427469121@N01\" date_create=\"1256852229\" date_update=\"1260462343\" \r\n            primary_photo_id=\"497374910\" primary_photo_server=\"231\" \r\n            primary_photo_farm=\"1\" primary_photo_secret=\"9ae0f\"\r\n            count_photos=\"18\" count_videos=\"0\" >\r\n       <title>People Sleeping in Libraries</title>\r\n       <description />\r\n   </gallery>\r\n</galleries>"
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      },
+      {
+        "name": "user_id",
+        "optional": "0",
+        "_content": "The NSID of the user to get a galleries list for. If none is specified, the calling user is assumed."
+      },
+      {
+        "name": "per_page",
+        "optional": "1",
+        "_content": "Number of galleries to return per page. If this argument is omitted, it defaults to 100. The maximum allowed value is 500."
+      },
+      {
+        "name": "page",
+        "optional": "1",
+        "_content": "The page of results to return. If this argument is omitted, it defaults to 1."
+      },
+      {
+        "name": "primary_photo_extras",
+        "optional": "1",
+        "_content": "A comma-delimited list of extra information to fetch for the primary photo. Currently supported fields are: license, date_upload, date_taken, owner_name, icon_server, original_format, last_update, geo, tags, machine_tags, o_dims, views, media, path_alias, url_sq, url_t, url_s, url_m, url_o"
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

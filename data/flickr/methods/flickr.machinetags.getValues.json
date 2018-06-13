@@ -1,0 +1,98 @@
+{
+  "method": {
+    "name": "flickr.machinetags.getValues",
+    "needslogin": 0,
+    "needssigning": 0,
+    "requiredperms": 0,
+    "description": {
+      "_content": "Return a list of unique values for a namespace and predicate."
+    },
+    "response": {
+      "_content": "<values namespace=\"upcoming\" predicate=\"event\" page=\"1\" pages=\"1\" total=\"3\" perpage=\"500\">\r\n    <value usage=\"3\">123</value>\r\n    <value usage=\"1\">456</value>\r\n    <value usage=\"147\">789</value>\r\n</values>"
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      },
+      {
+        "name": "namespace",
+        "optional": "0",
+        "_content": "The namespace that all values should be restricted to."
+      },
+      {
+        "name": "predicate",
+        "optional": "0",
+        "_content": "The predicate that all values should be restricted to."
+      },
+      {
+        "name": "per_page",
+        "optional": "1",
+        "_content": "Number of photos to return per page. If this argument is omitted, it defaults to 100. The maximum allowed value is 500."
+      },
+      {
+        "name": "page",
+        "optional": "1",
+        "_content": "The page of results to return. If this argument is omitted, it defaults to 1."
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": "1",
+        "message": "Not a valid namespace",
+        "_content": "Missing or invalid namespace argument."
+      },
+      {
+        "code": "2",
+        "message": "Not a valid predicate",
+        "_content": "Missing or invalid predicate argument."
+      },
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

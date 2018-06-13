@@ -1,0 +1,96 @@
+{
+  "method": {
+    "name": "flickr.people.getUploadStatus",
+    "needslogin": 1,
+    "needssigning": 1,
+    "requiredperms": "1",
+    "description": {
+      "_content": "Returns information for the calling user related to photo uploads."
+    },
+    "response": {
+      "_content": "<user id=\"12037949754@N01\" ispro=\"1\">\r\n\t<username>Bees</username> \r\n\t<bandwidth\r\n\t\tmaxbytes=\"2147483648\" maxkb=\"2097152\"\r\n\t\tusedbytes=\"383724\" usedkb=\"374\"\r\n\t\tremainingbytes=\"2147099924\" remainingkb=\"2096777\"\r\n\t /> \r\n\t<filesize\r\n\t\tmaxbytes=\"10485760\" maxkb=\"10240\"\r\n\t/> \r\n\t<sets\r\n\t\tcreated=\"27\"\r\n\t\tremaining=\"lots\"\r\n\t/>\r\n\t<videos\r\n\t\tuploaded=\"5\"\r\n\t\tremaining=\"lots\"\r\n\t/>\r\n</user>"
+    },
+    "explanation": {
+      "_content": "<p>Bandwidth and filesize numbers are provided in bytes and kilobytes. If you're using 32bit numbers, stick to using the kilobyte values - they shouldn't ever exceed 2/4 billion, while the byte values will.</p>\r\n\r\n<p>Bandwidth is specified in bytes/kb per month.</p>\r\n\r\n\r\n<p>All accounts display \"lots\" for the number of remaining sets, but remains in the response for backwards compatibility.</p>\r\n\r\n<p>Pro accounts display \"lots\" for the number of remaining videos, while free users will display 0, 1, or 2.</p>\r\n"
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": 95,
+        "message": "SSL is required",
+        "_content": "SSL is required to access the Flickr API."
+      },
+      {
+        "code": 96,
+        "message": "Invalid signature",
+        "_content": "The passed signature was invalid."
+      },
+      {
+        "code": 97,
+        "message": "Missing signature",
+        "_content": "The call required signing but no signature was sent."
+      },
+      {
+        "code": 98,
+        "message": "Login failed / Invalid auth token",
+        "_content": "The login details or auth token passed were invalid."
+      },
+      {
+        "code": 99,
+        "message": "User not logged in / Insufficient permissions",
+        "_content": "The method requires user authentication but the user was not logged in, or the authenticated method call did not have the required permissions."
+      },
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

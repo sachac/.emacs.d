@@ -1,0 +1,130 @@
+{
+  "method": {
+    "name": "flickr.photos.geo.correctLocation",
+    "needslogin": 1,
+    "needssigning": 1,
+    "requiredperms": "2",
+    "description": {
+      "_content": ""
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      },
+      {
+        "name": "photo_id",
+        "optional": "0",
+        "_content": "The ID of the photo whose WOE location is being corrected."
+      },
+      {
+        "name": "place_id",
+        "optional": "1",
+        "_content": "A Flickr Places ID. (While optional, you must pass either a valid Places ID or a WOE ID.)"
+      },
+      {
+        "name": "woe_id",
+        "optional": "1",
+        "_content": "A Where On Earth (WOE) ID. (While optional, you must pass either a valid Places ID or a WOE ID.)"
+      },
+      {
+        "name": "foursquare_id",
+        "optional": "0",
+        "_content": "The venue ID for a Foursquare location. (If not passed in with correction, any existing foursquare venue will be removed)."
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": "1",
+        "message": "User has not configured default viewing settings for location data.",
+        "_content": "Before users may assign location data to a photo they must define who, by default, may view that information. Users can edit this preference at <a href=\"http://www.flickr.com/account/geo/privacy/\">http://www.flickr.com/account/geo/privacy/</a>"
+      },
+      {
+        "code": "2",
+        "message": "Missing place ID",
+        "_content": "No place ID was passed to the method"
+      },
+      {
+        "code": "3",
+        "message": "Not a valid place ID",
+        "_content": "The place ID passed to the method could not be identified"
+      },
+      {
+        "code": "4",
+        "message": "Server error correcting location.",
+        "_content": "There was an error trying to correct the location."
+      },
+      {
+        "code": 95,
+        "message": "SSL is required",
+        "_content": "SSL is required to access the Flickr API."
+      },
+      {
+        "code": 96,
+        "message": "Invalid signature",
+        "_content": "The passed signature was invalid."
+      },
+      {
+        "code": 97,
+        "message": "Missing signature",
+        "_content": "The call required signing but no signature was sent."
+      },
+      {
+        "code": 98,
+        "message": "Login failed / Invalid auth token",
+        "_content": "The login details or auth token passed were invalid."
+      },
+      {
+        "code": 99,
+        "message": "User not logged in / Insufficient permissions",
+        "_content": "The method requires user authentication but the user was not logged in, or the authenticated method call did not have the required permissions."
+      },
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

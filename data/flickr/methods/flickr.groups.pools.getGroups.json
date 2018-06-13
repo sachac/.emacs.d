@@ -1,0 +1,106 @@
+{
+  "method": {
+    "name": "flickr.groups.pools.getGroups",
+    "needslogin": 1,
+    "needssigning": 1,
+    "requiredperms": "1",
+    "description": {
+      "_content": "Returns a list of groups to which you can add photos."
+    },
+    "response": {
+      "_content": "<groups page=\"1\" pages=\"1\" per_page=\"400\" total=\"3\">\r\n\t<group nsid=\"33853651696@N01\" name=\"Art and Literature Hoedown\"\r\n\t\tadmin=\"0\" privacy=\"3\" photos=\"2\" iconserver=\"1\" /> \r\n\t<group nsid=\"34427465446@N01\" name=\"FlickrIdeas\"\r\n\t\tadmin=\"1\" privacy=\"3\" photos=\"20\" iconserver=\"1\" /> \r\n\t<group nsid=\"34427465497@N01\" name=\"GNEverybody\"\r\n\t\tadmin=\"0\" privacy=\"3\" photos=\"4\" iconserver=\"1\" /> \r\n</groups>"
+    },
+    "explanation": {
+      "_content": "<p>The <code>privacy</code> attribute is 1 for private groups, 2 for invite-only public groups and 3 for open public groups.</p>"
+    }
+  },
+  "arguments": {
+    "argument": [
+      {
+        "name": "api_key",
+        "optional": 0,
+        "_content": "Your API application key. <a href=\"/services/api/misc.api_keys.html\">See here</a> for more details."
+      },
+      {
+        "name": "page",
+        "optional": "1",
+        "_content": "The page of results to return. If this argument is omitted, it defaults to 1."
+      },
+      {
+        "name": "per_page",
+        "optional": "1",
+        "_content": "Number of groups to return per page. If this argument is omitted, it defaults to 400. The maximum allowed value is 400."
+      }
+    ]
+  },
+  "errors": {
+    "error": [
+      {
+        "code": 95,
+        "message": "SSL is required",
+        "_content": "SSL is required to access the Flickr API."
+      },
+      {
+        "code": 96,
+        "message": "Invalid signature",
+        "_content": "The passed signature was invalid."
+      },
+      {
+        "code": 97,
+        "message": "Missing signature",
+        "_content": "The call required signing but no signature was sent."
+      },
+      {
+        "code": 98,
+        "message": "Login failed / Invalid auth token",
+        "_content": "The login details or auth token passed were invalid."
+      },
+      {
+        "code": 99,
+        "message": "User not logged in / Insufficient permissions",
+        "_content": "The method requires user authentication but the user was not logged in, or the authenticated method call did not have the required permissions."
+      },
+      {
+        "code": 100,
+        "message": "Invalid API Key",
+        "_content": "The API key passed was not valid or has expired."
+      },
+      {
+        "code": 105,
+        "message": "Service currently unavailable",
+        "_content": "The requested service is temporarily unavailable."
+      },
+      {
+        "code": 106,
+        "message": "Write operation failed",
+        "_content": "The requested operation failed due to a temporary issue."
+      },
+      {
+        "code": 111,
+        "message": "Format \"xxx\" not found",
+        "_content": "The requested response format was not found."
+      },
+      {
+        "code": 112,
+        "message": "Method \"xxx\" not found",
+        "_content": "The requested method was not found."
+      },
+      {
+        "code": 114,
+        "message": "Invalid SOAP envelope",
+        "_content": "The SOAP envelope send in the request could not be parsed."
+      },
+      {
+        "code": 115,
+        "message": "Invalid XML-RPC Method Call",
+        "_content": "The XML-RPC request document could not be parsed."
+      },
+      {
+        "code": 116,
+        "message": "Bad URL found",
+        "_content": "One or more arguments contained a URL that has been used for abuse on Flickr."
+      }
+    ]
+  },
+  "stat": "ok"
+}

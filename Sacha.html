@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2018-05-24 Thu 03:11 -->
+<!-- 2018-06-13 Wed 02:01 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
@@ -282,7 +282,7 @@ for the JavaScript code in this tag.
 </li>
 </ul>
 </li>
-<li><a href="#org265bf58">Navigation</a>
+<li><a href="#orgd267928">Navigation</a>
 <ul>
 <li><a href="#org43a846b">Pop to mark</a></li>
 <li><a href="#orga9c79c3">Helm-swoop - quickly finding lines</a></li>
@@ -291,7 +291,7 @@ for the JavaScript code in this tag.
 <li><a href="#org9750649">Frequently-accessed files</a></li>
 <li><a href="#key-chord">Key chords and Hydras</a></li>
 <li><a href="#orgfdfb418">Smartscan</a></li>
-<li><a href="#org0be8fa1">Dired</a>
+<li><a href="#org4974a09">Dired</a>
 <ul>
 <li><a href="#org4c65021">peep-dired</a></li>
 <li><a href="#org6ccec83">Saving photos</a></li>
@@ -324,7 +324,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgca8e067">Speed commands</a></li>
 </ul>
 </li>
-<li><a href="#orgd267928">Navigation</a>
+<li><a href="#org44d72bf">Navigation</a>
 <ul>
 <li><a href="#org1587f43">Link Org subtrees and navigate between them</a></li>
 <li><a href="#orgb362383">Viewing, navigating, and editing the Org tree</a></li>
@@ -333,7 +333,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgc79d737">Taking notes</a>
 <ul>
 <li><a href="#org8b3b235">Date trees</a></li>
-<li><a href="#orgcbe1ae7">Templates</a></li>
+<li><a href="#org599f21e">Templates</a></li>
 <li><a href="#org2789cb5">Refiling</a></li>
 <li><a href="#org5973465">Estimating WPM</a></li>
 </ul>
@@ -347,7 +347,7 @@ for the JavaScript code in this tag.
 <li><a href="#orge24726a">Task dependencies</a></li>
 </ul>
 </li>
-<li><a href="#org599f21e">Templates</a>
+<li><a href="#org3e40e30">Templates</a>
 <ul>
 <li><a href="#org74bcbb3">Structure templates</a></li>
 <li><a href="#org60eb191">Emacs chats, Emacs hangouts</a></li>
@@ -365,7 +365,7 @@ for the JavaScript code in this tag.
 <li><a href="#org9f0afd0">Sorting by date and priority</a></li>
 <li><a href="#org231ff51">Preventing things from falling through the cracks</a></li>
 <li><a href="#org63e1206">Synchronizing with Google Calendar</a></li>
-<li><a href="#org73bd617">Projects</a></li>
+<li><a href="#orgbaf2442">Projects</a></li>
 </ul>
 </li>
 <li><a href="#org557a3c3">Reviews</a>
@@ -440,6 +440,7 @@ for the JavaScript code in this tag.
 <li><a href="#org99aac8e">Autosave</a></li>
 <li><a href="#orgfd87beb"><span class="done DONE">DONE</span> Org Mode tables and fill-in quizzes - Latin verb conjugations in Emacs</a></li>
 <li><a href="#orgfafae76">Converting from Markdown</a></li>
+<li><a href="#org27753c4">Saving new attachments to point</a></li>
 </ul>
 </li>
 <li><a href="#orga73f95f">Coding</a>
@@ -471,7 +472,7 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#orgb10c800">git-messenger - shows commit message</a></li>
 <li><a href="#orgfb77d93">Tag files</a></li>
-<li><a href="#org8642a2a">Projects</a></li>
+<li><a href="#org519a36f">Projects</a></li>
 <li><a href="#orgf50520e">Exploring MELPA recipes</a></li>
 <li><a href="#orgd60ed51">Ruby</a></li>
 <li><a href="#org915393b">Skewer</a></li>
@@ -535,7 +536,7 @@ for the JavaScript code in this tag.
 </ul>
 </li>
 <li><a href="#org44c51ff">Weather forecast</a></li>
-<li><a href="#org5823ab5">Encryption</a></li>
+<li><a href="#org4f8db00">Encryption</a></li>
 <li><a href="#org681e73a">Yaoddmuse</a></li>
 <li><a href="#orgfb9b12e">Building a today-I-learned habit, and displaying the documentation for random Emacs commands&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span></span></a></li>
 <li><a href="#org323ef6c"><span class="done DONE">DONE</span> Scan ~/bin and turn the scripts into interactive commands</a></li>
@@ -579,7 +580,7 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#org0b984fa">Keywiz - keyboard quizzes</a></li>
 <li><a href="#orgf62ed27">MobileOrg for Android</a></li>
-<li><a href="#org4f8db00">Encryption</a></li>
+<li><a href="#org1c167e7">Encryption</a></li>
 <li><a href="#org3028b7b">Drawing</a>
 <ul>
 <li><a href="#org8dce88c">Digital index piles with Emacs</a></li>
@@ -724,9 +725,9 @@ Here's how we start:
 <div class="outline-text-4" id="text-org47943cc">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">unless</span> (assoc-default <span class="org-string">"melpa"</span> package-archives)
-  (add-to-list 'package-archives '(<span class="org-string">"melpa"</span> . <span class="org-string">"http://melpa.org/packages/"</span>) t))
+  (add-to-list 'package-archives '(<span class="org-string">"melpa"</span> . <span class="org-string">"https://melpa.org/packages/"</span>) t))
 (<span class="org-keyword">unless</span> (assoc-default <span class="org-string">"org"</span> package-archives)
-  (add-to-list 'package-archives '(<span class="org-string">"org"</span> . <span class="org-string">"http://orgmode.org/elpa/"</span>) t))
+  (add-to-list 'package-archives '(<span class="org-string">"org"</span> . <span class="org-string">"https://orgmode.org/elpa/"</span>) t))
 </pre>
 </div>
 
@@ -1496,9 +1497,9 @@ command by default, and to use <code>kbd</code> for the keybinding definitions.
 </div>
 </div>
 
-<div id="outline-container-org265bf58" class="outline-3">
-<h3 id="org265bf58">Navigation</h3>
-<div class="outline-text-3" id="text-org265bf58">
+<div id="outline-container-orgd267928" class="outline-3">
+<h3 id="orgd267928">Navigation</h3>
+<div class="outline-text-3" id="text-orgd267928">
 </div><div id="outline-container-org43a846b" class="outline-4">
 <h4 id="org43a846b">Pop to mark</h4>
 <div class="outline-text-4" id="text-org43a846b">
@@ -1828,9 +1829,9 @@ From <a href="https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el">http
 </div>
 </div>
 </div>
-<div id="outline-container-org0be8fa1" class="outline-4">
-<h4 id="org0be8fa1">Dired</h4>
-<div class="outline-text-4" id="text-org0be8fa1">
+<div id="outline-container-org4974a09" class="outline-4">
+<h4 id="org4974a09">Dired</h4>
+<div class="outline-text-4" id="text-org4974a09">
 <p>
 From <a href="http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/">http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/</a>
 </p>
@@ -2530,9 +2531,9 @@ These are great for quickly acting on tasks.
 </div>
 </div>
 
-<div id="outline-container-orgd267928" class="outline-4">
-<h4 id="orgd267928">Navigation</h4>
-<div class="outline-text-4" id="text-orgd267928">
+<div id="outline-container-org44d72bf" class="outline-4">
+<h4 id="org44d72bf">Navigation</h4>
+<div class="outline-text-4" id="text-org44d72bf">
 <p>
 From <a href="http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-command-to-jump-to-an-org-heading">http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-command-to-jump-to-an-org-heading</a>
 </p>
@@ -2645,9 +2646,9 @@ This quickly adds a same-level heading for the succeeding day.
 </div>
 </div>
 </div>
-<div id="outline-container-orgcbe1ae7" class="outline-5">
-<h5 id="orgcbe1ae7">Templates</h5>
-<div class="outline-text-5" id="text-orgcbe1ae7">
+<div id="outline-container-org599f21e" class="outline-5">
+<h5 id="org599f21e">Templates</h5>
+<div class="outline-text-5" id="text-org599f21e">
 <p>
 I use <code>org-capture</code> templates to quickly jot down tasks, ledger
 entries, notes, and other semi-structured pieces of information.
@@ -2960,7 +2961,7 @@ and <code>!</code> automatically logs the timestamp of the state change.
 </pre>
 </div>
 </div></li>
-<li><a id="orga3249c5"></a>Projects<br /><div class="outline-text-6" id="text-orga3249c5">
+<li><a id="org8642a2a"></a>Projects<br /><div class="outline-text-6" id="text-org8642a2a">
 <p>
 Projects are headings with the <code>:project:</code> tag, so we generally don't
 want that tag inherited, except when we display unscheduled tasks that
@@ -3173,9 +3174,9 @@ of every month. Fortunately, <a href="http://stackoverflow.com/questions/1355538
 </div>
 </div>
 </div>
-<div id="outline-container-org599f21e" class="outline-4">
-<h4 id="org599f21e">Templates</h4>
-<div class="outline-text-4" id="text-org599f21e">
+<div id="outline-container-org3e40e30" class="outline-4">
+<h4 id="org3e40e30">Templates</h4>
+<div class="outline-text-4" id="text-org3e40e30">
 </div><div id="outline-container-org74bcbb3" class="outline-5">
 <h5 id="org74bcbb3">Structure templates</h5>
 <div class="outline-text-5" id="text-org74bcbb3">
@@ -3920,9 +3921,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 </div>
 </div>
 </div>
-<div id="outline-container-org73bd617" class="outline-5">
-<h5 id="org73bd617">Projects</h5>
-<div class="outline-text-5" id="text-org73bd617">
+<div id="outline-container-orgbaf2442" class="outline-5">
+<h5 id="orgbaf2442">Projects</h5>
+<div class="outline-text-5" id="text-orgbaf2442">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-show-active-projects</span> ()
   <span class="org-doc">"Show my current projects."</span>
@@ -5081,8 +5082,8 @@ So that I can easily add links at point. Formatted as an Org list for now.
 </div>
 </div>
 
-<div id="outline-container-org4974a09" class="outline-5">
-<h5 id="org-dired"><a id="org4974a09"></a>Dired</h5>
+<div id="outline-container-org41bc3ef" class="outline-5">
+<h5 id="org-dired"><a id="org41bc3ef"></a>Dired</h5>
 <div class="outline-text-5" id="text-org-dired">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-get-links-in-region</span> (beg end)
@@ -6247,7 +6248,45 @@ getting the hang of thinking properly functionally&#x2026; =)
 </div>
 </div>
 </div>
+<div id="outline-container-org27753c4" class="outline-4">
+<h4 id="org27753c4"><a id="ID-4f84ac8e-0a54-4c50-8582-a6e949011b84"></a>Saving new attachments to point</h4>
+<div class="outline-text-4" id="text-org27753c4">
+<div class="org-src-container">
+<pre class="src src-emacs-lisp">(<span class="org-keyword">setq</span> org-image-actual-width 300)
+
+  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-add-new-file-as-attachment</span> (event)
+    <span class="org-doc">"Function for file-notify-add-watch."</span>
+    (message <span class="org-string">"Event %S"</span> event)
+    (<span class="org-keyword">when</span> (eq (cadr event) 'created)
+      (<span class="org-keyword">let</span> ((org-attach-store-link 'attached)
+            (filename (elt event 2)))
+        (<span class="org-keyword">unless</span> (string-match  my/org-watch-ignore-regexps filename)
+          (org-attach-attach filename nil 'mv)
+          (insert <span class="org-string">"[["</span> (caar org-stored-links) <span class="org-string">"]]\n"</span>)
+          (org-display-inline-images)))))
+
+  (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/org-watch-ignore-regexps</span> <span class="org-string">"\\.crdownload</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">\\.com\\.google\\.Chrome</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">\\_sync\\_"</span>)
+  (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/org-watch-directory-descriptor</span> nil <span class="org-doc">"file-notify watch for watching a directory."</span>)
+  (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/org-watch-directory</span> <span class="org-string">"~/Downloads"</span> <span class="org-doc">"Directory to watch for new files."</span>)
+  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-toggle-watching-directory</span> (<span class="org-type">&amp;optional</span> path)
+    <span class="org-doc">"Watch the specified directory and add links to POINT."</span>
+    (<span class="org-keyword">interactive</span> (list (<span class="org-keyword">unless</span> my/org-watch-directory-descriptor (read-file-name <span class="org-string">"Directory to watch: "</span> my/org-watch-directory))))
+    (<span class="org-keyword">require</span> '<span class="org-constant">org-attach</span>)
+    (<span class="org-keyword">if</span> my/org-watch-directory-descriptor
+        (<span class="org-keyword">progn</span>
+          (file-notify-rm-watch my/org-watch-directory-descriptor)
+          (<span class="org-keyword">setq</span> my/org-watch-directory-descriptor nil)
+          (message <span class="org-string">"Stopped."</span>))
+      (<span class="org-keyword">when</span> path (<span class="org-keyword">setq</span> my/org-watch-directory path))
+      (<span class="org-keyword">setq</span> my/org-watch-directory-descriptor
+            (file-notify-add-watch my/org-watch-directory '(change) 'my/org-add-new-file-as-attachment))
+      (message <span class="org-string">"Started."</span>)))
+</pre>
 </div>
+</div>
+</div>
+</div>
+
 <div id="outline-container-orga73f95f" class="outline-3">
 <h3 id="orga73f95f">Coding</h3>
 <div class="outline-text-3" id="text-orga73f95f">
@@ -6999,9 +7038,9 @@ tree instead.
 </div>
 </div>
 </div>
-<div id="outline-container-org8642a2a" class="outline-4">
-<h4 id="org8642a2a">Projects</h4>
-<div class="outline-text-4" id="text-org8642a2a">
+<div id="outline-container-org519a36f" class="outline-4">
+<h4 id="org519a36f">Projects</h4>
+<div class="outline-text-4" id="text-org519a36f">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">use-package</span> <span class="org-constant">projectile</span>
   <span class="org-builtin">:diminish</span> projectile-mode
@@ -8071,9 +8110,9 @@ cool. On Windows, these things help a little.
 </div>
 </div>
 </div>
-<div id="outline-container-org5823ab5" class="outline-3">
-<h3 id="org5823ab5">Encryption</h3>
-<div class="outline-text-3" id="text-org5823ab5">
+<div id="outline-container-org4f8db00" class="outline-3">
+<h3 id="org4f8db00">Encryption</h3>
+<div class="outline-text-3" id="text-org4f8db00">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">setq</span> epa-file-encrypt-to '(<span class="org-string">"sacha@sachachua.com"</span>))
 </pre>
@@ -9221,9 +9260,9 @@ big to open easily there, though.
 </div>
 </div>
 </div>
-<div id="outline-container-org4f8db00" class="outline-3">
-<h3 id="org4f8db00">Encryption</h3>
-<div class="outline-text-3" id="text-org4f8db00">
+<div id="outline-container-org1c167e7" class="outline-3">
+<h3 id="org1c167e7">Encryption</h3>
+<div class="outline-text-3" id="text-org1c167e7">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp">(<span class="org-keyword">require</span> '<span class="org-constant">org-crypt</span>)
 (org-crypt-use-before-save-magic)

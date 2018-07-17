@@ -3627,16 +3627,68 @@ So that I can easily add links at point. Formatted as an Org list for now.
       '(("Gross" . "Gross motor")
         ("Fine" . "Fine motor")
         ("8 - Kaizen" . "Kaizen")
-        ("9 - Us" . "Us"))
+        ("9 - Us" . "Us")
+        ("Self-care" . "Self-care and independence"))
       "Alist of string replacements for journal categories.")
     (defvar my/journal-categories
       '("Field trip" "Gross motor" "Fine motor"
         "Sensory" "Language" "Music" "Art"
-        "Self-care" "Eating" "Sleep" "Emotion"
-        "Household" "Social" "Pretend" "Other" "Kaizen" "Us" "Oops")
+        "Self-care and independence" "Eating" "Sleep" "Emotion"
+        "Household" "Social" "Pretend" "Cognition" "World" "Other" "Kaizen" "Us" "Oops")
       "List of categories to display. 
   Unknown categories will be added to the end.")
-    (defun my/org-summarize-journal-csv (filename from to highlight &optional category-map categories)
+
+  (defun my/org-group-journal-entries (filtered &optional category-map categories)
+    (setq category-map (or category-map (my/journal-category-map)))
+    (setq categories (or categories (my/journal-categories)))
+    (let* ((grouped (-group-by (lambda (o) (elt o 3)) filtered))        
+           (mapped-list
+            (mapcar 
+             (lambda (o)
+               (cons (or (assoc-default (car o) category-map) (car o))
+                     (cdr o)))
+             grouped))
+           (sorted-list
+            (delq nil
+                  (append
+                   (mapcar (lambda (cat)
+                             (when (assoc-default cat mapped-list)
+                               (cons cat (assoc-default cat mapped-list))))
+                           categories)
+                   (-remove (lambda (o) (member (car o) categories)) mapped-list)))))
+      sorted-list))
+
+  (defun my/org-date-to-string (date &optional base-date)
+    "Return the Org date specified by DATE.
+  This is relative to BASE-DATE if specified."
+    (org-read-date nil nil date nil (when base-date (org-read-date nil t base-date))))
+
+  (ert-deftest my/org-date-to-string ()
+    (should (string= (my/org-date-to-string "++1" "2018-08-01") "2018-08-02")))
+
+
+  (defun my/org-filter-journal-csv (filename &optional from to highlight base-date)
+    "Return a list of matching entries."
+    (setq from (and from (my/org-date-to-string from base-date))
+          to (and to (my/org-date-to-string to base-date)))
+    (let* ((data (pcsv-parse-file filename))
+           (filtered
+              (-filter
+               (lambda (o)
+                 (and (or (null from) (string< from (cadr o))) 
+                      (or (null to) (string< (cadr o) to))
+                      (not (string-match "^!" (car o)))
+                      (string-equal
+                       "true"
+                       (cond
+                        ((null highlight) "true")
+                        ((string-equal highlight "month") (elt o 4))
+                        ((string-equal highlight "week") (elt o 2))
+                        (t "true")))))
+               data)))
+      filtered))
+
+  (defun my/org-summarize-journal-csv (filename from to highlight &optional category-map categories)
       (interactive
        (list (read-file-name "File: ") 
              (org-read-date nil nil nil "From: ")
@@ -3648,42 +3700,81 @@ So that I can easily add links at point. Formatted as an Org list for now.
                      (t "all")))
              my/journal-category-map
              my/journal-categories))
-      (let* ((data (pcsv-parse-file filename))
-             (filtered
-              (-filter
-               (lambda (o)
-                 (and (string< from (cadr o)) 
-                      (string< (cadr o) to)
-                      (string-equal
-                       "true"
-                       (cond
-                        ((string-equal highlight "month") (elt o 4))
-                        ((string-equal highlight "week") (elt o 2))
-                        (t "true")))))
-               data))
-             (grouped (-group-by
-                       (lambda (o) (elt o 3)) filtered))
-             (mapped-list
-              (mapcar 
-               (lambda (o)
-                 (cons (or (assoc-default (car o) category-map) (car o))
-                       (cdr o)))
-               grouped))
-             (sorted-list
-              (delq nil
-                    (append
-                     (mapcar (lambda (cat)
-                               (when (assoc-default cat mapped-list)
-                                 (cons cat (assoc-default cat mapped-list))))
-                             categories)
-                     (-remove (lambda (o) (member (car o) categories)) mapped-list))))
+      (let* ((sorted-list
+              (my/org-group-journal-entries
+               (my/org-filter-journal-csv filename from to highlight)
+               category-map categories))
              (list (mapconcat
                     (lambda (o)
                       (concat "- *" (car o) "*\n"
-                              (mapconcat (lambda (i) (concat "  - " (car i) "\n")) (reverse (cdr o)) "")))
+                              (mapconcat
+                               (lambda (i)
+                                 (concat "  - " (car i)
+                                         (if (string= "" (car (last i)))
+                                             ""
+                                           (format " (%s)" (car (last i))))
+                                         "\n")) (reverse (cdr o)) "")))
                     sorted-list "")))    
         (if (called-interactively-p 'any) (insert list) list)))
+
 #+end_src
+**** Photos
+#+begin_src emacs-lisp :tangle yes
+  (defun my/get-image-caption (file)
+    (let ((caption (shell-command-to-string (format "exiftool -s -s -s -ImageDescription %s" (shell-quote-argument file)))))
+      (when (> (length caption) 0) (format "#+CAPTION: %s" caption))))
+
+  (defun my/insert-image-link-with-caption (file)
+    (let ((caption (my/get-image-caption file)))
+      (insert (or caption "") "[[" file "]]\n")))
+
+  (defun my/caption-current-image ()
+    (interactive)
+    (let ((link (org-element-link-parser)) caption)
+      (when (and link (org-element-property :path link))
+        (setq caption (my/get-image-caption (org-element-property :path link)))
+        (when caption (insert caption)))))
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+    (defvar my/photo-directory "/mnt/nfs/photos/inbox")
+    (defun my/get-photo-rating (file)
+      (let ((rating (shell-command-to-string (concat "exiftool -s -s -s -Rating " (shell-quote-argument file)))))
+        (string-to-number rating)))
+
+    (defun my/make-photo-list (start end &optional rating require-description)
+      (interactive (list (org-read-date "Start: ") (org-read-date "End: ")))
+      (-filter
+       (lambda (filename)
+         (and (string> (file-name-nondirectory filename) start)
+              (string> end (file-name-nondirectory filename))
+              (if rating (>= (my/get-photo-rating filename) rating) t)
+              (if require-description (my/get-image-caption filename) t)))
+       (directory-files my/photo-directory t ".*\\.jpg$")))
+
+    (defun my/org-get-photo (id)
+      "Open the photo identified by ID."
+      (car (directory-files my/photo-directory t (concat id ".*\\.jpg"))))
+
+    (defun my/org-open-photo (id)
+      (find-file (my/org-get-photo id)))
+
+    ;(my/make-photo-list "2018-06-10" "2018-06-15" nil t)
+    ;(my/get-photo-rating  (my/org-get-photo "2018-06-10-18-16-31"))
+
+  (defun my/org-significant-moments (start end &optional rating)
+    (interactive (list (org-read-date "Start: ") (org-read-date "End: ") 3))
+    (let ((result
+           (mapconcat (lambda (file)
+                        (let ((caption (my/get-image-caption file)))
+                          (if caption
+                              (concat caption "[[" file "]]\n")
+                            (concat "[[" file "]]\n"))))
+                      (my/make-photo-list start end 3)
+                      "\n")))
+      (if (called-interactively-p 'any) (insert result) result)))
+#+end_src
+
 *** Attachments
 
 Org lets you attach files to an Org file. Haven't gotten the hang of this yet, but looks interesting.
@@ -4213,6 +4304,7 @@ One more little thing automated...
     (when package-archive-contents
       (with-temp-buffer
         (find-file "~/.emacs.d/.package-list")
+        (goto-char (point-min))
         (let ((old-list (read (current-buffer))))
           (erase-buffer)
           (prin1 (-union old-list (mapcar 'car package-archive-contents)) (current-buffer))
@@ -4519,7 +4611,7 @@ getting the hang of thinking properly functionally... =)
 
 *** Converting from Markdown
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle yes
 (defun my/org-convert-from-markdown (beg end)
   (interactive "r")
   (shell-command-on-region beg end "pandoc -f markdown -t org" nil t))
@@ -4546,7 +4638,7 @@ getting the hang of thinking properly functionally... =)
             (filename (elt event 2)))
         (unless (string-match  my/org-watch-ignore-regexps filename)
           (org-attach-attach filename nil 'mv)
-          (insert "[[" (caar org-stored-links) "]]\n")
+          (my/insert-image-link-with-caption (caar org-stored-links))
           (org-display-inline-images)))))
 
   (defvar my/org-watch-ignore-regexps "\\.crdownload\\|\\.com\\.google\\.Chrome\\|\\_sync\\_")
@@ -7364,6 +7456,30 @@ recently-opened files first.
 
 **** Index cards
 
+https://www.emacswiki.org/emacs/InsertFileName
+#+begin_src emacs-lisp :tangle yes
+  (defun my/insert-file-name (filename &optional args)
+    "Insert name of file FILENAME into buffer after point.
+  
+  Prefixed with \\[universal-argument], expand the file name to
+  its fully canocalized path.  See `expand-file-name'.
+  
+  Prefixed with \\[negative-argument], use relative path to file
+  name from current directory, `default-directory'.  See
+  `file-relative-name'.
+  
+  The default with no prefix is to insert the file name exactly as
+  it appears in the minibuffer prompt."
+    ;; Based on insert-file in Emacs -- ashawley 20080926
+    (interactive "*fInsert file name: \nP")
+    (cond ((eq '- args)
+           (insert (file-relative-name filename)))
+          ((not (null args))
+           (insert (expand-file-name filename)))
+          (t
+           (insert filename))))
+#+end_src
+
   I've been experimenting with a habit of drawing at least five index
   cards every day. Here's a function that creates five index cards (or a
   specified number of them) and then opens the last one for me to edit.
@@ -7371,6 +7487,7 @@ recently-opened files first.
   #+begin_src emacs-lisp :tangle yes
         (defun my/set-up-sketch-buffer ()
           "Populate a widget buffer with a few handy buttons."
+          (interactive)
           (with-current-buffer (get-buffer-create "*Done*")
             (let ((inhibit-read-only t))
               (erase-buffer)
@@ -7388,8 +7505,14 @@ recently-opened files first.
                              "New")
               (widget-create 'push-button
                              :notify (lambda (&rest ignore)
+                                       (my/open-image (my/prepare-large-template)))
+                             "New large")
+              (widget-create 'push-button
+                             :notify (lambda (&rest ignore)
                                        (my/open-image (my/prepare-index-card-template nil (org-read-date))))
                              "Date")
+              (widget-create 'push-button
+                             :notify (lambda (&rest ignore) (shell-command "rotate-screen")) "Rotate")
               (insert "\n")        
               (widget-create 'push-button
                              :notify (lambda (&rest ignore)
@@ -7498,6 +7621,24 @@ recently-opened files first.
     If AS-REGEXP is non-nil, treat BASE as a regular expression."
       (car (my/get-index-card-filenames base as-regexp)))
 
+      (defun my/org-sketch-open (id)
+        (interactive "MSketch ID: ")
+        (find-file (my/get-index-card-filename id)))
+
+      (defun my/org-sketch-export (link description format)
+        (let* ((path (concat "http://track.sachachua.com/api/sketches/id/" link))
+               (desc (or description link)))
+          (cond
+           ((eq format 'html) (format "<a target=\"_blank\" href=\"%s\"><img src=\"%s\" width=\"300\"></a>" path desc))
+           ((eq format 'wp) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
+           ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
+           ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
+           ((eq format 'ascii) (format "%s <%s>" desc path))
+           (t path))))
+
+      (org-link-set-parameters "sketch" :follow 'my/org-sketch-open :export 'my/org-sketch-export)
+
+
     (defun my/list-sketches (regexp &optional full-filename directories)
       "Return a list of sketch filenames matching REGEXP."
       (interactive "MFilter: \np")
@@ -7520,10 +7661,9 @@ recently-opened files first.
                           (my/list-sketches list t)
                         list))))
 
-        (defun my/prepare-index-card-template (&optional name date)
+        (defun my/prepare-drawing-template (&optional name date template)
           "Create the image file for NAME. Return the new filename."
           (let* ((directory "~/Dropbox/Inbox")
-                 (template my/index-card-template-file)
                  (date (or date (org-read-date nil nil ".")))
                  (counter ?a))
             (while (my/get-index-card-filename (concat date (char-to-string counter)))
@@ -7534,10 +7674,29 @@ recently-opened files first.
                                     (concat " "
                                             (my/convert-sketch-title-to-filename (or name "")))
                                   "") 
-                                  "." (file-name-extension my/index-card-template-file))
+                                  "." (file-name-extension template))
                         directory))
             (unless (file-exists-p name) (copy-file template name))
             name))
+
+    (defun my/org-insert-new-index-card-link ()
+      (interactive)
+      (let ((filename
+             (my/prepare-index-card-template)))
+        (insert "[[sketch:" filename "]]\n")
+        (save-window-excursion
+          (my/rotate-screen 180)
+          (shell-command
+           (concat (shell-quote-argument my/sketch-executable)
+                   " " (shell-quote-argument filename) " &")))))
+
+        (defun my/prepare-index-card-template (&optional name date)
+          "Create the image file for NAME. Return the new filename."
+          (my/prepare-drawing-template name date my/index-card-template-file))
+
+        (defun my/prepare-large-template (&optional name date)
+          "Create the image file for NAME. Return the new filename."
+          (my/prepare-drawing-template name date "/home/sacha/Dropbox/drawings/templates/0 - base.psd"))
 
         (defun my/prepare-index-card (&optional name date)
           "Prepare the index card for NAME.
@@ -7853,7 +8012,7 @@ more entries, with everything else filed under "Other".
      (defun my/clean-index-card-directory ()
        "Remove files marked for deletion and move private files."
        (shell-command "mv ~/Dropbox/Inbox/*delete* ~/Dropbox/Inbox/backup")
-       (shell-command "mv ~/Dropbox/Inbox/*private* ~/Dropbox/sketches/private"))
+       (shell-command "mv ~/Dropbox/Inbox/*private* ~/cloud/private-sketches/"))
 
      (defun my/upload-scanned-cards ()
        (interactive)

@@ -2782,7 +2782,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
     (outline-next-heading)
       (insert
        "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
+       (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start end "week" my/journal-category-map my/journal-categories)
        "*Blog posts*\n\n"
+       (my/org-list-from-rss "http://sachachua.com/blog/feed" start)
        "*Sketches*\n\n"
        (my/sketches-export-and-extract start end) "\n"
        "\n\n*Focus areas and time review*\n\n"
@@ -4258,19 +4260,36 @@ One more little thing automated...
 **** Other functions
 
 #+begin_src emacs-lisp 
-  (defun my/org-list-from-rss (url date)
+  (defun my/org-list-from-rss (url from-date &optional to-date)
     "Convert URL to an Org list"
     (with-current-buffer (url-retrieve-synchronously url)
+      (goto-char (point-min))  
       (re-search-forward "<\\?xml")
       (goto-char (match-beginning 0))
-      (let ((feed (xml-parse-region (point) (point-max))))
-        (mapconcat (lambda (entry)
-                     (format "- [[%s][%s]]" 
-                             (xml-get-attribute (car (xml-get-children entry 'link)) 'href)
-                             (elt (car (xml-get-children entry 'title)) 2)))
-                   (-filter (lambda (entry)
-                              (org-string<= date (elt (car (xml-get-children entry 'updated)) 2)))
-                            (xml-get-children (car feed) 'entry)) "\n"))))
+      (let ((feed (xml-parse-region (point) (point-max)))
+            (from-time (org-read-date nil t from-date))
+            (to-time (if to-date (org-read-date nil t to-date))))
+        (if (> (length (xml-get-children (car feed) 'entry)) 0)
+            (mapconcat (lambda (entry)
+                         (format "- [[%s][%s]]" 
+                                 (xml-get-attribute (car (xml-get-children entry 'link)) 'href)
+                                 (elt (car (xml-get-children entry 'title)) 2)))
+                       (-filter (lambda (entry)
+                                  (let ((entry-date (elt (car (xml-get-children entry 'updated)) 2)))
+                                    (and
+                                     (org-string<= from-date entry-date)
+                                     (or (null to-date) (string< entry-date to-date)))))
+                                (xml-get-children (car feed) 'entry)) "\n")
+            (mapconcat (lambda (entry)
+                         (format "- [[%s][%s]]" 
+                                 (caddr (car (xml-get-children entry 'link)))
+                                 (caddr (car (xml-get-children entry 'title)))))
+                       (-filter (lambda (entry)
+                                  (let ((entry-time (apply 'encode-time (parse-time-string (elt (car (xml-get-children entry 'pubDate)) 2)))))
+                                    (and
+                                     (not (time-less-p entry-time from-time))
+                                     (or (null to-time) (time-less-p entry-time to-time)))))
+                                (xml-get-children (car (xml-get-children (car feed) 'channel)) 'item)) "\n")))))
 
   (defun my/describe-packages (list)
     "Return an Org list of package descriptions for LIST."

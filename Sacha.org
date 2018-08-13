@@ -2772,24 +2772,24 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
  Now we put it all together...
 
  #+begin_src emacs-lisp 
-(defun my/org-prepare-weekly-review (&optional date skip-urls)
-  "Prepare weekly review template."
-  (interactive (list (org-read-date-analyze (if current-prefix-arg (org-read-date) "-fri") nil '(0 0 0))))
-  (let ((base-date (apply 'encode-time date))
-        start end links)
-    (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
-    (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
-    (outline-next-heading)
-      (insert
-       "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
-       (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start end "week" my/journal-category-map my/journal-categories)
-       "*Blog posts*\n\n"
-       (my/org-list-from-rss "http://sachachua.com/blog/feed" start)
-       "*Sketches*\n\n"
-       (my/sketches-export-and-extract start end) "\n"
-       "\n\n*Focus areas and time review*\n\n"
-       (my/org-summarize-focus-areas date)
-       "\n")))
+   (defun my/org-prepare-weekly-review (&optional date skip-urls)
+     "Prepare weekly review template."
+     (interactive (list (org-read-date-analyze (if current-prefix-arg (org-read-date) "-fri") nil '(0 0 0))))
+     (let ((base-date (apply 'encode-time date))
+           start end links)
+       (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
+       (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
+       (outline-next-heading)
+         (insert
+          "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
+          (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start end "week" my/journal-category-map my/journal-categories)
+          "\n\n*Blog posts*\n\n"
+          (my/org-list-from-rss "http://sachachua.com/blog/feed" start)
+          "\n\n*Sketches*\n\n"
+          (my/sketches-export-and-extract start end) "\n"
+          "\n\n*Focus areas and time review*\n\n"
+          (my/org-summarize-focus-areas date)
+          "\n")))
  #+end_src
 ***** Flickr extract
 

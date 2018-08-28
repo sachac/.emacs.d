@@ -2776,19 +2776,33 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
      "Prepare weekly review template."
      (interactive (list (org-read-date-analyze (if current-prefix-arg (org-read-date) "-fri") nil '(0 0 0))))
      (let ((base-date (apply 'encode-time date))
-           start end links)
-       (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
-       (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
+           start end links prev)
+       (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6))))
+       (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date)))))
+       (setq prev (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 7 6))))
        (outline-next-heading)
          (insert
           "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
           (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start end "week" my/journal-category-map my/journal-categories)
           "\n\n*Blog posts*\n\n"
-          (my/org-list-from-rss "http://sachachua.com/blog/feed" start)
+          (my/org-list-from-rss "http://sachachua.com/blog/feed" start end)
           "\n\n*Sketches*\n\n"
           (my/sketches-export-and-extract start end) "\n"
-          "\n\n*Focus areas and time review*\n\n"
-          (my/org-summarize-focus-areas date)
+          "\n\n*Time*\n\n"
+          (mapconcat (lambda (row) (concat "| " (mapconcat 'identity row " | ") " |\n"))
+                     (my/quantified-compare prev start start end
+                                            '("A-"
+                                              "Business"
+                                              "Discretionary - Play"
+                                              "Unpaid work"
+                                              "Discretionary - Social"
+                                              "Discretionary - Family"
+                                              "Sleep"
+                                              "Discretionary - Productive"
+                                              "Personal")
+                                            "The other week" "Last week") "")
+          ;"\n\n*Focus areas and time review*\n\n"
+          ;(my/org-summarize-focus-areas date)
           "\n")))
  #+end_src
 ***** Flickr extract
@@ -3090,6 +3104,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
         (let* ((date (decode-time))
                (month (elt date 4))
                (year (elt date 5))
+               title
                start-date
                end-date
                previous-date
@@ -3100,6 +3115,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
           (calendar-increment-month month year -1)
           (setq start-date (format "%4d-%02d-01" year month)
                 end-date (format "%4d-%02d-01" (elt date 5) (elt date 4))
+                title (format-time-string "%B %Y" (encode-time 0 0 0 1 month year))
                 posts (_my/extract-posts-from-webpage
                        (format "http://sachachua.com/blog/%4d/%d?org=1"
                                year month))
@@ -3110,8 +3126,10 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
           (goto-char (line-end-position))
           (insert
            "\n\n** Monthly review: "
-           (format-time-string "%B %Y" (encode-time 0 0 0 1 month year))
-           "  :monthly:review:\n"
+           title
+           "  :monthly:review:\n\n"
+           (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start-date end-date
+                                         "month" my/journal-category-map my/journal-categories) "\n\n"
            "*Blog posts*\n"
            posts "\n\n"
            "*Sketches*\n\n"
@@ -4285,7 +4303,7 @@ One more little thing automated...
                                  (caddr (car (xml-get-children entry 'link)))
                                  (caddr (car (xml-get-children entry 'title)))))
                        (-filter (lambda (entry)
-                                  (let ((entry-time (apply 'encode-time (parse-time-string (elt (car (xml-get-children entry 'pubDate)) 2)))))
+                                  (let ((entry-time (date-to-time (elt (car (xml-get-children entry 'pubDate)) 2))))
                                     (and
                                      (not (time-less-p entry-time from-time))
                                      (or (null to-time) (time-less-p entry-time to-time)))))

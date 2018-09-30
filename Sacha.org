@@ -3122,7 +3122,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                 sketches (my/sketches-export-and-extract start-date nil nil t))
           (calendar-increment-month month year -1)
           (setq previous-date (format "%4d-%02d-01" year month))
-          (setq time (my/quantified-compare previous-date start-date start-date end-date '("Business - Build" "Discretionary - Play" "Unpaid work" "A-" "Discretionary - Social" "Discretionary - Family" "Sleep" "Business - Connect" "Business - Earn" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
+          (setq time (my/quantified-compare previous-date start-date start-date end-date '("Business" "Discretionary - Play" "Unpaid work" "A-" "Discretionary - Social" "Discretionary - Family" "Sleep" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
           (goto-char (line-end-position))
           (insert
            "\n\n** Monthly review: "

@@ -2779,7 +2779,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
            start end links prev)
        (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6))))
        (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date)))))
-       (setq prev (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 7 6))))
+       (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6))))
        (outline-next-heading)
          (insert
           "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"

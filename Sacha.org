@@ -3897,7 +3897,7 @@ Probably should make this a dblock someday."
            (start (list (1- (car invoice-date)) 1 (elt invoice-date 2)))
            (end (list (car invoice-date) 1 (elt invoice-date 2))))
       (mapcar (lambda (date)
-                (format-time-string "%F" (encode-time 0 0 0 1 (elt date 0) (elt date 2))))
+                (format-time-string "%F %H:%M" (encode-time 0 0 0 1 (elt date 0) (elt date 2))))
               (list start end))))
 
   (defun my/org-quantified-get-hours-based-on-range (category start end)
@@ -3999,7 +3999,7 @@ Probably should make this a dblock someday."
   (ert-deftest my/org-get-invoice-range-based-on-date ()
     "Check if invoice range is sane."
     (should (equal (my/org-get-invoice-range-based-on-date "2015-12-05")
-                   '("2015-11-01" "2015-12-01"))))
+                   '("2015-11-01 00:00" "2015-12-01 00:00"))))
 #+end_src
 
 *** Archiving

@@ -3652,10 +3652,10 @@ So that I can easily add links at point. Formatted as an Org list for now.
         ("Self-care" . "Self-care and independence"))
       "Alist of string replacements for journal categories.")
     (defvar my/journal-categories
-      '("Field trip" "Gross motor" "Fine motor"
+      '("Kaizen" "Us" "Field trip" "Gross motor" "Fine motor"
         "Sensory" "Language" "Music" "Art"
         "Self-care and independence" "Eating" "Sleep" "Emotion"
-        "Household" "Social" "Pretend" "Cognition" "World" "Other" "Kaizen" "Us" "Oops")
+        "Household" "Social" "Pretend" "Cognition" "World" "Other" "Oops" "Thoughts")
       "List of categories to display. 
   Unknown categories will be added to the end.")
 

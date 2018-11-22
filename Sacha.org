@@ -8061,16 +8061,16 @@ more entries, with everything else filed under "Other".
          (goto-char (point-min))
          (switch-to-buffer (current-buffer))
          (delete-other-windows))
-       (when (yes-or-no-p "Upload files?")
-         (cond
-          ((eq system-type 'windows-nt)
-           (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
-          ((eq system-type 'gnu/linux)
-           (with-temp-buffer
-            (cd "~/code/node")
-            (apply 'call-process "node" nil nil nil (expand-file-name "flickr-upload.js")
-                   (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
-           )))
+       ;; (when (yes-or-no-p "Upload files?")
+       ;;   (cond
+       ;;    ((eq system-type 'windows-nt)
+       ;;     (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
+       ;;    ((eq system-type 'gnu/linux)
+       ;;     (with-temp-buffer
+       ;;      (cd "~/code/node")
+       ;;      (apply 'call-process "node" nil nil nil (expand-file-name "flickr-upload.js")
+       ;;             (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
+       ;;     )))
        (shell-command "~/bin/copy-sketches")
        ;;(when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))
        ;;  (forward-line 1)

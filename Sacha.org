@@ -7702,7 +7702,7 @@ https://www.emacswiki.org/emacs/InsertFileName
         (defun my/prepare-drawing-template (&optional name date template)
           "Create the image file for NAME. Return the new filename."
           (let* ((directory "~/Dropbox/Inbox")
-                 (date (or date (org-read-date nil nil ".")))
+                 (date (or date (substring (org-read-date nil nil ".") 0 10)))
                  (counter ?a))
             (while (my/get-index-card-filename (concat date (char-to-string counter)))
               (setq counter (1+ counter)))

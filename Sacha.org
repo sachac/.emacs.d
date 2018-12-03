@@ -4170,7 +4170,7 @@ https://www.reddit.com/prefs/feeds/ .
 #+begin_src emacs-lisp 
   (defun my/reddit-list-upvoted (date)
     (interactive (list (org-read-date)))
-    (let ((threshold (org-read-date nil t date)))
+    (let ((threshold (org-read-date nil t (concat (substring date 0 (min (length date) 10)) " 0:00"))))
       (with-current-buffer (url-retrieve-synchronously my/reddit-upvoted-json)      
         (goto-char (point-min))
         (re-search-forward "^$")
@@ -4193,6 +4193,9 @@ https://www.reddit.com/prefs/feeds/ .
           (if (called-interactively-p)
               (message "%s" result)
             result)))))
+
+
+  ;; (my/reddit-list-upvoted "-mon")
 #+end_src
 
 **** Sorting Org Mode lists using a sequence of regular expressions  :emacs:org:
@@ -4357,7 +4360,7 @@ One more little thing automated...
   (defun my/insert-emacs-news-from-git (date)
     (interactive (list (org-read-date)))
     (let ((result 
-           (shell-command-to-string (format "cd ~/vendor/emacs; git pull > /dev/null; git log --pretty=oneline --after=%s etc/NEWS" date))))
+           (shell-command-to-string (format "cd ~/vendor/emacs; git pull > /dev/null; git log --pretty=oneline --after=%s etc/NEWS" (substring date 0 10)))))
       (with-temp-buffer
         (insert result)
         (goto-char (point-min))
@@ -4442,9 +4445,9 @@ above!
 
 #+begin_src emacs-lisp 
 (defun my/prepare-emacs-news (date)
-  (interactive (list (org-read-date nil nil "-mon")))
+  (interactive (list (org-read-date nil nil "-mon 0:00")))
   (concat
-      "** " (org-read-date nil nil "++1" nil (org-read-date nil t "-sun")) " Emacs news\n\n"
+      "** " (substring (org-read-date nil nil "++1" nil (org-read-date nil t "-sun 0:00")) 0 10) " Emacs news\n\n"
       "- Emacs Lisp:
 - Emacs development:\n" 
 (my/insert-emacs-news-from-git date) "
@@ -4454,9 +4457,9 @@ above!
 - Other:
 "
        (my/org-list-from-rss "http://planet.emacsen.org/atom.xml" date) "\n"
-      (my/reddit-list-upvoted date)
+      (my/reddit-list-upvoted (substring date 0 10))
        (mapconcat (lambda (x) 
-         (shell-command-to-string (concat "~/bin/list-rss-links.coffee " x " " date)))
+         (shell-command-to-string (concat "~/bin/list-rss-links.coffee " x " " (substring date 0 10))))
          '("https://www.wisdomandwonder.com/tag/emacs/feed"
   "https://tcluri.github.io/rss.xml"
   "http://howardism.org/index.xml"

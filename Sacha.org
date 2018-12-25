@@ -2800,7 +2800,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                                               "Sleep"
                                               "Discretionary - Productive"
                                               "Personal")
-                                            "The other week" "Last week") "")
+                                            "The other week %" "Last week %") "")
           ;"\n\n*Focus areas and time review*\n\n"
           ;(my/org-summarize-focus-areas date)
           "\n")))
@@ -4481,6 +4481,20 @@ above!
          "
 
   Links from [[http://reddit.com/r/emacs/new][reddit.com/r/emacs]], [[http://reddit.com/r/orgmode][/r/orgmode]], [[http://reddit.com/r/spacemacs][/r/spacemacs]], [[https://hn.algolia.com/?query=emacs&sort=byDate&prefix&page=0&dateRange=all&type=story][Hacker News]], [[http://planet.emacsen.org][planet.emacsen.org]], [[https://www.youtube.com/results?search_query=emacs&search_sort=video_date_uploaded][YouTube]], the changes to the [[http://git.savannah.gnu.org/cgit/emacs.git/log/etc/NEWS][Emacs NEWS file]], and [[http://lists.gnu.org/archive/html/emacs-devel/" (format-time-string "%Y-%m") "][emacs-devel]]."))
+#+end_src
+**** TODO Detect duplicates
+
+#+begin_src emacs-lisp
+(defun my/check-emacs-news-duplicates ()
+  (interactive)
+  (save-excursion
+    (let ((beg (org-up-heading-safe))
+          (end (org-end-of-subtree)))
+      (goto-char beg)
+
+)))
+
+
 #+end_src
 *** Autosave
 
@@ -7669,7 +7683,7 @@ https://www.emacswiki.org/emacs/InsertFileName
         (find-file (my/get-index-card-filename id)))
 
       (defun my/org-sketch-export (link description format)
-        (let* ((path (concat "http://track.sachachua.com/api/sketches/id/" link))
+        (let* ((path (concat "http://sketches.sachachua.com/id/" link))
                (desc (or description link)))
           (cond
            ((eq format 'html) (format "<a target=\"_blank\" href=\"%s\"><img src=\"%s\" width=\"300\"></a>" path desc))
@@ -7998,13 +8012,13 @@ more entries, with everything else filed under "Other".
      (defun my/convert-index-card-tiffs-to-pngs ()
        (interactive)
        (let ((pattern "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(tif\\|psd\\)$"))
-         (when (directory-files "~/Dropbox/Inbox" t pattern)
+         (when (directory-files "~/Dropbox/Inbox/" t pattern)
            ;; Convert the TIFFs first
            (mapc (lambda (o)
-                   (call-process "krita" nil nil nil o "-export" "-export-filename"
+                   (call-process "krita" nil nil nil o "--export" "--export-filename"
                                  (concat (file-name-sans-extension o) ".png"))
-                   (rename-file o "~/Dropbox/Inbox/backup" t))
-                 (directory-files "~/Dropbox/Inbox" t pattern)))))
+                   (rename-file o "~/Dropbox/Inbox/backup/" t))
+                 (directory-files "~/Dropbox/Inbox/" t pattern)))))
 
      (defun my/convert-and-upload-cards ()
        "Trust in existing filenames, upload without modification."
@@ -8049,7 +8063,7 @@ more entries, with everything else filed under "Other".
        (interactive)
        (my/convert-index-card-tiffs-to-pngs)
        (mapc 'my/rename-scanned-card
-             (directory-files "~/Dropbox/Inbox" t "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(png\\|jpg\\)"))
+             (directory-files "~/Dropbox/Inbox/" t "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(png\\|jpg\\)"))
         (my/upload-scanned-cards))
 
      (defun my/clean-index-card-directory ()

@@ -2800,7 +2800,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                                               "Sleep"
                                               "Discretionary - Productive"
                                               "Personal")
-                                            "The other week" "Last week") "")
+                                            "The other week %" "Last week %") "")
           ;"\n\n*Focus areas and time review*\n\n"
           ;(my/org-summarize-focus-areas date)
           "\n")))
@@ -3655,8 +3655,8 @@ So that I can easily add links at point. Formatted as an Org list for now.
       '("Kaizen" "Us" "Field trip" "Gross motor" "Fine motor"
         "Sensory" "Language" "Music" "Art"
         "Self-care and independence" "Eating" "Sleep" "Emotion"
-        "Household" "Social" "Pretend" "Cognition" "World" "Other" "Oops")
-       "List of categories to display. 
+        "Household" "Social" "Pretend" "Cognition" "World" "Other" "Oops" "Thoughts")
+      "List of categories to display. 
   Unknown categories will be added to the end.")
 
   (defun my/org-group-journal-entries (filtered &optional category-map categories)
@@ -3897,7 +3897,7 @@ Probably should make this a dblock someday."
            (start (list (1- (car invoice-date)) 1 (elt invoice-date 2)))
            (end (list (car invoice-date) 1 (elt invoice-date 2))))
       (mapcar (lambda (date)
-                (format-time-string "%F" (encode-time 0 0 0 1 (elt date 0) (elt date 2))))
+                (format-time-string "%F %H:%M" (encode-time 0 0 0 1 (elt date 0) (elt date 2))))
               (list start end))))
 
   (defun my/org-quantified-get-hours-based-on-range (category start end)
@@ -3999,7 +3999,7 @@ Probably should make this a dblock someday."
   (ert-deftest my/org-get-invoice-range-based-on-date ()
     "Check if invoice range is sane."
     (should (equal (my/org-get-invoice-range-based-on-date "2015-12-05")
-                   '("2015-11-01" "2015-12-01"))))
+                   '("2015-11-01 00:00" "2015-12-01 00:00"))))
 #+end_src
 
 *** Archiving
@@ -4481,6 +4481,20 @@ above!
          "
 
   Links from [[http://reddit.com/r/emacs/new][reddit.com/r/emacs]], [[http://reddit.com/r/orgmode][/r/orgmode]], [[http://reddit.com/r/spacemacs][/r/spacemacs]], [[https://reddit.com/r/planetemacs][/r/planetemacs]], [[https://hn.algolia.com/?query=emacs&sort=byDate&prefix&page=0&dateRange=all&type=story][Hacker News]], [[http://planet.emacsen.org][planet.emacsen.org]], [[https://www.youtube.com/results?search_query=emacs&search_sort=video_date_uploaded][YouTube]], the changes to the [[http://git.savannah.gnu.org/cgit/emacs.git/log/etc/NEWS][Emacs NEWS file]], and [[http://lists.gnu.org/archive/html/emacs-devel/" (format-time-string "%Y-%m") "][emacs-devel]]."))
+#+end_src
+**** TODO Detect duplicates
+
+#+begin_src emacs-lisp
+(defun my/check-emacs-news-duplicates ()
+  (interactive)
+  (save-excursion
+    (let ((beg (org-up-heading-safe))
+          (end (org-end-of-subtree)))
+      (goto-char beg)
+
+)))
+
+
 #+end_src
 *** Autosave
 
@@ -7669,7 +7683,7 @@ https://www.emacswiki.org/emacs/InsertFileName
         (find-file (my/get-index-card-filename id)))
 
       (defun my/org-sketch-export (link description format)
-        (let* ((path (concat "http://track.sachachua.com/api/sketches/id/" link))
+        (let* ((path (concat "http://sketches.sachachua.com/id/" link))
                (desc (or description link)))
           (cond
            ((eq format 'html) (format "<a target=\"_blank\" href=\"%s\"><img src=\"%s\" width=\"300\"></a>" path desc))
@@ -7707,7 +7721,7 @@ https://www.emacswiki.org/emacs/InsertFileName
         (defun my/prepare-drawing-template (&optional name date template)
           "Create the image file for NAME. Return the new filename."
           (let* ((directory "~/Dropbox/Inbox")
-                 (date (or date (org-read-date nil nil ".")))
+                 (date (or date (substring (org-read-date nil nil ".") 0 10)))
                  (counter ?a))
             (while (my/get-index-card-filename (concat date (char-to-string counter)))
               (setq counter (1+ counter)))
@@ -7998,13 +8012,13 @@ more entries, with everything else filed under "Other".
      (defun my/convert-index-card-tiffs-to-pngs ()
        (interactive)
        (let ((pattern "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(tif\\|psd\\)$"))
-         (when (directory-files "~/Dropbox/Inbox" t pattern)
+         (when (directory-files "~/Dropbox/Inbox/" t pattern)
            ;; Convert the TIFFs first
            (mapc (lambda (o)
-                   (call-process "krita" nil nil nil o "-export" "-export-filename"
+                   (call-process "krita" nil nil nil o "--export" "--export-filename"
                                  (concat (file-name-sans-extension o) ".png"))
-                   (rename-file o "~/Dropbox/Inbox/backup" t))
-                 (directory-files "~/Dropbox/Inbox" t pattern)))))
+                   (rename-file o "~/Dropbox/Inbox/backup/" t))
+                 (directory-files "~/Dropbox/Inbox/" t pattern)))))
 
      (defun my/convert-and-upload-cards ()
        "Trust in existing filenames, upload without modification."
@@ -8049,7 +8063,7 @@ more entries, with everything else filed under "Other".
        (interactive)
        (my/convert-index-card-tiffs-to-pngs)
        (mapc 'my/rename-scanned-card
-             (directory-files "~/Dropbox/Inbox" t "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(png\\|jpg\\)"))
+             (directory-files "~/Dropbox/Inbox/" t "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(png\\|jpg\\)"))
         (my/upload-scanned-cards))
 
      (defun my/clean-index-card-directory ()
@@ -8066,16 +8080,16 @@ more entries, with everything else filed under "Other".
          (goto-char (point-min))
          (switch-to-buffer (current-buffer))
          (delete-other-windows))
-       (when (yes-or-no-p "Upload files?")
-         (cond
-          ((eq system-type 'windows-nt)
-           (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
-          ((eq system-type 'gnu/linux)
-           (with-temp-buffer
-            (cd "~/code/node")
-            (apply 'call-process "node" nil nil nil (expand-file-name "flickr-upload.js")
-                   (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
-           )))
+       ;; (when (yes-or-no-p "Upload files?")
+       ;;   (cond
+       ;;    ((eq system-type 'windows-nt)
+       ;;     (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
+       ;;    ((eq system-type 'gnu/linux)
+       ;;     (with-temp-buffer
+       ;;      (cd "~/code/node")
+       ;;      (apply 'call-process "node" nil nil nil (expand-file-name "flickr-upload.js")
+       ;;             (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
+       ;;     )))
        (shell-command "~/bin/copy-sketches")
        ;;(when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))
        ;;  (forward-line 1)

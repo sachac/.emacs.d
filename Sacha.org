@@ -1998,20 +1998,16 @@ And sorting:
 
  #+begin_src emacs-lisp 
    (setq org-structure-template-alist
-         '(("s" "#+begin_src ?\n\n#+end_src" "<src lang=\"?\">\n\n</src>")
-           ("e" "#+begin_example\n?\n#+end_example" "<example>\n?\n</example>")
-           ("q" "#+begin_quote\n?\n#+end_quote" "<quote>\n?\n</quote>")
-           ("v" "#+BEGIN_VERSE\n?\n#+END_VERSE" "<verse>\n?\n</verse>")
-           ("c" "#+BEGIN_COMMENT\n?\n#+END_COMMENT")
-           ("p" "#+BEGIN_PRACTICE\n?\n#+END_PRACTICE")
-           ("l" "#+begin_src emacs-lisp\n?\n#+end_src" "<src lang=\"emacs-lisp\">\n?\n</src>")
-           ("L" "#+latex: " "<literal style=\"latex\">?</literal>")
-           ("h" "#+begin_html\n?\n#+end_html" "<literal style=\"html\">\n?\n</literal>")
-           ("H" "#+html: " "<literal style=\"html\">?</literal>")
-           ("a" "#+begin_ascii\n?\n#+end_ascii")
-           ("A" "#+ascii: ")
-           ("i" "#+index: ?" "#+index: ?")
-           ("I" "#+include %file ?" "<include file=%file markup=\"?\">")))
+   '(("a" . "export ascii")
+       ("c" . "center")
+       ("C" . "comment")
+       ("e" . "example")
+       ("E" . "export")
+       ("h" . "export html")
+       ("l" . "src emacs-lisp")
+       ("q" . "quote")
+       ("s" . "src")
+       ("v" . "verse")))
  #+end_src
 
 This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exporting-org-mode-nested-blocks-to-html
@@ -5435,6 +5431,12 @@ with HTTPS sites.
 :init (add-to-list 'company-backends 'company-tern))
 #+end_src
 
+*** Docker
+
+#+begin_src emacs-lisp
+(use-package dockerfile-mode
+  :mode ("Dockerfile\\'" . dockerfile-mode))
+#+end_src
 ** Internet Relay Chat
 
    IRC is a great way to hang out with other Emacs geeks.
@@ -6844,7 +6846,7 @@ to see which items I'd planned ahead, and which ones were new tasks.
            (keys (or categories (-union (mapcar 'car time1) (mapcar 'car time2)))))
       ;; Build a list comparing the two
       (append
-      `(("Category" ,label1 ,label2 "Diff" "h/wk" "Diff h/wk"))
+      `(("Category" ,label1 ,label2 "Diff %" "h/wk" "Diff h/wk"))
       (mapcar (lambda (key)
                 (list
                  key

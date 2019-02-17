@@ -7654,7 +7654,7 @@ https://www.emacswiki.org/emacs/InsertFileName
           (let ((counter 1)
                 (directory "~/Dropbox/Inbox")
                 (template my/index-card-template-file)
-                (date (org-read-date nil nil "."))
+                (date (substring (org-read-date nil nil ".") 0 10))
                 temp-file)
             (quantified-track "Drawing")
             (dotimes (i 5) (my/open-image (my/prepare-index-card-template)))
@@ -7797,7 +7797,7 @@ https://www.emacswiki.org/emacs/InsertFileName
           "Prepare the index card for NAME.
         Rotate the screen and show a button to un-rotate the screen."
           (interactive (list (read-string "Name: ")
-                             (if current-prefix-arg (org-read-date) (org-read-date nil nil "."))))
+                             (substring (if current-prefix-arg (org-read-date) (org-read-date nil nil ".")) 0 10)))
           (setq my/index-card-file-name (my/prepare-index-card-template name date))
           (save-window-excursion
             (my/rotate-screen 180)

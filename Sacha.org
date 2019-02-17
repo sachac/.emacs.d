@@ -4476,8 +4476,44 @@ above!
          (my/list-new-packages) 
          "
 
-  Links from [[http://reddit.com/r/emacs/new][reddit.com/r/emacs]], [[http://reddit.com/r/orgmode][/r/orgmode]], [[http://reddit.com/r/spacemacs][/r/spacemacs]], [[https://reddit.com/r/planetemacs][/r/planetemacs]], [[https://hn.algolia.com/?query=emacs&sort=byDate&prefix&page=0&dateRange=all&type=story][Hacker News]], [[http://planet.emacsen.org][planet.emacsen.org]], [[https://www.youtube.com/results?search_query=emacs&search_sort=video_date_uploaded][YouTube]], the changes to the [[http://git.savannah.gnu.org/cgit/emacs.git/log/etc/NEWS][Emacs NEWS file]], and [[http://lists.gnu.org/archive/html/emacs-devel/" (format-time-string "%Y-%m") "][emacs-devel]]."))
+  Links from [[http://reddit.com/r/emacs/new][reddit.com/r/emacs]], [[http://reddit.com/r/orgmode][/r/orgmode]], [[http://reddit.com/r/spacemacs][/r/spacemacs]], [[https://hn.algolia.com/?query=emacs&sort=byDate&prefix&page=0&dateRange=all&type=story][Hacker News]], [[http://planet.emacsen.org][planet.emacsen.org]], [[https://www.youtube.com/results?search_query=emacs&search_sort=video_date_uploaded][YouTube]], the changes to the [[http://git.savannah.gnu.org/cgit/emacs.git/log/etc/NEWS][Emacs NEWS file]], and [[http://lists.gnu.org/archive/html/emacs-devel/" (format-time-string "%Y-%m") "][emacs-devel]]."))
 #+end_src
+**** Collect Emacs News
+
+#+begin_src emacs-lisp
+  (defun my/emacs-news-collect-entries ()
+    "Collect Emacs News by category and put them in another buffer."
+    (interactive)
+    (let ((parsed (org-element-parse-buffer))
+          category
+          result)
+      (setq result
+            (mapconcat
+             (lambda (x)
+               (concat "* " (car x) "\n\n"
+                       (mapconcat (lambda (y) (concat "- " (cdr y))) (cdr x) "")
+                       "\n"))
+             (sort (seq-group-by
+                    'car
+                    (delq nil
+                          (org-element-map parsed '(paragraph)
+                            (lambda (x)
+                              (let ((contents (org-element-interpret-data x)))
+                                (cond
+                                 ((string-match "^\\(.*\\):[ \t\n]*$" contents)
+                                  (setq category (match-string-no-properties 1 contents))
+                                  nil)
+                                 ((string-match "^\\[" contents)
+                                  (cons category (substring-no-properties contents)))))))))
+                   (lambda (a b) (string< (car a) (car b))))
+             ""))
+      (switch-to-buffer (get-buffer-create "*Emacs News*"))
+      (erase-buffer)
+      (insert result)
+      (org-mode)
+      (goto-char (point-min))))
+#+end_src
+
 **** TODO Detect duplicates
 
 #+begin_src emacs-lisp

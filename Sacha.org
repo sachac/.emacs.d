@@ -3751,6 +3751,11 @@ So that I can easily add links at point. Formatted as an Org list for now.
       (when (and link (org-element-property :path link))
         (setq caption (my/get-image-caption (org-element-property :path link)))
         (when caption (insert caption)))))
+
+  (defun my/set-image-caption (file caption)
+    (interactive (list (if (derived-mode-p 'dired-mode) (dired-get-filename) (buffer-file-name))
+      (read-string "Caption: ")))
+    (shell-command (format "exiftool -ImageDescription=\"%s\" %s" (shell-quote-argument caption) (shell-quote-argument file))))
 #+end_src
 
 #+begin_src emacs-lisp 

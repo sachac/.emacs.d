@@ -6154,61 +6154,68 @@ Make it easier to review my credit card transactions
 (use-package ledger-mode
 :load-path "~/vendor/ledger-mode"
 :mode "\\.ledger$" 
-)
+:bind (:map ledger-mode-map
+        ("C-c f" . (lambda () (interactive) (find-file (my/latest-file "~/Downloads"))))))
 
 #+end_src
 #+begin_src emacs-lisp 
-(defun my/ledger-go-to-beginning-of-entry ()
-  "Move to the beginning of the current entry."
-  (while (and (not (bobp))
-              (eq (ledger-context-line-type (ledger-context-at-point))
-                  'acct-transaction))
-    (forward-line -1)))
+  (defun my/ledger-go-to-beginning-of-entry ()
+    "Move to the beginning of the current entry."
+    (while (and (not (bobp))
+                (eq (ledger-context-line-type (ledger-context-at-point))
+                    'acct-transaction))
+      (forward-line -1)))
 
-(defun my/ledger-entry-date ()
-  "Returns the date of the entry containing point or nil."
-  (save-excursion
-    (my/ledger-go-to-beginning-of-entry)
-    (let ((context-info (ledger-context-other-line 0)))
-      (when (eq (ledger-context-line-type context-info) 'entry)
-        (goto-char (line-beginning-position))
-        (if (looking-at "\\([-0-9\\./]+\\)")
-            (match-string-no-properties 1))))))
+  (defun my/ledger-entry-date ()
+    "Returns the date of the entry containing point or nil."
+    (save-excursion
+      (my/ledger-go-to-beginning-of-entry)
+      (let ((context-info (ledger-context-other-line 0)))
+        (when (eq (ledger-context-line-type context-info) 'entry)
+          (goto-char (line-beginning-position))
+          (if (looking-at "\\([-0-9\\./]+\\)")
+              (match-string-no-properties 1))))))
 
-(defun my/ledger-guess-mbna ()
-  "Adds a sub-account for the dates for my credit card transactions."
-  (interactive)
-  (save-excursion
-    (my/ledger-go-to-beginning-of-entry)
-    (forward-line 1)
-    (let ((amount 0) (date (my/ledger-entry-date)) month)
-      (if (string-match "[0-9]+[-\\.]\\([0-9]+\\)[-\\.]\\([0-9]+\\)" date)
-          (setq month (string-to-number (match-string 1 date))))
-      ;; Is this a payment or a charge?
-      (save-excursion
-        (while (and (eq (ledger-context-line-type (ledger-context-at-point))
-                        'acct-transaction)
-                    (not (eobp)))
-          (let ((context (ledger-context-at-point)))
-            (if (ledger-context-field-value context 'amount)
-                (if (string-match "MBNA" (ledger-context-field-value context 'account))
-                    (setq amount (string-to-number (ledger-context-field-value context 'amount)))
-                  (setq amount (- (string-to-number (ledger-context-field-value context 'amount)))))))
-          (forward-line 1)))
-      (save-excursion
-        (while (and (eq (ledger-context-line-type (ledger-context-at-point))
-                        'acct-transaction)
-                    (not (eobp)))
-          (let ((context (ledger-context-at-point)))
-            (if (string-match "MBNA" (ledger-context-field-value context 'account))
-                (if (re-search-forward "\\(MBNA\\)[ \t]*[-$\.0-9]*[ \t]*$" (line-end-position) t)
-                    (replace-match
-                     (concat "MBNA:"
-                             (elt
-                              '("January" "February" "March" "April" "May" "June" "July" "August" "September" "October" "November" "December")
-                              (% (+ (if (> amount 0) 10 11) month) 12)))
-                             t t nil 1))))
-          (forward-line 1))))))
+  (defun my/ledger-guess-mbna ()
+    "Adds a sub-account for the dates for my credit card transactions."
+    (interactive)
+    (save-excursion
+      (my/ledger-go-to-beginning-of-entry)
+      (forward-line 1)
+      (let ((amount 0) (date (my/ledger-entry-date)) month)
+        (if (string-match "[0-9]+[-\\.]\\([0-9]+\\)[-\\.]\\([0-9]+\\)" date)
+            (setq month (string-to-number (match-string 1 date))))
+        ;; Is this a payment or a charge?
+        (save-excursion
+          (while (and (eq (ledger-context-line-type (ledger-context-at-point))
+                          'acct-transaction)
+                      (not (eobp)))
+            (let ((context (ledger-context-at-point)))
+              (if (ledger-context-field-value context 'amount)
+                  (if (string-match "MBNA" (ledger-context-field-value context 'account))
+                      (setq amount (string-to-number (ledger-context-field-value context 'amount)))
+                    (setq amount (- (string-to-number (ledger-context-field-value context 'amount)))))))
+            (forward-line 1)))
+        (save-excursion
+          (while (and (eq (ledger-context-line-type (ledger-context-at-point))
+                          'acct-transaction)
+                      (not (eobp)))
+            (let ((context (ledger-context-at-point)))
+              (if (string-match "MBNA" (ledger-context-field-value context 'account))
+                  (if (re-search-forward "\\(MBNA\\)[ \t]*[-$\.0-9]*[ \t]*$" (line-end-position) t)
+                      (replace-match
+                       (concat "MBNA:"
+                               (elt
+                                '("January" "February" "March" "April" "May" "June" "July" "August" "September" "October" "November" "December")
+                                (% (+ (if (> amount 0) 10 11) month) 12)))
+                               t t nil 1))))
+            (forward-line 1))))))
+
+  ;; https://stackoverflow.com/questions/30886282/emacs-lisp-how-can-i-get-the-newest-file-in-a-directory
+  (defun my/latest-file (path)
+    (car (directory-files path 'full nil #'file-newer-than-file-p)))
+
+
 #+end_src
 
 ** Emacs server

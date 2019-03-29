@@ -8661,6 +8661,50 @@ Convenience functions to make my life easier when sketchnoting books.
   (call-process my/espeak-command nil nil nil string "-s" speed))
 #+end_src
 
+* Exwm
+
+Let's try it
+
+#+begin_src emacs-lisp
+  (use-package exwm
+    :init (progn (require 'exwm-config) (exwm-config-default) (exwm-enable)))
+
+  ;; https://emacs.stackexchange.com/questions/33326/how-do-i-cut-and-paste-effectively-between-applications-while-using-exwm
+  (defun fhd/exwm-input-line-mode ()
+    "Set exwm window to line-mode and show mode line"
+    (call-interactively #'exwm-input-grab-keyboard)
+    (exwm-layout-show-mode-line))
+
+  (defun fhd/exwm-input-char-mode ()
+    "Set exwm window to char-mode and hide mode line"
+    (call-interactively #'exwm-input-release-keyboard)
+    (exwm-layout-hide-mode-line))
+
+  (defun fhd/exwm-input-toggle-mode ()
+    "Toggle between line- and char-mode"
+    (interactive)
+    (with-current-buffer (window-buffer)
+      (when (eq major-mode 'exwm-mode)
+        (if (equal (second (second mode-line-process)) "line")
+            (fhd/exwm-input-char-mode)
+          (fhd/exwm-input-line-mode)))))
+
+  (defun fhd/toggle-exwm-input-line-mode-passthrough ()
+    (interactive)
+    (if exwm-input-line-mode-passthrough
+      (progn
+        (setq exwm-input-line-mode-passthrough nil)
+        (message "App receives all the keys now (with some simulation)"))
+     (progn
+       (setq exwm-input-line-mode-passthrough t)
+       (message "emacs receives all the keys now")))
+    (force-mode-line-update))
+
+  (exwm-input-set-key (kbd "s-p") 'fhd/toggle-exwm-input-line-mode-passthrough)
+  (exwm-input-set-key (kbd "s-i") #'fhd/exwm-input-toggle-mode)
+
+#+end_src
+
 * Path
 
 #+begin_src emacs-lisp 

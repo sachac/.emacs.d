@@ -4342,7 +4342,9 @@ One more little thing automated...
                        (mapcar
                         (lambda (entry)
                           (cons
-                           (xml-get-attribute (car (xml-get-children entry 'link)) 'href)
+                           (xml-get-attribute (car
+                                               (seq-filter (lambda (x) (string= (xml-get-attribute x 'rel) "alternate"))
+                                                           (xml-get-children entry 'link))) 'href)
                            (elt (car (xml-get-children entry 'title)) 2)))
                         (-filter (lambda (entry)
                                    (let ((entry-date (elt (car (xml-get-children entry 'updated)) 2)))

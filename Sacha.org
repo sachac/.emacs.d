@@ -626,9 +626,7 @@ it work. Some things still aren't quite right.
   (set-face-background 'secondary-selection "lightblue")
   (set-face-background 'font-lock-doc-face "black")
   (set-face-foreground 'font-lock-doc-face "wheat")
-  (set-face-background 'font-lock-string-face "black")
-  (set-face-foreground 'org-todo "green")
-  (set-face-background 'org-todo "black"))
+  (set-face-background 'font-lock-string-face "black"))
 (use-package color-theme-solarized :config (my/setup-color-theme))
 #+END_SRC
 
@@ -807,7 +805,8 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (my/defshortcut ?P "~/personal/google-ideas.org")
 (my/defshortcut ?B "~/Dropbox/books")
 (my/defshortcut ?e "~/code/emacs-notes/tasks.org")
-(my/defshortcut ?n "~/cloud/Notes")
+(my/defshortcut ?n "~/sync/notes")
+(my/defshortcut ?N "~/sync/notes/QuickNote.md")
 (my/defshortcut ?w "~/Dropbox/public/sharing/index.org")
 (my/defshortcut ?W "~/Dropbox/public/sharing/blog.org")
 (my/defshortcut ?j "~/personal/journal.org")
@@ -1803,7 +1802,7 @@ able to clock in on them.
             "TOBLOG(b)"  ; next action
             "STARTED(s)"
             "WAITING(w@/!)"
-            "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c@)")
+            "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c)")
            (sequence "LEARN" "TRY" "TEACH" "|" "COMPLETE(x)")
            (sequence "TOSKETCH" "SKETCHED" "|" "POSTED")
            (sequence "TOBUY" "TOSHRINK" "TOCUT"  "TOSEW" "|" "DONE(x)")
@@ -1869,7 +1868,7 @@ And sorting:
                                      ("@reading" . ?r)
                                      ("@computer" . ?l)
                                      ("quantified" . ?q)
-                                     ("fuzzy" . ?0)
+                                     ("@focus" . ?f)
                                      ("highenergy" . ?1)))
       #+end_src
 ***** Enable filtering by effort estimates
@@ -2323,10 +2322,23 @@ hang of using these more!
   (defun my/org-agenda-skip-scheduled ()
     (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
   (setq org-agenda-custom-commands
-        `(("t" tags-todo "-cooking"
+        `(("a" "Agenda"
+           ((agenda "" ((org-agenda-span 2)))
+            ;; Unscheduled
+            (tags-todo "TODO=\"TODO\"-project-cooking-routine" 
+                       ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+                        (org-agenda-overriding-header "Unscheduled TODO entries: ")
+                        (org-agenda-sorting-strategy '(priority-down effort-up tag-up category-keep))))
+            ;; Active projects
+            (tags "+project-someday-TODO=\"DONE\"-TODO=\"SOMEDAY\"-inactive"
+                  ((org-tags-exclude-from-inheritance '("project"))
+                   (org-agenda-overriding-header "Projects: ")
+                   (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+            ))
+          ("t" tags-todo "-cooking"
            ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
           ("T" tags-todo "TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}" nil "~/cloud/agenda/nonroutine.html")
-          ("f" tags-todo "fuzzy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
+          ("f" tags-todo "focus-TODO=\"DONE\"-TODO=\"CANCELLED\"")
           ("F" tags-todo "highenergy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
           ("b" todo ""
            ((org-agenda-files '("~/personal/business.org"))))
@@ -2394,17 +2406,24 @@ hang of using these more!
             (org-agenda-clockreport-mode t)
             (org-agenda-entry-types '())))
           ("." "Waiting for" todo "WAITING")
-          ("u" "Unscheduled tasks" tags-todo "-someday-TODO=\"SOMEDAY\"-TODO=\"DELEGATED\"-TODO=\"WAITING\"-project"
+          ("u" "Unscheduled tasks" tags-todo "-someday-TODO=\"SOMEDAY\"-TODO=\"DELEGATED\"-TODO=\"WAITING\"-project-cooking-routine"
            ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
-            (org-agenda-view-columns-initially t)
+            (org-agenda-view-columns-initially nil)
             (org-tags-exclude-from-inheritance '("project"))
             (org-agenda-overriding-header "Unscheduled TODO entries: ")
             (org-columns-default-format "%50ITEM %TODO %3PRIORITY %Effort{:} %TAGS")
             (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))))
-          ("U" "Unscheduled tasks outside projects" tags-todo "-project"
+          ("s" "Someday" tags-todo "TODO=\"SOMEDAY\""
+           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+            (org-agenda-view-columns-initially nil)
+            (org-tags-exclude-from-inheritance '("project"))
+            (org-agenda-overriding-header "Someday: ")
+            (org-columns-default-format "%50ITEM %TODO %3PRIORITY %Effort{:} %TAGS")
+            (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))))
+          ("U" "Unscheduled tasks outside projects" tags-todo "-project-cooking-routine"
            ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
             (org-tags-exclude-from-inheritance nil)
-            (org-agenda-view-columns-initially t)
+            (org-agenda-view-columns-initially nil)
             (org-agenda-overriding-header "Unscheduled TODO entries outside projects: ")
             (org-agenda-sorting-strategy '(todo-state-up priority-down tag-up category-keep effort-down))))
           ("P" "By priority"
@@ -4294,7 +4313,10 @@ One more little thing automated...
         (if (> (length (xml-get-children (car feed) 'entry)) 0)
             (mapconcat (lambda (entry)
                          (format "- [[%s][%s]]" 
-                                 (xml-get-attribute (car (xml-get-children entry 'link)) 'href)
+                                 (xml-get-attribute (-first (lambda (x)
+                                                              (string= (xml-get-attribute x 'rel) "alternate")
+                                                              )
+                                                            (xml-get-children entry 'link)) 'href)
                                  (elt (car (xml-get-children entry 'title)) 2)))
                        (-filter (lambda (entry)
                                   (let ((entry-date (elt (car (xml-get-children entry 'updated)) 2)))

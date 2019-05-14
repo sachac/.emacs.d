@@ -4249,35 +4249,39 @@ and turn it into:
 #+end_example
 
 #+begin_src emacs-lisp 
-(defun my/org-sort-list-in-custom-order (order)
-  "Sort the current Org list so that items are in the specified order.
-ORDER is a list of regexps."
-  (org-sort-list
-   nil ?f
-   (lambda ()
-     (let ((case-fold-search t)
-           (item
-            (when (looking-at "[ \t]*[-+*0-9.)]+\\([ \t]+\\[[- X]\\]\\)?[ \t]+")
-              (org-sort-remove-invisible (buffer-substring (match-end 0) (point-at-eol))))))
-       (or (cl-position item order :test (lambda (a b) (string-match b a))) (1+ (length order)))))
-   '<))
+  (defun my/org-sort-list-in-custom-order (order)
+    "Sort the current Org list so that items are in the specified order.
+  ORDER is a list of regexps."
+    (org-sort-list
+     nil ?f
+     (lambda ()
+       (let ((case-fold-search t)
+             (item
+              (when (looking-at "[ \t]*[-+*0-9.)]+\\([ \t]+\\[[- X]\\]\\)?[ \t]+")
+                (org-sort-remove-invisible (buffer-substring (match-end 0) (point-at-eol))))))
+         (or (cl-position item order :test (lambda (a b) (string-match b a))) (1+ (length order)))))
+     '<))
 
-(defun my/emacs-news-sort-list ()
-  (interactive)
-  (my/org-sort-list-in-custom-order
-   '("Emacs Lisp"
-     "Emacs development"
-     "Appearance"
-     "Navigation"
-     "Dired"
-     "Org Mode"
-     "Coding"
-     "Calc"
-     "Email and news"
-     "Other"
-     "Discussion"
-     "Outside Emacs"
-     "New packages?")))
+  (defun my/emacs-news-sort-list ()
+    (interactive)
+    (my/org-sort-list-in-custom-order
+     '("Emacs configuration"
+       "Emacs Lisp"
+       "Emacs development"
+       "Appearance"
+       "Navigation"
+       "Dired"
+       "Org Mode"
+       "Coding"
+       "Calc"
+       "Mail"
+       "Email and news"
+       "Spacemacs"
+       "Community"
+       "Other"
+       "Discussion"
+       "Outside Emacs"
+       "New packages?")))
 #+end_src
 
 One more little thing automated...

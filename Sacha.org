@@ -816,7 +816,8 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (my/defshortcut ?c "~/code/dev/elisp-course.org")
 (my/defshortcut ?C "~/personal/calendar.org")
 (my/defshortcut ?l "~/dropbox/public/sharing/learning.org")
-(my/defshortcut ?q "~/personal/questions.org")
+(my/defshortcut ?q "~/sync/notes/QuickNote.md")
+(my/defshortcut ?Q "~/personal/questions.org")
 #+END_SRC
 
 *** Key chords and Hydras

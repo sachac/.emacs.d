@@ -1500,6 +1500,23 @@ From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-comm
             (bind-key "C-c k" 'org-cut-subtree org-mode-map)
             (setq org-yank-adjusted-subtrees t))
  #+end_src
+
+**** Finding my place on a small mobile screen with org-back-to-heading
+
+There's probably a better way to do this. I'm surprised
+org-back-to-heading isn't interactive yet. It's useful.
+
+#+begin_src emacs-lisp
+  (defun my/org-back-to-heading ()
+    (interactive)
+    (org-back-to-heading))
+
+  (use-package org
+    :bind (:map org-mode-map 
+                ("C-c b" . my/org-back-to-heading)
+                ("C-c p" . org-display-outline-path))) 
+#+end_src
+
 *** Taking notes
 
     My org files are in my =personal= directory, which is actually a

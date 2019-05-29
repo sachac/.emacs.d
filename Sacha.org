@@ -805,7 +805,6 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (my/defshortcut ?p "~/personal/google-inbox.org")
 (my/defshortcut ?P "~/personal/google-ideas.org")
 (my/defshortcut ?B "~/Dropbox/books")
-(my/defshortcut ?e "~/code/emacs-notes/tasks.org")
 (my/defshortcut ?n "~/sync/notes")
 (my/defshortcut ?N "~/sync/notes/QuickNote.md")
 (my/defshortcut ?w "~/Dropbox/public/sharing/index.org")

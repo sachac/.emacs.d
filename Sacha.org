@@ -4338,16 +4338,12 @@ One more little thing automated...
 #+begin_src emacs-lisp 
   (defun my/emacs-news-escape-link-description (s)
     (let ((replace-map '(("\\[" . "")
-                         ("\\]" . ":")
-                         ("[”“]" . "\"")
-                         ("[·—]" . "-")
-                         ("’" . "'")
-                        ("è" . "e"))))
+                         ("\\]" . ":"))))
       (mapc (lambda (rule)
               (setq s (replace-regexp-in-string (car rule) (cdr rule) s)))
             replace-map)
       s))
-
+  (use-package xml-rpc)
   (defun my/org-list-from-rss (url from-date &optional to-date)
     "Convert URL to an Org list"
     (with-current-buffer (url-retrieve-synchronously url)

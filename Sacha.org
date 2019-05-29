@@ -132,7 +132,8 @@ I keep slightly more sensitive information in a separate file so that I can easi
 *** Libraries
 
 #+begin_src emacs-lisp 
-(use-package dash)
+(use-package dash :ensure t)
+(use-package diminish :ensure t)
 #+end_src
 
 *** Backups

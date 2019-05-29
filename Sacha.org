@@ -4775,7 +4775,11 @@ above!
       (goto-char (point-min))))
 #+end_src
 
-**** TODO Detect duplicates
+**** DONE Detect duplicates
+     CLOSED: [2019-05-29 Wed 11:42]
+     :LOGBOOK:
+     - State "DONE"       from "TODO"       [2019-05-29 Wed 11:42]
+     :END:
 
 #+begin_src emacs-lisp
   (defun my/emacs-news-check-duplicates ()
@@ -4807,224 +4811,64 @@ above!
               )
             )))))
 #+end_src
-*** Autosave
+**** Making a numpad-based hydra for organizing Emacs News
 
-Could be handy, especially when synchronizing with Orgzly.
-From https://www.reddit.com/r/orgmode/comments/7ke3hv/orgzly_best_practice/
+I used to use =my/org-guess-uncategorized=, but a hydra-based approach
+might be slightly better suited to quick entry. I wanted to be able to
+use the numeric keypad to sort items into the most common categories,
+with a few shortcuts for making it easier to organize Emacs News on my
+phone on my laptop.
 
-#+begin_src emacs-lisp 
-(run-with-idle-timer 30 t 'org-save-all-org-buffers)
-#+end_src
+| 0-9 | Select options from the list, with 0 for other.      |
+| \/  | Opens the URL in a web browser                       |
+| ,   | Selects a category by name, creating as needed       |
+| \*  | Shows the URL in the messages buffer, and toggles it |
+| -   | Deletes the item                                     |
+| .   | Quits                                                |
 
-*** DONE Org Mode tables and fill-in quizzes - Latin verb conjugations in Emacs
-    CLOSED: [2015-11-26 Thu 21:48]
-    :PROPERTIES:
-    :Effort:   0:30
-    :QUANTIFIED: Emacs
-    :ID:       o2b:1583ec79-b64c-4c6e-b910-80b985c94a90
-    :POST_DATE: [2015-11-26 Thu 21:22]
-    :POSTID:   28490
-    :BLOG:     sacha
-    :END:
-    :LOGBOOK:
-    - State "DONE"       from "STARTED"    [2015-11-26 Thu 21:48]
-    CLOCK: [2015-11-26 Thu 21:11]--[2015-11-26 Thu 21:48] =>  0:37
-    :END:
+#+begin_src emacs-lisp
+   (defvar my/org-categorize-emacs-news-menu 
+     '(("0" . "Other")
+       ("1" . "Emacs Lisp")
+       ("2" . "Emacs development")
+       ("3" . "Emacs configuration")
+       ("4" . "Appearance")
+       ("5" . "Navigation")
+       ("6" . "Org Mode")
+       ("7" . "Coding")
+       ("8" . "Community")
+       ("9" . "Spacemacs")))
 
-I've been working on memorizing Latin verb conjugations. I was looking
-for a conjugation drill similar to these ones for and [[http://www.latintests.net/grammar/nouns.php][nouns]] and
-[[http://www.latintests.net/grammar/pronouns1.php][pronouns]], because I liked the instant feedback and the ability to
-quickly get hints. I couldn't find an online drill I liked, though, so
-I made my own with Emacs and Org. (Because... why not?)
-
-I wrote some code to allow me to take a table like this:
-
-#+NAME: third-conjugation
-| present - 1st sing. - ago / agere       | agO        |
-| present - 2nd sing. - ago / agere       | agis       |
-| present - 3rd sing. - ago / agere       | agit       |
-| present - 1st plu. - ago / agere        | agimus     |
-| present - 2nd plu. - ago / agere        | agitis     |
-| present - 3rd plu. - ago / agere        | agunt      |
-| imperfect - 1st sing. - ago / agere     | agEbam     |
-| imperfect - 2nd sing. - ago / agere     | agEbAs     |
-| imperfect - 3rd sing. - ago / agere     | agEbat     |
-| imperfect - 1st plu. - ago / agere      | agEbAmus   |
-| imperfect - 2nd plu. - ago / agere      | agEbAtis   |
-| imperfect - 3rd plu. - ago / agere      | agEbant    |
-| future - 1st sing. - ago / agere        | agam       |
-| future - 2nd sing. - ago / agere        | agEs       |
-| future - 3rd sing. - ago / agere        | agEt       |
-| future - 1st plu. - ago / agere         | agEmus     |
-| future - 2nd plu. - ago / agere         | agEtis     |
-| future - 3rd plu. - ago / agere         | agent      |
-
-I can call =my/make-fill-in-quiz= to get a quiz buffer that looks like
-this. If I get stuck, =?= shows me a hint in the echo area. 
-
-To make it easier, I've left =case-fold-search= set to =nil= so that I
-don't have to match the case (uppercase vowels = macrons), but I can
-set =case-fold-search= to =t= if I want to make sure I've got the
-macrons in the right places.
-
-Here's the code to display the quiz buffer.
-
-#+begin_src emacs-lisp  
-     (require 'widget)
-     (defun my/check-widget-value (widget &rest ignore)
-       "Provide visual feedback for WIDGET."
-       (cond
-        ((string= (widget-value widget) "?")
-         ;; Asking for hint
-         (message "%s" (widget-get widget :correct))
-         (widget-value-set widget ""))
-        ;; Use string-match to obey case-fold-search 
-        ((string-match 
-          (concat "^"
-                  (regexp-quote (widget-get widget :correct))
-                  "$")
-          (widget-value widget))
-         (message "Correct")
-         (goto-char (widget-field-start widget))
-         (goto-char (line-end-position))
-         (insert "✓")
-         (widget-forward 1)
-         )))
-
-   (defun my/make-fill-in-quiz (&optional quiz-table)
-     "Create an fill-in quiz for the Org table at point.
-The Org table's first column should have the questions and the second column 
-should have the answers."
-     (interactive (list (org-babel-read-table)))
-     (with-current-buffer (get-buffer-create "*Quiz*")
-       (kill-all-local-variables)
-       (let ((inhibit-read-only t))
-         (erase-buffer))
-       (remove-overlays)
-       (mapc (lambda (row)
-               (widget-insert (car row))
-               (widget-insert "\t")
-               (widget-create 'editable-field
-                              :size 15
-                              :correct (cadr row)
-                              :notify 'my/check-widget-value)
-               (widget-insert "\n"))    
-             quiz-table)
-       (widget-create 'push-button
-                      :table quiz-table
-                      :notify (lambda (widget &rest ignore)
-                                (my/make-fill-in-quiz (widget-get widget :table))) 
-                      "Reset")
-       (use-local-map widget-keymap)
-       (widget-setup)
-       (goto-char (point-min))
-       (widget-forward 1)
-       (switch-to-buffer (current-buffer))))
-#+end_src  
-
-Incidentally, I generated the table above from a larger table of Latin verb conjugations in the appendix of Wheelock's Latin, specified like this:
-
-#+begin_src org
-,#+NAME: present-indicative-active
-| laudO    | moneO   | agO    | audiO   | capiO   |
-| laudAs   | monEs   | agis   | audIs   | capis   |
-| laudat   | monet   | agit   | audit   | capit   |
-| laudAmus | monEmus | agimus | audImus | capimus |
-| laudAtis | monEtis | agitis | audItis | capitis |
-| laudant  | monent  | agunt  | audiunt | capiunt |
-
-,#+NAME: imperfect-indicative-active
-| laudAbam   | monEbam   | agEbam   | audiEbam   | capiEbam   |
-| laudAbas   | monEbas   | agEbAs   | audiEbAs   | capiEbas   |
-| laudAbat   | monEbat   | agEbat   | audiEbat   | capiEbat   |
-| laudAbAmus | monEbAmus | agEbAmus | audiEbAmus | capiEbAmus |
-| laudAbAtis | monEbAtis | agEbAtis | audiEbAtis | capiEbAtis |
-| laudAbant  | monEbant  | agEbant  | audiEbant  | capiEbant  |
-
-,#+NAME: future-indicative-active
-| laudAbO    | monEbO    | agam   | audiam     | capiam     |
-| laudAbis   | monEbis   | agEs   | audiEs     | capiEs     |
-| laudAbit   | monEbit   | agEt   | audiet     | capiet     |
-| laudAbimus | monEbimus | agEmus | audiEmus   | capiEmus   |
-| laudAbitis | monEbitis | agEtis | audiEtis   | capiEtis   |
-| laudAbunt  | monEbunt  | agent  | audient    | capient    |
-#+end_src
-
-with the code:
-
-#+begin_src org
-,#+begin_src emacs-lisp :var present=present-indicative-active :var imperfect=imperfect-indicative-active :var future=future-indicative-active
-  (defun my/label-latin-with-verbs (table verbs persons tense)
-    (apply 'append
-           (-zip-with (lambda (row person) 
-                        (-zip-with (lambda (word verb)
-                                     (list word (format "%s - %s - %s" tense person verb)))
-                                   row verbs))
-                      table (-cycle persons))))
-  (apply 'append 
-         (mapcar (lambda (tense)
-                   (my/label-latin-with-verbs 
-                    (symbol-value tense)
-                    '("laudo / laudare" "moneo / monEre" "ago / agere" "audiO / audIre" "capiO / capere")
-                    '("1st sing." "2nd sing." "3rd sing." "1st plu." "2nd plu." "3rd plu.")
-                    (symbol-name tense)))
-                 '(present imperfect future)))
-
-,#+end_src
-#+end_src
-
-This uses =dash.el= for the =-zip-with= and =-cycle= functions.
-There's probably a much better way to process the lists, but I'm still
-getting the hang of thinking properly functionally... =)
-
-*** Converting from Markdown
-
-#+begin_src emacs-lisp 
-(defun my/org-convert-from-markdown (beg end)
-  (interactive "r")
-  (shell-command-on-region beg end "pandoc -f markdown -t org" nil t))
-(defun my/org-convert-to-markdown (beg end)
-  (interactive "r")
-  (shell-command-on-region beg end "pandoc -t markdown -f org" nil t))
-
-
-#+end_src
-*** Saving new attachments to point
-    :PROPERTIES:
-    :Attachments: 20180612_114957%20(4).jpg
-    :ID:       4f84ac8e-0a54-4c50-8582-a6e949011b84
-    :END:
-
-#+begin_src emacs-lisp 
-(setq org-image-actual-width 300)
-
-  (defun my/org-add-new-file-as-attachment (event)
-    "Function for file-notify-add-watch."
-    (message "Event %S" event)
-    (when (eq (cadr event) 'created)
-      (let ((org-attach-store-link 'attached)
-            (filename (elt event 2)))
-        (unless (string-match  my/org-watch-ignore-regexps filename)
-          (org-attach-attach filename nil 'mv)
-          (my/insert-image-link-with-caption (caar org-stored-links))
-          (org-display-inline-images)))))
-
-  (defvar my/org-watch-ignore-regexps "\\.crdownload\\|\\.com\\.google\\.Chrome\\|\\_sync\\_")
-  (defvar my/org-watch-directory-descriptor nil "file-notify watch for watching a directory.")
-  (defvar my/org-watch-directory "~/Downloads" "Directory to watch for new files.")
-  (defun my/org-toggle-watching-directory (&optional path)
-    "Watch the specified directory and add links to POINT."
-    (interactive (list (unless my/org-watch-directory-descriptor (read-file-name "Directory to watch: " my/org-watch-directory))))
-    (require 'org-attach)
-    (if my/org-watch-directory-descriptor
-        (progn
-          (file-notify-rm-watch my/org-watch-directory-descriptor)
-          (setq my/org-watch-directory-descriptor nil)
-          (message "Stopped."))
-      (when path (setq my/org-watch-directory path))
-      (setq my/org-watch-directory-descriptor
-            (file-notify-add-watch my/org-watch-directory '(change) 'my/org-add-new-file-as-attachment))
-      (message "Started.")))
+   (eval 
+    `(defhydra my/org-categorize-emacs-news (global-map "C-c e")
+       ,@(mapcar
+          (lambda (x)
+            `(,(car x)
+              (lambda () (interactive) (my/org-move-current-item-to-category ,(cdr x)))
+              ,(cdr x)))
+          my/org-categorize-emacs-news-menu)
+       (","
+        (lambda () (interactive)
+          (my/org-move-current-item-to-category 
+           (completing-read (match-string 2) (my/org-get-list-categories))))
+        "By string")
+       ("/" (lambda () (interactive)
+              (save-excursion
+                (re-search-forward org-link-bracket-re)
+                (backward-char)
+                (org-open-at-point)))
+        "Open")
+       ("*"
+        (lambda () (interactive)
+          (if (string= (buffer-name) "*Messages*")
+              (bury-buffer)
+            (save-excursion
+              (re-search-forward org-link-bracket-re)
+              (message (match-string 1)))
+            (switch-to-buffer "*Messages*")))
+        "Show URL")
+       ("-" kill-whole-line "Kill")
+       ("." nil "Done")))
 #+end_src
 
 ** Coding
@@ -6830,16 +6674,7 @@ Let's see how that goes!
       (require 'emms-source-file)
       (require 'emms-source-playlist)
       (require 'emms-player-mplayer)
-      (setq emms-player-list '(emms-player-mplayer))
-      )
-    :bind
-    (("C-c e SPC" . emms-pause)
-     ("C-c e e" . emms-pause)
-     ("C-c e +" . emms-seek-forward)
-     ("C-c e -" . emms-seek-backward)
-     ("C-c e s" . emms-seek)
-     ("C-c e [" . my/emms-player-mplayer-slow-down)
-     ("C-c e ]" . my/emms-player-mplayer-speed-up)))
+      (setq emms-player-list '(emms-player-mplayer))))
 
   (defun my/split-sentence-and-capitalize ()
     (interactive)

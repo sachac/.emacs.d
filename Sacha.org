@@ -806,7 +806,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
   (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
 
 (my/defshortcut ?e "~/.emacs.d/Sacha.org")
-(my/defshortcut ?i "~/personal/inbox.org")
+(my/defshortcut ?i "~/cloud/orgzly/Inbox.org")
 (my/defshortcut ?o "~/personal/organizer.org")
 (my/defshortcut ?s "~/personal/sewing.org")
 (my/defshortcut ?b "~/personal/business.org")

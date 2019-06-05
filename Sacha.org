@@ -1,7 +1,7 @@
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
 #+STARTUP: showeverything
-#+PROPERTY: header-args:emacs-lisp    :tangle yes
+#+PROPERTY: header-args:emacs-lisp    :tangle "~/cloud/elisp/Sacha.el"
 
 * Configuration
 ** About this file
@@ -80,7 +80,10 @@ Here's how we start:
 (defun my/laptop-p ()
   (equal (system-name) "sacha-kubuntu"))
 (defun my/server-p ()
-  (equal (system-name) "localhost"))
+  (and (equal (system-name) "localhost") (equal (user-login-name "sacha"))))
+(defun my/phone-p ()
+  (and (equal (system-name) "localhost") (not (equal (user-login-name "sacha")))))
+(global-auto-revert-mode)  ; simplifies syncing
 #+end_src
 
 ** Personal information
@@ -1328,7 +1331,9 @@ stuff.
 
 #+begin_src emacs-lisp
    (use-package org
-    :load-path ("~/vendor/org-mode/lisp" "~/vendor/org-mode/contrib/lisp"))
+   ; Use this when I want to load from source
+   :load-path ("~/vendor/org-mode/lisp" "~/vendor/org-mode/contrib/lisp")
+)
 #+end_src
 
 *** My files
@@ -1588,32 +1593,44 @@ This quickly adds a same-level heading for the succeeding day.
 
   %i
   " "Basic task data")
+    (defvar my/org-inbox-file "~/cloud/orgzly/Inbox.org")
+    (defvar my/ledger-file "~/cloud/ledger/current.ledger")
     (setq org-capture-templates
-          `(("t" "Tasks" entry
-             (file+headline "~/cloud/orgzly/organizer.org" "Inbox")
-             ,my/org-basic-task-template)
-            ("T" "Quick task" entry
-             (file+headline "~/cloud/orgzly/organizer.org" "Inbox")
+          `(("t" "Quick task" entry
+             (file ,my/org-inbox-file)
+             "* TODO %^{Task}\n"
+             :immediate-finish t)
+            ("T" "Task" entry
+             (file ,my/org-inbox-file)
+             "* TODO %^{Task}\n")
+            ("." "Today" entry
+             (file ,my/org-inbox-file)
              "* TODO %^{Task}\nSCHEDULED: %t\n"
              :immediate-finish t)
+            ("v" "Video" entry
+             (file ,my/org-inbox-file)
+             "* TODO %^{Task}  :video:\nSCHEDULED: %t\n"
+             :immediate-finish t)
+            ("e" "Errand" entry
+             (file ,my/org-inbox-file)
+             "* TODO %^{Task}  :errands:\n"
+             :immediate-finish t)
+            ("n" "Note" entry
+             (file ,my/org-inbox-file)
+             "* %^{Note}\n"
+             :immediate-finish t)
+            ("N" "Note" entry
+             (file ,my/org-inbox-file)
+             "* %^{Note}\n")
             ("i" "Interrupting task" entry
-             (file+headline "~/cloud/orgzly/organizer.org" "Inbox")
+             (file ,my/org-inbox-file)
              "* STARTED %^{Task}"
              :clock-in :clock-resume)
-            ("e" "Emacs idea" entry
-             (file+headline "~/code/emacs-notes/tasks.org" "Emacs")
-             "* TODO %^{Task}"
-             :immediate-finish t)
-            ("E" "Energy" table-line
-             (file+headline "~/cloud/orgzly/organizer.org" "Track energy")
-             "| %U | %^{Energy 5-awesome 3-fuzzy 1-zzz} | %^{Note} |"
-             :immediate-finish t
-             )
             ("b" "Business task" entry
              (file+headline "~/personal/business.org" "Tasks")
              ,my/org-basic-task-template)
             ("p" "People task" entry
-             (file+headline "~/personal/people.org" "Tasks")
+             (file "~/cloud/orgzly/people.org")
              ,my/org-basic-task-template)
             ("j" "Journal entry" plain
              (file+datetree "~/personal/journal.org")
@@ -1640,21 +1657,8 @@ This quickly adds a same-level heading for the succeeding day.
              "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
             ("q" "Quick note" item
              (file+headline "~/cloud/orgzly/organizer.org" "Quick notes"))
-            ("l" "Ledger entries")
-            ("lm" "MBNA" plain
-             (file "~/personal/ledger")
-             "%(org-read-date) %^{Payee}
-      Liabilities:MBNA
-      Expenses:%^{Account}  $%^{Amount}
-    " :immediate-finish t)
-            ("ln" "No Frills" plain
-             (file "~/personal/ledger")
-             "%(let ((org-read-date-prefer-future nil)) (org-read-date)) * No Frills
-      Liabilities:MBNA
-      Assets:Wayne:Groceries  $%^{Amount}
-    " :immediate-finish t)
-            ("lc" "Cash" plain
-             (file "~/personal/ledger")
+            ("l" "Cash expense" plain
+             (file ,my/ledger-file)
              "%(org-read-date) * %^{Payee}
       Expenses:Cash
       Expenses:%^{Account}  %^{Amount}
@@ -1676,14 +1680,7 @@ This quickly adds a same-level heading for the succeeding day.
               "* %(org-contacts-template-name)
     :PROPERTIES:
     :EMAIL: %(my/org-contacts-template-email)
-    :END:")
-             ("n" "Daily note" table-line (file+olp "~/cloud/orgzly/organizer.org" "Inbox")
-              "| %u | %^{Note} |"
-              :immediate-finish t)
-             ("r" "Notes" entry
-              (file+datetree "~/cloud/orgzly/organizer.org")
-              "* %?\n\n%i\n%U\n"
-              )))
+    :END:")))
     (bind-key "C-M-r" 'org-capture)
 #+end_src
 ***** Allow refiling in the middle(ish) of a capture
@@ -1830,9 +1827,9 @@ able to clock in on them.
  #+begin_src emacs-lisp 
         (setq org-todo-keywords
          '((sequence
+            "STARTED(s)"
             "TODO(t)"  ; next action
             "TOBLOG(b)"  ; next action
-            "STARTED(s)"
             "WAITING(w@/!)"
             "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c)")
            (sequence "LEARN" "TRY" "TEACH" "|" "COMPLETE(x)")
@@ -1889,19 +1886,21 @@ And sorting:
  This defines keyboard shortcuts for those, too.
 
       #+begin_src emacs-lisp 
-               (setq org-tag-alist '(("@work" . ?b)
-                                     ("@home" . ?h)
-                                     ("@writing" . ?w)
-                                     ("@errands" . ?e)
-                                     ("@drawing" . ?d)
-                                     ("@coding" . ?c)
+               (setq org-tag-alist '(("work" . ?b)
+                                     ("home" . ?h)
+                                     ("writing" . ?w)
+                                     ("errands" . ?e)
+                                     ("drawing" . ?d)
+                                     ("coding" . ?c)
+                                     ("video" . ?v)
                                      ("kaizen" . ?k)
-                                     ("@phone" . ?p)
-                                     ("@reading" . ?r)
-                                     ("@computer" . ?l)
+                                     ("phone" . ?p)
+                                     ("learning" . ?a)
+                                     ("reading" . ?r)
+                                     ("computer" . ?l)
                                      ("quantified" . ?q)
-                                     ("@focus" . ?f)
-                                     ("highenergy" . ?1)))
+                                     ("shopping" .?s)
+                                     ("focus" . ?f)))
       #+end_src
 ***** Enable filtering by effort estimates
 
@@ -1921,6 +1920,7 @@ And sorting:
      (setq org-expiry-inactive-timestamps t)
      (setq org-clock-idle-time nil)
      (setq org-log-done 'time)
+     (setq org-clock-auto-clock-resolution nil)
      (setq org-clock-continuously nil)
      (setq org-clock-persist t)
      (setq org-clock-in-switch-to-state "STARTED")
@@ -1975,34 +1975,6 @@ And sorting:
  #+end_src
 
  # <<subset>>
-**** Modifying org agenda so that I can display a subset of tasks
-
- I want to create an agenda command that displays a list of tasks by
- context. That way, I can quickly preview a bunch of contexts and
- decide what I feel like doing the most.
-
- #+begin_src emacs-lisp 
-   (defvar my/org-agenda-limit-items nil "Number of items to show in agenda to-do views; nil if unlimited.")
-   (eval-after-load 'org
-   '(defadvice org-agenda-finalize-entries (around sacha activate)
-     (if my/org-agenda-limit-items
-         (progn
-           (setq list (mapcar 'org-agenda-highlight-todo list))
-           (setq ad-return-value
-                 (subseq list 0 my/org-agenda-limit-items))
-           (when org-agenda-before-sorting-filter-function
-             (setq list (delq nil (mapcar org-agenda-before-sorting-filter-function list))))
-           (setq ad-return-value
-                 (mapconcat 'identity
-                            (delq nil
-                                  (subseq
-                                   (sort list 'org-entries-lessp)
-                                   0
-                                   my/org-agenda-limit-items))
-                            "\n")))
-       ad-do-it)))
- #+end_src
-
 **** Flexible scheduling of tasks
 
  I (theoretically) want to be able to schedule tasks for dates like the first Saturday
@@ -2020,6 +1992,20 @@ And sorting:
  (setq org-track-ordered-property-with-tag t)
  (setq org-agenda-dim-blocked-tasks t)
  #+end_src
+
+**** Quick way to archive all DONE from inbox                :emacs:computer:
+
+   #+begin_src emacs-lisp
+   (defun my/org-clean-up-inbox ()
+     "Archive all DONE tasks and sort the remainder by TODO order."
+     (interactive)
+     (with-current-buffer (find-file my/org-inbox-file)
+       (goto-char (point-min))
+       (if (org-at-heading-p) (save-excursion (insert "\n")))
+       (org-sort-entries nil ?o)
+       (org-archive-all-done)
+       (save-buffer)))
+   #+end_src
 *** Templates
 **** Structure templates
 
@@ -2121,7 +2107,7 @@ only a few of them them for faster scanning.
         (delq nil
               (mapcar (lambda (x) (and x (file-exists-p x) x))
                       `("~/cloud/orgzly/organizer.org"
-                        "~/cloud/orgzly/inbox.org"
+                        "~/cloud/orgzly/Inbox.org"
                         "~/personal/sewing.org"
                         "~/cloud/orgzly/people.org"
                         "~/Dropbox/wsmef/trip.txt"
@@ -2176,6 +2162,33 @@ Org agenda to start on Saturdays.
 (setq org-agenda-start-on-weekday 6)
 #+end_src
 
+**** Modifying org agenda so that I can display a subset of tasks
+
+ I want to create an agenda command that displays a list of tasks by
+ context. That way, I can quickly preview a bunch of contexts and
+ decide what I feel like doing the most.
+
+ #+begin_src emacs-lisp 
+   (defvar my/org-agenda-limit-items nil "Number of items to show in agenda to-do views; nil if unlimited.")
+   (eval-after-load 'org
+   '(defadvice org-agenda-finalize-entries (around sacha activate)
+     (if my/org-agenda-limit-items
+         (progn
+           (setq list (mapcar 'org-agenda-highlight-todo list))
+           (setq ad-return-value
+                 (subseq list 0 my/org-agenda-limit-items))
+           (when org-agenda-before-sorting-filter-function
+             (setq list (delq nil (mapcar org-agenda-before-sorting-filter-function list))))
+           (setq ad-return-value
+                 (mapconcat 'identity
+                            (delq nil
+                                  (subseq
+                                   (sort list 'org-entries-lessp)
+                                   0
+                                   my/org-agenda-limit-items))
+                            "\n")))
+       ad-do-it)))
+ #+end_src
 **** Display projects with associated subtasks
      :PROPERTIES:
      :CUSTOM_ID: agenda_commands
@@ -2343,14 +2356,14 @@ hang of using these more!
 
 #+begin_src emacs-lisp 
   (defvar my/org-agenda-contexts
-    '((tags-todo "+@phone")
-      (tags-todo "+@work")
-      (tags-todo "+@drawing")
-      (tags-todo "+@coding")
-      (tags-todo "+@writing")
-      (tags-todo "+@computer")
-      (tags-todo "+@home")
-      (tags-todo "+@errands"))
+    '((tags-todo "+phone")
+      (tags-todo "+work")
+      (tags-todo "+drawing")
+      (tags-todo "+coding")
+      (tags-todo "+writing")
+      (tags-todo "+computer")
+      (tags-todo "+home")
+      (tags-todo "+errands"))
     "Usual list of contexts.")
   (defun my/org-agenda-skip-scheduled ()
     (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
@@ -2411,7 +2424,7 @@ hang of using these more!
           ("gk" "Kaizen" tags-todo "kaizen"
            ((org-agenda-view-columns-initially t))
            ("~/cloud/agenda/kaizen.html"))
-          ("ge" "Errands" tags-todo "@errands"
+          ("ge" "Errands" tags-todo "errands"
            ((org-agenda-view-columns-initially t))
            ("~/cloud/agenda/errands.html"))
           ("0" "Top 3 by context"

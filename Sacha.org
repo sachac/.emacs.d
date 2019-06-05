@@ -3447,6 +3447,10 @@ I can use thumbnail support for now...
     (shell-command "start c:\\sacha\\dropbox\\inbox\\selection")
     (browse-url "http://sachachua.com/blog/wp-admin/edit.php?page=cal"))
 
+  (defun my/org2blog-edit-post ()
+    "Browse to the edit page."
+    (interactive)
+    (browse-url (concat "https://sachachua.com/blog/wp-admin/post.php?action=edit&post=" (org-entry-get (point) "POSTID"))))
   (use-package htmlize)
 #+end_src
 
@@ -7882,12 +7886,13 @@ https://www.emacswiki.org/emacs/InsertFileName
             "~/sketches"
             "~/photosync/photostream"))
 
-    (defun my/get-index-card-filenames-between-dates (start end)
+    (defun my/get-index-card-filenames-between-dates (start end filter)
       "Returns index card filenames between START and END."
       (my/get-index-card-filenames
        (lambda (filename)
          (and (string> (file-name-nondirectory filename) start)
-              (string> end (file-name-nondirectory filename))))))
+              (string> end (file-name-nondirectory filename))
+              (or (not filter) (string-match filter filename))))))
     (defun my/get-index-card-filenames (base &optional as-regexp)
       "Check several directories for files matching BASE.
     Return the matching filenames, if any.
@@ -8627,9 +8632,9 @@ Convenience functions to make my life easier when sketchnoting books.
 
 * Exwm
 
-Let's try it.
+Hmmm, I'm having a hard time getting used to this.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
   (when (my/laptop-p)
     (use-package exwm
       :init 

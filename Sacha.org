@@ -808,7 +808,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 
 (my/defshortcut ?e "~/.emacs.d/Sacha.org")
 (my/defshortcut ?i "~/cloud/orgzly/Inbox.org")
-(my/defshortcut ?o "~/personal/organizer.org")
+(my/defshortcut ?o "~/cloud/orgzly/organizer.org")
 (my/defshortcut ?s "~/personal/sewing.org")
 (my/defshortcut ?b "~/personal/business.org")
 (my/defshortcut ?p "~/personal/google-inbox.org")
@@ -1533,7 +1533,7 @@ org-back-to-heading isn't interactive yet. It's useful.
 
 #+begin_src emacs-lisp 
   (setq org-directory "~/personal")
-  (setq org-default-notes-file "~/personal/organizer.org")
+  (setq org-default-notes-file "~/cloud/orgzly/organizer.org")
 #+end_src
 
 This makes it easier to add links from outside.
@@ -1590,14 +1590,14 @@ This quickly adds a same-level heading for the succeeding day.
   " "Basic task data")
     (setq org-capture-templates
           `(("t" "Tasks" entry
-             (file+headline "~/personal/organizer.org" "Inbox")
+             (file+headline "~/cloud/orgzly/organizer.org" "Inbox")
              ,my/org-basic-task-template)
             ("T" "Quick task" entry
-             (file+headline "~/personal/organizer.org" "Inbox")
+             (file+headline "~/cloud/orgzly/organizer.org" "Inbox")
              "* TODO %^{Task}\nSCHEDULED: %t\n"
              :immediate-finish t)
             ("i" "Interrupting task" entry
-             (file+headline "~/personal/organizer.org" "Inbox")
+             (file+headline "~/cloud/orgzly/organizer.org" "Inbox")
              "* STARTED %^{Task}"
              :clock-in :clock-resume)
             ("e" "Emacs idea" entry
@@ -1605,7 +1605,7 @@ This quickly adds a same-level heading for the succeeding day.
              "* TODO %^{Task}"
              :immediate-finish t)
             ("E" "Energy" table-line
-             (file+headline "~/personal/organizer.org" "Track energy")
+             (file+headline "~/cloud/orgzly/organizer.org" "Track energy")
              "| %U | %^{Energy 5-awesome 3-fuzzy 1-zzz} | %^{Note} |"
              :immediate-finish t
              )
@@ -1636,10 +1636,10 @@ This quickly adds a same-level heading for the succeeding day.
              (file+headline "~/personal/people.org" "Tasks")
              "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
             ("dt" "Done - Task" entry
-             (file+headline "~/personal/organizer.org" "Inbox")
+             (file+headline "~/cloud/orgzly/organizer.org" "Inbox")
              "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
             ("q" "Quick note" item
-             (file+headline "~/personal/organizer.org" "Quick notes"))
+             (file+headline "~/cloud/orgzly/organizer.org" "Quick notes"))
             ("l" "Ledger entries")
             ("lm" "MBNA" plain
              (file "~/personal/ledger")
@@ -1677,11 +1677,11 @@ This quickly adds a same-level heading for the succeeding day.
     :PROPERTIES:
     :EMAIL: %(my/org-contacts-template-email)
     :END:")
-             ("n" "Daily note" table-line (file+olp "~/personal/organizer.org" "Inbox")
+             ("n" "Daily note" table-line (file+olp "~/cloud/orgzly/organizer.org" "Inbox")
               "| %u | %^{Note} |"
               :immediate-finish t)
              ("r" "Notes" entry
-              (file+datetree "~/personal/organizer.org")
+              (file+datetree "~/cloud/orgzly/organizer.org")
               "* %?\n\n%i\n%U\n"
               )))
     (bind-key "C-M-r" 'org-capture)
@@ -2120,9 +2120,10 @@ only a few of them them for faster scanning.
   (setq org-agenda-files
         (delq nil
               (mapcar (lambda (x) (and x (file-exists-p x) x))
-                      `("~/personal/organizer.org"
+                      `("~/cloud/orgzly/organizer.org"
+                        "~/cloud/orgzly/inbox.org"
                         "~/personal/sewing.org"
-                        "~/personal/people.org"
+                        "~/cloud/orgzly/people.org"
                         "~/Dropbox/wsmef/trip.txt"
                         ,my/kid-org-file
                         "~/personal/business.org"
@@ -2133,7 +2134,7 @@ only a few of them them for faster scanning.
                         "~/code/emacs-notes/tasks.org"
                         "~/sachac.github.io/evil-plans/index.org"
                         "~/personal/cooking.org"
-                        "~/personal/routines.org"))))
+                        "~/cloud/orgzly/routines.org"))))
   (add-to-list 'auto-mode-alist '("\\.txt$" . org-mode))
 #+end_src
 
@@ -2377,7 +2378,7 @@ hang of using these more!
           ("B" todo ""
            ((org-agenda-files '("~/Dropbox/books"))))
           ("o" todo ""
-           ((org-agenda-files '("~/personal/organizer.org"))))
+           ((org-agenda-files '("~/cloud/orgzly/organizer.org"))))
           ("c" todo ""
            ((org-agenda-prefix-format "")
             (org-agenda-cmp-user-defined 'my/org-sort-agenda-items-todo)
@@ -2809,7 +2810,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
    (org-insert-heading)
    (insert "[ ] " task)
    (let ((org-capture-entry '("t" "Tasks" entry
-                              (file+headline "~/personal/organizer.org" "Tasks")
+                              (file+headline "~/cloud/orgzly/organizer.org" "Tasks")
                               "")))
      (org-capture nil "t")
      (insert "TODO " task "\nSCHEDULED: <" (org-read-date) ">")))
@@ -2901,22 +2902,25 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                ((eq system-type 'windows-nt)
                 (when update-db (shell-command "c:/sacha/dropbox/bin/flickr.bat"))
                 (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
-               ((eq system-type 'gnu/linux)  ; Flickr
-                (shell-command-to-string
-                (format "cd /home/sacha/code/node; nodejs flickr-list.js -b \"%s\" -e \"%s\" -f \"%s\"" 
-                 (or start "") (or end "") (or filter ""))))
+               ;; ((eq system-type 'gnu/linux)  ; Flickr
+               ;;  (shell-command-to-string
+               ;;  (format "cd /home/sacha/code/node; nodejs flickr-list.js -b \"%s\" -e \"%s\" -f \"%s\"" 
+               ;;   (or start "") (or end "") (or filter ""))))
                ;; below method not used at the moment, but useful if flickr is being weird
                ((and t (eq system-type 'gnu/linux)) ;; Create links to sketches.sachachua.com/URL-encoded; not used at the moment
                 ;; because Org does weird things with escaped # links
                 (mapconcat
                  (lambda (filename)
-                   (format "- [[http://sketches.sachachua.com/%s][%s]]\n"
-                           (browse-url-url-encode-chars (file-name-nondirectory filename) "[ #]")
-                           (file-name-base filename)))
-                 (let ((my/sketch-directories '("~/sketches"))) (my/get-index-card-filenames-between-dates start end))
-                 ""))
-               )
-              ))
+                   (let ((base (file-name-nondirectory filename)))
+                     (format "- %s\n"
+                             (org-link-make-string
+                              (concat "https://sketches.sachachua.com/"
+                                      (if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][a-z]" base)
+                                          (concat "id/" (match-string 0 base))
+                                        (concat "filename/" base)))
+                              base))))
+                 (let ((my/sketch-directories '("~/sketches"))) (my/get-index-card-filenames-between-dates start end filter))
+                 "")))))
          (if do-insert
              (insert value)
            value)))
@@ -2941,6 +2945,12 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
            (if (called-interactively-p 'any)
                (insert list)
              list))))
+
+   (defun my/replace-flickr-links-with-sketches ()
+     (interactive)
+     (while (re-search-forward
+             "\\[\\[\\(https://www\\.flickr\\.com/photos/sachac/.*?\\)\\]\\[\\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][a-z]\\) " nil t)
+       (replace-match "https://sketches.sachachua.com/id/\\2" t nil nil 1)))
  #+end_src
 
 ***** Link-related convenience functions

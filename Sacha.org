@@ -8594,7 +8594,9 @@ Let's try it.
         (exwm-config-default)
         (exwm-enable)
         (exwm-input-set-key (kbd "s-p") 'fhd/toggle-exwm-input-line-mode-passthrough)
-        (exwm-input-set-key (kbd "s-i") #'fhd/exwm-input-toggle-mode)))
+        (exwm-input-set-key (kbd "s-i") #'fhd/exwm-input-toggle-mode)
+        (setq epa-pinentry-mode 'loopback)
+        (setq epg-pinentry-mode 'loopback)))
 
     ;; https://emacs.stackexchange.com/questions/33326/how-do-i-cut-and-paste-effectively-between-applications-while-using-exwm
     (defun fhd/exwm-input-line-mode ()

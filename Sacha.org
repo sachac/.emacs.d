@@ -4830,12 +4830,29 @@ above!
             )))))
 #+end_src
 **** Making a numpad-based hydra for organizing Emacs News
+     :PROPERTIES:
+     :ID:       o2b:04eca1e8-ed55-4aec-bc0b-ba4547a1a655
+     :POST_DATE: [2019-06-04 Tue 23:54]
+     :POSTID:   29420
+     :BLOG:     sacha
+     :CUSTOM_ID:  emacs-news-hydra
+     :END:
 
-I used to use =my/org-guess-uncategorized=, but a hydra-based approach
-might be slightly better suited to quick entry. I wanted to be able to
+I like to categorize links for Emacs News so that it's not an
+overwhelmingly long wall of text. After I've deleted duplicate links,
+there are around a hundred links left to categorize. I used to use
+Helm and some custom code to simplify moving Org list items into
+different categories in the same list. Then I can type "org" to move
+something to the Org Mode category and "dev" to move something to the
+Emacs development category.
+
+When I don't have a lot of computer time, I usually do this
+categorization by SSHing into my server from my phone. It's hard to
+type on my phone, though. I thought a numpad-based Hydra might be
+better for quick entry, like a phone system. I wanted to be able to
 use the numeric keypad to sort items into the most common categories,
-with a few shortcuts for making it easier to organize Emacs News on my
-phone on my laptop.
+with a few shortcuts for making it easier to organize. Here's a list
+of shortcuts:
 
 | 0-9 | Select options from the list, with 0 for other.      |
 | \/  | Opens the URL in a web browser                       |
@@ -4844,49 +4861,92 @@ phone on my laptop.
 | -   | Deletes the item                                     |
 | .   | Quits                                                |
 
-#+begin_src emacs-lisp
-   (defvar my/org-categorize-emacs-news-menu 
-     '(("0" . "Other")
-       ("1" . "Emacs Lisp")
-       ("2" . "Emacs development")
-       ("3" . "Emacs configuration")
-       ("4" . "Appearance")
-       ("5" . "Navigation")
-       ("6" . "Org Mode")
-       ("7" . "Coding")
-       ("8" . "Community")
-       ("9" . "Spacemacs")))
+Here's what the Helm version looked like on the left, and here's the new
+numpad-powered one on the right. I liked how fewer buttons made it easier to hit
+the right one when I'm sorting on my phone. I can add new categories
+with completion. Because I assigned numbers to specific categories
+instead of having them automatically calculated based on the headings
+in the list, it was easy to get into the rhythm of tapping 6 for Org,
+7 for coding, and so on.
 
-   (eval 
-    `(defhydra my/org-categorize-emacs-news (global-map "C-c e")
-       ,@(mapcar
-          (lambda (x)
-            `(,(car x)
-              (lambda () (interactive) (my/org-move-current-item-to-category ,(cdr x)))
-              ,(cdr x)))
-          my/org-categorize-emacs-news-menu)
-       (","
-        (lambda () (interactive)
-          (my/org-move-current-item-to-category 
-           (completing-read (match-string 2) (my/org-get-list-categories))))
-        "By string")
-       ("/" (lambda () (interactive)
-              (save-excursion
-                (re-search-forward org-link-bracket-re)
-                (backward-char)
-                (org-open-at-point)))
-        "Open")
-       ("*"
-        (lambda () (interactive)
-          (if (string= (buffer-name) "*Messages*")
-              (bury-buffer)
-            (save-excursion
-              (re-search-forward org-link-bracket-re)
-              (message (match-string 1)))
-            (switch-to-buffer "*Messages*")))
-        "Show URL")
-       ("-" kill-whole-line "Kill")
-       ("." nil "Done")))
+#+begin_export html
+<figure class="wp-block-image"><img src="https://sachachua.com/blog/wp-content/uploads/2019/06/output.jpg" alt="" class="wp-image-29423" srcset="https://sachachua.com/blog/wp-content/uploads/2019/06/output.jpg 2200w, https://sachachua.com/blog/wp-content/uploads/2019/06/output-196x200.jpg 196w, https://sachachua.com/blog/wp-content/uploads/2019/06/output-640x652.jpg 640w, https://sachachua.com/blog/wp-content/uploads/2019/06/output-768x782.jpg 768w" sizes="(max-width: 2200px) 100vw, 2200px"><figcaption>Comparison of Helm and Hydra approaches</figcaption></figure>
+#+end_export
+
+Here's the code that makes it happen. I experimented with dynamically
+defining a hydra using =eval= and =defmacro= so that I could more
+easily define the menu in a variable. It seems to work fine so far.
+
+#+begin_src emacs-lisp
+  (defvar my/org-categorize-emacs-news-menu 
+    '(("0" . "Other")
+      ("1" . "Emacs Lisp")
+      ("2" . "Emacs development")
+      ("3" . "Emacs configuration")
+      ("4" . "Appearance")
+      ("5" . "Navigation")
+      ("6" . "Org Mode")
+      ("7" . "Coding")
+      ("8" . "Community")
+      ("9" . "Spacemacs")))
+
+  (defun my/org-move-current-item-to-category (category)
+    "Move current list item under CATEGORY earlier in the list.
+  CATEGORY can be a string or a list of the form (text indent regexp).
+  Point should be on the next line to process, even if a new category
+  has been inserted."
+    (interactive "MCategory: ")
+    (when category
+      (let* ((beg (line-beginning-position))
+             (end (line-end-position))
+             (string (org-trim (buffer-substring-no-properties beg end)))
+             (category-text (if (stringp category) category (elt category 0)))
+             (category-indent (if (stringp category) 2 (+ 2 (elt category 1))))
+             (category-regexp (if (stringp category) category (elt category 2)))
+             (pos (point))
+             s)
+        (delete-region beg (min (1+ end) (point-max)))
+        (unless (string= category-text "x")
+          (if (re-search-backward category-regexp nil t)
+              (forward-line 1)
+            (setq s (concat "- " category-text "\n"))
+            (insert s)
+            (setq pos (+ (length s) pos)))
+          (insert (make-string category-indent ?\ )
+                  string "\n")
+          (goto-char (+ pos (length string) category-indent 1))
+          (recenter)))))
+
+  (eval 
+   `(defhydra my/org-categorize-emacs-news (global-map "C-c e")
+      ,@(mapcar
+         (lambda (x)
+           `(,(car x)
+             (lambda () (interactive) (my/org-move-current-item-to-category ,(concat (cdr x) ":")))
+             ,(cdr x)))
+         my/org-categorize-emacs-news-menu)
+      (","
+       (lambda () (interactive)
+         (my/org-move-current-item-to-category 
+          (completing-read (match-string 2) (my/org-get-list-categories))))
+       "By string")
+      ("/" (lambda () (interactive)
+             (save-excursion
+               (re-search-forward org-link-bracket-re)
+               (backward-char)
+               (org-open-at-point)))
+       "Open")
+      ("*"
+       (lambda () (interactive)
+         (if (string= (buffer-name) "*Messages*")
+             (bury-buffer)
+           (save-excursion
+             (re-search-forward org-link-bracket-re)
+             (message (match-string 1)))
+           (switch-to-buffer "*Messages*")))
+       "Show URL")
+      ("-" kill-whole-line "Kill")
+      ("." nil "Done")))
 #+end_src
 
 ** Coding
@@ -7517,20 +7577,6 @@ recently-opened files first.
                              x))
                      (my/org-get-list-categories))))
 
-     (defun my/org-move-current-item-to-category (category)
-       (when category
-         (let* ((beg (line-beginning-position))
-                (end (line-end-position))
-                (string (buffer-substring-no-properties beg end)))
-           (save-excursion
-             (delete-region beg (min (1+ end) (point-max)))
-             (unless (string= (if (stringp category) category (elt category 0)) "x")
-               (if (re-search-backward (if (stringp category) category (elt category 2)) nil t)
-                   (forward-line 1)
-                 (insert "- " category "\n"))
-               (insert (make-string (if (stringp category) 2 (+ 2 (elt category 1))) ?\ )
-                       string "\n"))))))
-
      (defun my/org-guess-list-category (&optional categories)
        (interactive)
        (require 'cl-lib)
@@ -7607,22 +7653,20 @@ recently-opened files first.
   #+begin_src emacs-lisp 
     (defun my/org-sort-list-by-regexp (regexp)
       (interactive "MRegexp: ")
-      (save-restriction
-        (narrow-to-region (point)
-                          (save-excursion (org-end-of-item-list)))
-        (org-sort-list
-         nil ?f
-         (lambda ()
-           (let ((line (buffer-substring-no-properties
-                        (point)
-                        (save-excursion
-                          (org-end-of-item)))))
-             (if (string-match regexp line)
-                 (if (string-match org-bracket-link-regexp line)
-                     (match-string 3 line)
-                   "ZZZ")
-               "ZZZZZ")))
-         'string<)))
+      (let ((sort-func
+             (lambda ()
+               (let ((line (buffer-substring-no-properties (point) (line-end-position))))
+                 (if (string-match regexp line)
+                     (if (string-match org-bracket-link-regexp line)
+                         (match-string 2 line)
+                       "ZZZ")
+                   "ZZZZZ")))))
+        (funcall
+         (cond
+          ((org-at-table-p) 'org-table-sort-lines)
+          ((org-at-item-p) 'org-sort-list)
+          (t 'org-sort-entries))
+         nil ?f sort-func 'string<)))
   #+end_src
 
   #+RESULTS:

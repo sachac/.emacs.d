@@ -1796,6 +1796,45 @@ able to clock in on them.
     (call-interactively 'org-refile)))
 #+end_src
 
+
+**** TODO Bounce to my phone inbox                                 :computer:
+
+On my phone, Emacs in Termux is nice for scripting, and Orgzly is nice
+for editing long text. Let's see if this function lets me quickly
+bounce things around from one place to another.
+
+   #+begin_src emacs-lisp
+     (defun my/org-bounce-to-inbox ()
+       "Toggle subtree between `my/org-inbox-file' and current file.
+     Limitations: Reinserts entry at bottom of subtree, uses kill ring."
+       (interactive)
+       (if (string= (buffer-file-name) (expand-file-name my/org-inbox-file))
+           ;; Return it
+           (let ((location (org-entry-get (point) "BOUNCE")))
+             (when location
+               (setq location (read location))
+               (org-cut-subtree)
+               (save-buffer)
+               (with-current-buffer (find-file (car location))
+                 (save-restriction
+                   (widen)
+                   (goto-char (org-find-olp location))
+                   (org-end-of-subtree)
+                   (unless (bolp) (insert "\n"))
+                   (org-paste-subtree (length location) nil nil t)
+                   (save-buffer)))))
+         (org-entry-put (point) "BOUNCE" (prin1-to-string (cons (buffer-file-name) (org-get-outline-path))))
+         (org-cut-subtree)
+         (save-buffer)
+         (with-current-buffer (find-file my/org-inbox-file)
+           (save-restriction
+             (widen)
+             (goto-char (point-max))
+             (unless (bolp) (insert "\n"))
+             (org-yank)
+             (save-buffer)))))
+
+   #+end_src
 **** Estimating WPM
 
      I'm curious about how fast I type some things.

@@ -132,6 +132,13 @@ I keep slightly more sensitive information in a separate file so that I can easi
 #+END_SRC
 
 ** General configuration
+*** Reload
+
+#+begin_src emacs-lisp
+(defun my/reload-emacs-configuration ()
+  (interactive)
+  (load-file "~/.emacs.d/init.el"))
+#+end_src
 *** Libraries
 
 #+begin_src emacs-lisp 

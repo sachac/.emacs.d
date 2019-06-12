@@ -788,12 +788,6 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
    ("<f2> <down>" . windmove-down)
    ))
 #+END_SRC
-*** More window movement
-
-#+begin_src emacs-lisp 
-(use-package switch-window
-  :bind (("C-x o" . switch-window)))
-#+end_src
 *** Frequently-accessed files
 Registers allow you to jump to a file or other location quickly. To
 jump to a register, use =C-x r j= followed by the letter of the

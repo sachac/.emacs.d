@@ -1903,8 +1903,12 @@ bounce things around from one place to another.
  This code makes it easy for me to focus on one project and its tasks.
 
  #+begin_src emacs-lisp 
+(use-package org
+  :config
    (add-to-list 'org-speed-commands-user '("N" org-narrow-to-subtree))
    (add-to-list 'org-speed-commands-user '("W" widen))
+   (add-to-list 'org-speed-commands-user '("T" my/org-agenda-for-subtree))
+   (add-to-list 'org-speed-commands-user '("b" my/org-bounce-to-inbox)))
 
    (defun my/org-agenda-for-subtree ()
      (interactive)
@@ -1912,7 +1916,7 @@ bounce things around from one place to another.
      (my/org-with-current-task
       (let ((org-agenda-view-columns-initially t))
         (org-agenda nil "t" 'subtree))))
-   (add-to-list 'org-speed-commands-user '("T" my/org-agenda-for-subtree))
+
  #+end_src
 
  There's probably a proper way to do this, maybe with =<=. Oh, that would work nicely. =< C-c a t= too.

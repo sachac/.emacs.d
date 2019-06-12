@@ -3845,6 +3845,68 @@ So that I can easily add links at point. Formatted as an Org list for now.
 
 #+end_src
 
+Some code to talk to Memento Database via Tasker on my phone:
+
+#+begin_src emacs-lisp
+  (defun my/format-intent (intent &optional params)
+    "Return a command string for sending INTENT with PARAMS.
+  PARAMS is an alist of (\"key\" . \"value\") pairs."
+    (format "am broadcast --user 0 -a %s %s"
+            intent
+            (mapconcat
+             (lambda (o)
+               (format
+                "-e %s %s"
+                (shell-quote-argument (car o))
+                (shell-quote-argument (cdr o))))
+             params
+             " ")))
+
+  (defun my/send-intent (intent &optional params)
+    "Send broadcast INTENT to my phone.
+  PARAMS is a plist of :key value pairs."
+    (let ((command (my/format-intent intent params)))
+      (if (my/phone-p)
+          (shell-command command)
+        (shell-command (format "ssh phone %s" (shell-quote-argument command))))))
+
+  (defun my/read-journal-category ()
+    (completing-read "Category: " (mapcar 'cdr my/journal-category-shortcuts)))
+
+  (defun my/update-journal-entry (old-text new-text category)
+    (interactive (list (read-string "Old: ")
+                       (read-string "New: ")
+                       (my/read-journal-category)))
+    (my/send-intent "com.sachachua.journal.categorize"
+                    (list (cons "text" old-text)
+                          (cons "newtext" (or new-text old-text))
+                          (cons "category" (or category "Uncategorized")))))
+
+  (defun my/create-journal-entry (new-text category)
+    (interactive (list (read-string "Text: ")
+                       (my/read-journal-category)))
+    (my/update-journal-entry new-text new-text category))
+
+  (defun my/export-journal-entries ()
+    "Trigger task to export. Phone must be unlocked."
+    (interactive)
+    (my/send-intent "com.sachachua.journal.export" '(("a" . "b"))))
+
+  (use-package csv)
+  (defun my/prompt-for-uncategorized-entries ()
+    (interactive)
+    (let ((key-list '("Note" "Date" "highlight week" "Category" "month" "Time" "Link" "ELECT"))
+          x new-text category done)
+      (while (and (not (eobp)) (not done))
+        (forward-char 1)
+        (setq x (csv--read-line key-list))
+        (when (string= (assoc-default "Category" x nil "") "")
+          (setq text (read-string "Text: " (assoc-default "Note" x nil "")))
+          (setq category (completing-read "Category: " (cons "." my/journal-categories)))
+          (if (string= category ".")
+              (setq done t)
+            (my/update-journal-entry (assoc-default "Note" x nil "") text category))))))
+#+end_src
 **** Photos
 #+begin_src emacs-lisp 
   (defun my/get-image-caption (file)

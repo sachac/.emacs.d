@@ -1617,6 +1617,10 @@ This quickly adds a same-level heading for the succeeding day.
              (file ,my/org-inbox-file)
              "* TODO %^{Task}  :errands:\n"
              :immediate-finish t)
+            ("w" "Something to write about" entry
+             (file ,my/org-inbox-file)
+             "* %^{Task}  :writing:\n"
+             :immediate-finish t)
             ("n" "Note" entry
              (file ,my/org-inbox-file)
              "* %^{Note}\n"
@@ -1684,6 +1688,7 @@ This quickly adds a same-level heading for the succeeding day.
     :EMAIL: %(my/org-contacts-template-email)
     :END:")))
     (bind-key "C-M-r" 'org-capture)
+    (bind-key (kbd "<f5>") 'org-capture)
 #+end_src
 ***** Allow refiling in the middle(ish) of a capture
 
@@ -5706,6 +5711,7 @@ with HTTPS sites.
 
    IRC is a great way to hang out with other Emacs geeks.
    #+begin_src emacs-lisp 
+   (when (my/laptop-p)
      (use-package erc
        :config
        (setq erc-hide-list '("PART" "QUIT" "JOIN"))
@@ -5743,7 +5749,7 @@ with HTTPS sites.
                                   nick
                                   (or reason
                                       "Kicked (kickban)"))))
-       )
+       ))
    #+end_src
 
 ** Self-tracking, statistics, and other data transformations
@@ -6024,11 +6030,10 @@ From https://github.com/nhoffman/.emacs.d/blob/master/init.org
     :config
     (progn
       (defengine my-blog "https://www.google.ca/search?q=site:sachachua.com+%s" :keybinding "b")
-      (defengine my-photos "http://www.flickr.com/search/?w=65214961@N00&q=%s" :keybinding "f")
       (defengine mail "https://mail.google.com/mail/u/0/#search/%s" :keybinding "m")
       (defengine google "http://google.com/search?q=%s" :keybinding "g")
       (defengine emacswiki "http://google.com/search?q=site:emacswiki.org+%s" :keybinding "e")
-      (bind-key* "C-c /" 'my/engine-mode-hydra/body)
+      (bind-key* "C-c s" 'my/engine-mode-hydra/body)
       (engine-mode)))
 #+end_src
 ** Mail

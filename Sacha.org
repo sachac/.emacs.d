@@ -2041,16 +2041,27 @@ And sorting:
 **** Quick way to archive all DONE from inbox                :emacs:computer:
 
    #+begin_src emacs-lisp
-   (defun my/org-clean-up-inbox ()
-     "Archive all DONE tasks and sort the remainder by TODO order."
-     (interactive)
-     (with-current-buffer (find-file my/org-inbox-file)
-       (goto-char (point-min))
-       (if (org-at-heading-p) (save-excursion (insert "\n")))
-       (org-sort-entries nil ?o)
-       (org-archive-all-done)
-       (save-buffer)))
+     (defun my/org-clean-up-inbox ()
+       "Archive all DONE tasks and sort the remainder by TODO order."
+       (interactive)
+       (with-current-buffer (find-file my/org-inbox-file)
+         (goto-char (point-min))
+         (if (org-at-heading-p) (save-excursion (insert "\n")))
+         (org-sort-entries nil ?o)
+         (my/org-archive-done-tasks 'file)
+         (save-buffer)))
+
+     (defun my/org-archive-done-tasks (&optional scope)
+       "Archive finished or cancelled tasks.
+SCOPE can be 'file or 'tree."
+       (interactive)
+       (org-map-entries
+        (lambda ()
+          (org-archive-subtree)
+          (setq org-map-continue-from (outline-previous-heading)))
+        "TODO=\"DONE\"|TODO=\"CANCELLED\"" (or scope (if (org-before-first-heading-p) 'file 'tree))))
    #+end_src
+
 *** Templates
 **** Structure templates
 
@@ -2186,8 +2197,8 @@ I can get a sense of how appointments are spread out.
   (setq org-agenda-skip-deadline-prewarning-if-scheduled 'pre-scheduled)
   (setq org-agenda-time-grid
         '((daily today require-timed)
-         "----------------"
-         (800 1000 1200 1400 1600 1800)))
+ (800 1000 1200 1400 1600 1800 2000)
+ "......" "----------------"))
   (setq org-columns-default-format "%14SCHEDULED %Effort{:} %1PRIORITY %TODO %50ITEM %TAGS")
 #+end_src
 
@@ -2207,33 +2218,6 @@ Org agenda to start on Saturdays.
 (setq org-agenda-start-on-weekday 6)
 #+end_src
 
-**** Modifying org agenda so that I can display a subset of tasks
-
- I want to create an agenda command that displays a list of tasks by
- context. That way, I can quickly preview a bunch of contexts and
- decide what I feel like doing the most.
-
- #+begin_src emacs-lisp 
-   (defvar my/org-agenda-limit-items nil "Number of items to show in agenda to-do views; nil if unlimited.")
-   (eval-after-load 'org
-   '(defadvice org-agenda-finalize-entries (around sacha activate)
-     (if my/org-agenda-limit-items
-         (progn
-           (setq list (mapcar 'org-agenda-highlight-todo list))
-           (setq ad-return-value
-                 (subseq list 0 my/org-agenda-limit-items))
-           (when org-agenda-before-sorting-filter-function
-             (setq list (delq nil (mapcar org-agenda-before-sorting-filter-function list))))
-           (setq ad-return-value
-                 (mapconcat 'identity
-                            (delq nil
-                                  (subseq
-                                   (sort list 'org-entries-lessp)
-                                   0
-                                   my/org-agenda-limit-items))
-                            "\n")))
-       ad-do-it)))
- #+end_src
 **** Display projects with associated subtasks
      :PROPERTIES:
      :CUSTOM_ID: agenda_commands
@@ -2258,7 +2242,7 @@ Press `C-u r' to search again with new search string
 
 #+begin_src emacs-lisp 
   (defun my/org-agenda-project-agenda ()
-    "Return the project headline and up to `my/org-agenda-limit-items' tasks."
+    "Return the project headline and up to `org-agenda-max-entries' tasks."
     (save-excursion
       (let* ((marker (org-agenda-new-marker))
              (heading
@@ -2401,14 +2385,14 @@ hang of using these more!
 
 #+begin_src emacs-lisp 
   (defvar my/org-agenda-contexts
-    '((tags-todo "+phone")
-      (tags-todo "+work")
-      (tags-todo "+drawing")
-      (tags-todo "+coding")
-      (tags-todo "+writing")
-      (tags-todo "+computer")
-      (tags-todo "+home")
-      (tags-todo "+errands"))
+    '((tags-todo "phone")
+      (tags-todo "work")
+      (tags-todo "drawing")
+      (tags-todo "coding")
+      (tags-todo "writing")
+      (tags-todo "computer")
+      (tags-todo "home")
+      (tags-todo "errands"))
     "Usual list of contexts.")
   (defun my/org-agenda-skip-scheduled ()
     (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
@@ -2416,7 +2400,7 @@ hang of using these more!
         `(("a" "Agenda"
            ((agenda "" ((org-agenda-span 2)))
             ;; Unscheduled
-            (tags-todo "TODO=\"TODO\"-project-cooking-routine" 
+            (tags-todo "TODO=\"TODO\"-project-cooking-routine-errands-shopping-video" 
                        ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
                         (org-agenda-overriding-header "Unscheduled TODO entries: ")
                         (org-agenda-sorting-strategy '(priority-down effort-up tag-up category-keep))))
@@ -2430,14 +2414,11 @@ hang of using these more!
            ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
           ("T" tags-todo "TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}" nil "~/cloud/agenda/nonroutine.html")
           ("f" tags-todo "focus-TODO=\"DONE\"-TODO=\"CANCELLED\"")
-          ("F" tags-todo "highenergy-TODO=\"DONE\"-TODO=\"CANCELLED\"")
           ("b" todo ""
            ((org-agenda-files '("~/personal/business.org"))))
           ("B" todo ""
            ((org-agenda-files '("~/Dropbox/books"))))
-          ("o" todo ""
-           ((org-agenda-files '("~/cloud/orgzly/organizer.org"))))
-          ("c" todo ""
+          ("x" "Column view" todo ""  ; Column view
            ((org-agenda-prefix-format "")
             (org-agenda-cmp-user-defined 'my/org-sort-agenda-items-todo)
             (org-agenda-view-columns-initially t)
@@ -2472,19 +2453,19 @@ hang of using these more!
           ("ge" "Errands" tags-todo "errands"
            ((org-agenda-view-columns-initially t))
            ("~/cloud/agenda/errands.html"))
-          ("0" "Top 3 by context"
+          ("c" "Top 3 by context"
            ,my/org-agenda-contexts
            ((org-agenda-sorting-strategy '(priority-up effort-down))
-            (my/org-agenda-limit-items 3)))
-          (")" "All by context"
+            (org-agenda-max-entries 3)))
+          ("C" "All by context"
            ,my/org-agenda-contexts
            ((org-agenda-sorting-strategy '(priority-down effort-down))
-            (my/org-agenda-limit-items nil)))
+            (org-agenda-max-entries nil)))
           ("9" "Unscheduled top 3 by context"
            ,my/org-agenda-contexts
            ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
             (org-agenda-sorting-strategy '(priority-down effort-down))
-            (my/org-agenda-limit-items 3)))
+            (org-agenda-max-entries 3)))
           ("(" "All unscheduled by context"
            ,my/org-agenda-contexts
            ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
@@ -2543,7 +2524,7 @@ hang of using these more!
            )
           ("2" "List projects with tasks" my/org-agenda-projects-and-tasks
            "+PROJECT"
-           ((my/org-agenda-limit-items 3)))))
+           ((org-agenda-max-entries 3)))))
   (bind-key "<apps> a" 'org-agenda)
 #+end_src
 **** Make it easy to mark a task as done

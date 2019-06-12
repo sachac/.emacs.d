@@ -4971,6 +4971,12 @@ easily define the menu in a variable. It seems to work fine so far.
       ("." nil "Done")))
 #+end_src
 
+*** Save when Emacs loses focus
+
+#+begin_src emacs-lisp
+(use-package org
+:hook (focus-out-hook . org-save-all-org-buffers))
+#+end_src
 ** Coding
 *** Web development
 #+begin_src emacs-lisp 

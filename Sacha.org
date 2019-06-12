@@ -4110,33 +4110,12 @@ Probably should make this a dblock someday."
 
 *** Archiving
     
-From http://stackoverflow.com/questions/6997387/how-to-archive-all-the-done-tasks-using-a-single-command
-#+begin_src emacs-lisp 
-(defun my/org-archive-done-tasks ()
-  "Archive finished or cancelled tasks."
-  (interactive)
-  (org-map-entries
-   (lambda ()
-     (org-archive-subtree)
-     (setq org-map-continue-from (outline-previous-heading)))
-   "TODO=\"DONE\"|TODO=\"CANCELLED\"" (if (org-before-first-heading-p) 'file 'tree)))
-#+end_src
-
-Also, don't ask me for confirmation:
+Don't ask me for confirmation:
 
 #+begin_src emacs-lisp
 (add-to-list 'org-speed-commands-user '("a" call-interactively 'org-archive-subtree-default))
 #+end_src
-*** Filesystem
 
-#+begin_src emacs-lisp 
-(use-package org-fstree
-  :commands (org-fstree-apply-maybe org-fstree-show-entry-maybe)
-  :config
-  (progn (add-hook 'org-ctrl-c-ctrl-c-hook 'org-fstree-apply-maybe)
-         (add-hook 'org-pre-cycle-hook 'org-fstree-show-entry-maybe)))
-#+end_src
-**** TODO check out org-fstree
 *** Presentations
 #+begin_src emacs-lisp 
 (use-package ox-reveal :disabled t)

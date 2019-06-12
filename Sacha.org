@@ -823,6 +823,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (my/defshortcut ?w "~/Dropbox/public/sharing/index.org")
 (my/defshortcut ?W "~/Dropbox/public/sharing/blog.org")
 (my/defshortcut ?j "~/personal/journal.org")
+(my/defshortcut ?J "~/cloud/a/Journal.csv")
 (my/defshortcut ?I "~/Dropbox/Inbox")
 (my/defshortcut ?g "~/sachac.github.io/evil-plans/index.org")
 (my/defshortcut ?c "~/code/dev/elisp-course.org")

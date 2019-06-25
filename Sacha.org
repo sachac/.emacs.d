@@ -1802,7 +1802,7 @@ able to clock in on them.
 #+end_src
 
 
-**** TODO Bounce to my phone inbox                                 :computer:
+**** TODO Bounce to my phone inbox                                 :computer:phone:
 
 On my phone, Emacs in Termux is nice for scripting, and Orgzly is nice
 for editing long text. Let's see if this function lets me quickly
@@ -6084,19 +6084,8 @@ From https://github.com/nhoffman/.emacs.d/blob/master/init.org
 
 ** Web browsing
 
-	 Minor tweak for Firefox on Windows. Otherwise I get "Searching for
-	 program" "permission denied" "firefox".
-
-	 #+begin_src emacs-lisp 
-	 (setq browse-url-firefox-program
-         "C:/Program Files (x86)/Mozilla Firefox/firefox.exe")
-	 #+end_src
-
-=emacs --daemon= doesn't seem to pick up that Chrome is my default browser, so we'll just use the generic browser function.
-
 #+begin_src emacs-lisp 
-(setq browse-url-generic-program "google-chrome")
-(setq browse-url-browser-function 'browse-url-generic)
+(setq browse-url-browser-function 'browse-url-xdg-open)
 #+end_src
 
 ** Clipboard
@@ -6105,6 +6094,13 @@ From https://github.com/nhoffman/.emacs.d/blob/master/init.org
 (use-package clipmon
   :disabled t
   :init (progn (setq clipmon-action 'kill-new clipmon-timeout nil clipmon-sound nil clipmon-cursor-color nil clipmon-suffix nil) (clipmon-mode)))
+#+end_src
+
+On my phone:
+
+#+begin_src emacs-lisp
+  (when (my/phone-p)
+    (use-package xclip :load-path "~/cloud/elisp" :config (xclip-mode 1)))
 #+end_src
 ** Search
 

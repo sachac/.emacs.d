@@ -1803,7 +1803,7 @@ able to clock in on them.
 #+end_src
 
 
-**** TODO Bounce to my phone inbox                                 :computer:
+**** TODO Bounce to my phone inbox                                 :computer:phone:
 
 On my phone, Emacs in Termux is nice for scripting, and Orgzly is nice
 for editing long text. Let's see if this function lets me quickly
@@ -4894,31 +4894,52 @@ above!
   (defun my/emacs-news-check-duplicates ()
     (interactive)
     (let ((end (save-excursion (org-end-of-subtree)))
+          (search-fn (lambda (point search description)
+                       (save-excursion
+                         (goto-char point)
+                         (let (found)
+                           (if (re-search-forward (regexp-quote search) nil t)
+                               (setq found (point))
+                             ;; Does this look like a package name?
+                             (let ((case-fold-search nil))
+                               (when (string-match "^\\([-\\.a-z0-9]+\\)\\(:\\|\\.el\\) " description)
+                                 (when (re-search-forward (match-string 1 description) nil t)
+                                   (setq found (point))))))
+                           found))))
           search start
           found
           done
           context)
-      (while (and (re-search-forward "- \\[\\[\\([^[]+\\)\\]" end t) (not done))
-        (setq found nil search (match-string 0) start (match-beginning 0))
+      (while (and (re-search-forward "- \\[\\[\\([^[]+\\)\\]\\[\\([^[]+\\)\\]" end t) (not done))
+        (setq found nil search (match-string 1) start (match-beginning 0) description (match-string 2))
         (goto-char (match-end 0))
         (save-excursion
-          (when (re-search-forward (regexp-quote search) nil t)
-            (setq found (point)
-                  context
+          ;; Search for the URL
+          (setq found (funcall search-fn (match-end 0) search description))
+          (while found
+            (goto-char found)
+            (setq context
                   (concat
                    (string-join (org-get-outline-path t) " > ") "\n"
                    (buffer-substring (line-beginning-position) (line-end-position))))
             (push-mark found)
             (goto-char start)
-            (let ((input (read-char (concat context "\n(d)elete, (k)eep, (q)quit?"))))
+            (let ((input (read-char (concat context "\n(d)elete, (k)eep, (n)ext match, (q)quit?"))))
               (cond
+               ((eq input ?k)
+                (setq found nil))
                ((eq input ?d)
                 (delete-region (point-at-bol)
-                               (progn (forward-line 1) (point))))
+                               (progn (forward-line 1) (point)))
+                (setq found nil))
+               ((eq input ?n)
+                ;; Look for the next match
+                (setq found (funcall search-fn (save-excursion (goto-char found) (line-end-position))
+                                       search description)))
                ((eq input ?q)
-                (setq done t)))
-              )
-            )))))
+                (setq done t found nil))))
+            )))
+        ))
 #+end_src
 **** Making a numpad-based hydra for organizing Emacs News
      :PROPERTIES:
@@ -6065,19 +6086,8 @@ From https://github.com/nhoffman/.emacs.d/blob/master/init.org
 
 ** Web browsing
 
-	 Minor tweak for Firefox on Windows. Otherwise I get "Searching for
-	 program" "permission denied" "firefox".
-
-	 #+begin_src emacs-lisp 
-	 (setq browse-url-firefox-program
-         "C:/Program Files (x86)/Mozilla Firefox/firefox.exe")
-	 #+end_src
-
-=emacs --daemon= doesn't seem to pick up that Chrome is my default browser, so we'll just use the generic browser function.
-
 #+begin_src emacs-lisp 
-(setq browse-url-generic-program "google-chrome")
-(setq browse-url-browser-function 'browse-url-generic)
+(setq browse-url-browser-function 'browse-url-xdg-open)
 #+end_src
 
 ** Clipboard
@@ -6086,6 +6096,13 @@ From https://github.com/nhoffman/.emacs.d/blob/master/init.org
 (use-package clipmon
   :disabled t
   :init (progn (setq clipmon-action 'kill-new clipmon-timeout nil clipmon-sound nil clipmon-cursor-color nil clipmon-suffix nil) (clipmon-mode)))
+#+end_src
+
+On my phone:
+
+#+begin_src emacs-lisp
+  (when (my/phone-p)
+    (use-package xclip :load-path "~/cloud/elisp" :config (xclip-mode 1)))
 #+end_src
 ** Search
 

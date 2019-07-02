@@ -80,9 +80,9 @@ Here's how we start:
 (defun my/laptop-p ()
   (equal (system-name) "sacha-kubuntu"))
 (defun my/server-p ()
-  (and (equal (system-name) "localhost") (equal (user-login-name "sacha"))))
+  (and (equal (system-name) "localhost") (equal (user-login-name) "sacha")))
 (defun my/phone-p ()
-  (and (equal (system-name) "localhost") (not (equal (user-login-name "sacha")))))
+  (and (equal (system-name) "localhost") (not (equal (user-login-name) "sacha"))))
 (global-auto-revert-mode)  ; simplifies syncing
 #+end_src
 

@@ -80,9 +80,9 @@ Here's how we start:
 (defun my/laptop-p ()
   (equal (system-name) "sacha-kubuntu"))
 (defun my/server-p ()
-  (and (equal (system-name) "localhost") (equal (user-login-name) "sacha")))
+  (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
 (defun my/phone-p ()
-  (and (equal (system-name) "localhost") (not (equal (user-login-name) "sacha"))))
+  (and (equal (system-name) "localhost") (not (equal user-login-name "sacha"))))
 (global-auto-revert-mode)  ; simplifies syncing
 #+end_src
 
@@ -811,6 +811,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
   (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
 
 (my/defshortcut ?e "~/.emacs.d/Sacha.org")
+(my/defshortcut ?E "~/code/emacs-news/index.org")
 (my/defshortcut ?i "~/cloud/orgzly/Inbox.org")
 (my/defshortcut ?o "~/cloud/orgzly/organizer.org")
 (my/defshortcut ?s "~/personal/sewing.org")
@@ -4810,7 +4811,8 @@ above!
                                                       "https://emacsnotes.wordpress.com/feed" 
                                                       "https://www.with-emacs.com/rss.xml" 
                                                       "https://shapr.github.io/feed.rss" 
-                                                      "http://jonathanabennett.github.io/rss.xml"))
+                                                      "http://jonathanabennett.github.io/rss.xml"
+"https://saurabhkukade.github.io/feed.xml"))
     (defun my/prepare-emacs-news (date parts)
       (interactive (list (org-read-date nil nil "-mon 0:00") '(refresh-packages reddit rss)))
       (setq date (substring date 0 10))
@@ -8174,7 +8176,7 @@ https://www.emacswiki.org/emacs/InsertFileName
             (widget-setup)
             (widget-minor-mode)
             (goto-char (point-min))
-            (scroll-bar-mode)
+            (when (functionp 'scroll-bar-mode) (scroll-bar-mode))
             (switch-to-buffer (current-buffer))))
 
         (defun my/prepare-index-card-for-journal ()

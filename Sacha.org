@@ -3878,7 +3878,7 @@ Some code to talk to Memento Database via Tasker on my phone:
         (shell-command (format "ssh phone %s" (shell-quote-argument command))))))
 
   (defun my/read-journal-category ()
-    (completing-read "Category: " (mapcar 'cdr my/journal-category-shortcuts)))
+    (completing-read "Category: " my/journal-categories))
 
   (defun my/update-journal-entry (old-text new-text category)
     (interactive (list (read-string "Old: ")
@@ -3899,7 +3899,8 @@ Some code to talk to Memento Database via Tasker on my phone:
     (interactive)
     (my/send-intent "com.sachachua.journal.export" '(("a" . "b"))))
 
-  (use-package csv)
+  (use-package csv
+    :commands csv--read-line)
   (defun my/prompt-for-uncategorized-entries ()
     (interactive)
     (let ((key-list '("Note" "Date" "highlight week" "Category" "month" "Time" "Link" "ELECT"))
@@ -4900,6 +4901,7 @@ above!
   (defun my/emacs-news-check-duplicates ()
     (interactive)
     (let ((end (save-excursion (org-end-of-subtree)))
+          description
           (search-fn (lambda (point search description)
                        (save-excursion
                          (goto-char point)
@@ -4908,7 +4910,7 @@ above!
                                (setq found (point))
                              ;; Does this look like a package name?
                              (let ((case-fold-search nil))
-                               (when (string-match "^\\([-\\.a-z0-9]+\\)\\(:\\|\\.el\\) " description)
+                               (when (string-match "^\\([-\\.a-z0-9]+?\\)\\(:\\|\\.el\\) " description)
                                  (when (re-search-forward (match-string 1 description) nil t)
                                    (setq found (point))))))
                            found))))
@@ -5046,7 +5048,7 @@ easily define the menu in a variable. It seems to work fine so far.
       (","
        (lambda () (interactive)
          (my/org-move-current-item-to-category 
-          (completing-read (match-string 2) (my/org-get-list-categories))))
+          (completing-read "Category: " (my/org-get-list-categories))))
        "By string")
       ("/" (lambda () (interactive)
              (save-excursion
@@ -5194,10 +5196,10 @@ More things that I need to get used to...
 ;; C-c C-v ? : Display flymake elint warnings/errors
 
   (use-package erefactor
-    :config
-    (define-key emacs-lisp-mode-map "\C-c\C-v" erefactor-map))
+  :defer t
+  :bind (:map emacs-lisp-mode-map ("C-c C-v" . erefactor-map)))
 
-  (use-package paredit)
+  (use-package paredit :defer t)
   (use-package redshank
     :disabled t
     :defer t
@@ -5418,22 +5420,21 @@ I like js2-mode.
 Handy shortcuts:
 #+begin_src emacs-lisp 
 (use-package js2-mode
-  :config
-  (bind-key "C-c C-c" 'compile js2-mode-map)
-  (add-hook 'js2-mode-hook 'jasminejs-mode))
+  :mode "\\.js\\'"
+  :bind (:map js2-mode-map ("C-c C-c" . compile)))
 #+end_src
 
 #+begin_src emacs-lisp 
 (use-package coffee-mode
-  :config
-  (bind-key "C-c C-c" 'compile coffee-mode-map)
-  )
+  :mode "\\.coffee\\'"
+  :bind (:map coffee-mode-map ("C-c C-c" . compile)))
 #+end_src
 
 #+begin_src emacs-lisp 
-(use-package jasminejs-mode
-  :config
-  (add-hook 'jasminejs-mode-hook 'jasminejs-add-snippets-to-yas-snippet-dirs))
+  (use-package jasminejs-mode
+    :after js2-mode
+    :hook ((js2-mode . jasminejs-mode)
+           (jasminejs-mode-hook . jasminejs-add-snippets-to-yas-snippet-dirs)))
 #+end_src
 
 This makes script blocks easier to copy:
@@ -5493,26 +5494,24 @@ This makes it easier to debug:
 And the rest of the js2 config:
 
 #+begin_src emacs-lisp 
-  (use-package js2-mode
-    :commands js2-mode
-    :init
-    (progn
-      (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
-      (setq-default js2-basic-offset 2)
-      (add-to-list 'interpreter-mode-alist (cons "node" 'js2-mode)))
-    :config
-    (progn
-      (js2-imenu-extras-setup)
-      (bind-key "C-x C-e" 'js-send-last-sexp js2-mode-map)
-      (bind-key "C-M-x" 'js-send-last-sexp-and-go js2-mode-map)
-      (bind-key "C-c b" 'js-send-buffer js2-mode-map)
-      (bind-key "C-c d" 'my/insert-or-flush-debug js2-mode-map)
-      (bind-key "C-c C-b" 'js-send-buffer-and-go js2-mode-map)
-      (bind-key "C-c w" 'my/copy-javascript-region-or-buffer js2-mode-map)))
+    (use-package js2-mode
+      :commands js2-mode
+      :defer t
+      :interpreter "node"
+      :init (setq-default js2-basic-offset 2)
+      :bind (:map js2-mode-map
+        ("C-x C-e" . js-send-last-sexp)
+        ("C-M-x" . js-send-last-sexp-and-go)
+        ("C-c b" . js-send-buffer)
+        ("C-c d" . my/insert-or-flush-debug)
+        ("C-c C-b" . js-send-buffer-and-go)
+        ("C-c w" . my/copy-javascript-region-or-buffer)
+      :config (js2-imenu-extras-setup))
 #+end_src
 
 #+begin_src emacs-lisp 
 (use-package coffee-mode
+:defer t
 :config (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
 #+end_src
 
@@ -5584,6 +5583,7 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
 
       (use-package magit
         :load-path "~/elisp/magit"
+        :defer t
         :config
         (progn
           (when (equal system-type 'windows-nt)
@@ -6586,68 +6586,9 @@ cool. On Windows, these things help a little.
 
 #+begin_src emacs-lisp 
 (setq epa-file-encrypt-to '("sacha@sachachua.com"))
+        (setq epa-pinentry-mode 'loopback)
+        (setq epg-pinentry-mode 'loopback)
 #+end_src
-** Yaoddmuse
-
-#+begin_src emacs-lisp 
-(setq yaoddmuse-wikis
-  '(("EmacsWiki" "https://www.emacswiki.org/emacs" utf-8 "uihnscuskc=1;")))
-#+end_src
-** Building a today-I-learned habit, and displaying the documentation for random Emacs commands :emacs:
-   :PROPERTIES:
-   :ID:       o2b:f3c021e8-8b7a-4bd2-a035-3de1eaa206a2
-   :POST_DATE: [2016-02-19 Fri 17:11]
-   :POSTID:   28623
-   :BLOG:     sacha
-   :END:
-
-I'd like to build a habit of regularly learning one small thing each
-day in one of three domains: tech, life, and learning. My measurable
-output would probably be in the form of index cards, tweets, blog
-posts, and notes (in org-capture, Dropbox, or Evernote). I can get
-input from various sources like blog posts, videos, books, webpages,
-and so on.
-
-A little bit of randomness might be useful for learning more about
-Emacs. Emacswiki has a [[http://www.emacswiki.org/emacs?action=random][random page]] function, but the chunks are often
-a little large or irrelevant. On the other hand, displaying a random
-command from the packages that I already have loaded into my Emacs -
-that might be a good way to discover interesting things.
-
-I started by looking at =apropos-command=, which led me to
-=apropos-internal=, which is a C function that referred to =obarray=.
-Using =obarray= by itself didn't work (suspiciously few elements, so I
-often ended up looking at emms-related functions). I eventually found
-[[http://www.gnu.org/software/emacs/manual/html_node/elisp/Creating-Symbols.html][mapatoms]], which seems to do a better job at listing an appreciable
-number of interactive functions. I filtered the list to include only
-documented functions that had not been marked as obsolete: 8,415 in
-my current Emacs, which should be plenty to go through. =)
-
-#+begin_src emacs-lisp 
-(defun my/describe-random-interactive-function ()
-  (interactive)
-  "Show the documentation for a random interactive function.
-Consider only documented, non-obsolete functions."
-  (let (result)
-    (mapatoms
-     (lambda (s)
-       (when (and (commandp s) 
-                  (documentation s t)
-                  (null (get s 'byte-obsolete-info)))
-         (setq result (cons s result)))))
-    (describe-function (elt result (random (length result))))))
-#+end_src
-
-I've added this to a [[https://www.emacswiki.org/emacs/KeyChord][key-chord]] + [[https://github.com/abo-abo/hydra][hydra]] keymap as a repeatable
-function, so I can type =hh= to start my Hydra and then type =r= as
-many times as I want in order to show the documentation for a random
-interactive function. If you're curious about that, you can see the
-[[http://sachachua.com/dotemacs#key-chord][key-chord section of my config]].
-
-Anyway, today I learned more about =obarray= and =mapatoms= - they're
-not interactive functions, but they were handy for building this
-little bit of code. We'll see how it goes! =)
-
 ** DONE Scan ~/bin and turn the scripts into interactive commands
    CLOSED: [2015-12-14 Mon 21:24]
    :PROPERTIES:
@@ -6922,6 +6863,68 @@ From https://www.reddit.com/r/emacs/comments/bqqqra/quickly_find_syncthing_confl
       (message "You clicked somewhere weird.")))
 #+end_src
 * Inactive/infrequent things
+
+** Yaoddmuse
+
+#+begin_src emacs-lisp 
+(setq yaoddmuse-wikis
+  '(("EmacsWiki" "https://www.emacswiki.org/emacs" utf-8 "uihnscuskc=1;")))
+#+end_src
+** Building a today-I-learned habit, and displaying the documentation for random Emacs commands :emacs:
+   :PROPERTIES:
+   :ID:       o2b:f3c021e8-8b7a-4bd2-a035-3de1eaa206a2
+   :POST_DATE: [2016-02-19 Fri 17:11]
+   :POSTID:   28623
+   :BLOG:     sacha
+   :END:
+
+I'd like to build a habit of regularly learning one small thing each
+day in one of three domains: tech, life, and learning. My measurable
+output would probably be in the form of index cards, tweets, blog
+posts, and notes (in org-capture, Dropbox, or Evernote). I can get
+input from various sources like blog posts, videos, books, webpages,
+and so on.
+
+A little bit of randomness might be useful for learning more about
+Emacs. Emacswiki has a [[http://www.emacswiki.org/emacs?action=random][random page]] function, but the chunks are often
+a little large or irrelevant. On the other hand, displaying a random
+command from the packages that I already have loaded into my Emacs -
+that might be a good way to discover interesting things.
+
+I started by looking at =apropos-command=, which led me to
+=apropos-internal=, which is a C function that referred to =obarray=.
+Using =obarray= by itself didn't work (suspiciously few elements, so I
+often ended up looking at emms-related functions). I eventually found
+[[http://www.gnu.org/software/emacs/manual/html_node/elisp/Creating-Symbols.html][mapatoms]], which seems to do a better job at listing an appreciable
+number of interactive functions. I filtered the list to include only
+documented functions that had not been marked as obsolete: 8,415 in
+my current Emacs, which should be plenty to go through. =)
+
+#+begin_src emacs-lisp 
+(defun my/describe-random-interactive-function ()
+  (interactive)
+  "Show the documentation for a random interactive function.
+Consider only documented, non-obsolete functions."
+  (let (result)
+    (mapatoms
+     (lambda (s)
+       (when (and (commandp s) 
+                  (documentation s t)
+                  (null (get s 'byte-obsolete-info)))
+         (setq result (cons s result)))))
+    (describe-function (elt result (random (length result))))))
+#+end_src
+
+I've added this to a [[https://www.emacswiki.org/emacs/KeyChord][key-chord]] + [[https://github.com/abo-abo/hydra][hydra]] keymap as a repeatable
+function, so I can type =hh= to start my Hydra and then type =r= as
+many times as I want in order to show the documentation for a random
+interactive function. If you're curious about that, you can see the
+[[http://sachachua.com/dotemacs#key-chord][key-chord section of my config]].
+
+Anyway, today I learned more about =obarray= and =mapatoms= - they're
+not interactive functions, but they were handy for building this
+little bit of code. We'll see how it goes! =)
+
 ** Org - mapping blog posts and image URLs from bulk exports
 #+begin_src emacs-lisp  :tangle no 
   (defun my/org-map-blog-and-image-urls ()
@@ -8843,9 +8846,7 @@ Hmmm, I'm having a hard time getting used to this.
         (exwm-config-default)
         (exwm-enable)
         (exwm-input-set-key (kbd "s-p") 'fhd/toggle-exwm-input-line-mode-passthrough)
-        (exwm-input-set-key (kbd "s-i") #'fhd/exwm-input-toggle-mode)
-        (setq epa-pinentry-mode 'loopback)
-        (setq epg-pinentry-mode 'loopback)))
+        (exwm-input-set-key (kbd "s-i") #'fhd/exwm-input-toggle-mode)))
 
     ;; https://emacs.stackexchange.com/questions/33326/how-do-i-cut-and-paste-effectively-between-applications-while-using-exwm
     (defun fhd/exwm-input-line-mode ()

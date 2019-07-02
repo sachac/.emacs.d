@@ -1664,11 +1664,17 @@ This quickly adds a same-level heading for the succeeding day.
              "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
             ("q" "Quick note" item
              (file+headline "~/cloud/orgzly/organizer.org" "Quick notes"))
-            ("l" "Cash expense" plain
+            ("lc" "Cash expense" plain
              (file ,my/ledger-file)
              "%(org-read-date) * %^{Payee}
       Expenses:Cash
       Expenses:%^{Account}  %^{Amount}
+    ")
+            ("lb" "BDO" plain
+    (file ,my/ledger-file)
+    "%(org-read-date) * %^{Payee}
+      Expenses:Play    %^{Amount}
+      Assets:BDO
     ")
             ("B" "Book" entry
              (file+datetree "~/personal/books.org" "Inbox")

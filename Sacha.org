@@ -631,11 +631,6 @@ color-theme in ELPA was a little odd, though, so we define some advice to make
 it work. Some things still aren't quite right.
 
 #+BEGIN_SRC emacs-lisp 
-(use-package color-theme)
-(defadvice color-theme-alist (around sacha activate)
-  (if (ad-get-arg 0)
-      ad-do-it
-    nil))
 (defun my/setup-color-theme ()
   (interactive)
   (when (display-graphic-p) 
@@ -5505,7 +5500,7 @@ And the rest of the js2 config:
         ("C-c b" . js-send-buffer)
         ("C-c d" . my/insert-or-flush-debug)
         ("C-c C-b" . js-send-buffer-and-go)
-        ("C-c w" . my/copy-javascript-region-or-buffer)
+        ("C-c w" . my/copy-javascript-region-or-buffer))
       :config (js2-imenu-extras-setup))
 #+end_src
 

@@ -1334,6 +1334,15 @@ stuff.
 )
 #+end_src
 
+Filling in for obsolete functions
+
+#+begin_src emacs-lisp
+  (use-package org
+    :config
+    (unless (functionp 'org-link-make-string)
+      (fset 'org-link-make-string 'org-make-link-string)))
+#+end_src
+
 *** My files
     :PROPERTIES:
     :CUSTOM_ID: org-files

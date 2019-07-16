@@ -6660,6 +6660,7 @@ Let's see how that goes!
 ** Syncthing
 
 From https://www.reddit.com/r/emacs/comments/bqqqra/quickly_find_syncthing_conflicts_and_resolve_them/
+In termux, you also need to =pkg install diffutils=.
 
 #+begin_src emacs-lisp
 (defun my/resolve-orgzly-syncthing ()
@@ -6669,7 +6670,7 @@ From https://www.reddit.com/r/emacs/comments/bqqqra/quickly_find_syncthing_confl
 (defun ibizaman/syncthing-resolve-conflicts (directory)
   "Resolve all conflicts under given DIRECTORY."
   (interactive "D")
-  (let ((all (ibizaman/syncthing--get-sync-conflicts directory))
+  (let* ((all (ibizaman/syncthing--get-sync-conflicts directory))
         (chosen (ibizaman/syncthing--pick-a-conflict all)))
     (ibizaman/syncthing-resolve-conflict chosen)))
 
@@ -6679,13 +6680,11 @@ From https://www.reddit.com/r/emacs/comments/bqqqra/quickly_find_syncthing_confl
   (interactive "D")
   (find-name-dired directory "*.sync-conflict-*"))
 
-
 (defun ibizaman/syncthing-resolve-conflict-dired (&optional arg)
   "Resolve conflict of first marked file in dired or close to point with ARG."
   (interactive "P")
   (let ((chosen (car (dired-get-marked-files nil arg))))
     (ibizaman/syncthing-resolve-conflict chosen)))
-
 
 (defun ibizaman/syncthing-resolve-conflict (conflict)
   "Resolve CONFLICT file using ediff."
@@ -6704,7 +6703,7 @@ From https://www.reddit.com/r/emacs/comments/bqqqra/quickly_find_syncthing_confl
   (directory-files-recursively directory "\\.sync-conflict-"))
 
 
-(defvar ibizaman/syncthing--conflict-history
+(defvar ibizaman/syncthing--conflict-history nil
   "Completion conflict history")
 
 (defun ibizaman/syncthing--pick-a-conflict (conflicts)

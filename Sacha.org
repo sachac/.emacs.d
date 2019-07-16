@@ -4496,7 +4496,7 @@ One more little thing automated...
             (to-time (if to-date (org-read-date nil t to-date)))
             (is-rss (> (length (xml-get-children (car feed) 'entry)) 0)))
         (mapconcat (lambda (link)
-                     (format "%s\n" 
+                     (format "- %s\n" 
                              (org-link-make-string (car link) (cdr link))))
                    (if is-rss
                        (mapcar

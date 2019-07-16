@@ -1659,16 +1659,23 @@ This quickly adds a same-level heading for the succeeding day.
              "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
             ("q" "Quick note" item
              (file+headline "~/cloud/orgzly/organizer.org" "Quick notes"))
+            ("l" "Ledger")
             ("lc" "Cash expense" plain
              (file ,my/ledger-file)
-             "%(org-read-date) * %^{Payee}
+             "%(ledger-read-date \"Date: \") * %^{Payee}
       Expenses:Cash
       Expenses:%^{Account}  %^{Amount}
     ")
-            ("lb" "BDO" plain
+            ("lb" "BDO CAD" plain
     (file ,my/ledger-file)
-    "%(org-read-date) * %^{Payee}
-      Expenses:Play    %^{Amount}
+    "%(ledger-read-date \"Date: \") * %^{Payee}
+      Expenses:Play    $ %^{Amount}
+      Assets:BDO
+    ")
+            ("lp" "BDO PHP" plain
+    (file ,my/ledger-file)
+    "%(ledger-read-date \"Date: \") * %^{Payee}
+      Expenses:Play    PHP %^{Amount}
       Assets:BDO
     ")
             ("B" "Book" entry
@@ -1840,7 +1847,6 @@ bounce things around from one place to another.
              (unless (bolp) (insert "\n"))
              (org-yank)
              (save-buffer)))))
-
    #+end_src
 **** Estimating WPM
 
@@ -2052,10 +2058,12 @@ And sorting:
        "Archive all DONE tasks and sort the remainder by TODO order."
        (interactive)
        (with-current-buffer (find-file my/org-inbox-file)
+         (my/org-archive-done-tasks 'file)
          (goto-char (point-min))
          (if (org-at-heading-p) (save-excursion (insert "\n")))
+         (org-sort-entries nil ?p)
+         (goto-char (point-min))
          (org-sort-entries nil ?o)
-         (my/org-archive-done-tasks 'file)
          (save-buffer)))
 
      (defun my/org-archive-done-tasks (&optional scope)
@@ -2391,6 +2399,7 @@ hang of using these more!
 | 2           | Projects with tasks                                                                            |
 
 #+begin_src emacs-lisp 
+  (bind-key "<apps> a" 'org-agenda)
   (defvar my/org-agenda-contexts
     '((tags-todo "phone")
       (tags-todo "work")
@@ -2407,12 +2416,12 @@ hang of using these more!
         `(("a" "Agenda"
            ((agenda "" ((org-agenda-span 2)))
             ;; Unscheduled
-            (tags-todo "TODO=\"TODO\"-project-cooking-routine-errands-shopping-video" 
+            (tags-todo "TODO=\"TODO\"-project-cooking-routine-errands-shopping-video-evilplans" 
                        ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
                         (org-agenda-overriding-header "Unscheduled TODO entries: ")
                         (org-agenda-sorting-strategy '(priority-down effort-up tag-up category-keep))))
             ;; Active projects
-            (tags "+project-someday-TODO=\"DONE\"-TODO=\"SOMEDAY\"-inactive"
+            (tags "+project-someday-TODO=\"DONE\"-TODO=\"SOMEDAY\"-inactive-evilplans"
                   ((org-tags-exclude-from-inheritance '("project"))
                    (org-agenda-overriding-header "Projects: ")
                    (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
@@ -2492,6 +2501,13 @@ hang of using these more!
             (org-agenda-overriding-header "Unscheduled TODO entries: ")
             (org-columns-default-format "%50ITEM %TODO %3PRIORITY %Effort{:} %TAGS")
             (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))))
+          ("r" "Unscheduled, untagged tasks" tags-todo "-someday-TODO=\"SOMEDAY\"-TODO=\"DELEGATED\"-TODO=\"WAITING\"-project-cooking-routine-evilplans-computer-writing-phone-sewing-home-errands-shopping"
+           ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+            (org-agenda-view-columns-initially nil)
+            (org-tags-exclude-from-inheritance '("project"))
+            (org-agenda-overriding-header "Unscheduled TODO entries: ")
+            (org-columns-default-format "%50ITEM %TODO %3PRIORITY %Effort{:} %TAGS")
+            (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))))
           ("s" "Someday" tags-todo "TODO=\"SOMEDAY\""
            ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
             (org-agenda-view-columns-initially nil)
@@ -2532,7 +2548,7 @@ hang of using these more!
           ("2" "List projects with tasks" my/org-agenda-projects-and-tasks
            "+PROJECT"
            ((org-agenda-max-entries 3)))))
-  (bind-key "<apps> a" 'org-agenda)
+
 #+end_src
 **** Make it easy to mark a task as done
 
@@ -5060,8 +5076,7 @@ easily define the menu in a variable. It seems to work fine so far.
        "By string")
       ("/" (lambda () (interactive)
              (save-excursion
-               (re-search-forward org-link-bracket-re)
-               (backward-char)
+               (re-search-forward "\\[\\[")
                (org-open-at-point)))
        "Open")
       ("*"
@@ -6116,7 +6131,7 @@ On my phone:
 
 #+begin_src emacs-lisp
   (when (my/phone-p)
-    (use-package xclip :load-path "~/cloud/elisp" :config (xclip-mode 1)))
+    (use-package xclip :config (xclip-mode 1)))
 #+end_src
 ** Search
 

@@ -3845,7 +3845,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
                data)))
       filtered))
 
-  (defun my/org-summarize-journal-csv (filename from to highlight &optional category-map categories)
+  (defun my/org-summarize-journal-csv (filename from to highlight &optional category-map categories include-date)
       (interactive
        (list (read-file-name "File: ") 
              (org-read-date nil nil nil "From: ")
@@ -3856,7 +3856,8 @@ So that I can easily add links at point. Formatted as an Org list for now.
                      ((= choice ?w) "week")
                      (t "all")))
              my/journal-category-map
-             my/journal-categories))
+             my/journal-categories
+             nil))
       (let* ((sorted-list
               (my/org-group-journal-entries
                (my/org-filter-journal-csv filename from to highlight)
@@ -3866,7 +3867,10 @@ So that I can easily add links at point. Formatted as an Org list for now.
                       (concat "- *" (car o) "*\n"
                               (mapconcat
                                (lambda (i)
-                                 (concat "  - " (car i)
+                                 (concat "  - "
+                                         (if include-date (cadr i) "")
+                                         " "
+                                         (replace-regexp-in-string "\\\"" "\"" (car i))
                                          (if (string= "" (car (last i)))
                                              ""
                                            (format " (%s)" (car (last i))))

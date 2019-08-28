@@ -83,6 +83,7 @@ Here's how we start:
   (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
 (defun my/phone-p ()
   (and (equal (system-name) "localhost") (not (equal user-login-name "sacha"))))
+(when (my/phone-p) (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3"))
 (global-auto-revert-mode)  ; simplifies syncing
 #+end_src
 
@@ -1337,10 +1338,12 @@ stuff.
 Filling in for obsolete functions
 
 #+begin_src emacs-lisp
-  (use-package org
-    :config
-    (unless (functionp 'org-link-make-string)
-      (fset 'org-link-make-string 'org-make-link-string)))
+   (use-package org
+   ; Use this when I want to load from source
+   :config
+   (unless (functionp 'org-link-make-string)
+     (fset 'org-link-make-string 'org-make-link-string))
+)
 #+end_src
 
 *** My files
@@ -2554,7 +2557,7 @@ hang of using these more!
             (org-agenda-view-columns-initially t)
             (org-agenda-sorting-strategy '(scheduled-up time-down todo-state-up)))
            )
-          ("2" "List projects with tasks" my/org-agenda-projects-and-tasks
+          ("8" "List projects with tasks" my/org-agenda-projects-and-tasks
            "+PROJECT"
            ((org-agenda-max-entries 3)))))
 
@@ -4542,7 +4545,7 @@ One more little thing automated...
      list
      "\n"))
 
-  (defun my/list-new-packages ()
+  (defun my/list-new-packages (&optional date)
     (interactive)
     (let ((packages
            (with-temp-buffer
@@ -4550,7 +4553,10 @@ One more little thing automated...
              (goto-char (point-min))
              (my/describe-packages
               (-difference (mapcar 'car package-archive-contents)
-                           (read (current-buffer)))))))
+                           (mapcar 'car
+                                   (seq-filter (lambda (o)
+                                                 (or (null date) (string< (cdr o) date)))
+                                               (read (current-buffer)))))))))
       (if (called-interactively-p 'any)
           (insert packages)
         packages)))
@@ -4563,11 +4569,19 @@ One more little thing automated...
         (find-file "~/.emacs-news/package-list.el")
         (goto-char (point-min))
         (git-auto-commit-mode 1)
-        (let ((old-list (read (current-buffer))))
+        (let* ((old-list (read (current-buffer)))
+               (date (format-time-string "%Y-%m-%d"))
+               (new-packages (seq-difference (mapcar 'car package-archive-contents)
+                                             (mapcar 'car old-list))))
           (erase-buffer)
-          (prin1 (-union old-list (mapcar 'car package-archive-contents)) (current-buffer))
-          (save-buffer)
-          )
+          (insert "("
+                  (mapconcat 'prin1-to-string
+                             (append (mapcar (lambda (o) (cons o date))
+                                             new-packages)
+                                     old-list)
+                             "\n")
+           ")")
+          (save-buffer))
         nil)))
 #+end_src
 
@@ -4857,11 +4871,13 @@ above!
           (package-refresh-contents))
         (concat
               "** " (substring (org-read-date nil nil "++1" nil (org-read-date nil t "-sun 0:00")) 0 10) " Emacs news\n\n"
-              "- Emacs development:\n" 
-        (my/insert-emacs-news-from-git date) "
-  - Other:
-    "
-                                              ;(my/org-list-from-rss "http://planet.emacsen.org/atom.xml" date) "\n"
+              (if (member 'git parts)
+                  (concat
+                   "- Emacs development:\n"
+                   (my/insert-emacs-news-from-git date)
+                   "\n"
+                   )) 
+        "- Other:\n"
         (if (member 'rss parts)
             (mapconcat #'identity
                        (delq nil
@@ -4874,7 +4890,7 @@ above!
         "\n"
         (if (member 'reddit parts) (my/reddit-list-upvoted (substring date 0 10)) "")
         "- New packages:\n"
-        (my/list-new-packages) 
+        (my/list-new-packages date) 
         "\n\nLinks from "
         (mapconcat (lambda (x) (org-link-make-string (car x) (cdr x)))
                    '(("http://reddit.com/r/emacs" . "reddit.com/r/emacs")

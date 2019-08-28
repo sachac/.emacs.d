@@ -83,6 +83,7 @@ Here's how we start:
   (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
 (defun my/phone-p ()
   (and (equal (system-name) "localhost") (not (equal user-login-name "sacha"))))
+(when (my/phone-p) (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3"))
 (global-auto-revert-mode)  ; simplifies syncing
 #+end_src
 
@@ -2541,7 +2542,7 @@ hang of using these more!
             (org-agenda-view-columns-initially t)
             (org-agenda-sorting-strategy '(scheduled-up time-down todo-state-up)))
            )
-          ("2" "List projects with tasks" my/org-agenda-projects-and-tasks
+          ("8" "List projects with tasks" my/org-agenda-projects-and-tasks
            "+PROJECT"
            ((org-agenda-max-entries 3)))))
   (bind-key "<apps> a" 'org-agenda)
@@ -4483,7 +4484,7 @@ One more little thing automated...
             (to-time (if to-date (org-read-date nil t to-date)))
             (is-rss (> (length (xml-get-children (car feed) 'entry)) 0)))
         (mapconcat (lambda (link)
-                     (format "%s\n" 
+                     (format "%s\n"
                              (org-link-make-string (car link) (cdr link))))
                    (if is-rss
                        (mapcar

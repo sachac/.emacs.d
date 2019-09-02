@@ -3871,8 +3871,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
                               (mapconcat
                                (lambda (i)
                                  (concat "  - "
-                                         (if include-date (cadr i) "")
-                                         " "
+                                         (if include-date (concat (cadr i) " ") "")
                                          (replace-regexp-in-string "\\\"" "\"" (car i))
                                          (if (string= "" (car (last i)))
                                              ""

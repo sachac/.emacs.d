@@ -956,6 +956,38 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       ("m" engine/search-mail "mail")
       ("g" engine/search-google "google")
       ("e" engine/search-emacswiki "emacswiki"))
+    ;; From https://github.com/abo-abo/hydra
+    (defhydra hydra-buffer-menu (:color pink
+                               :hint nil)
+    "
+  ^Mark^             ^Unmark^           ^Actions^          ^Search
+  ^^^^^^^^-----------------------------------------------------------------
+  _m_: mark          _u_: unmark        _x_: execute       _R_: re-isearch
+  _s_: save          _U_: unmark up     _b_: bury          _I_: isearch
+  _d_: delete        ^ ^                _g_: refresh       _O_: multi-occur
+  _D_: delete up     ^ ^                _T_: files only: % -28`Buffer-menu-files-only
+  _~_: modified
+  "
+    ("m" Buffer-menu-mark)
+    ("u" Buffer-menu-unmark)
+    ("U" Buffer-menu-backup-unmark)
+    ("d" Buffer-menu-delete)
+    ("D" Buffer-menu-delete-backwards)
+    ("s" Buffer-menu-save)
+    ("~" Buffer-menu-not-modified)
+    ("x" Buffer-menu-execute)
+    ("b" Buffer-menu-bury)
+    ("g" revert-buffer)
+    ("T" Buffer-menu-toggle-files-only)
+    ("O" Buffer-menu-multi-occur :color blue)
+    ("I" Buffer-menu-isearch-buffers :color blue)
+    ("R" Buffer-menu-isearch-buffers-regexp :color blue)
+    ("c" nil "cancel")
+    ("v" Buffer-menu-select "select" :color blue)
+    ("o" Buffer-menu-other-window "other-window" :color blue)
+    ("q" quit-window "quit" :color blue))
+
+    (define-key Buffer-menu-mode-map "." 'hydra-buffer-menu/body)
     )
 
 
@@ -1301,28 +1333,6 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
         try-complete-lisp-symbol))
 #+END_SRC
 
-*** Define more abbreviations
-
-#+NAME: abbrev
-| Base  | Expansion                             |
-|-------+---------------------------------------|
-| bc    | because                               |
-| wo    | without                               |
-| wi    | with                                  |
-| qm    | sacha@sachachua.com                   |
-| qe    | http://sachachua.com/dotemacs         |
-| qw    | http://sachachua.com/                 |
-| qb    | http://sachachua.com/blog/            |
-| qc    | http://sachachua.com/blog/emacs-chat/ |
-
-#+BEGIN_SRC emacs-lisp :var data=abbrev 
-(mapc (lambda (x) (define-global-abbrev (car x) (cadr x))) (cddr data))
-#+END_SRC
-
-#+BEGIN_SRC emacs-lisp 
-(add-hook 'text-mode-hook 'abbrev-mode)
-(diminish 'abbrev-mode " A")
-#+END_SRC
 ** Org  :org:
 
 I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of
@@ -1633,6 +1643,9 @@ This quickly adds a same-level heading for the succeeding day.
              (file ,my/org-inbox-file)
              "* %^{Note}\n"
              :immediate-finish t)
+            ("r" "Note" entry
+             (file ,my/org-inbox-file)
+             "* %?\n%U - %a")
             ("N" "Note" entry
              (file ,my/org-inbox-file)
              "* %^{Note}\n")
@@ -1737,7 +1750,8 @@ able to clock in on them.
 
     #+begin_src emacs-lisp 
       (setq org-reverse-note-order t)
-      (setq org-refile-use-outline-path nil)
+      (setq org-refile-use-outline-path 'file)
+      (setq org-outline-path-complete-in-steps nil)
       (setq org-refile-allow-creating-parent-nodes 'confirm)
       (setq org-refile-use-cache nil)
       (setq org-refile-targets '((org-agenda-files . (:maxlevel . 3))))
@@ -2896,36 +2910,46 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
  #+begin_src emacs-lisp 
    (defun my/org-prepare-weekly-review (&optional date skip-urls)
      "Prepare weekly review template."
-     (interactive (list (org-read-date-analyze (if current-prefix-arg (org-read-date) "-fri") nil '(0 0 0))))
-     (let ((base-date (apply 'encode-time date))
+     (interactive (list (org-read-date)))
+     (let ((base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
            start end links prev)
        (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6))))
        (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date)))))
        (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6))))
        (outline-next-heading)
-         (insert
-          "*** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
-          (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start end "week" my/journal-category-map my/journal-categories)
-          "\n\n*Blog posts*\n\n"
-          (my/org-list-from-rss "http://sachachua.com/blog/feed" start end)
-          "\n\n*Sketches*\n\n"
-          (my/sketches-export-and-extract start end) "\n"
-          "\n\n*Time*\n\n"
-          (mapconcat (lambda (row) (concat "| " (mapconcat 'identity row " | ") " |\n"))
-                     (my/quantified-compare prev start start end
-                                            '("A-"
-                                              "Business"
-                                              "Discretionary - Play"
-                                              "Unpaid work"
-                                              "Discretionary - Social"
-                                              "Discretionary - Family"
-                                              "Sleep"
-                                              "Discretionary - Productive"
-                                              "Personal")
-                                            "The other week %" "Last week %") "")
-          ;"\n\n*Focus areas and time review*\n\n"
-          ;(my/org-summarize-focus-areas date)
-          "\n")))
+       (insert
+        "** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
+        (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start end "week" my/journal-category-map my/journal-categories)
+        "\n\n*Blog posts*\n\n"
+        (my/org-list-from-rss "http://sachachua.com/blog/feed" start end)
+                                           ;          "\n\n*Sketches*\n\n"
+                                           ;          (my/sketches-export-and-extract start end) "\n"
+        "\n\n*Time*\n\n"
+        (orgtbl-to-orgtbl
+         (my/quantified-compare prev start start end
+                                '("A-"
+                                  "Business"
+                                  "Discretionary - Play"
+                                  "Unpaid work"
+                                  "Discretionary - Social"
+                                  "Discretionary - Family"
+                                  "Sleep"
+                                  "Discretionary - Productive"
+                                  "Personal")
+                                "The other week %" "Last week %")
+         nil)
+        "\n\n")))
+  (defun my/prepare-missing-weekly-reviews ()
+    (let ((today (substring (org-read-date nil nil ".") 0 10))
+          (date (org-entry-get (point) "LAST_REVIEW"))
+          (last-date date))
+      (while (string< date today)
+        (setq date (substring (org-read-date nil nil "++1w" nil (org-time-string-to-time date)) 0 10))
+        (unless (string< today date)
+          (save-excursion
+            (my/org-prepare-weekly-review date))
+          (setq last-date date)
+          (org-entry-put (point) "LAST_REVIEW" last-date)))))
  #+end_src
 ***** Flickr extract
 
@@ -3669,6 +3693,12 @@ This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone
                "\\documentclass\[presentation\]\{beamer\}"
                ("\\section\{%s\}" . "\\section*\{%s\}")
                ("\\subsection\{%s\}" . "\\subsection*\{%s\}")
+               ("\\subsubsection\{%s\}" . "\\subsubsection*\{%s\}")))
+  (add-to-list 'org-latex-classes
+             '("memoir"
+               "\\documentclass\{memoir\}"
+               ("\\section\{%s\}" . "\\section*\{%s\}")
+               ("\\subsection\{%s\}" . "\\subsection*\{%s\}")
                ("\\subsubsection\{%s\}" . "\\subsubsection*\{%s\}"))))
 #+end_src
 *** Fix incompatible changes from Org 8 to Org 9
@@ -4036,15 +4066,24 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
    'org-babel-load-languages
    '((dot . t)
      (ditaa . t)
+     (emacs-lisp . t)
+     (python . t)
      (shell . t)
      (calc . t)
      (sqlite . t)
      (http . t)
      (ledger . t)
      (shell . t)
-     (R . t)))
+     (R . t)
+     (jupyter . t)))
+  (setq org-babel-python-command "python3")
+  (setq python-shell-interpreter "python3")
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))))
 #+end_src
+
+#+RESULTS:
+: t
+
 *** Counting
 
 Good way to remind myself that I have lots of STARTED tasks.
@@ -4509,8 +4548,10 @@ One more little thing automated...
                         (lambda (entry)
                           (cons
                            (xml-get-attribute (car
-                                               (seq-filter (lambda (x) (string= (xml-get-attribute x 'rel) "alternate"))
-                                                           (xml-get-children entry 'link))) 'href)
+                                               (or
+                                                (seq-filter (lambda (x) (string= (xml-get-attribute x 'rel) "alternate"))
+                                                            (xml-get-children entry 'link))
+                                                (xml-get-children entry 'link))) 'href)
                            (elt (car (xml-get-children entry 'title)) 2)))
                         (-filter (lambda (entry)
                                    (let ((entry-date (elt (car (xml-get-children entry 'updated)) 2)))
@@ -4684,227 +4725,236 @@ above!
 **** TODO Prepare Emacs News
 
 #+begin_src emacs-lisp 
-      (defvar my/emacs-news-feeds nil "Feeds to check for Emacs-related news")
-      (setq my/emacs-news-feeds '(
-       ;                                                 "http://tess.oconnor.cx/feed;tag%3Demacs"
-                                                        "http://thewanderingcoder.com/category/emacs/feed/"
-                                                        "http://emacstidbits.blogspot.com/atom.xml"
-                                                        "https://alexschroeder.ch/wiki/feed/full/Emacs"
-                                                        "http://emacspeak.blogspot.com/atom.xml"
-                                                        "http://www.lambdacat.com/tag/emacs/rss/"
-                                                        "http://acidwords.com/emacs.xml"
-                                                        "https://www.topbug.net/blog/category/programming-tools/emacs/feed/"
-                                                        "http://blog.jorgenschaefer.de/feeds/posts/default/-/Emacs"
-                                                        "http://feeds.feedburner.com/pimpmyemacs"
-                                                        "http://bryan-murdock.blogspot.com/atom.xml"
-                                                        "http://technomancy.us/feed/atom"
-                                                        "http://mbork.pl/?action=rss;rcfilteronly=CategoryEmacs;all=0;showedit=0;title=%20Content%20AND%20Presentation"
-                                                        "http://muublog.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "https://tsdh.wordpress.com/tag/emacs/feed/"
-                                                        "http://tsdh.org/rss.xml"
-                                                        "https://emacs.wordpress.com/feed/"
-                                                        "http://emacsblog.org/feed/"
-                                                        "http://www.chmouel.com/blog/category/emacs/feed/"
-                                                        "http://feeds.feedburner.com/emacslife"
-                                                        "http://api.flickr.com/services/feeds/photos_public.gne?tags=emacs&lang=en-us&format=rss_200"
-                                                        "http://feeds.feedburner.com/ted-roden-emacs"
-                                                        "https://hexmode.com/tag/emacs/feed"
-                                                        "http://peadrop.com/blog/category/computers/emacs/feed/"
-                                                        "http://blog.printf.net/feed/"
-                                                        "http://subtech.g.hatena.ne.jp/antipop/rss2"
-                                                        "http://aaronhawley.livejournal.com/data/atom"
-                                                        "http://trey-jackson.blogspot.com/atom.xml"
-                                                        "http://amortizedanalysis.wordpress.com/tag/emacs/feed/"
-                                                        "http://occident.us/category/emacs/feed/"
-                                                        "http://alexott.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "http://mnemonikk.org/feed/"
-                                                        "http://atomized.org/tag/emacs/feed/"
-                                                        "http://www.randomsample.de/dru5/taxonomy/term/2/0/feed"
-                                                        "https://keramida.wordpress.com/category/emacs/feed/"
-                                                        "http://www.carcosa.net/jason/blog/computing/index.rss2"
-                                                        "http://emacs-fu.blogspot.com/feeds/posts/default/-/new"
-                                                        "http://gregnewman.org/journal/feed/category/emacs/"
-                                                        "https://zhangda.wordpress.com/feed/"
-                                                        "http://justinsboringpage.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "https://blog.anupamsg.me/tag/emacs/feed/atom/"
-                                                        "http://tromey.com/blog/?cat=11&feed=rss2"
-                                                        "http://tromey.com/elpa/elpa.rss"
-                                                        "http://www.bennee.com/~alex/blog/tag/emacs/feed"
-                                                        "http://feeds.feedburner.com/GotEmacs"
-                                                        "http://kanis.fr/blog-emacs.xml"
-                                                        "https://jugglingbits.wordpress.com/tag/emacs/feed/"
-                                                        "https://manandbytes.wordpress.com/tag/emacs/feed/"
-                                                        "http://emacsair.me.s3-website.eu-central-1.amazonaws.com/feed.xml"
-                                                        "https://blog.lnx.cx/category/emacs/feed/"
-                                                        "http://scottfrazersblog.blogspot.com/feeds/posts/default"
-                                                        "http://sxemacs-en.blogspot.com/feeds/posts/default"
-                                                        "http://feeds.feedburner.com/tuxicity-emacs"
-                                                        "http://tychoish.com/tag/emacs/feed/index.rss"
-                                                        "http://brain-break.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "https://curiousprogrammer.wordpress.com/tag/emacs/feed/atom/"
-                                                        "http://tapoueh.org/rss/emacs.xml"
-                                                        "http://psung.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "http://splash-of-open-sauce.blogspot.com/feeds/posts/default/-/planetemacsen"
-                                                        "http://floatsolutions.com/blog/category/emacs/feed/"
-                                                        "http://tehom-blog.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "http://www.mostlymaths.net/feeds/posts/default/-/emacs"
-                                                        "http://robert-adesam.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "http://babbagefiles.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "http://gnufool.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "http://pozorvlak.livejournal.com/data/atom?tag=emacs"
-                                                        "https://chopmode.wordpress.com/category/emacs/feed/"
-                                                        "https://ikaruga2.wordpress.com/tag/emacs/feed/"
-                                                        "https://sinewalker.wordpress.com/tag/emacs/feed/"
-                                                        "https://kuniganotas.wordpress.com/category/emacs/feed/"
-                                                        "https://rvfblog.wordpress.com/category/emacs/feed/"
-                                                        "https://crazythinking.wordpress.com/category/emacs/feed/"
-                                                        "https://baongoc124.wordpress.com/category/emacs/feed/"
-                                                        "https://jonathancamp.com/tag/emacs/feed/"
-                                                        "https://au9ustine.wordpress.com/tag/emacs/feed/"
-                                                        "https://doxdrum.wordpress.com/tag/emacs/feed/"
-                                                        "https://panduwana.wordpress.com/category/emacs/feed/"
-                                                        "https://arunsag.wordpress.com/category/emacs/feed/"
-                                                        "https://seeknuance.com/tag/emacs/feed/"
-                                                        "https://techleaves.wordpress.com/tag/emacs/feed/"
-                                                        "http://bloggingmath.wordpress.com/tag/emacs/feed/"
-                                                        "https://wolfgangpfaff.wordpress.com/category/emacs/feed/"
-                                                        "https://mousecradle.wordpress.com/tag/emacs/feed/"
-                                                        "http://kevand.wordpress.com/tag/emacs/feed/"
-                                                        "http://dialectical-computing.de/blog/emacs.xml"
-                                                        "https://netflux.wordpress.com/tag/emacs/feed/"
-                                                        "https://jawher.wordpress.com/category/emacs/feed/"
-                                                        "https://awhan.wordpress.com/category/emacs/feed/"
-                                                        "https://tincman.wordpress.com/tag/emacs/feed/"
-                                                        "https://calltopower.wordpress.com/tag/emacs/feed/"
-                                                        "https://zingming.wordpress.com/tag/emacs/feed/"
-                                                        "https://roylowrance.wordpress.com/category/emacs/feed/"
-                                                        "https://ignaciopp.wordpress.com/tag/emacs/feed/"
-                                                        "https://gaiustech.wordpress.com/category/emacs/feed/"
-                                                        "https://hbfs.wordpress.com/category/emacs/feed/"
-                                                        "http://lanxin0106.wordpress.com/category/emacs/"
-                                                        "https://l0st3d.wordpress.com/category/emacs/feed/"
-                                                        "https://yilmazhuseyin.wordpress.com/category/emacs/feed/"
-                                                        "https://gongyiliao.wordpress.com/category/emacs/feed/"
-                                                        "https://punchcard.wordpress.com/tag/emacs/feed/"
-                                                        "https://vocalfolds.wordpress.com/category/emacs/feed/"
-                                                        "https://suvayu.wordpress.com/tag/emacs/feed/"
-                                                        "https://draptik.wordpress.com/tag/emacs/feed/"
-                                                        "https://axelio.wordpress.com/category/emacs/feed/"
-                                                        "http://nongeekrecipes.wordpress.com/category/emacs-and-friends/feed/"
-                                                        "http://tsengf.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "http://xeno-by.livejournal.com/data/atom?tag=emacs-en"
-                                                        "http://irreal.org/blog/?tag=emacs&feed=rss2"
-                                                        "http://dorophone.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "http://denverdroid.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "http://batsov.com/emacs.xml"
-                                                        "http://emacsmovies.org/atom.xml"
-                                                        "http://echosa.github.io/blog/categories/emacs/atom.xml"
-                                                        "http://feeds.feedburner.com/emacsrookiecom"
-                                                        "http://puntoblogspot.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "http://feeds.feedburner.com/FistOfSenn"
-                                                        "http://whattheemacsd.com/atom.xml"
-                                                        "https://www.wisdomandwonder.com/tag/emacs/feed"
-                                                        "http://jr0cket.co.uk/categories/emacs/atom.xml"
-                                                        "http://www.lonecpluspluscoder.com/category/emacs/feed/"
-                                                        "http://emacsredux.com/atom.xml"
-                                                        "http://davazp.net/feeds/emacs.xml"
-                                                        "http://www.wilfred.me.uk/emacs_rss.xml"
-                                                        "http://www.blogbyben.com/feeds/posts/default/-/emacs"
-                                                        "http://blog.binchen.org/categories/emacs.xml"
-                                                        "https://www.fitzsim.org/blog/?feed=rss2&cat=3"
-                                                        "http://endlessparentheses.com/atom-planet.xml"
-                                                        "http://blog.danielgempesaw.com/tagged/planet-emacsen/rss"
-                                                        "http://www.lunaryorn.com/emacs.atom"
-                                                        "http://wenshanren.org/?cat=10&tag=en&feed=rss2"
-                                                        "https://punchagan.muse-amuse.in/tags/emacs.xml"
-                                                        "https://camdez.com/blog/categories/emacs/atom.xml"
-                                                        "https://mwfogleman.github.io/Emacs.xml"
-                                                        "http://oremacs.com/atom.xml"
-                                                        "http://www.russet.org.uk/blog/category/all/professional/tech/emacs/feed"
-                                                        "http://whatthefuck.computer/rss.xml"
-                                                        "http://pragmaticemacs.com/feed/"
-                                                        "http://matt.hackinghistory.ca/blog/feed/atom/"
-                                                        "http://nullprogram.com/tags/emacs/feed/"
-                                                        "https://www.miskatonic.org/feed/emacs.xml"
-                                                        "http://prodissues.com/category/emacs-geeking/feed"
-                                                        "https://emacsair.me/feed.xml"
-                                                        "http://emacsninja.com/emacs.atom"
-                                                        "http://emacshorrors.com/feed.atom"
-                                                        "http://mp.vv.si/blog/category/emacs/feed/"
-                                                        "https://manuel-uberti.github.io/feed"
-                                                        "https://martinralbrecht.wordpress.com/category/emacs/feed/atom/"
-                                                        "http://emacs.cafe/feed.xml"
-                                                        "https://ekaschalk.github.io/categories/emacs/index.xml"
-                                                        "http://gromnitsky.blogspot.com/feeds/posts/default/-/emacs"
-                                                        "https://erambler.co.uk/tags/emacs.xml"
-                                                        "https://ofosos.org/tag/emacs/rss/"
-                                                        "http://www.spacjer.com/emacs/feed.xml"
-                                                        "https://scripter.co/categories/emacs/atom.xml"
-                                                        "https://www.wisdomandwonder.com/tag/emacs/feed"
-                                                        "https://tcluri.github.io/rss.xml"
-                                                        "https://vxlabs.com/feed/"
-                                                        "http://howardism.org/index.xml"
-                                                        "https://emacsredux.com/atom.xml"
-                                                        "http://feeds.feedburner.com/KrisJenkinsBlog"
-                                                        "http://cachestocaches.com/tag/emacs/feed"
-                                                        "https://fuco1.github.io/rss.xml"
-                                                        "http://whyarethingsthewaytheyare.com/index.xml"
-                                                        "https://blog.aaronbieber.com/feed.xml"
-                                                        "http://anbasile.github.io/feed.xml"
-                                                        "http://kitchingroup.cheme.cmu.edu/blog/feed"
-                                                        "https://manuel-uberti.github.io/feed"
-                                                        "https://cestlaz.github.io/categories/emacs/rss.xml"
-                                                        "http://www.wilfred.me.uk/rss.xml"
-                                                        "http://fasciism.com/feed.xml"
-                                                        "https://jingsi.space/index.xml"
-                                                        "https://emacsnotes.wordpress.com/feed" 
-                                                        "https://www.with-emacs.com/rss.xml" 
-                                                        "https://shapr.github.io/feed.rss" 
-                                                        "http://jonathanabennett.github.io/rss.xml"
-  "https://saurabhkukade.github.io/feed.xml"))
-      (defun my/prepare-emacs-news (date parts)
-        (interactive (list (org-read-date nil nil "-mon 0:00") '(refresh-packages reddit rss)))
-        (setq date (substring date 0 10))
-        (when (member 'refresh-packages parts)
-          (my/save-new-packages)
-          (package-refresh-contents))
-        (concat
-              "** " (substring (org-read-date nil nil "++1" nil (org-read-date nil t "-sun 0:00")) 0 10) " Emacs news\n\n"
-              (if (member 'git parts)
-                  (concat
-                   "- Emacs development:\n"
-                   (my/insert-emacs-news-from-git date)
-                   "\n"
-                   )) 
-        "- Other:\n"
-        (if (member 'rss parts)
-            (mapconcat #'identity
-                       (delq nil
-                             (mapcar (lambda (x)
-                                       (condition-case nil
-                                           (my/org-list-from-rss x (substring date 0 10))
-                                         (error nil)))
-                                     my/emacs-news-feeds)) "")
-          "")
-        "\n"
-        (if (member 'reddit parts) (my/reddit-list-upvoted (substring date 0 10)) "")
-        "- New packages:\n"
-        (my/list-new-packages date) 
-        "\n\nLinks from "
-        (mapconcat (lambda (x) (org-link-make-string (car x) (cdr x)))
-                   '(("http://reddit.com/r/emacs" . "reddit.com/r/emacs")
-                     ("http://reddit.com/r/orgmode" . "r/orgmode")
-                     ("http://reddit.com/r/spacemacs" . "r/spacemacs")
-                     ("http://reddit.com/r/planetemacs" . "r/planetemacs")
-                     ("https://hn.algolia.com/?query=emacs&sort=byDate&prefix&page=0&dateRange=all&type=story" . "Hacker News")
-                     ("https://planet.emacslife.com" . "planet.emacslife.com")
-                     ("https://www.youtube.com/results?search_query=emacs&search_sort=video_date_uploaded" . "YouTube")
-                     ("http://git.savannah.gnu.org/cgit/emacs.git/log/etc/NEWS" . "the Emacs NEWS file"))
-                   ", ")
-        " and "
-        (org-link-make-string (concat "http://lists.gnu.org/archive/html/emacs-devel/" (format-time-string "%Y-%m"))
-                              "emacs-devel")
-        "."))
+  (defvar my/emacs-news-feeds nil "Feeds to check for Emacs-related news")
+
+
+  (setq my/emacs-news-feeds
+        '(
+                                          ;                                                 "http://tess.oconnor.cx/feed;tag%3Demacs"
+          "http://thewanderingcoder.com/category/emacs/feed/"
+          "http://emacstidbits.blogspot.com/atom.xml"
+          "https://alexschroeder.ch/wiki/feed/full/Emacs"
+          "http://emacspeak.blogspot.com/atom.xml"
+          "http://www.lambdacat.com/tag/emacs/rss/"
+          "http://acidwords.com/emacs.xml"
+          "https://www.topbug.net/blog/category/programming-tools/emacs/feed/"
+          "http://blog.jorgenschaefer.de/feeds/posts/default/-/Emacs"
+          "http://feeds.feedburner.com/pimpmyemacs"
+          "http://bryan-murdock.blogspot.com/atom.xml"
+          "http://technomancy.us/feed/atom"
+          "http://mbork.pl/?action=rss;rcfilteronly=CategoryEmacs;all=0;showedit=0;title=%20Content%20AND%20Presentation"
+          "http://muublog.blogspot.com/feeds/posts/default/-/emacs"
+          "https://tsdh.wordpress.com/tag/emacs/feed/"
+          "http://tsdh.org/rss.xml"
+          "https://emacs.wordpress.com/feed/"
+          "http://emacsblog.org/feed/"
+          "http://www.chmouel.com/blog/category/emacs/feed/"
+          "http://feeds.feedburner.com/emacslife"
+          "http://api.flickr.com/services/feeds/photos_public.gne?tags=emacs&lang=en-us&format=rss_200"
+          "http://feeds.feedburner.com/ted-roden-emacs"
+          "https://hexmode.com/tag/emacs/feed"
+          "http://peadrop.com/blog/category/computers/emacs/feed/"
+          "http://blog.printf.net/feed/"
+          "http://subtech.g.hatena.ne.jp/antipop/rss2"
+          "http://aaronhawley.livejournal.com/data/atom"
+          "http://trey-jackson.blogspot.com/atom.xml"
+          "http://amortizedanalysis.wordpress.com/tag/emacs/feed/"
+          "http://occident.us/category/emacs/feed/"
+          "http://alexott.blogspot.com/feeds/posts/default/-/emacs"
+          "http://mnemonikk.org/feed/"
+          "http://atomized.org/tag/emacs/feed/"
+          "http://www.randomsample.de/dru5/taxonomy/term/2/0/feed"
+          "https://keramida.wordpress.com/category/emacs/feed/"
+          "http://www.carcosa.net/jason/blog/computing/index.rss2"
+          "http://emacs-fu.blogspot.com/feeds/posts/default/-/new"
+          "http://gregnewman.org/journal/feed/category/emacs/"
+          "https://zhangda.wordpress.com/feed/"
+          "http://justinsboringpage.blogspot.com/feeds/posts/default/-/emacs"
+          "https://blog.anupamsg.me/tag/emacs/feed/atom/"
+          "http://tromey.com/blog/?cat=11&feed=rss2"
+          "http://tromey.com/elpa/elpa.rss"
+          "http://www.bennee.com/~alex/blog/tag/emacs/feed"
+          "http://feeds.feedburner.com/GotEmacs"
+          "http://kanis.fr/blog-emacs.xml"
+          "https://jugglingbits.wordpress.com/tag/emacs/feed/"
+          "https://manandbytes.wordpress.com/tag/emacs/feed/"
+          "http://emacsair.me.s3-website.eu-central-1.amazonaws.com/feed.xml"
+          "https://blog.lnx.cx/category/emacs/feed/"
+          "http://scottfrazersblog.blogspot.com/feeds/posts/default"
+          "http://sxemacs-en.blogspot.com/feeds/posts/default"
+          "http://feeds.feedburner.com/tuxicity-emacs"
+          "http://tychoish.com/tag/emacs/feed/index.rss"
+          "http://brain-break.blogspot.com/feeds/posts/default/-/emacs"
+          "https://curiousprogrammer.wordpress.com/tag/emacs/feed/atom/"
+          "http://tapoueh.org/rss/emacs.xml"
+          "http://psung.blogspot.com/feeds/posts/default/-/emacs"
+          "http://splash-of-open-sauce.blogspot.com/feeds/posts/default/-/planetemacsen"
+          "http://floatsolutions.com/blog/category/emacs/feed/"
+          "http://tehom-blog.blogspot.com/feeds/posts/default/-/emacs"
+          "http://www.mostlymaths.net/feeds/posts/default/-/emacs"
+          "http://robert-adesam.blogspot.com/feeds/posts/default/-/emacs"
+          "http://babbagefiles.blogspot.com/feeds/posts/default/-/emacs"
+          "http://gnufool.blogspot.com/feeds/posts/default/-/emacs"
+          "http://pozorvlak.livejournal.com/data/atom?tag=emacs"
+          "https://chopmode.wordpress.com/category/emacs/feed/"
+          "https://ikaruga2.wordpress.com/tag/emacs/feed/"
+          "https://sinewalker.wordpress.com/tag/emacs/feed/"
+          "https://kuniganotas.wordpress.com/category/emacs/feed/"
+          "https://rvfblog.wordpress.com/category/emacs/feed/"
+          "https://crazythinking.wordpress.com/category/emacs/feed/"
+          "https://baongoc124.wordpress.com/category/emacs/feed/"
+          "https://jonathancamp.com/tag/emacs/feed/"
+          "https://au9ustine.wordpress.com/tag/emacs/feed/"
+          "https://doxdrum.wordpress.com/tag/emacs/feed/"
+          "https://panduwana.wordpress.com/category/emacs/feed/"
+          "https://arunsag.wordpress.com/category/emacs/feed/"
+          "https://seeknuance.com/tag/emacs/feed/"
+          "https://techleaves.wordpress.com/tag/emacs/feed/"
+          "http://bloggingmath.wordpress.com/tag/emacs/feed/"
+          "https://wolfgangpfaff.wordpress.com/category/emacs/feed/"
+          "https://mousecradle.wordpress.com/tag/emacs/feed/"
+          "http://kevand.wordpress.com/tag/emacs/feed/"
+          "http://dialectical-computing.de/blog/emacs.xml"
+          "https://netflux.wordpress.com/tag/emacs/feed/"
+          "https://jawher.wordpress.com/category/emacs/feed/"
+          "https://awhan.wordpress.com/category/emacs/feed/"
+          "https://tincman.wordpress.com/tag/emacs/feed/"
+          "https://calltopower.wordpress.com/tag/emacs/feed/"
+          "https://zingming.wordpress.com/tag/emacs/feed/"
+          "https://roylowrance.wordpress.com/category/emacs/feed/"
+          "https://ignaciopp.wordpress.com/tag/emacs/feed/"
+          "https://gaiustech.wordpress.com/category/emacs/feed/"
+          "https://hbfs.wordpress.com/category/emacs/feed/"
+          "http://lanxin0106.wordpress.com/category/emacs/"
+          "https://l0st3d.wordpress.com/category/emacs/feed/"
+          "https://yilmazhuseyin.wordpress.com/category/emacs/feed/"
+          "https://gongyiliao.wordpress.com/category/emacs/feed/"
+          "https://punchcard.wordpress.com/tag/emacs/feed/"
+          "https://vocalfolds.wordpress.com/category/emacs/feed/"
+          "https://suvayu.wordpress.com/tag/emacs/feed/"
+          "https://draptik.wordpress.com/tag/emacs/feed/"
+          "https://axelio.wordpress.com/category/emacs/feed/"
+          "http://nongeekrecipes.wordpress.com/category/emacs-and-friends/feed/"
+          "http://tsengf.blogspot.com/feeds/posts/default/-/emacs"
+          "http://xeno-by.livejournal.com/data/atom?tag=emacs-en"
+          "http://irreal.org/blog/?tag=emacs&feed=rss2"
+          "http://dorophone.blogspot.com/feeds/posts/default/-/emacs"
+          "http://denverdroid.blogspot.com/feeds/posts/default/-/emacs"
+          "http://batsov.com/emacs.xml"
+          "http://emacsmovies.org/atom.xml"
+          "http://echosa.github.io/blog/categories/emacs/atom.xml"
+          "http://feeds.feedburner.com/emacsrookiecom"
+          "http://puntoblogspot.blogspot.com/feeds/posts/default/-/emacs"
+          "http://feeds.feedburner.com/FistOfSenn"
+          "http://whattheemacsd.com/atom.xml"
+          "https://www.wisdomandwonder.com/tag/emacs/feed"
+          "http://jr0cket.co.uk/categories/emacs/atom.xml"
+          "http://www.lonecpluspluscoder.com/category/emacs/feed/"
+          "http://emacsredux.com/atom.xml"
+          "http://davazp.net/feeds/emacs.xml"
+          "http://www.wilfred.me.uk/emacs_rss.xml"
+          "http://www.blogbyben.com/feeds/posts/default/-/emacs"
+          "http://blog.binchen.org/categories/emacs.xml"
+          "https://www.fitzsim.org/blog/?feed=rss2&cat=3"
+          "http://endlessparentheses.com/atom-planet.xml"
+          "http://blog.danielgempesaw.com/tagged/planet-emacsen/rss"
+          "http://www.lunaryorn.com/emacs.atom"
+          "http://wenshanren.org/?cat=10&tag=en&feed=rss2"
+          "https://punchagan.muse-amuse.in/tags/emacs.xml"
+          "https://camdez.com/blog/categories/emacs/atom.xml"
+          "https://mwfogleman.github.io/Emacs.xml"
+          "http://oremacs.com/atom.xml"
+          "http://www.russet.org.uk/blog/category/all/professional/tech/emacs/feed"
+          "http://whatthefuck.computer/rss.xml"
+          "http://pragmaticemacs.com/feed/"
+          "http://matt.hackinghistory.ca/blog/feed/atom/"
+          "http://nullprogram.com/tags/emacs/feed/"
+          "https://www.miskatonic.org/feed/emacs.xml"
+          "http://prodissues.com/category/emacs-geeking/feed"
+          "https://emacsair.me/feed.xml"
+          "http://emacsninja.com/emacs.atom"
+          "http://emacshorrors.com/feed.atom"
+          "http://mp.vv.si/blog/category/emacs/feed/"
+          "https://manuel-uberti.github.io/feed"
+          "https://martinralbrecht.wordpress.com/category/emacs/feed/atom/"
+          "http://emacs.cafe/feed.xml"
+          "https://ekaschalk.github.io/categories/emacs/index.xml"
+          "http://gromnitsky.blogspot.com/feeds/posts/default/-/emacs"
+          "https://erambler.co.uk/tags/emacs.xml"
+          "https://ofosos.org/tag/emacs/rss/"
+          "http://www.spacjer.com/emacs/feed.xml"
+          "https://scripter.co/categories/emacs/atom.xml"
+          "https://www.wisdomandwonder.com/tag/emacs/feed"
+          "https://tcluri.github.io/rss.xml"
+          "https://vxlabs.com/feed/"
+          "http://howardism.org/index.xml"
+          "https://emacsredux.com/atom.xml"
+          "http://feeds.feedburner.com/KrisJenkinsBlog"
+          "http://cachestocaches.com/tag/emacs/feed"
+          "https://fuco1.github.io/rss.xml"
+          "http://whyarethingsthewaytheyare.com/index.xml"
+          "https://blog.aaronbieber.com/feed.xml"
+          "http://anbasile.github.io/feed.xml"
+          "http://kitchingroup.cheme.cmu.edu/blog/feed"
+          "https://manuel-uberti.github.io/feed"
+          "https://cestlaz.github.io/categories/emacs/rss.xml"
+          "http://www.wilfred.me.uk/rss.xml"
+          "http://fasciism.com/feed.xml"
+          "https://jingsi.space/index.xml"
+          "https://emacsnotes.wordpress.com/feed" 
+          "https://www.with-emacs.com/rss.xml" 
+          "https://shapr.github.io/feed.rss" 
+          "http://jonathanabennett.github.io/rss.xml"
+          "https://saurabhkukade.github.io/feed.xml"
+          "http://xenodium.com/emacs/rss.xml"))
+
+  (defun my/get-rss-items-from-individual-feeds ()
+    (mapconcat #'identity
+               (delq nil
+                     (mapcar (lambda (x)
+                               (condition-case nil
+                                   (my/org-list-from-rss x (substring date 0 10))
+                                 (error nil)))
+                             my/emacs-news-feeds)) ""))
+
+  (defun my/prepare-emacs-news (date parts)
+    (interactive (list (org-read-date nil nil "-mon 0:00") '(refresh-packages reddit rss)))
+    (setq date (substring date 0 10))
+    (when (member 'refresh-packages parts)
+      (my/save-new-packages)
+      (package-refresh-contents))
+    (concat
+     "** " (substring (org-read-date nil nil "++1" nil (org-read-date nil t "-sun 0:00")) 0 10) " Emacs news\n\n"
+     (if (member 'git parts)
+         (concat
+          "- Emacs development:\n"
+          (my/insert-emacs-news-from-git date)
+          "\n"
+          )) 
+     "- Other:\n"
+     (if (member 'rss parts)
+         ;; I used to use (my/get-rss-items-from-individual-feeds)
+         (my/org-list-from-rss "https://planet.emacslife.com/atom.xml" (substring date 0 10))
+       "")
+     "\n"
+     (if (member 'reddit parts) (my/reddit-list-upvoted (substring date 0 10)) "")
+     "- New packages:\n"
+     (my/list-new-packages date) 
+     "\n\nLinks from "
+     (mapconcat (lambda (x) (org-link-make-string (car x) (cdr x)))
+                '(("http://reddit.com/r/emacs" . "reddit.com/r/emacs")
+                  ("http://reddit.com/r/orgmode" . "r/orgmode")
+                  ("http://reddit.com/r/spacemacs" . "r/spacemacs")
+                  ("http://reddit.com/r/planetemacs" . "r/planetemacs")
+                  ("https://hn.algolia.com/?query=emacs&sort=byDate&prefix&page=0&dateRange=all&type=story" . "Hacker News")
+                  ("https://planet.emacslife.com" . "planet.emacslife.com")
+                  ("https://www.youtube.com/results?search_query=emacs&search_sort=video_date_uploaded" . "YouTube")
+                  ("http://git.savannah.gnu.org/cgit/emacs.git/log/etc/NEWS" . "the Emacs NEWS file"))
+                ", ")
+     " and "
+     (org-link-make-string (concat "http://lists.gnu.org/archive/html/emacs-devel/" (format-time-string "%Y-%m"))
+                           "emacs-devel")
+     "."))
 #+end_src
 
 **** Collect Emacs News
@@ -6913,6 +6963,16 @@ In termux, you also need to =pkg install diffutils=.
       (message "You clicked somewhere weird.")))
 #+end_src
 * Inactive/infrequent things
+** Paint
+
+#+begin_src emacs-lisp
+  (use-package paint
+    :load-path "~/cloud/elisp"
+    :init 
+    (progn
+     (setq paint-foreground-color "white" paint-background-color "black")
+     (defun my/paint () (interactive) (delete-other-windows) (paint 1600 900 nil))))
+#+end_src
 
 ** Yaoddmuse
 
@@ -8860,28 +8920,54 @@ Convenience functions to make my life easier when sketchnoting books.
 
 #+end_src
 
-* Games
-** Typing of Emacs
-    #+begin_src emacs-lisp :eval no :tangle no
-      (use-package typing :disabled t
-        :init
-        (autoload 'typing-of-emacs "typing" nil t)
-        :config
-        (progn
-          (setq toe-starting-length 6)
-          (setq toe-starting-time-per-word 2)
-          (setq toe-max-length 20)))
+** Tools for organizing
+
+#+begin_src emacs-lisp
+(defun my/rename-bank-statements ()
+  (interactive)
+  (let ((months '("Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct" "Nov" "Dec")))
+    (cl-loop for i from 1 to 12 do
+             (message "%d" i)
+             (goto-char (point-min))
+             (while (re-search-forward (elt months (1- i)) nil t)
+               (ignore-errors
+                   (replace-match (format "%02d" i))
+                   )))))
+
+(defun my/rename-scanned-receipts ()
+  "Display and rename the scanned or saved files."
+  (interactive)
+  (delete-other-windows)
+  (mapc (lambda (o)
+          (find-file o)
+          (let ((new-name (concat (read-string "New filename: ") ".jpg")))
+            (kill-buffer)
+            (rename-file o new-name)))
+        (directory-files default-directory t "^[-_0-9]+\\.jpg")))
 #+end_src
 
-* Speech synthesis (experimental)
+** Games
+*** Typing of Emacs
+     #+begin_src emacs-lisp :eval no :tangle no
+       (use-package typing :disabled t
+         :init
+         (autoload 'typing-of-emacs "typing" nil t)
+         :config
+         (progn
+           (setq toe-starting-length 6)
+           (setq toe-starting-time-per-word 2)
+           (setq toe-max-length 20)))
+ #+end_src
 
-#+begin_src emacs-lisp 
-(defvar my/espeak-command "c:/program files (x86)/espeak/command_line/espeak.exe")
-(defun my/say (string &optional speed)
-  (interactive "MString: ")
-  (setq speed (or speed 175))
-  (call-process my/espeak-command nil nil nil string "-s" speed))
-#+end_src
+** Speech synthesis (experimental)
+
+ #+begin_src emacs-lisp 
+ (defvar my/espeak-command "c:/program files (x86)/espeak/command_line/espeak.exe")
+ (defun my/say (string &optional speed)
+   (interactive "MString: ")
+   (setq speed (or speed 175))
+   (call-process my/espeak-command nil nil nil string "-s" speed))
+ #+end_src
 
 * Exwm
 

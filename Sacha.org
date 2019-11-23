@@ -7396,19 +7396,24 @@ to see which items I'd planned ahead, and which ones were new tasks.
            (keys (or categories (-union (mapcar 'car time1) (mapcar 'car time2)))))
       ;; Build a list comparing the two
       (append
-      `(("Category" ,label1 ,label2 "Diff %" "h/wk" "Diff h/wk"))
-      (mapcar (lambda (key)
-                (list
-                 key
-                 (format "%.1f" (/ (or (assoc-default key time1) 0) total1))
-                 (format "%.1f" (/ (or (assoc-default key time2) 0) total2))
-                 (format "%.1f" (- (/ (or (assoc-default key time2) 0) total2)
-                                   (/ (or (assoc-default key time1) 0) total1)))
-                 (format "%.1f" (* (/ (or (assoc-default key time2) 0) total1) 1.68))
-                 (format "%.1f"
-                         (* (- (/ (or (assoc-default key time2) 0) total2)
-                               (/ (or (assoc-default key time1) 0) total1)) 1.68))
-                 )) keys))))
+       `(("Category" ,label1 ,label2 "Diff %" "h/wk" "Diff h/wk") hline)
+       (sort 
+        (mapcar (lambda (key)
+                  (list
+                   key
+                   (format "%.1f" (/ (or (assoc-default key time1) 0) total1))
+                   (format "%.1f" (/ (or (assoc-default key time2) 0) total2))
+                   (format "%.1f" (- (/ (or (assoc-default key time2) 0) total2)
+                                     (/ (or (assoc-default key time1) 0) total1)))
+                   (format "%.1f" (* (/ (or (assoc-default key time2) 0) total1) 1.68))
+                   (format "%.1f"
+                           (* (- (/ (or (assoc-default key time2) 0) total2)
+                                 (/ (or (assoc-default key time1) 0) total1)) 1.68))
+                   )) keys)
+        (lambda (a b)
+          (<
+           (string-to-number (car (last b)))
+           (string-to-number (car (last a)))))))))
 #+end_src
 ** Animation for Emacs chats
 

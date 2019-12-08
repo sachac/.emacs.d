@@ -5185,7 +5185,8 @@ easily define the menu in a variable. It seems to work fine so far.
 
 #+begin_src emacs-lisp
 (use-package org
-:hook (focus-out-hook . org-save-all-org-buffers))
+  :config
+  (add-function :after after-focus-change-function 'org-save-all-org-buffers))
 #+end_src
 ** Coding
 *** Web development

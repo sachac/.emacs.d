@@ -807,7 +807,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
   (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
 
 (my/defshortcut ?e "~/.emacs.d/Sacha.org")
-(my/defshortcut ?E "~/code/emacs-news/index.org")
+(my/defshortcut ?E "~/cloud/emacs-news/index.org")
 (my/defshortcut ?i "~/cloud/orgzly/Inbox.org")
 (my/defshortcut ?o "~/cloud/orgzly/organizer.org")
 (my/defshortcut ?s "~/personal/sewing.org")
@@ -819,6 +819,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (my/defshortcut ?N "~/sync/notes/QuickNote.md")
 (my/defshortcut ?w "~/Dropbox/public/sharing/index.org")
 (my/defshortcut ?W "~/Dropbox/public/sharing/blog.org")
+(my/defshortcut ?r "~/personal/reviews.org")
 (my/defshortcut ?j "~/personal/journal.org")
 (my/defshortcut ?J "~/cloud/a/Journal.csv")
 (my/defshortcut ?I "~/Dropbox/Inbox")
@@ -988,8 +989,14 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
     ("q" quit-window "quit" :color blue))
 
     (define-key Buffer-menu-mode-map "." 'hydra-buffer-menu/body)
-    )
 
+    (defhydra my/phone (:exit t)
+      "Shortcuts for my phone"
+      ("j" jump-to-register "Jump")
+      ("d" my/emacs-news-check-duplicates "Dupe")
+      ("c" my/org-categorize-emacs-news/body "Categorize")
+      ("s" my/org-categorize-emacs-news/body "Share"))
+    (global-set-key (kbd "<f5>") 'my/phone/body))
 
   (defun my/org-insert-link ()
     (interactive)
@@ -1722,7 +1729,7 @@ This quickly adds a same-level heading for the succeeding day.
     :EMAIL: %(my/org-contacts-template-email)
     :END:")))
     (bind-key "C-M-r" 'org-capture)
-    (bind-key (kbd "<f5>") 'org-capture)
+    ;(bind-key (kbd "<f5>") 'org-capture)
 #+end_src
 ***** Allow refiling in the middle(ish) of a capture
 
@@ -2908,48 +2915,47 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
  Now we put it all together...
 
  #+begin_src emacs-lisp 
-   (defun my/org-prepare-weekly-review (&optional date skip-urls)
-     "Prepare weekly review template."
-     (interactive (list (org-read-date)))
-     (let ((base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
-           start end links prev)
-       (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6))))
-       (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date)))))
-       (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6))))
-       (outline-next-heading)
-       (insert
-        "** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
-        (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start end nil my/journal-category-map my/journal-categories)
-        "\n\n*Blog posts*\n\n"
-        (my/org-list-from-rss "https://sachachua.com/blog/feed" start end)
-                                           ;          "\n\n*Sketches*\n\n"
-                                           ;          (my/sketches-export-and-extract start end) "\n"
-        "\n\n*Time*\n\n"
-        (orgtbl-to-orgtbl
-         (my/quantified-compare prev start start end
-                                '("A-"
-                                  "Business"
-                                  "Discretionary - Play"
-                                  "Unpaid work"
-                                  "Discretionary - Social"
-                                  "Discretionary - Family"
-                                  "Sleep"
-                                  "Discretionary - Productive"
-                                  "Personal")
-                                "The other week %" "Last week %")
-         nil)
-        "\n\n")))
-  (defun my/prepare-missing-weekly-reviews ()
-    (let ((today (substring (org-read-date nil nil ".") 0 10))
-          (date (org-entry-get (point) "LAST_REVIEW"))
-          (last-date date))
-      (while (string< date today)
-        (setq date (substring (org-read-date nil nil "++1w" nil (org-time-string-to-time date)) 0 10))
-        (unless (string< today date)
-          (save-excursion
-            (my/org-prepare-weekly-review date))
-          (setq last-date date)
-          (org-entry-put (point) "LAST_REVIEW" last-date)))))
+    (defun my/org-prepare-weekly-review (&optional date skip-urls)
+      "Prepare weekly review template."
+      (interactive (list (org-read-date)))
+      (let ((base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
+            start end links prev)
+        (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6))))
+        (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date)))))
+        (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6))))
+        (outline-next-heading)
+        (insert
+         "** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
+         (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start end "week" my/journal-category-map my/journal-categories)
+         "\n\n*Blog posts*\n\n"
+         (my/org-list-from-rss "http://sachachua.com/blog/feed" start end)
+                                            ;          "\n\n*Sketches*\n\n"
+                                            ;          (my/sketches-export-and-extract start end) "\n"
+         "\n\n*Time*\n\n"
+         (orgtbl-to-orgtbl
+          (my/quantified-compare prev start start end
+                                 '("A-"
+                                   "Business"
+                                   "Discretionary - Play"
+                                   "Unpaid work"
+                                   "Discretionary - Social"
+                                   "Discretionary - Family"
+                                   "Sleep"
+                                   "Discretionary - Productive"
+                                   "Personal")
+                                 "The other week %" "Last week %")
+          nil)
+         "\n\n")))
+   (defun my/prepare-missing-weekly-reviews ()
+     (interactive)
+     (let ((today (substring (org-read-date nil nil ".") 0 10))
+            (date (org-entry-get (point) "LAST_REVIEW")))
+       (while (string< date today)
+         (setq date (substring (org-read-date nil nil "++1w" nil (org-time-string-to-time date)) 0 10))
+         (unless (string< today date)
+           (save-excursion
+             (my/org-prepare-weekly-review date))
+           (org-entry-put (point) "LAST_REVIEW" date)))))
  #+end_src
 ***** Flickr extract
 
@@ -3828,10 +3834,14 @@ So that I can easily add links at point. Formatted as an Org list for now.
       "List of categories to display. 
   Unknown categories will be added to the end.")
 
+  (defun my/journal-date (o) (elt o 3))
+  (defun my/journal-note (o) (car o))
+  (defun my/journal-week-highlight (o) (elt o 4))
+  (defun my/journal-category (o) (elt o 1))
   (defun my/org-group-journal-entries (filtered &optional category-map categories)
     (setq category-map (or category-map (my/journal-category-map)))
     (setq categories (or categories (my/journal-categories)))
-    (let* ((grouped (-group-by (lambda (o) (elt o 3)) filtered))        
+    (let* ((grouped (-group-by 'my/journal-category filtered))    
            (mapped-list
             (mapcar 
              (lambda (o)
@@ -3856,27 +3866,27 @@ So that I can easily add links at point. Formatted as an Org list for now.
   (ert-deftest my/org-date-to-string ()
     (should (string= (my/org-date-to-string "++1" "2018-08-01") "2018-08-02")))
 
-
   (defun my/org-filter-journal-csv (filename &optional from to highlight base-date)
     "Return a list of matching entries."
     (setq from (and from (my/org-date-to-string from base-date))
           to (and to (my/org-date-to-string to base-date)))
     (let* ((data (pcsv-parse-file filename))
            (filtered
-              (-filter
-               (lambda (o)
-                 (and (or (null from) (string< from (cadr o))) 
-                      (or (null to) (string< (cadr o) to))
-                      (not (string-match "^!" (car o)))
+            (-filter
+             (lambda (o)
+               (let ((date (my/journal-date o)))
+                 (and (or (null from) (string< from date)) 
+                      (or (null to) (string< date to))
+                      (not (string-match "^!" (my/journal-note o)))
                       (string-equal
                        "true"
                        (cond
                         ((null highlight) "true")
-                        ((string-equal highlight "month") (elt o 4))
-                        ((string-equal highlight "week") (elt o 2))
-                        (t "true")))))
-               data)))
+                        ((string-equal highlight "week") (my/journal-week-highlight o))
+                        (t "true"))))))
+             data)))
       filtered))
+
 
   (defun my/org-summarize-journal-csv (filename from to highlight &optional category-map categories include-date)
       (interactive
@@ -3901,12 +3911,13 @@ So that I can easily add links at point. Formatted as an Org list for now.
                               (mapconcat
                                (lambda (i)
                                  (concat "  - "
-                                         (if include-date (concat (cadr i) " ") "")
-                                         (replace-regexp-in-string "\\\"" "\"" (car i))
-                                         (if (string= "" (car (last i)))
-                                             ""
-                                           (format " (%s)" (car (last i))))
-                                         "\n")) (reverse (cdr o)) "")))
+                                         (if include-date (concat (my/journal-date i) " ") "")
+                                         (replace-regexp-in-string "\\\"" "\"" (my/journal-note i))
+                                         ;; (if (string= "" (my/journal-category i))
+                                         ;;     ""
+                                         ;;   (format " (%s)" (my/journal-category i)))
+                                         "\n"))
+                               (reverse (cdr o)) "")))
                     sorted-list "")))    
         (if (called-interactively-p 'any) (insert list) list)))
 
@@ -5174,7 +5185,8 @@ easily define the menu in a variable. It seems to work fine so far.
 
 #+begin_src emacs-lisp
 (use-package org
-:hook (focus-out-hook . org-save-all-org-buffers))
+  :config
+  (add-function :after after-focus-change-function 'org-save-all-org-buffers))
 #+end_src
 ** Coding
 *** Web development
@@ -7396,19 +7408,24 @@ to see which items I'd planned ahead, and which ones were new tasks.
            (keys (or categories (-union (mapcar 'car time1) (mapcar 'car time2)))))
       ;; Build a list comparing the two
       (append
-      `(("Category" ,label1 ,label2 "Diff %" "h/wk" "Diff h/wk"))
-      (mapcar (lambda (key)
-                (list
-                 key
-                 (format "%.1f" (/ (or (assoc-default key time1) 0) total1))
-                 (format "%.1f" (/ (or (assoc-default key time2) 0) total2))
-                 (format "%.1f" (- (/ (or (assoc-default key time2) 0) total2)
-                                   (/ (or (assoc-default key time1) 0) total1)))
-                 (format "%.1f" (* (/ (or (assoc-default key time2) 0) total1) 1.68))
-                 (format "%.1f"
-                         (* (- (/ (or (assoc-default key time2) 0) total2)
-                               (/ (or (assoc-default key time1) 0) total1)) 1.68))
-                 )) keys))))
+       `(("Category" ,label1 ,label2 "Diff %" "h/wk" "Diff h/wk") hline)
+       (sort 
+        (mapcar (lambda (key)
+                  (list
+                   key
+                   (format "%.1f" (/ (or (assoc-default key time1) 0) total1))
+                   (format "%.1f" (/ (or (assoc-default key time2) 0) total2))
+                   (format "%.1f" (- (/ (or (assoc-default key time2) 0) total2)
+                                     (/ (or (assoc-default key time1) 0) total1)))
+                   (format "%.1f" (* (/ (or (assoc-default key time2) 0) total1) 1.68))
+                   (format "%.1f"
+                           (* (- (/ (or (assoc-default key time2) 0) total2)
+                                 (/ (or (assoc-default key time1) 0) total1)) 1.68))
+                   )) keys)
+        (lambda (a b)
+          (<
+           (string-to-number (car (last b)))
+           (string-to-number (car (last a)))))))))
 #+end_src
 ** Animation for Emacs chats
 
@@ -7581,9 +7598,9 @@ left.
     (when (re-search-backward my/org-show-slide-tag-regexp nil t)
       (my/org-show-execute-slide)))
 
-  (global-set-key '[f5] 'my/org-show-previous-slide)
-  (global-set-key '[f6] 'my/org-show-execute-slide)
-  (global-set-key '[f7] 'my/org-show-next-slide)
+  ;(global-set-key '[f5] 'my/org-show-previous-slide)
+  ;(global-set-key '[f6] 'my/org-show-execute-slide)
+  ;(global-set-key '[f7] 'my/org-show-next-slide)
 #+end_src
 
 ** Enable minibuffer completion

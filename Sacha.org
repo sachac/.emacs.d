@@ -2919,9 +2919,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
        (outline-next-heading)
        (insert
         "** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
-        (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start end "week" my/journal-category-map my/journal-categories)
+        (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start end nil my/journal-category-map my/journal-categories)
         "\n\n*Blog posts*\n\n"
-        (my/org-list-from-rss "http://sachachua.com/blog/feed" start end)
+        (my/org-list-from-rss "https://sachachua.com/blog/feed" start end)
                                            ;          "\n\n*Sketches*\n\n"
                                            ;          (my/sketches-export-and-extract start end) "\n"
         "\n\n*Time*\n\n"
@@ -4703,7 +4703,7 @@ text/html, with text/x-org attached. The heavy lifting is done with
                   '(ascii html org))))
           (kill-new output)
           (gnus)
-          (let ((gnus-newsgroup-name "nntp+news.gmane.org:gmane.emacs.tangents"))
+          (let ((gnus-newsgroup-name "nntp+news.gmane.io:gmane.emacs.tangents"))
             (gnus-summary-post-news)
                     (insert title)
           (message-goto-body)

@@ -67,7 +67,6 @@ Here's how we start:
 ;; This sets up the load path so that we can override it
 (package-initialize)
 (setq use-package-always-ensure t)
-(add-to-list 'load-path "~/code/org2blog")
 (add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
 (setq custom-file "~/.emacs.d/custom-settings.el")
@@ -1014,7 +1013,6 @@ Now let's set up the actual keychords.
     (progn
       (fset 'key-chord-define 'my/key-chord-define)
       (setq key-chord-one-key-delay 0.16)
-      (key-chord-mode 1)
       ;; k can be bound too
       (key-chord-define-global "uu"     'undo)
       (key-chord-define-global "jr"     'my/goto-random-char-hydra/my/goto-random-char)
@@ -2917,16 +2915,16 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
  #+begin_src emacs-lisp 
     (defun my/org-prepare-weekly-review (&optional date skip-urls)
       "Prepare weekly review template."
-      (interactive (list (org-read-date)))
+      (interactive (list (org-read-date))) 
       (let ((base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
             start end links prev)
-        (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6))))
-        (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date)))))
-        (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6))))
+        (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6)) (current-time-zone)))
+        (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date))) (current-time-zone)))
+        (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6)) (current-time-zone)))
         (outline-next-heading)
         (insert
          "** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
-         (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start end "week" my/journal-category-map my/journal-categories)
+         (my/org-summarize-journal-csv "~/cloud/a/for-import.csv" start end t my/journal-category-map my/journal-categories)
          "\n\n*Blog posts*\n\n"
          (my/org-list-from-rss "http://sachachua.com/blog/feed" start end)
                                             ;          "\n\n*Sketches*\n\n"
@@ -2947,6 +2945,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
           nil)
          "\n\n")))
    (defun my/prepare-missing-weekly-reviews ()
+     "Prepare missing weekly reviews based on LAST_REVIEW property."
      (interactive)
      (let ((today (substring (org-read-date nil nil ".") 0 10))
             (date (org-entry-get (point) "LAST_REVIEW")))
@@ -3264,9 +3263,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
            (format "%4d-%02d-01" (elt date 5) (elt date 4))
            (format "%4d-%02d-01" year month))))
 
-      (defun my/org-prepare-monthly-review ()
-        (interactive)
-        (let* ((date (decode-time))
+      (defun my/org-prepare-monthly-review (time)
+        (interactive (list (org-read-date nil t)))
+        (let* ((date (decode-time time))
                (month (elt date 4))
                (year (elt date 5))
                title
@@ -3536,7 +3535,6 @@ I can use thumbnail support for now...
 
 #+begin_src emacs-lisp 
   (use-package org2blog
-    :load-path "~/code/org2blog"
     :commands 'org2blog/wp-post-subtree
     :config
      (progn
@@ -3838,6 +3836,10 @@ So that I can easily add links at point. Formatted as an Org list for now.
   (defun my/journal-note (o) (car o))
   (defun my/journal-week-highlight (o) (elt o 4))
   (defun my/journal-category (o) (elt o 1))
+  (defun my/journal-pictures (o) (when (string> (elt o 2) "") (split-string (elt o 2) ",")))
+  (defun my/journal-id (o) (elt o 7))
+  (defun my/journal-status (o) (elt o 8))
+  (defun my/journal-other (o) (elt o 9))
   (defun my/org-group-journal-entries (filtered &optional category-map categories)
     (setq category-map (or category-map (my/journal-category-map)))
     (setq categories (or categories (my/journal-categories)))
@@ -3868,15 +3870,16 @@ So that I can easily add links at point. Formatted as an Org list for now.
 
   (defun my/org-filter-journal-csv (filename &optional from to highlight base-date)
     "Return a list of matching entries."
-    (setq from (and from (my/org-date-to-string from base-date))
-          to (and to (my/org-date-to-string to base-date)))
+    (setq from (and from (substring (my/org-date-to-string from base-date) 0 10))
+          to (and to (substring (my/org-date-to-string to base-date) 0 10)))
     (let* ((data (pcsv-parse-file filename))
            (filtered
             (-filter
              (lambda (o)
                (let ((date (my/journal-date o)))
-                 (and (or (null from) (string< from date)) 
+                 (and (or (null from) (not (string< date from)))
                       (or (null to) (string< date to))
+                      (and (not (string= (my/journal-status o) "Deleted")))
                       (not (string-match "^!" (my/journal-note o)))
                       (string-equal
                        "true"
@@ -5532,9 +5535,9 @@ I like js2-mode.
 
 Handy shortcuts:
 #+begin_src emacs-lisp 
-(use-package js2-mode
-  :mode "\\.js\\'"
-  :bind (:map js2-mode-map ("C-c C-c" . compile)))
+  (use-package js2-mode
+    ;; :mode "\\.js\\'"
+    :bind (:map js2-mode-map ("C-c C-c" . compile)))
 #+end_src
 
 #+begin_src emacs-lisp 
@@ -5628,6 +5631,13 @@ And the rest of the js2 config:
 :config (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
 #+end_src
 
+**** React
+
+#+begin_src emacs-lisp
+(use-package rjsx-mode
+  :mode "\\.js\\'")
+
+#+end_src
 *** HTML
 
 Convenience function for getting rid of annoying spans
@@ -5818,13 +5828,12 @@ options to add at the end of the command, but that can wait for another time (or
   :diminish projectile-mode
   :config
   (progn
-    (setq projectile-keymap-prefix (kbd "C-c p"))
+  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+  (projectile-mode +1)
     (setq projectile-completion-system 'default)
     (setq projectile-enable-caching t)
     (setq projectile-indexing-method 'alien)
-    (add-to-list 'projectile-globally-ignored-files "node-modules"))
-  :config
-  (projectile-global-mode))
+    (add-to-list 'projectile-globally-ignored-files "node-modules")))
 (use-package helm-projectile)
 #+end_src
 *** Exploring MELPA recipes
@@ -8304,7 +8313,8 @@ https://www.emacswiki.org/emacs/InsertFileName
                                 (if name
                                     (concat " "
                                             (my/convert-sketch-title-to-filename (or name "")))
-                                  "") 
+                  
+                "") 
                                   "." (file-name-extension template))
                         directory))
             (unless (file-exists-p name) (copy-file template name))
@@ -8583,15 +8593,18 @@ more entries, with everything else filed under "Other".
          (org-end-of-item-list)
          (apply 'call-process "up" nil t nil files)))
 
+     (defun my/convert-index-card-to-png (o)
+       (lambda (o)
+         (call-process "krita" nil nil nil o "--export" "--export-filename"
+                       (concat (file-name-sans-extension o) ".png"))
+         (rename-file o "~/Dropbox/Inbox/backup/" t)))
+
      (defun my/convert-index-card-tiffs-to-pngs ()
        (interactive)
        (let ((pattern "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(tif\\|psd\\)$"))
          (when (directory-files "~/Dropbox/Inbox/" t pattern)
            ;; Convert the TIFFs first
-           (mapc (lambda (o)
-                   (call-process "krita" nil nil nil o "--export" "--export-filename"
-                                 (concat (file-name-sans-extension o) ".png"))
-                   (rename-file o "~/Dropbox/Inbox/backup/" t))
+           (mapc 'my/convert-index-card-to-png
                  (directory-files "~/Dropbox/Inbox/" t pattern)))))
 
      (defun my/convert-and-upload-cards ()
@@ -8636,8 +8649,12 @@ more entries, with everything else filed under "Other".
        "Display and rename the scanned or saved files."
        (interactive)
        (my/convert-index-card-tiffs-to-pngs)
-       (mapc 'my/rename-scanned-card
-             (directory-files "~/Dropbox/Inbox/" t "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(png\\|jpg\\)"))
+       (mapc (lambda (o)
+               (when (string= (file-name-extension o) "psd")
+                 (my/convert-index-card-to-png o)
+                 (setq o (concat (file-name-sans-extension o) ".png")))
+               (my/rename-scanned-card o))
+             (reverse (directory-files "~/Dropbox/Inbox/" t "^\\(IMG\\|[0-9]+-[0-9]+-[0-9]+\\).*.\\(psd\\|png\\|jpg\\)")))
         (my/upload-scanned-cards))
 
      (defun my/clean-index-card-directory ()
@@ -8654,23 +8671,7 @@ more entries, with everything else filed under "Other".
          (goto-char (point-min))
          (switch-to-buffer (current-buffer))
          (delete-other-windows))
-       ;; (when (yes-or-no-p "Upload files?")
-       ;;   (cond
-       ;;    ((eq system-type 'windows-nt)
-       ;;     (apply 'call-process "up" nil nil nil (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
-       ;;    ((eq system-type 'gnu/linux)
-       ;;     (with-temp-buffer
-       ;;      (cd "~/code/node")
-       ;;      (apply 'call-process "node" nil nil nil (expand-file-name "flickr-upload.js")
-       ;;             (directory-files "~/Dropbox/Inbox" t "^[0-9]+-[0-9]+-[0-9]+[^ ]? .*.\\(png\\|jpg\\)")))
-       ;;     )))
-       (shell-command "~/bin/copy-sketches")
-       ;;(when (re-search-forward (regexp-quote "#+ORGLST: sketchinbox"))
-       ;;  (forward-line 1)
-       ;;  (org-end-of-item-list)
-       ;;  (save-excursion (yank) (insert "\n"))
-       ;;  (my/org-guess-uncategorized))
-      )
+       (shell-command "~/bin/copy-sketches"))
    #+end_src
 
    #+RESULTS:
@@ -8940,27 +8941,30 @@ Convenience functions to make my life easier when sketchnoting books.
 ** Tools for organizing
 
 #+begin_src emacs-lisp
-(defun my/rename-bank-statements ()
-  (interactive)
-  (let ((months '("Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct" "Nov" "Dec")))
-    (cl-loop for i from 1 to 12 do
-             (message "%d" i)
-             (goto-char (point-min))
-             (while (re-search-forward (elt months (1- i)) nil t)
-               (ignore-errors
-                   (replace-match (format "%02d" i))
-                   )))))
+  (defun my/rename-bank-statements ()
+    (interactive)
+    (let ((months '("Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct" "Nov" "Dec")))
+      (cl-loop for i from 1 to 12 do
+               (message "%d" i)
+               (goto-char (point-min))
+               (while (re-search-forward (elt months (1- i)) nil t)
+                 (ignore-errors
+                     (replace-match (format "%02d" i))
+                     )))))
 
-(defun my/rename-scanned-receipts ()
-  "Display and rename the scanned or saved files."
-  (interactive)
-  (delete-other-windows)
-  (mapc (lambda (o)
-          (find-file o)
-          (let ((new-name (concat (read-string "New filename: ") ".jpg")))
-            (kill-buffer)
-            (rename-file o new-name)))
-        (directory-files default-directory t "^[-_0-9]+\\.jpg")))
+  (defun my/rename-scanned-receipts ()
+    "Display and rename the scanned or saved files."
+    (interactive)
+    (delete-other-windows)
+    (mapc (lambda (o)
+            (find-file o)
+            (let ((new-name (concat (read-string "New filename: ") ".jpg")))
+              (kill-buffer)
+              (unless (string= new-name ".jpg")
+                (rename-file o new-name))))
+          (or (if (derived-mode-p 'dired-mode)
+                  (dired-get-marked-files))
+               (directory-files default-directory t "^[-_0-9]+\\.jpg"))))
 #+end_src
 
 ** Games

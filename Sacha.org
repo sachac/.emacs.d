@@ -807,7 +807,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
   (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
 
 (my/defshortcut ?e "~/.emacs.d/Sacha.org")
-(my/defshortcut ?E "~/cloud/emacs-news/index.org")
+(my/defshortcut ?E "~/sync/emacs-news/index.org")
 (my/defshortcut ?i "~/cloud/orgzly/Inbox.org")
 (my/defshortcut ?o "~/cloud/orgzly/organizer.org")
 (my/defshortcut ?s "~/personal/sewing.org")
@@ -995,7 +995,8 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       ("j" jump-to-register "Jump")
       ("d" my/emacs-news-check-duplicates "Dupe")
       ("c" my/org-categorize-emacs-news/body "Categorize")
-      ("s" my/org-categorize-emacs-news/body "Share"))
+      ("s" save-buffer "Save")
+      ("m" my/share-emacs-news "Mail"))
     (global-set-key (kbd "<f5>") 'my/phone/body))
 
   (defun my/org-insert-link ()

@@ -989,11 +989,31 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
 
     (define-key Buffer-menu-mode-map "." 'hydra-buffer-menu/body)
 
+    (defun my/org-update-link-description (description)
+      "Update the current link's DESCRIPTION."
+      (interactive "MDescription: ")
+      (let (link)
+        (save-excursion
+          (cond
+           ((org-in-regexp org-link-bracket-re 1)
+            (setq link (org-link-unescape (match-string-no-properties 1)))
+            (delete-region (match-beginning 0) (match-end 0))
+            (insert (org-link-make-string link description))
+            (sit-for 0))
+           ((or (org-in-regexp org-link-angle-re)
+                (org-in-regexp org-link-plain-re))
+            (setq link (org-unbracket-string "<" ">" (match-string 0)))
+            (delete-region (match-beginning 0) (match-end 0))
+            (insert (org-link-make-string link description))
+            (sit-for 0))))))
+
     (defhydra my/phone (:exit t)
       "Shortcuts for my phone"
       ("j" jump-to-register "Jump")
       ("d" my/emacs-news-check-duplicates "Dupe")
       ("c" my/org-categorize-emacs-news/body "Categorize")
+      ("h" (lambda () (interactive) (my/org-update-link-description "HN")) "Link HN")
+      ("i" (lambda () (interactive) (my/org-update-link-description "Irreal")) "Link Irreal")
       ("s" save-buffer "Save")
       ("m" my/share-emacs-news "Mail"))
     (global-set-key (kbd "<f5>") 'my/phone/body))

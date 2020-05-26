@@ -807,8 +807,8 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 
 (my/defshortcut ?e "~/.emacs.d/Sacha.org")
 (my/defshortcut ?E "~/sync/emacs-news/index.org")
-(my/defshortcut ?i "~/cloud/orgzly/Inbox.org")
-(my/defshortcut ?o "~/cloud/orgzly/organizer.org")
+(my/defshortcut ?i "~/orgzly/Inbox.org")
+(my/defshortcut ?o "~/orgzly/organizer.org")
 (my/defshortcut ?s "~/personal/sewing.org")
 (my/defshortcut ?b "~/personal/business.org")
 (my/defshortcut ?p "~/personal/google-inbox.org")
@@ -1584,7 +1584,7 @@ org-back-to-heading isn't interactive yet. It's useful.
 
 #+begin_src emacs-lisp 
   (setq org-directory "~/personal")
-  (setq org-default-notes-file "~/cloud/orgzly/organizer.org")
+  (setq org-default-notes-file "~/orgzly/organizer.org")
 #+end_src
 
 This makes it easier to add links from outside.
@@ -1639,7 +1639,7 @@ This quickly adds a same-level heading for the succeeding day.
 
   %i
   " "Basic task data")
-    (defvar my/org-inbox-file "~/cloud/orgzly/Inbox.org")
+    (defvar my/org-inbox-file "~/orgzly/Inbox.org")
     (defvar my/ledger-file "~/cloud/ledger/current.ledger")
     (setq org-capture-templates
           `(("t" "Quick task" entry
@@ -1661,10 +1661,6 @@ This quickly adds a same-level heading for the succeeding day.
              (file ,my/org-inbox-file)
              "* TODO %^{Task}  :errands:\n"
              :immediate-finish t)
-            ("w" "Something to write about" entry
-             (file ,my/org-inbox-file)
-             "* %^{Task}  :writing:\n"
-             :immediate-finish t)
             ("n" "Note" entry
              (file ,my/org-inbox-file)
              "* %^{Note}\n"
@@ -1683,7 +1679,7 @@ This quickly adds a same-level heading for the succeeding day.
              (file+headline "~/personal/business.org" "Tasks")
              ,my/org-basic-task-template)
             ("p" "People task" entry
-             (file "~/cloud/orgzly/people.org")
+             (file "~/orgzly/people.org")
              ,my/org-basic-task-template)
             ("j" "Journal entry" plain
              (file+datetree "~/personal/journal.org")
@@ -1697,6 +1693,9 @@ This quickly adds a same-level heading for the succeeding day.
              (file+datetree+prompt "~/personal/journal.org")
              "* \n%K - %a\n%t\t%i\n%?\n"
              :unnarrowed t)
+            ("w" "Web site" entry
+             (file+headline ,org-default-notes-file "Inbox")
+             "* %a :website:\n\n%U %?\n\n%:initial")
             ("c" "Protocol Link" entry (file+headline ,org-default-notes-file "Inbox")
              "* [[%:link][%:description]] \n\n#+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n%?\n\nCaptured: %U")
             ("db" "Done - Business" entry
@@ -1706,10 +1705,10 @@ This quickly adds a same-level heading for the succeeding day.
              (file+headline "~/personal/people.org" "Tasks")
              "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
             ("dt" "Done - Task" entry
-             (file+headline "~/cloud/orgzly/organizer.org" "Inbox")
+             (file+headline "~/orgzly/organizer.org" "Inbox")
              "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
             ("q" "Quick note" item
-             (file+headline "~/cloud/orgzly/organizer.org" "Quick notes"))
+             (file+headline "~/orgzly/organizer.org" "Quick notes"))
             ("l" "Ledger")
             ("lc" "Cash expense" plain
              (file ,my/ledger-file)
@@ -2229,10 +2228,10 @@ only a few of them them for faster scanning.
   (setq org-agenda-files
         (delq nil
               (mapcar (lambda (x) (and x (file-exists-p x) x))
-                      `("~/cloud/orgzly/organizer.org"
-                        "~/cloud/orgzly/Inbox.org"
+                      `("~/orgzly/organizer.org"
+                        "~/orgzly/Inbox.org"
                         "~/personal/sewing.org"
-                        "~/cloud/orgzly/people.org"
+                        "~/orgzly/people.org"
                         "~/Dropbox/wsmef/trip.txt"
                         ,my/kid-org-file
                         "~/personal/business.org"
@@ -2243,7 +2242,7 @@ only a few of them them for faster scanning.
                         "~/code/emacs-notes/tasks.org"
                         "~/sachac.github.io/evil-plans/index.org"
                         "~/orgzly/cooking.org"
-                        "~/cloud/orgzly/routines.org"))))
+                        "~/orgzly/routines.org"))))
   (add-to-list 'auto-mode-alist '("\\.txt$" . org-mode))
 #+end_src
 
@@ -2924,7 +2923,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
    (org-insert-heading)
    (insert "[ ] " task)
    (let ((org-capture-entry '("t" "Tasks" entry
-                              (file+headline "~/cloud/orgzly/organizer.org" "Tasks")
+                              (file+headline "~/sync/orgzly/organizer.org" "Tasks")
                               "")))
      (org-capture nil "t")
      (insert "TODO " task "\nSCHEDULED: <" (org-read-date) ">")))
@@ -6800,7 +6799,7 @@ In termux, you also need to =pkg install diffutils=.
 #+begin_src emacs-lisp
 (defun my/resolve-orgzly-syncthing ()
   (interactive)
-  (ibizaman/syncthing-resolve-conflicts "~/cloud/orgzly"))
+  (ibizaman/syncthing-resolve-conflicts "~/sync/orgzly"))
 
 (defun ibizaman/syncthing-resolve-conflicts (directory)
   "Resolve all conflicts under given DIRECTORY."

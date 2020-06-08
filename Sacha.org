@@ -2144,6 +2144,7 @@ SCOPE can be 'file or 'tree."
        ("E" . "export")
        ("h" . "export html")
        ("l" . "src emacs-lisp")
+       ("p" . "src python")
        ("q" . "quote")
        ("s" . "src")
        ("v" . "verse")))
@@ -3313,7 +3314,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
            title
            "  :monthly:review:\n\n"
            (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start-date end-date
-                                         "month" my/journal-category-map my/journal-categories) "\n\n"
+                                         "month" my/journal-category-map my/journal-categories '(zid)) "\n\n"
            "*Blog posts*\n"
            posts "\n\n"
            "*Sketches*\n\n"
@@ -3860,6 +3861,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
   (defun my/journal-id (o) (elt o 7))
   (defun my/journal-status (o) (elt o 8))
   (defun my/journal-other (o) (elt o 9))
+  (defun my/journal-zidstring (o) (elt o 11))
   (defun my/org-group-journal-entries (filtered &optional category-map categories)
     (setq category-map (or category-map (my/journal-category-map)))
     (setq categories (or categories (my/journal-categories)))
@@ -3911,7 +3913,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
       filtered))
 
 
-  (defun my/org-summarize-journal-csv (filename from to highlight &optional category-map categories include-date)
+  (defun my/org-summarize-journal-csv (filename from to highlight &optional category-map categories include)
       (interactive
        (list (read-file-name "File: ") 
              (org-read-date nil nil nil "From: ")
@@ -3934,8 +3936,9 @@ So that I can easily add links at point. Formatted as an Org list for now.
                               (mapconcat
                                (lambda (i)
                                  (concat "  - "
-                                         (if include-date (concat (my/journal-date i) " ") "")
+                                         (if (member 'date include) (concat (my/journal-date i) " ") "")
                                          (replace-regexp-in-string "\\\"" "\"" (my/journal-note i))
+                                         (if (member 'zid include) (concat " " (my/journal-zidstring i)) "")
                                          ;; (if (string= "" (my/journal-category i))
                                          ;;     ""
                                          ;;   (format " (%s)" (my/journal-category i)))
@@ -4531,19 +4534,22 @@ and turn it into:
 
   (defun my/emacs-news-sort-list ()
     (interactive)
+    (goto-char (org-list-get-top-point (org-list-struct)))
     (my/org-sort-list-in-custom-order
-     '("Emacs configuration"
+     '("Beginner"
+       "Emacs configuration"
        "Emacs Lisp"
        "Emacs development"
        "Appearance"
        "Navigation"
        "Dired"
        "Org Mode"
+       "Completion"
        "Coding"
        "Calc"
        "Mail"
-       "Email and news"
        "Spacemacs"
+       "Doom Emacs"
        "Community"
        "Other"
        "Discussion"
@@ -4626,11 +4632,11 @@ One more little thing automated...
              (insert-file-contents "~/.emacs-news/package-list.el")
              (goto-char (point-min))
              (my/describe-packages
-              (-difference (mapcar 'car package-archive-contents)
+              (reverse (-difference (mapcar 'car package-archive-contents)
                            (mapcar 'car
                                    (seq-filter (lambda (o)
                                                  (or (null date) (string< (cdr o) date)))
-                                               (read (current-buffer)))))))))
+                                               (read (current-buffer))))))))))
       (if (called-interactively-p 'any)
           (insert packages)
         packages)))
@@ -5170,11 +5176,11 @@ easily define the menu in a variable. It seems to work fine so far.
             (setq pos (+ (length s) pos)))
           (insert (make-string category-indent ?\ )
                   string "\n")
-          (goto-char (+ pos (length string) category-indent 1))
+          (goto-char (+ pos (length string) category-indent 1))        
           (recenter)))))
 
   (eval 
-   `(defhydra my/org-categorize-emacs-news (global-map "C-c e")
+   `(defhydra my/org-categorize-emacs-news (:foreign-keys nil) (global-map "C-c e") 
       ,@(mapcar
          (lambda (x)
            `(,(car x)
@@ -5201,6 +5207,10 @@ easily define the menu in a variable. It seems to work fine so far.
            (switch-to-buffer "*Messages*")))
        "Show URL")
       ("-" kill-whole-line "Kill")
+      ("p" org-next-link "Previous link")
+      ("n" org-next-link "Next link")
+      ("h" (lambda () (interactive) (my/org-update-link-description "HN")) "Link HN")
+      ("i" (lambda () (interactive) (my/org-update-link-description "Irreal")) "Link Irreal")
       ("." nil "Done")))
 #+end_src
 
@@ -6291,7 +6301,7 @@ I like using [[http://gmane.org][Gmane]] to read mailing lists, and I use IMAP t
 #+begin_src emacs-lisp 
   (setq gnus-select-method '(nnnil ""))
   (setq gnus-secondary-select-methods
-        '((nntp "news.gmane.org")
+        '((nntp "news.gmane.io")
           ;; (nnmaildir "mail"
           ;;            (directory "~/Maildir")
           ;;            (directory-files nnheader-directory-files-safe) 

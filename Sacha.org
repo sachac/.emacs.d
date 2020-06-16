@@ -1,7 +1,7 @@
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
 #+STARTUP: showeverything
-#+PROPERTY: header-args:emacs-lisp    :tangle "~/cloud/elisp/Sacha.el"
+#+PROPERTY: header-args:emacs-lisp    :tangle "~/cloud/elisp/Sacha.el" :results silent
 
 * Configuration
 ** About this file
@@ -73,6 +73,9 @@ Here's how we start:
 (load custom-file t)
 #+END_SRC
 
+#+RESULTS:
+: t
+
 ** System information
 
 #+begin_src emacs-lisp
@@ -86,12 +89,18 @@ Here's how we start:
 (global-auto-revert-mode)  ; simplifies syncing
 #+end_src
 
+#+RESULTS:
+: t
+
 ** Personal information
 
 #+BEGIN_SRC emacs-lisp 
 (setq user-full-name "Sacha Chua"
       user-mail-address "sacha@sachachua.com")
 #+END_SRC
+
+#+RESULTS:
+: sacha@sachachua.com
 
 ** Emacs initialization
 *** Add package sources
@@ -102,6 +111,8 @@ Here's how we start:
 (unless (assoc-default "org" package-archives)
   (add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/") t))
 #+END_SRC
+
+#+RESULTS:
 
 Use =M-x package-refresh-contents= to reload the list of packages
 after adding these for the first time.
@@ -123,6 +134,9 @@ in a directory in my =load-path=, Emacs can find them.
 (setq load-prefer-newer t)
 #+END_SRC
 
+#+RESULTS:
+: t
+
 *** Load secrets
 
 I keep slightly more sensitive information in a separate file so that I can easily publish my main configuration.
@@ -130,6 +144,9 @@ I keep slightly more sensitive information in a separate file so that I can easi
 #+BEGIN_SRC emacs-lisp 
 (load "~/.emacs.secrets" t)
 #+END_SRC
+
+#+RESULTS:
+: t
 
 ** General configuration
 *** Reload
@@ -139,12 +156,18 @@ I keep slightly more sensitive information in a separate file so that I can easi
   (interactive)
   (load-file "~/.emacs.d/init.el"))
 #+end_src
+
+#+RESULTS:
+: my/reload-emacs-configuration
+
 *** Libraries
 
 #+begin_src emacs-lisp 
 (use-package dash :ensure t)
 (use-package diminish :ensure t)
 #+end_src
+
+#+RESULTS:
 
 *** Backups
 
@@ -154,6 +177,9 @@ This is one of the things people usually want to change right away. By default, 
 (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
 #+END_SRC
 
+#+RESULTS:
+: ((. . ~/.emacs.d/backups))
+
 Disk space is cheap. Save lots.
 
 #+BEGIN_SRC emacs-lisp 
@@ -162,6 +188,9 @@ Disk space is cheap. Save lots.
 (setq vc-make-backup-files t)
 (setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t)))
 #+END_SRC
+
+#+RESULTS:
+| .* | ~/.emacs.d/auto-save-list/ | t |
 
 *** History
 
@@ -177,6 +206,9 @@ From http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html:
         search-ring
         regexp-search-ring))
 #+END_SRC
+
+#+RESULTS:
+| kill-ring | search-ring | regexp-search-ring |
 
 *** Windows configuration :drill:
     :PROPERTIES:
@@ -197,6 +229,8 @@ When you're starting out, the tool bar can be very helpful. [[http://sachachua.c
 (tool-bar-mode -1)
 #+END_SRC
 
+#+RESULTS:
+
 *** Time in the modeline
 
 I like having the clock.
@@ -204,6 +238,9 @@ I like having the clock.
 #+begin_src emacs-lisp
 (display-time-mode 1)
 #+end_src
+
+#+RESULTS:
+: t
 
 *** Winner mode - undo and redo window configuration
 
@@ -213,6 +250,9 @@ I like having the clock.
 (use-package winner
   :defer t)
 #+END_SRC
+
+#+RESULTS:
+
 *** Sentences end with a single space
 
 In my world, sentences end with a single space. This makes
@@ -221,6 +261,8 @@ sentence navigation commands work for me.
 #+BEGIN_SRC emacs-lisp 
 (setq sentence-end-double-space nil)
 #+END_SRC
+
+#+RESULTS:
 
 *** Helm - interactive completion
 
@@ -259,6 +301,8 @@ possible, although I prefer ido's way of switching buffers.
 (ido-mode -1) ;; Turn off ido mode in case I enabled it accidentally
 #+END_SRC
 
+#+RESULTS:
+
 Great for describing bindings. I'll replace the binding for =where-is= too.
 
 #+BEGIN_SRC emacs-lisp 
@@ -268,6 +312,9 @@ Great for describing bindings. I'll replace the binding for =where-is= too.
          ("C-h w" . helm-descbinds)))
 #+END_SRC
 
+#+RESULTS:
+: helm-descbinds
+
 helm-grep? Bit slow and hard to read, though.
 #+BEGIN_SRC emacs-lisp 
 (defvar my/book-notes-directory "~/Dropbox/books")
@@ -276,6 +323,9 @@ helm-grep? Bit slow and hard to read, though.
   (interactive)
   (helm-do-grep-1 (list my/book-notes-directory)))
 #+END_SRC
+
+#+RESULTS:
+: my/helm-do-grep-book-notes
 
 **** Getting Helm and org-refile to clock in or create tasks :emacs:org:helm:
      CLOSED: [2015-02-02 Mon 08:40]
@@ -388,6 +438,9 @@ helm-grep? Bit slow and hard to read, though.
 
     ;; (my/org-refile-get-location-by-substring "Try again")
   #+END_SRC
+
+  #+RESULTS:
+  : my/helm-org-create-task
 
   Next, I want to add this to the way that Helm prompts me to refile.
   That means that my creation task should return something ready for
@@ -588,6 +641,9 @@ helm-grep? Bit slow and hard to read, though.
       (fset 'org-refile-get-location 'my/org-refile-get-location)
   #+END_SRC
 
+  #+RESULTS:
+  : my/org-refile-get-location
+
   Hooray! Now =C-u C-c C-w= (=org-refile=) also lets me use =TAB= or
   =F2= to select the alternative action of quickly clocking in on a
   task. Mwahaha.
@@ -602,6 +658,8 @@ Display a more compact mode line
 (use-package smart-mode-line)
 #+END_SRC
 
+#+RESULTS:
+
 *** Change "yes or no" to "y or n"
 
 Lazy people like me never want to type "yes" when "y" will suffice.
@@ -609,6 +667,9 @@ Lazy people like me never want to type "yes" when "y" will suffice.
 #+BEGIN_SRC emacs-lisp 
 (fset 'yes-or-no-p 'y-or-n-p)
 #+END_SRC
+
+#+RESULTS:
+: y-or-n-p
 
 *** Minibuffer editing - more space!
 
@@ -623,6 +684,8 @@ Lazy people like me never want to type "yes" when "y" will suffice.
   :commands minibuffer-edit
   :init (miniedit-install))
 #+END_SRC
+
+#+RESULTS:
 
 *** Set up a light-on-dark color scheme
 
@@ -644,6 +707,9 @@ it work. Some things still aren't quite right.
 (use-package color-theme-solarized :config (my/setup-color-theme))
 #+END_SRC
 
+#+RESULTS:
+: t
+
 I sometimes need to switch to a lighter background for screenshots.
 For that, I use =color-theme-vim=.
 
@@ -662,6 +728,8 @@ Some more tweaks to solarized:
 
 #+END_SRC
 
+#+RESULTS:
+
 *** Undo tree mode - visualize your undos and branches
 
 People often struggle with the Emacs undo model, where there's really no concept of "redo" - you simply undo the undo.
@@ -678,6 +746,9 @@ This lets you use =C-x u= (=undo-tree-visualize=) to visually walk through the c
     (setq undo-tree-visualizer-diff t)))
 #+END_SRC
 
+#+RESULTS:
+: t
+
 *** Help - guide-key
 
 It's hard to remember keyboard shortcuts. The =guide-key= package pops up help after a short delay.
@@ -692,6 +763,8 @@ It's hard to remember keyboard shortcuts. The =guide-key= package pops up help a
   (guide-key-mode 1)))  ; Enable guide-key-mode
 #+END_SRC
 
+#+RESULTS:
+
 *** UTF-8
 
 From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
@@ -701,6 +774,10 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
 (when (display-graphic-p)
   (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
 #+END_SRC
+
+#+RESULTS:
+| UTF8_STRING | COMPOUND_TEXT | TEXT | STRING |
+
 *** Killing text
 
 From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
@@ -713,6 +790,10 @@ From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
       (list (line-beginning-position)
         (line-beginning-position 2)))))
 #+END_SRC
+
+#+RESULTS:
+: kill-region
+
 *** Repeatable commands
 
 Based on http://oremacs.com/2015/01/14/repeatable-commands/ . Modified to
@@ -736,6 +817,10 @@ allowing you to repeat those functions as needed."
           (funcall func arg))
         (set-transient-map keymap t))))
 #+END_SRC
+
+#+RESULTS:
+: my/def-rep-command
+
 **** TODO Look for opportunities to use this
 
 ** Navigation
@@ -747,6 +832,10 @@ Handy way of getting back to previous places.
 (bind-key "C-x p" 'pop-to-mark-command)
 (setq set-mark-command-repeat-pop t)
 #+END_SRC
+
+#+RESULTS:
+: t
+
 *** Helm-swoop - quickly finding lines
 
 This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= to see if I can get used to that...
@@ -769,6 +858,9 @@ This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= t
 )
 #+END_SRC
 
+#+RESULTS:
+: helm-multi-swoop-all
+
 *** Windmove - switching between windows
 
 Windmove lets you move between windows with something more natural than cycling through =C-x o= (=other-window=).
@@ -783,6 +875,10 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
    ("<f2> <down>" . windmove-down)
    ))
 #+END_SRC
+
+#+RESULTS:
+: windmove-down
+
 *** Frequently-accessed files
 Registers allow you to jump to a file or other location quickly. To
 jump to a register, use =C-x r j= followed by the letter of the
@@ -829,6 +925,9 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (my/defshortcut ?q "~/sync/notes/QuickNote.md")
 (my/defshortcut ?Q "~/personal/questions.org")
 #+END_SRC
+
+#+RESULTS:
+| lambda | (prefix) | (interactive p) | (let ((org-refile-targets '(((~/personal/questions.org) :maxlevel . 6))) (current-prefix-arg (or current-prefix-arg '(4)))) (call-interactively 'org-refile)) |
 
 *** Key chords and Hydras
     :PROPERTIES:
@@ -1026,6 +1125,9 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
     (call-interactively 'org-insert-link))
 #+END_SRC
 
+#+RESULTS:
+: my/org-insert-link
+
 Now let's set up the actual keychords.
 
 #+BEGIN_SRC emacs-lisp 
@@ -1053,11 +1155,16 @@ Now let's set up the actual keychords.
       (key-chord-define-global "JJ"     'my/switch-to-previous-buffer)))
 #+END_SRC
 
+#+RESULTS:
+
 Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char=. It turns out I actually do use =C-t= a fair bit, but I can always add it back as an option.
 
 #+begin_src emacs-lisp 
 (bind-key "C-t" 'my/key-chord-commands/body)
 #+end_src
+
+#+RESULTS:
+: my/key-chord-commands/body
 
 I used to have these as part of my main hydra, but I haven't been
 doing transcripts lately, so I'll free up those keystrokes for
@@ -1076,6 +1183,9 @@ From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el, this makes =M
   :defer t
   :config (global-smartscan-mode t))
 #+END_SRC
+
+#+RESULTS:
+
 *** Dired
 
 From http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/
@@ -1084,6 +1194,10 @@ From http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-di
 (require 'find-dired)
 (setq find-ls-option '("-print0 | xargs -0 ls -ld" . "-ld"))
 #+END_SRC
+
+#+RESULTS:
+: (-print0 | xargs -0 ls -ld . -ld)
+
 **** peep-dired
 
 Allow my use of =C-x C-q= while in peep-dired mode.
@@ -1094,6 +1208,8 @@ Allow my use of =C-x C-q= while in peep-dired mode.
          ("SPC" . nil)
          ("<backspace>" . nil)))
 #+end_src
+
+#+RESULTS:
 
 **** Saving photos
 
@@ -1143,6 +1259,10 @@ Allow my use of =C-x C-q= while in peep-dired mode.
   (bind-key "b" 'my/save-photo dired-mode-map)
   (bind-key "r" 'my/backup-media dired-mode-map)
 #+end_src
+
+#+RESULTS:
+: my/backup-media
+
 *** Move to beginning of line
 Copied from http://emacsredux.com/blog/2013/05/22/smarter-navigation-to-the-beginning-of-a-line/
 
@@ -1174,6 +1294,10 @@ point reaches the beginning or end of the buffer, stop there."
 (global-set-key [remap move-beginning-of-line]
                 'my/smarter-move-beginning-of-line)
 #+END_SRC
+
+#+RESULTS:
+: my/smarter-move-beginning-of-line
+
 *** Recent files
 
 #+BEGIN_SRC emacs-lisp 
@@ -1182,6 +1306,10 @@ point reaches the beginning or end of the buffer, stop there."
       recentf-max-menu-items 15)
 (recentf-mode)
 #+END_SRC
+
+#+RESULTS:
+: t
+
 *** Copy filename to clipboard
 
 http://emacsredux.com/blog/2013/03/27/copy-filename-to-the-clipboard/
@@ -1198,6 +1326,9 @@ https://github.com/bbatsov/prelude
       (kill-new filename)
       (message "Copied buffer file name '%s' to the clipboard." filename))))
 #+END_SRC
+
+#+RESULTS:
+: prelude-copy-file-name-to-clipboard
 
 *** Open files externally
 
@@ -1220,6 +1351,9 @@ With a prefix ARG always prompt for command to use."
 
 #+end_src
 
+#+RESULTS:
+: prelude-open-with
+
 Don't use docview for PDFs.
 (add-to-list 'org-file-apps '("pdf" . "evince %s"))
 
@@ -1238,6 +1372,9 @@ This command is convenient when reading novel, documentation."
     (set-window-margins nil 0 0)))
 #+END_SRC
 
+#+RESULTS:
+: xah-toggle-margin-right
+
 ** Shuffling lines
 
 #+begin_src emacs-lisp 
@@ -1247,6 +1384,9 @@ This command is convenient when reading novel, documentation."
     (delete-region beg end)
     (insert (mapconcat 'identity (shuffle-list list) "\n"))))
 #+end_src
+
+#+RESULTS:
+: my/shuffle-lines-in-region
 
 
 
@@ -1280,6 +1420,8 @@ This command is convenient when reading novel, documentation."
         (setq artbollocks-jargon nil)))
     #+END_SRC
 
+    #+RESULTS:
+
 *** Unfill paragraph
 
 I unfill paragraphs a lot because Wordpress likes adding extra =<br>= tags if I don't. (I should probably just tweak my Wordpress installation.)
@@ -1294,6 +1436,9 @@ I unfill paragraphs a lot because Wordpress likes adding extra =<br>= tags if I 
       (fill-paragraph nil region)))
 (bind-key "M-Q" 'my/unfill-paragraph)
 #+END_SRC
+
+#+RESULTS:
+: my/unfill-paragraph
 
 I never actually justify text, so I might as well change the way
 =fill-paragraph= works. With the code below, =M-q= will fill the
@@ -1311,12 +1456,19 @@ paragraph normally, and =C-u M-q= will unfill it.
 (bind-key "M-q" 'my/fill-or-unfill-paragraph)
 #+END_SRC
 
+#+RESULTS:
+: my/fill-or-unfill-paragraph
+
 Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't actually break the text into multiple lines - it only looks that way.
 
 #+BEGIN_SRC emacs-lisp 
 (remove-hook 'text-mode-hook #'turn-on-auto-fill)
 (add-hook 'text-mode-hook 'turn-on-visual-line-mode)
 #+END_SRC
+
+#+RESULTS:
+| er/add-text-mode-expansions | turn-on-visual-line-mode | text-mode-hook-identify |
+
 *** Unicode
 
 #+BEGIN_SRC emacs-lisp 
@@ -1326,16 +1478,27 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 (bind-key "C-x 8 s" (my/insert-unicode "ZERO WIDTH SPACE"))
 (bind-key "C-x 8 S" (my/insert-unicode "SNOWMAN"))
 #+END_SRC
+
+#+RESULTS:
+| lambda | nil | (interactive) | (insert-char (cdr (assoc-string SNOWMAN (ucs-names)))) |
+
 *** Clean up spaces
 
 #+BEGIN_SRC emacs-lisp 
 (bind-key "M-SPC" 'cycle-spacing)
 #+END_SRC
+
+#+RESULTS:
+: cycle-spacing
+
 *** Expand
 
 #+BEGIN_SRC emacs-lisp 
 (bind-key "M-/" 'hippie-expand)
 #+END_SRC
+
+#+RESULTS:
+: hippie-expand
 
 From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el - Exclude very large buffers from dabbrev
 #+BEGIN_SRC emacs-lisp 
@@ -1343,6 +1506,9 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
   (< (buffer-size other-buffer) (* 1 1024 1024)))
 (setq dabbrev-friend-buffer-function 'sanityinc/dabbrev-friend-buffer)
 #+END_SRC
+
+#+RESULTS:
+: sanityinc/dabbrev-friend-buffer
 
 #+BEGIN_SRC emacs-lisp 
 (setq hippie-expand-try-functions-list
@@ -1359,6 +1525,9 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
         try-complete-lisp-symbol))
 #+END_SRC
 
+#+RESULTS:
+| yas-hippie-try-expand | try-expand-all-abbrevs | try-complete-file-name-partially | try-complete-file-name | try-expand-dabbrev | try-expand-dabbrev-from-kill | try-expand-dabbrev-all-buffers | try-expand-list | try-expand-line | try-complete-lisp-symbol-partially | try-complete-lisp-symbol |
+
 ** Org  :org:
 
 I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of
@@ -1371,6 +1540,8 @@ stuff.
 )
 #+end_src
 
+#+RESULTS:
+
 Filling in for obsolete functions
 
 #+begin_src emacs-lisp
@@ -1381,6 +1552,9 @@ Filling in for obsolete functions
      (fset 'org-link-make-string 'org-make-link-string))
 )
 #+end_src
+
+#+RESULTS:
+: t
 
 *** My files
     :PROPERTIES:
@@ -1441,6 +1615,9 @@ currently experimenting with.
 (setq org-export-backends '(org latex icalendar html ascii))
 #+END_SRC
 
+#+RESULTS:
+| org | latex | icalendar | html | ascii |
+
 *** Keyboard shortcuts
 
     #+BEGIN_SRC emacs-lisp 
@@ -1452,6 +1629,9 @@ currently experimenting with.
     (bind-key "<f9> <f9>" 'org-agenda-list)
     (bind-key "<f9> <f8>" (lambda () (interactive) (org-capture nil "r")))
     #+END_SRC
+
+    #+RESULTS:
+    | lambda | nil | (interactive) | (org-capture nil r) |
 
 =append-next-kill= is more useful to me than =org-table-copy-region=.
 
@@ -1473,12 +1653,18 @@ currently experimenting with.
   (bind-key "C-c C-r" 'my/org-refile-and-jump org-mode-map))
 #+END_SRC
 
+#+RESULTS:
+: my/org-refile-and-jump
+
 I don't use the diary, but I do use the clock a lot.
 
 #+begin_src emacs-lisp 
   (with-eval-after-load 'org-agenda
     (bind-key "i" 'org-agenda-clock-in org-agenda-mode-map))
 #+end_src
+
+#+RESULTS:
+: org-agenda-clock-in
 
 **** Speed commands
 
@@ -1513,6 +1699,9 @@ I don't use the diary, but I do use the clock a lot.
    (bind-key "!" 'my/org-clock-in-and-track org-agenda-mode-map))
  #+end_src
 
+ #+RESULTS:
+ : my/org-clock-in-and-track
+
 *** Navigation
 
 From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-command-to-jump-to-an-org-heading
@@ -1525,6 +1714,9 @@ From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-comm
   (bind-key "C-c C-w" 'org-refile)
   (setq org-cycle-include-plain-lists 'integrate)
 #+end_src
+
+#+RESULTS:
+: integrate
 
 **** Link Org subtrees and navigate between them
  The following code makes it easier for me to link trees with entries, as in http://sachachua.com/evil-plans
@@ -1550,6 +1742,9 @@ From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-comm
      (org-set-property "LINK" link2)))
  #+end_src
 
+ #+RESULTS:
+ : my/org-link-projects
+
 **** Viewing, navigating, and editing the Org tree
 
      I often cut and paste subtrees. This makes it easier to cut
@@ -1559,6 +1754,9 @@ From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-comm
             (bind-key "C-c k" 'org-cut-subtree org-mode-map)
             (setq org-yank-adjusted-subtrees t))
  #+end_src
+
+ #+RESULTS:
+ : t
 
 **** Finding my place on a small mobile screen with org-back-to-heading
 
@@ -1576,6 +1774,27 @@ org-back-to-heading isn't interactive yet. It's useful.
                 ("C-c p" . org-display-outline-path))) 
 #+end_src
 
+#+RESULTS:
+: org-display-outline-path
+
+**** Dealing with big tables
+
+Sometimes I forget where I am in a big table. This would be nice to turn into a minor mode someday.
+
+#+begin_src emacs-lisp
+(defun my/org-show-row-and-column (point)
+  (interactive "d")
+  (save-excursion
+    (goto-char point)
+    (let ((row (s-trim (org-table-get nil 1)))
+          (col (s-trim (org-table-get 1 nil)))
+          (message-log-max nil))
+      (message "%s - %s" row col))))
+#+end_src
+
+#+RESULTS:
+: my/org-show-row-and-column
+
 *** Taking notes
 
     My org files are in my =personal= directory, which is actually a
@@ -1587,6 +1806,9 @@ org-back-to-heading isn't interactive yet. It's useful.
   (setq org-default-notes-file "~/orgzly/organizer.org")
 #+end_src
 
+#+RESULTS:
+: ~/orgzly/organizer.org
+
 This makes it easier to add links from outside.
 
 #+begin_src emacs-lisp 
@@ -1597,6 +1819,10 @@ This makes it easier to add links from outside.
   (insert "][more]]"))
 (global-set-key (kbd "<f6>") 'my/yank-more)
 #+end_src
+
+#+RESULTS:
+: my/yank-more
+
 **** Date trees
 
 This quickly adds a same-level heading for the succeeding day.
@@ -1612,6 +1838,10 @@ This quickly adds a same-level heading for the succeeding day.
 		(org-insert-heading-after-current)
 		(insert (format-time-string "%Y-%m-%d\n\n" new-date))))
 #+end_src
+
+#+RESULTS:
+: my/org-insert-heading-for-next-day
+
 **** Templates
      :PROPERTIES:
      :END:
@@ -1749,6 +1979,10 @@ This quickly adds a same-level heading for the succeeding day.
     (bind-key "C-M-r" 'org-capture)
     ;(bind-key (kbd "<f5>") 'org-capture)
 #+end_src
+
+#+RESULTS:
+: org-capture
+
 ***** Allow refiling in the middle(ish) of a capture
 
 This lets me use =C-c C-r= to refile a capture and then jump to the
@@ -1769,6 +2003,9 @@ able to clock in on them.
 
 #+end_src
 
+#+RESULTS:
+: my/org-refile-and-jump
+
 **** Refiling
 
 =org-refile= lets you organize notes by typing in the headline to file them under.
@@ -1782,6 +2019,8 @@ able to clock in on them.
       (setq org-refile-targets '((org-agenda-files . (:maxlevel . 3))))
       (setq org-blank-before-new-entry nil)
     #+end_src
+
+    #+RESULTS:
 
 ***** TEACH Jump to Org location by substring
       :PROPERTIES:
@@ -1852,6 +2091,9 @@ able to clock in on them.
        (quantified-track category))
    #+end_src
 
+   #+RESULTS:
+   : my/org-off-my-computer
+
 ***** Quick way to jump
 
 #+begin_src emacs-lisp 
@@ -1860,6 +2102,9 @@ able to clock in on them.
   (let ((current-prefix-arg '(4)))
     (call-interactively 'org-refile)))
 #+end_src
+
+#+RESULTS:
+: my/org-jump
 
 
 **** TODO Bounce to my phone inbox                                 :computer:phone:
@@ -1899,6 +2144,10 @@ bounce things around from one place to another.
              (org-yank)
              (save-buffer)))))
    #+end_src
+
+   #+RESULTS:
+   : my/org-bounce-to-inbox
+
 **** Estimating WPM
 
      I'm curious about how fast I type some things.
@@ -1916,6 +2165,9 @@ bounce things around from one place to another.
 	(message "WPM: %d (words: %d, minutes: %d)" wpm words minutes)
 	(kill-new (number-to-string wpm))))))
 #+end_src
+
+#+RESULTS:
+: my/org-entry-wpm
 
 *** Tasks
 **** Managing tasks
@@ -1943,6 +2195,13 @@ bounce things around from one place to another.
            (sequence "TODELEGATE(-)" "DELEGATED(d)" "|" "COMPLETE(x)")))
  #+end_src
 
+ #+RESULTS:
+ | sequence | STARTED(s)    | TODO(t)      | TOBLOG(b) | WAITING(w@/!) | SOMEDAY(.)  |             |         | DONE(x!) | CANCELLED(c) |
+ | sequence | LEARN         | TRY          | TEACH     |               |             | COMPLETE(x) |         |          |              |
+ | sequence | TOSKETCH      | SKETCHED     |           |               | POSTED      |             |         |          |              |
+ | sequence | TOBUY         | TOSHRINK     | TOCUT     | TOSEW         |             |             | DONE(x) |          |              |
+ | sequence | TODELEGATE(-) | DELEGATED(d) |           |               | COMPLETE(x) |             |         |          |              |
+
  #+begin_src emacs-lisp 
  (setq org-todo-keyword-faces
        '(("TODO" . (:foreground "green" :weight bold))
@@ -1951,9 +2210,19 @@ bounce things around from one place to another.
          ("SOMEDAY" . (:foreground "gray" :weight bold))))
  #+end_src
 
+ #+RESULTS:
+ | TODO    | :foreground | green | :weight | bold |
+ | DONE    | :foreground | cyan  | :weight | bold |
+ | WAITING | :foreground | red   | :weight | bold |
+ | SOMEDAY | :foreground | gray  | :weight | bold |
+
 #+begin_src emacs-lisp 
 (setq org-log-done 'time)
 #+end_src
+
+#+RESULTS:
+: time
+
 ***** Projects
 
  Projects are headings with the =:project:= tag, so we generally don't
@@ -1963,6 +2232,9 @@ bounce things around from one place to another.
       #+begin_src emacs-lisp 
         (setq org-tags-exclude-from-inheritance '("project"))
       #+end_src
+
+      #+RESULTS:
+      | project |
 
  This code makes it easy for me to focus on one project and its tasks.
 
@@ -1983,6 +2255,9 @@ bounce things around from one place to another.
 
  #+end_src
 
+ #+RESULTS:
+ : my/org-agenda-for-subtree
+
  There's probably a proper way to do this, maybe with =<=. Oh, that would work nicely. =< C-c a t= too.
 
 And sorting:
@@ -1990,6 +2265,27 @@ And sorting:
 #+begin_src emacs-lisp 
   (add-to-list 'org-speed-commands-user '("S" call-interactively 'org-sort))
 #+end_src
+
+#+RESULTS:
+| d | call-interactively              | 'my/prepare-index-card-for-subtree |
+| a | call-interactively              | 'org-archive-subtree-default       |
+| . | call-interactively              | 'my/org-refile-to-previous         |
+| w | call-interactively              | 'my/org-refile-in-file             |
+| S | call-interactively              | 'org-sort                          |
+| b | my/org-bounce-to-inbox          |                                    |
+| T | my/org-agenda-for-subtree       |                                    |
+| W | widen                           |                                    |
+| N | org-narrow-to-subtree           |                                    |
+| $ | call-interactively              | 'org-archive-subtree               |
+| o | call-interactively              | 'org-clock-out                     |
+| P | call-interactively              | 'org2blog/wp-post-subtree          |
+| i | call-interactively              | 'org-clock-in                      |
+| d | my/org-move-line-to-destination |                                    |
+| s | call-interactively              | 'org-schedule                      |
+| ! | my/org-clock-in-and-track       |                                    |
+| y | org-todo-yesterday              | DONE                               |
+| x | org-todo                        | DONE                               |
+
 ***** Tag tasks with GTD-ish contexts
 
  This defines keyboard shortcuts for those, too.
@@ -2011,6 +2307,10 @@ And sorting:
                                      ("shopping" .?s)
                                      ("focus" . ?f)))
       #+end_src
+
+      #+RESULTS:
+      : ((work . 98) (home . 104) (writing . 119) (errands . 101) (drawing . 100) (coding . 99) (video . 118) (kaizen . 107) (phone . 112) (learning . 97) (reading . 114) (computer . 108) (quantified . 113) (shopping . 115) (focus . 102))
+
 ***** Enable filtering by effort estimates
 
  That way, it's easy to see short tasks that I can finish.
@@ -2019,6 +2319,9 @@ And sorting:
    (add-to-list 'org-global-properties
          '("Effort_ALL". "0:05 0:15 0:30 1:00 2:00 3:00 4:00"))
  #+end_src
+
+ #+RESULTS:
+ : ((Effort_ALL . 0:05 0:15 0:30 1:00 2:00 3:00 4:00))
 
 ***** Track time
 
@@ -2040,12 +2343,18 @@ And sorting:
      (org-clock-persistence-insinuate))
  #+end_src
 
+ #+RESULTS:
+ : t
+
  Too many clock entries clutter up a heading.
 
  #+begin_src emacs-lisp 
  (setq org-log-into-drawer "LOGBOOK")
  (setq org-clock-into-drawer 1)
  #+end_src
+
+ #+RESULTS:
+ : 1
 
 ***** Habits
 
@@ -2057,6 +2366,8 @@ And sorting:
  (setq org-habit-graph-column 80)
  (setq org-habit-show-habits-only-for-today nil)
  #+end_src
+
+ #+RESULTS:
 
  If you want to use habits, be sure to schedule your tasks and add a STYLE property with the value of =habit= to the tasks you want displayed.
 
@@ -2083,6 +2394,9 @@ And sorting:
          (org-set-property "Effort" effort)))))
  #+end_src
 
+ #+RESULTS:
+ : my/org-mode-ask-effort
+
  # <<subset>>
 **** Flexible scheduling of tasks
 
@@ -2094,6 +2408,9 @@ And sorting:
  (load "~/elisp/next-spec-day.el" t)
  #+end_src
 
+ #+RESULTS:
+ : t
+
 **** Task dependencies
 
  #+begin_src emacs-lisp 
@@ -2101,6 +2418,9 @@ And sorting:
  (setq org-track-ordered-property-with-tag t)
  (setq org-agenda-dim-blocked-tasks t)
  #+end_src
+
+ #+RESULTS:
+ : t
 
 **** Quick way to archive all DONE from inbox                :emacs:computer:
 
@@ -2128,6 +2448,9 @@ SCOPE can be 'file or 'tree."
         "TODO=\"DONE\"|TODO=\"CANCELLED\"" (or scope (if (org-before-first-heading-p) 'file 'tree))))
    #+end_src
 
+   #+RESULTS:
+   : my/org-archive-done-tasks
+
 *** Templates
 **** Structure templates
 
@@ -2150,6 +2473,9 @@ SCOPE can be 'file or 'tree."
        ("v" . "verse")))
  #+end_src
 
+ #+RESULTS:
+ : ((a . export ascii) (c . center) (C . comment) (e . example) (E . export) (h . export html) (l . src emacs-lisp) (p . src python) (q . quote) (s . src) (v . verse))
+
 This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exporting-org-mode-nested-blocks-to-html
 
 #+begin_src emacs-lisp 
@@ -2163,6 +2489,10 @@ This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exportin
 (eval-after-load 'ox
 '(add-to-list 'org-export-filter-special-block-functions 'my/org-html-quote2))
 #+end_src
+
+#+RESULTS:
+| my/org-html-quote2 |
+
 **** Emacs chats, Emacs hangouts
 
  #+begin_src emacs-lisp 
@@ -2216,6 +2546,10 @@ This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exportin
          (replace-match "")))
      )
  #+end_src
+
+ #+RESULTS:
+ : my/clean-up-google-hangout-chat
+
 *** Org agenda
 **** Basic configuration
      :PROPERTIES:
@@ -2247,6 +2581,9 @@ only a few of them them for faster scanning.
   (add-to-list 'auto-mode-alist '("\\.txt$" . org-mode))
 #+end_src
 
+#+RESULTS:
+: ((\.ledger$ . ledger-mode) (Dockerfile\' . dockerfile-mode) (\.js\' . rjsx-mode) (\.js\'\|\.json\' . js2-mode) (\.html?\' . web-mode) (\.txt$ . org-mode) (\.gpg\(~\|\.~[0-9]+~\)?\' nil epa-file) (\.hva\' . latex-mode) (\.drv\' . latex-mode) (\.cson\' . coffee-mode) (Cakefile\' . coffee-mode) (\.iced\' . coffee-mode) (\.coffee\' . coffee-mode) (\.cs$ . csharp-mode) (\.[Cc][Ss][Vv]\' . csv-mode) (docker-compose[^/]*\.yml\' . docker-compose-mode) (Dockerfile\(?:\..*\)?\' . dockerfile-mode) (.*\.ipynb\' . ein:ipynb-mode) (\.feature\' . feature-mode) (\.haml\' . haml-mode) (\(?:\(?:\.json\|\.jsonld\|\.babelrc\|\.bowerrc\|composer\.lock\)\'\) . json-mode) (\.ledger\' . ledger-mode) (/git-rebase-todo\' . git-rebase-mode) (\.md\' . markdown-mode) (\.markdown\' . markdown-mode) (\.ado\' . ess-stata-mode) (\.do\' . ess-stata-mode) (\.[Ss][Aa][Ss]\' . SAS-mode) (\.Sout . S-transcript-mode) (\.[Ss]t\' . S-transcript-mode) (\.Rd\' . Rd-mode) (DESCRIPTION$ . conf-colon-mode) (/Makevars\(\.win\)?$ . makefile-mode) (\.[Rr]out . ess-r-transcript-mode) (CITATION\' . ess-r-mode) (NAMESPACE\' . ess-r-mode) (\.[rR]profile\' . ess-r-mode) (\.[rR]\' . ess-r-mode) (/R/.*\.q\' . ess-r-mode) (\.[Jj][Aa][Gg]\' . ess-jags-mode) (\.[Bb][Mm][Dd]\' . ess-bugs-mode) (\.[Bb][Oo][Gg]\' . ess-bugs-mode) (\.[Bb][Uu][Gg]\' . ess-bugs-mode) (\.jl\' . julia-mode) (\.tlc$ . tlc-mode) (\.m$ . matlab-mode) (\.jsx\' . rjsx-mode) (\.ts$ . typescript-mode) (\.\(e?ya?\|ra\)ml\' . yaml-mode) (\.elc\' . elisp-byte-code-mode) (\.zst\' nil jka-compr) (\.dz\' nil jka-compr) (\.xz\' nil jka-compr) (\.lzma\' nil jka-compr) (\.lz\' nil jka-compr) (\.g?z\' nil jka-compr) (\.bz2\' nil jka-compr) (\.Z\' nil jka-compr) (\.vr[hi]?\' . vera-mode) (\(?:\.\(?:rbw?\|ru\|rake\|thor\|jbuilder\|rabl\|gemspec\|podspec\)\|/\(?:Gem\|Rake\|Cap\|Thor\|Puppet\|Berks\|Vagrant\|Guard\|Pod\)file\)\' . ruby-mode) (\.re?st\' . rst-mode) (\.py[iw]?\' . python-mode) (\.m\' . octave-maybe-mode) (\.less\' . less-css-mode) (\.scss\' . scss-mode) (\.awk\' . awk-mode) (\.\(u?lpc\|pike\|pmod\(\.in\)?\)\' . pike-mode) (\.idl\' . idl-mode) (\.java\' . java-mode) (\.m\' . objc-mode) (\.ii\' . c++-mode) (\.i\' . c-mode) (\.lex\' . c-mode) (\.y\(acc\)?\' . c-mode) (\.h\' . c-or-c++-mode) (\.c\' . c-mode) (\.\(CC?\|HH?\)\' . c++-mode) (\.[ch]\(pp\|xx\|\+\+\)\' . c++-mode) (\.\(cc\|hh\)\' . c++-mode) (\.\(bat\|cmd\)\' . bat-mode) (\.[sx]?html?\(\.[a-zA-Z_]+\)?\' . mhtml-mode) (\.svgz?\' . image-mode) (\.svgz?\' . xml-mode) (\.x[bp]m\' . image-mode) (\.x[bp]m\' . c-mode) (\.p[bpgn]m\' . image-mode) (\.tiff?\' . image-mode) (\.gif\' . image-mode) (\.png\' . image-mode) (\.jpe?g\' . image-mode) (\.te?xt\' . text-mode) (\.[tT]e[xX]\' . tex-mode) (\.ins\' . tex-mode) (\.ltx\' . latex-mode) (\.dtx\' . doctex-mode) (\.org\' . org-mode) (\.el\' . emacs-lisp-mode) (Project\.ede\' . emacs-lisp-mode) (\.\(scm\|stk\|ss\|sch\)\' . scheme-mode) (\.l\' . lisp-mode) (\.li?sp\' . lisp-mode) (\.[fF]\' . fortran-mode) (\.for\' . fortran-mode) (\.p\' . pascal-mode) (\.pas\' . pascal-mode) (\.\(dpr\|DPR\)\' . delphi-mode) (\.ad[abs]\' . ada-mode) (\.ad[bs].dg\' . ada-mode) (\.\([pP]\([Llm]\|erl\|od\)\|al\)\' . perl-mode) (Imakefile\' . makefile-imake-mode) (Makeppfile\(?:\.mk\)?\' . makefile-makepp-mode) (\.makepp\' . makefile-makepp-mode) (\.mk\' . makefile-gmake-mode) (\.make\' . makefile-gmake-mode) ([Mm]akefile\' . makefile-gmake-mode) (\.am\' . makefile-automake-mode) (\.texinfo\' . texinfo-mode) (\.te?xi\' . texinfo-mode) (\.[sS]\' . asm-mode) (\.asm\' . asm-mode) (\.css\' . css-mode) (\.mixal\' . mixal-mode) (\.gcov\' . compilation-mode) (/\.[a-z0-9-]*gdbinit . gdb-script-mode) (-gdb\.gdb . gdb-script-mode) ([cC]hange\.?[lL]og?\' . change-log-mode) ([cC]hange[lL]og[-.][0-9]+\' . change-log-mode) (\$CHANGE_LOG\$\.TXT . change-log-mode) (\.scm\.[0-9]*\' . scheme-mode) (\.[ckz]?sh\'\|\.shar\'\|/\.z?profile\' . sh-mode) (\.bash\' . sh-mode) (\(/\|\`\)\.\(bash_\(profile\|history\|log\(in\|out\)\)\|z?log\(in\|out\)\)\' . sh-mode) (\(/\|\`\)\.\(shrc\|zshrc\|m?kshrc\|bashrc\|t?cshrc\|esrc\)\' . sh-mode) (\(/\|\`\)\.\([kz]shenv\|xinitrc\|startxrc\|xsession\)\' . sh-mode) (\.m?spec\' . sh-mode) (\.m[mes]\' . nroff-mode) (\.man\' . nroff-mode) (\.sty\' . latex-mode) (\.cl[so]\' . latex-mode) (\.bbl\' . latex-mode) (\.bib\' . bibtex-mode) (\.bst\' . bibtex-style-mode) (\.sql\' . sql-mode) (\(acinclude\|aclocal\|acsite\)\.m4\' . autoconf-mode) (\.m[4c]\' . m4-mode) (\.mf\' . metafont-mode) (\.mp\' . metapost-mode) (\.vhdl?\' . vhdl-mode) (\.article\' . text-mode) (\.letter\' . text-mode) (\.i?tcl\' . tcl-mode) (\.exp\' . tcl-mode) (\.itk\' . tcl-mode) (\.icn\' . icon-mode) (\.sim\' . simula-mode) (\.mss\' . scribe-mode) (\.f9[05]\' . f90-mode) (\.f0[38]\' . f90-mode) (\.indent\.pro\' . fundamental-mode) (\.\(pro\|PRO\)\' . idlwave-mode) (\.srt\' . srecode-template-mode) (\.prolog\' . prolog-mode) (\.tar\' . tar-mode) (\.\(arc\|zip\|lzh\|lha\|zoo\|[jew]ar\|xpi\|rar\|cbr\|7z\|ARC\|ZIP\|LZH\|LHA\|ZOO\|[JEW]AR\|XPI\|RAR\|CBR\|7Z\)\' . archive-mode) (\.oxt\' . archive-mode) (\.\(deb\|[oi]pk\)\' . archive-mode) (\`/tmp/Re . text-mode) (/Message[0-9]*\' . text-mode) (\`/tmp/fol/ . text-mode) (\.oak\' . scheme-mode) (\.sgml?\' . sgml-mode) (\.x[ms]l\' . xml-mode) (\.dbk\' . xml-mode) (\.dtd\' . sgml-mode) (\.ds\(ss\)?l\' . dsssl-mode) (\.js[mx]?\' . javascript-mode) (\.har\' . javascript-mode) (\.json\' . javascript-mode) (\.[ds]?va?h?\' . verilog-mode) (\.by\' . bovine-grammar-mode) (\.wy\' . wisent-grammar-mode) ([:/\]\..*\(emacs\|gnus\|viper\)\' . emacs-lisp-mode) (\`\..*emacs\' . emacs-lisp-mode) ([:/]_emacs\' . emacs-lisp-mode) (/crontab\.X*[0-9]+\' . shell-script-mode) (\.ml\' . lisp-mode) (\.ld[si]?\' . ld-script-mode) (ld\.?script\' . ld-script-mode) (\.xs\' . c-mode) (\.x[abdsru]?[cnw]?\' . ld-script-mode) (\.zone\' . dns-mode) (\.soa\' . dns-mode) (\.asd\' . lisp-mode) (\.\(asn\|mib\|smi\)\' . snmp-mode) (\.\(as\|mi\|sm\)2\' . snmpv2-mode) (\.\(diffs?\|patch\|rej\)\' . diff-mode) (\.\(dif\|pat\)\' . diff-mode) (\.[eE]?[pP][sS]\' . ps-mode) (\.\(?:PDF\|DVI\|OD[FGPST]\|DOCX?\|XLSX?\|PPTX?\|pdf\|djvu\|dvi\|od[fgpst]\|docx?\|xlsx?\|pptx?\)\' . doc-view-mode-maybe) (configure\.\(ac\|in\)\' . autoconf-mode) (\.s\(v\|iv\|ieve\)\' . sieve-mode) (BROWSE\' . ebrowse-tree-mode) (\.ebrowse\' . ebrowse-tree-mode) (#\*mail\* . mail-mode) (\.g\' . antlr-mode) (\.mod\' . m2-mode) (\.ses\' . ses-mode) (\.docbook\' . sgml-mode) (\.com\' . dcl-mode) (/config\.\(?:bat\|log\)\' . fundamental-mode) (/\.\(authinfo\|netrc\)\' . authinfo-mode) (\.\(?:[iI][nN][iI]\|[lL][sS][tT]\|[rR][eE][gG]\|[sS][yY][sS]\)\' . conf-mode) (\.la\' . conf-unix-mode) (\.ppd\' . conf-ppd-mode) (java.+\.conf\' . conf-javaprop-mode) (\.properties\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-javaprop-mode) (\.toml\' . conf-toml-mode) (\.desktop\' . conf-desktop-mode) (\`/etc/\(?:DIR_COLORS\|ethers\|.?fstab\|.*hosts\|lesskey\|login\.?de\(?:fs\|vperm\)\|magic\|mtab\|pam\.d/.*\|permissions\(?:\.d/.+\)?\|protocols\|rpc\|services\)\' . conf-space-mode) (\`/etc/\(?:acpid?/.+\|aliases\(?:\.d/.+\)?\|default/.+\|group-?\|hosts\..+\|inittab\|ksysguarddrc\|opera6rc\|passwd-?\|shadow-?\|sysconfig/.+\)\' . conf-mode) ([cC]hange[lL]og[-.][-0-9a-z]+\' . change-log-mode) (/\.?\(?:gitconfig\|gnokiirc\|hgrc\|kde.*rc\|mime\.types\|wgetrc\)\' . conf-mode) (/\.\(?:enigma\|gltron\|gtk\|hxplayer\|net\|neverball\|qt/.+\|realplayer\|scummvm\|sversion\|sylpheed/.+\|xmp\)rc\' . conf-mode) (/\.\(?:gdbtkinit\|grip\|orbital/.+txt\|rhosts\|tuxracer/options\)\' . conf-mode) (/\.?X\(?:default\|resource\|re\)s\> . conf-xdefaults-mode) (/X11.+app-defaults/\|\.ad\' . conf-xdefaults-mode) (/X11.+locale/.+/Compose\' . conf-colon-mode) (/X11.+locale/compose\.dir\' . conf-javaprop-mode) (\.~?[0-9]+\.[0-9][-.0-9]*~?\' nil t) (\.\(?:orig\|in\|[bB][aA][kK]\)\' nil t) ([/.]c\(?:on\)?f\(?:i?g\)?\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-mode-maybe) (\.[1-9]\' . nroff-mode) (\.tgz\' . tar-mode) (\.tbz2?\' . tar-mode) (\.txz\' . tar-mode) (\.tzst\' . tar-mode) (\(?:\.\(?:php[3-5st]?\|amk\|phtml\)\|/\(?:Amkfile\|\.php_cs\|\.php_cs\.dist\)\)\' . php-mode))
+
 I like looking at two days at a time when I plan using the Org
 agenda. I want to see my log entries, but I don't want to see
 scheduled items that I've finished. I like seeing a time grid so that
@@ -2269,11 +2606,17 @@ I can get a sense of how appointments are spread out.
   (setq org-columns-default-format "%14SCHEDULED %Effort{:} %1PRIORITY %TODO %50ITEM %TAGS")
 #+end_src
 
+#+RESULTS:
+: %14SCHEDULED %Effort{:} %1PRIORITY %TODO %50ITEM %TAGS
+
 Some other keyboard shortcuts:
 
 #+begin_src emacs-lisp 
 (bind-key "Y" 'org-agenda-todo-yesterday org-agenda-mode-map)
 #+end_src
+
+#+RESULTS:
+: org-agenda-todo-yesterday
 
 # <<project_subtasks>>
 **** Starting my weeks on Saturday
@@ -2284,6 +2627,9 @@ Org agenda to start on Saturdays.
 #+begin_src emacs-lisp 
 (setq org-agenda-start-on-weekday 6)
 #+end_src
+
+#+RESULTS:
+: 6
 
 **** Display projects with associated subtasks
      :PROPERTIES:
@@ -2422,6 +2768,9 @@ Press `C-u r' to search again with new search string
           (org-agenda-finalize)
           (setq buffer-read-only t)))))
 #+end_src
+
+#+RESULTS:
+: my/org-agenda-projects-and-tasks
 
 # <<agenda_commands>>
 
@@ -2602,6 +2951,45 @@ hang of using these more!
            ((org-agenda-max-entries 3)))))
 
 #+end_src
+
+#+RESULTS:
+| a  | Agenda                             | ((agenda  ((org-agenda-span 2))) (tags-todo TODO="TODO"-project-cooking-routine-errands-shopping-video-evilplans ((org-agenda-skip-function 'my/org-agenda-skip-scheduled) (org-agenda-overriding-header Unscheduled TODO entries: ) (org-agenda-sorting-strategy '(priority-down effort-up tag-up category-keep)))) (tags +project-someday-TODO="DONE"-TODO="SOMEDAY"-inactive-evilplans ((org-tags-exclude-from-inheritance '(project)) (org-agenda-overriding-header Projects: ) (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))) |                                                                                                                                                          |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| t  | tags-todo                          | -cooking                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up)))                                                                                 |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| T  | tags-todo                          | TODO="TODO"-goal-routine-cooking-SCHEDULED={.+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | nil                                                                                                                                                      | ~/cloud/agenda/nonroutine.html                                                                                                                                                                                                                                                                                                                                                 |                                          |
+| f  | tags-todo                          | focus-TODO="DONE"-TODO="CANCELLED"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |                                                                                                                                                          |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| b  | todo                               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | ((org-agenda-files '(~/personal/business.org)))                                                                                                          |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| B  | todo                               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | ((org-agenda-files '(~/Dropbox/books)))                                                                                                                  |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| x  | Column view                        | todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |                                                                                                                                                          | ((org-agenda-prefix-format ) (org-agenda-cmp-user-defined 'my/org-sort-agenda-items-todo) (org-agenda-view-columns-initially t))                                                                                                                                                                                                                                               |                                          |
+| w  | Weekly review                      | agenda                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |                                                                                                                                                          | ((org-agenda-span 7) (org-agenda-log-mode 1))                                                                                                                                                                                                                                                                                                                                  | ~/cloud/agenda/this-week.html            |
+| W  | Weekly review sans routines        | agenda                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |                                                                                                                                                          | ((org-agenda-span 7) (org-agenda-log-mode 1) (org-agenda-tag-filter-preset '(-routine)))                                                                                                                                                                                                                                                                                       | ~/cloud/agenda/this-week-nonroutine.html |
+| 2  | Bi-weekly review                   | agenda                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |                                                                                                                                                          | ((org-agenda-span 14) (org-agenda-log-mode 1))                                                                                                                                                                                                                                                                                                                                 |                                          |
+| 5  | Quick tasks                        | tags-todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | EFFORT>="0:05"&EFFORT<="0:15"                                                                                                                            |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| 0  | Unestimated tasks                  | tags-todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | EFFORT=""                                                                                                                                                |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| gb | Business                           | todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |                                                                                                                                                          | ((org-agenda-files '(~/personal/business.org)) (org-agenda-view-columns-initially t))                                                                                                                                                                                                                                                                                          |                                          |
+| gc | Coding                             | tags-todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | @coding                                                                                                                                                  | ((org-agenda-view-columns-initially t))                                                                                                                                                                                                                                                                                                                                        |                                          |
+| gw | Writing                            | tags-todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | @writing                                                                                                                                                 | ((org-agenda-view-columns-initially t))                                                                                                                                                                                                                                                                                                                                        |                                          |
+| gp | Phone                              | tags-todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | @phone                                                                                                                                                   | ((org-agenda-view-columns-initially t))                                                                                                                                                                                                                                                                                                                                        |                                          |
+| gd | Drawing                            | tags-todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | @drawing                                                                                                                                                 | ((org-agenda-view-columns-initially t))                                                                                                                                                                                                                                                                                                                                        |                                          |
+| gh | Home                               | tags-todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | @home                                                                                                                                                    | ((org-agenda-view-columns-initially t))                                                                                                                                                                                                                                                                                                                                        |                                          |
+| gk | Kaizen                             | tags-todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | kaizen                                                                                                                                                   | ((org-agenda-view-columns-initially t))                                                                                                                                                                                                                                                                                                                                        | (~/cloud/agenda/kaizen.html)             |
+| ge | Errands                            | tags-todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | errands                                                                                                                                                  | ((org-agenda-view-columns-initially t))                                                                                                                                                                                                                                                                                                                                        | (~/cloud/agenda/errands.html)            |
+| c  | Top 3 by context                   | ((tags-todo phone) (tags-todo work) (tags-todo drawing) (tags-todo coding) (tags-todo writing) (tags-todo computer) (tags-todo home) (tags-todo errands))                                                                                                                                                                                                                                                                                                                                                                                                              | ((org-agenda-sorting-strategy '(priority-up effort-down)) (org-agenda-max-entries 3))                                                                    |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| C  | All by context                     | ((tags-todo phone) (tags-todo work) (tags-todo drawing) (tags-todo coding) (tags-todo writing) (tags-todo computer) (tags-todo home) (tags-todo errands))                                                                                                                                                                                                                                                                                                                                                                                                              | ((org-agenda-sorting-strategy '(priority-down effort-down)) (org-agenda-max-entries nil))                                                                |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| 9  | Unscheduled top 3 by context       | ((tags-todo phone) (tags-todo work) (tags-todo drawing) (tags-todo coding) (tags-todo writing) (tags-todo computer) (tags-todo home) (tags-todo errands))                                                                                                                                                                                                                                                                                                                                                                                                              | ((org-agenda-skip-function 'my/org-agenda-skip-scheduled) (org-agenda-sorting-strategy '(priority-down effort-down)) (org-agenda-max-entries 3))         |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| (  | All unscheduled by context         | ((tags-todo phone) (tags-todo work) (tags-todo drawing) (tags-todo coding) (tags-todo writing) (tags-todo computer) (tags-todo home) (tags-todo errands))                                                                                                                                                                                                                                                                                                                                                                                                              | ((org-agenda-skip-function 'my/org-agenda-skip-scheduled) (org-agenda-sorting-strategy '(priority-down effort-down)))                                    |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| d  | Timeline for today                 | ((agenda ))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | ((org-agenda-ndays 1) (org-agenda-show-log t) (org-agenda-log-mode-items '(clock closed)) (org-agenda-clockreport-mode t) (org-agenda-entry-types 'nil)) |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| .  | Waiting for                        | todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | WAITING                                                                                                                                                  |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| u  | Unscheduled tasks                  | tags-todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | -someday-TODO="SOMEDAY"-TODO="DELEGATED"-TODO="WAITING"-project-cooking-routine                                                                          | ((org-agenda-skip-function 'my/org-agenda-skip-scheduled) (org-agenda-view-columns-initially nil) (org-tags-exclude-from-inheritance '(project)) (org-agenda-overriding-header Unscheduled TODO entries: ) (org-columns-default-format %50ITEM %TODO %3PRIORITY %Effort{:} %TAGS) (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))) |                                          |
+| r  | Unscheduled, untagged tasks        | tags-todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | -someday-TODO="SOMEDAY"-TODO="DELEGATED"-TODO="WAITING"-project-cooking-routine-evilplans-computer-writing-phone-sewing-home-errands-shopping            | ((org-agenda-skip-function 'my/org-agenda-skip-scheduled) (org-agenda-view-columns-initially nil) (org-tags-exclude-from-inheritance '(project)) (org-agenda-overriding-header Unscheduled TODO entries: ) (org-columns-default-format %50ITEM %TODO %3PRIORITY %Effort{:} %TAGS) (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))) |                                          |
+| s  | Someday                            | tags-todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | TODO="SOMEDAY"                                                                                                                                           | ((org-agenda-skip-function 'my/org-agenda-skip-scheduled) (org-agenda-view-columns-initially nil) (org-tags-exclude-from-inheritance '(project)) (org-agenda-overriding-header Someday: ) (org-columns-default-format %50ITEM %TODO %3PRIORITY %Effort{:} %TAGS) (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep)))                  |                                          |
+| U  | Unscheduled tasks outside projects | tags-todo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | -project-cooking-routine                                                                                                                                 | ((org-agenda-skip-function 'my/org-agenda-skip-scheduled) (org-tags-exclude-from-inheritance nil) (org-agenda-view-columns-initially nil) (org-agenda-overriding-header Unscheduled TODO entries outside projects: ) (org-agenda-sorting-strategy '(todo-state-up priority-down tag-up category-keep effort-down)))                                                            |                                          |
+| P  | By priority                        | ((tags-todo +PRIORITY="A") (tags-todo +PRIORITY="B") (tags-todo +PRIORITY="") (tags-todo +PRIORITY="C"))                                                                                                                                                                                                                                                                                                                                                                                                                                                               | ((org-agenda-prefix-format %-10c %-10T %e ) (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down)))                             |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| pp | tags                               | +project-someday-TODO="DONE"-TODO="SOMEDAY"-inactive                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | ((org-tags-exclude-from-inheritance '(project)) (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down)))                         |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| p. | tags                               | +project-TODO="DONE"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | ((org-tags-exclude-from-inheritance '(project)) (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down)))                         |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| S  | tags-todo                          | TODO="STARTED"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |                                                                                                                                                          |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| C  | Cooking                            | ((tags vegetables) (tags chicken) (tags beef) (tags pork) (tags other))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | ((org-agenda-files '(~/orgzly/cooking.org)) (org-agenda-view-columns-initially t) (org-agenda-sorting-strategy '(scheduled-up time-down todo-state-up))) |                                                                                                                                                                                                                                                                                                                                                                                |                                          |
+| 8  | List projects with tasks           | my/org-agenda-projects-and-tasks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | +PROJECT                                                                                                                                                 | ((org-agenda-max-entries 3))                                                                                                                                                                                                                                                                                                                                                   |                                          |
+
 **** Make it easy to mark a task as done
 
 Great for quickly going through the to-do list. Gets rid of one
@@ -2618,6 +3006,9 @@ the same tree node, and the headline of the tree node in the Org-mode file."
 (define-key org-agenda-mode-map "x" 'my/org-agenda-done)
 #+end_src
 
+#+RESULTS:
+: my/org-agenda-done
+
 **** Make it easy to mark a task as done and create a follow-up task
 
 #+begin_src emacs-lisp 
@@ -2633,6 +3024,9 @@ this with to-do items than with projects or headings."
 (define-key org-agenda-mode-map "X" 'my/org-agenda-mark-done-and-add-followup)
 #+end_src
 
+#+RESULTS:
+: my/org-agenda-mark-done-and-add-followup
+
 **** Capture something based on the agenda
 
 #+begin_src emacs-lisp 
@@ -2646,6 +3040,9 @@ this with to-do items than with projects or headings."
 ;; New key assignment
 (define-key org-agenda-mode-map "N" 'my/org-agenda-new)
 #+end_src
+
+#+RESULTS:
+: my/org-agenda-new
 
 **** Sorting by date and priority
 
@@ -2723,6 +3120,9 @@ this with to-do items than with projects or headings."
      (org-cmp-effort a b)))
 #+end_src
 
+#+RESULTS:
+: my/org-sort-agenda-items-todo
+
 **** Preventing things from falling through the cracks
 This helps me keep track of unscheduled tasks, because I sometimes
 forget to assign tasks a date. I also want to keep track of stuck projects.
@@ -2738,6 +3138,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
         nil
         "\\<IGNORE\\>"))
 #+end_src
+
+#+RESULTS:
+| +PROJECT-MAYBE-DONE | (TODO) | nil | \<IGNORE\> |
 
 **** Synchronizing with Google Calendar
 
@@ -2756,6 +3159,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
   (interactive)
   (org-tags-view nil "project-inactive-someday"))
 #+end_src
+
+#+RESULTS:
+: my/org-show-active-projects
 
 *** Reviews
 **** Weekly review
@@ -2914,6 +3320,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
          string)))
  #+end_src
 
+ #+RESULTS:
+ : my/org-summarize-focus-areas
+
  I use this to put together a quick summary of how I spent my time.
 
  The following code makes it easy to add a line:
@@ -2930,6 +3339,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
      (insert "TODO " task "\nSCHEDULED: <" (org-read-date) ">")))
  ;(define-key org-mode-map (kbd "C-c t") 'my/org-add-line-item-task)
  #+end_src
+
+ #+RESULTS:
+ : my/org-add-line-item-task
 
  Now we put it all together...
 
@@ -2977,6 +3389,10 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
              (my/org-prepare-weekly-review date))
            (org-entry-put (point) "LAST_REVIEW" date)))))
  #+end_src
+
+ #+RESULTS:
+ : my/prepare-missing-weekly-reviews
+
 ***** Flickr extract
 
  #+begin_src emacs-lisp 
@@ -3081,6 +3497,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
        (replace-match "https://sketches.sachachua.com/id/\\2" t nil nil 1)))
  #+end_src
 
+ #+RESULTS:
+ : my/replace-flickr-links-with-sketches
+
 ***** Link-related convenience functions
 
  #+begin_src emacs-lisp 
@@ -3121,6 +3540,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
              (backward-char)
              (org-open-at-point))))))
  #+end_src
+
+ #+RESULTS:
+ : my/open-urls-in-region
 
 ***** Evernote-related extract
  #+begin_src emacs-lisp 
@@ -3163,6 +3585,10 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                    (insert list)
                  list)))
  #+end_src
+
+ #+RESULTS:
+ : my/evernote-extract-links-for-review
+
 ****** For copying journal entries
        :PROPERTIES:
        :CUSTOM_ID: evernote-copy-journal
@@ -3233,6 +3659,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 
  #+end_src
 
+ #+RESULTS:
+ : my/evernote-convert-content-to-org
+
 **** Monthly reviews
      :PROPERTIES:
      :CUSTOM_ID: monthly-reviews
@@ -3254,6 +3683,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
            (org-agenda-clockreport-parameter-plist '(:link t :maxlevel 3)))
        (org-agenda-list nil start-date 'month)))
  #+end_src
+
+ #+RESULTS:
+ : my/org-review-month
 
  Here's a function like =my/org-prepare-weekly-review=:
 
@@ -3324,6 +3756,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 
  #+end_src
 
+ #+RESULTS:
+ : my/org-prepare-monthly-review
+
 *** Filing
 **** Moving lines around
      :PROPERTIES:
@@ -3355,6 +3790,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 
  #+end_src
 
+ #+RESULTS:
+ : my/org-move-line-to-destination
+
  #+begin_src emacs-lisp 
    (defun my/org-move-line-to-end-of-list ()
      "Move the current list item to the end of the list."
@@ -3367,6 +3805,10 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
          (insert string))))
 
  #+end_src
+
+ #+RESULTS:
+ : my/org-move-line-to-end-of-list
+
 **** Organizing my blog index
 
  #+begin_src emacs-lisp 
@@ -3399,6 +3841,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                (insert s)
                (org-update-statistics-cookies nil)))))))
  #+end_src
+
+ #+RESULTS:
+ : my/org-file-blog-index-entries
 
 **** Quickly refiling Org Mode notes to headings in the same file
 
@@ -3443,6 +3888,26 @@ refile.
   (add-to-list 'org-speed-commands-user '("." call-interactively 'my/org-refile-to-previous))
 #+end_src
 
+#+RESULTS:
+| d | call-interactively              | 'my/prepare-index-card-for-subtree |
+| a | call-interactively              | 'org-archive-subtree-default       |
+| . | call-interactively              | 'my/org-refile-to-previous         |
+| w | call-interactively              | 'my/org-refile-in-file             |
+| S | call-interactively              | 'org-sort                          |
+| b | my/org-bounce-to-inbox          |                                    |
+| T | my/org-agenda-for-subtree       |                                    |
+| W | widen                           |                                    |
+| N | org-narrow-to-subtree           |                                    |
+| $ | call-interactively              | 'org-archive-subtree               |
+| o | call-interactively              | 'org-clock-out                     |
+| P | call-interactively              | 'org2blog/wp-post-subtree          |
+| i | call-interactively              | 'org-clock-in                      |
+| d | my/org-move-line-to-destination |                                    |
+| s | call-interactively              | 'org-schedule                      |
+| ! | my/org-clock-in-and-track       |                                    |
+| y | org-todo-yesterday              | DONE                               |
+| x | org-todo                        | DONE                               |
+
 TODO: Figure out why I'm getting duplicates. Next step might be to fiddle with =helm-org-in-buffer-headings= so that it preselects the previous candidate, but that can happen later.
 
 Tech note: helm-org doesn't use the usual org-refile mechanism. Instead, it
@@ -3481,17 +3946,27 @@ complicated than they are. Let's turn them off by default.
 (setq org-export-htmlize-output-type 'css)
 #+end_src
 
+#+RESULTS:
+: css
+
 Sometimes I have broken or local links, and that's okay.
 
 #+begin_src emacs-lisp 
 (setq org-export-with-broken-links t)
 #+end_src
 
+#+RESULTS:
+: t
+
 Don't wrap ASCII exports.
 
 #+begin_src emacs-lisp 
 (setq org-ascii-text-width 10000)
 #+end_src
+
+#+RESULTS:
+: 10000
+
 This makes it easier to publish my files:
 
 #+begin_src emacs-lisp 
@@ -3523,6 +3998,8 @@ This makes it easier to publish my files:
 (load "~/code/dev/emacs-notes/build-site.el" t)
 #+end_src
 
+#+RESULTS:
+
 If a file is in a publishing project, publish it.
 
 #+begin_src emacs-lisp 
@@ -3536,6 +4013,9 @@ If a file is in a publishing project, publish it.
              (my/org-html-export-trustingly))))
 #+end_src
 
+#+RESULTS:
+: my/org-publish-maybe
+
 Make it easy to publish and browse a file.
 
 #+begin_src emacs-lisp 
@@ -3546,6 +4026,10 @@ Make it easy to publish and browse a file.
     (browse-url (org-export-output-file-name ".html" nil default-directory)))
   (bind-key "<apps> b" 'my/org-publish-and-browse)
 #+end_src
+
+#+RESULTS:
+: my/org-publish-and-browse
+
 **** Org2blog
 
 I use org2blog to post to my blog, which is Wordpress-based. I used to
@@ -3581,6 +4065,8 @@ I can use thumbnail support for now...
   (use-package htmlize)
 #+end_src
 
+#+RESULTS:
+
 **** Publish without prompting
 
 I want to be able to export without having to say yes to code blocks all the time.
@@ -3595,6 +4081,10 @@ I want to be able to export without having to say yes to code blocks all the tim
   (let ((org-confirm-babel-evaluate nil))
     (org-html-publish-to-html plist filename pub-dir)))
 #+end_src
+
+#+RESULTS:
+: my/org-html-publish-to-html-trustingly
+
 **** Stylesheet / header
 Might as well take advantage of my stylesheet:
 
@@ -3607,6 +4097,10 @@ href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/found
 (setq org-html-htmlize-output-type 'css)
 (setq org-src-fontify-natively t)
 #+end_src
+
+#+RESULTS:
+: t
+
 **** Footer
 
 Make it easy to scroll to the top:
@@ -3649,6 +4143,44 @@ Make it easy to scroll to the top:
 </script>")
 #+end_src
 
+#+RESULTS:
+#+begin_example
+
+<style type="text/css">
+.back-to-top {
+    position: fixed;
+    bottom: 2em;
+    right: 0px;
+    text-decoration: none;
+    color: #000000;
+    background-color: rgba(235, 235, 235, 0.80);
+    font-size: 12px;
+    padding: 1em;
+    display: none;
+}
+
+.back-to-top:hover {
+    background-color: rgba(135, 135, 135, 0.50);
+}
+</style>
+
+<div class="back-to-top">
+<a href="#top">Back to top</a> | <a href="mailto:sacha@sachachua.com">E-mail me</a>
+</div>
+
+<script type="text/javascript">
+    var offset = 220;
+    var duration = 500;
+    jQuery(window).scroll(function() {
+        if (jQuery(this).scrollTop() > offset) {
+            jQuery('.back-to-top').fadeIn(duration);
+        } else {
+            jQuery('.back-to-top').fadeOut(duration);
+        }
+    });
+</script>
+#+end_example
+
 **** Copy region
 Sometimes I want a region's HTML in my kill-ring/clipboard without any of the extra fluff:
 
@@ -3662,6 +4194,9 @@ Sometimes I want a region's HTML in my kill-ring/clipboard without any of the ex
        (org-export-string-as (buffer-substring beg end) 'html t))))
 #+end_src
 
+#+RESULTS:
+: my/org-copy-region-as-html
+
 Sometimes I want a subtree:
 
 #+begin_src emacs-lisp 
@@ -3671,6 +4206,10 @@ Sometimes I want a subtree:
    (org-back-to-heading)
    (org-end-of-subtree)))
 #+end_src
+
+#+RESULTS:
+: my/org-copy-subtree-as-html
+
 **** UTF-8 checkboxes
 
 This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone.
@@ -3681,6 +4220,9 @@ This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone
             (off . "<span class=\"task-todo\">&#x2610;</span>")
             (trans . "<span class=\"task-in-progress\">[-]</span>"))))
 #+end_src
+
+#+RESULTS:
+| unicode | (on . <span class="task-done">&#x2611;</span>) | (off . <span class="task-todo">&#x2610;</span>) | (trans . <span class="task-in-progress">[-]</span>) |
 
 **** Share my Emacs configuration
 
@@ -3709,6 +4251,10 @@ This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone
                                        "sacha-emacs.el" destination-dir) "emacs-lisp")
                (org-html-export-to-html)))))))
      #+end_src
+
+     #+RESULTS:
+     : my/org-share-emacs
+
 **** Beamer
 #+begin_src emacs-lisp  
 (with-eval-after-load 'org
@@ -3726,6 +4272,14 @@ This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone
                ("\\subsection\{%s\}" . "\\subsection*\{%s\}")
                ("\\subsubsection\{%s\}" . "\\subsubsection*\{%s\}"))))
 #+end_src
+
+#+RESULTS:
+| memoir  | \documentclass{memoir}               | (\section{%s} . \section*{%s}) | (\subsection{%s} . \subsection*{%s}) | (\subsubsection{%s} . \subsubsection*{%s}) |                                      |                                            |
+| beamer  | \documentclass[presentation]{beamer} | (\section{%s} . \section*{%s}) | (\subsection{%s} . \subsection*{%s}) | (\subsubsection{%s} . \subsubsection*{%s}) |                                      |                                            |
+| article | \documentclass[11pt]{article}        | (\section{%s} . \section*{%s}) | (\subsection{%s} . \subsection*{%s}) | (\subsubsection{%s} . \subsubsection*{%s}) | (\paragraph{%s} . \paragraph*{%s})   | (\subparagraph{%s} . \subparagraph*{%s})   |
+| report  | \documentclass[11pt]{report}         | (\part{%s} . \part*{%s})       | (\chapter{%s} . \chapter*{%s})       | (\section{%s} . \section*{%s})             | (\subsection{%s} . \subsection*{%s}) | (\subsubsection{%s} . \subsubsection*{%s}) |
+| book    | \documentclass[11pt]{book}           | (\part{%s} . \part*{%s})       | (\chapter{%s} . \chapter*{%s})       | (\section{%s} . \section*{%s})             | (\subsection{%s} . \subsection*{%s}) | (\subsubsection{%s} . \subsubsection*{%s}) |
+
 *** Fix incompatible changes from Org 8 to Org 9
 
 http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS
@@ -3763,6 +4317,10 @@ http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS
 (with-eval-after-load 'org
   (add-to-list 'org-mode-hook 'org-repair-export-blocks))
 #+end_src
+
+#+RESULTS:
+| er/add-org-mode-expansions | my/org-add-dashes-to-tag-regexps | jupyter-org-interaction-mode | org-repair-export-blocks | org-clock-load | #[0 \301\211\207 [imenu-create-index-function org-imenu-get-tree] 2] | #[0 \305\306	>\203 \307 |
+
 *** Links
 **** Quick links
      #+begin_src emacs-lisp 
@@ -3771,6 +4329,10 @@ http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS
 	 ("gmap" . "http://maps.google.com/maps?q=%s")
 	 ("blog" . "http://sachachua.com/blog/p/")))
  #+end_src
+
+ #+RESULTS:
+ : ((google . http://www.google.com/search?q=) (gmap . http://maps.google.com/maps?q=%s) (blog . http://sachachua.com/blog/p/))
+
 **** Custom links
 
  From http://endlessparentheses.com/use-org-mode-links-for-absolutely-anything.html?source=rss
@@ -3801,6 +4363,9 @@ So that I can easily add links at point. Formatted as an Org list for now.
    '(add-to-list 'org-protocol-protocol-alist
       '("insert-link" :protocol "insert-link" :function my/org-protocol-insert-link)))
 #+end_src
+
+#+RESULTS:
+| insert-link | :protocol | insert-link | :function | my/org-protocol-insert-link |
 
 **** Dired
      :PROPERTIES:
@@ -3834,6 +4399,9 @@ So that I can easily add links at point. Formatted as an Org list for now.
         (dired-virtual "/")
         (switch-to-buffer (current-buffer)))))
 #+end_src
+
+#+RESULTS:
+: my/org-dired-file-links-in-region
 
 *** Journal from Memento Database
 
@@ -3949,6 +4517,9 @@ So that I can easily add links at point. Formatted as an Org list for now.
 
 #+end_src
 
+#+RESULTS:
+: my/org-summarize-journal-csv
+
 Some code to talk to Memento Database via Tasker on my phone:
 
 #+begin_src emacs-lisp
@@ -4012,6 +4583,10 @@ Some code to talk to Memento Database via Tasker on my phone:
               (setq done t)
             (my/update-journal-entry (assoc-default "Note" x nil "") text category))))))
 #+end_src
+
+#+RESULTS:
+: my/prompt-for-uncategorized-entries
+
 **** Photos
 #+begin_src emacs-lisp 
   (defun my/get-image-caption (file)
@@ -4034,6 +4609,9 @@ Some code to talk to Memento Database via Tasker on my phone:
       (read-string "Caption: ")))
     (shell-command (format "exiftool -ImageDescription=\"%s\" %s" (shell-quote-argument caption) (shell-quote-argument file))))
 #+end_src
+
+#+RESULTS:
+: my/set-image-caption
 
 #+begin_src emacs-lisp 
     (defvar my/photo-directory "/mnt/nfs/photos/inbox")
@@ -4074,6 +4652,9 @@ Some code to talk to Memento Database via Tasker on my phone:
       (if (called-interactively-p 'any) (insert result) result)))
 #+end_src
 
+#+RESULTS:
+: my/org-significant-moments
+
 *** Attachments
 
 Org lets you attach files to an Org file. Haven't gotten the hang of this yet, but looks interesting.
@@ -4082,11 +4663,16 @@ Org lets you attach files to an Org file. Haven't gotten the hang of this yet, b
 (setq org-attach-store-link-p 'attached)
 (setq org-attach-auto-tag nil)
 #+end_src
+
+#+RESULTS:
+
 *** HTTP
 
 #+begin_src emacs-lisp 
 (use-package ob-http)
 #+end_src
+
+#+RESULTS:
 
 *** Diagrams and graphics
 
@@ -4142,6 +4728,10 @@ Probably should make this a dblock someday."
     (message "%s" (mapconcat (lambda (x) (format "%s: %d" (car x) (cdr x)))
                              result "\n"))))
 #+end_src
+
+#+RESULTS:
+: my/org-summarize-task-status
+
 *** Spreadsheets
 #+begin_src emacs-lisp 
   (defun my/org-days-between (start end)
@@ -4150,6 +4740,10 @@ Probably should make this a dblock someday."
     (- (calendar-absolute-from-gregorian (org-date-to-gregorian end))
        (calendar-absolute-from-gregorian (org-date-to-gregorian start))))
 #+end_src
+
+#+RESULTS:
+: my/org-days-between
+
 *** Literate programming
 **** Editing source code
  I don't want to get distracted by the same code in the other window, so I want org src to use the current window.
@@ -4157,6 +4751,9 @@ Probably should make this a dblock someday."
  #+begin_src emacs-lisp 
    (setq org-src-window-setup 'current-window)
  #+end_src
+
+ #+RESULTS:
+ : current-window
 
 **** Copying and sharing code
 
@@ -4174,6 +4771,10 @@ Probably should make this a dblock someday."
                 (replace-regexp-in-string "-mode$" "" mode)
                 contents))))
  #+end_src
+
+ #+RESULTS:
+ : my/copy-code-as-org-block-and-gist
+
 *** Invoices
 
 #+begin_src emacs-lisp 
@@ -4289,6 +4890,9 @@ Probably should make this a dblock someday."
                    '("2015-11-01 00:00" "2015-12-01 00:00"))))
 #+end_src
 
+#+RESULTS:
+: my/org-get-invoice-range-based-on-date
+
 *** Archiving
     
 Don't ask me for confirmation:
@@ -4297,10 +4901,33 @@ Don't ask me for confirmation:
 (add-to-list 'org-speed-commands-user '("a" call-interactively 'org-archive-subtree-default))
 #+end_src
 
+#+RESULTS:
+| d | call-interactively              | 'my/prepare-index-card-for-subtree |
+| a | call-interactively              | 'org-archive-subtree-default       |
+| . | call-interactively              | 'my/org-refile-to-previous         |
+| w | call-interactively              | 'my/org-refile-in-file             |
+| S | call-interactively              | 'org-sort                          |
+| b | my/org-bounce-to-inbox          |                                    |
+| T | my/org-agenda-for-subtree       |                                    |
+| W | widen                           |                                    |
+| N | org-narrow-to-subtree           |                                    |
+| $ | call-interactively              | 'org-archive-subtree               |
+| o | call-interactively              | 'org-clock-out                     |
+| P | call-interactively              | 'org2blog/wp-post-subtree          |
+| i | call-interactively              | 'org-clock-in                      |
+| d | my/org-move-line-to-destination |                                    |
+| s | call-interactively              | 'org-schedule                      |
+| ! | my/org-clock-in-and-track       |                                    |
+| y | org-todo-yesterday              | DONE                               |
+| x | org-todo                        | DONE                               |
+
 *** Presentations
 #+begin_src emacs-lisp 
 (use-package ox-reveal :disabled t)
 #+end_src
+
+#+RESULTS:
+
 *** Allow dashes in tags 
 
  #+begin_src emacs-lisp 
@@ -4332,6 +4959,9 @@ Don't ask me for confirmation:
                  "[ \t]*$")))
  (add-hook 'org-mode-hook 'my/org-add-dashes-to-tag-regexps)
  #+end_src
+
+ #+RESULTS:
+ | er/add-org-mode-expansions | my/org-add-dashes-to-tag-regexps | jupyter-org-interaction-mode | org-repair-export-blocks | org-clock-load | #[0 \301\211\207 [imenu-create-index-function org-imenu-get-tree] 2] | #[0 \305\306	>\203 \307 |
 
 
 *** Copying information from my phone
@@ -4376,6 +5006,9 @@ code pulls that information into my ~/Dropbox/tasker/
      (directory-files "~/dropbox/tasker/data" t "\\.txt$")))
 #+end_src
 
+#+RESULTS:
+: my/read-phone-entries
+
 *** Emacs packages, other settings for easy Emacs News generation
     :PROPERTIES:
     :CUSTOM_ID: emacs-news
@@ -4419,6 +5052,9 @@ code pulls that information into my ~/Dropbox/tasker/
   (org-link-set-parameters "package" :follow 'my/org-package-open :export 'my/org-package-export)
 #+end_src
 
+#+RESULTS:
+| :follow | my/org-package-open | :export | my/org-package-export |
+
 **** ASCII export
 
 This setting puts Org ASCII export links right after the text instead of in a separate section:
@@ -4426,6 +5062,8 @@ This setting puts Org ASCII export links right after the text instead of in a se
 #+begin_src emacs-lisp 
 (setq org-ascii-links-to-notes nil)
 #+end_src
+
+#+RESULTS:
 
 **** Reddit
 
@@ -4471,6 +5109,9 @@ https://www.reddit.com/prefs/feeds/ .
       results))
   ;;  (my/reddit-list-upvoted "-mon")
 #+end_src
+
+#+RESULTS:
+: my/reddit-list-upvoted
 
 **** Sorting Org Mode lists using a sequence of regular expressions  :emacs:org:
      :PROPERTIES:
@@ -4556,6 +5197,9 @@ and turn it into:
        "Outside Emacs"
        "New packages?")))
 #+end_src
+
+#+RESULTS:
+: my/emacs-news-sort-list
 
 One more little thing automated...
 
@@ -4665,6 +5309,9 @@ One more little thing automated...
         nil)))
 #+end_src
 
+#+RESULTS:
+: my/save-new-packages
+
 **** Get info from the Emacs NEWS file in the git repository
 
 #+begin_src emacs-lisp 
@@ -4680,6 +5327,10 @@ One more little thing automated...
         (setq result (buffer-string)))
       (if (called-interactively-p 'any) (insert result) result)))
 #+end_src
+
+#+RESULTS:
+: my/insert-emacs-news-from-git
+
 **** DONE Publishing Emacs News as plain text, HTML, and attached Org file
      :PROPERTIES:
      :ID:       o2b:0a59c00b-7c40-48d5-a8c4-7a0d67e6e479
@@ -4749,6 +5400,9 @@ text/html, with text/x-org attached. The heavy lifting is done with
           (message-goto-body)
           (insert output)))))
 #+end_src
+
+#+RESULTS:
+: my/share-emacs-news
 
 For cleaning things up:
 #+begin_src emacs-lisp :eval no :tangle no
@@ -4997,6 +5651,9 @@ above!
      "."))
 #+end_src
 
+#+RESULTS:
+: my/prepare-emacs-news
+
 **** Collect Emacs News
 
 #+begin_src emacs-lisp
@@ -5032,6 +5689,9 @@ above!
       (org-mode)
       (goto-char (point-min))))
 #+end_src
+
+#+RESULTS:
+: my/emacs-news-collect-entries
 
 **** DONE Detect duplicates
      CLOSED: [2019-05-29 Wed 11:42]
@@ -5091,6 +5751,10 @@ above!
             )))
         ))
 #+end_src
+
+#+RESULTS:
+: my/emacs-news-check-duplicates
+
 **** Making a numpad-based hydra for organizing Emacs News
      :PROPERTIES:
      :ID:       o2b:04eca1e8-ed55-4aec-bc0b-ba4547a1a655
@@ -5180,7 +5844,7 @@ easily define the menu in a variable. It seems to work fine so far.
           (recenter)))))
 
   (eval 
-   `(defhydra my/org-categorize-emacs-news (:foreign-keys nil) (global-map "C-c e") 
+   `(defhydra my/org-categorize-emacs-news (global-map "C-c e") (:foreign-keys nil)  
       ,@(mapcar
          (lambda (x)
            `(,(car x)
@@ -5214,6 +5878,8 @@ easily define the menu in a variable. It seems to work fine so far.
       ("." nil "Done")))
 #+end_src
 
+#+RESULTS:
+
 *** Save when Emacs loses focus
 
 #+begin_src emacs-lisp
@@ -5221,6 +5887,10 @@ easily define the menu in a variable. It seems to work fine so far.
   :config
   (add-function :after after-focus-change-function 'org-save-all-org-buffers))
 #+end_src
+
+#+RESULTS:
+: t
+
 ** Coding
 *** Web development
 #+begin_src emacs-lisp 
@@ -5247,16 +5917,27 @@ easily define the menu in a variable. It seems to work fine so far.
             )))
 
 #+end_src
+
+#+RESULTS:
+: ((\.ledger$ . ledger-mode) (Dockerfile\' . dockerfile-mode) (\.js\' . rjsx-mode) (\.js\'\|\.json\' . js2-mode) (\.html?\' . web-mode) (\.txt$ . org-mode) (\.gpg\(~\|\.~[0-9]+~\)?\' nil epa-file) (\.hva\' . latex-mode) (\.drv\' . latex-mode) (\.cson\' . coffee-mode) (Cakefile\' . coffee-mode) (\.iced\' . coffee-mode) (\.coffee\' . coffee-mode) (\.cs$ . csharp-mode) (\.[Cc][Ss][Vv]\' . csv-mode) (docker-compose[^/]*\.yml\' . docker-compose-mode) (Dockerfile\(?:\..*\)?\' . dockerfile-mode) (.*\.ipynb\' . ein:ipynb-mode) (\.feature\' . feature-mode) (\.haml\' . haml-mode) (\(?:\(?:\.json\|\.jsonld\|\.babelrc\|\.bowerrc\|composer\.lock\)\'\) . json-mode) (\.ledger\' . ledger-mode) (/git-rebase-todo\' . git-rebase-mode) (\.md\' . markdown-mode) (\.markdown\' . markdown-mode) (\.ado\' . ess-stata-mode) (\.do\' . ess-stata-mode) (\.[Ss][Aa][Ss]\' . SAS-mode) (\.Sout . S-transcript-mode) (\.[Ss]t\' . S-transcript-mode) (\.Rd\' . Rd-mode) (DESCRIPTION$ . conf-colon-mode) (/Makevars\(\.win\)?$ . makefile-mode) (\.[Rr]out . ess-r-transcript-mode) (CITATION\' . ess-r-mode) (NAMESPACE\' . ess-r-mode) (\.[rR]profile\' . ess-r-mode) (\.[rR]\' . ess-r-mode) (/R/.*\.q\' . ess-r-mode) (\.[Jj][Aa][Gg]\' . ess-jags-mode) (\.[Bb][Mm][Dd]\' . ess-bugs-mode) (\.[Bb][Oo][Gg]\' . ess-bugs-mode) (\.[Bb][Uu][Gg]\' . ess-bugs-mode) (\.jl\' . julia-mode) (\.tlc$ . tlc-mode) (\.m$ . matlab-mode) (\.jsx\' . rjsx-mode) (\.ts$ . typescript-mode) (\.\(e?ya?\|ra\)ml\' . yaml-mode) (\.elc\' . elisp-byte-code-mode) (\.zst\' nil jka-compr) (\.dz\' nil jka-compr) (\.xz\' nil jka-compr) (\.lzma\' nil jka-compr) (\.lz\' nil jka-compr) (\.g?z\' nil jka-compr) (\.bz2\' nil jka-compr) (\.Z\' nil jka-compr) (\.vr[hi]?\' . vera-mode) (\(?:\.\(?:rbw?\|ru\|rake\|thor\|jbuilder\|rabl\|gemspec\|podspec\)\|/\(?:Gem\|Rake\|Cap\|Thor\|Puppet\|Berks\|Vagrant\|Guard\|Pod\)file\)\' . ruby-mode) (\.re?st\' . rst-mode) (\.py[iw]?\' . python-mode) (\.m\' . octave-maybe-mode) (\.less\' . less-css-mode) (\.scss\' . scss-mode) (\.awk\' . awk-mode) (\.\(u?lpc\|pike\|pmod\(\.in\)?\)\' . pike-mode) (\.idl\' . idl-mode) (\.java\' . java-mode) (\.m\' . objc-mode) (\.ii\' . c++-mode) (\.i\' . c-mode) (\.lex\' . c-mode) (\.y\(acc\)?\' . c-mode) (\.h\' . c-or-c++-mode) (\.c\' . c-mode) (\.\(CC?\|HH?\)\' . c++-mode) (\.[ch]\(pp\|xx\|\+\+\)\' . c++-mode) (\.\(cc\|hh\)\' . c++-mode) (\.\(bat\|cmd\)\' . bat-mode) (\.[sx]?html?\(\.[a-zA-Z_]+\)?\' . mhtml-mode) (\.svgz?\' . image-mode) (\.svgz?\' . xml-mode) (\.x[bp]m\' . image-mode) (\.x[bp]m\' . c-mode) (\.p[bpgn]m\' . image-mode) (\.tiff?\' . image-mode) (\.gif\' . image-mode) (\.png\' . image-mode) (\.jpe?g\' . image-mode) (\.te?xt\' . text-mode) (\.[tT]e[xX]\' . tex-mode) (\.ins\' . tex-mode) (\.ltx\' . latex-mode) (\.dtx\' . doctex-mode) (\.org\' . org-mode) (\.el\' . emacs-lisp-mode) (Project\.ede\' . emacs-lisp-mode) (\.\(scm\|stk\|ss\|sch\)\' . scheme-mode) (\.l\' . lisp-mode) (\.li?sp\' . lisp-mode) (\.[fF]\' . fortran-mode) (\.for\' . fortran-mode) (\.p\' . pascal-mode) (\.pas\' . pascal-mode) (\.\(dpr\|DPR\)\' . delphi-mode) (\.ad[abs]\' . ada-mode) (\.ad[bs].dg\' . ada-mode) (\.\([pP]\([Llm]\|erl\|od\)\|al\)\' . perl-mode) (Imakefile\' . makefile-imake-mode) (Makeppfile\(?:\.mk\)?\' . makefile-makepp-mode) (\.makepp\' . makefile-makepp-mode) (\.mk\' . makefile-gmake-mode) (\.make\' . makefile-gmake-mode) ([Mm]akefile\' . makefile-gmake-mode) (\.am\' . makefile-automake-mode) (\.texinfo\' . texinfo-mode) (\.te?xi\' . texinfo-mode) (\.[sS]\' . asm-mode) (\.asm\' . asm-mode) (\.css\' . css-mode) (\.mixal\' . mixal-mode) (\.gcov\' . compilation-mode) (/\.[a-z0-9-]*gdbinit . gdb-script-mode) (-gdb\.gdb . gdb-script-mode) ([cC]hange\.?[lL]og?\' . change-log-mode) ([cC]hange[lL]og[-.][0-9]+\' . change-log-mode) (\$CHANGE_LOG\$\.TXT . change-log-mode) (\.scm\.[0-9]*\' . scheme-mode) (\.[ckz]?sh\'\|\.shar\'\|/\.z?profile\' . sh-mode) (\.bash\' . sh-mode) (\(/\|\`\)\.\(bash_\(profile\|history\|log\(in\|out\)\)\|z?log\(in\|out\)\)\' . sh-mode) (\(/\|\`\)\.\(shrc\|zshrc\|m?kshrc\|bashrc\|t?cshrc\|esrc\)\' . sh-mode) (\(/\|\`\)\.\([kz]shenv\|xinitrc\|startxrc\|xsession\)\' . sh-mode) (\.m?spec\' . sh-mode) (\.m[mes]\' . nroff-mode) (\.man\' . nroff-mode) (\.sty\' . latex-mode) (\.cl[so]\' . latex-mode) (\.bbl\' . latex-mode) (\.bib\' . bibtex-mode) (\.bst\' . bibtex-style-mode) (\.sql\' . sql-mode) (\(acinclude\|aclocal\|acsite\)\.m4\' . autoconf-mode) (\.m[4c]\' . m4-mode) (\.mf\' . metafont-mode) (\.mp\' . metapost-mode) (\.vhdl?\' . vhdl-mode) (\.article\' . text-mode) (\.letter\' . text-mode) (\.i?tcl\' . tcl-mode) (\.exp\' . tcl-mode) (\.itk\' . tcl-mode) (\.icn\' . icon-mode) (\.sim\' . simula-mode) (\.mss\' . scribe-mode) (\.f9[05]\' . f90-mode) (\.f0[38]\' . f90-mode) (\.indent\.pro\' . fundamental-mode) (\.\(pro\|PRO\)\' . idlwave-mode) (\.srt\' . srecode-template-mode) (\.prolog\' . prolog-mode) (\.tar\' . tar-mode) (\.\(arc\|zip\|lzh\|lha\|zoo\|[jew]ar\|xpi\|rar\|cbr\|7z\|ARC\|ZIP\|LZH\|LHA\|ZOO\|[JEW]AR\|XPI\|RAR\|CBR\|7Z\)\' . archive-mode) (\.oxt\' . archive-mode) (\.\(deb\|[oi]pk\)\' . archive-mode) (\`/tmp/Re . text-mode) (/Message[0-9]*\' . text-mode) (\`/tmp/fol/ . text-mode) (\.oak\' . scheme-mode) (\.sgml?\' . sgml-mode) (\.x[ms]l\' . xml-mode) (\.dbk\' . xml-mode) (\.dtd\' . sgml-mode) (\.ds\(ss\)?l\' . dsssl-mode) (\.js[mx]?\' . javascript-mode) (\.har\' . javascript-mode) (\.json\' . javascript-mode) (\.[ds]?va?h?\' . verilog-mode) (\.by\' . bovine-grammar-mode) (\.wy\' . wisent-grammar-mode) ([:/\]\..*\(emacs\|gnus\|viper\)\' . emacs-lisp-mode) (\`\..*emacs\' . emacs-lisp-mode) ([:/]_emacs\' . emacs-lisp-mode) (/crontab\.X*[0-9]+\' . shell-script-mode) (\.ml\' . lisp-mode) (\.ld[si]?\' . ld-script-mode) (ld\.?script\' . ld-script-mode) (\.xs\' . c-mode) (\.x[abdsru]?[cnw]?\' . ld-script-mode) (\.zone\' . dns-mode) (\.soa\' . dns-mode) (\.asd\' . lisp-mode) (\.\(asn\|mib\|smi\)\' . snmp-mode) (\.\(as\|mi\|sm\)2\' . snmpv2-mode) (\.\(diffs?\|patch\|rej\)\' . diff-mode) (\.\(dif\|pat\)\' . diff-mode) (\.[eE]?[pP][sS]\' . ps-mode) (\.\(?:PDF\|DVI\|OD[FGPST]\|DOCX?\|XLSX?\|PPTX?\|pdf\|djvu\|dvi\|od[fgpst]\|docx?\|xlsx?\|pptx?\)\' . doc-view-mode-maybe) (configure\.\(ac\|in\)\' . autoconf-mode) (\.s\(v\|iv\|ieve\)\' . sieve-mode) (BROWSE\' . ebrowse-tree-mode) (\.ebrowse\' . ebrowse-tree-mode) (#\*mail\* . mail-mode) (\.g\' . antlr-mode) (\.mod\' . m2-mode) (\.ses\' . ses-mode) (\.docbook\' . sgml-mode) (\.com\' . dcl-mode) (/config\.\(?:bat\|log\)\' . fundamental-mode) (/\.\(authinfo\|netrc\)\' . authinfo-mode) (\.\(?:[iI][nN][iI]\|[lL][sS][tT]\|[rR][eE][gG]\|[sS][yY][sS]\)\' . conf-mode) (\.la\' . conf-unix-mode) (\.ppd\' . conf-ppd-mode) (java.+\.conf\' . conf-javaprop-mode) (\.properties\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-javaprop-mode) (\.toml\' . conf-toml-mode) (\.desktop\' . conf-desktop-mode) (\`/etc/\(?:DIR_COLORS\|ethers\|.?fstab\|.*hosts\|lesskey\|login\.?de\(?:fs\|vperm\)\|magic\|mtab\|pam\.d/.*\|permissions\(?:\.d/.+\)?\|protocols\|rpc\|services\)\' . conf-space-mode) (\`/etc/\(?:acpid?/.+\|aliases\(?:\.d/.+\)?\|default/.+\|group-?\|hosts\..+\|inittab\|ksysguarddrc\|opera6rc\|passwd-?\|shadow-?\|sysconfig/.+\)\' . conf-mode) ([cC]hange[lL]og[-.][-0-9a-z]+\' . change-log-mode) (/\.?\(?:gitconfig\|gnokiirc\|hgrc\|kde.*rc\|mime\.types\|wgetrc\)\' . conf-mode) (/\.\(?:enigma\|gltron\|gtk\|hxplayer\|net\|neverball\|qt/.+\|realplayer\|scummvm\|sversion\|sylpheed/.+\|xmp\)rc\' . conf-mode) (/\.\(?:gdbtkinit\|grip\|orbital/.+txt\|rhosts\|tuxracer/options\)\' . conf-mode) (/\.?X\(?:default\|resource\|re\)s\> . conf-xdefaults-mode) (/X11.+app-defaults/\|\.ad\' . conf-xdefaults-mode) (/X11.+locale/.+/Compose\' . conf-colon-mode) (/X11.+locale/compose\.dir\' . conf-javaprop-mode) (\.~?[0-9]+\.[0-9][-.0-9]*~?\' nil t) (\.\(?:orig\|in\|[bB][aA][kK]\)\' nil t) ([/.]c\(?:on\)?f\(?:i?g\)?\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-mode-maybe) (\.[1-9]\' . nroff-mode) (\.tgz\' . tar-mode) (\.tbz2?\' . tar-mode) (\.txz\' . tar-mode) (\.tzst\' . tar-mode) (\(?:\.\(?:php[3-5st]?\|amk\|phtml\)\|/\(?:Amkfile\|\.php_cs\|\.php_cs\.dist\)\)\' . php-mode))
+
 *** Tab width of 2 is compact and readable
 #+begin_src emacs-lisp 
     (setq-default tab-width 2)
 #+end_src
+
+#+RESULTS:
+: 2
+
 *** New lines are always indented
 
 I almost always want to go to the right indentation on the next line.
 #+begin_src emacs-lisp 
 (global-set-key (kbd "RET") 'newline-and-indent)
 #+end_src
+
+#+RESULTS:
+: newline-and-indent
 
 From https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-utils.el
 #+begin_src emacs-lisp 
@@ -5269,6 +5950,10 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-utils.el
 
 (bind-key "C-M-<backspace>" 'sanityinc/kill-back-to-indentation)
 #+end_src
+
+#+RESULTS:
+: sanityinc/kill-back-to-indentation
+
 *** Adapt to being on Windows
 
 I'm on Windows, so I use Cygwin to add Unix-y tools to make my life easier.
@@ -5281,6 +5966,8 @@ These config snippets seem to help too.
     (add-hook 'comint-output-filter-functions 'comint-watch-for-password-prompt nil t))
 #+end_src
 
+#+RESULTS:
+
 *** Expand region
 
 This is something I have to get the hang of too. It gradually expands the selection. Handy for Emacs Lisp.
@@ -5292,12 +5979,19 @@ This is something I have to get the hang of too. It gradually expands the select
     ("C-<prior>" . er/expand-region)
     ("C-<next>" . er/contract-region))
 #+end_src
+
+#+RESULTS:
+: er/contract-region
+
 *** Compilation
 
 #+begin_src emacs-lisp 
 (eval-after-load 'python-mode
   '(bind-key "C-c C-c" 'compile python-mode-map))
 #+end_src
+
+#+RESULTS:
+
 *** Emacs Lisp
 **** Eldoc
 Eldoc provides minibuffer hints when working with Emacs Lisp.
@@ -5312,6 +6006,10 @@ Eldoc provides minibuffer hints when working with Emacs Lisp.
   (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
   (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode)))
 #+end_src
+
+#+RESULTS:
+|   |
+
 **** Refactoring  :drill:
      :PROPERTIES:
      :ID:       99ac7ddb-08ef-46c4-8fa8-8a45164f9ef4
@@ -5352,12 +6050,19 @@ More things that I need to get used to...
     :init (add-hook 'emacs-lisp-mode-hook 'redshank-mode))
 
 #+end_src
+
+#+RESULTS:
+
 **** Jumping to code
 
 #+begin_src emacs-lisp 
 (define-key emacs-lisp-mode-map (kbd "C-c .") 'find-function-at-point)
 (bind-key "C-c f" 'find-function)
 #+end_src
+
+#+RESULTS:
+: find-function
+
 **** Sorting
 
 #+begin_src emacs-lisp 
@@ -5388,6 +6093,9 @@ couldn't figure things out (ex: syntax errors)."
           (insert (mapconcat 'cdr list "\n"))))))
 #+end_src
 
+#+RESULTS:
+: my/sort-sexps-in-region
+
 **** Evaluation
 
 Borrowed from Steve Purcell's config. This pretty-prints the results.
@@ -5404,6 +6112,10 @@ Borrowed from Steve Purcell's config. This pretty-prints the results.
 
 (bind-key "C-x C-e" 'sanityinc/eval-last-sexp-or-region emacs-lisp-mode-map)
 #+end_src
+
+#+RESULTS:
+: sanityinc/eval-last-sexp-or-region
+
 *** Snippets
     #+begin_src emacs-lisp 
       (use-package yasnippet
@@ -5422,6 +6134,9 @@ Borrowed from Steve Purcell's config. This pretty-prints the results.
       ;;        (global-set-key (kbd "C-c y") (lambda () (interactive)
       ;;                                         (yas/load-directory "~/elisp/snippets")))
 #+end_src
+
+#+RESULTS:
+: t
 
 From http://emacswiki.org/emacs/Yasnippet
 #+begin_src emacs-lisp 
@@ -5445,6 +6160,9 @@ From http://emacswiki.org/emacs/Yasnippet
             (cdr (assoc result rmap))))
       nil))
 #+end_src
+
+#+RESULTS:
+: shk-yas/helm-prompt
 
 From https://github.com/pcmantz/elisp/blob/master/my-bindings.el
 #+begin_src emacs-lisp 
@@ -5536,6 +6254,9 @@ This requires me to modify the behaviour of hippie-expand so that it doesn't din
 
 #+end_src
 
+#+RESULTS:
+: my/hippie-expand-maybe
+
 yas/expand
 yas-expand
 
@@ -5550,11 +6271,17 @@ I sometimes need to know where I am in a line.
 (column-number-mode 1)
 #+end_src
 
+#+RESULTS:
+: t
+
 *** Don't show whitespace in diff, but show context
     #+begin_src emacs-lisp 
 (setq vc-diff-switches '("-b" "-B" "-u"))
 (setq vc-git-diff-switches nil)
 #+end_src
+
+#+RESULTS:
+
 *** Javascript
 
 I like js2-mode.
@@ -5563,6 +6290,9 @@ I like js2-mode.
 (add-to-list 'auto-mode-alist '("\\.js\\'\\|\\.json\\'" . js2-mode))
 #+end_src
 
+#+RESULTS:
+: ((\.ledger$ . ledger-mode) (Dockerfile\' . dockerfile-mode) (\.js\' . rjsx-mode) (\.js\'\|\.json\' . js2-mode) (\.html?\' . web-mode) (\.txt$ . org-mode) (\.gpg\(~\|\.~[0-9]+~\)?\' nil epa-file) (\.hva\' . latex-mode) (\.drv\' . latex-mode) (\.cson\' . coffee-mode) (Cakefile\' . coffee-mode) (\.iced\' . coffee-mode) (\.coffee\' . coffee-mode) (\.cs$ . csharp-mode) (\.[Cc][Ss][Vv]\' . csv-mode) (docker-compose[^/]*\.yml\' . docker-compose-mode) (Dockerfile\(?:\..*\)?\' . dockerfile-mode) (.*\.ipynb\' . ein:ipynb-mode) (\.feature\' . feature-mode) (\.haml\' . haml-mode) (\(?:\(?:\.json\|\.jsonld\|\.babelrc\|\.bowerrc\|composer\.lock\)\'\) . json-mode) (\.ledger\' . ledger-mode) (/git-rebase-todo\' . git-rebase-mode) (\.md\' . markdown-mode) (\.markdown\' . markdown-mode) (\.ado\' . ess-stata-mode) (\.do\' . ess-stata-mode) (\.[Ss][Aa][Ss]\' . SAS-mode) (\.Sout . S-transcript-mode) (\.[Ss]t\' . S-transcript-mode) (\.Rd\' . Rd-mode) (DESCRIPTION$ . conf-colon-mode) (/Makevars\(\.win\)?$ . makefile-mode) (\.[Rr]out . ess-r-transcript-mode) (CITATION\' . ess-r-mode) (NAMESPACE\' . ess-r-mode) (\.[rR]profile\' . ess-r-mode) (\.[rR]\' . ess-r-mode) (/R/.*\.q\' . ess-r-mode) (\.[Jj][Aa][Gg]\' . ess-jags-mode) (\.[Bb][Mm][Dd]\' . ess-bugs-mode) (\.[Bb][Oo][Gg]\' . ess-bugs-mode) (\.[Bb][Uu][Gg]\' . ess-bugs-mode) (\.jl\' . julia-mode) (\.tlc$ . tlc-mode) (\.m$ . matlab-mode) (\.jsx\' . rjsx-mode) (\.ts$ . typescript-mode) (\.\(e?ya?\|ra\)ml\' . yaml-mode) (\.elc\' . elisp-byte-code-mode) (\.zst\' nil jka-compr) (\.dz\' nil jka-compr) (\.xz\' nil jka-compr) (\.lzma\' nil jka-compr) (\.lz\' nil jka-compr) (\.g?z\' nil jka-compr) (\.bz2\' nil jka-compr) (\.Z\' nil jka-compr) (\.vr[hi]?\' . vera-mode) (\(?:\.\(?:rbw?\|ru\|rake\|thor\|jbuilder\|rabl\|gemspec\|podspec\)\|/\(?:Gem\|Rake\|Cap\|Thor\|Puppet\|Berks\|Vagrant\|Guard\|Pod\)file\)\' . ruby-mode) (\.re?st\' . rst-mode) (\.py[iw]?\' . python-mode) (\.m\' . octave-maybe-mode) (\.less\' . less-css-mode) (\.scss\' . scss-mode) (\.awk\' . awk-mode) (\.\(u?lpc\|pike\|pmod\(\.in\)?\)\' . pike-mode) (\.idl\' . idl-mode) (\.java\' . java-mode) (\.m\' . objc-mode) (\.ii\' . c++-mode) (\.i\' . c-mode) (\.lex\' . c-mode) (\.y\(acc\)?\' . c-mode) (\.h\' . c-or-c++-mode) (\.c\' . c-mode) (\.\(CC?\|HH?\)\' . c++-mode) (\.[ch]\(pp\|xx\|\+\+\)\' . c++-mode) (\.\(cc\|hh\)\' . c++-mode) (\.\(bat\|cmd\)\' . bat-mode) (\.[sx]?html?\(\.[a-zA-Z_]+\)?\' . mhtml-mode) (\.svgz?\' . image-mode) (\.svgz?\' . xml-mode) (\.x[bp]m\' . image-mode) (\.x[bp]m\' . c-mode) (\.p[bpgn]m\' . image-mode) (\.tiff?\' . image-mode) (\.gif\' . image-mode) (\.png\' . image-mode) (\.jpe?g\' . image-mode) (\.te?xt\' . text-mode) (\.[tT]e[xX]\' . tex-mode) (\.ins\' . tex-mode) (\.ltx\' . latex-mode) (\.dtx\' . doctex-mode) (\.org\' . org-mode) (\.el\' . emacs-lisp-mode) (Project\.ede\' . emacs-lisp-mode) (\.\(scm\|stk\|ss\|sch\)\' . scheme-mode) (\.l\' . lisp-mode) (\.li?sp\' . lisp-mode) (\.[fF]\' . fortran-mode) (\.for\' . fortran-mode) (\.p\' . pascal-mode) (\.pas\' . pascal-mode) (\.\(dpr\|DPR\)\' . delphi-mode) (\.ad[abs]\' . ada-mode) (\.ad[bs].dg\' . ada-mode) (\.\([pP]\([Llm]\|erl\|od\)\|al\)\' . perl-mode) (Imakefile\' . makefile-imake-mode) (Makeppfile\(?:\.mk\)?\' . makefile-makepp-mode) (\.makepp\' . makefile-makepp-mode) (\.mk\' . makefile-gmake-mode) (\.make\' . makefile-gmake-mode) ([Mm]akefile\' . makefile-gmake-mode) (\.am\' . makefile-automake-mode) (\.texinfo\' . texinfo-mode) (\.te?xi\' . texinfo-mode) (\.[sS]\' . asm-mode) (\.asm\' . asm-mode) (\.css\' . css-mode) (\.mixal\' . mixal-mode) (\.gcov\' . compilation-mode) (/\.[a-z0-9-]*gdbinit . gdb-script-mode) (-gdb\.gdb . gdb-script-mode) ([cC]hange\.?[lL]og?\' . change-log-mode) ([cC]hange[lL]og[-.][0-9]+\' . change-log-mode) (\$CHANGE_LOG\$\.TXT . change-log-mode) (\.scm\.[0-9]*\' . scheme-mode) (\.[ckz]?sh\'\|\.shar\'\|/\.z?profile\' . sh-mode) (\.bash\' . sh-mode) (\(/\|\`\)\.\(bash_\(profile\|history\|log\(in\|out\)\)\|z?log\(in\|out\)\)\' . sh-mode) (\(/\|\`\)\.\(shrc\|zshrc\|m?kshrc\|bashrc\|t?cshrc\|esrc\)\' . sh-mode) (\(/\|\`\)\.\([kz]shenv\|xinitrc\|startxrc\|xsession\)\' . sh-mode) (\.m?spec\' . sh-mode) (\.m[mes]\' . nroff-mode) (\.man\' . nroff-mode) (\.sty\' . latex-mode) (\.cl[so]\' . latex-mode) (\.bbl\' . latex-mode) (\.bib\' . bibtex-mode) (\.bst\' . bibtex-style-mode) (\.sql\' . sql-mode) (\(acinclude\|aclocal\|acsite\)\.m4\' . autoconf-mode) (\.m[4c]\' . m4-mode) (\.mf\' . metafont-mode) (\.mp\' . metapost-mode) (\.vhdl?\' . vhdl-mode) (\.article\' . text-mode) (\.letter\' . text-mode) (\.i?tcl\' . tcl-mode) (\.exp\' . tcl-mode) (\.itk\' . tcl-mode) (\.icn\' . icon-mode) (\.sim\' . simula-mode) (\.mss\' . scribe-mode) (\.f9[05]\' . f90-mode) (\.f0[38]\' . f90-mode) (\.indent\.pro\' . fundamental-mode) (\.\(pro\|PRO\)\' . idlwave-mode) (\.srt\' . srecode-template-mode) (\.prolog\' . prolog-mode) (\.tar\' . tar-mode) (\.\(arc\|zip\|lzh\|lha\|zoo\|[jew]ar\|xpi\|rar\|cbr\|7z\|ARC\|ZIP\|LZH\|LHA\|ZOO\|[JEW]AR\|XPI\|RAR\|CBR\|7Z\)\' . archive-mode) (\.oxt\' . archive-mode) (\.\(deb\|[oi]pk\)\' . archive-mode) (\`/tmp/Re . text-mode) (/Message[0-9]*\' . text-mode) (\`/tmp/fol/ . text-mode) (\.oak\' . scheme-mode) (\.sgml?\' . sgml-mode) (\.x[ms]l\' . xml-mode) (\.dbk\' . xml-mode) (\.dtd\' . sgml-mode) (\.ds\(ss\)?l\' . dsssl-mode) (\.js[mx]?\' . javascript-mode) (\.har\' . javascript-mode) (\.json\' . javascript-mode) (\.[ds]?va?h?\' . verilog-mode) (\.by\' . bovine-grammar-mode) (\.wy\' . wisent-grammar-mode) ([:/\]\..*\(emacs\|gnus\|viper\)\' . emacs-lisp-mode) (\`\..*emacs\' . emacs-lisp-mode) ([:/]_emacs\' . emacs-lisp-mode) (/crontab\.X*[0-9]+\' . shell-script-mode) (\.ml\' . lisp-mode) (\.ld[si]?\' . ld-script-mode) (ld\.?script\' . ld-script-mode) (\.xs\' . c-mode) (\.x[abdsru]?[cnw]?\' . ld-script-mode) (\.zone\' . dns-mode) (\.soa\' . dns-mode) (\.asd\' . lisp-mode) (\.\(asn\|mib\|smi\)\' . snmp-mode) (\.\(as\|mi\|sm\)2\' . snmpv2-mode) (\.\(diffs?\|patch\|rej\)\' . diff-mode) (\.\(dif\|pat\)\' . diff-mode) (\.[eE]?[pP][sS]\' . ps-mode) (\.\(?:PDF\|DVI\|OD[FGPST]\|DOCX?\|XLSX?\|PPTX?\|pdf\|djvu\|dvi\|od[fgpst]\|docx?\|xlsx?\|pptx?\)\' . doc-view-mode-maybe) (configure\.\(ac\|in\)\' . autoconf-mode) (\.s\(v\|iv\|ieve\)\' . sieve-mode) (BROWSE\' . ebrowse-tree-mode) (\.ebrowse\' . ebrowse-tree-mode) (#\*mail\* . mail-mode) (\.g\' . antlr-mode) (\.mod\' . m2-mode) (\.ses\' . ses-mode) (\.docbook\' . sgml-mode) (\.com\' . dcl-mode) (/config\.\(?:bat\|log\)\' . fundamental-mode) (/\.\(authinfo\|netrc\)\' . authinfo-mode) (\.\(?:[iI][nN][iI]\|[lL][sS][tT]\|[rR][eE][gG]\|[sS][yY][sS]\)\' . conf-mode) (\.la\' . conf-unix-mode) (\.ppd\' . conf-ppd-mode) (java.+\.conf\' . conf-javaprop-mode) (\.properties\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-javaprop-mode) (\.toml\' . conf-toml-mode) (\.desktop\' . conf-desktop-mode) (\`/etc/\(?:DIR_COLORS\|ethers\|.?fstab\|.*hosts\|lesskey\|login\.?de\(?:fs\|vperm\)\|magic\|mtab\|pam\.d/.*\|permissions\(?:\.d/.+\)?\|protocols\|rpc\|services\)\' . conf-space-mode) (\`/etc/\(?:acpid?/.+\|aliases\(?:\.d/.+\)?\|default/.+\|group-?\|hosts\..+\|inittab\|ksysguarddrc\|opera6rc\|passwd-?\|shadow-?\|sysconfig/.+\)\' . conf-mode) ([cC]hange[lL]og[-.][-0-9a-z]+\' . change-log-mode) (/\.?\(?:gitconfig\|gnokiirc\|hgrc\|kde.*rc\|mime\.types\|wgetrc\)\' . conf-mode) (/\.\(?:enigma\|gltron\|gtk\|hxplayer\|net\|neverball\|qt/.+\|realplayer\|scummvm\|sversion\|sylpheed/.+\|xmp\)rc\' . conf-mode) (/\.\(?:gdbtkinit\|grip\|orbital/.+txt\|rhosts\|tuxracer/options\)\' . conf-mode) (/\.?X\(?:default\|resource\|re\)s\> . conf-xdefaults-mode) (/X11.+app-defaults/\|\.ad\' . conf-xdefaults-mode) (/X11.+locale/.+/Compose\' . conf-colon-mode) (/X11.+locale/compose\.dir\' . conf-javaprop-mode) (\.~?[0-9]+\.[0-9][-.0-9]*~?\' nil t) (\.\(?:orig\|in\|[bB][aA][kK]\)\' nil t) ([/.]c\(?:on\)?f\(?:i?g\)?\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-mode-maybe) (\.[1-9]\' . nroff-mode) (\.tgz\' . tar-mode) (\.tbz2?\' . tar-mode) (\.txz\' . tar-mode) (\.tzst\' . tar-mode) (\(?:\.\(?:php[3-5st]?\|amk\|phtml\)\|/\(?:Amkfile\|\.php_cs\|\.php_cs\.dist\)\)\' . php-mode))
+
 Handy shortcuts:
 #+begin_src emacs-lisp 
   (use-package js2-mode
@@ -5570,11 +6300,16 @@ Handy shortcuts:
     :bind (:map js2-mode-map ("C-c C-c" . compile)))
 #+end_src
 
+#+RESULTS:
+: compile
+
 #+begin_src emacs-lisp 
 (use-package coffee-mode
   :mode "\\.coffee\\'"
   :bind (:map coffee-mode-map ("C-c C-c" . compile)))
 #+end_src
+
+#+RESULTS:
 
 #+begin_src emacs-lisp 
   (use-package jasminejs-mode
@@ -5582,6 +6317,9 @@ Handy shortcuts:
     :hook ((js2-mode . jasminejs-mode)
            (jasminejs-mode-hook . jasminejs-add-snippets-to-yas-snippet-dirs)))
 #+end_src
+
+#+RESULTS:
+| jasminejs-add-snippets-to-yas-snippet-dirs |
 
 This makes script blocks easier to copy:
 
@@ -5610,6 +6348,9 @@ test-related code is detected."
 		"\n</script>")))
 #+end_src
 
+#+RESULTS:
+: my/copy-javascript-region-or-buffer
+
 This makes it easier to debug:
 
 #+begin_src emacs-lisp 
@@ -5637,6 +6378,9 @@ This makes it easier to debug:
       (js2-indent-line))))
 #+end_src
 
+#+RESULTS:
+: my/insert-or-flush-debug
+
 And the rest of the js2 config:
 
 #+begin_src emacs-lisp 
@@ -5655,11 +6399,16 @@ And the rest of the js2 config:
       :config (js2-imenu-extras-setup))
 #+end_src
 
+#+RESULTS:
+: my/copy-javascript-region-or-buffer
+
 #+begin_src emacs-lisp 
 (use-package coffee-mode
 :defer t
 :config (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
 #+end_src
+
+#+RESULTS:
 
 **** React
 
@@ -5668,6 +6417,10 @@ And the rest of the js2 config:
   :mode "\\.js\\'")
 
 #+end_src
+
+#+RESULTS:
+: ((\.ledger$ . ledger-mode) (Dockerfile\' . dockerfile-mode) (\.js\' . rjsx-mode) (\.js\'\|\.json\' . js2-mode) (\.html?\' . web-mode) (\.txt$ . org-mode) (\.gpg\(~\|\.~[0-9]+~\)?\' nil epa-file) (\.hva\' . latex-mode) (\.drv\' . latex-mode) (\.cson\' . coffee-mode) (Cakefile\' . coffee-mode) (\.iced\' . coffee-mode) (\.coffee\' . coffee-mode) (\.cs$ . csharp-mode) (\.[Cc][Ss][Vv]\' . csv-mode) (docker-compose[^/]*\.yml\' . docker-compose-mode) (Dockerfile\(?:\..*\)?\' . dockerfile-mode) (.*\.ipynb\' . ein:ipynb-mode) (\.feature\' . feature-mode) (\.haml\' . haml-mode) (\(?:\(?:\.json\|\.jsonld\|\.babelrc\|\.bowerrc\|composer\.lock\)\'\) . json-mode) (\.ledger\' . ledger-mode) (/git-rebase-todo\' . git-rebase-mode) (\.md\' . markdown-mode) (\.markdown\' . markdown-mode) (\.ado\' . ess-stata-mode) (\.do\' . ess-stata-mode) (\.[Ss][Aa][Ss]\' . SAS-mode) (\.Sout . S-transcript-mode) (\.[Ss]t\' . S-transcript-mode) (\.Rd\' . Rd-mode) (DESCRIPTION$ . conf-colon-mode) (/Makevars\(\.win\)?$ . makefile-mode) (\.[Rr]out . ess-r-transcript-mode) (CITATION\' . ess-r-mode) (NAMESPACE\' . ess-r-mode) (\.[rR]profile\' . ess-r-mode) (\.[rR]\' . ess-r-mode) (/R/.*\.q\' . ess-r-mode) (\.[Jj][Aa][Gg]\' . ess-jags-mode) (\.[Bb][Mm][Dd]\' . ess-bugs-mode) (\.[Bb][Oo][Gg]\' . ess-bugs-mode) (\.[Bb][Uu][Gg]\' . ess-bugs-mode) (\.jl\' . julia-mode) (\.tlc$ . tlc-mode) (\.m$ . matlab-mode) (\.jsx\' . rjsx-mode) (\.ts$ . typescript-mode) (\.\(e?ya?\|ra\)ml\' . yaml-mode) (\.elc\' . elisp-byte-code-mode) (\.zst\' nil jka-compr) (\.dz\' nil jka-compr) (\.xz\' nil jka-compr) (\.lzma\' nil jka-compr) (\.lz\' nil jka-compr) (\.g?z\' nil jka-compr) (\.bz2\' nil jka-compr) (\.Z\' nil jka-compr) (\.vr[hi]?\' . vera-mode) (\(?:\.\(?:rbw?\|ru\|rake\|thor\|jbuilder\|rabl\|gemspec\|podspec\)\|/\(?:Gem\|Rake\|Cap\|Thor\|Puppet\|Berks\|Vagrant\|Guard\|Pod\)file\)\' . ruby-mode) (\.re?st\' . rst-mode) (\.py[iw]?\' . python-mode) (\.m\' . octave-maybe-mode) (\.less\' . less-css-mode) (\.scss\' . scss-mode) (\.awk\' . awk-mode) (\.\(u?lpc\|pike\|pmod\(\.in\)?\)\' . pike-mode) (\.idl\' . idl-mode) (\.java\' . java-mode) (\.m\' . objc-mode) (\.ii\' . c++-mode) (\.i\' . c-mode) (\.lex\' . c-mode) (\.y\(acc\)?\' . c-mode) (\.h\' . c-or-c++-mode) (\.c\' . c-mode) (\.\(CC?\|HH?\)\' . c++-mode) (\.[ch]\(pp\|xx\|\+\+\)\' . c++-mode) (\.\(cc\|hh\)\' . c++-mode) (\.\(bat\|cmd\)\' . bat-mode) (\.[sx]?html?\(\.[a-zA-Z_]+\)?\' . mhtml-mode) (\.svgz?\' . image-mode) (\.svgz?\' . xml-mode) (\.x[bp]m\' . image-mode) (\.x[bp]m\' . c-mode) (\.p[bpgn]m\' . image-mode) (\.tiff?\' . image-mode) (\.gif\' . image-mode) (\.png\' . image-mode) (\.jpe?g\' . image-mode) (\.te?xt\' . text-mode) (\.[tT]e[xX]\' . tex-mode) (\.ins\' . tex-mode) (\.ltx\' . latex-mode) (\.dtx\' . doctex-mode) (\.org\' . org-mode) (\.el\' . emacs-lisp-mode) (Project\.ede\' . emacs-lisp-mode) (\.\(scm\|stk\|ss\|sch\)\' . scheme-mode) (\.l\' . lisp-mode) (\.li?sp\' . lisp-mode) (\.[fF]\' . fortran-mode) (\.for\' . fortran-mode) (\.p\' . pascal-mode) (\.pas\' . pascal-mode) (\.\(dpr\|DPR\)\' . delphi-mode) (\.ad[abs]\' . ada-mode) (\.ad[bs].dg\' . ada-mode) (\.\([pP]\([Llm]\|erl\|od\)\|al\)\' . perl-mode) (Imakefile\' . makefile-imake-mode) (Makeppfile\(?:\.mk\)?\' . makefile-makepp-mode) (\.makepp\' . makefile-makepp-mode) (\.mk\' . makefile-gmake-mode) (\.make\' . makefile-gmake-mode) ([Mm]akefile\' . makefile-gmake-mode) (\.am\' . makefile-automake-mode) (\.texinfo\' . texinfo-mode) (\.te?xi\' . texinfo-mode) (\.[sS]\' . asm-mode) (\.asm\' . asm-mode) (\.css\' . css-mode) (\.mixal\' . mixal-mode) (\.gcov\' . compilation-mode) (/\.[a-z0-9-]*gdbinit . gdb-script-mode) (-gdb\.gdb . gdb-script-mode) ([cC]hange\.?[lL]og?\' . change-log-mode) ([cC]hange[lL]og[-.][0-9]+\' . change-log-mode) (\$CHANGE_LOG\$\.TXT . change-log-mode) (\.scm\.[0-9]*\' . scheme-mode) (\.[ckz]?sh\'\|\.shar\'\|/\.z?profile\' . sh-mode) (\.bash\' . sh-mode) (\(/\|\`\)\.\(bash_\(profile\|history\|log\(in\|out\)\)\|z?log\(in\|out\)\)\' . sh-mode) (\(/\|\`\)\.\(shrc\|zshrc\|m?kshrc\|bashrc\|t?cshrc\|esrc\)\' . sh-mode) (\(/\|\`\)\.\([kz]shenv\|xinitrc\|startxrc\|xsession\)\' . sh-mode) (\.m?spec\' . sh-mode) (\.m[mes]\' . nroff-mode) (\.man\' . nroff-mode) (\.sty\' . latex-mode) (\.cl[so]\' . latex-mode) (\.bbl\' . latex-mode) (\.bib\' . bibtex-mode) (\.bst\' . bibtex-style-mode) (\.sql\' . sql-mode) (\(acinclude\|aclocal\|acsite\)\.m4\' . autoconf-mode) (\.m[4c]\' . m4-mode) (\.mf\' . metafont-mode) (\.mp\' . metapost-mode) (\.vhdl?\' . vhdl-mode) (\.article\' . text-mode) (\.letter\' . text-mode) (\.i?tcl\' . tcl-mode) (\.exp\' . tcl-mode) (\.itk\' . tcl-mode) (\.icn\' . icon-mode) (\.sim\' . simula-mode) (\.mss\' . scribe-mode) (\.f9[05]\' . f90-mode) (\.f0[38]\' . f90-mode) (\.indent\.pro\' . fundamental-mode) (\.\(pro\|PRO\)\' . idlwave-mode) (\.srt\' . srecode-template-mode) (\.prolog\' . prolog-mode) (\.tar\' . tar-mode) (\.\(arc\|zip\|lzh\|lha\|zoo\|[jew]ar\|xpi\|rar\|cbr\|7z\|ARC\|ZIP\|LZH\|LHA\|ZOO\|[JEW]AR\|XPI\|RAR\|CBR\|7Z\)\' . archive-mode) (\.oxt\' . archive-mode) (\.\(deb\|[oi]pk\)\' . archive-mode) (\`/tmp/Re . text-mode) (/Message[0-9]*\' . text-mode) (\`/tmp/fol/ . text-mode) (\.oak\' . scheme-mode) (\.sgml?\' . sgml-mode) (\.x[ms]l\' . xml-mode) (\.dbk\' . xml-mode) (\.dtd\' . sgml-mode) (\.ds\(ss\)?l\' . dsssl-mode) (\.js[mx]?\' . javascript-mode) (\.har\' . javascript-mode) (\.json\' . javascript-mode) (\.[ds]?va?h?\' . verilog-mode) (\.by\' . bovine-grammar-mode) (\.wy\' . wisent-grammar-mode) ([:/\]\..*\(emacs\|gnus\|viper\)\' . emacs-lisp-mode) (\`\..*emacs\' . emacs-lisp-mode) ([:/]_emacs\' . emacs-lisp-mode) (/crontab\.X*[0-9]+\' . shell-script-mode) (\.ml\' . lisp-mode) (\.ld[si]?\' . ld-script-mode) (ld\.?script\' . ld-script-mode) (\.xs\' . c-mode) (\.x[abdsru]?[cnw]?\' . ld-script-mode) (\.zone\' . dns-mode) (\.soa\' . dns-mode) (\.asd\' . lisp-mode) (\.\(asn\|mib\|smi\)\' . snmp-mode) (\.\(as\|mi\|sm\)2\' . snmpv2-mode) (\.\(diffs?\|patch\|rej\)\' . diff-mode) (\.\(dif\|pat\)\' . diff-mode) (\.[eE]?[pP][sS]\' . ps-mode) (\.\(?:PDF\|DVI\|OD[FGPST]\|DOCX?\|XLSX?\|PPTX?\|pdf\|djvu\|dvi\|od[fgpst]\|docx?\|xlsx?\|pptx?\)\' . doc-view-mode-maybe) (configure\.\(ac\|in\)\' . autoconf-mode) (\.s\(v\|iv\|ieve\)\' . sieve-mode) (BROWSE\' . ebrowse-tree-mode) (\.ebrowse\' . ebrowse-tree-mode) (#\*mail\* . mail-mode) (\.g\' . antlr-mode) (\.mod\' . m2-mode) (\.ses\' . ses-mode) (\.docbook\' . sgml-mode) (\.com\' . dcl-mode) (/config\.\(?:bat\|log\)\' . fundamental-mode) (/\.\(authinfo\|netrc\)\' . authinfo-mode) (\.\(?:[iI][nN][iI]\|[lL][sS][tT]\|[rR][eE][gG]\|[sS][yY][sS]\)\' . conf-mode) (\.la\' . conf-unix-mode) (\.ppd\' . conf-ppd-mode) (java.+\.conf\' . conf-javaprop-mode) (\.properties\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-javaprop-mode) (\.toml\' . conf-toml-mode) (\.desktop\' . conf-desktop-mode) (\`/etc/\(?:DIR_COLORS\|ethers\|.?fstab\|.*hosts\|lesskey\|login\.?de\(?:fs\|vperm\)\|magic\|mtab\|pam\.d/.*\|permissions\(?:\.d/.+\)?\|protocols\|rpc\|services\)\' . conf-space-mode) (\`/etc/\(?:acpid?/.+\|aliases\(?:\.d/.+\)?\|default/.+\|group-?\|hosts\..+\|inittab\|ksysguarddrc\|opera6rc\|passwd-?\|shadow-?\|sysconfig/.+\)\' . conf-mode) ([cC]hange[lL]og[-.][-0-9a-z]+\' . change-log-mode) (/\.?\(?:gitconfig\|gnokiirc\|hgrc\|kde.*rc\|mime\.types\|wgetrc\)\' . conf-mode) (/\.\(?:enigma\|gltron\|gtk\|hxplayer\|net\|neverball\|qt/.+\|realplayer\|scummvm\|sversion\|sylpheed/.+\|xmp\)rc\' . conf-mode) (/\.\(?:gdbtkinit\|grip\|orbital/.+txt\|rhosts\|tuxracer/options\)\' . conf-mode) (/\.?X\(?:default\|resource\|re\)s\> . conf-xdefaults-mode) (/X11.+app-defaults/\|\.ad\' . conf-xdefaults-mode) (/X11.+locale/.+/Compose\' . conf-colon-mode) (/X11.+locale/compose\.dir\' . conf-javaprop-mode) (\.~?[0-9]+\.[0-9][-.0-9]*~?\' nil t) (\.\(?:orig\|in\|[bB][aA][kK]\)\' nil t) ([/.]c\(?:on\)?f\(?:i?g\)?\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-mode-maybe) (\.[1-9]\' . nroff-mode) (\.tgz\' . tar-mode) (\.tbz2?\' . tar-mode) (\.txz\' . tar-mode) (\.tzst\' . tar-mode) (\(?:\.\(?:php[3-5st]?\|amk\|phtml\)\|/\(?:Amkfile\|\.php_cs\|\.php_cs\.dist\)\)\' . php-mode))
+
 *** HTML
 
 Convenience function for getting rid of annoying spans
@@ -5711,6 +6464,9 @@ offby1 says there's (setq nxml-sexp-element-flag t)
 
 ;; (ert "my/clean-up-spans-in-string")
 #+end_src
+
+#+RESULTS:
+: my/clean-up-spans-in-string
 
 *** Magit - nice git interface
 		:PROPERTIES:
@@ -5815,6 +6571,8 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
   (use-package magit-gh-pulls)
 #+end_src
 
+#+RESULTS:
+
 The proper way to implement this is probably to patch or override the
 definition of magit-git-insert-section so that it takes a list of
 options to add at the end of the command, but that can wait for another time (or braver souls).
@@ -5826,6 +6584,10 @@ options to add at the end of the command, but that can wait for another time (or
 (use-package git-messenger
   :bind (("C-x v m" . git-messenger:popup-message)))
 #+end_src
+
+#+RESULTS:
+: git-messenger:popup-message
+
 *** Tag files
 
     I don't often use a TAGS file, but when I do, I don't want to have
@@ -5851,6 +6613,9 @@ options to add at the end of the command, but that can wait for another time (or
         '(progn
            (add-hook 'drupal-mode-hook 'my/find-tags)))
       #+end_src
+
+      #+RESULTS:
+
 *** Projects
 
 #+begin_src emacs-lisp 
@@ -5866,11 +6631,16 @@ options to add at the end of the command, but that can wait for another time (or
     (add-to-list 'projectile-globally-ignored-files "node-modules")))
 (use-package helm-projectile)
 #+end_src
+
+#+RESULTS:
+
 *** Exploring MELPA recipes
 
 #+begin_src emacs-lisp 
 
 #+end_src
+
+#+RESULTS:
 
 *** Ruby
 
@@ -5883,6 +6653,8 @@ options to add at the end of the command, but that can wait for another time (or
              (add-hook 'robe-mode-hook 'ac-robe-setup)
              (add-hook 'ruby-mode-hook 'auto-complete-mode)))
 		#+end_src
+
+    #+RESULTS:
 
 #+begin_src emacs-lisp 
 (defun my/rspec-verify-single ()
@@ -5906,6 +6678,9 @@ options to add at the end of the command, but that can wait for another time (or
 
 #+end_src
 
+#+RESULTS:
+: t
+
 SASS
 
 #+begin_src emacs-lisp 
@@ -5913,6 +6688,9 @@ SASS
           (lambda () (setq indent-tabs-mode nil)))
 (setq-default indent-tabs-mode nil)
 #+end_src
+
+#+RESULTS:
+
 *** Skewer
 
 This lets you send HTML, CSS, and Javascript fragments to Google
@@ -5925,12 +6703,19 @@ with HTTPS sites.
   :config (skewer-setup))
 #+end_src
 
+#+RESULTS:
+: t
+
 *** Autocomplete
 
 #+begin_src emacs-lisp 
 (use-package company
   :config (add-hook 'prog-mode-hook 'company-mode))
 #+end_src
+
+#+RESULTS:
+: t
+
 *** Tern - for Javascript
 
 #+begin_src emacs-lisp 
@@ -5944,12 +6729,15 @@ with HTTPS sites.
 :init (add-to-list 'company-backends 'company-tern))
 #+end_src
 
+#+RESULTS:
+
 *** Docker
 
 #+begin_src emacs-lisp
 (use-package dockerfile-mode
   :mode ("Dockerfile\\'" . dockerfile-mode))
 #+end_src
+
 ** Internet Relay Chat
 
    IRC is a great way to hang out with other Emacs geeks.
@@ -5994,6 +6782,9 @@ with HTTPS sites.
                                       "Kicked (kickban)"))))
        ))
    #+end_src
+
+   #+RESULTS:
+   : t
 
 ** Self-tracking, statistics, and other data transformations
 *** Quantified Awesome
@@ -6075,6 +6866,10 @@ with HTTPS sites.
 
   (require 'quantified nil t)
 #+end_src
+
+#+RESULTS:
+: quantified
+
 *** Compare times and effort estimates
     :PROPERTIES:
     :CUSTOM_ID: compare-time
@@ -6091,6 +6886,9 @@ This is for comparing times in column view and in tables.
                  (org-hh:mm-string-to-minutes estimated)))
       ""))
 #+end_src
+
+#+RESULTS:
+: my/compare-times
 
 Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: columnview :hlines 1= ... =#+END:=, and
 

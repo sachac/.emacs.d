@@ -3322,7 +3322,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
         (outline-next-heading)
         (insert
          "** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
-         (my/org-summarize-journal-csv "~/cloud/a/for-import.csv" start end t my/journal-category-map my/journal-categories)
+         (my/org-summarize-journal-csv start end nil my/journal-category-map my/journal-categories)
          "\n\n*Blog posts*\n\n"
          (my/org-list-from-rss "http://sachachua.com/blog/feed" start end)
                                             ;          "\n\n*Sketches*\n\n"
@@ -3710,8 +3710,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
            "\n\n** Monthly review: "
            title
            "  :monthly:review:\n\n"
-           (my/org-summarize-journal-csv "~/cloud/a/Journal.csv" start-date end-date
-                                         "month" my/journal-category-map my/journal-categories '(zid)) "\n\n"
+           (my/org-summarize-journal-csv start-date end-date nil my/journal-category-map my/journal-categories '(zid)) "\n\n"
            "*Blog posts*\n"
            posts "\n\n"
            "*Sketches*\n\n"
@@ -4441,39 +4440,46 @@ So that I can easily add links at point. Formatted as an Org list for now.
              data)))
       filtered))
 
+  (defun my/journal-get-entries (from to &optional search)
+    (with-current-buffer
+        (url-retrieve-synchronously (format "https://journal.sachachua.com/api/entries.csv?from=%s&to=%s&q=%s" from to (or search "")))
+      (goto-char (point-min))
+      (delete-region (point-min) (search-forward "\n\n"))
+      (pcsv-parse-buffer)))
 
-  (defun my/org-summarize-journal-csv (filename from to highlight &optional category-map categories include)
-      (interactive
-       (list (read-file-name "File: ") 
-             (org-read-date nil nil nil "From: ")
-             (org-read-date nil nil nil "To: ")
-             (let ((choice
-                    (read-char-choice "Highlight (m: month, w: week, a: all): " "mwa")))
-               (cond ((= choice ?m) "month")
-                     ((= choice ?w) "week")
-                     (t "all")))
-             my/journal-category-map
-             my/journal-categories
-             nil))
-      (let* ((sorted-list
-              (my/org-group-journal-entries
-               (my/org-filter-journal-csv filename from to highlight)
-               category-map categories))
-             (list (mapconcat
-                    (lambda (o)
-                      (concat "- *" (car o) "*\n"
-                              (mapconcat
-                               (lambda (i)
-                                 (concat "  - "
-                                         (if (member 'date include) (concat (my/journal-date i) " ") "")
-                                         (replace-regexp-in-string "\\\"" "\"" (my/journal-note i))
-                                         (if (member 'zid include) (concat " " (my/journal-zidstring i)) "")
-                                         ;; (if (string= "" (my/journal-category i))
-                                         ;;     ""
-                                         ;;   (format " (%s)" (my/journal-category i)))
-                                         "\n"))
-                               (reverse (cdr o)) "")))
-                    sorted-list "")))    
+  (defun my/org-journal-summarize (from to &optional search category-map categories)
+    (my/org-group-journal-entries (my/journal-get-entries from to search) category-map categories))
+
+  (defun my/org-journal-format-tree (groups &optional include)
+    (mapconcat
+     (lambda (o)
+       (concat "- *" (car o) "*\n"
+            (mapconcat
+             (lambda (i)
+               (concat "  - "
+                       (if (member 'date include) (concat (my/journal-date i) " ") "")
+                       (replace-regexp-in-string "\\\"" "\"" (my/journal-note i))
+                       (if (member 'zid include) (concat " " (my/journal-zidstring i)) "")
+                       ;; (if (string= "" (my/journal-category i))
+                       ;;     ""
+                       ;;   (format " (%s)" (my/journal-category i)))
+                       "\n"))
+             (reverse (cdr o)) "")))
+     groups ""))
+
+  (defun my/org-summarize-journal-csv (from to &optional search category-map categories include)
+     (interactive
+      (list (org-read-date nil nil nil "From: ")
+            (org-read-date nil nil nil "To: ")
+            (read-string "Search: ")
+            my/journal-category-map
+            my/journal-categories
+            nil))
+     (let ((list (my/org-journal-format-tree
+                   (my/org-group-journal-entries
+                    (my/journal-get-entries from to search) 
+                    category-map categories)
+                   include)))    
         (if (called-interactively-p 'any) (insert list) list)))
 
 #+end_src
@@ -5050,7 +5056,7 @@ https://www.reddit.com/prefs/feeds/ .
                    (lambda (item)
                      (let* ((o (assoc-default 'data item))
                             (title (assoc-default 'title o))
-                            (url (assoc-default 'url o))
+                            (url (helm-html-decode-entities-string (assoc-default 'url o)))
                             (date (seconds-to-time (assoc-default 'created_utc o)))
                             (permalink (concat "https://reddit.com" (assoc-default 'permalink o)))
                             (num-comments (assoc-default 'num_comments o 'eq 0)))
@@ -7164,69 +7170,89 @@ Get smarter about filtering depending on what I reed or mark. I use =!= (tick) f
 Make it easier to review my credit card transactions
 
 #+begin_src emacs-lisp 
-(use-package ledger-mode
-:load-path "~/vendor/ledger-mode"
-:mode "\\.ledger$" 
-:bind (:map ledger-mode-map
-        ("C-c f" . (lambda () (interactive) (find-file (my/latest-file "~/Downloads"))))))
+  (use-package ledger-mode
+  :load-path "~/vendor/ledger-mode"
+  :mode "\\.ledger$" 
+  :bind (:map ledger-mode-map
+              ("C-c a" . my/ledger-set-unknown-account)
+              ("C-c f" . (lambda () (interactive) (find-file (my/latest-file "~/Downloads"))))))
 
 #+end_src
 #+begin_src emacs-lisp 
+  (defvar my/ledger-account-list-cache nil)
+  (make-variable-buffer-local 'my/ledger-account-list-cache)
+  (defadvice ledger-accounts-list (around sacha activate)
+    "Cache"
+    (setq ad-return-value (or my/ledger-account-list-cache
+                             (setq my/ledger-account-list-cache ad-do-it))))
+
+  (defun my/ledger-set-unknown-account (account point)
+    (interactive (list (ledger-read-account-with-prompt "Account") (point)))
+    (let ((extents (ledger-navigate-find-xact-extents point)))
+      (save-excursion
+        (goto-char (car extents))
+        (if (re-search-forward "Expenses:Unknown" (cadr extents) t)
+            (replace-match account t t)
+          (goto-char point)
+          (beginning-of-line)
+          (when (re-search-forward "\\([^ \t]+\\)  " (line-end-position) nil)
+            (replace-match account t t nil 1))))))
+
   (defun my/ledger-go-to-beginning-of-entry ()
-    "Move to the beginning of the current entry."
-    (while (and (not (bobp))
-                (eq (ledger-context-line-type (ledger-context-at-point))
-                    'acct-transaction))
-      (forward-line -1)))
+      "Move to the beginning of the current entry."
+      (while (and (not (bobp))
+                  (eq (ledger-context-line-type (ledger-context-at-point))
+                      'acct-transaction))
+        (forward-line -1)))
 
-  (defun my/ledger-entry-date ()
-    "Returns the date of the entry containing point or nil."
-    (save-excursion
-      (my/ledger-go-to-beginning-of-entry)
-      (let ((context-info (ledger-context-other-line 0)))
-        (when (eq (ledger-context-line-type context-info) 'entry)
-          (goto-char (line-beginning-position))
-          (if (looking-at "\\([-0-9\\./]+\\)")
-              (match-string-no-properties 1))))))
+    (defun my/ledger-entry-date ()
+      "Returns the date of the entry containing point or nil."
+      (save-excursion
+        (my/ledger-go-to-beginning-of-entry)
+        (let ((context-info (ledger-context-other-line 0)))
+          (when (eq (ledger-context-line-type context-info) 'entry)
+            (goto-char (line-beginning-position))
+            (if (looking-at "\\([-0-9\\./]+\\)")
+                (match-string-no-properties 1))))))
 
-  (defun my/ledger-guess-mbna ()
-    "Adds a sub-account for the dates for my credit card transactions."
-    (interactive)
-    (save-excursion
-      (my/ledger-go-to-beginning-of-entry)
-      (forward-line 1)
-      (let ((amount 0) (date (my/ledger-entry-date)) month)
-        (if (string-match "[0-9]+[-\\.]\\([0-9]+\\)[-\\.]\\([0-9]+\\)" date)
-            (setq month (string-to-number (match-string 1 date))))
-        ;; Is this a payment or a charge?
-        (save-excursion
-          (while (and (eq (ledger-context-line-type (ledger-context-at-point))
-                          'acct-transaction)
-                      (not (eobp)))
-            (let ((context (ledger-context-at-point)))
-              (if (ledger-context-field-value context 'amount)
-                  (if (string-match "MBNA" (ledger-context-field-value context 'account))
-                      (setq amount (string-to-number (ledger-context-field-value context 'amount)))
-                    (setq amount (- (string-to-number (ledger-context-field-value context 'amount)))))))
-            (forward-line 1)))
-        (save-excursion
-          (while (and (eq (ledger-context-line-type (ledger-context-at-point))
-                          'acct-transaction)
-                      (not (eobp)))
-            (let ((context (ledger-context-at-point)))
-              (if (string-match "MBNA" (ledger-context-field-value context 'account))
-                  (if (re-search-forward "\\(MBNA\\)[ \t]*[-$\.0-9]*[ \t]*$" (line-end-position) t)
-                      (replace-match
-                       (concat "MBNA:"
-                               (elt
-                                '("January" "February" "March" "April" "May" "June" "July" "August" "September" "October" "November" "December")
-                                (% (+ (if (> amount 0) 10 11) month) 12)))
-                               t t nil 1))))
-            (forward-line 1))))))
+    (defun my/ledger-guess-mbna ()
+      "Adds a sub-account for the dates for my credit card transactions."
+      (interactive)
+      (save-excursion
+        (my/ledger-go-to-beginning-of-entry)
+        (forward-line 1)
+        (let ((amount 0) (date (my/ledger-entry-date)) month)
+          (if (string-match "[0-9]+[-\\.]\\([0-9]+\\)[-\\.]\\([0-9]+\\)" date)
+              (setq month (string-to-number (match-string 1 date))))
+          ;; Is this a payment or a charge?
+          (save-excursion
+            (while (and (eq (ledger-context-line-type (ledger-context-at-point))
+                            'acct-transaction)
+                        (not (eobp)))
+              (let ((context (ledger-context-at-point)))
+                (if (ledger-context-field-value context 'amount)
+                    (if (string-match "MBNA" (ledger-context-field-value context 'account))
+                        (setq amount (string-to-number (ledger-context-field-value context 'amount)))
+                      (setq amount (- (string-to-number (ledger-context-field-value context 'amount)))))))
+              (forward-line 1)))
+          (save-excursion
+            (while (and (eq (ledger-context-line-type (ledger-context-at-point))
+                            'acct-transaction)
+                        (not (eobp)))
+              (let ((context (ledger-context-at-point)))
+                (if (string-match "MBNA" (ledger-context-field-value context 'account))
+                    (if (re-search-forward "\\(MBNA\\)[ \t]*[-$\.0-9]*[ \t]*$" (line-end-position) t)
+                        (replace-match
+                         (concat "MBNA:"
+                                 (elt
+                                  '("January" "February" "March" "April" "May" "June" "July" "August" "September" "October" "November" "December")
+                                  (% (+ (if (> amount 0) 10 11) month) 12)))
+                                 t t nil 1))))
+              (forward-line 1))))))
 
-  ;; https://stackoverflow.com/questions/30886282/emacs-lisp-how-can-i-get-the-newest-file-in-a-directory
-  (defun my/latest-file (path)
-    (car (directory-files path 'full nil #'file-newer-than-file-p)))
+    ;; https://stackoverflow.com/questions/30886282/emacs-lisp-how-can-i-get-the-newest-file-in-a-directory
+    (defun my/latest-file (path)
+      (car (directory-files path 'full nil #'file-newer-than-file-p)))
 #+end_src
 
 ** Emacs server
@@ -9043,10 +9069,10 @@ https://www.emacswiki.org/emacs/InsertFileName
 
       (defun my/org-sketch-open (id)
         (interactive "MSketch ID: ")
-        (find-file (my/get-index-card-filename id)))
+        (call-process "krita" nil 0 nil "--nosplash" "--canvasonly" (my/get-index-card-filename (file-name-sans-extension id))))
 
       (defun my/org-sketch-export (link description format)
-        (let* ((path (concat "http://sketches.sachachua.com/id/" link))
+        (let* ((path (concat "https://sketches.sachachua.com/filename/" link))
                (desc (or description link)))
           (cond
            ((eq format 'html) (format "<a target=\"_blank\" href=\"%s\"><img src=\"%s\" width=\"300\"></a>" path desc))
@@ -9056,7 +9082,9 @@ https://www.emacswiki.org/emacs/InsertFileName
            ((eq format 'ascii) (format "%s <%s>" desc path))
            (t path))))
 
-      (org-link-set-parameters "sketch" :follow 'my/org-sketch-open :export 'my/org-sketch-export)
+      (org-link-set-parameters "sketch" :follow 'my/org-sketch-open
+                               :export 'my/org-sketch-export
+                               :complete (lambda () (concat "sketch:" (file-name-nondirectory (read-file-name "Sketch: " "~/cloud/sketches/")))))
 
 
     (defun my/list-sketches (regexp &optional full-filename directories)
@@ -9093,7 +9121,7 @@ https://www.emacswiki.org/emacs/InsertFileName
                                 (if name
                                     (concat " "
                                             (my/convert-sketch-title-to-filename (or name "")))
-                  
+
                 "") 
                                   "." (file-name-extension template))
                         directory))

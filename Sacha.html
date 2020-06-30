@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2020-06-29 Mon 13:59 -->
+<!-- 2020-06-30 Tue 00:36 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacha Chua's Emacs configuration</title>
@@ -298,7 +298,7 @@ for the JavaScript code in this tag.
 </li>
 </ul>
 </li>
-<li><a href="#org15d1d98">Navigation</a>
+<li><a href="#orgfb09d5e">Navigation</a>
 <ul>
 <li><a href="#org43a846b">Pop to mark</a></li>
 <li><a href="#orga9c79c3">Helm-swoop - quickly finding lines</a></li>
@@ -306,7 +306,7 @@ for the JavaScript code in this tag.
 <li><a href="#org9750649">Frequently-accessed files</a></li>
 <li><a href="#key-chord">Key chords and Hydras</a></li>
 <li><a href="#orgfdfb418">Smartscan</a></li>
-<li><a href="#orge0f7136">Dired</a>
+<li><a href="#org7e90c5e">Dired</a>
 <ul>
 <li><a href="#org4c65021">peep-dired</a></li>
 <li><a href="#org6ccec83">Saving photos</a></li>
@@ -338,7 +338,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgca8e067">Speed commands</a></li>
 </ul>
 </li>
-<li><a href="#orgfb09d5e">Navigation</a>
+<li><a href="#orga45e472">Navigation</a>
 <ul>
 <li><a href="#org1587f43">Link Org subtrees and navigate between them</a></li>
 <li><a href="#orgb362383">Viewing, navigating, and editing the Org tree</a></li>
@@ -349,7 +349,7 @@ for the JavaScript code in this tag.
 <li><a href="#orgc79d737">Taking notes</a>
 <ul>
 <li><a href="#org8b3b235">Date trees</a></li>
-<li><a href="#org1e17b2b">Templates</a></li>
+<li><a href="#orgbf41cee">Templates</a></li>
 <li><a href="#org2789cb5">Refiling</a></li>
 <li><a href="#orgce64659"><span class="todo TODO">TODO</span> Bounce to my phone inbox&#xa0;&#xa0;&#xa0;<span class="tag"><span class="computer">computer</span>&#xa0;<span class="phone">phone</span></span></a></li>
 <li><a href="#org5973465">Estimating WPM</a></li>
@@ -364,7 +364,7 @@ for the JavaScript code in this tag.
 <li><a href="#org90d6cc8">Quick way to archive all DONE from inbox&#xa0;&#xa0;&#xa0;<span class="tag"><span class="emacs">emacs</span>&#xa0;<span class="computer">computer</span></span></a></li>
 </ul>
 </li>
-<li><a href="#orgbf41cee">Templates</a>
+<li><a href="#orgcfc2a50">Templates</a>
 <ul>
 <li><a href="#org74bcbb3">Structure templates</a></li>
 <li><a href="#org60eb191">Emacs chats, Emacs hangouts</a></li>
@@ -382,7 +382,7 @@ for the JavaScript code in this tag.
 <li><a href="#org9f0afd0">Sorting by date and priority</a></li>
 <li><a href="#org231ff51">Preventing things from falling through the cracks</a></li>
 <li><a href="#org63e1206">Synchronizing with Google Calendar</a></li>
-<li><a href="#orgaeb4fed">Projects</a></li>
+<li><a href="#org8c2eaa3">Projects</a></li>
 </ul>
 </li>
 <li><a href="#org557a3c3">Reviews</a>
@@ -492,7 +492,7 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#orgb10c800">git-messenger - shows commit message</a></li>
 <li><a href="#orgfb77d93">Tag files</a></li>
-<li><a href="#orgd0cd698">Projects</a></li>
+<li><a href="#orgb3f5f52">Projects</a></li>
 <li><a href="#orgf50520e">Exploring MELPA recipes</a></li>
 <li><a href="#orgd60ed51">Ruby</a></li>
 <li><a href="#org915393b">Skewer</a></li>
@@ -557,7 +557,7 @@ for the JavaScript code in this tag.
 </ul>
 </li>
 <li><a href="#org44c51ff">Weather forecast</a></li>
-<li><a href="#orgad8e6d1">Encryption</a></li>
+<li><a href="#org4436e4d">Encryption</a></li>
 <li><a href="#org323ef6c"><span class="done DONE">DONE</span> Scan ~/bin and turn the scripts into interactive commands</a></li>
 <li><a href="#org463c0a6">Syncthing</a></li>
 <li><a href="#org725bc13">Search logs</a></li>
@@ -603,7 +603,7 @@ for the JavaScript code in this tag.
 </li>
 <li><a href="#org0b984fa">Keywiz - keyboard quizzes</a></li>
 <li><a href="#orgf62ed27">MobileOrg for Android</a></li>
-<li><a href="#org4436e4d">Encryption</a></li>
+<li><a href="#org5c5977f">Encryption</a></li>
 <li><a href="#org3028b7b">Drawing</a>
 <ul>
 <li><a href="#org8dce88c">Digital index piles with Emacs</a></li>
@@ -1068,6 +1068,7 @@ I'll pre-fill it with the candidate from Helm.
 <code>     <span class="org-string">"Hello World"</span> <span class="org-string">"&lt;2015-01-01&gt;"</span> <span class="org-string">"0:05"</span>)</code>
 <code>    <span class="org-string">"* TODO Hello World\nSCHEDULED: &lt;2015-01-01&gt;\n:PROPERTIES:\n:Effort: 0:05\n:END:\n%?\n"</span>)))</code>
 <code></code>
+<code>(<span class="org-keyword">declare-function</span> org-capture-get <span class="org-string">"org-capture"</span>)</code>
 <code>(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-capture-prefill-template</span> (template <span class="org-type">&amp;rest</span> values)</code>
 <code>  <span class="org-doc">"Pre-fill TEMPLATE with VALUES."</span></code>
 <code>  (<span class="org-keyword">setq</span> template (<span class="org-keyword">or</span> template (org-capture-get <span class="org-builtin">:template</span>)))</code>
@@ -1134,196 +1135,185 @@ well add that bit of code that sets up clocking in, too.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp"><code>  (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/helm-org-refile-locations</span> nil)</code>
-<code>  (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/org-refile-last-location</span> nil)</code>
+<pre class="src src-emacs-lisp"><code>    (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/helm-org-refile-locations</span> nil)</code>
+<code>    (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/org-refile-last-location</span> nil)</code>
 <code></code>
-<code>  (<span class="org-keyword">defun</span> <span class="org-function-name">my/helm-org-clock-in-and-track-from-refile</span> (candidate)</code>
-<code>    (<span class="org-keyword">let</span> ((location (org-refile--get-location candidate my/helm-org-refile-locations)))</code>
-<code>      (<span class="org-keyword">save-window-excursion</span></code>
-<code>        (org-refile 4 nil location)</code>
-<code>        (my/org-clock-in-and-track)</code>
-<code>        t)))</code>
+<code>    (<span class="org-keyword">defun</span> <span class="org-function-name">my/helm-org-clock-in-and-track-from-refile</span> (candidate)</code>
+<code>(<span class="org-keyword">let</span> ((location (org-refile--get-location candidate my/helm-org-refile-locations)))</code>
+<code>  (<span class="org-keyword">save-window-excursion</span></code>
+<code>    (org-refile 4 nil location)</code>
+<code>    (my/org-clock-in-and-track)</code>
+<code>    t)))</code>
 <code></code>
-<code>(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-get-todays-items-as-refile-candidates</span> ()</code>
-<code>  <span class="org-doc">"Return items scheduled for today, ready for choosing during refiling."</span></code>
-<code>  (delq</code>
-<code>   nil</code>
-<code>   (mapcar</code>
-<code>    (<span class="org-keyword">lambda</span> (s)</code>
-<code>      (<span class="org-keyword">if</span> (get-text-property 0 'org-marker s)</code>
-<code>          (list</code>
-<code>           s</code>
-<code>           (buffer-file-name (marker-buffer (get-text-property 0 'org-marker s)))</code>
-<code>           nil</code>
-<code>           (marker-position (get-text-property 0 'org-marker s)))))</code>
-<code>    (<span class="org-keyword">save-window-excursion</span> (my/org-get-entries-fn (calendar-current-date) (calendar-current-date))))))</code>
+<code>  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-get-todays-items-as-refile-candidates</span> ()</code>
+<code>    <span class="org-doc">"Return items scheduled for today, ready for choosing during refiling."</span></code>
+<code>    (delq</code>
+<code>     nil</code>
+<code>     (mapcar</code>
+<code>(<span class="org-keyword">lambda</span> (s)</code>
+<code>  (<span class="org-keyword">if</span> (get-text-property 0 'org-marker s)</code>
+<code>      (list</code>
+<code>       s</code>
+<code>       (buffer-file-name (marker-buffer (get-text-property 0 'org-marker s)))</code>
+<code>       nil</code>
+<code>       (marker-position (get-text-property 0 'org-marker s)))))</code>
+<code>(<span class="org-keyword">save-window-excursion</span> (my/org-get-entries-fn (calendar-current-date) (calendar-current-date))))))</code>
 <code></code>
-<code><span class="org-comment-delimiter">;; </span><span class="org-comment">Based on http://emacs.stackexchange.com/questions/4063/how-to-get-the-raw-data-for-an-org-mode-agenda-without-an-agenda-view</span></code>
-<code>(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-get-entries-fn</span> (begin end)</code>
-<code><span class="org-doc">"Return org schedule items between BEGIN and END.</span></code>
-<code><span class="org-doc">USAGE:  (org-get-entries-fn '(6 1 2015) '(6 30 2015))"</span></code>
-<code>  (<span class="org-keyword">require</span> '<span class="org-constant">calendar</span>)</code>
-<code>  (<span class="org-keyword">require</span> '<span class="org-constant">org</span>)</code>
-<code>  (<span class="org-keyword">require</span> '<span class="org-constant">org-agenda</span>)</code>
-<code>  (<span class="org-keyword">require</span> '<span class="org-constant">cl</span>)</code>
-<code>  (<span class="org-keyword">unless</span></code>
-<code>      (<span class="org-keyword">and</span></code>
-<code>        (calendar-date-is-valid-p begin)</code>
-<code>        (calendar-date-is-valid-p end))</code>
-<code>    (<span class="org-keyword">let</span> ((debug-on-quit nil))</code>
-<code>      (<span class="org-warning">signal</span> 'quit `(<span class="org-string">"One or both of your gregorian dates are invalid."</span>))))</code>
-<code>  (<span class="org-keyword">let*</span> (</code>
-<code>      result</code>
-<code>      (org-agenda-prefix-format <span class="org-string">"  \342\200\242 "</span>)</code>
-<code>      (org-agenda-entry-types '(<span class="org-builtin">:scheduled</span>))</code>
-<code>      (date-after</code>
-<code>        (<span class="org-keyword">lambda</span> (date num)</code>
-<code>          <span class="org-doc">"Return the date after NUM days from DATE."</span></code>
-<code>          (calendar-gregorian-from-absolute</code>
-<code>           (+ (calendar-absolute-from-gregorian date) num))))</code>
-<code>      (enumerate-days</code>
-<code>        (<span class="org-keyword">lambda</span> (begin end)</code>
-<code>          <span class="org-doc">"Enumerate date objects between BEGIN and END."</span></code>
-<code>          (<span class="org-keyword">when</span> (&gt; (calendar-absolute-from-gregorian begin)</code>
-<code>                   (calendar-absolute-from-gregorian end))</code>
-<code>            (<span class="org-warning">error</span> <span class="org-string">"Invalid period : %S - %S"</span> begin end))</code>
-<code>          (<span class="org-keyword">let</span> ((d begin) ret (cont t))</code>
-<code>            (<span class="org-keyword">while</span> cont</code>
-<code>              (<span class="org-keyword">push</span> (copy-sequence d) ret)</code>
-<code>              (<span class="org-keyword">setq</span> cont (not (equal d end)))</code>
-<code>              (<span class="org-keyword">setq</span> d (funcall date-after d 1)))</code>
-<code>            (nreverse ret)))) )</code>
-<code>    (org-agenda-reset-markers)</code>
-<code>    (<span class="org-keyword">setq</span> org-agenda-buffer</code>
-<code>      (<span class="org-keyword">when</span> (buffer-live-p org-agenda-buffer)</code>
-<code>        org-agenda-buffer))</code>
-<code>    (org-compile-prefix-format nil)</code>
-<code>    (<span class="org-keyword">setq</span> result</code>
-<code>      (<span class="org-keyword">loop</span> for date in (funcall enumerate-days begin end) append</code>
-<code>        (<span class="org-keyword">loop</span> for file in (org-agenda-files nil 'ifmode)</code>
-<code>          append</code>
-<code>          (<span class="org-keyword">progn</span></code>
-<code>            (org-check-agenda-file file)</code>
-<code>            (apply 'org-agenda-get-day-entries file date org-agenda-entry-types)))))</code>
-<code>    (<span class="org-keyword">unless</span> (buffer-live-p (get-buffer org-agenda-buffer-name))</code>
-<code>      (get-buffer-create org-agenda-buffer-name))</code>
-<code>    (<span class="org-keyword">with-current-buffer</span> (get-buffer org-agenda-buffer-name)</code>
-<code>      (org-agenda-mode)</code>
-<code>      (<span class="org-keyword">setq</span> buffer-read-only t)</code>
+<code>  <span class="org-comment-delimiter">;; </span><span class="org-comment">Based on http://emacs.stackexchange.com/questions/4063/how-to-get-the-raw-data-for-an-org-mode-agenda-without-an-agenda-view</span></code>
+<code>  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-get-entries-fn</span> (begin end)</code>
+<code>  <span class="org-doc">"Return org schedule items between BEGIN and END.</span></code>
+<code><span class="org-doc">  USAGE:  (org-get-entries-fn '(6 1 2015) '(6 30 2015))"</span></code>
+<code>    (<span class="org-keyword">require</span> '<span class="org-constant">calendar</span>)</code>
+<code>    (<span class="org-keyword">require</span> '<span class="org-constant">org</span>)</code>
+<code>    (<span class="org-keyword">require</span> '<span class="org-constant">org-agenda</span>)</code>
+<code>    (<span class="org-keyword">require</span> '<span class="org-constant">cl</span>)</code>
+<code>    (<span class="org-keyword">unless</span></code>
+<code>  (<span class="org-keyword">and</span></code>
+<code>    (calendar-date-is-valid-p begin)</code>
+<code>    (calendar-date-is-valid-p end))</code>
+<code>(<span class="org-keyword">let</span> ((debug-on-quit nil))</code>
+<code>  (<span class="org-warning">signal</span> 'quit `(<span class="org-string">"One or both of your gregorian dates are invalid."</span>))))</code>
+<code>    (<span class="org-keyword">let*</span> (</code>
+<code>  result</code>
+<code>  (org-agenda-entry-types '(<span class="org-builtin">:scheduled</span>))</code>
+<code>  (date-after</code>
+<code>    (<span class="org-keyword">lambda</span> (date num)</code>
+<code>      <span class="org-doc">"Return the date after NUM days from DATE."</span></code>
+<code>      (calendar-gregorian-from-absolute</code>
+<code>       (+ (calendar-absolute-from-gregorian date) num))))</code>
+<code>  (enumerate-days</code>
+<code>    (<span class="org-keyword">lambda</span> (begin end)</code>
+<code>      <span class="org-doc">"Enumerate date objects between BEGIN and END."</span></code>
+<code>      (<span class="org-keyword">when</span> (&gt; (calendar-absolute-from-gregorian begin)</code>
+<code>         (calendar-absolute-from-gregorian end))</code>
+<code>  (<span class="org-warning">error</span> <span class="org-string">"Invalid period : %S - %S"</span> begin end))</code>
+<code>      (<span class="org-keyword">let</span> ((d begin) ret (cont t))</code>
+<code>  (<span class="org-keyword">while</span> cont</code>
+<code>    (<span class="org-keyword">push</span> (copy-sequence d) ret)</code>
+<code>    (<span class="org-keyword">setq</span> cont (not (equal d end)))</code>
+<code>    (<span class="org-keyword">setq</span> d (funcall date-after d 1)))</code>
+<code>  (nreverse ret)))) )</code>
+<code>(org-agenda-reset-markers)</code>
+<code>(<span class="org-keyword">setq</span> org-agenda-buffer</code>
+<code>  (<span class="org-keyword">when</span> (buffer-live-p org-agenda-buffer)</code>
+<code>    org-agenda-buffer))</code>
+<code>(org-compile-prefix-format nil)</code>
+<code>(<span class="org-keyword">setq</span> result</code>
+<code>  (<span class="org-keyword">loop</span> for date in (funcall enumerate-days begin end) append</code>
+<code>    (<span class="org-keyword">loop</span> for file in (org-agenda-files nil 'ifmode)</code>
+<code>      append</code>
+<code>      (<span class="org-keyword">progn</span></code>
+<code>  (org-check-agenda-file file)</code>
+<code>  (apply 'org-agenda-get-day-entries file date org-agenda-entry-types)))))</code>
+<code>(<span class="org-keyword">unless</span> (buffer-live-p (get-buffer org-agenda-buffer-name))</code>
+<code>  (get-buffer-create org-agenda-buffer-name))</code>
+<code>(<span class="org-keyword">with-current-buffer</span> (get-buffer org-agenda-buffer-name)</code>
+<code>  (org-agenda-mode)</code>
+<code>  (<span class="org-keyword">setq</span> buffer-read-only t)</code>
+<code>  (<span class="org-keyword">let</span> ((inhibit-read-only t))</code>
+<code>    (erase-buffer))</code>
+<code>  (mapc</code>
+<code>    (<span class="org-keyword">lambda</span> (x)</code>
 <code>      (<span class="org-keyword">let</span> ((inhibit-read-only t))</code>
-<code>        (erase-buffer))</code>
-<code>      (mapcar</code>
-<code>        (<span class="org-keyword">lambda</span> (x)</code>
-<code>          (<span class="org-keyword">let</span> ((inhibit-read-only t))</code>
-<code>            (insert (format <span class="org-string">"%s"</span> x) <span class="org-string">"\n"</span>)))</code>
-<code>        result))</code>
-<code><span class="org-comment-delimiter">;;    </span><span class="org-comment">(display-buffer org-agenda-buffer-name t)</span></code>
+<code>  (insert (format <span class="org-string">"%s"</span> x) <span class="org-string">"\n"</span>)))</code>
 <code>    result))</code>
+<code>  <span class="org-comment-delimiter">;;    </span><span class="org-comment">(display-buffer org-agenda-buffer-name t)</span></code>
+<code>result))</code>
 <code></code>
-<code>  (<span class="org-keyword">defun</span> <span class="org-function-name">my/helm-org-refile-read-location</span> (tbl)</code>
-<code>    (<span class="org-keyword">setq</span> my/helm-org-refile-locations tbl)</code>
-<code>    (helm</code>
-<code>     (list</code>
-<code>      <span class="org-comment-delimiter">;; </span><span class="org-comment">(helm-build-sync-source "Today's tasks"</span></code>
-<code>      <span class="org-comment-delimiter">;;   </span><span class="org-comment">:candidates (mapcar (lambda (a) (cons (car a) a))</span></code>
-<code>      <span class="org-comment-delimiter">;;                       </span><span class="org-comment">(my/org-get-todays-items-as-refile-candidates))</span></code>
-<code>      <span class="org-comment-delimiter">;;   </span><span class="org-comment">:action '(("Select" . identity)</span></code>
-<code>      <span class="org-comment-delimiter">;;             </span><span class="org-comment">("Clock in and track" . my/helm-org-clock-in-and-track-from-refile)</span></code>
-<code>      <span class="org-comment-delimiter">;;             </span><span class="org-comment">("Draw index card" . my/helm-org-prepare-index-card-for-subtree))</span></code>
-<code>      <span class="org-comment-delimiter">;;   </span><span class="org-comment">:history 'org-refile-history)</span></code>
-<code>      (<span class="org-keyword">helm-build-sync-source</span> <span class="org-string">"Refile targets"</span></code>
-<code>        <span class="org-builtin">:candidates</span> (mapcar (<span class="org-keyword">lambda</span> (a) (cons (car a) a)) tbl)</code>
-<code>        <span class="org-builtin">:action</span> '((<span class="org-string">"Select"</span> . identity)</code>
-<code>                  (<span class="org-string">"Clock in and track"</span> . my/helm-org-clock-in-and-track-from-refile)</code>
-<code>                  (<span class="org-string">"Draw index card"</span> . my/helm-org-prepare-index-card-for-subtree))</code>
-<code>        <span class="org-builtin">:history</span> 'org-refile-history)</code>
-<code>      (<span class="org-keyword">helm-build-dummy-source</span> <span class="org-string">"Create task"</span></code>
-<code>        <span class="org-builtin">:action</span> (helm-make-actions</code>
-<code>                 <span class="org-string">"Create task"</span></code>
-<code>                 'my/helm-org-create-task)))))</code>
+<code>    (<span class="org-keyword">defun</span> <span class="org-function-name">my/helm-org-refile-read-location</span> (tbl)</code>
+<code>(<span class="org-keyword">setq</span> my/helm-org-refile-locations tbl)</code>
+<code>(helm</code>
+<code> (list</code>
+<code>  <span class="org-comment-delimiter">;; </span><span class="org-comment">(helm-build-sync-source "Today's tasks"</span></code>
+<code>  <span class="org-comment-delimiter">;;   </span><span class="org-comment">:candidates (mapcar (lambda (a) (cons (car a) a))</span></code>
+<code>  <span class="org-comment-delimiter">;;                       </span><span class="org-comment">(my/org-get-todays-items-as-refile-candidates))</span></code>
+<code>  <span class="org-comment-delimiter">;;   </span><span class="org-comment">:action '(("Select" . identity)</span></code>
+<code>  <span class="org-comment-delimiter">;;             </span><span class="org-comment">("Clock in and track" . my/helm-org-clock-in-and-track-from-refile)</span></code>
+<code>  <span class="org-comment-delimiter">;;             </span><span class="org-comment">("Draw index card" . my/helm-org-prepare-index-card-for-subtree))</span></code>
+<code>  <span class="org-comment-delimiter">;;   </span><span class="org-comment">:history 'org-refile-history)</span></code>
+<code>  (<span class="org-keyword">helm-build-sync-source</span> <span class="org-string">"Refile targets"</span></code>
+<code>    <span class="org-builtin">:candidates</span> (mapcar (<span class="org-keyword">lambda</span> (a) (cons (car a) a)) tbl)</code>
+<code>    <span class="org-builtin">:action</span> '((<span class="org-string">"Select"</span> . identity)</code>
+<code>        (<span class="org-string">"Clock in and track"</span> . my/helm-org-clock-in-and-track-from-refile)</code>
+<code>        (<span class="org-string">"Draw index card"</span> . my/helm-org-prepare-index-card-for-subtree))</code>
+<code>    <span class="org-builtin">:history</span> 'org-refile-history)</code>
+<code>  (<span class="org-keyword">helm-build-dummy-source</span> <span class="org-string">"Create task"</span></code>
+<code>    <span class="org-builtin">:action</span> (helm-make-actions</code>
+<code>       <span class="org-string">"Create task"</span></code>
+<code>       'my/helm-org-create-task)))))</code>
 <code></code>
-<code>  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-refile-get-location</span> (<span class="org-type">&amp;optional</span> prompt default-buffer new-nodes no-exclude)</code>
-<code>    <span class="org-doc">"Prompt the user for a refile location, using PROMPT.</span></code>
-<code><span class="org-doc">  PROMPT should not be suffixed with a colon and a space, because</span></code>
-<code><span class="org-doc">  this function appends the default value from</span></code>
-<code><span class="org-doc">  `</span><span class="org-doc"><span class="org-constant">org-refile-history</span></span><span class="org-doc">' automatically, if that is not empty.</span></code>
-<code><span class="org-doc">  When NO-EXCLUDE is set, do not exclude headlines in the current subtree,</span></code>
-<code><span class="org-doc">  this is used for the GOTO interface."</span></code>
+<code>    (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-refile-get-location</span> (<span class="org-type">&amp;optional</span> prompt default-buffer new-nodes no-exclude)</code>
+<code><span class="org-doc">"Prompt the user for a refile location, using PROMPT.</span></code>
+<code><span class="org-doc">    PROMPT should not be suffixed with a colon and a space, because</span></code>
+<code><span class="org-doc">    this function appends the default value from</span></code>
+<code><span class="org-doc">    `</span><span class="org-doc"><span class="org-constant">org-refile-history</span></span><span class="org-doc">' automatically, if that is not empty."</span></code>
 <code>    (<span class="org-keyword">let</span> ((org-refile-targets org-refile-targets)</code>
-<code>          (org-refile-use-outline-path org-refile-use-outline-path)</code>
-<code>          excluded-entries)</code>
-<code>      (<span class="org-keyword">when</span> (<span class="org-keyword">and</span> (derived-mode-p 'org-mode)</code>
-<code>                 (not org-refile-use-cache)</code>
-<code>                 (not no-exclude))</code>
-<code>        (org-map-tree</code>
-<code>         (<span class="org-keyword">lambda</span>()</code>
-<code>           (<span class="org-keyword">setq</span> excluded-entries</code>
-<code>                 (append excluded-entries (list (org-get-heading t t)))))))</code>
-<code>      (<span class="org-keyword">setq</span> org-refile-target-table</code>
-<code>            (org-refile-get-targets default-buffer excluded-entries)))</code>
-<code>    (<span class="org-keyword">unless</span> org-refile-target-table</code>
-<code>      (<span class="org-warning">user-error</span> <span class="org-string">"No refile targets"</span>))</code>
-<code>    (<span class="org-keyword">let*</span> ((cbuf (current-buffer))</code>
-<code>           (partial-completion-mode nil)</code>
-<code>           (cfn (buffer-file-name (buffer-base-buffer cbuf)))</code>
-<code>           (cfunc (<span class="org-keyword">if</span> (<span class="org-keyword">and</span> org-refile-use-outline-path</code>
-<code>                           org-outline-path-complete-in-steps)</code>
-<code>                      'org-olpath-completing-read</code>
-<code>                    'org-icompleting-read))</code>
-<code>           (extra (<span class="org-keyword">if</span> org-refile-use-outline-path <span class="org-string">"/"</span> <span class="org-string">""</span>))</code>
-<code>           (cbnex (concat (buffer-name) extra))</code>
-<code>           (filename (<span class="org-keyword">and</span> cfn (expand-file-name cfn)))</code>
-<code>           (tbl (mapcar</code>
-<code>                 (<span class="org-keyword">lambda</span> (x)</code>
-<code>                   (<span class="org-keyword">if</span> (<span class="org-keyword">and</span> (not (member org-refile-use-outline-path</code>
-<code>                                         '(file full-file-path)))</code>
-<code>                            (not (equal filename (nth 1 x))))</code>
-<code>                       (cons (concat (car x) extra <span class="org-string">" ("</span></code>
-<code>                                     (file-name-nondirectory (nth 1 x)) <span class="org-string">")"</span>)</code>
-<code>                             (cdr x))</code>
-<code>                     (cons (concat (car x) extra) (cdr x))))</code>
-<code>                 org-refile-target-table))</code>
-<code>           (completion-ignore-case t)</code>
-<code>           cdef</code>
-<code>           (prompt (concat prompt</code>
-<code>                           (<span class="org-keyword">or</span> (<span class="org-keyword">and</span> (car org-refile-history)</code>
-<code>                                    (concat <span class="org-string">" (default "</span> (car org-refile-history) <span class="org-string">")"</span>))</code>
-<code>                               (<span class="org-keyword">and</span> (assoc cbnex tbl) (<span class="org-keyword">setq</span> cdef cbnex)</code>
-<code>                                    (concat <span class="org-string">" (default "</span> cbnex <span class="org-string">")"</span>))) <span class="org-string">": "</span>))</code>
-<code>           pa answ parent-target child parent old-hist)</code>
-<code>      (<span class="org-keyword">setq</span> old-hist org-refile-history)</code>
-<code>      <span class="org-comment-delimiter">;; </span><span class="org-comment">Use Helm's sources instead</span></code>
-<code>      (<span class="org-keyword">setq</span> answ (my/helm-org-refile-read-location tbl))</code>
-<code>      (<span class="org-keyword">cond</span></code>
-<code>       ((<span class="org-keyword">and</span> (stringp answ)</code>
-<code>             (<span class="org-keyword">setq</span> pa (org-refile--get-location answ tbl)))</code>
-<code>        (org-refile-check-position pa)</code>
-<code>        (<span class="org-keyword">when</span> (<span class="org-keyword">or</span> (not org-refile-history)</code>
-<code>                  (not (eq old-hist org-refile-history))</code>
-<code>                  (not (equal (car pa) (car org-refile-history))))</code>
-<code>          (<span class="org-keyword">setq</span> org-refile-history</code>
-<code>                (cons (car pa) (<span class="org-keyword">if</span> (assoc (car org-refile-history) tbl)</code>
-<code>                                   org-refile-history</code>
-<code>                                 (cdr org-refile-history))))</code>
-<code>          (<span class="org-keyword">if</span> (equal (car org-refile-history) (nth 1 org-refile-history))</code>
-<code>              (<span class="org-keyword">pop</span> org-refile-history)))</code>
-<code>        (<span class="org-keyword">setq</span> my/org-refile-last-location pa)</code>
-<code>        pa)</code>
-<code>       ((<span class="org-keyword">and</span> (stringp answ) (string-match <span class="org-string">"\\`</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">/</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">/]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">\\'"</span> answ))</code>
-<code>        (<span class="org-keyword">setq</span> parent (match-string 1 answ)</code>
-<code>              child (match-string 2 answ))</code>
-<code>        (<span class="org-keyword">setq</span> parent-target (org-refile--get-location parent tbl))</code>
-<code>        (<span class="org-keyword">when</span> (<span class="org-keyword">and</span> parent-target</code>
-<code>                   (<span class="org-keyword">or</span> (eq new-nodes t)</code>
-<code>                       (<span class="org-keyword">and</span> (eq new-nodes 'confirm)</code>
-<code>                            (y-or-n-p (format <span class="org-string">"Create new node \"%s\"? "</span></code>
-<code>                                              child)))))</code>
-<code>          (org-refile-new-child parent-target child)))</code>
-<code>       ((listp answ) answ) <span class="org-comment-delimiter">;; </span><span class="org-comment">Sacha: Helm returned a refile location</span></code>
-<code>       ((not (equal answ t))</code>
-<code>        (<span class="org-warning">user-error</span> <span class="org-string">"Invalid target location"</span>)))))</code>
+<code>    (org-refile-use-outline-path org-refile-use-outline-path))</code>
+<code>(<span class="org-keyword">setq</span> org-refile-target-table</code>
+<code>      (org-refile-get-targets default-buffer))</code>
+<code>(<span class="org-keyword">unless</span> org-refile-target-table</code>
+<code>  (<span class="org-warning">user-error</span> <span class="org-string">"No refile targets"</span>))</code>
+<code>(<span class="org-keyword">let*</span> ((cbuf (current-buffer))</code>
+<code>       (partial-completion-mode nil)</code>
+<code>       (cfn (buffer-file-name (buffer-base-buffer cbuf)))</code>
+<code>       (cfunc (<span class="org-keyword">if</span> (<span class="org-keyword">and</span> org-refile-use-outline-path</code>
+<code>           org-outline-path-complete-in-steps)</code>
+<code>      'org-olpath-completing-read</code>
+<code>    'org-icompleting-read))</code>
+<code>       (extra (<span class="org-keyword">if</span> org-refile-use-outline-path <span class="org-string">"/"</span> <span class="org-string">""</span>))</code>
+<code>       (cbnex (concat (buffer-name) extra))</code>
+<code>       (filename (<span class="org-keyword">and</span> cfn (expand-file-name cfn)))</code>
+<code>       (tbl (mapcar</code>
+<code>       (<span class="org-keyword">lambda</span> (x)</code>
+<code>         (<span class="org-keyword">if</span> (<span class="org-keyword">and</span> (not (member org-refile-use-outline-path</code>
+<code>             '(file full-file-path)))</code>
+<code>      (not (equal filename (nth 1 x))))</code>
+<code>       (cons (concat (car x) extra <span class="org-string">" ("</span></code>
+<code>         (file-name-nondirectory (nth 1 x)) <span class="org-string">")"</span>)</code>
+<code>       (cdr x))</code>
+<code>     (cons (concat (car x) extra) (cdr x))))</code>
+<code>       org-refile-target-table))</code>
+<code>       (completion-ignore-case t)</code>
+<code>       cdef</code>
+<code>       (prompt (concat prompt</code>
+<code>           (<span class="org-keyword">or</span> (<span class="org-keyword">and</span> (car org-refile-history)</code>
+<code>        (concat <span class="org-string">" (default "</span> (car org-refile-history) <span class="org-string">")"</span>))</code>
+<code>         (<span class="org-keyword">and</span> (assoc cbnex tbl) (<span class="org-keyword">setq</span> cdef cbnex)</code>
+<code>        (concat <span class="org-string">" (default "</span> cbnex <span class="org-string">")"</span>))) <span class="org-string">": "</span>))</code>
+<code>       pa answ parent-target child parent old-hist)</code>
+<code>  (<span class="org-keyword">setq</span> old-hist org-refile-history)</code>
+<code>  <span class="org-comment-delimiter">;; </span><span class="org-comment">Use Helm's sources instead</span></code>
+<code>  (<span class="org-keyword">setq</span> answ (my/helm-org-refile-read-location tbl))</code>
+<code>  (<span class="org-keyword">cond</span></code>
+<code>   ((<span class="org-keyword">and</span> (stringp answ)</code>
+<code>   (<span class="org-keyword">setq</span> pa (org-refile--get-location answ tbl)))</code>
+<code>    (org-refile-check-position pa)</code>
+<code>    (<span class="org-keyword">when</span> (<span class="org-keyword">or</span> (not org-refile-history)</code>
+<code>        (not (eq old-hist org-refile-history))</code>
+<code>        (not (equal (car pa) (car org-refile-history))))</code>
+<code>      (<span class="org-keyword">setq</span> org-refile-history</code>
+<code>      (cons (car pa) (<span class="org-keyword">if</span> (assoc (car org-refile-history) tbl)</code>
+<code>             org-refile-history</code>
+<code>           (cdr org-refile-history))))</code>
+<code>      (<span class="org-keyword">if</span> (equal (car org-refile-history) (nth 1 org-refile-history))</code>
+<code>    (<span class="org-keyword">pop</span> org-refile-history)))</code>
+<code>    (<span class="org-keyword">setq</span> my/org-refile-last-location pa)</code>
+<code>    pa)</code>
+<code>   ((<span class="org-keyword">and</span> (stringp answ) (string-match <span class="org-string">"\\`</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">.*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">/</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[</span><span class="org-string"><span class="org-negation-char">^</span></span><span class="org-string">/]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">\\'"</span> answ))</code>
+<code>    (<span class="org-keyword">setq</span> parent (match-string 1 answ)</code>
+<code>    child (match-string 2 answ))</code>
+<code>    (<span class="org-keyword">setq</span> parent-target (org-refile--get-location parent tbl))</code>
+<code>    (<span class="org-keyword">when</span> (<span class="org-keyword">and</span> parent-target</code>
+<code>         (<span class="org-keyword">or</span> (eq new-nodes t)</code>
+<code>       (<span class="org-keyword">and</span> (eq new-nodes 'confirm)</code>
+<code>      (y-or-n-p (format <span class="org-string">"Create new node \"%s\"? "</span></code>
+<code>            child)))))</code>
+<code>      (org-refile-new-child parent-target child)))</code>
+<code>   ((listp answ) answ) <span class="org-comment-delimiter">;; </span><span class="org-comment">Sacha: Helm returned a refile location</span></code>
+<code>   ((not (equal answ t))</code>
+<code>    (<span class="org-warning">user-error</span> <span class="org-string">"Invalid target location"</span>))))))</code>
 <code></code>
-<code>  (fset 'org-refile-get-location 'my/org-refile-get-location)</code>
+<code>    (fset 'org-refile-get-location 'my/org-refile-get-location)</code>
 </pre>
 </div>
 
@@ -1551,9 +1541,9 @@ command by default, and to use <code>kbd</code> for the keybinding definitions.
 </div>
 </div>
 
-<div id="outline-container-org15d1d98" class="outline-3">
-<h3 id="org15d1d98">Navigation</h3>
-<div class="outline-text-3" id="text-org15d1d98">
+<div id="outline-container-orgfb09d5e" class="outline-3">
+<h3 id="orgfb09d5e">Navigation</h3>
+<div class="outline-text-3" id="text-orgfb09d5e">
 </div>
 <div id="outline-container-org43a846b" class="outline-4">
 <h4 id="org43a846b">Pop to mark</h4>
@@ -1940,9 +1930,9 @@ From <a href="https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el">http
 </div>
 </div>
 
-<div id="outline-container-orge0f7136" class="outline-4">
-<h4 id="orge0f7136">Dired</h4>
-<div class="outline-text-4" id="text-orge0f7136">
+<div id="outline-container-org7e90c5e" class="outline-4">
+<h4 id="org7e90c5e">Dired</h4>
+<div class="outline-text-4" id="text-org7e90c5e">
 <p>
 From <a href="http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/">http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/</a>
 </p>
@@ -2579,8 +2569,8 @@ These are great for quickly acting on tasks.
 <code></code>
 <code>   (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-use-speed-commands-for-headings-and-lists</span> ()</code>
 <code>     <span class="org-doc">"Activate speed commands on list items too."</span></code>
-<code>     (<span class="org-keyword">or</span> (<span class="org-keyword">and</span> (looking-at org-outline-regexp) (looking-back <span class="org-string">"^</span><span class="org-string"><span class="org-warning">\</span></span><span class="org-string">**"</span>))</code>
-<code>         (<span class="org-keyword">save-excursion</span> (<span class="org-keyword">and</span> (looking-at (org-item-re)) (looking-back <span class="org-string">"^[ \t]*"</span>)))))</code>
+<code>     (<span class="org-keyword">or</span> (<span class="org-keyword">and</span> (looking-at org-outline-regexp) (looking-back <span class="org-string">"^</span><span class="org-string"><span class="org-warning">\</span></span><span class="org-string">**"</span> nil))</code>
+<code>         (<span class="org-keyword">save-excursion</span> (<span class="org-keyword">and</span> (looking-at (org-item-re)) (looking-back <span class="org-string">"^[ \t]*"</span> nil)))))</code>
 <code>   (<span class="org-keyword">setq</span> org-use-speed-commands 'my/org-use-speed-commands-for-headings-and-lists)</code>
 <code></code>
 <code>(<span class="org-keyword">with-eval-after-load</span> 'org</code>
@@ -2600,9 +2590,9 @@ These are great for quickly acting on tasks.
 </div>
 </div>
 
-<div id="outline-container-orgfb09d5e" class="outline-4">
-<h4 id="orgfb09d5e">Navigation</h4>
-<div class="outline-text-4" id="text-orgfb09d5e">
+<div id="outline-container-orga45e472" class="outline-4">
+<h4 id="orga45e472">Navigation</h4>
+<div class="outline-text-4" id="text-orga45e472">
 <p>
 From <a href="http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-command-to-jump-to-an-org-heading">http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-command-to-jump-to-an-org-heading</a>
 </p>
@@ -2761,143 +2751,144 @@ This quickly adds a same-level heading for the succeeding day.
 </div>
 </div>
 
-<div id="outline-container-org1e17b2b" class="outline-5">
-<h5 id="org1e17b2b">Templates</h5>
-<div class="outline-text-5" id="text-org1e17b2b">
+<div id="outline-container-orgbf41cee" class="outline-5">
+<h5 id="orgbf41cee">Templates</h5>
+<div class="outline-text-5" id="text-orgbf41cee">
 <p>
 I use <code>org-capture</code> templates to quickly jot down tasks, ledger
 entries, notes, and other semi-structured pieces of information.
 </p>
 <div class="org-src-container">
-<pre class="src src-emacs-lisp"><code>  (<span class="org-keyword">defun</span> <span class="org-function-name">my/org-contacts-template-email</span> (<span class="org-type">&amp;optional</span> return-value)</code>
+<pre class="src src-emacs-lisp"><code>(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-contacts-template-email</span> (<span class="org-type">&amp;optional</span> return-value)</code>
 <code>    <span class="org-doc">"Try to return the contact email for a template.</span></code>
 <code><span class="org-doc">  If not found return RETURN-VALUE or something that would ask the user."</span></code>
+<code>    (<span class="org-keyword">eval-when-compile</span> (<span class="org-keyword">require</span> '<span class="org-constant">gnus-art</span> nil t))</code>
+<code>    (<span class="org-keyword">eval-when-compile</span> (<span class="org-keyword">require</span> '<span class="org-constant">org-contacts</span> nil t))</code>
 <code>    (<span class="org-keyword">or</span> (cadr (<span class="org-keyword">if</span> (gnus-alive-p)</code>
-<code>                  (gnus-with-article-headers</code>
+<code>                  (<span class="org-keyword">gnus-with-article-headers</span></code>
 <code>                    (mail-extract-address-components</code>
 <code>                     (<span class="org-keyword">or</span> (mail-fetch-field <span class="org-string">"Reply-To"</span>) (mail-fetch-field <span class="org-string">"From"</span>) <span class="org-string">""</span>)))))</code>
 <code>        return-value</code>
 <code>        (concat <span class="org-string">"%^{"</span> org-contacts-email-property <span class="org-string">"}p"</span>)))</code>
 <code></code>
-<code></code>
-<code>  (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/org-basic-task-template</span> <span class="org-string">"* TODO %^{Task}</span></code>
-<code><span class="org-string">:PROPERTIES:</span></code>
-<code><span class="org-string">:Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}</span></code>
-<code><span class="org-string">:END:</span></code>
-<code><span class="org-string">Captured %&lt;%Y-%m-%d %H:%M&gt;</span></code>
-<code><span class="org-string">%?</span></code>
-<code></code>
-<code><span class="org-string">%i</span></code>
-<code><span class="org-string">"</span> <span class="org-doc">"Basic task data"</span>)</code>
-<code>  (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/org-inbox-file</span> <span class="org-string">"~/orgzly/Inbox.org"</span>)</code>
-<code>  (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/ledger-file</span> <span class="org-string">"~/cloud/ledger/current.ledger"</span>)</code>
-<code>  (<span class="org-keyword">setq</span> org-capture-templates</code>
-<code>        `((<span class="org-string">"t"</span> <span class="org-string">"Quick task"</span> entry</code>
-<code>           (file ,my/org-inbox-file)</code>
-<code>           <span class="org-string">"* TODO %^{Task}\n"</span></code>
-<code>           <span class="org-builtin">:immediate-finish</span> t)</code>
-<code>          (<span class="org-string">"T"</span> <span class="org-string">"Task"</span> entry</code>
-<code>           (file ,my/org-inbox-file)</code>
-<code>           <span class="org-string">"* TODO %^{Task}\n"</span>)</code>
-<code>          (<span class="org-string">"."</span> <span class="org-string">"Today"</span> entry</code>
-<code>           (file ,my/org-inbox-file)</code>
-<code>           <span class="org-string">"* TODO %^{Task}\nSCHEDULED: %t\n"</span></code>
-<code>           <span class="org-builtin">:immediate-finish</span> t)</code>
-<code>          (<span class="org-string">"v"</span> <span class="org-string">"Video"</span> entry</code>
-<code>           (file ,my/org-inbox-file)</code>
-<code>           <span class="org-string">"* TODO %^{Task}  :video:\nSCHEDULED: %t\n"</span></code>
-<code>           <span class="org-builtin">:immediate-finish</span> t)</code>
-<code>          (<span class="org-string">"e"</span> <span class="org-string">"Errand"</span> entry</code>
-<code>           (file ,my/org-inbox-file)</code>
-<code>           <span class="org-string">"* TODO %^{Task}  :errands:\n"</span></code>
-<code>           <span class="org-builtin">:immediate-finish</span> t)</code>
-<code>          (<span class="org-string">"n"</span> <span class="org-string">"Note"</span> entry</code>
-<code>           (file ,my/org-inbox-file)</code>
-<code>           <span class="org-string">"* %^{Note}\n"</span></code>
-<code>           <span class="org-builtin">:immediate-finish</span> t)</code>
-<code>          (<span class="org-string">"r"</span> <span class="org-string">"Note"</span> entry</code>
-<code>           (file ,my/org-inbox-file)</code>
-<code>           <span class="org-string">"* %?\n%U - %a"</span>)</code>
-<code>          (<span class="org-string">"N"</span> <span class="org-string">"Note"</span> entry</code>
-<code>           (file ,my/org-inbox-file)</code>
-<code>           <span class="org-string">"* %^{Note}\n"</span>)</code>
-<code>          (<span class="org-string">"i"</span> <span class="org-string">"Interrupting task"</span> entry</code>
-<code>           (file ,my/org-inbox-file)</code>
-<code>           <span class="org-string">"* STARTED %^{Task}"</span></code>
-<code>           <span class="org-builtin">:clock-in</span> <span class="org-builtin">:clock-resume</span>)</code>
-<code>          (<span class="org-string">"b"</span> <span class="org-string">"Business task"</span> entry</code>
-<code>           (file+headline <span class="org-string">"~/personal/business.org"</span> <span class="org-string">"Tasks"</span>)</code>
-<code>           ,my/org-basic-task-template)</code>
-<code>          (<span class="org-string">"p"</span> <span class="org-string">"People task"</span> entry</code>
-<code>           (file <span class="org-string">"~/orgzly/people.org"</span>)</code>
-<code>           ,my/org-basic-task-template)</code>
-<code>          (<span class="org-string">"j"</span> <span class="org-string">"Journal entry"</span> plain</code>
-<code>           (file+datetree <span class="org-string">"~/personal/journal.org"</span>)</code>
-<code>           <span class="org-string">"%K - %a\n%i\n%?\n"</span></code>
-<code>           <span class="org-builtin">:unnarrowed</span> t)</code>
-<code>          (<span class="org-string">"J"</span> <span class="org-string">"Journal entry with date"</span> plain</code>
-<code>           (file+datetree+prompt <span class="org-string">"~/personal/journal.org"</span>)</code>
-<code>           <span class="org-string">"%K - %a\n%i\n%?\n"</span></code>
-<code>           <span class="org-builtin">:unnarrowed</span> t)</code>
-<code>          (<span class="org-string">"s"</span> <span class="org-string">"Journal entry with date, scheduled"</span> entry</code>
-<code>           (file+datetree+prompt <span class="org-string">"~/personal/journal.org"</span>)</code>
-<code>           <span class="org-string">"* \n%K - %a\n%t\t%i\n%?\n"</span></code>
-<code>           <span class="org-builtin">:unnarrowed</span> t)</code>
-<code>          (<span class="org-string">"w"</span> <span class="org-string">"Web site"</span> entry</code>
-<code>           (file+headline ,org-default-notes-file <span class="org-string">"Inbox"</span>)</code>
-<code>           <span class="org-string">"* %a :website:\n\n%U %?\n\n%:initial"</span>)</code>
-<code>          (<span class="org-string">"c"</span> <span class="org-string">"Protocol Link"</span> entry (file+headline ,org-default-notes-file <span class="org-string">"Inbox"</span>)</code>
-<code>           <span class="org-string">"* [[%:link][%:description]] \n\n#+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n%?\n\nCaptured: %U"</span>)</code>
-<code>          (<span class="org-string">"db"</span> <span class="org-string">"Done - Business"</span> entry</code>
-<code>           (file+headline <span class="org-string">"~/personal/business.org"</span> <span class="org-string">"Tasks"</span>)</code>
-<code>           <span class="org-string">"* DONE %^{Task}\nSCHEDULED: %^t\n%?"</span>)</code>
-<code>          (<span class="org-string">"dp"</span> <span class="org-string">"Done - People"</span> entry</code>
-<code>           (file+headline <span class="org-string">"~/personal/people.org"</span> <span class="org-string">"Tasks"</span>)</code>
-<code>           <span class="org-string">"* DONE %^{Task}\nSCHEDULED: %^t\n%?"</span>)</code>
-<code>          (<span class="org-string">"dt"</span> <span class="org-string">"Done - Task"</span> entry</code>
-<code>           (file+headline <span class="org-string">"~/orgzly/organizer.org"</span> <span class="org-string">"Inbox"</span>)</code>
-<code>           <span class="org-string">"* DONE %^{Task}\nSCHEDULED: %^t\n%?"</span>)</code>
-<code>          (<span class="org-string">"q"</span> <span class="org-string">"Quick note"</span> item</code>
-<code>           (file+headline <span class="org-string">"~/orgzly/organizer.org"</span> <span class="org-string">"Quick notes"</span>))</code>
-<code>          (<span class="org-string">"l"</span> <span class="org-string">"Ledger"</span>)</code>
-<code>          (<span class="org-string">"lc"</span> <span class="org-string">"Cash expense"</span> plain</code>
-<code>           (file ,my/ledger-file)</code>
-<code>           <span class="org-string">"%(ledger-read-date \"Date: \") * %^{Payee}</span></code>
-<code><span class="org-string">    Expenses:Cash</span></code>
-<code><span class="org-string">    Expenses:%^{Account}  %^{Amount}</span></code>
-<code><span class="org-string">  "</span>)</code>
-<code>          (<span class="org-string">"lb"</span> <span class="org-string">"BDO CAD"</span> plain</code>
-<code>  (file ,my/ledger-file)</code>
-<code>  <span class="org-string">"%(ledger-read-date \"Date: \") * %^{Payee}</span></code>
-<code><span class="org-string">    Expenses:Play    $ %^{Amount}</span></code>
-<code><span class="org-string">    Assets:BDO</span></code>
-<code><span class="org-string">  "</span>)</code>
-<code>          (<span class="org-string">"lp"</span> <span class="org-string">"BDO PHP"</span> plain</code>
-<code>  (file ,my/ledger-file)</code>
-<code>  <span class="org-string">"%(ledger-read-date \"Date: \") * %^{Payee}</span></code>
-<code><span class="org-string">    Expenses:Play    PHP %^{Amount}</span></code>
-<code><span class="org-string">    Assets:BDO</span></code>
-<code><span class="org-string">  "</span>)</code>
-<code>          (<span class="org-string">"B"</span> <span class="org-string">"Book"</span> entry</code>
-<code>           (file+datetree <span class="org-string">"~/personal/books.org"</span> <span class="org-string">"Inbox"</span>)</code>
-<code>           <span class="org-string">"* %^{Title}  %^g</span></code>
-<code><span class="org-string">  %i</span></code>
-<code><span class="org-string">  *Author(s):* %^{Author} \\\\</span></code>
-<code><span class="org-string">  *ISBN:* %^{ISBN}</span></code>
-<code></code>
+<code>    (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/org-basic-task-template</span> <span class="org-string">"* TODO %^{Task}</span></code>
+<code><span class="org-string">  :PROPERTIES:</span></code>
+<code><span class="org-string">  :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}</span></code>
+<code><span class="org-string">  :END:</span></code>
+<code><span class="org-string">  Captured %&lt;%Y-%m-%d %H:%M&gt;</span></code>
 <code><span class="org-string">  %?</span></code>
 <code></code>
-<code><span class="org-string">  *Review on:* %^t \\</span></code>
-<code><span class="org-string">  %a</span></code>
-<code><span class="org-string">  %U"</span></code>
-<code>           <span class="org-builtin">:clock-in</span> <span class="org-builtin">:clock-resume</span>)</code>
-<code>           (<span class="org-string">"C"</span> <span class="org-string">"Contact"</span> entry (file <span class="org-string">"~/personal/contacts.org"</span>)</code>
-<code>            <span class="org-string">"* %(org-contacts-template-name)</span></code>
-<code><span class="org-string">  :PROPERTIES:</span></code>
-<code><span class="org-string">  :EMAIL: %(my/org-contacts-template-email)</span></code>
-<code><span class="org-string">  :END:"</span>)))</code>
-<code>  (<span class="org-keyword">bind-key</span> <span class="org-string">"C-M-r"</span> 'org-capture)</code>
-<code>  <span class="org-comment-delimiter">;</span><span class="org-comment">(bind-key (kbd "&lt;f5&gt;") 'org-capture)</span></code>
+<code><span class="org-string">  %i</span></code>
+<code><span class="org-string">  "</span> <span class="org-doc">"Basic task data"</span>)</code>
+<code>    (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/org-inbox-file</span> <span class="org-string">"~/orgzly/Inbox.org"</span>)</code>
+<code>    (<span class="org-keyword">defvar</span> <span class="org-variable-name">my/ledger-file</span> <span class="org-string">"~/cloud/ledger/current.ledger"</span>)</code>
+<code>    (<span class="org-keyword">setq</span> org-capture-templates</code>
+<code>          `((<span class="org-string">"t"</span> <span class="org-string">"Quick task"</span> entry</code>
+<code>             (file ,my/org-inbox-file)</code>
+<code>             <span class="org-string">"* TODO %^{Task}\n"</span></code>
+<code>             <span class="org-builtin">:immediate-finish</span> t)</code>
+<code>            (<span class="org-string">"T"</span> <span class="org-string">"Task"</span> entry</code>
+<code>             (file ,my/org-inbox-file)</code>
+<code>             <span class="org-string">"* TODO %^{Task}\n"</span>)</code>
+<code>            (<span class="org-string">"."</span> <span class="org-string">"Today"</span> entry</code>
+<code>             (file ,my/org-inbox-file)</code>
+<code>             <span class="org-string">"* TODO %^{Task}\nSCHEDULED: %t\n"</span></code>
+<code>             <span class="org-builtin">:immediate-finish</span> t)</code>
+<code>            (<span class="org-string">"v"</span> <span class="org-string">"Video"</span> entry</code>
+<code>             (file ,my/org-inbox-file)</code>
+<code>             <span class="org-string">"* TODO %^{Task}  :video:\nSCHEDULED: %t\n"</span></code>
+<code>             <span class="org-builtin">:immediate-finish</span> t)</code>
+<code>            (<span class="org-string">"e"</span> <span class="org-string">"Errand"</span> entry</code>
+<code>             (file ,my/org-inbox-file)</code>
+<code>             <span class="org-string">"* TODO %^{Task}  :errands:\n"</span></code>
+<code>             <span class="org-builtin">:immediate-finish</span> t)</code>
+<code>            (<span class="org-string">"n"</span> <span class="org-string">"Note"</span> entry</code>
+<code>             (file ,my/org-inbox-file)</code>
+<code>             <span class="org-string">"* %^{Note}\n"</span></code>
+<code>             <span class="org-builtin">:immediate-finish</span> t)</code>
+<code>            (<span class="org-string">"r"</span> <span class="org-string">"Note"</span> entry</code>
+<code>             (file ,my/org-inbox-file)</code>
+<code>             <span class="org-string">"* %?\n%U - %a"</span>)</code>
+<code>            (<span class="org-string">"N"</span> <span class="org-string">"Note"</span> entry</code>
+<code>             (file ,my/org-inbox-file)</code>
+<code>             <span class="org-string">"* %^{Note}\n"</span>)</code>
+<code>            (<span class="org-string">"i"</span> <span class="org-string">"Interrupting task"</span> entry</code>
+<code>             (file ,my/org-inbox-file)</code>
+<code>             <span class="org-string">"* STARTED %^{Task}"</span></code>
+<code>             <span class="org-builtin">:clock-in</span> <span class="org-builtin">:clock-resume</span>)</code>
+<code>            (<span class="org-string">"b"</span> <span class="org-string">"Business task"</span> entry</code>
+<code>             (file+headline <span class="org-string">"~/personal/business.org"</span> <span class="org-string">"Tasks"</span>)</code>
+<code>             ,my/org-basic-task-template)</code>
+<code>            (<span class="org-string">"p"</span> <span class="org-string">"People task"</span> entry</code>
+<code>             (file <span class="org-string">"~/orgzly/people.org"</span>)</code>
+<code>             ,my/org-basic-task-template)</code>
+<code>            (<span class="org-string">"j"</span> <span class="org-string">"Journal entry"</span> plain</code>
+<code>             (file+datetree <span class="org-string">"~/personal/journal.org"</span>)</code>
+<code>             <span class="org-string">"%K - %a\n%i\n%?\n"</span></code>
+<code>             <span class="org-builtin">:unnarrowed</span> t)</code>
+<code>            (<span class="org-string">"J"</span> <span class="org-string">"Journal entry with date"</span> plain</code>
+<code>             (file+datetree+prompt <span class="org-string">"~/personal/journal.org"</span>)</code>
+<code>             <span class="org-string">"%K - %a\n%i\n%?\n"</span></code>
+<code>             <span class="org-builtin">:unnarrowed</span> t)</code>
+<code>            (<span class="org-string">"s"</span> <span class="org-string">"Journal entry with date, scheduled"</span> entry</code>
+<code>             (file+datetree+prompt <span class="org-string">"~/personal/journal.org"</span>)</code>
+<code>             <span class="org-string">"* \n%K - %a\n%t\t%i\n%?\n"</span></code>
+<code>             <span class="org-builtin">:unnarrowed</span> t)</code>
+<code>            (<span class="org-string">"w"</span> <span class="org-string">"Web site"</span> entry</code>
+<code>             (file+headline ,org-default-notes-file <span class="org-string">"Inbox"</span>)</code>
+<code>             <span class="org-string">"* %a :website:\n\n%U %?\n\n%:initial"</span>)</code>
+<code>            (<span class="org-string">"c"</span> <span class="org-string">"Protocol Link"</span> entry (file+headline ,org-default-notes-file <span class="org-string">"Inbox"</span>)</code>
+<code>             <span class="org-string">"* [[%:link][%:description]] \n\n#+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n%?\n\nCaptured: %U"</span>)</code>
+<code>            (<span class="org-string">"db"</span> <span class="org-string">"Done - Business"</span> entry</code>
+<code>             (file+headline <span class="org-string">"~/personal/business.org"</span> <span class="org-string">"Tasks"</span>)</code>
+<code>             <span class="org-string">"* DONE %^{Task}\nSCHEDULED: %^t\n%?"</span>)</code>
+<code>            (<span class="org-string">"dp"</span> <span class="org-string">"Done - People"</span> entry</code>
+<code>             (file+headline <span class="org-string">"~/personal/people.org"</span> <span class="org-string">"Tasks"</span>)</code>
+<code>             <span class="org-string">"* DONE %^{Task}\nSCHEDULED: %^t\n%?"</span>)</code>
+<code>            (<span class="org-string">"dt"</span> <span class="org-string">"Done - Task"</span> entry</code>
+<code>             (file+headline <span class="org-string">"~/orgzly/organizer.org"</span> <span class="org-string">"Inbox"</span>)</code>
+<code>             <span class="org-string">"* DONE %^{Task}\nSCHEDULED: %^t\n%?"</span>)</code>
+<code>            (<span class="org-string">"q"</span> <span class="org-string">"Quick note"</span> item</code>
+<code>             (file+headline <span class="org-string">"~/orgzly/organizer.org"</span> <span class="org-string">"Quick notes"</span>))</code>
+<code>            (<span class="org-string">"l"</span> <span class="org-string">"Ledger"</span>)</code>
+<code>            (<span class="org-string">"lc"</span> <span class="org-string">"Cash expense"</span> plain</code>
+<code>             (file ,my/ledger-file)</code>
+<code>             <span class="org-string">"%(ledger-read-date \"Date: \") * %^{Payee}</span></code>
+<code><span class="org-string">      Expenses:Cash</span></code>
+<code><span class="org-string">      Expenses:%^{Account}  %^{Amount}</span></code>
+<code><span class="org-string">    "</span>)</code>
+<code>            (<span class="org-string">"lb"</span> <span class="org-string">"BDO CAD"</span> plain</code>
+<code>    (file ,my/ledger-file)</code>
+<code>    <span class="org-string">"%(ledger-read-date \"Date: \") * %^{Payee}</span></code>
+<code><span class="org-string">      Expenses:Play    $ %^{Amount}</span></code>
+<code><span class="org-string">      Assets:BDO</span></code>
+<code><span class="org-string">    "</span>)</code>
+<code>            (<span class="org-string">"lp"</span> <span class="org-string">"BDO PHP"</span> plain</code>
+<code>    (file ,my/ledger-file)</code>
+<code>    <span class="org-string">"%(ledger-read-date \"Date: \") * %^{Payee}</span></code>
+<code><span class="org-string">      Expenses:Play    PHP %^{Amount}</span></code>
+<code><span class="org-string">      Assets:BDO</span></code>
+<code><span class="org-string">    "</span>)</code>
+<code>            (<span class="org-string">"B"</span> <span class="org-string">"Book"</span> entry</code>
+<code>             (file+datetree <span class="org-string">"~/personal/books.org"</span> <span class="org-string">"Inbox"</span>)</code>
+<code>             <span class="org-string">"* %^{Title}  %^g</span></code>
+<code><span class="org-string">    %i</span></code>
+<code><span class="org-string">    *Author(s):* %^{Author} \\\\</span></code>
+<code><span class="org-string">    *ISBN:* %^{ISBN}</span></code>
+<code></code>
+<code><span class="org-string">    %?</span></code>
+<code></code>
+<code><span class="org-string">    *Review on:* %^t \\</span></code>
+<code><span class="org-string">    %a</span></code>
+<code><span class="org-string">    %U"</span></code>
+<code>             <span class="org-builtin">:clock-in</span> <span class="org-builtin">:clock-resume</span>)</code>
+<code>             (<span class="org-string">"C"</span> <span class="org-string">"Contact"</span> entry (file <span class="org-string">"~/personal/contacts.org"</span>)</code>
+<code>              <span class="org-string">"* %(org-contacts-template-name)</span></code>
+<code><span class="org-string">    :PROPERTIES:</span></code>
+<code><span class="org-string">    :EMAIL: %(my/org-contacts-template-email)</span></code>
+<code><span class="org-string">    :END:"</span>)))</code>
+<code>    (<span class="org-keyword">bind-key</span> <span class="org-string">"C-M-r"</span> 'org-capture)</code>
+<code>    <span class="org-comment-delimiter">;</span><span class="org-comment">(bind-key (kbd "&lt;f5&gt;") 'org-capture)</span></code>
 </pre>
 </div>
 </div>
@@ -3008,6 +2999,7 @@ able to clock in on them.
 <code>      (my/org-clock-in-and-track))))</code>
 <code>(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-off-my-computer</span> (category)</code>
 <code>  (<span class="org-keyword">interactive</span> <span class="org-string">"MCategory: "</span>)</code>
+<code>  (<span class="org-keyword">eval-when-compile</span> (<span class="org-keyword">require</span> '<span class="org-constant">quantified</span> nil t))</code>
 <code>  (my/org-clock-in-refile <span class="org-string">"Off my computer"</span>)</code>
 <code>  (quantified-track category))</code>
 </pre>
@@ -3151,8 +3143,8 @@ and <code>!</code> automatically logs the timestamp of the state change.
 </div>
 </li>
 
-<li><a id="orge09b594"></a>Projects<br />
-<div class="outline-text-6" id="text-orge09b594">
+<li><a id="orgd0cd698"></a>Projects<br />
+<div class="outline-text-6" id="text-orgd0cd698">
 <p>
 Projects are headings with the <code>:project:</code> tag, so we generally don't
 want that tag inherited, except when we display unscheduled tasks that
@@ -3381,9 +3373,9 @@ of every month. Fortunately, <a href="http://stackoverflow.com/questions/1355538
 </div>
 </div>
 
-<div id="outline-container-orgbf41cee" class="outline-4">
-<h4 id="orgbf41cee">Templates</h4>
-<div class="outline-text-4" id="text-orgbf41cee">
+<div id="outline-container-orgcfc2a50" class="outline-4">
+<h4 id="orgcfc2a50">Templates</h4>
+<div class="outline-text-4" id="text-orgcfc2a50">
 </div>
 <div id="outline-container-org74bcbb3" class="outline-5">
 <h5 id="org74bcbb3">Structure templates</h5>
@@ -4157,9 +4149,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 </div>
 </div>
 </div>
-<div id="outline-container-orgaeb4fed" class="outline-5">
-<h5 id="orgaeb4fed">Projects</h5>
-<div class="outline-text-5" id="text-orgaeb4fed">
+<div id="outline-container-org8c2eaa3" class="outline-5">
+<h5 id="org8c2eaa3">Projects</h5>
+<div class="outline-text-5" id="text-org8c2eaa3">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp"><code>(<span class="org-keyword">defun</span> <span class="org-function-name">my/org-show-active-projects</span> ()</code>
 <code>  <span class="org-doc">"Show my current projects."</span></code>
@@ -5397,7 +5389,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
 </div>
 </div>
 
-<div id="outline-container-org7e90c5e" class="outline-5">
+<div id="outline-container-org26ec4c7" class="outline-5">
 <h5 id="org-dired">Dired</h5>
 <div class="outline-text-5" id="text-org-dired">
 <div class="org-src-container">
@@ -7775,9 +7767,9 @@ tree instead.
 </div>
 </div>
 
-<div id="outline-container-orgd0cd698" class="outline-4">
-<h4 id="orgd0cd698">Projects</h4>
-<div class="outline-text-4" id="text-orgd0cd698">
+<div id="outline-container-orgb3f5f52" class="outline-4">
+<h4 id="orgb3f5f52">Projects</h4>
+<div class="outline-text-4" id="text-orgb3f5f52">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp"><code>(<span class="org-keyword">use-package</span> <span class="org-constant">projectile</span></code>
 <code>  <span class="org-builtin">:diminish</span> projectile-mode</code>
@@ -8885,9 +8877,9 @@ cool. On Windows, these things help a little.
 </div>
 </div>
 </div>
-<div id="outline-container-orgad8e6d1" class="outline-3">
-<h3 id="orgad8e6d1">Encryption</h3>
-<div class="outline-text-3" id="text-orgad8e6d1">
+<div id="outline-container-org4436e4d" class="outline-3">
+<h3 id="org4436e4d">Encryption</h3>
+<div class="outline-text-3" id="text-org4436e4d">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp"><code>(<span class="org-keyword">setq</span> epa-file-encrypt-to '(<span class="org-string">"sacha@sachachua.com"</span>))</code>
 <code>        (<span class="org-keyword">setq</span> epa-pinentry-mode 'loopback)</code>
@@ -10140,9 +10132,9 @@ big to open easily there, though.
 </div>
 </div>
 </div>
-<div id="outline-container-org4436e4d" class="outline-3">
-<h3 id="org4436e4d">Encryption</h3>
-<div class="outline-text-3" id="text-org4436e4d">
+<div id="outline-container-org5c5977f" class="outline-3">
+<h3 id="org5c5977f">Encryption</h3>
+<div class="outline-text-3" id="text-org5c5977f">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp"><code>(<span class="org-keyword">require</span> '<span class="org-constant">org-crypt</span>)</code>
 <code>(org-crypt-use-before-save-magic)</code>

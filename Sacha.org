@@ -3420,7 +3420,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                                           (concat "id/" (match-string 0 base))
                                         (concat "filename/" base)))
                               base))))
-                 (let ((my/sketch-directories '("~/sketches"))) (my/get-index-card-filenames-between-dates start end filter))
+                 (let ((my/sketch-directories '("~/sketches"))) (my/get-sketch-filenames-between-dates start end filter))
                  "")))))
          (if do-insert
              (insert value)
@@ -8891,7 +8891,7 @@ recently-opened files first.
   Pro's next/previous file commands, and then process them all when I'm
   ready.
 
-**** Index cards
+**** Index cards and other sketches
 
 https://www.emacswiki.org/emacs/InsertFileName
 #+begin_src emacs-lisp 
@@ -8922,115 +8922,115 @@ https://www.emacswiki.org/emacs/InsertFileName
   specified number of them) and then opens the last one for me to edit.
 
   #+begin_src emacs-lisp 
-        (defun my/set-up-sketch-buffer ()
-          "Populate a widget buffer with a few handy buttons."
-          (interactive)
-          (with-current-buffer (get-buffer-create "*Done*")
-            (let ((inhibit-read-only t))
-              (erase-buffer)
-              (widget-create 'push-button
-                             :notify (lambda (&rest ignore)
-                                       (my/org-clock-in-and-track-by-name "Draw"))
-                             "Track: Draw")        
-              (widget-create 'push-button
-                             :notify (lambda (&rest ignore)
-                                       (my/org-clock-in-and-track-by-name "Draw journal entries"))
-                             "Track: Journal")
-              (widget-create 'push-button
-                             :notify (lambda (&rest ignore)
-                                       (my/open-image (my/prepare-index-card-template)))
-                             "New")
-              (widget-create 'push-button
-                             :notify (lambda (&rest ignore)
-                                       (my/open-image (my/prepare-large-template)))
-                             "New large")
-              (widget-create 'push-button
-                             :notify (lambda (&rest ignore)
-                                       (my/open-image (my/prepare-index-card-template nil (org-read-date))))
-                             "Date")
-              (widget-create 'push-button
-                             :notify (lambda (&rest ignore) (shell-command "~/bin/rotate-screen")) "Rotate")
-              (insert "\n")        
-              (widget-create 'push-button
-                             :notify (lambda (&rest ignore)
-                                       (shell-command "~/bin/add-output-png"))
-                             "Add output.png")
-              (widget-create 'push-button
-                             :notify (lambda (&rest ignore)
-                                       (my/rotate-screen 0)
-                                       (kill-buffer)
-                                       (my/rename-scanned-cards))
-                             "Process")
-              (widget-create 'push-button
-                             :notify (lambda (&rest ignore)
-                                       (my/rotate-screen 0)
-                                       (delete-window)
-                                       (my/rename-scanned-cards))
-                             "Rename")        
-              (widget-create 'push-button
-                             :notify (lambda (&rest ignore)
-                                       (my/rotate-screen 0)
-                                       (delete-window)
-                                         (my/convert-and-upload-cards))
-                             "Upload")
-              (widget-create 'push-button
-                             :notify (lambda (&rest ignore)
-                                       (my/rotate-screen 0)
-                                       (org-clock-out)
-                                       (kill-buffer))
-                             "Quit")
-              (text-scale-set 10)
-              (widget-setup)
-              (widget-minor-mode)
-              (pop-to-buffer (current-buffer))
-              (goto-char (point-min))
-              (current-buffer))))
+    (defun my/set-up-sketch-buffer ()
+      "Populate a widget buffer with a few handy buttons."
+      (interactive)
+      (with-current-buffer (get-buffer-create "*Done*")
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/org-clock-in-and-track-by-name "Draw"))
+                         "Track: Draw")        
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/org-clock-in-and-track-by-name "Draw journal entries"))
+                         "Track: Journal")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/open-image (my/prepare-index-card-template)))
+                         "New")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/open-image (my/prepare-large-template)))
+                         "New large")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/open-image (my/prepare-index-card-template nil (org-read-date))))
+                         "Date")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore) (shell-command "~/bin/rotate-screen")) "Rotate")
+          (insert "\n")        
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (shell-command "~/bin/add-output-png"))
+                         "Add output.png")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/rotate-screen 0)
+                                   (kill-buffer)
+                                   (my/rename-scanned-cards))
+                         "Process")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/rotate-screen 0)
+                                   (delete-window)
+                                   (my/rename-scanned-cards))
+                         "Rename")        
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/rotate-screen 0)
+                                   (delete-window)
+                                   (my/convert-and-upload-cards))
+                         "Upload")
+          (widget-create 'push-button
+                         :notify (lambda (&rest ignore)
+                                   (my/rotate-screen 0)
+                                   (org-clock-out)
+                                   (kill-buffer))
+                         "Quit")
+          (text-scale-set 10)
+          (widget-setup)
+          (widget-minor-mode)
+          (pop-to-buffer (current-buffer))
+          (goto-char (point-min))
+          (current-buffer))))
 
-        (defvar my/sketch-executable "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe")
-        (defvar my/index-card-template-file "c:/data/drawing-templates/custom/0 - index.tif")
-        (when (eq system-type 'gnu/linux)
-          (setq my/sketch-executable "krita"
-                my/index-card-template-file "~/Dropbox/drawings/templates/0 - index.psd"))
-        (defun my/prepare-index-cards (n)
-          (interactive (list (or current-prefix-arg 5)))
-          (let ((counter 1)
-                (directory "~/Dropbox/Inbox")
-                (template my/index-card-template-file)
-                (date (substring (org-read-date nil nil ".") 0 10))
-                temp-file)
-            (quantified-track "Drawing")
-            (dotimes (i 5) (my/open-image (my/prepare-index-card-template)))
-            (my/rotate-screen 180)
-            (my/set-up-sketch-buffer)))
+    (defvar my/sketch-executable "C:/Program Files/Autodesk/SketchBook Pro 7/SketchBookPro.exe")
+    (defvar my/index-card-template-file "c:/data/drawing-templates/custom/0 - index.tif")
+    (when (eq system-type 'gnu/linux)
+      (setq my/sketch-executable "krita"
+            my/index-card-template-file "~/Dropbox/drawings/templates/0 - index.psd"))
+    (defun my/prepare-index-cards (n)
+      (interactive (list (or current-prefix-arg 5)))
+      (let ((counter 1)
+            (directory "~/Dropbox/Inbox")
+            (template my/index-card-template-file)
+            (date (substring (org-read-date nil nil ".") 0 10))
+            temp-file)
+        (quantified-track "Drawing")
+        (dotimes (i 5) (my/open-image (my/prepare-index-card-template)))
+        (my/rotate-screen 180)
+        (my/set-up-sketch-buffer)))
 
-        (defvar my/index-card-file-name nil "Most recent index card file name.")
-        (defun my/rotate-screen (degrees)
-          (cond
-           ((eq system-type 'windows-nt)
-            (shell-command (format "c:/sacha/Dropbox/bin/orient /rotate:%d" degrees)))
-           ((eq system-type 'gnu/linux)
-            (shell-command (format "~/bin/rotate-screen %s"
-                                   (cond
-                                    ((= degrees 0) "normal")
-                                    ((= degrees 180) "inverted")
-                                    ((= degrees 90) "left")
-                                    ((= degrees 270) "right")))))))
+    (defvar my/index-card-file-name nil "Most recent index card file name.")
+    (defun my/rotate-screen (degrees)
+      (cond
+       ((eq system-type 'windows-nt)
+        (shell-command (format "c:/sacha/Dropbox/bin/orient /rotate:%d" degrees)))
+       ((eq system-type 'gnu/linux)
+        (shell-command (format "~/bin/rotate-screen %s"
+                               (cond
+                                ((= degrees 0) "normal")
+                                ((= degrees 180) "inverted")
+                                ((= degrees 90) "left")
+                                ((= degrees 270) "right")))))))
 
-        (defvar my/sketch-directories
-          '("~/Dropbox/Inbox"
-            "~/Dropbox/Inbox/To blog"
-            "~/Dropbox/sketches/private"
-            "~/sketches"
-            "~/photosync/photostream"))
+    (defvar my/sketch-directories
+      '("~/sketches"
+        "~/cloud/private-sketches"
+        "~/Dropbox/Inbox"
+        "~/Dropbox/Inbox/To blog"))
 
-    (defun my/get-index-card-filenames-between-dates (start end filter)
+    (defun my/get-sketch-filenames-between-dates (start end filter)
       "Returns index card filenames between START and END."
-      (my/get-index-card-filenames
+      (my/get-sketch-filenames
        (lambda (filename)
          (and (string> (file-name-nondirectory filename) start)
               (string> end (file-name-nondirectory filename))
               (or (not filter) (string-match filter filename))))))
-    (defun my/get-index-card-filenames (base &optional as-regexp)
+
+    (defun my/get-sketch-filenames (base &optional as-regexp)
       "Check several directories for files matching BASE.
     Return the matching filenames, if any.
     If AS-REGEXP is non-nil, treat BASE as a regular expression.
@@ -9048,47 +9048,93 @@ https://www.emacswiki.org/emacs/InsertFileName
                                "\\("
                                (if as-regexp base (regexp-quote base))
                                "\\)"
-                               ".*\\.\\(png\\|psd\\|tiff\\|jpg\\)?$"
+                               ".*\\(\\.\\(png\\|psd\\|tiff\\|jpg\\)\\)?$"
                                )))))
                     my/sketch-directories)))
             'string<))
 
-    (defun my/get-index-card-filename (base &optional as-regexp)
+    (defun my/get-sketch-filename (base &optional as-regexp)
       "Check several directories for files matching BASE.
     Return the first matching filename, if any.
     If AS-REGEXP is non-nil, treat BASE as a regular expression."
-      (car (my/get-index-card-filenames base as-regexp)))
+      (car (my/get-sketch-filenames base as-regexp)))
 
-      (defun my/org-sketch-open (id)
-        (interactive "MSketch ID: ")
-        (call-process "krita" nil 0 nil "--nosplash" "--canvasonly" (my/get-index-card-filename (file-name-sans-extension id))))
+    (defun my/org-sketch-open (id)
+      (interactive "MSketch ID: ")
+      (call-process "krita" nil 0 nil "--nosplash" (my/get-sketch-filename id)))
 
-      (defun my/org-sketch-export (link description format)
-        (let* ((path (concat "https://sketches.sachachua.com/filename/" link))
-               (desc (or description link)))
-          (cond
-           ((eq format 'html) (format "<a target=\"_blank\" href=\"%s\"><img src=\"%s\" width=\"300\"></a>" path desc))
-           ((eq format 'wp) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
-           ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
-           ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
-           ((eq format 'ascii) (format "%s <%s>" desc path))
-           (t path))))
+    (defun my/org-sketch-export (link description format)
+      (let* ((path (concat "https://sketches.sachachua.com/filename/" link))
+             (desc (or description link)))
+        (cond
+         ((eq format 'html) (format "<a target=\"_blank\" href=\"%s\"><img src=\"%s\" width=\"300\"></a>" path desc))
+         ((eq format 'wp) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
+         ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
+         ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
+         ((eq format 'ascii) (format "%s <%s>" desc path))
+         (t path))))
 
-      (org-link-set-parameters "sketch" :follow 'my/org-sketch-open
-                               :export 'my/org-sketch-export
-                               :complete (lambda () (concat "sketch:" (file-name-nondirectory (read-file-name "Sketch: " "~/cloud/sketches/")))))
+    (defun my/org-sketch-complete (&optional prefix)
+      (concat "sketch:"
+              (completing-read "Sketch: " (my/list-sketches "."))))
 
+    ;; Based on https://emacs.stackexchange.com/questions/38098/org-mode-custom-youtube-link-syntax
+    (defun my/org-sketch-preview (start end path bracketp)
+      "Include overlays for sketches."
+      (when (display-graphic-p)
+        (let ((filename (my/get-sketch-filename path))
+              (refresh nil)
+              (link (save-excursion
+                      (goto-char start)
+                      (org-element-lineage
+                       (save-match-data (org-element-context))
+                       '(link) t)))) ;; set this someday
+          (when (and (not (org-element-property :contents-begin link)) filename)
+            (let ((width
+                   ;; Apply `org-image-actual-width' specifications.
+                   (cond
+                    ((not (image-type-available-p 'imagemagick)) nil)
+                    ((eq org-image-actual-width t) nil)
+                    ((numberp org-image-actual-width) org-image-actual-width)
+                    ;; Pick this up from the paragraph someday
+                    ))
+                  (old (get-char-property-and-overlay start 'org-image-overlay)))
+              (if (and (car-safe old) refresh)
+                  (image-refresh (overlay-get (cdr old) 'display))
+                (let ((image (create-image filename
+                                           (and width 'imagemagick)
+                                           nil
+                                           :width width)))
+                  (when image
+                    (let* ((ov (make-overlay start end)))
+                      (overlay-put ov 'display image)
+                      (overlay-put ov 'face 'default)
+                      (overlay-put ov 'org-image-overlay t)
+                      (overlay-put
+                       ov 'modification-hooks
+                       (list 'org-display-inline-remove-overlay))
+                      (push ov org-inline-image-overlays))))))))))
+
+    (use-package org
+      :config
+      (setq org-image-actual-width 600)
+      (org-link-set-parameters
+       "sketch"
+       :follow 'my/org-sketch-open
+       :export 'my/org-sketch-export
+       :complete 'my/org-sketch-complete
+       :activate-func 'my/org-sketch-preview))
 
     (defun my/list-sketches (regexp &optional full-filename directories)
       "Return a list of sketch filenames matching REGEXP."
       (interactive "MFilter: \np")
-      (let ((my/sketch-directories (or directories '("~/sketches"))))
+      (let ((my/sketch-directories (or directories my/sketch-directories)))
         (funcall (if (called-interactively-p 'interactive)
                      (lambda (x) (insert (mapconcat (lambda (y) (concat "- " y)) x "\n"))) 'identity)
                  (sort (-uniq
                         (mapcar (if full-filename 'identity
                                   'file-name-nondirectory)
-                                (my/get-index-card-filenames regexp t)))
+                                (my/get-sketch-filenames regexp t)))
                        'string>))))
 
     (defun my/show-sketches-as-slideshow (list &optional shuffle)
@@ -9101,24 +9147,24 @@ https://www.emacswiki.org/emacs/InsertFileName
                           (my/list-sketches list t)
                         list))))
 
-        (defun my/prepare-drawing-template (&optional name date template)
-          "Create the image file for NAME. Return the new filename."
-          (let* ((directory "~/Dropbox/Inbox")
-                 (date (or date (substring (org-read-date nil nil ".") 0 10)))
-                 (counter ?a))
-            (while (my/get-index-card-filename (concat date (char-to-string counter)))
-              (setq counter (1+ counter)))
-            (setq name (expand-file-name
-                        (concat date (char-to-string counter)
-                                (if name
-                                    (concat " "
-                                            (my/convert-sketch-title-to-filename (or name "")))
+    (defun my/prepare-drawing-template (&optional name date template)
+      "Create the image file for NAME. Return the new filename."
+      (let* ((directory "~/Dropbox/Inbox")
+             (date (or date (substring (org-read-date nil nil ".") 0 10)))
+             (counter ?a))
+        (while (my/get-sketch-filename (concat date (char-to-string counter)))
+          (setq counter (1+ counter)))
+        (setq name (expand-file-name
+                    (concat date (char-to-string counter)
+                            (if name
+                                (concat " "
+                                        (my/convert-sketch-title-to-filename (or name "")))
 
-                "") 
-                                  "." (file-name-extension template))
-                        directory))
-            (unless (file-exists-p name) (copy-file template name))
-            name))
+                              "") 
+                            "." (file-name-extension template))
+                    directory))
+        (unless (file-exists-p name) (copy-file template name))
+        name))
 
     (defun my/org-insert-new-index-card-link ()
       (interactive)
@@ -9131,91 +9177,91 @@ https://www.emacswiki.org/emacs/InsertFileName
            (concat (shell-quote-argument my/sketch-executable)
                    " " (shell-quote-argument filename) " &")))))
 
-        (defun my/prepare-index-card-template (&optional name date)
-          "Create the image file for NAME. Return the new filename."
-          (my/prepare-drawing-template name date my/index-card-template-file))
+    (defun my/prepare-index-card-template (&optional name date)
+      "Create the image file for NAME. Return the new filename."
+      (my/prepare-drawing-template name date my/index-card-template-file))
 
-        (defun my/prepare-large-template (&optional name date)
-          "Create the image file for NAME. Return the new filename."
-          (my/prepare-drawing-template name date "/home/sacha/Dropbox/drawings/templates/0 - base.psd"))
+    (defun my/prepare-large-template (&optional name date)
+      "Create the image file for NAME. Return the new filename."
+      (my/prepare-drawing-template name date "/home/sacha/Dropbox/drawings/templates/0 - base.psd"))
 
-        (defun my/prepare-index-card (&optional name date)
-          "Prepare the index card for NAME.
+    (defun my/prepare-index-card (&optional name date)
+      "Prepare the index card for NAME.
         Rotate the screen and show a button to un-rotate the screen."
-          (interactive (list (read-string "Name: ")
-                             (substring (if current-prefix-arg (org-read-date) (org-read-date nil nil ".")) 0 10)))
-          (setq my/index-card-file-name (my/prepare-index-card-template name date))
-          (save-window-excursion
-            (my/rotate-screen 180)
-            (shell-command
-             (concat (shell-quote-argument my/sketch-executable)
-                     " " (shell-quote-argument my/index-card-file-name) " &")))
-          (my/set-up-sketch-buffer))
+      (interactive (list (read-string "Name: ")
+                         (substring (if current-prefix-arg (org-read-date) (org-read-date nil nil ".")) 0 10)))
+      (setq my/index-card-file-name (my/prepare-index-card-template name date))
+      (save-window-excursion
+        (my/rotate-screen 180)
+        (shell-command
+         (concat (shell-quote-argument my/sketch-executable)
+                 " " (shell-quote-argument my/index-card-file-name) " &")))
+      (my/set-up-sketch-buffer))
 
-        (defun my/prepare-index-card-for-subtree ()
-          "Create an index card template for the current subtree."
-          (interactive)
-          (let* ((heading (elt (org-heading-components) 4)))
-            (unless (org-entry-get (point) "Effort") (org-set-property "Effort" "0:15"))
-            (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
-            (my/org-quantified-track "Drawing")
-            (if (org-at-heading-p) (forward-line 1))
-            (my/prepare-index-card heading)))
+    (defun my/prepare-index-card-for-subtree ()
+      "Create an index card template for the current subtree."
+      (interactive)
+      (let* ((heading (elt (org-heading-components) 4)))
+        (unless (org-entry-get (point) "Effort") (org-set-property "Effort" "0:15"))
+        (if (derived-mode-p 'org-agenda-mode) (org-agenda-clock-in) (org-clock-in))
+        (my/org-quantified-track "Drawing")
+        (if (org-at-heading-p) (forward-line 1))
+        (my/prepare-index-card heading)))
 
-        (defun my/helm-org-prepare-index-card-for-subtree (candidate)
-          (let ((location (org-refile--get-location candidate my/helm-org-refile-locations)))
-            (save-window-excursion
-              (save-excursion
-                (org-refile 4 nil location)
-                (my/prepare-index-card-for-subtree)) t)))
+    (defun my/helm-org-prepare-index-card-for-subtree (candidate)
+      (let ((location (org-refile--get-location candidate my/helm-org-refile-locations)))
+        (save-window-excursion
+          (save-excursion
+            (org-refile 4 nil location)
+            (my/prepare-index-card-for-subtree)) t)))
 
-        (defun my/open-image (filename)
-          "Open image in Autodesk Sketchbook Pro."
-          (call-process
-           my/sketch-executable
-           nil 0 nil filename))
+    (defun my/open-image (filename)
+      "Open image in Autodesk Sketchbook Pro."
+      (call-process
+       my/sketch-executable
+       nil 0 nil filename))
 
-        (defvar my/org-index-card-source nil)
-        (defun my/org-prompt-index-cards ()
-          "Display a buffer for easy selection of questions to work on."
-          (interactive)
-          (find-file "~/personal/questions.org")
-          (let ((questions
-                 (cl-sort (org-map-entries 'org-heading-components "TODO=\"DRAW\"")
-                          '< :key (lambda (x) (or (elt x 3) 100)))))
-            (setq my/org-index-card-source (current-buffer))
-            (my/rotate-screen 180)
-            (my/set-up-sketch-buffer)
-            (mapc (lambda (q)
-                    (widget-create 'push-button
-                                   :notify (lambda (widget &rest ignore)
-                                             (my/open-image
-                                              (my/prepare-index-card-template
-                                               (widget-value widget)))
-                                             (with-current-buffer my/org-index-card-source
-                                               (save-excursion
-                                                 (goto-char (org-find-exact-headline-in-buffer (widget-value widget) my/org-index-card-source t))
-                                                 (org-set-property "Effort" "0:15")
-                                                 (org-clock-in)
-                                                 (org-todo "LINK")))
-                                             (widget-delete widget))
-                                   (elt q 4))
-                    (insert "\n"))
-                  questions)
-            (text-scale-set 5)
-            (widget-setup)
-            (widget-minor-mode)
-            (goto-char (point-min))
-            (when (functionp 'scroll-bar-mode) (scroll-bar-mode))
-            (switch-to-buffer (current-buffer))))
+    (defvar my/org-index-card-source nil)
+    (defun my/org-prompt-index-cards ()
+      "Display a buffer for easy selection of questions to work on."
+      (interactive)
+      (find-file "~/personal/questions.org")
+      (let ((questions
+             (cl-sort (org-map-entries 'org-heading-components "TODO=\"DRAW\"")
+                      '< :key (lambda (x) (or (elt x 3) 100)))))
+        (setq my/org-index-card-source (current-buffer))
+        (my/rotate-screen 180)
+        (my/set-up-sketch-buffer)
+        (mapc (lambda (q)
+                (widget-create 'push-button
+                               :notify (lambda (widget &rest ignore)
+                                         (my/open-image
+                                          (my/prepare-index-card-template
+                                           (widget-value widget)))
+                                         (with-current-buffer my/org-index-card-source
+                                           (save-excursion
+                                             (goto-char (org-find-exact-headline-in-buffer (widget-value widget) my/org-index-card-source t))
+                                             (org-set-property "Effort" "0:15")
+                                             (org-clock-in)
+                                             (org-todo "LINK")))
+                                         (widget-delete widget))
+                               (elt q 4))
+                (insert "\n"))
+              questions)
+        (text-scale-set 5)
+        (widget-setup)
+        (widget-minor-mode)
+        (goto-char (point-min))
+        (when (functionp 'scroll-bar-mode) (scroll-bar-mode))
+        (switch-to-buffer (current-buffer))))
 
-        (defun my/prepare-index-card-for-journal ()
-          "Create an index card for my process journal."
-          (interactive)
-          (quantified-track "Drawing")
-          (my/prepare-index-card "Journal"))
+    (defun my/prepare-index-card-for-journal ()
+      "Create an index card for my process journal."
+      (interactive)
+      (quantified-track "Drawing")
+      (my/prepare-index-card "Journal"))
 
-        (add-to-list 'org-speed-commands-user '("d" call-interactively 'my/prepare-index-card-for-subtree))
+    (add-to-list 'org-speed-commands-user '("d" call-interactively 'my/prepare-index-card-for-subtree))
   #+end_src
 
   #+RESULTS:
@@ -9325,7 +9371,7 @@ more entries, with everything else filed under "Other".
       "Returns the filename for the journal sketch for DATE."
       (car
        (-filter (lambda (x) (not (string-match "weekly" x)))
-                (my/get-index-card-filenames
+                (my/get-sketch-filenames
                  (format "%s.* .*#daily" date)
                  t))))
 
@@ -9426,7 +9472,7 @@ more entries, with everything else filed under "Other".
                                             (concat (match-string 1 base))
                                           ""))))
              (while (and (string-match "^[0-9]+-[0-9]+-[0-9]+[a-z]" new-name)
-                         (setq old-name (my/get-index-card-filename (match-string 0 new-name)))
+                         (setq old-name (my/get-sketch-filename (match-string 0 new-name)))
                          (and old-name
                               (not (string= old-name filename))
                               (not (string= (file-name-nondirectory old-name)
@@ -9597,7 +9643,7 @@ Aspect ratio is width / height
      (list
       (if (derived-mode-p 'dired-mode)
           (dired-get-marked-files)
-        (mapcar 'my/get-index-card-filename
+        (mapcar 'my/get-sketch-filename
                 (my/extract-image-filenames (min (point) (mark)) (max (point) (mark)))))
       (if current-prefix-arg (read-string "Tiling: "))))
     ;; Extract the links
@@ -9622,11 +9668,11 @@ Aspect ratio is width / height
     (interactive "r")
     (let* ((date (org-read-date nil nil (unless current-prefix-arg "-fri")))
            (filename (format "Week ending %s #journal #weekly" date))
-           (full-filename (my/get-index-card-filename filename)))
+           (full-filename (my/get-sketch-filename filename)))
       (if full-filename
           (my/open-image full-filename)
         (my/create-index-card-montage 
-         (mapcar 'my/get-index-card-filename
+         (mapcar 'my/get-sketch-filename
                  (my/extract-image-filenames (min (point) (mark)) (max (point) (mark)))) 
          "2x"
          (my/prepare-index-card-template filename)))))
@@ -9637,7 +9683,7 @@ Aspect ratio is width / height
      (list
       (if (derived-mode-p 'dired-mode)
           (dired-get-marked-files)
-        (mapcar 'my/get-index-card-filename
+        (mapcar 'my/get-sketch-filename
                 (my/extract-image-filenames (min (point) (mark)) (max (point) (mark)))))))
     (let ((async-shell-command-buffer 'new-buffer)
           (index-card (or filename (my/prepare-index-card-template))))

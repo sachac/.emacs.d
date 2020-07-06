@@ -3415,10 +3415,11 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                    (let ((base (file-name-nondirectory filename)))
                      (format "- %s\n"
                              (org-link-make-string
-                              (concat "https://sketches.sachachua.com/"
-                                      (if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][a-z]" base)
-                                          (concat "id/" (match-string 0 base))
-                                        (concat "filename/" base)))
+                              (replace-regexp-in-string "#" "%23"
+                                                        (concat "https://sketches.sachachua.com/"
+                                                                (if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][a-z]" base)
+                                                                    (concat "id/" (match-string 0 base))
+                                                                  (concat "filename/" base))))
                               base))))
                  (let ((my/sketch-directories '("~/sketches"))) (my/get-sketch-filenames-between-dates start end filter))
                  "")))))
@@ -3691,7 +3692,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
                 end-date (format "%4d-%02d-01 0:00" (elt date 5) (elt date 4))
                 title (format-time-string "%B %Y" (encode-time 0 0 0 1 month year))
                 posts (_my/extract-posts-from-webpage
-                       (format "http://sachachua.com/blog/%4d/%d?org=1"
+                       (format "https://sachachua.com/blog/%4d/%d?org=1"
                                year month))
                 sketches (my/sketches-export-and-extract start-date nil nil t))
           (calendar-increment-month month year -1)
@@ -7351,11 +7352,10 @@ Quickly jump to a position in the current view.
 
 #+begin_src emacs-lisp 
   (use-package avy)
-  ;; I use the jj key-chord for this; see the definitions for key-chord
-(use-package avy-zap
+  (use-package avy-zap
   :bind
   (("M-z" . avy-zap-up-to-char-dwim)
-   ("M-Z" . avy-zap-to-char-dwim)))
+  ("M-Z" . avy-zap-to-char-dwim)))
 #+end_src
 
 *** Deleting things
@@ -9035,23 +9035,25 @@ https://www.emacswiki.org/emacs/InsertFileName
     Return the matching filenames, if any.
     If AS-REGEXP is non-nil, treat BASE as a regular expression.
     If BASE is a function, use that to filter."
-      (sort (-flatten
-             (delq nil
-                   (mapcar
-                    (lambda (dir)
-                      (and (file-directory-p dir)
-                           (if (functionp base)
-                               (-filter base (directory-files dir t ".*\\.\\(png\\|psd\\|tiff\\|jpg\\)?$"))
-                             (directory-files
-                              dir t
-                              (concat 
-                               "\\("
-                               (if as-regexp base (regexp-quote base))
-                               "\\)"
-                               ".*\\(\\.\\(png\\|psd\\|tiff\\|jpg\\)\\)?$"
-                               )))))
-                    my/sketch-directories)))
-            'string<))
+      (-filter
+       (lambda (o) (not (string-match "\\.xmp" o)))
+       (sort (-flatten
+              (delq nil
+                    (mapcar
+                     (lambda (dir)
+                       (and (file-directory-p dir)
+                            (if (functionp base)
+                                (-filter base (directory-files dir t ".*\\.\\(png\\|psd\\|tiff\\|jpg\\)?$"))
+                              (directory-files
+                               dir t
+                               (concat 
+                                "\\("
+                                (if as-regexp base (regexp-quote base))
+                                "\\)"
+                                ".*\\(\\.\\(png\\|psd\\|tiff\\|jpg\\)\\)?$"
+                                )))))
+                     my/sketch-directories)))
+             'string<)))
 
     (defun my/get-sketch-filename (base &optional as-regexp)
       "Check several directories for files matching BASE.
@@ -9065,10 +9067,13 @@ https://www.emacswiki.org/emacs/InsertFileName
 
     (defun my/org-sketch-export (link description format)
       (let* ((path (concat "https://sketches.sachachua.com/filename/" link))
+             (image (concat "https://sketches.sachachua.com/static/" link))
              (desc (or description link)))
         (cond
-         ((eq format 'html) (format "<a target=\"_blank\" href=\"%s\"><img src=\"%s\" width=\"300\"></a>" path desc))
-         ((eq format 'wp) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
+         ((or (eq format 'html) (eq format 'wp))
+          (if description
+              (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc)
+            (format "<a target=\"_blank\" href=\"%s\"><img src=\"%s\"><br />%s</a>" path image desc)))
          ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
          ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
          ((eq format 'ascii) (format "%s <%s>" desc path))
@@ -9127,10 +9132,10 @@ https://www.emacswiki.org/emacs/InsertFileName
 
     (defun my/list-sketches (regexp &optional full-filename directories)
       "Return a list of sketch filenames matching REGEXP."
-      (interactive "MFilter: \np")
+      (interactive (list (read-string "Filter: ")))
       (let ((my/sketch-directories (or directories my/sketch-directories)))
         (funcall (if (called-interactively-p 'interactive)
-                     (lambda (x) (insert (mapconcat (lambda (y) (concat "- " y)) x "\n"))) 'identity)
+                     (lambda (x) (insert (mapconcat (lambda (y) (concat "- " (org-link-make-string (concat "sketch:" y)))) x "\n"))) 'identity)
                  (sort (-uniq
                         (mapcar (if full-filename 'identity
                                   'file-name-nondirectory)
@@ -9626,16 +9631,10 @@ Aspect ratio is width / height
     (let (files)
       (save-excursion
         (goto-char (min beg end))
-        (while (re-search-forward "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][a-z]" (max beg end) t)
-          (add-to-list 'files (match-string-no-properties 0) t)))
-      files))
-  (ert-deftest my/extract-image-filenames ()
-    "Check if it extracts the filenames properly."
-    (with-temp-buffer
-      (insert "- [[https://www.flickr.com/photos/somephotoid][2016-01-01a test]]\n")
-      (insert "- [[https://www.flickr.com/photos/somephotoid2][2016-02-01a again]]\n")
-      (should (equal (my/extract-image-filenames (point-min) (point-max))
-                     '("2016-01-01a" "2016-02-01a")))))
+        (while (re-search-forward "sketch:" (max beg end) t)
+          (let ((link (org-element-context)))
+            (add-to-list 'files (org-element-property :path link))))
+      files)))
 
   (defun my/create-sketch-montage (files &optional tiles)
     "Combine the sketches in the region."

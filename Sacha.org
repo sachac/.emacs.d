@@ -9063,7 +9063,10 @@ https://www.emacswiki.org/emacs/InsertFileName
 
     (defun my/org-sketch-open (id)
       (interactive "MSketch ID: ")
-      (call-process "krita" nil 0 nil "--nosplash" (my/get-sketch-filename id)))
+      (call-process "krita" nil 0 nil "--nosplash"
+                    (if (file-exists-p id)
+                        id
+                      (my/get-sketch-filename id))))
 
     (defun my/org-sketch-export (link description format)
       (let* ((path (concat "https://sketches.sachachua.com/filename/" link))
@@ -9156,20 +9159,24 @@ https://www.emacswiki.org/emacs/InsertFileName
       "Create the image file for NAME. Return the new filename."
       (let* ((directory "~/Dropbox/Inbox")
              (date (or date (substring (org-read-date nil nil ".") 0 10)))
+             found
              (counter ?a))
-        (while (my/get-sketch-filename (concat date (char-to-string counter)))
-          (setq counter (1+ counter)))
-        (setq name (expand-file-name
-                    (concat date (char-to-string counter)
-                            (if name
-                                (concat " "
-                                        (my/convert-sketch-title-to-filename (or name "")))
+        (when name
+            (setq found (my/get-sketch-filename (concat date ".*" (regexp-quote name)) t)))
+        (unless found
+          (while (my/get-sketch-filename (concat date (char-to-string counter)))
+            (setq counter (1+ counter)))
+          (setq name (expand-file-name
+                      (concat date (char-to-string counter)
+                              (if name
+                                  (concat " "
+                                          (my/convert-sketch-title-to-filename (or name "")))
 
-                              "") 
-                            "." (file-name-extension template))
-                    directory))
-        (unless (file-exists-p name) (copy-file template name))
-        name))
+                                "") 
+                              "." (file-name-extension template))
+                      directory))
+          (unless (file-exists-p name) (copy-file template name)))
+        (or found name)))
 
     (defun my/org-insert-new-index-card-link ()
       (interactive)
@@ -9554,14 +9561,9 @@ more entries, with everything else filed under "Other".
   #+begin_src emacs-lisp 
     (defun my/prepare-sketchnote-file ()
       (interactive)
-      (let* ((base-name (org-entry-get-with-inheritance  "BASENAME"))
-             (filename (expand-file-name (concat base-name ".tif") "~/dropbox/inbox/")))
+      (let* ((base-name (org-entry-get-with-inheritance  "BASENAME")))
         (unless base-name (error "Missing basename property"))
-        (if (file-exists-p filename)
-            (error "File already exists")
-            (copy-file "g:/drawing-templates/custom/0 - base.tif" filename))
-          (shell-command (concat (shell-quote-argument my/sketch-executable)
-                                 (shell-quote-argument filename) " &"))))
+        (my/org-sketch-open (my/prepare-large-template base-name))))
   #+end_src
 
   By using Emacs Lisp functions to set up files that I'm going to use in

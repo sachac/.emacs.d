@@ -3317,8 +3317,8 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
          (my/org-summarize-journal-csv start end nil my/journal-category-map my/journal-categories)
          "\n\n*Blog posts*\n\n"
          (my/org-list-from-rss "http://sachachua.com/blog/feed" start end)
-                                            ;          "\n\n*Sketches*\n\n"
-                                            ;          (my/sketches-export-and-extract start end) "\n"
+         "\n\n*Sketches*\n\n"
+         (my/sketches-export-and-extract start end) "\n"
          "\n\n*Time*\n\n"
          (orgtbl-to-orgtbl
           (my/quantified-compare prev start start end

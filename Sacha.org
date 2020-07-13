@@ -6350,7 +6350,7 @@ And the rest of the js2 config:
       :commands js2-mode
       :defer t
       :interpreter "node"
-      :init (setq-default js2-basic-offset 2)
+      :init (setq js2-basic-offset 2)
       :bind (:map js2-mode-map
         ("C-x C-e" . js-send-last-sexp)
         ("C-M-x" . js-send-last-sexp-and-go)

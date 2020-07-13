@@ -5681,10 +5681,10 @@ above!
           found
           done
           context)
-      (while (and (re-search-forward "- \\[\\[\\([^[]+\\)\\]\\[\\([^[]+\\)\\]" end t) (not done))
+      (while (and (not done) (re-search-forward "- \\[\\[\\([^[]+\\)\\]\\[\\([^[]+\\)\\]" end t) )
         (setq found nil search (match-string 1) start (match-beginning 0) description (match-string 2))
         (goto-char (match-end 0))
-        (save-excursion
+        (let ((p (point)))
           ;; Search for the URL
           (setq found (funcall search-fn (match-end 0) search description))
           (while found
@@ -5695,9 +5695,18 @@ above!
                    (buffer-substring (line-beginning-position) (line-end-position))))
             (push-mark found)
             (goto-char start)
-            (let ((input (read-char (concat context "\n(d)elete, (k)eep, (n)ext match, (q)quit?"))))
+            (let ((input (read-char (concat context "\n(d)elete, (k)eep, (z)ap next one, e(x)change mark, (n)ext match, (q)quit?"))))
               (cond
                ((eq input ?k)
+                (setq found nil))
+               ((eq input ?x)
+                (goto-char found)
+                (setq done t found nil))
+               ((eq input ?z)
+                (goto-char found)
+                (delete-region (point-at-bol)
+                               (progn (forward-line 1) (point)))
+                (goto-char start)
                 (setq found nil))
                ((eq input ?d)
                 (delete-region (point-at-bol)
@@ -5706,11 +5715,9 @@ above!
                ((eq input ?n)
                 ;; Look for the next match
                 (setq found (funcall search-fn (save-excursion (goto-char found) (line-end-position))
-                                       search description)))
+                                     search description)))
                ((eq input ?q)
-                (setq done t found nil))))
-            )))
-        ))
+                (setq done t found nil)))))))))
 #+end_src
 
 #+RESULTS:

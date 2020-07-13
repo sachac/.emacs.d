@@ -860,6 +860,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 
 (my/defshortcut ?e "~/.emacs.d/Sacha.org")
 (my/defshortcut ?E "~/sync/emacs-news/index.org")
+(my/defshortcut ?f "~/code/font/README.org")
 (my/defshortcut ?i "~/orgzly/Inbox.org")
 (my/defshortcut ?o "~/orgzly/organizer.org")
 (my/defshortcut ?s "~/personal/sewing.org")

@@ -3770,22 +3770,32 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 **** Organizing my blog index
 
  #+begin_src emacs-lisp 
-   (defun my/org-file-blog-index-entries (beg end location)
+   (defun my/org-file-blog-index-entries ()
+     "Keep filing until I press `C-g'."
+     (interactive)
+     (while t
+       (my/org-file-blog-index-entry
+        (line-beginning-position) (1+ (line-end-position))
+        (let ((org-refile-targets
+               '(("~/code/sharing/blog.org" . (:maxlevel . 3)))))
+          (save-excursion (org-refile-get-location "Location"))))))
+
+   (defun my/org-file-blog-index-entry (beg end location)
      "Copy entries into blog.org."
      (interactive
       (list
        (if (region-active-p) (point) (line-beginning-position))
        (if (region-active-p) (mark) (1+ (line-end-position)))
        (let ((org-refile-targets
-              '(("~/Dropbox/Public/sharing/blog.org" . (:maxlevel . 3)))))
+              '(("~/code/sharing/blog.org" . (:maxlevel . 3)))))
          (save-excursion (org-refile-get-location "Location")))))
-     (let ((s
-            (replace-regexp-in-string
-             "^[ \t]*- \\(\\[X\\] \\)?"
-             "- [X] "
-             (buffer-substring-no-properties beg end))))
+       (let ((s
+              (replace-regexp-in-string
+               "^[ \t]*- \\(\\[X\\] \\)?"
+               "- [X] "
+               (buffer-substring-no-properties beg end))))
        ;; if we're already in blog.org, delete the previous entry
-       (if (string= buffer-file-name (expand-file-name "~/Dropbox/Public/sharing/blog.org"))
+       (if (string= buffer-file-name (expand-file-name "~/code/sharing/blog.org"))
            (delete-region beg end))
        (save-window-excursion
          (save-excursion
@@ -5789,7 +5799,7 @@ easily define the menu in a variable. It seems to work fine so far.
   CATEGORY can be a string or a list of the form (text indent regexp).
   Point should be on the next line to process, even if a new category
   has been inserted."
-    (interactive "MCategory: ")
+    (interactive (list (completing-read "Category: " (my/org-get-list-categories))))
     (when category
       (let* ((beg (line-beginning-position))
              (end (line-end-position))

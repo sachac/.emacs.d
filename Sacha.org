@@ -2183,15 +2183,15 @@ SCOPE can be 'file or 'tree."
 This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exporting-org-mode-nested-blocks-to-html
 
 #+begin_src emacs-lisp 
-(defun my/org-html-quote2 (block backend info)
-  (when (org-export-derived-backend-p backend 'html)
-  (when (string-match "\\`<div class=\"quote2\">" block)
-  (setq block (replace-match "<blockquote>" t nil block))
-  (string-match "</div>\n\\'" block)
-  (setq block (replace-match "</blockquote>\n" t nil block))
-  block)))
-(eval-after-load 'ox
-'(add-to-list 'org-export-filter-special-block-functions 'my/org-html-quote2))
+  (defun my/org-html-quote2 (block backend info)
+    (when (org-export-derived-backend-p backend 'html)
+    (when (string-match "\\`<div class=\"quote2\">" block)
+    (setq block (replace-match "<blockquote>" t nil block))
+    (string-match "</div>\n\\'" block)
+    (setq block (replace-match "</blockquote>\n" t nil block))
+    block)))
+  (eval-after-load 'ox
+  '(add-to-list 'org-export-filter-special-block-functions 'my/org-html-quote2))
 #+end_src
 
 **** Emacs chats, Emacs hangouts
@@ -3780,6 +3780,13 @@ This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone
                ("\\subsubsection\{%s\}" . "\\subsubsection*\{%s\}"))))
 #+end_src
 
+*** ox-hugo
+
+#+begin_src emacs-lisp
+  (use-package ox-hugo
+    :ensure t            ;Auto-install the package from Melpa (optional)
+    :after ox)
+#+end_src
 *** Fix incompatible changes from Org 8 to Org 9
 
 http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS
@@ -3840,6 +3847,29 @@ http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS
    (org-tags-view (null current-prefix-arg) tag))
  #+end_quote
 
+ https://endlessparentheses.com/embedding-youtube-videos-with-org-mode-links.html
+ #+begin_src emacs-lisp
+ (defvar yt-iframe-format
+  ;; You may want to change your width and height.
+  (concat "<iframe width=\"440\""
+          " height=\"335\""
+          " src=\"https://www.youtube.com/embed/%s\""
+          " frameborder=\"0\""
+          " allowfullscreen>%s</iframe>"))
+
+(org-add-link-type
+ "yt"
+ (lambda (handle)
+   (browse-url
+    (concat "https://www.youtube.com/embed/"
+            handle)))
+ (lambda (path desc backend)
+   (cl-case backend
+     (html (format yt-iframe-format
+                   path (or desc "")))
+     (latex (format "\href{%s}{%s}"
+                    path (or desc "video"))))))
+                    #+end_src
 **** Links from org-protocol
 
 So that I can easily add links at point. Formatted as an Org list for now.
@@ -3855,6 +3885,18 @@ So that I can easily add links at point. Formatted as an Org list for now.
   (eval-after-load 'org-protocol
    '(add-to-list 'org-protocol-protocol-alist
       '("insert-link" :protocol "insert-link" :function my/org-protocol-insert-link)))
+
+  ;; javascript:location.href = 'org-protocol://copy-video-link?videoId=' + encodeURIComponent(typeof(videoId) !== 'undefined' ? videoId : $('meta[itemprop="videoId"]').getAttribute('content')) + '&url=' + encodeURIComponent(location.href) + '&title=' + encodeURIComponent(document.title);
+  (defun my/org-protocol-copy-video-link (info) 
+    "Store and insert the link at point based on INFO."
+    (kill-new (format "{{<youtube id=\"%s\" title=\"%s\" link=\"%s\">}}\n"
+                      (plist-get info :videoId)
+                      (plist-get info :title)
+                      (plist-get info :url)))
+    nil)
+  (eval-after-load 'org-protocol
+   '(add-to-list 'org-protocol-protocol-alist
+      '("copy-video-link" :protocol "copy-video-link" :function my/org-protocol-copy-video-link)))
 #+end_src
 
 **** Dired
@@ -3972,7 +4014,15 @@ So that I can easily add links at point. Formatted as an Org list for now.
         (url-retrieve-synchronously (format "https://journal.sachachua.com/api/entries.csv?from=%s&to=%s&q=%s" from to (or search "")))
       (goto-char (point-min))
       (delete-region (point-min) (search-forward "\n\n"))
-      (pcsv-parse-buffer)))
+      (cdr (pcsv-parse-buffer))))
+
+  (defun my/journal-get (url)
+    (with-current-buffer (url-retrieve-synchronously (format "https://journal.sachachua.com/%s" url))
+      (goto-char (point-min))
+      (search-forward "\n\n")
+      (json-parse-buffer)))
+  (defun my/journal-get-entry (zid) (my/journal-get (format "api/entries/zid/%s" zid)))
+
 
   (defun my/org-journal-summarize (from to &optional search category-map categories)
     (my/org-group-journal-entries (my/journal-get-entries from to search) category-map categories))
@@ -4597,11 +4647,7 @@ and turn it into:
          (or (cl-position item order :test (lambda (a b) (string-match b a))) (1+ (length order)))))
      '<))
 
-  (defun my/emacs-news-sort-list ()
-    (interactive)
-    (goto-char (org-list-get-top-point (org-list-struct)))
-    (my/org-sort-list-in-custom-order
-     '("Beginner"
+  (defvar my/emacs-news-sort-order  '("Beginner"
        "Emacs configuration"
        "Emacs Lisp"
        "Emacs development"
@@ -4619,7 +4665,11 @@ and turn it into:
        "Other"
        "Discussion"
        "Outside Emacs"
-       "New packages?")))
+       "New packages"))
+  (defun my/emacs-news-sort-list ()
+    (interactive)
+    (goto-char (org-list-get-top-point (org-list-struct)))
+    (my/org-sort-list-in-custom-order my/emacs-news-sort-order))
 #+end_src
 
 One more little thing automated...
@@ -4927,7 +4977,7 @@ above!
                              ;; Does this look like a package name?
                              (let ((case-fold-search nil))
                                (when (string-match "^\\([-\\.a-z0-9]+?\\)\\(:\\|\\.el\\) " description)
-                                 (when (re-search-forward (match-string 1 description) nil t)
+                                 (when (re-search-forward (concat "\\W" (regexp-quote (match-string 1 description))) nil t)
                                    (setq found (point))))))
                            found))))
           search start
@@ -4951,6 +5001,7 @@ above!
             (let ((input (read-char (concat context "\n(d)elete, (k)eep, (z)ap next one, e(x)change mark, (n)ext match, (q)quit?"))))
               (cond
                ((eq input ?k)
+                (forward-line 1)
                 (setq found nil))
                ((eq input ?x)
                 (goto-char found)
@@ -5072,7 +5123,10 @@ easily define the menu in a variable. It seems to work fine so far.
       (","
        (lambda () (interactive)
          (my/org-move-current-item-to-category 
-          (completing-read "Category: " (my/org-get-list-categories))))
+          (completing-read
+           "Category: "
+           (append (mapcar (lambda (o) (concat o ":")) my/emacs-news-sort-order)
+                   (mapcar 'car (my/org-get-list-categories))))))
        "By string")
       ("/" (lambda () (interactive)
              (save-excursion
@@ -7744,6 +7798,8 @@ recently-opened files first.
 #+end_src
 
 ** Drawing
+<<drawing>>
+
 *** Finding sketches
 
     #+begin_src emacs-lisp
@@ -7761,7 +7817,9 @@ recently-opened files first.
                  (string> end (file-name-nondirectory filename))
                  (or (not filter) (string-match filter filename))))))
 
-       (defun my/get-sketch-filenames (base &optional as-regexp)
+      (defun my/get-sketch-filenames (base &optional as-regexp)
+        (my/get-image-filenames base as-regexp my/sketch-directories))
+       (defun my/get-image-filenames (base &optional as-regexp directories)
          "Check several directories for files matching BASE.
            Return the matching filenames, if any.
            If AS-REGEXP is non-nil, treat BASE as a regular expression.
@@ -7783,14 +7841,18 @@ recently-opened files first.
                                    "\\)"
                                    ".*\\(\\.\\(png\\|psd\\|tiff\\|jpg\\)\\)?$"
                                    )))))
-                        my/sketch-directories)))
+                        (or directories my/image-directories))))
                 'string<)))
 
-       (defun my/get-sketch-filename (base &optional as-regexp)
+       (defun my/get-image-filename (base &optional as-regexp directories)
          "Check several directories for files matching BASE.
            Return the first matching filename, if any.
            If AS-REGEXP is non-nil, treat BASE as a regular expression."
-         (car (my/get-sketch-filenames base as-regexp)))
+         (if (file-exists-p base)
+             base
+           (car (my/get-image-filenames base as-regexp directories))))
+       (defun my/get-sketch-filename (base &optional as-regexp)
+          (my/get-image-filename base as-regexp my/sketch-directories))
 
       (defun my/list-sketches (regexp &optional full-filename directories)
         "Return a list of sketch filenames matching REGEXP."
@@ -7807,31 +7869,29 @@ recently-opened files first.
 
 *** Org Mode sketch: links
    #+begin_src emacs-lisp 
-     (defun my/sketch-open-in-krita (files)
-       (apply 'call-process "krita" nil 0 nil "--nosplash"
-              (mapcar (lambda (o) (my/get-sketch-filename o)) (if (listp files) files (list files)))))
-     (defun my/sketch-open-in-gwenview (files)
-       (apply 'call-process "gwenview" nil 0 nil "--slideshow"
-              (mapcar (lambda (o) (my/get-sketch-filename o)) (if (listp files) files (list files)))))
-     (defun my/sketch-open-in-feh (files)
-       (apply 'call-process "feh" nil nil nil "-D" "1" "-F"
-              (mapcar (lambda (o) (my/get-sketch-filename o)) (if (listp files) files (list files)))))
-
-     (defun my/org-sketch-open (id &optional arg)
-       "Open sketch named ID.
+     (defun my/open-images-in-krita (files)
+       (apply 'call-process "krita" nil 0 nil "--nosplash" files))
+     (defun my/open-images-in-gwenview (files)
+       (apply 'call-process "gwenview" nil 0 nil "--slideshow" files))
+     (defun my/open-images-in-feh (files)
+       (apply 'call-process "feh" nil nil nil "-D" "1" "-F" files))
+     (defun my/org-image-open (id &optional arg directories)
+       "Open image named ID.
      If ARG is specified, prompt for application to open it in."
        (interactive (list
                      (completing-read "Sketch ID: " (my/list-sketches "."))
                      (current-prefix-arg)))
-       (let ((input (if arg (read-char "(k)rita, (g)wenview, (f)eh: ") ?k)))
+       (let* ((files (mapcar (lambda (o) (my/get-image-filename o (or my/image-directories))) (if (listp id) id (list id))))
+              (input (if arg (read-char "(k)rita, (g)wenview, (f)eh: ") ?k)))
          (funcall
           (cond
-           ((eq input ?g) 'my/sketch-open-in-gwenview)
-           ((eq input ?f) 'my/sketch-open-in-feh)
-           (t 'my/sketch-open-in-krita))
-          id)))
-
-     (defun my/org-sketch-export (link description format)
+           ((eq input ?g) 'my/open-images-in-gwenview)
+           ((eq input ?f) 'my/open-images-in-feh)
+           (t 'my/open-images-in-krita))
+          files)))
+     (defun my/org-sketch-open (id &optional arg)
+       (my/org-image-open id arg my/sketch-directories))
+     (defun my/org-image-export (link description format)
        (let* ((path (concat "https://sketches.sachachua.com/filename/" link))
               (image (concat "https://sketches.sachachua.com/static/" link))
               (desc (or description link)))
@@ -7842,13 +7902,16 @@ recently-opened files first.
              (format "<a target=\"_blank\" href=\"%s\"><img src=\"%s\"><br />%s</a>" path image desc)))
           ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
           ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
+          ((eq format 'md) (format "{{<photo nas=\"1\" src=\"%s\">}}" link))
           ((eq format 'ascii) (format "%s <%s>" desc path))
           (t path))))
 
      (defun my/org-sketch-complete (&optional prefix)
        (concat "sketch:"
                (completing-read "Sketch: " (my/list-sketches "."))))
-
+     (defun my/org-image-complete (&optional prefix)
+       (concat "sketch:"
+               (completing-read "Sketch: " (my/list-sketches "." nil my/image-directories))))
      ;; Based on https://emacs.stackexchange.com/questions/38098/org-mode-custom-youtube-link-syntax
      (defun my/org-sketch-preview (start end path bracketp)
        "Include overlays for sketches."
@@ -7892,44 +7955,54 @@ recently-opened files first.
        (org-link-set-parameters
         "sketch"
         :follow 'my/org-sketch-open
-        :export 'my/org-sketch-export
+        :export 'my/org-image-export
         :complete 'my/org-sketch-complete
         :activate-func 'my/org-sketch-preview))
+
+     (use-package org
+       :config
+       (setq org-image-actual-width 600)
+       (org-link-set-parameters
+        "image"
+        :follow 'my/org-image-open
+        :export 'my/org-image-export
+        :complete 'my/org-image-complete))
         #+end_src 
 
 *** Helm completion with my/helm-org-sketches
 
     #+begin_src emacs-lisp
-      (defun my/helm-source-org-sketch-list ()
-        (my/list-sketches "."))
+            (defun my/helm-source-org-sketch-list ()
+              (my/list-sketches "."))
 
-      (defun my/helm-org-insert-sketch-candidates (candidates)
-        (mapc (lambda (o)
-                (org-insert-link nil (concat "sketch:" o))
-                (insert "\n"))
-              (helm-marked-candidates)))
+            (defun my/helm-org-insert-sketch-candidates (&optional candidates)
+              (mapc (lambda (o)
+                      (org-insert-link nil (concat "sketch:" o))
+                      (insert "\n"))
+                    (helm-marked-candidates)))
 
-      (defun my/helm-open-sketches-in-krita (candidates)
-        (my/sketch-open-in-krita (helm-marked-candidates)))
+            (defun my/helm-open-sketches-in-krita (&optional candidates)
+              (my/sketch-open-in-krita (helm-marked-candidates)))
 
-      (defun my/helm-open-sketches-in-gwenview (candidates)
-        (my/sketch-open-in-gwenview (helm-marked-candidates)))
+            (defun my/helm-open-sketches-in-gwenview (&optional candidates)
+              (my/sketch-open-in-gwenview (helm-marked-candidates)))
 
-      (defun my/helm-open-sketches-in-feh (candidates)
-        (my/sketch-open-in-feh (helm-marked-candidates)))
+            (defun my/helm-open-sketches-in-feh (&optional candidates)
+              (my/sketch-open-in-feh (helm-marked-candidates)))
 
-      (defvar my/helm-source-org-sketches
-        '((name . "Sketches")
-          (candidates . my/helm-source-org-sketch-list)
-          (action . (("Insert" . my/helm-org-insert-sketch-candidates)
-                     ("Open in Krita" . my/helm-open-sketches-in-krita)
-                     ("Open in Gwenview" . my/helm-open-sketches-in-gwenview)
-                     ("Open as Feh slideshow" . my/helm-open-sketches-in-feh)))))
+            (defvar my/helm-source-org-sketches
+              '((name . "Sketches")
+                (candidates . my/helm-source-org-sketch-list)
+                (action . (("Insert" . my/helm-org-insert-sketch-candidates)
+                           ("Open in Krita" . my/helm-open-sketches-in-krita)
+                           ("Open in Gwenview" . my/helm-open-sketches-in-gwenview)
+                           ("Open as Feh slideshow" . my/helm-open-sketches-in-feh)))
+                (persistent-action . my/helm-open-sketches-in-gwenview)))
 
-      (defun my/helm-org-sketches ()
-        (interactive)
-        (helm :sources '(my/helm-source-org-sketches)
-              :buffer "*helm-org-sketches*"))
+            (defun my/helm-org-sketches ()
+              (interactive)
+              (helm :sources '(my/helm-source-org-sketches)
+                    :buffer "*helm-org-sketches*"))
    #+end_src
 
 *** Button-based interface

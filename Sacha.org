@@ -1,7 +1,7 @@
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
 #+STARTUP: showeverything
-#+PROPERTY: header-args:emacs-lisp    :tangle "~/cloud/elisp/Sacha.el" :results silent
+#+PROPERTY: header-args:emacs-lisp    :tangle "~/sync/emacs/Sacha.el" :results silent
 
 * Configuration
 ** About this file
@@ -2172,6 +2172,7 @@ SCOPE can be 'file or 'tree."
        ("C" . "comment")
        ("e" . "example")
        ("E" . "export")
+       ("m" . "export md")
        ("h" . "export html")
        ("l" . "src emacs-lisp")
        ("p" . "src python")
@@ -3875,28 +3876,53 @@ http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS
 So that I can easily add links at point. Formatted as an Org list for now.
 
 #+begin_src emacs-lisp 
-  (defun my/org-protocol-insert-link (info) 
-    "Store and insert the link at point based on INFO."
-    (org-protocol-store-link info)
-    (with-current-buffer (window-buffer (selected-window))
-      (insert "- ")
-      (org-insert-last-stored-link 1)
-      (insert "\n")))
-  (eval-after-load 'org-protocol
-   '(add-to-list 'org-protocol-protocol-alist
-      '("insert-link" :protocol "insert-link" :function my/org-protocol-insert-link)))
+    (defun my/org-protocol-insert-link (info) 
+      "Store and insert the link at point based on INFO."
+      (org-protocol-store-link info)
+      (with-current-buffer (window-buffer (selected-window))
+        (insert "- ")
+        (org-insert-last-stored-link 1)
+        (insert "\n")))
+    (eval-after-load 'org-protocol
+      '(add-to-list 'org-protocol-protocol-alist
+                    '("insert-link" :protocol "insert-link" :function my/org-protocol-insert-link)))
 
-  ;; javascript:location.href = 'org-protocol://copy-video-link?videoId=' + encodeURIComponent(typeof(videoId) !== 'undefined' ? videoId : $('meta[itemprop="videoId"]').getAttribute('content')) + '&url=' + encodeURIComponent(location.href) + '&title=' + encodeURIComponent(document.title);
-  (defun my/org-protocol-copy-video-link (info) 
-    "Store and insert the link at point based on INFO."
-    (kill-new (format "{{<youtube id=\"%s\" title=\"%s\" link=\"%s\">}}\n"
-                      (plist-get info :videoId)
-                      (plist-get info :title)
-                      (plist-get info :url)))
-    nil)
-  (eval-after-load 'org-protocol
-   '(add-to-list 'org-protocol-protocol-alist
-      '("copy-video-link" :protocol "copy-video-link" :function my/org-protocol-copy-video-link)))
+    ;; javascript:location.href = 'org-protocol://copy-thumbnail?thumbnail=' + encodeURIComponent(document.querySelector('meta[property=\"og:image\"]') ? document.querySelector('meta[property=\"og:image\"]').getAttribute('content') : '') + '&title=' + encodeURIComponent(document.title) + '&url=' + encodeURIComponent(location.href) + '&videoId=' + ((typeof(videoId) !== 'undefined' ? videoId : (document.querySelector('meta[itemprop=\"videoId\"]') ? document.querySelector('meta[itemprop=\"videoId\"]').getAttribute('content') : '')) || '')
+    (defun my/link-video (list)
+      (with-current-buffer (url-retrieve-synchronously (concat "https://video.link/bookmarklet?url=" (url-encode-url (plist-get list :url))))
+        (save-excursion
+          (if (re-search-forward "<input type=\"text\" id=\"safeURL\" readonly=\"readonly\" value=\"\\(.*?\\)\"" nil t)
+              (plist-put list :url (match-string-no-properties 1))
+            (plist-put list :url (replace-regexp-in-string "watch" "watch_popup" (plist-get list :url)))))
+        (when (string= (or (plist-get list :thumbnail) "") "")
+          (save-excursion
+            (when (re-search-forward "<img id=\"videoThumb\" src=\"\\(.*?\\)\"" nil t)
+              (plist-put list :thumbnail (match-string-no-properties 1)))))
+        list))
+
+    (defun my/org-protocol-copy-thumbnail (info) 
+      "Store and insert the link at point based on INFO."
+      (when (string-match "youtube\\.com" (plist-get info :url))
+        (setq info (my/link-video info)))
+      (let ((date (format-time-string "%Y-%m-%d")))
+        (kill-new
+         (if (string= (plist-get info :videoId) "")
+             (format "{{<thumbnail image=\"%s\" title=\"%s\" link=\"%s\" date=\"%s\">}}\n"
+                     (plist-get info :thumbnail)
+                     (plist-get info :title)
+                     (plist-get info :url)
+                     date
+                     )
+           (format "{{<youtube id=\"%s\" title=\"%s\" link=\"%s\" date=\"%s\">}}\n"
+                   (plist-get info :videoId)
+                   (plist-get info :title)
+                   (plist-get info :url)
+                   date))))
+      nil)
+    (eval-after-load 'org-protocol
+      '(add-to-list 'org-protocol-protocol-alist
+                    '("copy-thumbnail" :protocol "copy-thumbnail" :function my/org-protocol-copy-thumbnail)))
+
 #+end_src
 
 **** Dired
@@ -4573,9 +4599,9 @@ https://www.reddit.com/prefs/feeds/ .
                        (when (time-less-p threshold date)
                          (if (and (> num-comments 0) (not (string-match "reddit\\.com" url)))
                              (format "- %s (%s)\n"
-                                     (org-link-make-string url title)
-                                     (org-link-make-string permalink "Reddit"))
-                           (format "- %s\n" (org-link-make-string url title))))))
+                                     (org-link-make-string (url-unhex-string url) title)
+                                     (org-link-make-string (url-unhex-string permalink) "Reddit"))
+                           (format "- %s\n" (org-link-make-string (url-unhex-string url) title))))))
                    items "")))
 
             (setq results (concat result "\n" results))
@@ -4657,10 +4683,12 @@ and turn it into:
        "Org Mode"
        "Completion"
        "Coding"
-       "Calc"
-       "Mail"
+       "Math"
+       "Mail and news"
        "Spacemacs"
        "Doom Emacs"
+       "Music"
+       "EXWM"
        "Community"
        "Other"
        "Discussion"

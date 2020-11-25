@@ -47,7 +47,7 @@ use it to group together package-related config without lots of
 =with-eval-after-load= calls, and it also makes declaring keybindings
 easier.
 
-My =~/.emacs.d/init.el= is now a symlink to =Sacha.el=, which is what
+My =~/.config/emacs/init= is now a symlink to =Sacha.el=, which is what
 =M-x org-babel-tangle= (=C-c C-v t=) produces. *A note about Org
 updates:* I like running Org Mode from checked-out source code instead
 of package.el. I add the Lisp directories to my =load-path=, and I
@@ -69,7 +69,7 @@ Here's how we start:
 (setq use-package-always-ensure t)
 (add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
-(setq custom-file "~/.emacs.d/custom-settings.el")
+(setq custom-file "~/.config/emacs/custom-settings.el")
 (load custom-file t)
 #+END_SRC
 
@@ -137,7 +137,7 @@ I keep slightly more sensitive information in a separate file so that I can easi
 #+begin_src emacs-lisp
 (defun my/reload-emacs-configuration ()
   (interactive)
-  (load-file "~/.emacs.d/init.el"))
+  (load-file "~/.config/emacs/init"))
 #+end_src
 
 *** Libraries
@@ -149,10 +149,10 @@ I keep slightly more sensitive information in a separate file so that I can easi
 
 *** Backups
 
-This is one of the things people usually want to change right away. By default, Emacs saves backup files in the current directory. These are the files ending in =~= that are cluttering up your directory lists. The following code stashes them all in =~/.emacs.d/backups=, where I can find them with =C-x C-f= (=find-file=) if I really need to.
+This is one of the things people usually want to change right away. By default, Emacs saves backup files in the current directory. These are the files ending in =~= that are cluttering up your directory lists. The following code stashes them all in =~/.config/emacs/backups=, where I can find them with =C-x C-f= (=find-file=) if I really need to.
 
 #+BEGIN_SRC emacs-lisp 
-(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+(setq backup-directory-alist '(("." . "~/.config/emacs/backups")))
 #+END_SRC
 
 Disk space is cheap. Save lots.
@@ -161,14 +161,14 @@ Disk space is cheap. Save lots.
 (setq delete-old-versions -1)
 (setq version-control t)
 (setq vc-make-backup-files t)
-(setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t)))
+(setq auto-save-file-name-transforms '((".*" "~/.config/emacs/auto-save-list/" t)))
 #+END_SRC
 
 *** History
 
 From http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html:
 #+BEGIN_SRC emacs-lisp 
-(setq savehist-file "~/.emacs.d/savehist")
+(setq savehist-file "~/.config/emacs/savehist")
 (savehist-mode 1)
 (setq history-length t)
 (setq history-delete-duplicates t)
@@ -626,14 +626,14 @@ it work. Some things still aren't quite right.
 (defun my/setup-color-theme ()
   (interactive)
   (when (display-graphic-p) 
-     (color-theme-solarized))
+     (color-theme-sanityinc-solarized-dark))
   (set-background-color "black")
   (set-face-foreground 'secondary-selection "darkblue")
   (set-face-background 'secondary-selection "lightblue")
   (set-face-background 'font-lock-doc-face "black")
   (set-face-foreground 'font-lock-doc-face "wheat")
   (set-face-background 'font-lock-string-face "black"))
-(use-package color-theme-solarized :config (my/setup-color-theme))
+(use-package color-theme-sanityinc-solarized :config (my/setup-color-theme))
 #+END_SRC
 
 I sometimes need to switch to a lighter background for screenshots.
@@ -802,7 +802,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 
   (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
 
-(my/defshortcut ?e "~/.emacs.d/Sacha.org")
+(my/defshortcut ?e "~/code/.emacs.d/Sacha.org")
 (my/defshortcut ?E "~/sync/emacs-news/index.org")
 (my/defshortcut ?f "~/code/font/README.org")
 (my/defshortcut ?i "~/orgzly/Inbox.org")
@@ -3559,8 +3559,8 @@ This makes it easier to publish my files:
              :publishing-function my/org-html-publish-to-html-trustingly
              )
             ("emacs-config"
-             :base-directory "~/.emacs.d"
-             :publishing-directory "~/.emacs.d"
+             :base-directory "~/.config/emacs"
+             :publishing-directory "~/.config/emacs"
              :publishing-function my/org-html-publish-to-html-trustingly
              )
             ("book-notes"
@@ -3749,7 +3749,7 @@ This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone
      (let* ((destination-dir "~/Dropbox/Public/")
             (destination-filename "sacha-emacs.org"))
        (my/save-new-packages)
-       (with-current-buffer (find-file "~/.emacs.d/Sacha.org")
+       (with-current-buffer (find-file "~/.config/emacs/Sacha.org")
          (save-restriction
            (save-excursion
              (widen)
@@ -5213,6 +5213,25 @@ easily define the menu in a variable. It seems to work fine so far.
 
 #+end_src
 
+**** React
+https://emacs-lsp.github.io/lsp-mode/tutorials/reactjs-tutorial/
+     #+begin_src emacs-lisp
+       (use-package lsp-mode
+         :config
+         (setq lsp-headerline-breadcrumb-enable t
+               gc-cons-threshold (* 100 1024 1024)
+               read-process-output-max (* 1024 1024)
+               company-idle-delay 0.0
+               company-minimum-prefix-length 1
+               create-lockfiles nil ;; lock files will kill `npm start'
+               )
+         :hook ((prog-mode-hook . lsp)
+                (lsp-mode-hook . lsp-enable-which-key-integration)))
+       (use-package lsp-ui
+         :after lsp-mode)
+       (use-package dap-mode
+         :after lsp-mode)
+      #+end_src
 *** Tab width of 2 is compact and readable
 #+begin_src emacs-lisp 
     (setq-default tab-width 2)
@@ -6474,9 +6493,8 @@ Make it easier to review my credit card transactions
                                  t t nil 1))))
               (forward-line 1))))))
 
-    ;; https://stackoverflow.com/questions/30886282/emacs-lisp-how-can-i-get-the-newest-file-in-a-directory
-    (defun my/latest-file (path)
-      (car (directory-files path 'full nil #'file-newer-than-file-p)))
+  (defun my/latest-file (path &optional filter)
+    (car (sort (seq-remove #'file-directory-p (directory-files path 'full filter t)) #'file-newer-than-file-p)))
 #+end_src
 
 ** Emacs server
@@ -8491,7 +8509,7 @@ looked into debugging that yet.
     :POSTID:   27923
     :BLOG:     sacha
     :ARCHIVE_TIME: 2015-05-07 Thu 22:17
-    :ARCHIVE_FILE: ~/.emacs.d/Sacha.org
+    :ARCHIVE_FILE: ~/.config/emacs/Sacha.org
     :ARCHIVE_OLPATH: Inactive/infrequent things/Drawing
     :ARCHIVE_CATEGORY: Sacha
     :ARCHIVE_TODO: DONE

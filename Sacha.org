@@ -1,7 +1,7 @@
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
 #+STARTUP: showeverything
-#+PROPERTY: header-args:emacs-lisp    :tangle "~/sync/emacs/Sacha.el" :results silent
+#+PROPERTY: header-args:emacs-lisp    :tangle "~/sync/Emacs/Sacha.el" :results silent
 
 * Configuration
 ** About this file
@@ -128,7 +128,7 @@ in a directory in my =load-path=, Emacs can find them.
 I keep slightly more sensitive information in a separate file so that I can easily publish my main configuration.
 
 #+BEGIN_SRC emacs-lisp 
-(load "~/.emacs.secrets" t)
+(load "~/.config/emacs/.emacs.secrets" t)
 #+END_SRC
 
 ** General configuration
@@ -224,6 +224,49 @@ sentence navigation commands work for me.
 (setq sentence-end-double-space nil)
 #+END_SRC
 
+*** Trying out selectrum
+
+Based on [[https://www.rousette.org.uk/archives/switching-to-selectrum-for-incremental-narrowing-in-emacs/][BSAG » Switching to Selectrum for incremental narrowing in Emacs]]
+
+#+begin_src emacs-lisp :eval no :tangle no
+    (use-package quelpa)
+    (use-package quelpa-use-package)
+  (use-package selectrum :init (selectrum-mode +1)
+    :bind (("C-h a" . apropos)
+           ("C-x C-b" . list-buffers)
+           ("M-y" . helm-show-kill-ring)
+           ("M-x" . execute-extended-command)
+           ("C-x C-f" . find-file)
+           ("C-x c s" . helm-swoop)
+           ("C-x c y" . helm-yas-complete)
+           ("C-x c Y" . helm-yas-create-snippet-on-region)
+           ("C-x c b" . my/helm-do-grep-book-notes)
+           )
+  )
+    (use-package prescient :init (prescient-persist-mode +1))
+    (use-package selectrum-prescient :init (selectrum-prescient-mode +1) :after selectrum)
+    (use-package company-prescient :init (company-prescient-mode +1))
+  (use-package consult :quelpa (consult :fetcher github :repo "minad/consult")
+    :bind (("C-x b" . consult-buffer)
+           ("M-g o" . consult-outline)
+           ("C-c o" . consult-outline)
+           ("C-x 4 b" . consult-buffer-other-window)
+           ("C-x 5 b" . consult-buffer-other-frame)
+           ("C-x r x" . consult-register)
+           ("C-x r b" . consult-bookmark)
+           ("M-g o" . consult-outline) ;; "M-s o" is a good alternative
+           ("M-g m" . consult-mark)    ;; "M-s m" is a good alternative
+           ("M-g l" . consult-line)    ;; "M-s l" is a good alternative
+           ("M-s m" . consult-multi-occur)
+           ("M-y" . consult-yank-pop)
+           ("C-x c o" . consult-multi-occur)
+           ("C-x c SPC" . consult-mark)))
+    (use-package marginalia 
+      :quelpa (marginalia :fetcher github :repo "minad/marginalia")
+      :init (marginalia-mode)
+      (setq marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light)))
+#+end_src
+
 *** Helm - interactive completion
 
 Helm makes it easy to complete various things. I find it to be easier
@@ -252,6 +295,7 @@ possible, although I prefer ido's way of switching buffers.
          ("C-x b" . helm-buffers-list)
          ("M-y" . helm-show-kill-ring)
          ("M-x" . helm-M-x)
+         ("C-x C-f" . helm-find-files)
          ("C-x c o" . helm-occur)
          ("C-x c s" . helm-swoop)
          ("C-x c y" . helm-yas-complete)
@@ -1506,7 +1550,9 @@ I don't use the diary, but I do use the clock a lot.
          (save-excursion (and (looking-at (org-item-re)) (looking-back "^[ \t]*" nil)))))
    (setq org-use-speed-commands 'my/org-use-speed-commands-for-headings-and-lists)
 
-(with-eval-after-load 'org
+(use-package org
+:config
+  (progn
    (add-to-list 'org-speed-commands-user '("x" org-todo "DONE"))
    (add-to-list 'org-speed-commands-user '("y" org-todo-yesterday "DONE"))
    (add-to-list 'org-speed-commands-user '("!" my/org-clock-in-and-track))
@@ -1516,7 +1562,7 @@ I don't use the diary, but I do use the clock a lot.
    (add-to-list 'org-speed-commands-user '("P" call-interactively 'org2blog/wp-post-subtree))
    (add-to-list 'org-speed-commands-user '("o" call-interactively 'org-clock-out))
    (add-to-list 'org-speed-commands-user '("$" call-interactively 'org-archive-subtree))
-   (bind-key "!" 'my/org-clock-in-and-track org-agenda-mode-map))
+   (bind-key "!" 'my/org-clock-in-and-track org-agenda-mode-map)))
  #+end_src
 
 *** Navigation
@@ -3876,52 +3922,55 @@ http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS
 So that I can easily add links at point. Formatted as an Org list for now.
 
 #+begin_src emacs-lisp 
-    (defun my/org-protocol-insert-link (info) 
-      "Store and insert the link at point based on INFO."
-      (org-protocol-store-link info)
-      (with-current-buffer (window-buffer (selected-window))
-        (insert "- ")
-        (org-insert-last-stored-link 1)
-        (insert "\n")))
-    (eval-after-load 'org-protocol
-      '(add-to-list 'org-protocol-protocol-alist
-                    '("insert-link" :protocol "insert-link" :function my/org-protocol-insert-link)))
+  (defun my/org-protocol-insert-link (info) 
+    "Store and insert the link at point based on INFO."
+    (org-protocol-store-link info)
+    (with-current-buffer (window-buffer (selected-window))
+      (insert "- ")
+      (org-insert-last-stored-link 1)
+      (insert "\n")))
+  (eval-after-load 'org-protocol
+    '(add-to-list 'org-protocol-protocol-alist
+                  '("insert-link" :protocol "insert-link" :function my/org-protocol-insert-link)))
 
-    ;; javascript:location.href = 'org-protocol://copy-thumbnail?thumbnail=' + encodeURIComponent(document.querySelector('meta[property=\"og:image\"]') ? document.querySelector('meta[property=\"og:image\"]').getAttribute('content') : '') + '&title=' + encodeURIComponent(document.title) + '&url=' + encodeURIComponent(location.href) + '&videoId=' + ((typeof(videoId) !== 'undefined' ? videoId : (document.querySelector('meta[itemprop=\"videoId\"]') ? document.querySelector('meta[itemprop=\"videoId\"]').getAttribute('content') : '')) || '')
-    (defun my/link-video (list)
-      (with-current-buffer (url-retrieve-synchronously (concat "https://video.link/bookmarklet?url=" (url-encode-url (plist-get list :url))))
+  ;; javascript:location.href = 'org-protocol://copy-thumbnail?thumbnail=' + encodeURIComponent(document.querySelector('meta[property=\"og:image\"]') ? document.querySelector('meta[property=\"og:image\"]').getAttribute('content') : '') + '&title=' + encodeURIComponent(document.title) + '&url=' + encodeURIComponent(location.href) + '&videoId=' + ((typeof(videoId) !== 'undefined' ? videoId : (document.querySelector('meta[itemprop=\"videoId\"]') ? document.querySelector('meta[itemprop=\"videoId\"]').getAttribute('content') : '')) || '')
+  (defun my/link-video (list)
+    (when (stringp list) (setq list (list :url list)))
+    (with-current-buffer (url-retrieve-synchronously (concat "https://video.link/bookmarklet?url=" (url-encode-url (plist-get list :url))))
+      (save-excursion
+        (if (re-search-forward "<input type=\"text\" id=\"safeURL\" readonly=\"readonly\" value=\"\\(.*?\\)\"" nil t)
+            (plist-put list :url (match-string-no-properties 1))
+          (plist-put list :url (replace-regexp-in-string "watch" "watch_popup" (plist-get list :url)))))
+      (when (string= (or (plist-get list :thumbnail) "") "")
         (save-excursion
-          (if (re-search-forward "<input type=\"text\" id=\"safeURL\" readonly=\"readonly\" value=\"\\(.*?\\)\"" nil t)
-              (plist-put list :url (match-string-no-properties 1))
-            (plist-put list :url (replace-regexp-in-string "watch" "watch_popup" (plist-get list :url)))))
-        (when (string= (or (plist-get list :thumbnail) "") "")
-          (save-excursion
-            (when (re-search-forward "<img id=\"videoThumb\" src=\"\\(.*?\\)\"" nil t)
-              (plist-put list :thumbnail (match-string-no-properties 1)))))
-        list))
+          (when (re-search-forward "<img id=\"videoThumb\" src=\"\\(.*?\\)\"" nil t)
+            (plist-put list :thumbnail (match-string-no-properties 1)))))
+      list))
 
-    (defun my/org-protocol-copy-thumbnail (info) 
-      "Store and insert the link at point based on INFO."
-      (when (string-match "youtube\\.com" (plist-get info :url))
-        (setq info (my/link-video info)))
-      (let ((date (format-time-string "%Y-%m-%d")))
-        (kill-new
-         (if (string= (plist-get info :videoId) "")
-             (format "{{<thumbnail image=\"%s\" title=\"%s\" link=\"%s\" date=\"%s\">}}\n"
-                     (plist-get info :thumbnail)
-                     (plist-get info :title)
-                     (plist-get info :url)
-                     date
-                     )
-           (format "{{<youtube id=\"%s\" title=\"%s\" link=\"%s\" date=\"%s\">}}\n"
-                   (plist-get info :videoId)
+  (defun my/org-protocol-copy-thumbnail (info) 
+    "Store and insert the link at point based on INFO."
+    (interactive "MURL: ")
+    (when (stringp info) (setq info (list :url info)))
+    (when (string-match "youtube\\.com" (plist-get info :url))
+      (setq info (my/link-video info)))
+    (let ((date (format-time-string "%Y-%m-%d")))
+      (kill-new
+       (if (string= (plist-get info :videoId) "")
+           (format "{{<thumbnail image=\"%s\" title=\"%s\" link=\"%s\" date=\"%s\">}}\n"
+                   (plist-get info :thumbnail)
                    (plist-get info :title)
                    (plist-get info :url)
-                   date))))
-      nil)
-    (eval-after-load 'org-protocol
-      '(add-to-list 'org-protocol-protocol-alist
-                    '("copy-thumbnail" :protocol "copy-thumbnail" :function my/org-protocol-copy-thumbnail)))
+                   date
+                   )
+         (format "{{<youtube id=\"%s\" title=\"%s\" link=\"%s\" date=\"%s\">}}\n"
+                 (plist-get info :videoId)
+                 (plist-get info :title)
+                 (plist-get info :url)
+                 date))))
+    nil)
+  (eval-after-load 'org-protocol
+    '(add-to-list 'org-protocol-protocol-alist
+                  '("copy-thumbnail" :protocol "copy-thumbnail" :function my/org-protocol-copy-thumbnail)))
 
 #+end_src
 
@@ -4251,8 +4300,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
      (http . t)
      (ledger . t)
      (shell . t)
-     (R . t)
-     (jupyter . t)))
+     (R . t)))
   (setq org-babel-python-command "python3")
   (setq python-shell-interpreter "python3")
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))))
@@ -4925,8 +4973,10 @@ above!
           )) 
      "- Other:\n"
      (if (member 'rss parts)
-         ;; I used to use (my/get-rss-items-from-individual-feeds)
          (my/org-list-from-rss "https://planet.emacslife.com/atom.xml" (substring date 0 10))
+       "")
+     (if (member 'rss-es parts)
+         (my/org-list-from-rss "https://planet.emacs-es.org/atom.xml" (substring date 0 10))
        "")
      "\n"
      (if (member 'reddit parts) (my/reddit-list-upvoted (substring date 0 10)) "")
@@ -5795,16 +5845,16 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
                ("C-x v p" . magit-push)
                ("C-x v c" . my/magit-commit-all)))
 
-  ;; From http://endlessparentheses.com/merging-github-pull-requests-from-emacs.html
-  (defun endless/load-gh-pulls-mode ()
-    "Start `magit-gh-pulls-mode' only after a manual request."
-    (interactive)
-    (require 'magit-gh-pulls)
-    (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls)
-    (magit-gh-pulls-mode 1)
-    (magit-gh-pulls-reload))
+  ;; ;; From http://endlessparentheses.com/merging-github-pull-requests-from-emacs.html
+  ;; (defun endless/load-gh-pulls-mode ()
+  ;;   "Start `magit-gh-pulls-mode' only after a manual request."
+  ;;   (interactive)
+  ;;   (require 'magit-gh-pulls)
+  ;;   (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls)
+  ;;   (magit-gh-pulls-mode 1)
+  ;;   (magit-gh-pulls-reload))
 
-  (use-package magit-gh-pulls)
+  ;; (use-package magit-gh-pulls)
 #+end_src
 
 The proper way to implement this is probably to patch or override the
@@ -5812,6 +5862,48 @@ definition of magit-git-insert-section so that it takes a list of
 options to add at the end of the command, but that can wait for another time (or braver souls).
 
 **** TODO Make this better by adding a post command options variable
+*** Checking things out
+
+Based on http://xenodium.com/emacs-clone-git-repo-from-clipboard/ :
+
+#+begin_src emacs-lisp
+(defvar my/git-clone-destination "~/vendor")
+(defun my/git-clone-clipboard-url ()
+  "Clone git URL in clipboard asynchronously and open in dired when finished."
+  (interactive)
+  (cl-assert (string-match-p "^\\(http\\|https\\|ssh\\)://" (current-kill 0)) nil "No URL in clipboard")
+  (let* ((url (current-kill 0))
+         (download-dir (expand-file-name my/git-clone-destination))
+         (project-dir (concat (file-name-as-directory download-dir)
+                              (file-name-base url)))
+         (default-directory download-dir)
+         (command (format "git clone %s" url))
+         (buffer (generate-new-buffer (format "*%s*" command)))
+         (proc))
+    (when (file-exists-p project-dir)
+      (if (y-or-n-p (format "%s exists. delete?" (file-name-base url)))
+          (delete-directory project-dir t)
+        (user-error "Bailed")))
+    (switch-to-buffer buffer)
+    (setq proc (start-process-shell-command (nth 0 (split-string command)) buffer command))
+    (with-current-buffer buffer
+      (setq default-directory download-dir)
+      (shell-command-save-pos-or-erase)
+      (require 'shell)
+      (shell-mode)
+      (view-mode +1))
+    (set-process-sentinel proc (lambda (process state)
+                                 (let ((output (with-current-buffer (process-buffer process)
+                                                 (buffer-string))))
+                                   (kill-buffer (process-buffer process))
+                                   (if (= (process-exit-status process) 0)
+                                       (progn
+                                         (message "finished: %s" command)
+                                         (dired project-dir))
+                                     (user-error (format "%s\n%s" command output))))))
+    (set-process-filter proc #'comint-output-filter)))
+#+end_src
+
 *** git-messenger - shows commit message
 
 #+begin_src emacs-lisp 
@@ -5937,8 +6029,6 @@ with HTTPS sites.
   (when (eq system-type 'windows-nt) (setq tern-command '("cmd" "/c" "tern")))
   (add-hook 'js2-mode-hook 'tern-mode))
 
-(use-package company-tern
-:init (add-to-list 'company-backends 'company-tern))
 #+end_src
 
 *** Docker
@@ -6096,13 +6186,6 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 #+begin_example
 #+TBLFM: $4='(my/compare-times $3 $2)
 #+end_example
-
-*** R
-
-#+begin_src emacs-lisp :tangle no
-  (use-package ess-site
-    :commands R)
-#+end_src
 
 *** Workrave
     #+begin_src emacs-lisp 
@@ -6298,24 +6381,28 @@ handy, so I've added it to my public [[http://sachacuha.com/dotemacs][Emacs conf
 I like using [[http://gmane.org][Gmane]] to read mailing lists, and I use IMAP to read my Gmail.
 
 #+begin_src emacs-lisp 
-  (setq gnus-select-method '(nnnil ""))
-  (setq gnus-secondary-select-methods
-        '((nntp "news.gmane.io")
-          ;; (nnmaildir "mail"
-          ;;            (directory "~/Maildir")
-          ;;            (directory-files nnheader-directory-files-safe) 
-          ;;            (get-new-mail nil))
-          ;; (nnimap "imap.gmail.com"
-          ;;         (nnimap-address "imap.gmail.com")
-          ;;         (nnimap-server-port 993)
-          ;;         (nnimap-stream ssl)
-          ;;         (nnimap-authenticator login))
-          (nnimap "localhost" 
-            (nnimap-address "localhost")
-            (nnimap-stream network)
-            (nnimap-user "sacha")
-            (nnimap-authenticator login)
-            (nnimap-authinfo-file "~/.authinfo.gpg"))))
+    (setq gnus-select-method '(nnnil ""))
+    (setq gnus-secondary-select-methods
+          '((nntp "news.gmane.io")
+            ;; (nnmaildir "mail"
+            ;;            (directory "~/Maildir")
+            ;;            (directory-files nnheader-directory-files-safe) 
+            ;;            (get-new-mail nil))
+            (nnimap "imap.googlemail.com"
+                    (nnimap-address "imap.googlemail.com")
+                    (nnimap-server-port 993)
+                    (nnimap-stream ssl)
+                    (nnimap-authenticator login))
+            ;; (nnimap "localhost" 
+            ;;   (nnimap-address "localhost")
+            ;;   (nnimap-stream network)
+            ;;   (nnimap-user "sacha")
+            ;;   (nnimap-authenticator login)
+            ;;   (nnimap-authinfo-file "~/.authinfo.gpg"))
+  ))
+(setq smtpmail-smtp-server "smtp.googlemail.com"
+      smtpmail-smtp-service 587
+      gnus-ignored-newsgroups "^to\\.\\|^[0-9. ]+\\( \\|$\\)\\|^[\"]\"[#'()]")
 #+end_src
 
 I now use Dovecot with OfflineIMAP for local IMAP access to my mail
@@ -6417,9 +6504,12 @@ Make it easier to review my credit card transactions
   :load-path "~/vendor/ledger-mode"
   :mode "\\.ledger$" 
   :bind (:map ledger-mode-map
+              ("C-c C-n" . my/ledger-change-account)
               ("C-c a" . my/ledger-set-unknown-account)
               ("C-c f" . (lambda () (interactive) (find-file (my/latest-file "~/Downloads"))))))
-
+(defun my/open-latest-download ()
+  (interactive)
+  (find-file (my/latest-file "~/Downloads")))
 #+end_src
 #+begin_src emacs-lisp 
   (defvar my/ledger-account-list-cache nil)
@@ -6495,6 +6585,18 @@ Make it easier to review my credit card transactions
 
   (defun my/latest-file (path &optional filter)
     (car (sort (seq-remove #'file-directory-p (directory-files path 'full filter t)) #'file-newer-than-file-p)))
+(defun my/ledger-change-account (account)
+  (interactive (list (ledger-read-account-with-prompt (concat (ledger-xact-payee) ": "))))
+  (beginning-of-line)
+  (re-search-forward ledger-account-name-regex)
+  (replace-match account t t))
+(defun my/ledger-fix-unknown ()
+  (interactive)
+  (while (re-search-forward "Expenses:Unknown.*$ \\(.+\\)" nil t)
+    (my/ledger-change-account (ledger-read-account-with-prompt
+                               (format "%s %s: " (s-trim (save-match-data (ledger-xact-payee)))
+                                       (match-string 1))))))
+
 #+end_src
 
 ** Emacs server
@@ -7178,25 +7280,6 @@ little bit of code. We'll see how it goes! =)
 
 #+end_src
 
-** Japanese
-
-Got sdic from http://namazu.org/~tsuchiya/sdic/ . Attempting to get this to work on Windows...
-
-#+begin_src emacs-lisp :tangle no
-(add-to-list 'load-path "~/elisp/sdic-2.1.3/lisp")
-(require 'sdic)
-(cond ((file-exists-p "~/Dropbox/Japanese/edict.txt")
-       (setq sdic-waei-dictionary-list
-	     (cons
-	      '(sdicf-client "~/Dropbox/Japanese/edict.txt" (add-keys-to-headword t))
-	      sdic-waei-dictionary-list))))
-(cond ((file-exists-p "~/Dropbox/Japanese/jedict.sdic.txt")
-       (setq sdic-waei-dictionary-list
-	     (cons
-	      '(sdicf-client "~/Dropbox/Japanese/jedict.sdic.txt" (add-keys-to-headword t))
-	      sdic-waei-dictionary-list))))
-#+end_src
-
 ** Beeminder
    :PROPERTIES:
    :CUSTOM_ID: beeminder
@@ -7588,7 +7671,7 @@ left.
    :END:
 <<emacsconf2013>>
 
-#+begin_src  :eval no :tangle no
+#+begin_src emacs-lisp  :evalnm/home/sacha/Dropbox/Inbox/output.png no :tangle no
   (defvar my/org-show-presentation-file "~/Dropbox/Emacs Conference/public.org" "File containing the presentation.")
   (defvar my/org-show-slide-tag "slide" "Tag that marks slides.")
   (defvar my/org-show-slide-tag-regexp (concat ":" (regexp-quote my/org-show-slide-tag) ":"))
@@ -8947,6 +9030,9 @@ xdotool key Tab Tab ; sleep 1
 xdotool type 896 ; sleep 1
 xdotool key Return
 #+end_src
+
+#+RESULTS:
+
 *** Other sketch-related functions
    #+begin_src emacs-lisp 
      (defun my/show-sketches-as-slideshow (list &optional shuffle)

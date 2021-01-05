@@ -228,24 +228,18 @@ sentence navigation commands work for me.
 
 Based on [[https://www.rousette.org.uk/archives/switching-to-selectrum-for-incremental-narrowing-in-emacs/][BSAG » Switching to Selectrum for incremental narrowing in Emacs]]
 
-#+begin_src emacs-lisp :eval no :tangle no
-    (use-package quelpa)
-    (use-package quelpa-use-package)
+#+begin_src emacs-lisp 
+  (use-package quelpa)
+  (use-package quelpa-use-package)
   (use-package selectrum :init (selectrum-mode +1)
     :bind (("C-h a" . apropos)
            ("C-x C-b" . list-buffers)
            ("M-y" . helm-show-kill-ring)
            ("M-x" . execute-extended-command)
-           ("C-x C-f" . find-file)
-           ("C-x c s" . helm-swoop)
-           ("C-x c y" . helm-yas-complete)
-           ("C-x c Y" . helm-yas-create-snippet-on-region)
-           ("C-x c b" . my/helm-do-grep-book-notes)
-           )
-  )
-    (use-package prescient :init (prescient-persist-mode +1))
-    (use-package selectrum-prescient :init (selectrum-prescient-mode +1) :after selectrum)
-    (use-package company-prescient :init (company-prescient-mode +1))
+           ("C-x C-f" . find-file)))
+  (use-package prescient :init (prescient-persist-mode +1))
+  (use-package selectrum-prescient :init (selectrum-prescient-mode +1) :after selectrum)
+  (use-package company-prescient :init (company-prescient-mode +1))
   (use-package consult :quelpa (consult :fetcher github :repo "minad/consult")
     :bind (("C-x b" . consult-buffer)
            ("M-g o" . consult-outline)
@@ -261,10 +255,13 @@ Based on [[https://www.rousette.org.uk/archives/switching-to-selectrum-for-incre
            ("M-y" . consult-yank-pop)
            ("C-x c o" . consult-multi-occur)
            ("C-x c SPC" . consult-mark)))
-    (use-package marginalia 
-      :quelpa (marginalia :fetcher github :repo "minad/marginalia")
-      :init (marginalia-mode)
-      (setq marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light)))
+  (use-package marginalia 
+    :quelpa (marginalia :fetcher github :repo "minad/marginalia")
+    :init (marginalia-mode)
+    ;; When using Selectrum, ensure that Selectrum is refreshed when cycling annotations.
+    (advice-add #'marginalia-cycle :after
+                (lambda () (when (bound-and-true-p selectrum-mode) (selectrum-exhibit))))
+    (setq marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light)))
 #+end_src
 
 *** Helm - interactive completion
@@ -294,8 +291,6 @@ possible, although I prefer ido's way of switching buffers.
          ("C-x C-b" . helm-buffers-list)
          ("C-x b" . helm-buffers-list)
          ("M-y" . helm-show-kill-ring)
-         ("M-x" . helm-M-x)
-         ("C-x C-f" . helm-find-files)
          ("C-x c o" . helm-occur)
          ("C-x c s" . helm-swoop)
          ("C-x c y" . helm-yas-complete)
@@ -630,6 +625,82 @@ helm-grep? Bit slow and hard to read, though.
 
   I think I'm getting the hang of tweaking Helm. Yay!
 
+**** Org Mode: Create a quick timestamped note and capture a screenshot     :emacs:org:
+     :PROPERTIES:
+     :ID:       o2b:95dacc89-9c51-4d02-a7c9-4e28bf7f961b
+     :POST_DATE: [2020-12-12 Sat 23:58]
+     :BLOG:     sacha
+     :POSTID:   29649
+     :END:
+
+I wanted to be able to quickly create timestamped notes and possibly
+capture a screenshot. Prompting for a value inside an
+=org-capture-template= disrupts my screen a little, so maybe this will
+make it as easy as possible. I could probably do this without going
+through org-capture-templates, but I wanted to take advantage of the
+fact that Org Mode will deal with the date tree and finding the right
+position itself.
+
+#+begin_src emacs-lisp
+  (defun my/org-capture-prefill-template (template &rest values)
+    "Pre-fill TEMPLATE with VALUES."
+    (setq template (or template (org-capture-get :template)))
+    (with-temp-buffer
+      (insert template)
+      (goto-char (point-min))
+      (while (re-search-forward
+              (concat "%\\("
+                      "\\[\\(.+\\)\\]\\|"
+                      "<\\([^>\n]+\\)>\\|"
+                      "\\([tTuUaliAcxkKInfF]\\)\\|"
+                      "\\(:[-a-zA-Z]+\\)\\|"
+                      "\\^\\({\\([^}]*\\)}\\)"
+                      "?\\([gGtTuUCLp]\\)?\\|"
+                      "%\\\\\\([1-9][0-9]*\\)"
+                      "\\)") nil t)
+        (if (car values)
+            (replace-match (car values) nil t))
+        (setq values (cdr values)))
+      (buffer-string)))
+  (defun my/capture-screenshot (time &optional note)
+    "Capture screenshot and save it to a file labeled with TIME and NOTE.
+  Return the filename."
+    (interactive (list (current-time) (read-string "Note: ")))
+    (let* ((filename (expand-file-name
+                      (concat "Screenshot_"
+                              (format-time-string "%Y%0m%d_%H%M%S" time)
+                              (if note (concat " " note) "")
+                              ".png")
+                      "~/Pictures"))
+           (cmd (concat "spectacle -b -o "
+                        (shell-quote-argument filename))))
+      (shell-command cmd)
+      filename))
+  (defun my/capture-timestamped-note (time note)
+    "Disable Helm and capture a quick timestamped note."
+    (interactive (list (current-time) (read-string "Note: ")))
+    (let ((helm-completing-read-handlers-alist '((org-capture . nil)))
+          (entry (org-capture-select-template "p")))
+      (org-capture-set-plist entry)
+      (org-capture-get-template)
+      (org-capture-set-target-location)
+      (org-capture-put
+       :template (org-capture-fill-template
+                  (my/org-capture-prefill-template (org-capture-get :template)
+                                                   (format-time-string "%H:%M:%S,%3N")
+                                                   note)))
+      (org-capture-place-template)
+      (org-capture-finalize)))
+  (defun my/capture-timestamped-note-with-screenshot (time note)
+    (interactive (list (current-time) (read-string "Note: ")))
+    (kill-new (my/capture-screenshot time note))
+    (my/capture-timestamped-note time note))
+#+end_src
+  
+Then I can call it with =h h n= for =my/capture-timestamped-note= or
+=h h i= for =my/capture-timestamped-note-with-screenshot= via keyboard
+shortcuts defined elsewhere in my [[https://sachachua.com/dotemacs][config]] (see =my/key-chord-commands=).
+
 *** Mode line format
 
 Display a more compact mode line
@@ -778,6 +849,13 @@ allowing you to repeat those functions as needed."
 **** TODO Look for opportunities to use this
 
 ** Navigation
+*** which-key
+    #+begin_src emacs-lisp
+      (use-package which-key)
+    #+end_src
+
+Because I often need help with keyboard shortcuts. =)
+
 *** Pop to mark
 
 Handy way of getting back to previous places.
@@ -947,50 +1025,10 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       ("<down>" (join-line 1))
       ("t" join-line)
       ("n" (join-line 1)))
-    (defhydra my/quantified-hydra (:color blue)
-      "Quick tracking of Quantified Awesome stuff"
-      ("c" (my/org-clock-in-and-track-by-name "Childcare") "Childcare")
-      ("f" (my/org-clock-in-and-track-by-name "Family") "Family")
-      ("F" (my/org-clock-in-and-track-by-name "Read fiction") "Fiction")
-      ("k" (my/org-clock-in-and-track-by-name "Clean the kitchen") "Kitchen")
-      ("D" (my/org-clock-in-and-track-by-name "Draw") "Draw")
-      ("w" (my/org-clock-in-and-track-by-name "Walk for 30+ minutes") "Walk")
-      ("W" (my/org-clock-in-and-track-by-name "Write") "Write")
-      ("r" (my/org-clock-in-and-track-by-name "Personal routines") "Routines")
-      ("R" (my/org-clock-in-and-track-by-name "Relax") "Relax")
-      ("t" (my/org-clock-in-and-track-by-name "Tidy") "Tidy")
-      ("b" (my/org-clock-in-and-track-by-name "Play Borderlands 2") "Borderlands 2")
-      ("l" (my/org-clock-in-and-track-by-name "Eat lunch") "Lunch")
-      ("L" (my/org-clock-in-and-track-by-name "Do laundry") "Laundry")
-      ("d" (my/org-clock-in-and-track-by-name "Eat dinner") "Dinner")
-      ("e" (my/org-clock-in-and-track-by-name "Process my inbox") "E-mail")
-      )
     (defhydra my/org (:color blue)
       "Convenient Org stuff."
       ("p" my/org-show-active-projects "Active projects")
       ("a" (org-agenda nil "a") "Agenda"))
-    (defhydra my/key-chord-commands ()
-      "Main"
-      ("k" kill-sexp)
-      ("h" my/org-jump :color blue)
-      ("x" my/org-finish-previous-task-and-clock-in-new-one "Finish and clock in" :color blue)
-      ("i" my/org-quick-clock-in-task "Clock in" :color blue)
-      ("b" helm-buffers-list :color blue)
-      ("f" find-file :color blue)
-      ("a" my/org-check-agenda :color blue)
-      ("c" (call-interactively 'org-capture) "capture" :color blue)
-      ("t" (org-capture nil "T") "Capture task")
-      ("." repeat)
-      ("C-t" transpose-chars)
-      ("o" my/org-off-my-computer :color blue)
-      ("w" my/engine-mode-hydra/body "web" :exit t)
-      ("m" imenu :color blue)
-      ("q" quantified-track :color blue)
-      ("r" my/describe-random-interactive-function)
-      ("l" org-insert-last-stored-link)
-      ("L" my/org-insert-link)
-      ("+" text-scale-increase)
-      ("-" text-scale-decrease))
     (defhydra my/engine-mode-hydra (:color blue)
       "Engine mode"
       ("b" engine/search-my-blog "blog")
@@ -1000,8 +1038,8 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       ("e" engine/search-emacswiki "emacswiki"))
     ;; From https://github.com/abo-abo/hydra
     (defhydra hydra-buffer-menu (:color pink
-                               :hint nil)
-    "
+                                        :hint nil)
+      "
   ^Mark^             ^Unmark^           ^Actions^          ^Search
   ^^^^^^^^-----------------------------------------------------------------
   _m_: mark          _u_: unmark        _x_: execute       _R_: re-isearch
@@ -1010,24 +1048,24 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
   _D_: delete up     ^ ^                _T_: files only: % -28`Buffer-menu-files-only
   _~_: modified
   "
-    ("m" Buffer-menu-mark)
-    ("u" Buffer-menu-unmark)
-    ("U" Buffer-menu-backup-unmark)
-    ("d" Buffer-menu-delete)
-    ("D" Buffer-menu-delete-backwards)
-    ("s" Buffer-menu-save)
-    ("~" Buffer-menu-not-modified)
-    ("x" Buffer-menu-execute)
-    ("b" Buffer-menu-bury)
-    ("g" revert-buffer)
-    ("T" Buffer-menu-toggle-files-only)
-    ("O" Buffer-menu-multi-occur :color blue)
-    ("I" Buffer-menu-isearch-buffers :color blue)
-    ("R" Buffer-menu-isearch-buffers-regexp :color blue)
-    ("c" nil "cancel")
-    ("v" Buffer-menu-select "select" :color blue)
-    ("o" Buffer-menu-other-window "other-window" :color blue)
-    ("q" quit-window "quit" :color blue))
+      ("m" Buffer-menu-mark)
+      ("u" Buffer-menu-unmark)
+      ("U" Buffer-menu-backup-unmark)
+      ("d" Buffer-menu-delete)
+      ("D" Buffer-menu-delete-backwards)
+      ("s" Buffer-menu-save)
+      ("~" Buffer-menu-not-modified)
+      ("x" Buffer-menu-execute)
+      ("b" Buffer-menu-bury)
+      ("g" revert-buffer)
+      ("T" Buffer-menu-toggle-files-only)
+      ("O" Buffer-menu-multi-occur :color blue)
+      ("I" Buffer-menu-isearch-buffers :color blue)
+      ("R" Buffer-menu-isearch-buffers-regexp :color blue)
+      ("c" nil "cancel")
+      ("v" Buffer-menu-select "select" :color blue)
+      ("o" Buffer-menu-other-window "other-window" :color blue)
+      ("q" quit-window "quit" :color blue))
 
     (define-key Buffer-menu-mode-map "." 'hydra-buffer-menu/body)
 
@@ -1049,16 +1087,17 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
             (insert (org-link-make-string link description))
             (sit-for 0))))))
 
-    (defhydra my/phone (:exit t)
-      "Shortcuts for my phone"
+    (defhydra my/shortcuts (:exit t)
+      "Shortcuts"
       ("j" jump-to-register "Jump")
+      ("n" my/capture-timestamped-note)
       ("d" my/emacs-news-check-duplicates "Dupe")
       ("c" my/org-categorize-emacs-news/body "Categorize")
       ("h" (lambda () (interactive) (my/org-update-link-description "HN")) "Link HN")
       ("i" (lambda () (interactive) (my/org-update-link-description "Irreal")) "Link Irreal")
       ("s" save-buffer "Save")
       ("m" my/share-emacs-news "Mail"))
-    (global-set-key (kbd "<f5>") 'my/phone/body))
+    (global-set-key (kbd "<f5>") 'my/shortcuts/body))
 
   (defun my/org-insert-link ()
     (interactive)
@@ -1066,6 +1105,30 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
       (goto-char (match-end 0))
       (insert "\n"))
     (call-interactively 'org-insert-link))
+
+    (defhydra my/key-chord-commands ()
+      "Main"
+      ("k" kill-sexp)
+      ("h" my/org-jump :color blue)
+      ("x" my/org-finish-previous-task-and-clock-in-new-one "Finish and clock in" :color blue)
+      ("b" helm-buffers-list :color blue)
+      ("f" find-file :color blue)
+      ("a" my/org-check-agenda :color blue)
+      ("c" (call-interactively 'org-capture) "capture" :color blue)
+      ("t" (org-capture nil "T") "Capture task")
+      ("." repeat)
+      ("C-t" transpose-chars)
+      ("o" my/org-off-my-computer :color blue)
+      ("w" my/engine-mode-hydra/body "web" :exit t)
+      ("m" imenu :color blue)
+      ("i" my/capture-timestamped-note-with-screenshot :exit t)
+      ("n" my/capture-timestamped-note "Timestamped note" :exit t)
+      ("q" quantified-track :color blue)
+      ("r" my/describe-random-interactive-function)
+      ("l" org-insert-last-stored-link)
+      ("L" my/org-insert-link)
+      ("+" text-scale-increase)
+      ("-" text-scale-decrease))
 #+END_SRC
 
 Now let's set up the actual keychords.
@@ -1073,26 +1136,26 @@ Now let's set up the actual keychords.
 #+BEGIN_SRC emacs-lisp 
   (use-package key-chord
     :init
-    (progn
-      (fset 'key-chord-define 'my/key-chord-define)
-      (setq key-chord-one-key-delay 0.16)
-      ;; k can be bound too
-      (key-chord-define-global "uu"     'undo)
-      (key-chord-define-global "jr"     'my/goto-random-char-hydra/my/goto-random-char)
-      (key-chord-define-global "kk"     'kill-whole-line)
-      (key-chord-define-global "jj"     'avy-goto-word-1)
-      (key-chord-define-global "yy"    'my/window-movement/body)
-      (key-chord-define-global "jw"     'switch-window)
-      (key-chord-define-global "jl"     'avy-goto-line)
-      (key-chord-define-global "j."     'join-lines/body)
-      ;(key-chord-define-global "jZ"     'avy-zap-to-char)
-      (key-chord-define-global "FF"     'find-file)
-      (key-chord-define-global "qq"     'my/quantified-hydra/body)
-      (key-chord-define-global "hh"     'my/key-chord-commands/body)
-      (key-chord-define-global "xx"     'er/expand-region)
-      (key-chord-define-global "  "     'my/insert-space-or-expand)
-      (key-chord-define-global "vv" 'god-mode-all)
-      (key-chord-define-global "JJ"     'my/switch-to-previous-buffer)))
+    (fset 'key-chord-define 'my/key-chord-define)
+    (setq key-chord-one-key-delay 0.16)
+    ;; k can be bound too
+    (key-chord-define-global "uu"     'undo)
+    (key-chord-define-global "jr"     'my/goto-random-char-hydra/my/goto-random-char)
+    (key-chord-define-global "kk"     'kill-whole-line)
+    (key-chord-define-global "jj"     'avy-goto-word-1)
+    (key-chord-define-global "yy"    'my/window-movement/body)
+    (key-chord-define-global "jw"     'switch-window)
+    (key-chord-define-global "jl"     'avy-goto-line)
+    (key-chord-define-global "j."     'join-lines/body)
+    ;(key-chord-define-global "jZ"     'avy-zap-to-char)
+    (key-chord-define-global "FF"     'find-file)
+    (key-chord-define-global "qq"     'my/quantified-hydra/body)
+    (key-chord-define-global "hh"     'my/key-chord-commands/body)
+    (key-chord-define-global "xx"     'er/expand-region)
+    (key-chord-define-global "  "     'my/insert-space-or-expand)
+    (key-chord-define-global "vv" 'god-mode-all)
+    (key-chord-define-global "JJ"     'my/switch-to-previous-buffer)
+    (key-chord-mode 1))
 #+END_SRC
 
 Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char=. It turns out I actually do use =C-t= a fair bit, but I can always add it back as an option.
@@ -1297,7 +1360,7 @@ This command is convenient when reading novel, documentation."
 
 
 
-** Writing
+** Writing and editing
 *** Avoiding weasel words
     #+BEGIN_SRC emacs-lisp 
     (use-package artbollocks-mode
@@ -1409,6 +1472,17 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
         try-complete-lisp-symbol))
 #+END_SRC
 
+*** Subtitles
+#+begin_src emacs-lisp
+  (use-package subed 
+    :load-path "~/vendor/subed/subed"
+    :mode ("\\.\\(vtt\\|srt\\)\\'" . subed-mode)
+    :hook 
+    ((subed-mode . subed-disable-sync-point-to-player)
+     (subed-mode . save-place-local-mode)
+     (subed-mode . turn-on-auto-fill)
+     (subed-mode . (lambda () (setq-local fill-column 40)))))
+#+end_src
 ** Org  :org:
 
 I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of
@@ -1688,9 +1762,9 @@ This quickly adds a same-level heading for the succeeding day.
      I use =org-capture= templates to quickly jot down tasks, ledger
      entries, notes, and other semi-structured pieces of information.
 #+begin_src emacs-lisp 
-(defun my/org-contacts-template-email (&optional return-value)
+  (defun my/org-contacts-template-email (&optional return-value)
     "Try to return the contact email for a template.
-  If not found return RETURN-VALUE or something that would ask the user."
+    If not found return RETURN-VALUE or something that would ask the user."
     (eval-when-compile (require 'gnus-art nil t))
     (eval-when-compile (require 'org-contacts nil t))
     (or (cadr (if (gnus-alive-p)
@@ -1700,124 +1774,117 @@ This quickly adds a same-level heading for the succeeding day.
         return-value
         (concat "%^{" org-contacts-email-property "}p")))
 
-    (defvar my/org-basic-task-template "* TODO %^{Task}
-  :PROPERTIES:
-  :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
-  :END:
-  Captured %<%Y-%m-%d %H:%M>
-  %?
-
-  %i
-  " "Basic task data")
-    (defvar my/org-inbox-file "~/orgzly/Inbox.org")
-    (defvar my/ledger-file "~/cloud/ledger/current.ledger")
-    (setq org-capture-templates
-          `(("t" "Quick task" entry
-             (file ,my/org-inbox-file)
-             "* TODO %^{Task}\n"
-             :immediate-finish t)
-            ("T" "Task" entry
-             (file ,my/org-inbox-file)
-             "* TODO %^{Task}\n")
-            ("." "Today" entry
-             (file ,my/org-inbox-file)
-             "* TODO %^{Task}\nSCHEDULED: %t\n"
-             :immediate-finish t)
-            ("v" "Video" entry
-             (file ,my/org-inbox-file)
-             "* TODO %^{Task}  :video:\nSCHEDULED: %t\n"
-             :immediate-finish t)
-            ("e" "Errand" entry
-             (file ,my/org-inbox-file)
-             "* TODO %^{Task}  :errands:\n"
-             :immediate-finish t)
-            ("n" "Note" entry
-             (file ,my/org-inbox-file)
-             "* %^{Note}\n"
-             :immediate-finish t)
-            ("r" "Note" entry
-             (file ,my/org-inbox-file)
-             "* %?\n%U - %a")
-            ("N" "Note" entry
-             (file ,my/org-inbox-file)
-             "* %^{Note}\n")
-            ("i" "Interrupting task" entry
-             (file ,my/org-inbox-file)
-             "* STARTED %^{Task}"
-             :clock-in :clock-resume)
-            ("b" "Business task" entry
-             (file+headline "~/personal/business.org" "Tasks")
-             ,my/org-basic-task-template)
-            ("p" "People task" entry
-             (file "~/orgzly/people.org")
-             ,my/org-basic-task-template)
-            ("j" "Journal entry" plain
-             (file+datetree "~/personal/journal.org")
-             "%K - %a\n%i\n%?\n"
-             :unnarrowed t)
-            ("J" "Journal entry with date" plain
-             (file+datetree+prompt "~/personal/journal.org")
-             "%K - %a\n%i\n%?\n"
-             :unnarrowed t)
-            ("s" "Journal entry with date, scheduled" entry
-             (file+datetree+prompt "~/personal/journal.org")
-             "* \n%K - %a\n%t\t%i\n%?\n"
-             :unnarrowed t)
-            ("w" "Web site" entry
-             (file+headline ,org-default-notes-file "Inbox")
-             "* %a :website:\n\n%U %?\n\n%:initial")
-            ("c" "Protocol Link" entry (file+headline ,org-default-notes-file "Inbox")
-             "* [[%:link][%:description]] \n\n#+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n%?\n\nCaptured: %U")
-            ("db" "Done - Business" entry
-             (file+headline "~/personal/business.org" "Tasks")
-             "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-            ("dp" "Done - People" entry
-             (file+headline "~/personal/people.org" "Tasks")
-             "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-            ("dt" "Done - Task" entry
-             (file+headline "~/orgzly/organizer.org" "Inbox")
-             "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-            ("q" "Quick note" item
-             (file+headline "~/orgzly/organizer.org" "Quick notes"))
-            ("l" "Ledger")
-            ("lc" "Cash expense" plain
-             (file ,my/ledger-file)
-             "%(ledger-read-date \"Date: \") * %^{Payee}
-      Expenses:Cash
-      Expenses:%^{Account}  %^{Amount}
-    ")
-            ("lb" "BDO CAD" plain
-    (file ,my/ledger-file)
-    "%(ledger-read-date \"Date: \") * %^{Payee}
-      Expenses:Play    $ %^{Amount}
-      Assets:BDO
-    ")
-            ("lp" "BDO PHP" plain
-    (file ,my/ledger-file)
-    "%(ledger-read-date \"Date: \") * %^{Payee}
-      Expenses:Play    PHP %^{Amount}
-      Assets:BDO
-    ")
-            ("B" "Book" entry
-             (file+datetree "~/personal/books.org" "Inbox")
-             "* %^{Title}  %^g
-    %i
-    ,*Author(s):* %^{Author} \\\\
-    ,*ISBN:* %^{ISBN}
-
+  (defvar my/org-basic-task-template "* TODO %^{Task}
+    :PROPERTIES:
+    :Effort: %^{effort|1:00|0:05|0:15|0:30|2:00|4:00}
+    :END:
+    Captured %<%Y-%m-%d %H:%M>
     %?
 
-    ,*Review on:* %^t \\
-    %a
-    %U"
-             :clock-in :clock-resume)
-             ("C" "Contact" entry (file "~/personal/contacts.org")
-              "* %(org-contacts-template-name)
-    :PROPERTIES:
-    :EMAIL: %(my/org-contacts-template-email)
-    :END:")))
-    (bind-key "C-M-r" 'org-capture)
-    ;(bind-key (kbd "<f5>") 'org-capture)
+    %i
+    " "Basic task data")
+  (defvar my/org-inbox-file "~/orgzly/Inbox.org")
+  (defvar my/ledger-file "~/cloud/ledger/current.ledger")
+  (setq org-capture-templates
+        `(("t" "Quick task" entry
+           (file ,my/org-inbox-file)
+           "* TODO %^{Task}\n"
+           :immediate-finish t)
+           ("p" "Podcast log - timestamped" item
+           (file+olp+datetree "~/orgzly/timestamped.org")
+           "%<%H:%M:%S,%3N> %^{Note}"
+           :immediate-finish t)
+          ("T" "Task" entry
+           (file ,my/org-inbox-file)
+           "* TODO %^{Task}\n")
+          ("." "Today" entry
+           (file ,my/org-inbox-file)
+           "* TODO %^{Task}\nSCHEDULED: %t\n"
+           :immediate-finish t)
+          ("v" "Video" entry
+           (file ,my/org-inbox-file)
+           "* TODO %^{Task}  :video:\nSCHEDULED: %t\n"
+           :immediate-finish t)
+          ("e" "Errand" entry
+           (file ,my/org-inbox-file)
+           "* TODO %^{Task}  :errands:\n"
+           :immediate-finish t)
+          ("n" "Note" entry
+           (file ,my/org-inbox-file)
+           "* %^{Note}\n"
+           :immediate-finish t)
+          ("r" "Note" entry
+           (file ,my/org-inbox-file)
+           "* %?\n%U - %a")
+          ("N" "Note" entry
+           (file ,my/org-inbox-file)
+           "* %^{Note}\n")
+          ("i" "Interrupting task" entry
+           (file ,my/org-inbox-file)
+           "* STARTED %^{Task}"
+           :clock-in :clock-resume)
+          ("b" "Business task" entry
+           (file+headline "~/personal/business.org" "Tasks")
+           ,my/org-basic-task-template)
+          ("j" "Journal entry" plain
+           (file+olp+datetree "~/orgzly/journal.org")
+           "%K - %a\n%i\n%?\n"
+           :unnarrowed t)
+          ("c" "Protocol Link" entry (file+headline ,org-default-notes-file "Inbox")
+           "* [[%:link][%:description]] \n\n#+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n%?\n\nCaptured: %U")
+          ("db" "Done - Business" entry
+           (file+headline "~/personal/business.org" "Tasks")
+           "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+          ("dp" "Done - People" entry
+           (file+headline "~/personal/people.org" "Tasks")
+           "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+          ("dt" "Done - Task" entry
+           (file+headline "~/orgzly/organizer.org" "Inbox")
+           "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+          ("q" "Quick note" item
+           (file+headline "~/orgzly/organizer.org" "Quick notes"))
+          ("l" "Ledger")
+          ("lc" "Cash expense" plain
+           (file ,my/ledger-file)
+           "%(ledger-read-date \"Date: \") * %^{Payee}
+        Expenses:Cash
+        Expenses:%^{Account}  %^{Amount}
+      ")
+          ("lb" "BDO CAD" plain
+           (file ,my/ledger-file)
+           "%(ledger-read-date \"Date: \") * %^{Payee}
+        Expenses:Play    $ %^{Amount}
+        Assets:BDO
+      ")
+          ("lp" "BDO PHP" plain
+           (file ,my/ledger-file)
+           "%(ledger-read-date \"Date: \") * %^{Payee}
+        Expenses:Play    PHP %^{Amount}
+        Assets:BDO
+      ")
+          ("B" "Book" entry
+           (file+datetree "~/personal/books.org" "Inbox")
+           "* %^{Title}  %^g
+      %i
+      ,*Author(s):* %^{Author} \\\\
+      ,*ISBN:* %^{ISBN}
+
+      %?
+
+      ,*Review on:* %^t \\
+      %a
+      %U"
+           :clock-in :clock-resume)
+          ("C" "Contact" entry (file "~/personal/contacts.org")
+           "* %(org-contacts-template-name)
+      :PROPERTIES:
+      :EMAIL: %(my/org-contacts-template-email)
+      :END:")))
+  (bind-key "C-M-r" 'org-capture)
+
+
+
+  ;;(bind-key (kbd "<f5>") 'org-capture)
 #+end_src
 
 ***** Allow refiling in the middle(ish) of a capture
@@ -5263,8 +5330,10 @@ easily define the menu in a variable. It seems to work fine so far.
 
 #+end_src
 
-**** React
+*** LSP
 https://emacs-lsp.github.io/lsp-mode/tutorials/reactjs-tutorial/
+https://www.mattduck.com/lsp-python-getting-started.html
+
      #+begin_src emacs-lisp
        (use-package lsp-mode
          :config
@@ -5275,9 +5344,16 @@ https://emacs-lsp.github.io/lsp-mode/tutorials/reactjs-tutorial/
                company-minimum-prefix-length 1
                create-lockfiles nil ;; lock files will kill `npm start'
                )
+         (lsp-register-custom-settings
+          '(("pyls.plugins.pyls_mypy.enabled" t t)
+            ("pyls.plugins.pyls_mypy.live_mode" nil t)
+            ("pyls.plugins.pyls_black.enabled" t t)
+            ("pyls.plugins.pyls_isort.enabled" t t)))
          :hook ((prog-mode-hook . lsp)
+                (python-mode . lsp)
                 (lsp-mode-hook . lsp-enable-which-key-integration)))
        (use-package lsp-ui
+         :commands lsp-ui-mode
          :after lsp-mode)
        (use-package dap-mode
          :after lsp-mode)
@@ -5777,71 +5853,68 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
         (call-interactively 'magit-log-edit))
 
       (use-package magit
-        :load-path "~/elisp/magit"
-        :defer t
         :config
-        (progn
-          (when (equal system-type 'windows-nt)
-            (setq magit-git-executable "c:/program files (x86)/git/bin/git.exe"))
-          (setq magit-diff-options '("-b")) ; ignore whitespace
-          (define-key magit-mode-map "#gg" 'endless/load-gh-pulls-mode)
-          (defvar my/magit-limit-to-directory nil "Limit magit status to a specific directory.")
-          (defun my/magit-status-in-directory (directory)
-            "Displays magit status limited to DIRECTORY.
+        (when (equal system-type 'windows-nt)
+          (setq magit-git-executable "c:/program files (x86)/git/bin/git.exe"))
+        (setq magit-diff-options '("-b")) ; ignore whitespace
+        (define-key magit-mode-map "#gg" 'endless/load-gh-pulls-mode)
+        (defvar my/magit-limit-to-directory nil "Limit magit status to a specific directory.")
+        (defun my/magit-status-in-directory (directory)
+          "Displays magit status limited to DIRECTORY.
     Uses the current `default-directory', or prompts for a directory
     if called with a prefix argument. Sets `my/magit-limit-to-directory'
     so that it's still active even after you stage a change. Very experimental."
-            (interactive (list (expand-file-name
-                                (if current-prefix-arg
-                                    (read-directory-name "Directory: ")
-                                  default-directory))))
-            (setq my/magit-limit-to-directory directory)
-            (magit-status directory))
+          (interactive (list (expand-file-name
+                              (if current-prefix-arg
+                                  (read-directory-name "Directory: ")
+                                default-directory))))
+          (setq my/magit-limit-to-directory directory)
+          (magit-status directory))
 
-          (defadvice magit-insert-untracked-files (around sacha activate)
-            (if my/magit-limit-to-directory
-                (magit-with-section (section untracked 'untracked "Untracked files:" t)
-                  (let ((files (cl-mapcan
-                                (lambda (f)
-                                  (when (eq (aref f 0) ??) (list f)))
-                                (magit-git-lines
-                                 "status" "--porcelain" "--" my/magit-limit-to-directory))))
-                    (if (not files)
-                        (setq section nil)
-                      (dolist (file files)
-                        (setq file (magit-decode-git-path (substring file 3)))
-                        (magit-with-section (section file file)
-                          (insert "\t" file "\n")))
-                      (insert "\n"))))
-              ad-do-it))
+        (defadvice magit-insert-untracked-files (around sacha activate)
+          (if my/magit-limit-to-directory
+              (magit-with-section (section untracked 'untracked "Untracked files:" t)
+                                  (let ((files (cl-mapcan
+                                                (lambda (f)
+                                                  (when (eq (aref f 0) ??) (list f)))
+                                                (magit-git-lines
+                                                 "status" "--porcelain" "--" my/magit-limit-to-directory))))
+                                    (if (not files)
+                                        (setq section nil)
+                                      (dolist (file files)
+                                        (setq file (magit-decode-git-path (substring file 3)))
+                                        (magit-with-section (section file file)
+                                                            (insert "\t" file "\n")))
+                                      (insert "\n"))))
+            ad-do-it))
 
-          (defadvice magit-insert-unstaged-changes (around sacha activate)
-            (if my/magit-limit-to-directory
-                (let ((magit-current-diff-range (cons 'index 'working))
-                      (magit-diff-options (copy-sequence magit-diff-options)))
-                  (magit-git-insert-section (unstaged "Unstaged changes:")
-                      #'magit-wash-raw-diffs
-                    "diff-files"
-                    "--" my/magit-limit-to-directory
-                    ))
-              ad-do-it))
+        (defadvice magit-insert-unstaged-changes (around sacha activate)
+          (if my/magit-limit-to-directory
+              (let ((magit-current-diff-range (cons 'index 'working))
+                    (magit-diff-options (copy-sequence magit-diff-options)))
+                (magit-git-insert-section (unstaged "Unstaged changes:")
+                                          #'magit-wash-raw-diffs
+                                          "diff-files"
+                                          "--" my/magit-limit-to-directory
+                                          ))
+            ad-do-it))
 
-          (defadvice magit-insert-staged-changes (around sacha activate)
-            "Limit to `my/magit-limit-to-directory' if specified."
-            (if my/magit-limit-to-directory
-                (let ((no-commit (not (magit-git-success "log" "-1" "HEAD"))))
-                  (when (or no-commit (magit-anything-staged-p))
-                    (let ((magit-current-diff-range (cons "HEAD" 'index))
-                          (base (if no-commit
-                                    (magit-git-string "mktree")
-                                  "HEAD"))
-                          (magit-diff-options (append '("--cached") magit-diff-options)))
-                      (magit-git-insert-section (staged "Staged changes:")
-                          (apply-partially #'magit-wash-raw-diffs t)
-                        "diff-index" "--cached" base "--" my/magit-limit-to-directory))))
-              ad-do-it)))
-        :bind (("C-x v d" . magit-status)
-               ("C-x v C-d" . my/magit-status-in-directory)
+        (defadvice magit-insert-staged-changes (around sacha activate)
+          "Limit to `my/magit-limit-to-directory' if specified."
+          (if my/magit-limit-to-directory
+              (let ((no-commit (not (magit-git-success "log" "-1" "HEAD"))))
+                (when (or no-commit (magit-anything-staged-p))
+                  (let ((magit-current-diff-range (cons "HEAD" 'index))
+                        (base (if no-commit
+                                  (magit-git-string "mktree")
+                                "HEAD"))
+                        (magit-diff-options (append '("--cached") magit-diff-options)))
+                    (magit-git-insert-section (staged "Staged changes:")
+                                              (apply-partially #'magit-wash-raw-diffs t)
+                                              "diff-index" "--cached" base "--" my/magit-limit-to-directory))))
+            ad-do-it))
+        :bind (("C-x v C-d" . my/magit-status-in-directory)
+               ("C-c g" . magit-file-dispatch)
                ("C-x v p" . magit-push)
                ("C-x v c" . my/magit-commit-all)))
 
@@ -6751,6 +6824,19 @@ cool. On Windows, these things help a little.
 (when (eq system-type 'windows-nt)
   (setq tramp-default-method "plink")
   (setq tramp-auto-save-directory "c:\\sacha\\tmp"))
+#+end_src
+*** Checking URLs
+
+#+begin_src emacs-lisp
+(defun my/test-urls (urls)
+  "Given a list of URLs, return a list of any URLS that don't result in an OK value."
+  (delq nil
+        (mapcar (lambda (url)
+                  (let ((url-request-method "HEAD"))
+                    (with-current-buffer (url-retrieve-synchronously url)
+                      (goto-char (point-min))
+                      (unless (looking-at "HTTP/1.1 200 OK") url))))
+                urls)))
 #+end_src
 
 ** Other nifty Emacs things I want to learn

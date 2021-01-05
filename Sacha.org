@@ -67,7 +67,6 @@ Here's how we start:
 ;; This sets up the load path so that we can override it
 (package-initialize)
 (setq use-package-always-ensure t)
-(add-to-list 'load-path "~/Dropbox/2014/presentations/org-reveal")
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
 (setq custom-file "~/.config/emacs/custom-settings.el")
 (load custom-file t)
@@ -227,17 +226,13 @@ sentence navigation commands work for me.
 *** Trying out selectrum
 
 Based on [[https://www.rousette.org.uk/archives/switching-to-selectrum-for-incremental-narrowing-in-emacs/][BSAG » Switching to Selectrum for incremental narrowing in Emacs]]
+I like marginalia for M-x, but I've gotten used to Helm for finding files.
 
 #+begin_src emacs-lisp 
   (use-package quelpa)
   (use-package quelpa-use-package)
-  (use-package selectrum :init (selectrum-mode +1)
-    :bind (("C-h a" . apropos)
-           ("C-x C-b" . list-buffers)
-           ("M-y" . helm-show-kill-ring)
-           ("M-x" . execute-extended-command)
-           ("C-x C-f" . find-file)))
-  (use-package prescient :init (prescient-persist-mode +1))
+  (use-package selectrum :init (selectrum-mode +1)) 
+  (use-package prescient :config (prescient-persist-mode +1))
   (use-package selectrum-prescient :init (selectrum-prescient-mode +1) :after selectrum)
   (use-package company-prescient :init (company-prescient-mode +1))
   (use-package consult :quelpa (consult :fetcher github :repo "minad/consult")
@@ -261,7 +256,9 @@ Based on [[https://www.rousette.org.uk/archives/switching-to-selectrum-for-incre
     ;; When using Selectrum, ensure that Selectrum is refreshed when cycling annotations.
     (advice-add #'marginalia-cycle :after
                 (lambda () (when (bound-and-true-p selectrum-mode) (selectrum-exhibit))))
-    (setq marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light)))
+    (setq marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light))
+    :bind (:map minibuffer-local-completion-map
+                ("C-i" . marginalia-cycle-annotators)))
 #+end_src
 
 *** Helm - interactive completion
@@ -271,33 +268,32 @@ to configure than ido in order to get completion in as many places as
 possible, although I prefer ido's way of switching buffers.
 
 #+BEGIN_SRC emacs-lisp 
-(use-package helm
-  :diminish helm-mode
-  :init
-  (progn
-    (require 'helm-config)
-    (setq helm-candidate-number-limit 100)
-    ;; From https://gist.github.com/antifuchs/9238468
-    (setq helm-idle-delay 0.0 ; update fast sources immediately (doesn't).
-          helm-input-idle-delay 0.01  ; this actually updates things
-                                        ; reeeelatively quickly.
-          helm-yas-display-key-on-candidate t
-          helm-quick-update t
-          helm-M-x-requires-pattern nil
-          helm-ff-skip-boring-files t)
-    (helm-mode))
-  :bind (("C-c h" . helm-mini)
-         ("C-h a" . helm-apropos)
-         ("C-x C-b" . helm-buffers-list)
-         ("C-x b" . helm-buffers-list)
-         ("M-y" . helm-show-kill-ring)
-         ("C-x c o" . helm-occur)
-         ("C-x c s" . helm-swoop)
-         ("C-x c y" . helm-yas-complete)
-         ("C-x c Y" . helm-yas-create-snippet-on-region)
-         ("C-x c b" . my/helm-do-grep-book-notes)
-         ("C-x c SPC" . helm-all-mark-rings)))
-(ido-mode -1) ;; Turn off ido mode in case I enabled it accidentally
+  (use-package helm
+    :diminish helm-mode
+    :init
+    (progn
+      (require 'helm-config)
+      (setq helm-candidate-number-limit 100)
+      ;; From https://gist.github.com/antifuchs/9238468
+      (setq helm-idle-delay 0.0 ; update fast sources immediately (doesn't).
+            helm-input-idle-delay 0.01  ; this actually updates things
+                                          ; reeeelatively quickly.
+            helm-yas-display-key-on-candidate t
+            helm-quick-update t
+            helm-M-x-requires-pattern nil
+            helm-ff-skip-boring-files t)
+      (helm-mode))
+    :bind (("C-c h" . helm-mini)
+           ("C-h a" . helm-apropos)
+           ("C-x C-b" . helm-buffers-list)
+           ("C-x b" . helm-buffers-list)
+           ("C-x C-f" . helm-find-files)
+           ("C-x c o" . helm-occur)
+           ("C-x c s" . helm-swoop)
+           ("C-x c y" . helm-yas-complete)
+           ("C-x c Y" . helm-yas-create-snippet-on-region)
+           ("C-x c SPC" . helm-all-mark-rings)))
+  (ido-mode -1) ;; Turn off ido mode in case I enabled it accidentally
 #+END_SRC
 
 Great for describing bindings. I'll replace the binding for =where-is= too.
@@ -931,8 +927,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (my/defshortcut ?o "~/orgzly/organizer.org")
 (my/defshortcut ?s "~/personal/sewing.org")
 (my/defshortcut ?b "~/personal/business.org")
-(my/defshortcut ?p "~/personal/google-inbox.org")
-(my/defshortcut ?P "~/personal/google-ideas.org")
+(my/defshortcut ?p "/ssh:web:/mnt/prev/home/sacha/planet/en.ini")
 (my/defshortcut ?B "~/Dropbox/books")
 (my/defshortcut ?n "~/sync/notes")
 (my/defshortcut ?N "~/sync/notes/QuickNote.md")
@@ -1477,6 +1472,8 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
   (use-package subed 
     :load-path "~/vendor/subed/subed"
     :mode ("\\.\\(vtt\\|srt\\)\\'" . subed-mode)
+    :config
+    (setq subed-subtitle-spacing 0)
     :hook 
     ((subed-mode . subed-disable-sync-point-to-player)
      (subed-mode . save-place-local-mode)
@@ -1540,21 +1537,14 @@ Here are the Org files I use. I should probably organize them better. =)
 *** Modules
 Org has a whole bunch of optional modules. These are the ones I'm
 currently experimenting with.
-#+BEGIN_SRC emacs-lisp 
-  (setq org-modules '(org-bbdb
-                      org-gnus
-                      org-drill
-                      org-info
-                      org-jsinfo
-                      org-habit
-                      org-irc
+#+BEGIN_SRC emacs-lisp
+  (setq org-modules '(org-habit
                       org-mouse
                       org-protocol
                       org-annotate-file
                       org-eval
                       org-expiry
                       org-interactive-query
-                      org-man
                       org-collector
                       org-panel
                       org-screen
@@ -2383,6 +2373,7 @@ only a few of them them for faster scanning.
                         ,my/kid-org-file
                         "~/personal/business.org"
                         "~/personal/calendar.org"
+                        "~/code/emacs-calendar/emacs-calendar.org"
                         "~/Dropbox/tasker/summary.txt"
                         "~/Dropbox/public/sharing/index.org"
                         "~/dropbox/public/sharing/learning.org"
@@ -2918,7 +2909,8 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
  sketches, and links. I want to try out grouping tasks by topic first,
  then breaking it down into previous/next week.
 
- #+begin_src emacs-lisp 
+ #+begin_src emacs-lisp
+   (use-package quantified :load-path "~/sync/cloud/elisp")
    (defvar my/weekly-review-line-regexp
      "^  \\([^:]+\\): +\\(Sched[^:]+: +\\)?TODO \\(.*?\\)\\(?:[      ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$"
      "Regular expression matching lines to include.")
@@ -3764,10 +3756,10 @@ Might as well take advantage of my stylesheet:
 
 #+begin_src emacs-lisp 
 (setq org-html-head "<link rel=\"stylesheet\" type=\"text/css\"
-href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"></link>
-<link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/org-export.css\"></link>
-<link rel=\"stylesheet\" type=\"text/css\" href=\"http://sachachua.com/blog/wp-content/themes/sacha-v3/style.css\"></link>
-<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"></script>")
+href=\"//sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"></link>
+<link rel=\"stylesheet\" type=\"text/css\" href=\"//sachachua.com/org-export.css\"></link>
+<link rel=\"stylesheet\" type=\"text/css\" href=\"//sachachua.com/blog/wp-content/themes/sacha-v3/style.css\"></link>
+<script src=\"//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"></script>")
 (setq org-html-htmlize-output-type 'css)
 (setq org-src-fontify-natively t)
 #+end_src
@@ -4560,33 +4552,33 @@ Don't ask me for confirmation:
 *** Allow dashes in tags 
 
  #+begin_src emacs-lisp 
- (defun my/org-add-dashes-to-tag-regexps ()
-   (setq org-complex-heading-regexp
-         (concat "^\\(\\*+\\)"
-                 "\\(?: +" org-todo-regexp "\\)?"
-                 "\\(?: +\\(\\[#.\\]\\)\\)?"
-                 "\\(?: +\\(.*?\\)\\)??"
-                 (org-re "\\(?:[ \t]+\\(:[-[:alnum:]_@#%:]+:\\)\\)?")
-                 "[ \t]*$")
-         org-complex-heading-regexp-format
-         (concat "^\\(\\*+\\)"
-                 "\\(?: +" org-todo-regexp "\\)?"
-                 "\\(?: +\\(\\[#.\\]\\)\\)?"
-                 "\\(?: +"
-                 ;; Stats cookies can be stuck to body.
-                 "\\(?:\\[[0-9%%/]+\\] *\\)*"
-                 "\\(%s\\)"
-                 "\\(?: *\\[[0-9%%/]+\\]\\)*"
-                 "\\)"
-                 (org-re "\\(?:[ \t]+\\(:[-[:alnum:]_@#%%:]+:\\)\\)?")
-                 "[ \t]*$")
-         org-todo-line-tags-regexp
-         (concat "^\\(\\*+\\)"
-                 "\\(?: +" org-todo-regexp "\\)?"
-                 "\\(?: +\\(.*?\\)\\)??"
-                 (org-re "\\(?:[ \t]+\\(:[-[:alnum:]:_@#%]+:\\)\\)?")
-                 "[ \t]*$")))
- (add-hook 'org-mode-hook 'my/org-add-dashes-to-tag-regexps)
+   (defun my/org-add-dashes-to-tag-regexps ()
+     (setq org-complex-heading-regexp
+           (concat "^\\(\\*+\\)"
+                   "\\(?: +" org-todo-regexp "\\)?"
+                   "\\(?: +\\(\\[#.\\]\\)\\)?"
+                   "\\(?: +\\(.*?\\)\\)??"
+                   "\\(?:[ \t]+\\(:[-[:alnum:]_@#%:]+:\\)\\)?"
+                   "[ \t]*$")
+           org-complex-heading-regexp-format
+           (concat "^\\(\\*+\\)"
+                   "\\(?: +" org-todo-regexp "\\)?"
+                   "\\(?: +\\(\\[#.\\]\\)\\)?"
+                   "\\(?: +"
+                   ;; Stats cookies can be stuck to body.
+                   "\\(?:\\[[0-9%%/]+\\] *\\)*"
+                   "\\(%s\\)"
+                   "\\(?: *\\[[0-9%%/]+\\]\\)*"
+                   "\\)"
+                   "\\(?:[ \t]+\\(:[-[:alnum:]_@#%%:]+:\\)\\)?"
+                   "[ \t]*$")
+           org-todo-line-tags-regexp
+           (concat "^\\(\\*+\\)"
+                   "\\(?: +" org-todo-regexp "\\)?"
+                   "\\(?: +\\(.*?\\)\\)??"
+                   "\\(?:[ \t]+\\(:[-[:alnum:]:_@#%]+:\\)\\)?"
+                   "[ \t]*$")))
+(use-package org :hook (org-mode-hook . my/org-add-dashes-to-tag-regexps))
  #+end_src
 
 
@@ -5523,6 +5515,31 @@ Borrowed from Steve Purcell's config. This pretty-prints the results.
 (bind-key "C-x C-e" 'sanityinc/eval-last-sexp-or-region emacs-lisp-mode-map)
 #+end_src
 
+**** Stubbing
+
+     From https://ag91.github.io/blog/2020/12/31/top-down-elisping-a-simple-snippet-to-stub-a-function-while-your-are-designing-your-code/
+     
+     #+begin_src emacs-lisp
+       (defun my/stub-elisp-defun ()
+         "Stub an elisp function from symbol at point."
+         (interactive)
+         (let* ((fun (thing-at-point 'list 'no-properties)))
+           (when fun
+             (let* ((fun-list (car (read-from-string fun)))
+                    (name (symbol-name (nth 0 fun-list)))
+                    (args (cdr fun-list)))
+               (save-excursion
+                 (or (search-backward "(defun" nil 't) (goto-char (point-min)))
+                 (insert
+                  (s-concat
+                   "(defun "
+                   name
+                   " "
+                   (format "%s" (--map (s-concat "arg" (number-to-string it)) (number-sequence 1 (length args))))
+                   "\n  \"SomeDocs\"\n  nil)\n\n")))))))
+
+       (bind-key "C-:" #'my/stub-elisp-defun emacs-lisp-mode-map)
+      #+end_src
 *** Snippets
     #+begin_src emacs-lisp 
       (use-package yasnippet
@@ -6035,13 +6052,13 @@ Based on http://xenodium.com/emacs-clone-git-repo-from-clipboard/ :
 *** Ruby
 
 		#+begin_src emacs-lisp 
-(use-package rinari)
-(use-package bundler)
-    (use-package robe
-      :init
-		  (progn (add-hook 'ruby-mode-hook 'robe-mode)
-             (add-hook 'robe-mode-hook 'ac-robe-setup)
-             (add-hook 'ruby-mode-hook 'auto-complete-mode)))
+      (use-package rinari)
+      (use-package bundler)
+      (use-package robe
+        :hook
+        ((ruby-mode-hook . robe-mode)
+         (robe-mode-hook . ac-robe-setup)
+         (ruby-mode-hook . auto-complete-mode)))
 		#+end_src
 
 #+begin_src emacs-lisp 
@@ -6083,7 +6100,10 @@ with HTTPS sites.
 
 #+begin_src emacs-lisp 
 (use-package skewer-mode
-  :config (skewer-setup))
+  :hook 
+  ((js2-mode-hook . skewer-mode)
+   (css-mode-hook . skewer-css-mode)
+   (html-mode-hook . skewer-html-mode)))
 #+end_src
 
 *** Autocomplete
@@ -6096,12 +6116,11 @@ with HTTPS sites.
 *** Tern - for Javascript
 
 #+begin_src emacs-lisp 
-(use-package tern
-  :config
-  (bind-key "C-c C-c" 'compile tern-mode-keymap)
-  (when (eq system-type 'windows-nt) (setq tern-command '("cmd" "/c" "tern")))
-  (add-hook 'js2-mode-hook 'tern-mode))
-
+  (use-package tern
+    :bind (:map tern-mode-keymap ("C-c C-c" . compile))
+    :hook (js2-mode-hook . tern-mode)
+    :config
+    (when (eq system-type 'windows-nt) (setq tern-command '("cmd" "/c" "tern"))))
 #+end_src
 
 *** Docker
@@ -6115,45 +6134,46 @@ with HTTPS sites.
 
    IRC is a great way to hang out with other Emacs geeks.
    #+begin_src emacs-lisp 
-   (when (my/laptop-p)
-     (use-package erc
-       :config
-       (setq erc-hide-list '("PART" "QUIT" "JOIN"))
-       (setq erc-autojoin-channels-alist '(("freenode.net"
-                                            "#org-mode"
-                                            "#emacs"
-                                            "#emacs-beginners"
-                                            "#emacs-ops"))
-             erc-server "irc.freenode.net"
-             erc-nick "sachac")
-       (defun erc-cmd-OPME ()
-         "Request chanserv to op me."
-         (erc-message "PRIVMSG"
-                      (format "chanserv op %s %s"
-                              (erc-default-target)
-                              (erc-current-nick)) nil))
-  
-       (defun erc-cmd-DEOPME ()
-         "Deop myself from current channel."
-         (erc-cmd-DEOP (format "%s" (erc-current-nick))))
-       (defun erc-cmd-BAN (nick)
-         (let* ((chan (erc-default-target))
-                (who (erc-get-server-user nick))
-                (host (erc-server-user-host who))
-                (user (erc-server-user-login who)))
-           (erc-server-send (format "MODE %s +b *!%s@%s" chan user host))))
+     (when (my/laptop-p)
+       (use-package erc
+         :config
+         (setq erc-hide-list '("PART" "QUIT" "JOIN"))
+         (setq erc-autojoin-channels-alist '(("freenode.net"
+                                              "#org-mode"
+                                              "#emacs"
+                                              "#emacs-beginners"
+                                              "#emacs-ops"))
+               erc-server "irc.freenode.net"
+               erc-nick "sachac"
+               erc-track '("NICK" "333" "353" "JOIN" "PART" "AWAY"))
+         (defun erc-cmd-OPME ()
+           "Request chanserv to op me."
+           (erc-message "PRIVMSG"
+                        (format "chanserv op %s %s"
+                                (erc-default-target)
+                                (erc-current-nick)) nil))
 
-       (defun erc-cmd-KICKBAN (nick &rest reason)
-         (setq reason (mapconcat #'identity reason " "))
-         (and (string= reason "")
-              (setq reason nil))
-         (erc-cmd-BAN nick)
-         (erc-server-send (format "KICK %s %s %s"
-                                  (erc-default-target)
-                                  nick
-                                  (or reason
-                                      "Kicked (kickban)"))))
-       ))
+         (defun erc-cmd-DEOPME ()
+           "Deop myself from current channel."
+           (erc-cmd-DEOP (format "%s" (erc-current-nick))))
+         (defun erc-cmd-BAN (nick)
+           (let* ((chan (erc-default-target))
+                  (who (erc-get-server-user nick))
+                  (host (erc-server-user-host who))
+                  (user (erc-server-user-login who)))
+             (erc-server-send (format "MODE %s +b *!%s@%s" chan user host))))
+
+         (defun erc-cmd-KICKBAN (nick &rest reason)
+           (setq reason (mapconcat #'identity reason " "))
+           (and (string= reason "")
+                (setq reason nil))
+           (erc-cmd-BAN nick)
+           (erc-server-send (format "KICK %s %s %s"
+                                    (erc-default-target)
+                                    nick
+                                    (or reason
+                                        "Kicked (kickban)"))))
+         ))
    #+end_src
 
 ** Self-tracking, statistics, and other data transformations
@@ -6475,6 +6495,8 @@ I like using [[http://gmane.org][Gmane]] to read mailing lists, and I use IMAP t
   ))
 (setq smtpmail-smtp-server "smtp.googlemail.com"
       smtpmail-smtp-service 587
+      gnus-check-new-newsgroups nil
+      gnus-activate-level 2
       gnus-ignored-newsgroups "^to\\.\\|^[0-9. ]+\\( \\|$\\)\\|^[\"]\"[#'()]")
 #+end_src
 
@@ -6928,17 +6950,6 @@ cool. On Windows, these things help a little.
         (sp-local-pair "(" nil :bind "C-("))))
 #+end_src
 
-** Weather forecast
-
-#+begin_src emacs-lisp 
-  (use-package forecast
-    :config
-    (setq forecast-city "Toronto"
-          forecast-latitude 43.6486
-          forecast-longitude -79.3853
-          )
-    )
-#+end_src
 ** Encryption 
 
 #+begin_src emacs-lisp 
@@ -9279,3 +9290,10 @@ Hmmm, I'm having a hard time getting used to this.
 (when (eq system-type 'windows-nt)
 (setenv "PATH" (concat "\"c:/program files/postgresql/9.3/bin;\"" (getenv "PATH"))))
 #+end_src
+
+
+* Local Variables
+
+# Local Variables:
+# eval: (add-hook 'after-save-hook #'org-babel-tangle nil t)
+# End:

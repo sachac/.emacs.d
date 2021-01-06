@@ -1,7 +1,7 @@
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
 #+STARTUP: showeverything
-#+PROPERTY: header-args:emacs-lisp    :tangle "~/sync/Emacs/Sacha.el" :results silent
+#+PROPERTY: header-args:emacs-lisp    :tangle "~/sync/Emacs/Sacha.el" :results silent :exports code
 
 * Configuration
 ** About this file
@@ -274,6 +274,7 @@ possible, although I prefer ido's way of switching buffers.
     (progn
       (require 'helm-config)
       (setq helm-candidate-number-limit 100)
+      (setq helm-completing-read-handlers-alist '((describe-function) (describe-variable)))
       ;; From https://gist.github.com/antifuchs/9238468
       (setq helm-idle-delay 0.0 ; update fast sources immediately (doesn't).
             helm-input-idle-delay 0.01  ; this actually updates things
@@ -294,8 +295,8 @@ possible, although I prefer ido's way of switching buffers.
            ("C-x c Y" . helm-yas-create-snippet-on-region)
            ("C-x c SPC" . helm-all-mark-rings)))
   (ido-mode -1) ;; Turn off ido mode in case I enabled it accidentally
+  (use-package helm-ls-git)
 #+END_SRC
-
 Great for describing bindings. I'll replace the binding for =where-is= too.
 
 #+BEGIN_SRC emacs-lisp 
@@ -697,6 +698,18 @@ Then I can call it with =h h n= for =my/capture-timestamped-note= or
 =h h i= for =my/capture-timestamped-note-with-screenshot= via keyboard
 shortcuts defined elsewhere in my [[https://sachachua.com/dotemacs][config]] (see =my/key-chord-commands=).
 
+*** Recomplete
+
+https://gitlab.com/ideasman42/emacs-recomplete
+
+#+begin_src emacs-lisp
+(use-package recomplete
+  :quelpa (recomplete :fetcher gitlab :repo "ideasman42/emacs-recomplete")
+  :bind ("M-/" . recomplete-dabbrev))
+#+end_src
+
+I like this because it lets me see the completions coming up.
+
 *** Mode line format
 
 Display a more compact mode line
@@ -1084,6 +1097,14 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
 
     (defhydra my/shortcuts (:exit t)
       "Shortcuts"
+      ("f" (helm :sources '(helm-source-recentf
+                            helm-source-projectile-files-list
+                            helm-source-files-in-current-dir
+                            helm-source-projectile-projects
+                            helm-source-bookmarks
+                            helm-source-ls-git
+                            helm-source-locate)
+                 :buffer "*helm-find-files*") "Find")
       ("j" jump-to-register "Jump")
       ("n" my/capture-timestamped-note)
       ("d" my/emacs-news-check-duplicates "Dupe")
@@ -4347,6 +4368,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
    :config
    (progn
   (add-hook 'org-babel-after-execute-hook 'org-display-inline-images)
+  (setq org-confirm-babel-evaluate nil)
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((dot . t)
@@ -5861,79 +5883,77 @@ offby1 says there's (setq nxml-sexp-element-flag t)
 Thanks to sheijk for hints on tweaking magit to limit it to the current directory!
 
 #+begin_src emacs-lisp 
-      (defun my/magit-commit-all ()
-        "Publish the current file and commit all the current changes."
-        (interactive)
-        (my/org-publish-maybe)
-        (magit-status default-directory)
-        (magit-stage-all)
-        (call-interactively 'magit-log-edit))
+  (defun my/magit-stage-all-and-commit (message)
+    (interactive (list (progn (magit-diff-unstaged) (read-string "Commit Message: "))))
+    (magit-stage-modified)
+    (magit-commit-create (list "-m" message))
+    (call-interactively #'magit-push-current-to-pushremote))
 
-      (use-package magit
-        :config
-        (when (equal system-type 'windows-nt)
-          (setq magit-git-executable "c:/program files (x86)/git/bin/git.exe"))
-        (setq magit-diff-options '("-b")) ; ignore whitespace
-        (define-key magit-mode-map "#gg" 'endless/load-gh-pulls-mode)
-        (defvar my/magit-limit-to-directory nil "Limit magit status to a specific directory.")
-        (defun my/magit-status-in-directory (directory)
-          "Displays magit status limited to DIRECTORY.
+  (use-package magit
+    :config
+    (when (equal system-type 'windows-nt)
+      (setq magit-git-executable "c:/program files (x86)/git/bin/git.exe"))
+    (setq magit-diff-options '("-b")) ; ignore whitespace
+    (define-key magit-mode-map "#gg" 'endless/load-gh-pulls-mode)
+    (defvar my/magit-limit-to-directory nil "Limit magit status to a specific directory.")
+    (defun my/magit-status-in-directory (directory)
+      "Displays magit status limited to DIRECTORY.
     Uses the current `default-directory', or prompts for a directory
     if called with a prefix argument. Sets `my/magit-limit-to-directory'
     so that it's still active even after you stage a change. Very experimental."
-          (interactive (list (expand-file-name
-                              (if current-prefix-arg
-                                  (read-directory-name "Directory: ")
-                                default-directory))))
-          (setq my/magit-limit-to-directory directory)
-          (magit-status directory))
+      (interactive (list (expand-file-name
+                          (if current-prefix-arg
+                              (read-directory-name "Directory: ")
+                            default-directory))))
+      (setq my/magit-limit-to-directory directory)
+      (magit-status directory))
 
-        (defadvice magit-insert-untracked-files (around sacha activate)
-          (if my/magit-limit-to-directory
-              (magit-with-section (section untracked 'untracked "Untracked files:" t)
-                                  (let ((files (cl-mapcan
-                                                (lambda (f)
-                                                  (when (eq (aref f 0) ??) (list f)))
-                                                (magit-git-lines
-                                                 "status" "--porcelain" "--" my/magit-limit-to-directory))))
-                                    (if (not files)
-                                        (setq section nil)
-                                      (dolist (file files)
-                                        (setq file (magit-decode-git-path (substring file 3)))
-                                        (magit-with-section (section file file)
-                                                            (insert "\t" file "\n")))
-                                      (insert "\n"))))
-            ad-do-it))
+    (defadvice magit-insert-untracked-files (around sacha activate)
+      (if my/magit-limit-to-directory
+          (magit-with-section (section untracked 'untracked "Untracked files:" t)
+                              (let ((files (cl-mapcan
+                                            (lambda (f)
+                                              (when (eq (aref f 0) ??) (list f)))
+                                            (magit-git-lines
+                                             "status" "--porcelain" "--" my/magit-limit-to-directory))))
+                                (if (not files)
+                                    (setq section nil)
+                                  (dolist (file files)
+                                    (setq file (magit-decode-git-path (substring file 3)))
+                                    (magit-with-section (section file file)
+                                                        (insert "\t" file "\n")))
+                                  (insert "\n"))))
+        ad-do-it))
 
-        (defadvice magit-insert-unstaged-changes (around sacha activate)
-          (if my/magit-limit-to-directory
-              (let ((magit-current-diff-range (cons 'index 'working))
-                    (magit-diff-options (copy-sequence magit-diff-options)))
-                (magit-git-insert-section (unstaged "Unstaged changes:")
-                                          #'magit-wash-raw-diffs
-                                          "diff-files"
-                                          "--" my/magit-limit-to-directory
-                                          ))
-            ad-do-it))
+    (defadvice magit-insert-unstaged-changes (around sacha activate)
+      (if my/magit-limit-to-directory
+          (let ((magit-current-diff-range (cons 'index 'working))
+                (magit-diff-options (copy-sequence magit-diff-options)))
+            (magit-git-insert-section (unstaged "Unstaged changes:")
+                                      #'magit-wash-raw-diffs
+                                      "diff-files"
+                                      "--" my/magit-limit-to-directory
+                                      ))
+        ad-do-it))
 
-        (defadvice magit-insert-staged-changes (around sacha activate)
-          "Limit to `my/magit-limit-to-directory' if specified."
-          (if my/magit-limit-to-directory
-              (let ((no-commit (not (magit-git-success "log" "-1" "HEAD"))))
-                (when (or no-commit (magit-anything-staged-p))
-                  (let ((magit-current-diff-range (cons "HEAD" 'index))
-                        (base (if no-commit
-                                  (magit-git-string "mktree")
-                                "HEAD"))
-                        (magit-diff-options (append '("--cached") magit-diff-options)))
-                    (magit-git-insert-section (staged "Staged changes:")
-                                              (apply-partially #'magit-wash-raw-diffs t)
-                                              "diff-index" "--cached" base "--" my/magit-limit-to-directory))))
-            ad-do-it))
-        :bind (("C-x v C-d" . my/magit-status-in-directory)
-               ("C-c g" . magit-file-dispatch)
-               ("C-x v p" . magit-push)
-               ("C-x v c" . my/magit-commit-all)))
+    (defadvice magit-insert-staged-changes (around sacha activate)
+      "Limit to `my/magit-limit-to-directory' if specified."
+      (if my/magit-limit-to-directory
+          (let ((no-commit (not (magit-git-success "log" "-1" "HEAD"))))
+            (when (or no-commit (magit-anything-staged-p))
+              (let ((magit-current-diff-range (cons "HEAD" 'index))
+                    (base (if no-commit
+                              (magit-git-string "mktree")
+                            "HEAD"))
+                    (magit-diff-options (append '("--cached") magit-diff-options)))
+                (magit-git-insert-section (staged "Staged changes:")
+                                          (apply-partially #'magit-wash-raw-diffs t)
+                                          "diff-index" "--cached" base "--" my/magit-limit-to-directory))))
+        ad-do-it))
+    :bind (("C-x v C-d" . my/magit-status-in-directory)
+           ("C-c g" . magit-file-dispatch)
+           ("C-x v p" . magit-push)
+           ("C-x v c" . my/magit-stage-all-and-commit)))
 
   ;; ;; From http://endlessparentheses.com/merging-github-pull-requests-from-emacs.html
   ;; (defun endless/load-gh-pulls-mode ()
@@ -6607,90 +6627,91 @@ Make it easier to review my credit card transactions
   (find-file (my/latest-file "~/Downloads")))
 #+end_src
 #+begin_src emacs-lisp 
-  (defvar my/ledger-account-list-cache nil)
-  (make-variable-buffer-local 'my/ledger-account-list-cache)
-  (defadvice ledger-accounts-list (around sacha activate)
-    "Cache"
-    (setq ad-return-value (or my/ledger-account-list-cache
-                             (setq my/ledger-account-list-cache ad-do-it))))
+    (defvar my/ledger-account-list-cache nil)
+    (make-variable-buffer-local 'my/ledger-account-list-cache)
+    (defadvice ledger-accounts-list (around sacha activate)
+      "Cache"
+      (setq ad-return-value (or my/ledger-account-list-cache
+                               (setq my/ledger-account-list-cache ad-do-it))))
 
-  (defun my/ledger-set-unknown-account (account point)
-    (interactive (list (ledger-read-account-with-prompt "Account") (point)))
-    (let ((extents (ledger-navigate-find-xact-extents point)))
-      (save-excursion
-        (goto-char (car extents))
-        (if (re-search-forward "Expenses:Unknown" (cadr extents) t)
-            (replace-match account t t)
-          (goto-char point)
-          (beginning-of-line)
-          (when (re-search-forward "\\([^ \t]+\\)  " (line-end-position) nil)
-            (replace-match account t t nil 1))))))
+    (defun my/ledger-set-unknown-account (account point)
+      (interactive (list (ledger-read-account-with-prompt "Account") (point)))
+      (let ((extents (ledger-navigate-find-xact-extents point)))
+        (save-excursion
+          (goto-char (car extents))
+          (if (re-search-forward "Expenses:Unknown" (cadr extents) t)
+              (replace-match account t t)
+            (goto-char point)
+            (beginning-of-line)
+            (when (re-search-forward "\\([^ \t]+\\)  " (line-end-position) nil)
+              (replace-match account t t nil 1))))))
 
-  (defun my/ledger-go-to-beginning-of-entry ()
-      "Move to the beginning of the current entry."
-      (while (and (not (bobp))
-                  (eq (ledger-context-line-type (ledger-context-at-point))
-                      'acct-transaction))
-        (forward-line -1)))
+    (defun my/ledger-go-to-beginning-of-entry ()
+        "Move to the beginning of the current entry."
+        (while (and (not (bobp))
+                    (eq (ledger-context-line-type (ledger-context-at-point))
+                        'acct-transaction))
+          (forward-line -1)))
 
-    (defun my/ledger-entry-date ()
-      "Returns the date of the entry containing point or nil."
-      (save-excursion
-        (my/ledger-go-to-beginning-of-entry)
-        (let ((context-info (ledger-context-other-line 0)))
-          (when (eq (ledger-context-line-type context-info) 'entry)
-            (goto-char (line-beginning-position))
-            (if (looking-at "\\([-0-9\\./]+\\)")
-                (match-string-no-properties 1))))))
+      (defun my/ledger-entry-date ()
+        "Returns the date of the entry containing point or nil."
+        (save-excursion
+          (my/ledger-go-to-beginning-of-entry)
+          (let ((context-info (ledger-context-other-line 0)))
+            (when (eq (ledger-context-line-type context-info) 'entry)
+              (goto-char (line-beginning-position))
+              (if (looking-at "\\([-0-9\\./]+\\)")
+                  (match-string-no-properties 1))))))
 
-    (defun my/ledger-guess-mbna ()
-      "Adds a sub-account for the dates for my credit card transactions."
-      (interactive)
-      (save-excursion
-        (my/ledger-go-to-beginning-of-entry)
-        (forward-line 1)
-        (let ((amount 0) (date (my/ledger-entry-date)) month)
-          (if (string-match "[0-9]+[-\\.]\\([0-9]+\\)[-\\.]\\([0-9]+\\)" date)
-              (setq month (string-to-number (match-string 1 date))))
-          ;; Is this a payment or a charge?
-          (save-excursion
-            (while (and (eq (ledger-context-line-type (ledger-context-at-point))
-                            'acct-transaction)
-                        (not (eobp)))
-              (let ((context (ledger-context-at-point)))
-                (if (ledger-context-field-value context 'amount)
-                    (if (string-match "MBNA" (ledger-context-field-value context 'account))
-                        (setq amount (string-to-number (ledger-context-field-value context 'amount)))
-                      (setq amount (- (string-to-number (ledger-context-field-value context 'amount)))))))
-              (forward-line 1)))
-          (save-excursion
-            (while (and (eq (ledger-context-line-type (ledger-context-at-point))
-                            'acct-transaction)
-                        (not (eobp)))
-              (let ((context (ledger-context-at-point)))
-                (if (string-match "MBNA" (ledger-context-field-value context 'account))
-                    (if (re-search-forward "\\(MBNA\\)[ \t]*[-$\.0-9]*[ \t]*$" (line-end-position) t)
-                        (replace-match
-                         (concat "MBNA:"
-                                 (elt
-                                  '("January" "February" "March" "April" "May" "June" "July" "August" "September" "October" "November" "December")
-                                  (% (+ (if (> amount 0) 10 11) month) 12)))
-                                 t t nil 1))))
-              (forward-line 1))))))
+      (defun my/ledger-guess-mbna ()
+        "Adds a sub-account for the dates for my credit card transactions."
+        (interactive)
+        (save-excursion
+          (my/ledger-go-to-beginning-of-entry)
+          (forward-line 1)
+          (let ((amount 0) (date (my/ledger-entry-date)) month)
+            (if (string-match "[0-9]+[-\\.]\\([0-9]+\\)[-\\.]\\([0-9]+\\)" date)
+                (setq month (string-to-number (match-string 1 date))))
+            ;; Is this a payment or a charge?
+            (save-excursion
+              (while (and (eq (ledger-context-line-type (ledger-context-at-point))
+                              'acct-transaction)
+                          (not (eobp)))
+                (let ((context (ledger-context-at-point)))
+                  (if (ledger-context-field-value context 'amount)
+                      (if (string-match "MBNA" (ledger-context-field-value context 'account))
+                          (setq amount (string-to-number (ledger-context-field-value context 'amount)))
+                        (setq amount (- (string-to-number (ledger-context-field-value context 'amount)))))))
+                (forward-line 1)))
+            (save-excursion
+              (while (and (eq (ledger-context-line-type (ledger-context-at-point))
+                              'acct-transaction)
+                          (not (eobp)))
+                (let ((context (ledger-context-at-point)))
+                  (if (string-match "MBNA" (ledger-context-field-value context 'account))
+                      (if (re-search-forward "\\(MBNA\\)[ \t]*[-$\.0-9]*[ \t]*$" (line-end-position) t)
+                          (replace-match
+                           (concat "MBNA:"
+                                   (elt
+                                    '("January" "February" "March" "April" "May" "June" "July" "August" "September" "October" "November" "December")
+                                    (% (+ (if (> amount 0) 10 11) month) 12)))
+                                   t t nil 1))))
+                (forward-line 1))))))
 
-  (defun my/latest-file (path &optional filter)
-    (car (sort (seq-remove #'file-directory-p (directory-files path 'full filter t)) #'file-newer-than-file-p)))
-(defun my/ledger-change-account (account)
-  (interactive (list (ledger-read-account-with-prompt (concat (ledger-xact-payee) ": "))))
-  (beginning-of-line)
-  (re-search-forward ledger-account-name-regex)
-  (replace-match account t t))
-(defun my/ledger-fix-unknown ()
-  (interactive)
-  (while (re-search-forward "Expenses:Unknown.*$ \\(.+\\)" nil t)
-    (my/ledger-change-account (ledger-read-account-with-prompt
-                               (format "%s %s: " (s-trim (save-match-data (ledger-xact-payee)))
-                                       (match-string 1))))))
+    (defun my/latest-file (path &optional filter)
+      "Return the newest file in PATH. Optionally filter by FILTER."
+      (car (sort (seq-remove #'file-directory-p (directory-files path 'full filter t)) #'file-newer-than-file-p)))
+  (defun my/ledger-change-account (account)
+    (interactive (list (ledger-read-account-with-prompt (concat (ledger-xact-payee) ": "))))
+    (beginning-of-line)
+    (re-search-forward ledger-account-name-regex)
+    (replace-match account t t))
+  (defun my/ledger-fix-unknown ()
+    (interactive)
+    (while (re-search-forward "Expenses:Unknown.*$ \\(.+\\)" nil t)
+      (my/ledger-change-account (ledger-read-account-with-prompt
+                                 (format "%s %s: " (s-trim (save-match-data (ledger-xact-payee)))
+                                         (match-string 1))))))
 
 #+end_src
 

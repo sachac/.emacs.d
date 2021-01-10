@@ -264,10 +264,10 @@
             (when (fboundp sym)
               (marginalia--fields
                ((elisp-get-fnsym-args-string sym)
-                :truncate my/marginalia-function-width
+                :truncate (/ marginalia-truncate-width 3)
                 :face 'my/marginalia-arguments)
                ((documentation sym)
-                :truncate marginalia-documentation-width
+                :truncate marginalia-truncate-width
                 :face 'marginalia-documentation)))))
         (add-to-list 'marginalia-annotators-heavy '(symbol . my/marginalia-annotate-function-with-args))
         :bind (:map minibuffer-local-completion-map
@@ -1531,16 +1531,17 @@
 
    #+begin_src emacs-lisp
      (use-package org
-                                             ; Use this when I want to load from source
+       ;; Use this when I want to load from source
        :load-path ("~/vendor/org-mode/lisp" "~/vendor/org-mode/contrib/lisp")
-       )
+       ;; I don't actually use subscripts
+       (setq org-export-with-sub-superscripts nil))
    #+end_src
 
    Filling in for obsolete functions
 
    #+begin_src emacs-lisp
      (use-package org
-                                             ; Use this when I want to load from source
+       ;; Use this when I want to load from source
        :config
        (unless (functionp 'org-link-make-string)
          (fset 'org-link-make-string 'org-make-link-string))

@@ -1,7 +1,7 @@
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
 #+STARTUP: showeverything
-#+PROPERTY: header-args:emacs-lisp    :tangle "~/sync/Emacs/Sacha.el" :results silent :exports code
+#+PROPERTY: header-args:emacs-lisp    :tangle "~/sync/emacs/Sacha.el" :results silent :exports code
 
 * Configuration
 ** About this file
@@ -66,9 +66,12 @@
    #+begin_src emacs-lisp 
      ;; This sets up the load path so that we can override it
      (package-initialize)
-     (setq use-package-always-ensure t)
      (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
+     (add-to-list 'load-path "~/vendor/org-mode/lisp")
+     (add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
+     (require 'org)
      (setq custom-file "~/.config/emacs/custom-settings.el")
+     (setq use-package-always-ensure t)
      (load custom-file t)
    #+END_SRC
 
@@ -117,6 +120,8 @@
       (setq use-package-verbose t)
       (setq use-package-always-ensure t)
       (require 'use-package)
+      (use-package quelpa)
+      (use-package quelpa-use-package)
       (use-package auto-compile
         :config (auto-compile-on-load-mode))
       (setq load-prefer-newer t)
@@ -124,10 +129,10 @@
 
 *** Load secrets
 
-    I keep slightly more sensitive information in a separate file so that I can easily publish my main configuration.
+    I keep slightly more sensitive information in a separate file so that I can easily publish my main configuration. [[~/.config/emacs/.emacs.secrets]]
 
     #+BEGIN_SRC emacs-lisp 
-      (load "~/.config/emacs/.emacs.secrets" t)
+      (load-file "~/.config/emacs/.emacs.secrets")
     #+END_SRC
 
 ** General configuration
@@ -229,8 +234,6 @@
     I like marginalia for M-x, but I've gotten used to Helm for finding files.
 
     #+begin_src emacs-lisp 
-      (use-package quelpa)
-      (use-package quelpa-use-package)
       (use-package selectrum :init (selectrum-mode +1)) 
       (use-package prescient :config (prescient-persist-mode +1))
       (use-package selectrum-prescient :init (selectrum-prescient-mode +1) :after selectrum)
@@ -260,15 +263,15 @@
         (defun my/marginalia-annotate-function-with-args (cand)
           "Annotate symbol CAND with its arguments and documentation string."
           (require 'elisp-mode)
-          (let ((sym (intern cand)))
-            (when (fboundp sym)
-              (marginalia--fields
-               ((elisp-get-fnsym-args-string sym)
-                :truncate (/ marginalia-truncate-width 3)
-                :face 'my/marginalia-arguments)
-               ((documentation sym)
-                :truncate marginalia-truncate-width
-                :face 'marginalia-documentation)))))
+          (when-let (sym (intern-soft cand))
+            (marginalia--fields
+             ((let ((print-escape-newlines t)
+                    (print-escape-control-characters t)
+                    (print-escape-multibyte t))
+                (if (fboundp sym) (elisp-get-fnsym-args-string sym nil "") "unbound"))
+              :truncate (/ marginalia-truncate-width 3) :face 'marginalia-variable)
+             ((documentation sym 'variable-documentation)
+              :truncate marginalia-truncate-width :face 'marginalia-documentation))))
         (add-to-list 'marginalia-annotators-heavy '(symbol . my/marginalia-annotate-function-with-args))
         :bind (:map minibuffer-local-completion-map
                     ("C-i" . marginalia-cycle-annotators)))
@@ -286,14 +289,15 @@
               :init
               (progn
                 (require 'helm-config)
+                (require 'helm-for-files)
                 (setq helm-candidate-number-limit 100)
                 (setq helm-completing-read-handlers-alist
                       '((describe-function)
                         (consult-bookmark)
                         (consult-outline)
-                  (consult-line)
-            (consult-mark)
-      (consult-multi-occur)
+                        (consult-line)
+                        (consult-mark)
+                        (consult-multi-occur)
                         (describe-variable)
                         (execute-extended-command)
                         (consult-yank)))
@@ -306,6 +310,12 @@
                       helm-M-x-requires-pattern nil
                       helm-ff-skip-boring-files t)
                 (helm-mode))
+              :config
+              (defadvice helm-files-insert-as-org-links (around sacha activate)
+                (insert (mapconcat (lambda (candidate)
+                                     (org-link-make-string candidate))
+                                   (helm-marked-candidates)
+                                   "\n")))
               :bind (("C-c h" . helm-mini)
                      ("C-h a" . helm-apropos)
                      ("C-x C-b" . helm-buffers-list)
@@ -976,7 +986,8 @@
       (my/defshortcut ?g "~/sachac.github.io/evil-plans/index.org")
       (my/defshortcut ?c "~/code/dev/elisp-course.org")
       (my/defshortcut ?C "~/personal/calendar.org")
-      (my/defshortcut ?l "~/dropbox/public/sharing/learning.org")
+      (my/defshortcut ?l "~/orgzly/learning.org")
+      (my/defshortcut ?L "~/orgzly/stories.org")
       (my/defshortcut ?q "~/sync/notes/QuickNote.md")
       (my/defshortcut ?Q "~/personal/questions.org")
     #+END_SRC
@@ -1117,7 +1128,7 @@
                 (delete-region (match-beginning 0) (match-end 0))
                 (insert (org-link-make-string link description))
                 (sit-for 0))))))
-
+  
         (defhydra my/shortcuts (:exit t)
           "Shortcuts"
           ("f" (helm :sources '(helm-source-recentf
@@ -1513,35 +1524,97 @@
 
 *** Subtitles
     #+begin_src emacs-lisp
-      (use-package subed 
-        :load-path "~/vendor/subed/subed"
-        :mode ("\\.\\(vtt\\|srt\\)\\'" . subed-mode)
-        :config
-        (setq subed-subtitle-spacing 0)
-        :hook 
-        ((subed-mode . subed-disable-sync-point-to-player)
-         (subed-mode . save-place-local-mode)
-         (subed-mode . turn-on-auto-fill)
-         (subed-mode . (lambda () (setq-local fill-column 40)))))
+            (use-package subed 
+              :load-path "~/vendor/subed/subed"
+              :mode ("\\.\\(vtt\\|srt\\)\\'" . subed-mode)
+              :config
+              (setq subed-subtitle-spacing 0)
+              :bind
+              (:map subed-mode-map
+                    ("M-j" . subed-mpv-jump-to-current-subtitle)
+                    ("M-[" . subed-mpv-seek))
+              :hook 
+              ((subed-mode . subed-disable-sync-point-to-player)
+               (subed-mode . save-place-local-mode)
+               (subed-mode . turn-on-auto-fill)
+               (subed-mode . (lambda () (setq-local fill-column 40)))))
     #+end_src
+
+**** Using Emacs to fix automatically generated subtitle timestamps  :emacs:
+     :PROPERTIES:
+     :ID:       o2b:6bd48025-ccdc-4a2a-8a19-fbf7727cb8e5
+     :POST_DATE: [2021-01-10 Sun 00:59]
+     :BLOG:     sacha
+     :POSTID:   29659
+     :END:
+     
+  I like how people are making more and more Emacs-related videos. I
+  think subtitles, transcripts, and show notes would go a long way to
+  helping people quickly search, skim, and squeeze these videos into
+  their day.
+
+  Youtube's automatically-generated subtitles overlap. I think some
+  players scroll the subtitles, but the ones I use just display them
+  in alternating positions. I like to have non-overlapping subtitles,
+  so here's some code that works with [[https://github.com/rndusr/subed][subed.el]] to fix the timestamps.
+  
+  #+begin_src emacs-lisp
+    (defun my/subed-fix-timestamps ()
+      "Change all ending timestamps to the start of the next subtitle."
+      (goto-char (point-max))
+      (let ((timestamp (subed-subtitle-msecs-start)))
+        (while (subed-backward-subtitle-time-start)
+          (subed-set-subtitle-time-stop timestamp)
+          (setq timestamp (subed-subtitle-msecs-start)))))
+  #+end_src
+
+  Then it's easy to [[https://sachachua.com/blog/2020/12/editing-subtitles-in-emacs-with-subed-with-synchronized-video-playback-through-mpv/][edit the subtitles]] (punctuation, capitalization,
+  special terms), especially with the shortcuts for splitting and
+  merging subtitles.
+
+  For transcripts with starting and ending timestamps per paragraph, I
+  like using the merge shortcut to merge all the subtitles for a
+  paragraph together. Here's a sample: https://emacsconf.org/2020/talks/05/
+
+  Tonight I edited automatically-generated subtitles for a screencast
+  that was about 40 minutes long. The resulting file had 1157
+  captions, so about 2 seconds each. I finished it in about 80
+  minutes, pretty much the 2x speed that I've been seeing. I can
+  probably get a little faster if I figure out good workflows for:
+
+  - jumping: avy muscle memory, maybe?
+  - splitting things into sentences and phrases
+  - fixing common speech recognition errors (ex: emax -> Emacs, which I handle with regex replaces; maybe a list of them?)
+
+  I experimented with making a hydra for this before, but thinking
+  about the keys to use slowed me down a bit and it didn't flow very
+  well. Might be worth tinkering with.
+    
+  Transcribing from scratch takes me about 4-5x playtime. I haven't
+  tweaked out my workflow for that one yet because I've only
+  transcribed one talk with subed.el , and there's a pretty big
+  backlog of talks that already have automatically generated
+  subtitles to edit.
+
+  So that's another thing I (or other people) can occasionally do to
+  help out even if I don't have enough focused time to think about a
+  programming challenge or do a podcast myself. And I get to learn
+  more in the process, too. Fun!
+  
 ** Org  :org:
 
    I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of
    stuff.
 
    #+begin_src emacs-lisp
-     (use-package org
-       ;; Use this when I want to load from source
-       :load-path ("~/vendor/org-mode/lisp" "~/vendor/org-mode/contrib/lisp")
-       ;; I don't actually use subscripts
-       (setq org-export-with-sub-superscripts nil))
+   (setq org-export-with-sub-superscripts nil)
    #+end_src
 
    Filling in for obsolete functions
 
    #+begin_src emacs-lisp
      (use-package org
-       ;; Use this when I want to load from source
+       :load-path ("~/vendor/org-mode/lisp" "~/vendor/org-mode/contrib/lisp")
        :config
        (unless (functionp 'org-link-make-string)
          (fset 'org-link-make-string 'org-make-link-string))
@@ -2418,7 +2491,7 @@
                              ,my/kid-org-file
                              "~/personal/business.org"
                              "~/personal/calendar.org"
-                             "~/code/emacs-calendar/emacs-calendar.org"
+                             "~/code/emacs-calendar/emacs-calendar-toronto.org"
                              "~/Dropbox/tasker/summary.txt"
                              "~/Dropbox/public/sharing/index.org"
                              "~/dropbox/public/sharing/learning.org"
@@ -4381,6 +4454,17 @@
       (use-package ob-http)
     #+end_src
 
+*** Lilypond
+    #+begin_src emacs-lisp
+                                    (use-package lilypond-init
+                                      :load-path "~/vendor/lilypond/elisp"
+                                      :config
+                                      (setq org-babel-lilypond-arrange-mode t
+                                            org-babel-lilypond-commands '("lilypond" "timidity" "timidity")
+                                            org-babel-lilypond-gen-pdf nil
+                                            org-babel-lilypond-display-pdf-post-tangle nil)
+                                      :mode ("\\.ly\\'" . LilyPond-mode))
+    #+end_src
 *** Diagrams and graphics
 
     Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[http://sachachua.com/evil-plans]] for examples and source.
@@ -4398,6 +4482,7 @@
            '((dot . t)
              (ditaa . t)
              (emacs-lisp . t)
+             (lilypond . t)
              (python . t)
              (shell . t)
              (calc . t)
@@ -4826,520 +4911,15 @@
                      (org-sort-remove-invisible (buffer-substring (match-end 0) (point-at-eol))))))
               (or (cl-position item order :test (lambda (a b) (string-match b a))) (1+ (length order)))))
           '<))
-
-       (defvar my/emacs-news-sort-order  '("Beginner"
-                                           "Emacs configuration"
-                                           "Emacs Lisp"
-                                           "Emacs development"
-                                           "Appearance"
-                                           "Navigation"
-                                           "Dired"
-                                           "Org Mode"
-                                           "Completion"
-                                           "Coding"
-                                           "Math"
-                                           "Mail and news"
-                                           "Spacemacs"
-                                           "Doom Emacs"
-                                           "Music"
-                                           "EXWM"
-                                           "Community"
-                                           "Other"
-                                           "Discussion"
-                                           "Outside Emacs"
-                                           "New packages"))
-       (defun my/emacs-news-sort-list ()
-         (interactive)
-         (goto-char (org-list-get-top-point (org-list-struct)))
-         (my/org-sort-list-in-custom-order my/emacs-news-sort-order))
-     #+end_src
-
-     One more little thing automated...
-
-**** Other functions
-
-     #+begin_src emacs-lisp 
-       (defun my/emacs-news-escape-link-description (s)
-         (let ((replace-map '(("\\[" . "")
-                              ("\\]" . ":"))))
-           (mapc (lambda (rule)
-                   (setq s (replace-regexp-in-string (car rule) (cdr rule) s)))
-                 replace-map)
-           s))
-       (use-package xml-rpc)
-       (defun my/org-list-from-rss (url from-date &optional to-date)
-         "Convert URL to an Org list"
-         (with-current-buffer (url-retrieve-synchronously url)
-           (goto-char (point-min))  
-           (re-search-forward "<\\?xml")
-           (goto-char (match-beginning 0))
-           (let* ((feed (xml-parse-region (point) (point-max)))
-                  (from-time (org-read-date nil t from-date))
-                  (to-time (if to-date (org-read-date nil t to-date)))
-                  (is-rss (> (length (xml-get-children (car feed) 'entry)) 0)))
-             (mapconcat (lambda (link)
-                          (format "- %s\n" 
-                                  (org-link-make-string (car link) (cdr link))))
-                        (if is-rss
-                            (mapcar
-                             (lambda (entry)
-                               (cons
-                                (xml-get-attribute (car
-                                                    (or
-                                                     (seq-filter (lambda (x) (string= (xml-get-attribute x 'rel) "alternate"))
-                                                                 (xml-get-children entry 'link))
-                                                     (xml-get-children entry 'link))) 'href)
-                                (elt (car (xml-get-children entry 'title)) 2)))
-                             (-filter (lambda (entry)
-                                        (let ((entry-date (elt (car (xml-get-children entry 'updated)) 2)))
-                                          (and
-                                           (org-string<= from-date entry-date)
-                                           (or (null to-date) (string< entry-date to-date)))))
-                                      (xml-get-children (car feed) 'entry)))
-                          (mapcar (lambda (entry)
-                                    (cons
-                                     (caddr (car (xml-get-children entry 'link)))
-                                     (caddr (car (xml-get-children entry 'title)))))
-                                  (-filter (lambda (entry)
-                                             (let ((entry-time (date-to-time (elt (car (xml-get-children entry 'pubDate)) 2))))
-                                               (and
-                                                (not (time-less-p entry-time from-time))
-                                                (or (null to-time) (time-less-p entry-time to-time)))))
-                                           (xml-get-children (car (xml-get-children (car feed) 'channel)) 'item))))
-                        ""))))
-
-       (defun my/describe-packages (list)
-         "Return an Org list of package descriptions for LIST."
-         (mapconcat
-          (lambda (symbol)
-            (let ((package-desc (assoc symbol package-archive-contents)))
-              (if package-desc
-                  (format "  - %s: %s"
-                          (org-link-make-string (concat "package:" (symbol-name symbol))
-                                                (symbol-name symbol))
-                          (package-desc-summary (cadr package-desc)))
-                "")))
-          list
-          "\n"))
-
-       (defun my/list-new-packages (&optional date)
-         (interactive)
-         (let ((packages
-                (with-temp-buffer
-                  (insert-file-contents "~/.emacs-news/package-list.el")
-                  (goto-char (point-min))
-                  (my/describe-packages
-                   (reverse (-difference (mapcar 'car package-archive-contents)
-                                         (mapcar 'car
-                                                 (seq-filter (lambda (o)
-                                                               (or (null date) (string< (cdr o) date)))
-                                                             (read (current-buffer))))))))))
-           (if (called-interactively-p 'any)
-               (insert packages)
-             packages)))
-
-       (defun my/save-new-packages ()
-         (interactive)
-         (require 'dash)
-         (when package-archive-contents
-           (with-temp-buffer
-             (find-file "~/.emacs-news/package-list.el")
-             (goto-char (point-min))
-             (git-auto-commit-mode 1)
-             (let* ((old-list (read (current-buffer)))
-                    (date (format-time-string "%Y-%m-%d"))
-                    (new-packages (seq-difference (mapcar 'car package-archive-contents)
-                                                  (mapcar 'car old-list))))
-               (erase-buffer)
-               (insert "("
-                       (mapconcat 'prin1-to-string
-                                  (append (mapcar (lambda (o) (cons o date))
-                                                  new-packages)
-                                          old-list)
-                                  "\n")
-                       ")")
-               (save-buffer))
-             nil)))
-     #+end_src
-
-**** Get info from the Emacs NEWS file in the git repository
-
-     #+begin_src emacs-lisp 
-       (defun my/insert-emacs-news-from-git (date)
-         (interactive (list (org-read-date)))
-         (let ((result 
-                (shell-command-to-string (format "cd ~/vendor/emacs; git pull > /dev/null; git log --pretty=oneline --after=%s etc/NEWS" (substring date 0 10)))))
-           (with-temp-buffer
-             (insert result)
-             (goto-char (point-min))
-             (while (re-search-forward "^\\([0-9a-f]+\\) \\(.+\\)$" nil t)
-               (replace-match "  - [[http://git.savannah.gnu.org/cgit/emacs.git/commit/etc/NEWS?id=\\1][\\2]]"))
-             (setq result (buffer-string)))
-           (if (called-interactively-p 'any) (insert result) result)))
-     #+end_src
-
-**** DONE Publishing Emacs News as plain text, HTML, and attached Org file
-     :PROPERTIES:
-     :ID:       o2b:0a59c00b-7c40-48d5-a8c4-7a0d67e6e479
-     :POST_DATE: [2016-02-01 Mon 21:25]
-     :POSTID:   28599
-     :BLOG:     sacha
-     :END:
-
-     I've been publishing these weekly summaries of Emacs-related links on
-     my blog and to the [[https://lists.gnu.org/mailman/listinfo/emacs-tangents][emacs-tangents mailing list]] / [[http://news.gmane.org/gmane.emacs.tangents][newsgroup]]. I started
-     by posting plain text from Org Mode's ASCII export, and people asked
-     for Org Mode and HTML formats. So here's some code that prepares
-     things for pasting into a Gnus message buffer.
-
-     It turns out that order matters for multipart/alternative - start with
-     plain text, then include richer alternatives. First time around, I put
-     the HTML version first, so people didn't end up seeing it. Anyway,
-     here's something that shows up properly now: text/plain, then
-     text/html, with text/x-org attached. The heavy lifting is done with
-     =org-export-string-as=, which exports into different formats.
-
-     #+begin_src emacs-lisp 
-       (defun my/share-emacs-news ()
-         "Prepare current subtree for yanking into post."
-         (interactive)
-         ;; Draft Gnus article
-         (save-restriction
-           (org-narrow-to-subtree)
-           (let ((org-export-html-preamble nil)
-                 (org-html-toplevel-hlevel 3)
-                 (title (org-get-heading))
-                 output)
-             (setq output
-                   (apply
-                    'format
-                    "<#multipart type=alternative>
-       <#part type=\"text/plain\" disposition=inline>
-       %s
-
-       You're receiving this message via the Emacs Tangents mailing list.
-       View list info/unsubscribe: https://lists.gnu.org/mailman/listinfo/emacs-tangents
-       <#/part>
-       <#part type=\"text/html\" disposition=inline>
-       %s
-
-       <p>You're receiving this message via the Emacs Tangents mailing list.<br />
-       <a href=\"https://lists.gnu.org/mailman/listinfo/emacs-tangents\">View list info/unsubscribe</a></p>
-
-       <#/part>
-       <#/multipart>
-       <#part type=\"text/x-org\" disposition=attachment name=\"emacs-news.org\">
-       %s
-
-       You're receiving this message via the Emacs Tangents mailing list.
-       [[https://lists.gnu.org/mailman/listinfo/emacs-tangents][View list info/unsubscribe]]
-       <#/part>
-       "
-                    (mapcar
-                     (lambda (format)
-                       (org-export-string-as (buffer-substring (point-min) (point-max)) format t))
-                     '(ascii html org))))
-             (kill-new output)
-             (gnus)
-             (let ((gnus-newsgroup-name "nntp+news.gmane.io:gmane.emacs.tangents"))
-               (gnus-summary-post-news)
-               (insert title)
-               (message-goto-body)
-               (insert output)))))
-     #+end_src
-
-     For cleaning things up:
-     #+begin_src emacs-lisp :eval no :tangle no
-       (replace-regexp "    - \\[\\|[][()]" "")
-     #+end_src
-
-
-     [[http://howardism.org][Howard Abrams]] showed me something like this in [[http://sachachua.com/blog/2015/06/emacs-hangout-june-2015/][June 2015's Emacs
-     Hangout]] ([[https://www.youtube.com/watch?v=jzFI8knL5BY&t=1h18m26s][~1:18:26]]) using [[http://orgmode.org/worg/org-contrib/org-mime.html][org-mime-org-buffer-htmlize]], which probably
-     does the job in a much cooler way. =) I thought he had a blog post
-     about it, but I can't seem to find it. Anyway, there's my little hack
-     above!
-
-**** TODO Prepare Emacs News
-
-     #+begin_src emacs-lisp 
-       (defun my/prepare-emacs-news (date parts)
-         (interactive (list (org-read-date nil nil "-mon 0:00") '(refresh-packages reddit rss)))
-         (setq date (substring date 0 10))
-         (when (member 'refresh-packages parts)
-           (my/save-new-packages)
-           (package-refresh-contents))
-         (concat
-          "** " (substring (org-read-date nil nil "++1" nil (org-read-date nil t "-sun 0:00")) 0 10) " Emacs news\n\n"
-          (if (member 'git parts)
-              (concat
-               "- Emacs development:\n"
-               (my/insert-emacs-news-from-git date)
-               "\n"
-               )) 
-          "- Other:\n"
-          (if (member 'rss parts)
-              (my/org-list-from-rss "https://planet.emacslife.com/atom.xml" (substring date 0 10))
-            "")
-          (if (member 'rss-es parts)
-              (my/org-list-from-rss "https://planet.emacs-es.org/atom.xml" (substring date 0 10))
-            "")
-          "\n"
-          (if (member 'reddit parts) (my/reddit-list-upvoted (substring date 0 10)) "")
-          "- New packages:\n"
-          (my/list-new-packages date) 
-          "\n\nLinks from "
-          (mapconcat (lambda (x) (org-link-make-string (car x) (cdr x)))
-                     '(("http://reddit.com/r/emacs" . "reddit.com/r/emacs")
-                       ("http://reddit.com/r/orgmode" . "r/orgmode")
-                       ("http://reddit.com/r/spacemacs" . "r/spacemacs")
-                       ("http://reddit.com/r/planetemacs" . "r/planetemacs")
-                       ("https://hn.algolia.com/?query=emacs&sort=byDate&prefix&page=0&dateRange=all&type=story" . "Hacker News")
-                       ("https://planet.emacslife.com" . "planet.emacslife.com")
-                       ("https://www.youtube.com/results?search_query=emacs&search_sort=video_date_uploaded" . "YouTube")
-                       ("http://git.savannah.gnu.org/cgit/emacs.git/log/etc/NEWS" . "the Emacs NEWS file"))
-                     ", ")
-          " and "
-          (org-link-make-string (concat "http://lists.gnu.org/archive/html/emacs-devel/" (format-time-string "%Y-%m"))
-                                "emacs-devel")
-          "."))
-     #+end_src
-
-**** Collect Emacs News
-
-     #+begin_src emacs-lisp
-       (defun my/emacs-news-collect-entries ()
-         "Collect Emacs News by category and put them in another buffer."
-         (interactive)
-         (let ((parsed (org-element-parse-buffer))
-               category
-               result)
-           (setq result
-                 (mapconcat
-                  (lambda (x)
-                    (concat "* " (car x) "\n\n"
-                            (mapconcat (lambda (y) (concat "- " (cdr y))) (cdr x) "")
-                            "\n"))
-                  (sort (seq-group-by
-                         'car
-                         (delq nil
-                               (org-element-map parsed '(paragraph)
-                                 (lambda (x)
-                                   (let ((contents (org-element-interpret-data x)))
-                                     (cond
-                                      ((string-match "^\\(.*\\):[ \t\n]*$" contents)
-                                       (setq category (match-string-no-properties 1 contents))
-                                       nil)
-                                      ((string-match "^\\[" contents)
-                                       (cons category (substring-no-properties contents)))))))))
-                        (lambda (a b) (string< (car a) (car b))))
-                  ""))
-           (switch-to-buffer (get-buffer-create "*Emacs News*"))
-           (erase-buffer)
-           (insert result)
-           (org-mode)
-           (goto-char (point-min))))
-     #+end_src
-
-**** DONE Detect duplicates
-     CLOSED: [2019-05-29 Wed 11:42]
-     :LOGBOOK:
-     - State "DONE"       from "TODO"       [2019-05-29 Wed 11:42]
-     :END:
-
-     #+begin_src emacs-lisp
-       (defun my/emacs-news-check-duplicates ()
-         (interactive)
-         (let ((end (save-excursion (org-end-of-subtree)))
-               description
-               (search-fn (lambda (point search description)
-                            (save-excursion
-                              (goto-char point)
-                              (let (found)
-                                (if (re-search-forward (regexp-quote search) nil t)
-                                    (setq found (point))
-                                  ;; Does this look like a package name?
-                                  (let ((case-fold-search nil))
-                                    (when (string-match "^\\([-\\.a-z0-9]+?\\)\\(:\\|\\.el\\) " description)
-                                      (when (re-search-forward (concat "\\W" (regexp-quote (match-string 1 description))) nil t)
-                                        (setq found (point))))))
-                                found))))
-               search start
-               found
-               done
-               context)
-           (while (and (not done) (re-search-forward "- \\[\\[\\([^[]+\\)\\]\\[\\([^[]+\\)\\]" end t) )
-             (setq found nil search (match-string 1) start (match-beginning 0) description (match-string 2))
-             (goto-char (match-end 0))
-             (let ((p (point)))
-               ;; Search for the URL
-               (setq found (funcall search-fn (match-end 0) search description))
-               (while found
-                 (goto-char found)
-                 (setq context
-                       (concat
-                        (string-join (org-get-outline-path t) " > ") "\n"
-                        (buffer-substring (line-beginning-position) (line-end-position))))
-                 (push-mark found)
-                 (goto-char start)
-                 (let ((input (read-char (concat context "\n(d)elete, (k)eep, (z)ap next one, e(x)change mark, (n)ext match, (q)quit?"))))
-                   (cond
-                    ((eq input ?k)
-                     (forward-line 1)
-                     (setq found nil))
-                    ((eq input ?x)
-                     (goto-char found)
-                     (setq done t found nil))
-                    ((eq input ?z)
-                     (goto-char found)
-                     (delete-region (point-at-bol)
-                                    (progn (forward-line 1) (point)))
-                     (goto-char start)
-                     (setq found nil))
-                    ((eq input ?d)
-                     (delete-region (point-at-bol)
-                                    (progn (forward-line 1) (point)))
-                     (setq found nil))
-                    ((eq input ?n)
-                     ;; Look for the next match
-                     (setq found (funcall search-fn (save-excursion (goto-char found) (line-end-position))
-                                          search description)))
-                    ((eq input ?q)
-                     (setq done t found nil)))))))))
-     #+end_src
-
-**** Making a numpad-based hydra for organizing Emacs News
-     :PROPERTIES:
-     :ID:       o2b:04eca1e8-ed55-4aec-bc0b-ba4547a1a655
-     :POST_DATE: [2019-06-04 Tue 23:54]
-     :POSTID:   29420
-     :BLOG:     sacha
-     :CUSTOM_ID: emacs-news-hydra
-     :END:
-
-     I like to categorize links for Emacs News so that it's not an
-     overwhelmingly long wall of text. After I've deleted duplicate links,
-     there are around a hundred links left to categorize. I used to use
-     Helm and some custom code to simplify moving Org list items into
-     different categories in the same list. Then I can type "org" to move
-     something to the Org Mode category and "dev" to move something to the
-     Emacs development category.
-
-     When I don't have a lot of computer time, I usually do this
-     categorization by SSHing into my server from my phone. It's hard to
-     type on my phone, though. I thought a numpad-based Hydra might be
-     better for quick entry, like a phone system. I wanted to be able to
-     use the numeric keypad to sort items into the most common categories,
-     with a few shortcuts for making it easier to organize. Here's a list
-     of shortcuts:
-
-     | 0-9 | Select options from the list, with 0 for other.      |
-     | \/  | Opens the URL in a web browser                       |
-     | ,   | Selects a category by name, creating as needed       |
-     | \*  | Shows the URL in the messages buffer, and toggles it |
-     | -   | Deletes the item                                     |
-     | .   | Quits                                                |
-
-     Here's what the Helm version looked like on the left, and here's the new
-     numpad-powered one on the right. I liked how fewer buttons made it easier to hit
-     the right one when I'm sorting on my phone. I can add new categories
-     with completion. Because I assigned numbers to specific categories
-     instead of having them automatically calculated based on the headings
-     in the list, it was easy to get into the rhythm of tapping 6 for Org,
-     7 for coding, and so on.
-
-     #+begin_export html
-     <figure class="wp-block-image"><img src="https://sachachua.com/blog/wp-content/uploads/2019/06/output.jpg" alt="" class="wp-image-29423" srcset="https://sachachua.com/blog/wp-content/uploads/2019/06/output.jpg 2200w, https://sachachua.com/blog/wp-content/uploads/2019/06/output-196x200.jpg 196w, https://sachachua.com/blog/wp-content/uploads/2019/06/output-640x652.jpg 640w, https://sachachua.com/blog/wp-content/uploads/2019/06/output-768x782.jpg 768w" sizes="(max-width: 2200px) 100vw, 2200px"><figcaption>Comparison of Helm and Hydra approaches</figcaption></figure>
-     #+end_export
-
-     Here's the code that makes it happen. I experimented with dynamically
-     defining a hydra using =eval= and =defmacro= so that I could more
-     easily define the menu in a variable. It seems to work fine so far.
-
-     #+begin_src emacs-lisp
-       (defvar my/org-categorize-emacs-news-menu 
-         '(("0" . "Other")
-           ("1" . "Emacs Lisp")
-           ("2" . "Emacs development")
-           ("3" . "Emacs configuration")
-           ("4" . "Appearance")
-           ("5" . "Navigation")
-           ("6" . "Org Mode")
-           ("7" . "Coding")
-           ("8" . "Community")
-           ("9" . "Spacemacs")))
-
-       (defun my/org-move-current-item-to-category (category)
-         "Move current list item under CATEGORY earlier in the list.
-       CATEGORY can be a string or a list of the form (text indent regexp).
-       Point should be on the next line to process, even if a new category
-       has been inserted."
-         (interactive (list (completing-read "Category: " (my/org-get-list-categories))))
-         (when category
-           (let* ((beg (line-beginning-position))
-                  (end (line-end-position))
-                  (string (org-trim (buffer-substring-no-properties beg end)))
-                  (category-text (if (stringp category) category (elt category 0)))
-                  (category-indent (if (stringp category) 2 (+ 2 (elt category 1))))
-                  (category-regexp (if (stringp category) category (elt category 2)))
-                  (pos (point))
-                  s)
-             (delete-region beg (min (1+ end) (point-max)))
-             (unless (string= category-text "x")
-               (if (re-search-backward category-regexp nil t)
-                   (forward-line 1)
-                 (setq s (concat "- " category-text "\n"))
-                 (insert s)
-                 (setq pos (+ (length s) pos)))
-               (insert (make-string category-indent ?\ )
-                       string "\n")
-               (goto-char (+ pos (length string) category-indent 1))        
-               (recenter)))))
-
-       (eval 
-        `(defhydra my/org-categorize-emacs-news (global-map "C-c e" :foreign-keys nil)  
-           ,@(mapcar
-              (lambda (x)
-                `(,(car x)
-                  (lambda () (interactive) (my/org-move-current-item-to-category ,(concat (cdr x) ":")))
-                  ,(cdr x)))
-              my/org-categorize-emacs-news-menu)
-           (","
-            (lambda () (interactive)
-              (my/org-move-current-item-to-category 
-               (completing-read
-                "Category: "
-                (append (mapcar (lambda (o) (concat o ":")) my/emacs-news-sort-order)
-                        (mapcar 'car (my/org-get-list-categories))))))
-            "By string")
-           ("/" (lambda () (interactive)
-                  (save-excursion
-                    (re-search-forward "\\[\\[")
-                    (org-open-at-point)))
-            "Open")
-           ("*"
-            (lambda () (interactive)
-              (if (string= (buffer-name) "*Messages*")
-                  (bury-buffer)
-                (save-excursion
-                  (re-search-forward org-link-bracket-re)
-                  (message (match-string 1)))
-                (switch-to-buffer "*Messages*")))
-            "Show URL")
-           ("-" kill-whole-line "Kill")
-           ("p" org-next-link "Previous link")
-           ("n" org-next-link "Next link")
-           ("h" (lambda () (interactive) (my/org-update-link-description "HN")) "Link HN")
-           ("i" (lambda () (interactive) (my/org-update-link-description "Irreal")) "Link Irreal")
-           ("." nil "Done")))
      #+end_src
 
 *** Save when Emacs loses focus
 
     #+begin_src emacs-lisp
+      (defun my/org-save-all-org-buffers () (let ((my/unfocusing t)) (org-save-all-org-buffers)))
       (use-package org
         :config
-        (add-function :after after-focus-change-function 'org-save-all-org-buffers))
+        (add-function :after after-focus-change-function 'my/org-save-all-org-buffers))
     #+end_src
 
 ** Coding
@@ -5402,14 +4982,10 @@
       (setq-default tab-width 2)
     #+end_src
 
-*** New lines are always indented
-
-    I almost always want to go to the right indentation on the next line.
-    #+begin_src emacs-lisp 
-      (global-set-key (kbd "RET") 'newline-and-indent)
-    #+end_src
+*** More indentation things
 
     From https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-utils.el
+    
     #+begin_src emacs-lisp 
       (defun sanityinc/kill-back-to-indentation ()
         "Kill from point back to the first non-whitespace character on the line."
@@ -5417,7 +4993,6 @@
         (let ((prev-pos (point)))
           (back-to-indentation)
           (kill-region (point) prev-pos)))
-
       (bind-key "C-M-<backspace>" 'sanityinc/kill-back-to-indentation)
     #+end_src
 
@@ -5500,7 +5075,7 @@
          :defer t
          :bind (:map emacs-lisp-mode-map ("C-c C-v" . erefactor-map)))
 
-       (use-package paredit :defer t)
+       (use-package paredit :hook (emacs-lisp-mode . paredit-mode))
        (use-package redshank
          :disabled t
          :defer t
@@ -9341,6 +8916,12 @@
 
 * Local Variables
 
+  #+begin_src emacs-lisp
+    (defvar my/unfocusing nil)
+    (defun my/org-babel-tangle-if-saved-in-focus ()
+      (unless my/unfocusing
+        (org-babel-tangle)))
+  #+end_src
   # Local Variables:
-  # eval: (add-hook 'after-save-hook #'org-babel-tangle nil t)
+  # eval: (add-hook 'after-save-hook #'my/org-babel-tangle-if-saved-in-focus nil t)
   # End:

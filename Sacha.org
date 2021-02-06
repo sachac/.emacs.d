@@ -1242,7 +1242,7 @@ Now let's set up the actual keychords.
 (use-package key-chord
   :init
   (setq key-chord-one-key-delay 0.16)
-  (setq key-chord-two-keys-delay 0.02)
+  (setq key-chord-two-keys-delay 0.05)
   (key-chord-define-global "uu"     'undo)
   (key-chord-define-global "jr"     'my/goto-random-char-hydra/my/goto-random-char)
   (key-chord-define-global "kk"     'kill-whole-line)
@@ -6853,35 +6853,114 @@ This isn't really a package yet, but it might be handy.
   (with-current-buffer
       (get-buffer-create "Stream message")
     (erase-buffer)
+    (menu-bar-mode -1)
+    (text-scale-set 3)
     (insert text)
-    (goto-char (point-min))))
+    (goto-char (point-min)))
+  (my/obs-websocket-add-subtitle (my/obs-websocket-stream-time-msecs) text)
+  (when (erc-get-buffer "#sachachua")
+    (with-current-buffer (erc-get-buffer "#sachachua")
+      (erc-send-message text))))
+
+(defvar my/obs-websocket-last-stream-timecode nil "(timecode-string . system-time)")
+
+(defun my/obs-websocket-message-handler (payload)
+  "Save the current streaming timecode."
+  (pcase (plist-get payload :update-type)
+    ("StreamStatus"
+     (setq my/obs-websocket-last-stream-timecode (cons (plist-get payload :stream-timecode) (current-time))))))1
+
+(defun my/obs-websocket-timecode-to-msecs (time-string)
+  "Find HH:MM:SS.MS pattern in TIME-CODE and convert it to milliseconds.
+Return nil if TIME-CODE doesn't match the pattern."
+  (save-match-data
+    (when (string-match "\\([0-9]+\\):\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)" time-string)
+      (let ((hours (string-to-number (match-string 1 time-string)))
+            (mins  (string-to-number (match-string 2 time-string)))
+            (secs  (string-to-number (match-string 3 time-string)))
+            (msecs (string-to-number (match-string 4 time-string))))
+        (+ (* (truncate hours) 3600000)
+           (* (truncate mins) 60000)
+           (* (truncate secs) 1000)
+           (truncate msecs))))))
+
+(defun my/obs-websocket-stream-time-msecs ()
+  "Return current stream time in milliseconds."
+  (+ 
+   (my/obs-websocket-timecode-to-msecs (car my/obs-websocket-last-stream-timecode))
+   (* 1000.0
+      (- (time-to-seconds (current-time)) 
+         (time-to-seconds (cdr my/obs-websocket-last-stream-timecode))))))
+
+(defvar my/obs-websocket-subtitle-file "~/captions.vtt" "File to put quick notes into.")
+
+(defun my/obs-websocket-add-subtitle (ms text)
+  (interactive (list (my/obs-websocket-stream-time-msecs) (read-string "Text: ")))
+  (with-current-buffer (find-file-noselect my/obs-websocket-subtitle-file)
+    (goto-char (point-max))
+    (when (bobp) (insert "WEBVTT\n\n"))
+    (subed-append-subtitle nil ms nil text)
+    (save-excursion
+      (when (subed-backward-subtitle-text)
+        (subed-set-subtitle-time-stop ms)))))
+
 (defun my/stream-intermission (text)
   (interactive "MText: ")
   (my/stream-message text)
   (obs-websocket-send "SetCurrentScene" :scene-name "Intermission"))
 
+(defun my/obs-websocket-send-caption (text)
+  (interactive "MText: ")
+  (obs-websocket-send "SendCaptions" :text text))
+                                            
 (use-package obs-websocket
   :config
+  (add-to-list 'obs-websocket-on-message-payload-functions #'my/obs-websocket-message-handler)
   (defhydra my/obs-websocket (:exit t)
-    "Control Open Broadcast Studio"
-    ("c" (obs-websocket-connect) "Connect")
+    "Control Open Broadcaster Software"
+    ("C" obs-websocket-connect "Connect")
     ("d" (obs-websocket-send "SetCurrentScene" :scene-name "Desktop") "Desktop")
     ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs")
     ("i" my/stream-intermission "Intermission")
-    ("v" (browse-url "https://twitch.tv/sachachua"))
+    ("vs" (browse-url "https://twitch.tv/sachachua") "View stream")
+    ("vv" (browse-url "https://dashboard.twitch.tv/u/sachachua/stream-manager") "View manager")
+    ("vc" (find-file my/obs-websocket-subtitle-file) "View captions")    
     ("m" my/stream-message "Message")
     ("t" my/stream-message "Message")
     ("/" selectric-mode "Selectric")
     ("x" (obs-websocket-send "StopStreaming") "Stream - end")
-    ("<f8>" my/twitch-message "Message") ;; Then I can just f8 f8
-    ("sb" (obs-websocket-send "StartStreaming") "Stream - begin")
+    ("<f8>" my/stream-message "Message") ;; Then I can just f8 f8
+    ("sb" (obs-websocket-send "StartStreaming") "Stream - start")
+    ("ss" (obs-websocket-send "StartStopStreaming") "Stream - toggle")
     ("se" (obs-websocket-send "StopStreaming") "Stream - end")
     ("rb" (obs-websocket-send "StartRecording") "Record - begin")
+    ("rr" (obs-websocket-send "StartStopRecording") "Record - toggle")
+    ("rp" (obs-websocket-send "PauseRecording") "Record - pause")
+    ("rc" (obs-websocket-send "ResumeRecording") "Record - continue")
     ("re" (obs-websocket-send "StopRecording") "Record - end"))
   (global-set-key (kbd "<f8>") #'my/obs-websocket/body)
+  (add-to-list 'obs-websocket-on-message-payload-functions #'my/obs-websocket-message-handler)
   :load-path "~/code/obs-websocket-el" :ensure nil)
 #+end_src
 
+*** Saving timestamped text?
+
+    It looks like neither [[https://github.com/Palakis/obs-websocket/releases/tag/4.6.1][SendCaptions]] nor [[https://www.reddit.com/r/Twitch/comments/9znvi6/help_with_chatbot_and_markers_please/][/marker (via TwitchIRC)]]
+    work on Linux, so maybe I'll just save timestamped notes
+    somewhere.
+
+    
+    subed-vtt--timestamp-to-msecs
+    (obs-websocket-send "GetVersion" :text "This is from OBS" :callback (lambda (frame payload) (prin1 payload)))
+    (obs-websocket-send "SendCaptions" :text "This is from OBS" :callback (lambda (frame payload) (prin1 payload)))
+
+    Hah, no go either, SendCaptions (Windows/macOS only): send closed
+    captions text to the streaming output. For instance, Twitch's
+    player supports closed captions sent through SendCaptions
+
+    Fine, I'll just save the VTT. I guess I could get the most recent stream timecode, and then maybe keep time manually.
+    
+    (websocket-send-text obs-websocket (json-encode-plist '(:request-type "SendCaptions" :text "Hello world")))
 *** Typing sounds
 
     For some reason, people want to hear something. Here are typing

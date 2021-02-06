@@ -1,7 +1,7 @@
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:4 h:4
 #+STARTUP: showeverything
-#+PROPERTY: header-args:emacs-lisp    :tangle "~/sync/emacs/Sacha.el" :results silent :exports code
+#+PROPERTY: header-args:emacs-lisp    :tangle yes :results silent :exports code
 
 * Configuration
 ** About this file
@@ -233,7 +233,54 @@ sentence navigation commands work for me.
 Based on [[https://www.rousette.org.uk/archives/switching-to-selectrum-for-incremental-narrowing-in-emacs/][BSAG » Switching to Selectrum for incremental narrowing in Emacs]]
 I like marginalia for M-x, but I've gotten used to Helm for finding files.
 
-#+begin_src emacs-lisp 
+**** Marginalia and hiding the value of password-ish variables  :emacs:
+     :PROPERTIES:
+     :ID:       o2b:3820f642-27ea-4e3c-a261-a9c59417175f
+     :POST_DATE: [2021-02-05 Fri 01:15]
+     :BLOG:     sacha
+     :POSTID:   29667
+     :END:
+
+I like the way [[https://github.com/minad/marginalia][Marginalia]] adds annotations to minibuffer completion.
+I'm experimenting with [[https://twitch.tv/sachachua][streaming]], so I'm *trying* to not leak
+passwords while playing around with marginalia. (I'll probably mess up
+at some point. Please be nice! =) )
+
+This is the annotator function:
+
+#+begin_src emacs-lisp :exports code
+(defun my/marginalia-annotate-variable (cand)
+  "Annotate variable CAND with its documentation string."
+  (when-let (sym (intern-soft cand))
+    (marginalia--fields
+     ((marginalia--symbol-class sym) :face 'marginalia-modified)
+     ((let ((print-escape-newlines t)
+            (print-escape-control-characters t)
+            (print-escape-multibyte t))
+        (prin1-to-string
+         (cond
+          ((string-match "pass" cand) "*******")
+          ((boundp sym) (symbol-value sym))
+          (t 'unbound))))
+      :truncate (/ marginalia-truncate-width 3) :face 'marginalia-variable)
+     ((documentation-property sym 'variable-documentation)
+      :truncate marginalia-truncate-width :face 'marginalia-documentation))))
+#+end_src
+
+Something like the following code adds it to my annotator functions.
+The actual code I evaluate is in my =use-package marginalia=
+declaration in my [[http://sachachua.com/dotemacs][Emacs config]].
+
+#+begin_src emacs-lisp :eval no :exports code
+(setq marginalia-annotators
+      '(marginalia-annotators-heavy
+        marginalia-annotators-light))
+(add-to-list 'marginalia-annotators-heavy
+             '(symbol . my/marginalia-annotate-function-with-args))
+#+end_src
+
+**** Other Marginalia config
+ #+begin_src emacs-lisp 
 (use-package selectrum :init (selectrum-mode +1)) 
 (use-package prescient :config (prescient-persist-mode +1))
 (use-package selectrum-prescient :init (selectrum-prescient-mode +1) :after selectrum)
@@ -248,22 +295,6 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
          ("C-x c o" . consult-multi-occur)
          ("C-x c SPC" . consult-mark)))
 
-(defun my/marginalia-annotate-variable (cand)
-  "Annotate variable CAND with its documentation string."
-  (when-let (sym (intern-soft cand))
-    (marginalia--fields
-     ((marginalia--symbol-class sym) :face 'marginalia-modified)
-     ((let ((print-escape-newlines t)
-            (print-escape-control-characters t)
-            (print-escape-multibyte t))
-        (prin1-to-string
-         (cond
-          ((string-match "password" cand) "*******")
-          ((boundp sym) (symbol-value sym))
-          'unbound)))
-      :truncate (/ marginalia-truncate-width 3) :face 'marginalia-variable)
-     ((documentation-property sym 'variable-documentation)
-      :truncate marginalia-truncate-width :face 'marginalia-documentation))))
 (defun my/marginalia-annotate-function-with-args (cand)
   "Annotate symbol CAND with its arguments and documentation string."
   (require 'elisp-mode)
@@ -292,7 +323,7 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
   (add-to-list 'marginalia-annotators-heavy '(variable . my/marginalia-annotate-variable))
   :bind (:map minibuffer-local-completion-map
               ("C-i" . marginalia-cycle-annotators)))
-#+end_src
+ #+end_src
 
 *** Helm - interactive completion
 
@@ -1215,7 +1246,7 @@ Now let's set up the actual keychords.
   (key-chord-define-global "uu"     'undo)
   (key-chord-define-global "jr"     'my/goto-random-char-hydra/my/goto-random-char)
   (key-chord-define-global "kk"     'kill-whole-line)
-  (key-chord-define-global "et" 'my/twitch-message) 
+  (key-chord-define-global "et" 'my/stream-message)
   (key-chord-define-global ".t" 'my/obs-websocket/body) 
   (key-chord-define-global "jj"     'avy-goto-word-1)
   (key-chord-define-global "yy"    'my/window-movement/body)
@@ -1561,6 +1592,7 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
     (loop while (> arg 0)
           do
           (forward-word 1)
+          (skip-syntax-forward "^\s")
           (setq arg (1- arg))
           (when (> (point) end)
             (subed-jump-to-subtitle-text)
@@ -1583,28 +1615,43 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
             (subed-jump-to-subtitle-end)
             (backward-word 1)))))
 
-(defhydra my/subed-splitting ()
+(defhydra my/subed ()
   "Make it easier to split and merge"
   ("e" subed-jump-to-subtitle-end "End")
   ("s" subed-jump-to-subtitle-text "Start")
   ("f" my/subed-forward-word "Forward word")
   ("b" my/subed-backward-word "Backward word")
+  ("w" avy-goto-word-1-below "Jump to word")
   ("n" subed-forward-subtitle-text "Forward subtitle")
   ("p" subed-backward-subtitle-text "Backward subtitle")
+  (".p" (subed-split-and-merge-dwim 'prev) "Split and merge with previous")
+  (".n" (subed-split-and-merge-dwim 'next) "Split and merge with next")
+  ("mp" subed-merge-with-previous "Merge previous")
+  ("mn" subed-merge-with-next "Merge next")
+  ("j" subed-mpv-jump-to-current-subtitle "MPV current")
+  ("1" (subed-mpv-playback-speed 1.0) "1x speed")
+  ("2" (subed-mpv-playback-speed 0.7) "0.7x speed")
+  ("3" (subed-mpv-playback-speed 0.5) "0.5x speed")
+  (" " subed-mpv-pause "Pause")
+  ("[" (subed-mpv-seek -1000) "-1s")
+  ("]" (subed-mpv-seek 1000) "-1s")
   (";" (re-search-forward "[,\\.;]") "Search for break")
-  ("gg" (subed-split-and-merge-dwim 'prev) "Split and merge with previous")
-  ("cc" (subed-split-and-merge-dwim 'next) "Split and merge with next")
-  ("cg" subed-merge-with-previous "Merge with previous")
-  ("gc" subed-merge-with-next "Merge with next")
-  ("x" kill-word)
+  ("uu" (subed-split-and-merge-dwim 'prev) "Split and merge with previous")
+  ("hh" (subed-split-and-merge-dwim 'next) "Split and merge with next")
+  ("hu" subed-merge-with-previous "Merge with previous")
+  ("uh" subed-merge-with-next "Merge with next")
+  ("lf" subed-mpv-find-video "Find video file")
+  ("lu" subed-mpv-play-url "Find video at URL")
+  ("x" kill-word "Kill word")
+  ("S" save-buffer "Save")
   ("o" (insert "\n") (let ((fill-column (point-max))) (fill-paragraph))))
 (use-package subed 
   :load-path "~/vendor/subed/subed"
   :mode ("\\.\\(vtt\\|srt\\)\\'" . subed-mode)
   :config
   (setq subed-subtitle-spacing 0)
-  (key-chord-define subed-mode-map "ht" 'my/subed-splitting/body)
-  
+  (key-chord-define subed-mode-map "hu" 'my/subed/body)
+  (key-chord-define subed-mode-map "ht" 'my/subed/body)
   :bind
   (:map subed-mode-map
         ("M-j" . subed-mpv-jump-to-current-subtitle)
@@ -6795,19 +6842,24 @@ cool. On Windows, these things help a little.
                 urls)))
 #+end_src
 
-** Open Broadcast Studio (OBS)
+** Open Broadcast Studio (OBS) and Twitch streaming
 
 This isn't really a package yet, but it might be handy.
 
 #+begin_src emacs-lisp
 (use-package websocket)
-(defun my/twitch-message (text)
+(defun my/stream-message (text)
   (interactive "MText: ")
   (with-current-buffer
-      (get-buffer-create "Twitch message")
+      (get-buffer-create "Stream message")
     (erase-buffer)
     (insert text)
     (goto-char (point-min))))
+(defun my/stream-intermission (text)
+  (interactive "MText: ")
+  (my/stream-message text)
+  (obs-websocket-send "SetCurrentScene" :scene-name "Intermission"))
+
 (use-package obs-websocket
   :config
   (defhydra my/obs-websocket (:exit t)
@@ -6815,17 +6867,39 @@ This isn't really a package yet, but it might be handy.
     ("c" (obs-websocket-connect) "Connect")
     ("d" (obs-websocket-send "SetCurrentScene" :scene-name "Desktop") "Desktop")
     ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs")
-    ("i" (obs-websocket-send "SetCurrentScene" :scene-name "Intermission") "Intermission")
+    ("i" my/stream-intermission "Intermission")
     ("v" (browse-url "https://twitch.tv/sachachua"))
-    ("m" my/twitch-message "Message")
-    ("t" my/twitch-message "Message")
+    ("m" my/stream-message "Message")
+    ("t" my/stream-message "Message")
+    ("/" selectric-mode "Selectric")
+    ("x" (obs-websocket-send "StopStreaming") "Stream - end")
     ("<f8>" my/twitch-message "Message") ;; Then I can just f8 f8
     ("sb" (obs-websocket-send "StartStreaming") "Stream - begin")
-    ("se" (obs-websocket-send "StopStreaming") "Stream - end"))
+    ("se" (obs-websocket-send "StopStreaming") "Stream - end")
+    ("rb" (obs-websocket-send "StartRecording") "Record - begin")
+    ("re" (obs-websocket-send "StopRecording") "Record - end"))
   (global-set-key (kbd "<f8>") #'my/obs-websocket/body)
   :load-path "~/code/obs-websocket-el" :ensure nil)
 #+end_src
-   
+
+*** Typing sounds
+
+    For some reason, people want to hear something. Here are typing
+    sounds. The default selectric sound was a little too loud for me, so
+    we'll use the move sound for now. It would be nice to make this more
+    random-sounding someday.
+    
+    #+begin_src emacs-lisp
+(defun my/selectric-type-sound ()
+  "Make the sound of typing."
+  ;; Someday, randomize this or something
+  (selectric-make-sound (expand-file-name "selectric-move.wav" selectric-files-path)))
+(use-package selectric-mode
+  :config
+  (fset #'selectric-type-sound #'my/selectric-type-sound))
+    #+end_src
+ 
+
 ** Other nifty Emacs things I want to learn
 *** Smartparens mode						      :drill:
 

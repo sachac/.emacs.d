@@ -1247,7 +1247,8 @@ Now let's set up the actual keychords.
   (key-chord-define-global "jr"     'my/goto-random-char-hydra/my/goto-random-char)
   (key-chord-define-global "kk"     'kill-whole-line)
   (key-chord-define-global "et" 'my/stream-message)
-  (key-chord-define-global ".t" 'my/obs-websocket/body) 
+  (key-chord-define-global "em" 'embark-act)
+  (key-chord-define-global ".t" 'my/stream/body)
   (key-chord-define-global "jj"     'avy-goto-word-1)
   (key-chord-define-global "yy"    'my/window-movement/body)
   (key-chord-define-global "jw"     'switch-window)
@@ -1438,6 +1439,44 @@ Copied from Prelude: http://emacsredux.com/blog/2013/03/27/open-file-in-external
 Don't use docview for PDFs.
 (add-to-list 'org-file-apps '("pdf" . "evince %s"))
 
+*** Embark
+
+    
+http://example.com
+    
+    [[https://twitch.tv/sachachua][This is an example page.]]
+    #+begin_src emacs-lisp
+(defun my/embark-org-element ()
+  "Target an Org Mode element at point."
+  (let* ((context  ;; Borrowed from org-open-at-point
+	        ;; Only consider supported types, even if they are not the
+	        ;; closest one.
+	        (org-element-lineage
+	        (org-element-context)
+	        '(clock comment comment-block footnote-definition
+		              footnote-reference headline inline-src-block inlinetask
+		              keyword link node-property planning src-block timestamp)
+	        t))
+         (type (org-element-type context))
+	       (value (org-element-property :value context)))
+    (cond
+     ((eq type 'headline)
+      (cons 'org-heading (org-element-property :title context)))
+     ((eq type 'link)
+      (cons 'url (org-element-property :raw-link context))))))
+
+(use-package embark
+  :config
+  (setq embark-prompter 'embark-completing-read-prompter)
+  (add-to-list 'embark-target-finders 'my/embark-org-element)
+  (add-to-list 'embark-allow-edit-commands #'my/stream-message) 
+  :bind
+  (("C-c e" . embark-act)
+   :map embark-general-map
+   ("m" . my/stream-message)))
+    #+end_src
+
+    
 ** Reading
 
 https://github.com/xahlee/xah_emacs_init/blob/master/xah_emacs_font.el
@@ -2869,6 +2908,7 @@ hang of using these more!
                  (org-agenda-overriding-header "Projects: ")
                  (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
           ))
+        ("e" "Emacs" (tags "emacs"))
         ("i" "Inbox" alltodo ""
          ((org-agenda-files '("~/orgzly/Inbox.org" "~/orgzly/computer-inbox.org"))))
         ("t" tags-todo "-cooking"
@@ -2994,6 +3034,12 @@ hang of using these more!
          "+PROJECT"
          ((org-agenda-max-entries 3)))))
 
+#+end_src
+**** Making it easier to tag inbox items
+
+#+begin_src emacs-lisp
+(setq org-complete-tags-always-offer-all-agenda-tags t)
+(setq org-use-fast-tag-selection nil)
 #+end_src
 
 **** Make it easy to mark a task as done
@@ -3464,60 +3510,22 @@ Now we put it all together...
   "Create a list of links to sketches."
   (interactive (list (org-read-date) (org-read-date) t current-prefix-arg (read-string "Filter: ")))
   (let ((value
-         (cond
-          ((eq system-type 'windows-nt)
-           (when update-db (shell-command "c:/sacha/dropbox/bin/flickr.bat"))
-           (my/flickr-extract-links-for-review "c:/sacha/dropbox/bin/flickr_metadata.csv" start end))
-          ;; ((eq system-type 'gnu/linux)  ; Flickr
-          ;;  (shell-command-to-string
-          ;;  (format "cd /home/sacha/code/node; nodejs flickr-list.js -b \"%s\" -e \"%s\" -f \"%s\"" 
-          ;;   (or start "") (or end "") (or filter ""))))
-          ;; below method not used at the moment, but useful if flickr is being weird
-          ((and t (eq system-type 'gnu/linux)) ;; Create links to sketches.sachachua.com/URL-encoded; not used at the moment
-           ;; because Org does weird things with escaped # links
-           (mapconcat
-            (lambda (filename)
-              (let ((base (file-name-nondirectory filename)))
-                (format "- %s\n"
-                        (org-link-make-string
-                         (replace-regexp-in-string "#" "%23"
-                                                   (concat "https://sketches.sachachua.com/"
-                                                           (if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][a-z]" base)
-                                                               (concat "id/" (match-string 0 base))
-                                                             (concat "filename/" base))))
-                         base))))
-            (let ((my/sketch-directories '("~/sync/sketches"))) (my/get-sketch-filenames-between-dates start end filter))
-            "")))))
+         (mapconcat
+          (lambda (filename)
+            (let ((base (file-name-nondirectory filename)))
+              (format "- %s\n"
+                      (org-link-make-string
+                       (replace-regexp-in-string "#" "%23"
+                                                 (concat "https://sketches.sachachua.com/"
+                                                         (if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][a-z]" base)
+                                                             (concat "id/" (match-string 0 base))
+                                                           (concat "filename/" base))))
+                       base))))
+          (let ((my/sketch-directories '("~/sync/sketches"))) (my/get-sketch-filenames-between-dates start end filter))
+          "")))
     (if do-insert
         (insert value)
       value)))
-
-;; (my/sketches-export-and-extract "2015-11-01" "2015-12-01")
-
-(defun my/flickr-extract-links-for-review (filename start end)
-  "Extract Flickr titles and URLs from FILENAME from START to END.
-          The file should be a CSV downloaded by the Flickr metadata downloader.
-                 Start date and end date should be strings in the form yyyy-mm-dd."
-  (require 'csv)
-  (let (list)
-    (with-temp-buffer
-      (insert-file-contents filename)
-      (goto-char (point-min))
-      (setq list
-            (mapconcat
-             '_my/format-flickr-link-for-org
-             (_my/parse-and-filter-flickr-csv-buffer start end)
-             "\n"))
-      (setq list (_my/clean-up-flickr-list list))
-      (if (called-interactively-p 'any)
-          (insert list)
-        list))))
-
-(defun my/replace-flickr-links-with-sketches ()
-  (interactive)
-  (while (re-search-forward
-          "\\[\\[\\(https://www\\.flickr\\.com/photos/sachac/.*?\\)\\]\\[\\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][a-z]\\) " nil t)
-    (replace-match "https://sketches.sachachua.com/id/\\2" t nil nil 1)))
 #+end_src
 
 ***** Link-related convenience functions
@@ -3744,10 +3752,10 @@ Here's a function like =my/org-prepare-weekly-review=:
           posts (_my/extract-posts-from-webpage
                  (format "https://sachachua.com/blog/%4d/%d?org=1"
                          year month))
-          sketches (my/sketches-export-and-extract start-date nil nil t))
+          sketches (my/sketches-export-and-extract (substring start-date 0 10) (substring end-date 0 10) nil t))
     (calendar-increment-month month year -1)
     (setq previous-date (format "%4d-%02d-01 0:00" year month))
-    (setq time (my/quantified-compare previous-date start-date start-date end-date '("Business" "Discretionary - Play" "Unpaid work" "A-" "Discretionary - Social" "Discretionary - Family" "Sleep" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
+    (setq time (my/quantified-compare previous-date start-date start-date end-date '("Business" "Discretionary - Play" "Unpaid work" "A-" "Discretionary - Family" "Discretionary - Social" "Sleep" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
     (goto-char (line-end-position))
     (insert
      "\n\n** Monthly review: "
@@ -6070,7 +6078,9 @@ IRC is a great way to hang out with other Emacs geeks.
                                          "#org-mode"
                                          "#emacs"
                                          "#emacs-beginners"
-                                         "#emacs-ops"))
+                                         "#emacs-ops")
+                                        ("irc.chat.twitch.tv"
+                                         "#sachachua"))
           erc-server "irc.freenode.net"
           erc-nick "sachac"
           erc-track '("NICK" "333" "353" "JOIN" "PART" "AWAY"))
@@ -6686,6 +6696,11 @@ don't get the theme applied. This fixes that:
             (select-frame frame)
             (my/setup-color-theme)))
 #+end_src
+** Collaboration
+
+   #+begin_src emacs-lisp
+(use-package crdt :load-path "~/vendor/crdt.el")
+   #+end_src
 ** Menus
 
 Handy when I'm in tablet mode.
@@ -6842,12 +6857,175 @@ cool. On Windows, these things help a little.
                 urls)))
 #+end_src
 
-** Open Broadcast Studio (OBS) and Twitch streaming
+** Streaming
+   :PROPERTIES:
+   :CUSTOM_ID: streaming
+   :END:
 
-This isn't really a package yet, but it might be handy.
+*** Setting up
+
+    #+begin_src emacs-lisp
+(defvar my/stream-message-buffer-name "Stream message")
+(defun my/stream-set-up ()
+  (interactive)
+  (obs-websocket-connect)
+  (my/stream-toggle-background-music)
+  (selectric-mode)
+  (obs-websocket-minor-mode 1)
+  (unless (and (erc-get-buffer "#sachachua")
+               (with-current-buffer (erc-get-buffer "#sachachua")
+                 (erc-server-process-alive)))
+    (my/twitch-irc))
+  (unless (get-buffer-window my/stream-message-buffer-name t)
+    (with-current-buffer (get-buffer-create my/stream-message-buffer-name)
+      (erase-buffer)
+      (text-scale-set 4)
+      (set-frame-position (make-frame) 0 0))))
+    #+end_src
+*** Controlling my stream audio from Emacs: background music, typing sounds, and push to talk  :emacs:
+:PROPERTIES:
+:ID:       o2b:466b53d1-3074-472a-870d-915b88401249
+:POST_DATE: [2021-02-07 Sun 00:06]
+:BLOG:     sacha
+:POSTID:   29670
+:END:
+
+Update: 2021-02-07: Made it work with my USB microphone.
+
+I was experimenting with streaming Emacs geeking around on [[https://twitch.tv/sachachua][twitch.tv]].
+Someone asked me to have soft background music and typing sounds.
+Since I'm a little clueless about music and don't want to bother with
+hunting down nice royalty-free music, I figured I could just use the
+[[https://en.wikipedia.org/wiki/Musikalisches_W%C3%BCrfelspiel#:~:text=The%20most%20well%2Dknown%20was,to%20create%20a%20musical%20piece.][Mozart dice game]] to programmatically generate music.
+
+I installed the [[https://developer.aliyun.com/mirror/npm/package/mozart-dice-game][mozart-dice-game]] NPM package and used this bit of
+Javascript to generate a hundred MIDI files.
+
+#+begin_src sh :exports code :eval never-export
+const x = require('mozart-dice-game')
+for (let i = 0; i < 100; i++) { x.saveMinuet('minuet' + String(i).padStart('3', '0') + '.mid'); }
+#+end_src
+
+Then I wrote this Emacs Lisp function to turn it on and off.
+
+#+begin_src emacs-lisp :exports code :eval never-export
+(defvar my/background-music-process nil "Process for playing background music")
+(defun my/stream-toggle-background-music (&optional enable)
+  (interactive)
+  (if (or my/background-music-process
+          (and (numberp enable) (< enable 0)))
+      (progn
+        (when (process-live-p my/background-music-process)
+          (kill-process my/background-music-process))
+        (setq my/background-music-process nil))
+    (let ((files (directory-files "~/code/music" t "mid\\'")))
+      (setq my/background-music-process
+            (apply
+             'start-process
+             "*Music*"
+             nil
+             (append (list "timidity" "-idlr" "--volume=10") files))))))
+#+end_src
+
+People also suggested typing sounds. I guess that's a good way to get
+a sense of activity. The default selectric sound was a little too loud
+for me, so we'll use the move sound for now. It would be nice to make
+this more random-sounding someday.
+    
+#+begin_src emacs-lisp
+(defun my/selectric-type-sound ()
+  "Make the sound of typing."
+  ;; Someday, randomize this or something
+  (selectric-make-sound (expand-file-name "selectric-move.wav" selectric-files-path)))
+
+(use-package selectric-mode
+  :diminish ""
+  :config
+  (fset #'selectric-type-sound #'my/selectric-type-sound))
+#+end_src
+
+I was having a hard time remembering to go back on mute during
+meetings, since the LED on the mute button wasn't working at the time
+and the system tray icon was a little hard to notice. The LED has
+mysteriously decided to start working again, but push-to-talk is handy
+anyway. I want to be able to tap a key to toggle my microphone on and
+off, and hold it down in order to make it push-to-talk. It looks like
+my key repeat is less than 0.5 seconds, so I can set a timer that will
+turn things off after a little while. This code doesn't pick up any
+changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sources= to list the sources and get the IDs.
+
+~/bin/mic-on:
+#+begin_src sh :tangle ~/bin/mic-on :eval no :tangle-mode (identity #o755)
+pactl set-source-mute 1 0
+pactl set-source-mute 4 0
+pactl set-source-mute 5 0
+amixer set Capture cap
+#+end_src
+
+~/bin/mic-off:
+#+begin_src sh :tangle ~/bin/mic-off :eval no :tangle-mode (identity #o755)
+pactl set-source-mute 1 1
+pactl set-source-mute 4 1
+pactl set-source-mute 5 1
+amixer set Capture nocap
+#+end_src
 
 #+begin_src emacs-lisp
-(use-package websocket)
+(defvar my/mic-p nil "Non-nil means microphone is on")
+(add-to-list 'mode-line-front-space '(:eval (if my/mic-p "*MIC*" "")))
+
+(defun my/mic-off ()
+  (interactive)
+  (shell-command-to-string "~/bin/mic-off")
+  (setq my/mic-p nil))
+(defun my/mic-on ()
+  (interactive)
+  (shell-command-to-string "~/bin/mic-on")
+  (setq my/mic-p t))
+(defun my/mic-toggle ()
+  (interactive)
+  (if my/mic-p (my/mic-off) (my/mic-on)))
+
+(defvar my/push-to-talk-mute-timer nil "Timer to mute things again.")
+(defvar my/push-to-talk-last-time nil "Last time my/push-to-talk was run")
+(defvar my/push-to-talk-threshold 0.5 "Number of seconds")
+
+(defun my/push-to-talk-mute ()
+  (interactive)
+  (message "Muting.")
+  (my/mic-off)
+  (force-mode-line-update)
+  (my/obs-websocket-add-subtitle (my/obs-websocket-stream-time-msecs) "[Microphone off]"))
+
+(defun my/push-to-talk ()
+  "Tap to toggle microphone on and off, or repeat the command to make it push to talk."
+  (interactive)
+  (cond
+   ((null my/mic-p) ;; It's off, so turn it on
+    (when (timerp my/push-to-talk-mute-timer)
+      (cancel-timer my/push-to-talk-mute-timer))
+    (my/mic-on)
+    (my/obs-websocket-add-subtitle (my/obs-websocket-stream-time-msecs) "[Microphone on]")
+    (setq my/push-to-talk-last-time (current-time)))
+   ((timerp my/push-to-talk-mute-timer) ;; Push-to-talk mode
+    (cancel-timer my/push-to-talk-mute-timer)
+    (setq my/push-to-talk-mute-timer
+          (run-at-time my/push-to-talk-threshold nil #'my/push-to-talk-mute)))
+   ;; Might be push to talk, if we're within the key repeating time
+   ((< (- (time-to-seconds (current-time)) (time-to-seconds my/push-to-talk-last-time)) 
+       my/push-to-talk-threshold)
+    (setq my/push-to-talk-mute-timer
+          (run-at-time my/push-to-talk-threshold nil #'my/push-to-talk-mute)))
+   ;; It's been a while since I turned the mic on.
+   (t (my/push-to-talk-mute))))
+
+(global-set-key (kbd "<f12>") #'my/push-to-talk)
+#+end_src
+
+*** Messages
+
+#+begin_src emacs-lisp
+
 (defun my/stream-message (text)
   (interactive "MText: ")
   (with-current-buffer
@@ -6861,14 +7039,20 @@ This isn't really a package yet, but it might be handy.
   (when (erc-get-buffer "#sachachua")
     (with-current-buffer (erc-get-buffer "#sachachua")
       (erc-send-message text))))
+#+end_src
 
+It looks like neither [[https://github.com/Palakis/obs-websocket/releases/tag/4.6.1][SendCaptions]] nor [[https://www.reddit.com/r/Twitch/comments/9znvi6/help_with_chatbot_and_markers_please/][/marker (via TwitchIRC)]]
+work on Linux, so maybe I'll just save timestamped notes
+somewhere. I should make this work with recording timecodes, too.
+
+#+begin_src emacs-lisp
 (defvar my/obs-websocket-last-stream-timecode nil "(timecode-string . system-time)")
 
 (defun my/obs-websocket-message-handler (payload)
   "Save the current streaming timecode."
   (pcase (plist-get payload :update-type)
     ("StreamStatus"
-     (setq my/obs-websocket-last-stream-timecode (cons (plist-get payload :stream-timecode) (current-time))))))1
+     (setq my/obs-websocket-last-stream-timecode (cons (plist-get payload :stream-timecode) (current-time))))))
 
 (defun my/obs-websocket-timecode-to-msecs (time-string)
   "Find HH:MM:SS.MS pattern in TIME-CODE and convert it to milliseconds.
@@ -6903,21 +7087,45 @@ Return nil if TIME-CODE doesn't match the pattern."
     (save-excursion
       (when (subed-backward-subtitle-text)
         (subed-set-subtitle-time-stop ms)))))
-
+#+end_src
+                                            
+#+begin_src emacs-lisp
 (defun my/stream-intermission (text)
+  "Prompt me for a message before starting an intermission."
   (interactive "MText: ")
   (my/stream-message text)
   (obs-websocket-send "SetCurrentScene" :scene-name "Intermission"))
+#+end_src
 
-(defun my/obs-websocket-send-caption (text)
-  (interactive "MText: ")
-  (obs-websocket-send "SendCaptions" :text text))
-                                            
+*** Show Emacs-related tasks
+
+#+begin_src emacs-lisp
+(defun my/show-emacs-tasks ()
+  (interactive)
+  (org-ql-search (org-agenda-files)
+    '(and (todo)
+          (parent (and (tags "project") (tags "emacs") (not (tags "inactive")))))
+    :title "Emacs-related project tasks"
+    :sort '(date priority todo)
+    :super-groups '((:auto-parent t))))
+#+end_src
+
+*** General streaming configuration
+#+begin_src emacs-lisp
 (use-package obs-websocket
   :config
   (add-to-list 'obs-websocket-on-message-payload-functions #'my/obs-websocket-message-handler)
-  (defhydra my/obs-websocket (:exit t)
-    "Control Open Broadcaster Software"
+  (defhydra my/stream-recording (:exit t)
+           "Recording"
+           ("b" (obs-websocket-send "StartRecording") "Begin")
+           ("r" (obs-websocket-send "StartStopRecording") "Toggle")
+           (" " (obs-websocket-send "PauseRecording") "Pause")
+           ("p" (my/play-latest-recording) "Play last")
+           ("c" (obs-websocket-send "ResumeRecording") "Continue")
+           ("e" (obs-websocket-send "StopRecording") "End"))
+  (defhydra my/stream (:exit t)
+    "Control the stream"
+    ("a" my/show-emacs-tasks "Agenda")
     ("C" obs-websocket-connect "Connect")
     ("d" (obs-websocket-send "SetCurrentScene" :scene-name "Desktop") "Desktop")
     ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs")
@@ -6925,60 +7133,30 @@ Return nil if TIME-CODE doesn't match the pattern."
     ("vs" (browse-url "https://twitch.tv/sachachua") "View stream")
     ("vv" (browse-url "https://dashboard.twitch.tv/u/sachachua/stream-manager") "View manager")
     ("vc" (find-file my/obs-websocket-subtitle-file) "View captions")    
-    ("m" my/stream-message "Message")
+    ("m" my/mic-toggle "Microphone")
+    ("bm" my/stream-toggle-background-music "Background music")
+    ("bt" selectric-mode "Typing sounds")
     ("t" my/stream-message "Message")
-    ("/" selectric-mode "Selectric")
     ("x" (obs-websocket-send "StopStreaming") "Stream - end")
     ("<f8>" my/stream-message "Message") ;; Then I can just f8 f8
     ("sb" (obs-websocket-send "StartStreaming") "Stream - start")
     ("ss" (obs-websocket-send "StartStopStreaming") "Stream - toggle")
     ("se" (obs-websocket-send "StopStreaming") "Stream - end")
-    ("rb" (obs-websocket-send "StartRecording") "Record - begin")
-    ("rr" (obs-websocket-send "StartStopRecording") "Record - toggle")
-    ("rp" (obs-websocket-send "PauseRecording") "Record - pause")
-    ("rc" (obs-websocket-send "ResumeRecording") "Record - continue")
-    ("re" (obs-websocket-send "StopRecording") "Record - end"))
-  (global-set-key (kbd "<f8>") #'my/obs-websocket/body)
+    ("r" my/stream-recording/body "Recording"))
+  (global-set-key (kbd "<f8>") #'my/stream/body)
   (add-to-list 'obs-websocket-on-message-payload-functions #'my/obs-websocket-message-handler)
   :load-path "~/code/obs-websocket-el" :ensure nil)
 #+end_src
 
-*** Saving timestamped text?
+*** Playing recordings
 
-    It looks like neither [[https://github.com/Palakis/obs-websocket/releases/tag/4.6.1][SendCaptions]] nor [[https://www.reddit.com/r/Twitch/comments/9znvi6/help_with_chatbot_and_markers_please/][/marker (via TwitchIRC)]]
-    work on Linux, so maybe I'll just save timestamped notes
-    somewhere.
-
-    
-    subed-vtt--timestamp-to-msecs
-    (obs-websocket-send "GetVersion" :text "This is from OBS" :callback (lambda (frame payload) (prin1 payload)))
-    (obs-websocket-send "SendCaptions" :text "This is from OBS" :callback (lambda (frame payload) (prin1 payload)))
-
-    Hah, no go either, SendCaptions (Windows/macOS only): send closed
-    captions text to the streaming output. For instance, Twitch's
-    player supports closed captions sent through SendCaptions
-
-    Fine, I'll just save the VTT. I guess I could get the most recent stream timecode, and then maybe keep time manually.
-    
-    (websocket-send-text obs-websocket (json-encode-plist '(:request-type "SendCaptions" :text "Hello world")))
-*** Typing sounds
-
-    For some reason, people want to hear something. Here are typing
-    sounds. The default selectric sound was a little too loud for me, so
-    we'll use the move sound for now. It would be nice to make this more
-    random-sounding someday.
-    
     #+begin_src emacs-lisp
-(defun my/selectric-type-sound ()
-  "Make the sound of typing."
-  ;; Someday, randomize this or something
-  (selectric-make-sound (expand-file-name "selectric-move.wav" selectric-files-path)))
-(use-package selectric-mode
-  :config
-  (fset #'selectric-type-sound #'my/selectric-type-sound))
+(use-package mpv)
+(defvar my/recordings-dir "~/Videos/")
+(defun my/play-latest-recording ()
+  (interactive)
+  (mpv-play (my/latest-file my/recordings-dir)))
     #+end_src
- 
-
 ** Other nifty Emacs things I want to learn
 *** Smartparens mode						      :drill:
 
@@ -7889,83 +8067,6 @@ left.
                  )
                 "\n"))))
 #+end_src
-** Presentation code for Emacs Conference
-:PROPERTIES:
-:CUSTOM_ID: emacsconf2013
-:END:
-<<emacsconf2013>>
-
-#+begin_src emacs-lisp  :evalnm/home/sacha/Dropbox/Inbox/output.png no :tangle no
-(defvar my/org-show-presentation-file "~/Dropbox/Emacs Conference/public.org" "File containing the presentation.")
-(defvar my/org-show-slide-tag "slide" "Tag that marks slides.")
-(defvar my/org-show-slide-tag-regexp (concat ":" (regexp-quote my/org-show-slide-tag) ":"))
-(require 'eimp)
-
-;; From org-pres--eimp-fit
-(defun my/org-show-eimp-fit ()
-  "Function used as a hook, fits the image found to the window."
-  (when (eq major-mode 'image-mode)
-    (eimp-fit-image-to-window nil)))
-(add-hook 'find-file-hook 'my/org-show-eimp-fit)
-
-(defun my/org-show-execute-slide ()
-  "Process slide at point.
-       If it contains an Emacs Lisp source block, evaluate it.
-       If it contains an image, view it and switch to that buffer.
-       Else, focus on that buffer.
-       Hide all drawers."
-  (interactive)
-  (find-file my/org-show-presentation-file)
-  (org-narrow-to-subtree)
-  (visual-line-mode)
-  (let ((heading-text (nth 4 (org-heading-components))))
-    (cond
-     ;; view images
-     ((and (goto-char (point-min))
-           (re-search-forward "\\[\\[.*\\.\\(jpg\\|gif\\|png\\)" nil t))
-      (delete-other-windows)
-      (let ((org-link-frame-setup '((file . find-file))))
-        (org-open-at-point))
-      (delete-other-windows)
-      (goto-char (point-min)))
-     ;; find and execute source code blocks
-     ((and (goto-char (point-min))
-           (re-search-forward "#\\+begin_src" nil t))
-      (let ((info (org-babel-get-src-block-info)))
-        (unwind-protect
-            (eval (read (concat "(progn " (nth 1 info) ")"))))))
-     (t
-      (switch-to-buffer (current-buffer))
-      (text-scale-set 4)
-      (org-show-subtree)
-      (org-cycle-hide-drawers t)
-      (org-display-inline-images)
-      (delete-other-windows)))
-    (set-frame-name heading-text)))
-
-(defun my/org-show-next-slide ()
-  "Show the next slide."
-  (interactive)
-  (find-file my/org-show-presentation-file)
-  (widen)
-  (goto-char (line-end-position))
-  (when (re-search-forward my/org-show-slide-tag-regexp nil t)
-    (my/org-show-execute-slide)))
-
-(defun my/org-show-previous-slide ()
-  "Show the next slide."
-  (interactive)
-  (find-file my/org-show-presentation-file)
-  (widen)
-  (goto-char (line-beginning-position))
-  (when (re-search-backward my/org-show-slide-tag-regexp nil t)
-    (my/org-show-execute-slide)))
-
-                                        ;(global-set-key '[f5] 'my/org-show-previous-slide)
-                                        ;(global-set-key '[f6] 'my/org-show-execute-slide)
-                                        ;(global-set-key '[f7] 'my/org-show-next-slide)
-#+end_src
-
 ** Enable minibuffer completion
 [2013-03-31] Superseded by ido-hacks?
 

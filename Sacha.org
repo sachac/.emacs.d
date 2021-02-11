@@ -3,7 +3,7 @@
 #+STARTUP: showeverything
 #+PROPERTY: header-args:emacs-lisp    :tangle yes :results silent :exports code
 
-* Configuration
+* Configuration   :emacs:
 ** About this file
 :PROPERTIES:
 :CUSTOM_ID: babel-init
@@ -228,12 +228,57 @@ sentence navigation commands work for me.
 (setq sentence-end-double-space nil)
 #+END_SRC
 
-*** Trying out selectrum
+*** Trying out Marginalia, Selectrum, Embark, and Consult
 
 Based on [[https://www.rousette.org.uk/archives/switching-to-selectrum-for-incremental-narrowing-in-emacs/][BSAG » Switching to Selectrum for incremental narrowing in Emacs]]
 I like marginalia for M-x, but I've gotten used to Helm for finding files.
 
-**** Marginalia and hiding the value of password-ish variables  :emacs:
+**** Basic configuration
+
+#+begin_src emacs-lisp 
+(use-package selectrum :init (selectrum-mode +1)) 
+(use-package prescient :config (prescient-persist-mode +1))
+(use-package selectrum-prescient :init (selectrum-prescient-mode +1) :after selectrum)
+(use-package company-prescient :init (company-prescient-mode +1))
+(use-package consult :quelpa (consult :fetcher github :repo "minad/consult")
+  :bind (("C-x r x" . consult-register)
+         ("C-x r b" . consult-bookmark)
+         ("M-g o" . consult-outline) 
+         ("M-g m" . consult-mark)
+         ("C-x b" . consult-buffer)
+         ("M-y" . consult-yank)
+         ("M-g l" . consult-line)    
+         ("M-s m" . consult-multi-occur)
+         ("C-x c o" . consult-multi-occur)
+         ("C-x c SPC" . consult-mark)))
+(use-package marginalia :quelpa (marginalia :fetcher github :repo "minad/marginalia")
+  :init
+  (marginalia-mode)
+  :config
+  (setq marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light))
+  (advice-add #'marginalia-cycle :after
+              (lambda () (when (bound-and-true-p selectrum-mode) (selectrum-exhibit))))
+  :bind (:map minibuffer-local-completion-map
+              ("C-i" . marginalia-cycle-annotators)))
+(use-package embark 
+  :after selectrum 
+  :config
+  (setq embark-prompter 'embark-keymap-prompter) 
+  (add-to-list 'embark-target-finders 'my/embark-org-element) 
+  (add-to-list 'embark-allow-edit-commands #'my/stream-message) 
+  :bind (("C-c e" . embark-act) 
+         ("C-;" . embark-act) 
+         :map embark-general-map ("m" . my/stream-message)))
+(use-package 
+  embark-consult 
+  :after (embark consult) 
+  :demand t                ; only necessary if you have the hook below
+  ;; if you want to have consult previews as you move around an
+  ;; auto-updating embark collect buffer
+  :hook (embark-collect-mode . embark-consult-preview-minor-mode))
+#+end_src
+     
+**** Marginalia and hiding the value of password-ish variables     
      :PROPERTIES:
      :ID:       o2b:3820f642-27ea-4e3c-a261-a9c59417175f
      :POST_DATE: [2021-02-05 Fri 01:15]
@@ -272,58 +317,129 @@ The actual code I evaluate is in my =use-package marginalia=
 declaration in my [[http://sachachua.com/dotemacs][Emacs config]].
 
 #+begin_src emacs-lisp :eval no :exports code
-(setq marginalia-annotators
-      '(marginalia-annotators-heavy
-        marginalia-annotators-light))
-(add-to-list 'marginalia-annotators-heavy
-             '(symbol . my/marginalia-annotate-function-with-args))
+(use-package marginalia
+  :config
+  (setcdr (assoc 'variable marginalia-annotators-heavy) #'my/marginalia-annotate-variable))
 #+end_src
 
-**** Other Marginalia config
- #+begin_src emacs-lisp 
-(use-package selectrum :init (selectrum-mode +1)) 
-(use-package prescient :config (prescient-persist-mode +1))
-(use-package selectrum-prescient :init (selectrum-prescient-mode +1) :after selectrum)
-(use-package company-prescient :init (company-prescient-mode +1))
-(use-package consult :quelpa (consult :fetcher github :repo "minad/consult")
-  :bind (("C-x r x" . consult-register)
-         ("C-x r b" . consult-bookmark)
-         ("M-g o" . consult-outline) 
-         ("M-g m" . consult-mark)    
-         ("M-g l" . consult-line)    
-         ("M-s m" . consult-multi-occur)
-         ("C-x c o" . consult-multi-occur)
-         ("C-x c SPC" . consult-mark)))
+**** Marginalia and annotating functions with their arguments
 
+#+begin_src emacs-lisp
+(require 'elisp-mode)
+
+(defun my/elisp-get-function-args (sym)
+  "Return a string with the function arguments for SYM.
+Based on `elisp-get-fnsym-args-string.'"
+  (cond
+	 ((not (and sym (symbolp sym) (fboundp sym))) nil)
+	 ((and (eq sym (aref elisp--eldoc-last-data 0))
+		     (eq 'function (aref elisp--eldoc-last-data 2)))
+	  (aref elisp--eldoc-last-data 1))
+	 (t
+	  (let* ((advertised (gethash (indirect-function sym)
+                                advertised-signature-table t))
+           doc
+		       (args
+		        (cond
+		         ((listp advertised) advertised)
+		         ((setq doc (help-split-fundoc
+				                 (condition-case nil (documentation sym t)
+				                   (invalid-function nil))
+				                 sym))
+		          (substitute-command-keys (car doc)))
+		         (t (help-function-arglist sym)))))
+      ;; Stringify, and store before highlighting, downcasing, etc.
+	    (elisp-function-argstring args)))))
+    
 (defun my/marginalia-annotate-function-with-args (cand)
   "Annotate symbol CAND with its arguments and documentation string."
-  (require 'elisp-mode)
   (when-let (sym (intern-soft cand))
-    (marginalia--fields
-     ((let ((print-escape-newlines t)
-            (print-escape-control-characters t)
-            (print-escape-multibyte t))
-        (if (fboundp sym) (elisp-get-fnsym-args-string sym nil) "unbound"))
-      :truncate (/ marginalia-truncate-width 3) :face 'marginalia-variable)
-     ((documentation sym 'variable-documentation)
-      :truncate marginalia-truncate-width :face 'marginalia-documentation))))
-(use-package marginalia 
-  :quelpa (marginalia :fetcher github :repo "minad/marginalia")
-  :init (marginalia-mode)
-  ;; When using Selectrum, ensure that Selectrum is refreshed when cycling annotations.
-  (advice-add #'marginalia-cycle :after
-              (lambda () (when (bound-and-true-p selectrum-mode) (selectrum-exhibit))))
-  (setq marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light))
+    (let ((symbol-class-width 5))
+      (marginalia--fields
+       ((marginalia--symbol-class sym) :face 'marginalia-modified
+        :truncate symbol-class-width)
+       ((my/elisp-get-function-args sym) 
+        :truncate (/ (- marginalia-truncate-width symbol-class-width) 3)
+        :face 'marginalia-arguments)
+       ((marginalia--function-doc sym)
+        :truncate marginalia-truncate-width
+        :face 'marginalia-documentation)))))
+(defvar my/marginalia-function-width 30 "Width of variable value annotation string.")
+(defface my/marginalia-arguments '((t :inherit marginalia-key))
+  "Face used to highlight function arguments in `marginalia-mode'."
+  :group 'marginalia)
+(use-package marginalia
+  :after elisp-mode
   :config
-  (defvar my/marginalia-function-width 30 "Width of variable value annotation string.")
-  (defface my/marginalia-arguments '((t :inherit marginalia-key))
-    "Face used to highlight function arguments in `marginalia-mode'."
-    :group 'marginalia)
-  (add-to-list 'marginalia-annotators-heavy '(symbol . my/marginalia-annotate-function-with-args))
-  (add-to-list 'marginalia-annotators-heavy '(variable . my/marginalia-annotate-variable))
-  :bind (:map minibuffer-local-completion-map
-              ("C-i" . marginalia-cycle-annotators)))
- #+end_src
+  (add-to-list 'marginalia-annotators-heavy (cons 'function #'my/marginalia-annotate-function-with-args))
+  (add-to-list 'marginalia-prompt-categories (cons "\\<function\\>" 'function)))
+#+end_src
+
+
+**** Using Embark to offer context-sensitive actions for Org elements
+
+#+NAME: embark
+#+begin_src emacs-lisp :var foo="bar"
+(defun my/embark-org-element () 
+  "Target an Org Mode element at point."
+  (let* ((context ;; Borrowed from org-open-at-point
+	        ;; Only consider supported types, even if they are not the
+	        ;; closest one.
+	        (org-element-lineage (org-element-context) 
+                               '(clock comment comment-block footnote-definition footnote-reference
+                                       headline inline-src-block inlinetask keyword link
+                                       node-property planning src-block timestamp) t)) 
+         (type (org-element-type context)) 
+         (value (org-element-property :value context))) 
+    (cond ((eq type 'headline) 
+           (cons 'org-heading (org-element-property :title context))) 
+          ((eq type 'src-block) 
+           (cons 'org-src-block context)) 
+          ((eq type 'link) 
+           (cons 'url (org-element-property :raw-link context))))))
+
+(defun my/embark-org-src-block-copy-noweb-reference (element) 
+  (kill-new (if (org-element-property element :parameters) 
+                (format "<<%s(%s)>>" (org-element-property element :name) 
+                        (org-element-property element :parameters)) 
+              (format "<<%s>>" (org-element-property element :parameters)))))
+#+end_src
+**** Cargo-culted stuff
+
+https://github.com/oantolin/embark/wiki/Additional-Configuration#pause-selectrum-while-using-embark-collect-live
+
+#+begin_src emacs-lisp
+(defun my/refresh-selectrum () 
+  (setq selectrum--previous-input-string nil))
+(defun my/store-action-key+cmd (cmd) 
+  (setq keycast--this-command-keys (this-single-command-keys) keycast--this-command cmd))
+(defun my/force-keycast-update (&rest _) 
+  (force-mode-line-update t))
+(use-package 
+  keycast 
+  :after embark 
+  :config (dolist (cmd '(embark-act embark-act-noexit embark-become)) 
+            (advice-add cmd 
+                        :before #'my/force-keycast-update)))
+
+(defun my/shrink-selectrum () 
+  (when (eq embark-collect--kind :live) 
+    (with-selected-window (active-minibuffer-window) 
+      (setq-local selectrum-num-candidates-displayed 1) 
+      (setq-local selectrum-display-style '(horizontal :before-candidates "[" 
+                                                       :after-candidates "]" 
+                                                       :more-candidates "" 
+                                                       :candidates-separator "")))))
+(use-package 
+  embark 
+  :config
+                                        ;(setq embark-prompter 'embark-completing-read-prompter)
+  (advice-add 'embark-keymap-prompter :filter-return #'my/store-action-key+cmd) 
+  (add-to-list 'embark-allow-edit-commands #'my/stream-message) 
+  (add-hook 'embark-collect-mode-hook #'my/shrink-selectrum) 
+  (add-hook 'embark-pre-action-hook #'my/refresh-selectrum) 
+  (add-hook 'embark-post-action-hook #'my/embark-collect--update-linked))
+    #+end_src
 
 *** Helm - interactive completion
 
@@ -368,9 +484,6 @@ possible, although I prefer ido's way of switching buffers.
   :bind (("C-c h" . helm-mini)
          ("C-h a" . helm-apropos)
          ("C-x C-b" . helm-buffers-list)
-         ("C-x b" . helm-buffers-list)
-         ("C-x C-f" . helm-find-files)
-         ("M-y" . helm-show-kill-ring)
          ("C-x c o" . helm-occur)
          ("C-x c s" . helm-swoop)
          ("C-x c y" . helm-yas-complete)
@@ -1009,6 +1122,9 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 (defmacro my/defshortcut (key file)
   `(progn
      (set-register ,key (cons 'file ,file))
+     (bookmark-store ,file (list (cons 'filename ,file)
+                                 (cons 'position 1)
+                                 (cons 'front-context-string "")) nil)
      (define-key my/refile-map
        (char-to-string ,key)
        (lambda (prefix)
@@ -1020,6 +1136,10 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 
 (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
 
+(let* ((file "~/code/emacs-calendar/README.org")
+       (record `((filename . ,file) (position . 1) (rear-context-string) (front-context-string))))
+  (bookmark-store file record nil))
+     
 (my/defshortcut ?C "~/code/emacs-calendar/README.org")
 (my/defshortcut ?e "~/code/.emacs.d/Sacha.org")
 (my/defshortcut ?E "~/sync/emacs-news/index.org")
@@ -1438,43 +1558,6 @@ Copied from Prelude: http://emacsredux.com/blog/2013/03/27/open-file-in-external
 
 Don't use docview for PDFs.
 (add-to-list 'org-file-apps '("pdf" . "evince %s"))
-
-*** Embark
-
-    
-http://example.com
-    
-    [[https://twitch.tv/sachachua][This is an example page.]]
-    #+begin_src emacs-lisp
-(defun my/embark-org-element ()
-  "Target an Org Mode element at point."
-  (let* ((context  ;; Borrowed from org-open-at-point
-	        ;; Only consider supported types, even if they are not the
-	        ;; closest one.
-	        (org-element-lineage
-	        (org-element-context)
-	        '(clock comment comment-block footnote-definition
-		              footnote-reference headline inline-src-block inlinetask
-		              keyword link node-property planning src-block timestamp)
-	        t))
-         (type (org-element-type context))
-	       (value (org-element-property :value context)))
-    (cond
-     ((eq type 'headline)
-      (cons 'org-heading (org-element-property :title context)))
-     ((eq type 'link)
-      (cons 'url (org-element-property :raw-link context))))))
-
-(use-package embark
-  :config
-  (setq embark-prompter 'embark-completing-read-prompter)
-  (add-to-list 'embark-target-finders 'my/embark-org-element)
-  (add-to-list 'embark-allow-edit-commands #'my/stream-message) 
-  :bind
-  (("C-c e" . embark-act)
-   :map embark-general-map
-   ("m" . my/stream-message)))
-    #+end_src
 
     
 ** Reading
@@ -4506,16 +4589,17 @@ The following code creates a Helm source that allows me to quickly
 search through my journal and insert links, a list of entries with
 links, a list of plain entries, or plain entries. I can also easily view the entries.
 
+#+NAME: helm-journal
 #+begin_src emacs-lisp
+(defun my/json-request (url)
+  (with-current-buffer (url-retrieve-synchronously url)
+    (goto-char url-http-end-of-headers)
+    (json-read)))
+
 (defun my/journal-search-query (query-str)
-  (let* ((url (format "https://journal.sachachua.com/api/entries?q=%s"
-                       query-str))
-         (url-request-method "GET")
-         (json-response 
-          (with-current-buffer
-              (url-retrieve-synchronously url)
-            (goto-char url-http-end-of-headers)
-            (json-read))))
+  (let* ((url-request-method "GET")
+         (json-response (my/json-request (format "https://journal.sachachua.com/api/entries?q=%s&limit=50"
+                                                 query-str))))
     (mapcar (lambda (o)
               (cons
                (format "%s %s"
@@ -4567,7 +4651,6 @@ links, a list of plain entries, or plain entries. I can also easily view the ent
             (mapcar (lambda (o)
                       (cons (car o)
                             `(lambda (candidate)
-                               (prin1 candidate)
                                (insert (my/journal-format-entries ,(cdr o) (helm-marked-candidates))))))
                     '(("Insert as link" . 'org-link-zid-only)
                       ("Insert as list with links" . 'list-item-with-zid)
@@ -6136,6 +6219,7 @@ IRC is a great way to hang out with other Emacs geeks.
   (my/org-with-current-task
    (org-clock-in)
    (call-interactively 'my/org-quantified-track)
+   (when obs-websocket-streaming-p (my/stream-message (org-get-heading t t t t)))
    (cond
     ((org-entry-get (point) "AUTO")
      (org-link-open-from-string (org-entry-get (point) "AUTO")))
@@ -8554,6 +8638,7 @@ This makes a buffer with big buttons so that I can easily tap them with my stylu
     
 *** Templates
 #+begin_src emacs-lisp
+
 (defun my/prepare-drawing-template (&optional name date template)
   "Create the image file for NAME. Return the new filename."
   (let* ((directory "~/Dropbox/Inbox")

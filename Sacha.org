@@ -1362,7 +1362,7 @@ Now let's set up the actual keychords.
 (use-package key-chord
   :init
   (setq key-chord-one-key-delay 0.16)
-  (setq key-chord-two-keys-delay 0.05)
+  (setq key-chord-two-keys-delay 0.002)
   (key-chord-define-global "uu"     'undo)
   (key-chord-define-global "jr"     'my/goto-random-char-hydra/my/goto-random-char)
   (key-chord-define-global "kk"     'kill-whole-line)

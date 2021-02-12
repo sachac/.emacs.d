@@ -360,7 +360,7 @@ Based on `elisp-get-fnsym-args-string.'"
         :truncate symbol-class-width)
        ((my/elisp-get-function-args sym) 
         :truncate (/ (- marginalia-truncate-width symbol-class-width) 3)
-        :face 'marginalia-arguments)
+        :face 'my/marginalia-arguments)
        ((marginalia--function-doc sym)
         :truncate marginalia-truncate-width
         :face 'marginalia-documentation)))))

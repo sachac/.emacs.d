@@ -1575,6 +1575,14 @@ From Xah Lee:
     (set-window-margins nil 0 0)))
 #+END_SRC
 
+#+begin_src emacs-lisp
+(use-package pdf-tools
+  :config
+  (pdf-tools-install)
+  (setq pdf-view-resize-factor 1.1)
+  (setq-default pdf-view-display-size 'fit-page)
+  )
+#+end_src
 ** Shuffling lines
 
 #+begin_src emacs-lisp 

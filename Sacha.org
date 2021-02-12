@@ -6982,6 +6982,7 @@ cool. On Windows, these things help a little.
 :POSTID:   29670
 :END:
 
+Update: 2021-02-11: Parsed =pacmd list-sources= so that I can mute/unmute devices by regular expression.
 Update: 2021-02-07: Made it work with my USB microphone.
 
 I was experimenting with streaming Emacs geeking around on [[https://twitch.tv/sachachua][twitch.tv]].
@@ -7046,33 +7047,33 @@ my key repeat is less than 0.5 seconds, so I can set a timer that will
 turn things off after a little while. This code doesn't pick up any
 changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sources= to list the sources and get the IDs.
 
-~/bin/mic-on:
-#+begin_src sh :tangle ~/bin/mic-on :eval no :tangle-mode (identity #o755)
-pactl set-source-mute 1 0
-pactl set-source-mute 4 0
-pactl set-source-mute 5 0
-amixer set Capture cap
-#+end_src
-
-~/bin/mic-off:
-#+begin_src sh :tangle ~/bin/mic-off :eval no :tangle-mode (identity #o755)
-pactl set-source-mute 1 1
-pactl set-source-mute 4 1
-pactl set-source-mute 5 1
-amixer set Capture nocap
-#+end_src
-
 #+begin_src emacs-lisp
+(defun my/pacmd-set-device (regexp status)
+  (with-current-buffer (get-buffer-create "*pacmd*")
+    (erase-buffer)
+    (shell-command "pacmd list-sources" (current-buffer))
+    (goto-char (point-max))
+    (let (results)
+      (while (re-search-backward regexp nil t)
+        (when (re-search-backward "index: \\([[:digit:]]+\\)" nil t)
+          (setq results (cons (match-string 1) results))
+          (shell-command-to-string (format "pacmd set-source-mute %s %d"
+                                           (match-string 1)
+                                           (if (equal status 'on) 0 1)))))
+      results)))
+
 (defvar my/mic-p nil "Non-nil means microphone is on")
 (add-to-list 'mode-line-front-space '(:eval (if my/mic-p "*MIC*" "")))
 
 (defun my/mic-off ()
   (interactive)
-  (shell-command-to-string "~/bin/mic-off")
+  (my/pacmd-set-device "Yeti" 'off)
+  (my/pacmd-set-device "Internal Microphone" 'off)
   (setq my/mic-p nil))
 (defun my/mic-on ()
   (interactive)
-  (shell-command-to-string "~/bin/mic-on")
+  (my/pacmd-set-device "Yeti" 'on)
+  (my/pacmd-set-device "Internal Microphone" 'on)
   (setq my/mic-p t))
 (defun my/mic-toggle ()
   (interactive)

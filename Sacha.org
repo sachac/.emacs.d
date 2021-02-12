@@ -268,7 +268,8 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
   (add-to-list 'embark-allow-edit-commands #'my/stream-message) 
   :bind (("C-c e" . embark-act) 
          ("C-;" . embark-act) 
-         :map embark-general-map ("m" . my/stream-message)))
+         :map embark-general-map ("m" . my/stream-message)
+         :map embark-variable-map ("l" . edit-list)))
 (use-package 
   embark-consult 
   :after (embark consult) 

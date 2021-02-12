@@ -7208,10 +7208,10 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
                                             
 #+begin_src emacs-lisp
 (defun my/stream-intermission (text)
-  "Prompt me for a message before starting an intermission."
+  "Start an intermission and prompt me for a message."
   (interactive "MText: ")
-  (my/stream-message text)
-  (obs-websocket-send "SetCurrentScene" :scene-name "Intermission"))
+  (obs-websocket-send "SetCurrentScene" :scene-name "Intermission")
+  (my/stream-message text))
 #+end_src
 
 *** Show Emacs-related tasks

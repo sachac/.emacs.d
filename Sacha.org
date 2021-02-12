@@ -7088,7 +7088,7 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
   (message "Muting.")
   (my/mic-off)
   (force-mode-line-update)
-  (my/obs-websocket-add-subtitle (my/obs-websocket-stream-time-msecs) "[Microphone off]"))
+  (my/obs-websocket-add-caption (my/obs-websocket-recording-time-msecs) "[Microphone off]"))
 
 (defun my/push-to-talk ()
   "Tap to toggle microphone on and off, or repeat the command to make it push to talk."
@@ -7098,7 +7098,7 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
     (when (timerp my/push-to-talk-mute-timer)
       (cancel-timer my/push-to-talk-mute-timer))
     (my/mic-on)
-    (my/obs-websocket-add-subtitle (my/obs-websocket-stream-time-msecs) "[Microphone on]")
+    (my/obs-websocket-add-caption (my/obs-websocket-recording-time-msecs) "[Microphone on]")
     (setq my/push-to-talk-last-time (current-time)))
    ((timerp my/push-to-talk-mute-timer) ;; Push-to-talk mode
     (cancel-timer my/push-to-talk-mute-timer)
@@ -7128,7 +7128,7 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
     (text-scale-set 3)
     (insert text)
     (goto-char (point-min)))
-  (my/obs-websocket-add-subtitle (my/obs-websocket-stream-time-msecs) text)
+  (my/obs-websocket-add-caption (my/obs-websocket-stream-time-msecs) text)
   (when (erc-get-buffer "#sachachua")
     (with-current-buffer (erc-get-buffer "#sachachua")
       (erc-send-message text))))
@@ -7138,14 +7138,23 @@ It looks like neither [[https://github.com/Palakis/obs-websocket/releases/tag/4.
 work on Linux, so maybe I'll just save timestamped notes
 somewhere. I should make this work with recording timecodes, too.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp 
 (defvar my/obs-websocket-last-stream-timecode nil "(timecode-string . system-time)")
+(defvar my/obs-websocket-last-recording-timecode nil "(timecode-string . system-time)")
 
 (defun my/obs-websocket-message-handler (payload)
   "Save the current streaming timecode."
   (pcase (plist-get payload :update-type)
+    ("RecordingStarted" (my/obs-websocket-check-recording-timecode))
     ("StreamStatus"
      (setq my/obs-websocket-last-stream-timecode (cons (plist-get payload :stream-timecode) (current-time))))))
+
+(defun my/obs-websocket-check-recording-timecode ()
+  (obs-websocket-send "GetRecordingStatus"
+                      :callback
+                      (lambda (frame payload)
+                        (setq my/obs-websocket-last-recording-timecode
+                              (cons (plist-get payload :recordTimecode) (current-time))))))
 
 (defun my/obs-websocket-timecode-to-msecs (time-string)
   "Find HH:MM:SS.MS pattern in TIME-CODE and convert it to milliseconds.
@@ -7161,25 +7170,40 @@ Return nil if TIME-CODE doesn't match the pattern."
            (* (truncate secs) 1000)
            (truncate msecs))))))
 
-(defun my/obs-websocket-stream-time-msecs ()
-  "Return current stream time in milliseconds."
+(defun my/obs-websocket-adjust-timecode (timecode-time)
+  "Returns the current adjusted time in milliseconds based on TIMECODE-TIME. 
+TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
   (+ 
-   (my/obs-websocket-timecode-to-msecs (car my/obs-websocket-last-stream-timecode))
+   (my/obs-websocket-timecode-to-msecs (car timecode-time))
    (* 1000.0
       (- (time-to-seconds (current-time)) 
-         (time-to-seconds (cdr my/obs-websocket-last-stream-timecode))))))
+         (time-to-seconds (cdr timecode-time))))))
 
-(defvar my/obs-websocket-subtitle-file "~/captions.vtt" "File to put quick notes into.")
+(defun my/obs-websocket-stream-time-msecs ()
+  "Return current stream time in milliseconds."
+  (my/obs-websocket-adjust-timecode my/obs-websocket-last-stream-timecode))
 
-(defun my/obs-websocket-add-subtitle (ms text)
-  (interactive (list (my/obs-websocket-stream-time-msecs) (read-string "Text: ")))
-  (with-current-buffer (find-file-noselect my/obs-websocket-subtitle-file)
+(defun my/obs-websocket-recording-time-msecs ()
+  "Return current stream time in milliseconds."
+  (my/obs-websocket-adjust-timecode my/obs-websocket-last-recording-timecode))
+
+(defun my/obs-websocket-caption-file (&optional filename)
+  "Return the caption file for the current video."
+  (setq filename (or filename obs-websocket-recording-filename))
+  (when filename
+    (expand-file-name (concat (file-name-sans-extension filename) ".vtt")
+                      (file-name-directory filename))))
+
+(defun my/obs-websocket-add-caption (ms text)
+  (interactive (list (my/obs-websocket-recording-time-msecs) (read-string "Text: ")))
+  (with-current-buffer (find-file-noselect (my/obs-websocket-caption-file))
     (goto-char (point-max))
     (when (bobp) (insert "WEBVTT\n\n"))
     (subed-append-subtitle nil ms nil text)
     (save-excursion
       (when (subed-backward-subtitle-text)
-        (subed-set-subtitle-time-stop ms)))))
+        (subed-set-subtitle-time-stop ms)))
+    (save-buffer)))
 #+end_src
                                             
 #+begin_src emacs-lisp
@@ -7219,13 +7243,15 @@ Return nil if TIME-CODE doesn't match the pattern."
   (defhydra my/stream (:exit t)
     "Control the stream"
     ("a" my/show-emacs-tasks "Agenda")
+    ("c" my/obs-websocket-add-caption "Add caption")
     ("C" obs-websocket-connect "Connect")
     ("d" (obs-websocket-send "SetCurrentScene" :scene-name "Desktop") "Desktop")
     ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs")
     ("i" my/stream-intermission "Intermission")
     ("vs" (browse-url "https://twitch.tv/sachachua") "View stream")
     ("vv" (browse-url "https://dashboard.twitch.tv/u/sachachua/stream-manager") "View manager")
-    ("vc" (find-file my/obs-websocket-subtitle-file) "View captions")    
+    ("vc" (find-file (my/obs-websocket-subtitle-file)) "View captions")
+    ("vr" (my/play-latest-recording) "View recording")
     ("m" my/mic-toggle "Microphone")
     ("bm" my/stream-toggle-background-music "Background music")
     ("bt" selectric-mode "Typing sounds")
@@ -7245,10 +7271,16 @@ Return nil if TIME-CODE doesn't match the pattern."
 
     #+begin_src emacs-lisp
 (use-package mpv)
-(defvar my/recordings-dir "~/Videos/")
+(defvar my/recordings-dir "~/videos/")
 (defun my/play-latest-recording ()
   (interactive)
-  (mpv-play (my/latest-file my/recordings-dir)))
+  (let ((latest (my/latest-file my/recordings-dir)))
+    (if (file-exists-p (my/obs-websocket-caption-file latest))
+        (with-current-buffer (find-file-noselect (my/obs-websocket-caption-file (my/latest-file my/recordings-dir)))
+          (goto-char (point-min))
+          (subed-mpv-find-video latest)
+          (pop-to-buffer (current-buffer)))
+      (mpv-play (my/latest-file my/recordings-dir)))))
     #+end_src
 ** Other nifty Emacs things I want to learn
 *** Smartparens mode						      :drill:

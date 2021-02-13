@@ -473,10 +473,12 @@ possible, although I prefer ido's way of switching buffers.
     (setq helm-completing-read-handlers-alist
           '((describe-function)
             (consult-bookmark)
+            (org-refile-get-location)
             (consult-outline)
-            (org-refile)
             (consult-line)
+            (org-olpath-completing-read)
             (consult-mark)
+            (org-refile)
             (consult-multi-occur)
             (describe-variable)
             (execute-extended-command)
@@ -1740,9 +1742,10 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
           (goto-char (max beg end))
           (subed-subtitle-msecs-stop))))
 
-(defun my/extend-file-name (original name)
+(defun my/extend-file-name (original name &optional extension)
   "Add NAME to the end of ORIGINAL, before the file extension."
-  (concat (file-name-sans-extension original) " " name "." (file-name-extension original)))
+  (concat (file-name-sans-extension original) " " name "."
+          (or extension (file-name-extension original))))
 
 (defun my/subed-write-adjusted-subtitles (beg end name)
   (interactive "r\nMName: ")
@@ -1760,7 +1763,26 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
       (save-buffer)
       (buffer-file-name))))
 
-(defun my/subed-cut-ffmpeg (beg end name)
+(defun my/subed-make-animated-gif (beg end name)
+  (interactive "r\nMName: ")
+  (let* ((video-file (subed-guess-video-file))
+         (time-format "%.2h:%.2m:%.2,3s")
+         (msecs (my/subed-get-region-start-stop beg end))
+         (new-file (my/extend-file-name video-file name "gif"))
+         cmd)
+    (when (> (length name) 0)
+      (setq cmd
+            (format "ffmpeg -y -i %s -ss %s -t %s -vf subtitles=%s -r 10 -c:a copy -shortest -async 1 %s"
+                    (shell-quote-argument video-file)
+                    (format-seconds time-format (/ (car msecs) 1000.0))
+                    (format-seconds time-format (/ (- (cdr msecs) (car msecs)) 1000.0))
+                    (shell-quote-argument (my/subed-write-adjusted-subtitles beg end name))                
+                    (shell-quote-argument new-file)))
+      (message "%s" cmd)
+      (kill-new cmd)
+      (shell-command cmd))))
+
+(defun my/subed-cut-video (beg end name)
   (interactive "r\nMName: ")
   (let* ((video-file (subed-guess-video-file))
          (time-format "%.2h:%.2m:%.2,3s")

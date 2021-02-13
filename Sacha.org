@@ -241,6 +241,9 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
 (use-package selectrum-prescient :init (selectrum-prescient-mode +1) :after selectrum)
 (use-package company-prescient :init (company-prescient-mode +1))
 (use-package consult :quelpa (consult :fetcher github :repo "minad/consult")
+  :after projectile
+  :config
+  (setq consult-project-root-function #'projectile-project-root)
   :bind (("C-x r x" . consult-register)
          ("C-x r b" . consult-bookmark)
          ("M-g o" . consult-outline) 
@@ -278,7 +281,18 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
   ;; auto-updating embark collect buffer
   :hook (embark-collect-mode . embark-consult-preview-minor-mode))
 #+end_src
-     
+**** Using projects as a source for consult-buffer
+
+#+begin_src emacs-lisp
+  (setq my/consult-source-projectile-projects
+    `(:name     "Projectile projects"
+      :narrow   ?P
+      :category project
+      :action   ,#'projectile-switch-project-by-name
+      :items    ,projectile-known-projects))
+(use-package consult :config (add-to-list 'consult-buffer-sources my/consult-source-projectile-projects))
+    #+end_src
+
 **** Marginalia and hiding the value of password-ish variables     
      :PROPERTIES:
      :ID:       o2b:3820f642-27ea-4e3c-a261-a9c59417175f

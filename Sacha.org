@@ -2453,8 +2453,7 @@ able to clock in on them.
 (setq org-outline-path-complete-in-steps nil)
 (setq org-refile-allow-creating-parent-nodes 'confirm)
 (setq org-refile-use-cache nil)
-(setq org-refile-targets '((org-agenda-files . (:maxlevel . 5))
-                           ))
+(setq org-refile-targets '((("~/orgzly/organizer.org") . (:maxlevel . 5))))
 (setq org-blank-before-new-entry nil)
 #+end_src
 

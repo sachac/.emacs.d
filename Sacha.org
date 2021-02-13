@@ -1985,7 +1985,42 @@ probably get a little faster if I figure out good workflows for:
   help out even if I don't have enough focused time to think about a
   programming challenge or do a podcast myself. And I get to learn
   more in the process, too. Fun!
-  
+**** Edit text
+#+begin_src emacs-lisp
+(defvar my/subed-common-edits nil "List of words and replacements.")
+(setq my/subed-common-edits
+      '(("i" "I" t)
+        ("i've" "I've" t)
+        ("i'm" "I'm" t)
+        ("gonna" "going to" t)
+        ("wanna" "want to" t)
+        ("e-max" "Emacs" t)
+        ("emacs news" "Emacs News" t)
+        ("imax" "Emacs" t)))
+(defun my/subed-find-next-fix-point ()
+  (when (re-search-forward
+         (format "\\<%s\\>"
+                 (regexp-opt (mapcar 'car my/subed-common-edits)))
+         nil t)
+    (goto-char (match-beginning 0))))
+(defun my/subed-common-fixes ()
+  (interactive)
+  (let (done)
+    (while (and
+            (not done)
+            (my/subed-find-next-fix-point))
+      (let* ((entry (cdr (assoc (match-string 0) my/subed-common-edits)))
+             (c (if (elt entry 1)
+                    ?y
+                  (and entry (read-char (format "%s (yn.): " (car entry)))))))
+        (cond
+         ((null entry) (goto-char (match-end 0)))
+         ((= c ?y) (replace-match (car entry) t t))
+         ((= c ?n) (goto-char (match-end 0)))
+         ((= c ?j) (subed-mpv-jump-to-current-subtitle))
+         ((= c ?.) (setq done t)))
+      ))))
+#+end_src
 ** Org  :org:
 
 I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of

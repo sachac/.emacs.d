@@ -6059,26 +6059,21 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
   (magit-stage-modified)
   (magit-commit-create (list "-m" message))
   (call-interactively #'magit-push-current-to-pushremote))
-
-(use-package magit
-  :config
-  (when (equal system-type 'windows-nt)
-    (setq magit-git-executable "c:/program files (x86)/git/bin/git.exe"))
-  (setq magit-diff-options '("-b")) ; ignore whitespace
-  (define-key magit-mode-map "#gg" 'endless/load-gh-pulls-mode)
-  (defvar my/magit-limit-to-directory nil "Limit magit status to a specific directory.")
-  (defun my/magit-status-in-directory (directory)
-    "Displays magit status limited to DIRECTORY.
-        Uses the current `default-directory', or prompts for a directory
-        if called with a prefix argument. Sets `my/magit-limit-to-directory'
-        so that it's still active even after you stage a change. Very experimental."
-    (interactive (list (expand-file-name
+(defvar my/magit-limit-to-directory nil "Limit magit status to a specific directory.")
+(defun my/magit-status-in-directory (directory)
+  "Displays magit status limited to DIRECTORY.
+Uses the current `default-directory', or prompts for a directory
+if called with a prefix argument. Sets `my/magit-limit-to-directory'
+so that it's still active even after you stage a change. Very experimental."
+  (interactive (list (expand-file-name
                         (if current-prefix-arg
                             (read-directory-name "Directory: ")
                           default-directory))))
     (setq my/magit-limit-to-directory directory)
     (magit-status directory))
-
+(use-package magit
+  :config
+  (setq magit-diff-options '("-b")) ; ignore whitespace
   (defadvice magit-insert-untracked-files (around sacha activate)
     (if my/magit-limit-to-directory
         (magit-with-section (section untracked 'untracked "Untracked files:" t)
@@ -6123,6 +6118,7 @@ Thanks to sheijk for hints on tweaking magit to limit it to the current director
       ad-do-it))
   :bind (("C-x v C-d" . my/magit-status-in-directory)
          ("C-c g" . magit-file-dispatch)
+         ("C-x g" . magit-status)
          ("C-x v p" . magit-push)
          ("C-x v c" . my/magit-stage-all-and-commit)))
 

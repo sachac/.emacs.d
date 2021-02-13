@@ -1801,6 +1801,47 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
       (kill-new cmd)
       (shell-command cmd))))
 #+end_src
+**** Hide IDs and times
+#+begin_src emacs-lisp
+(defun my/subed-hide-nontext-at-current ()
+  (let* ((start (subed-jump-to-subtitle-id))
+         (end (subed-jump-to-subtitle-text))
+         (new-overlay (make-overlay start end)))
+    (overlay-put new-overlay 'invisible t)
+    (overlay-put new-overlay 'intangible t)
+    (overlay-put new-overlay 'evaporate t)
+    (overlay-put new-overlay 'read-only t)
+    (overlay-put new-overlay 'hide-non-text t)
+    (with-silent-modifications
+      (add-text-properties start end '(read-only t)))
+    new-overlay))
+
+(defun my/subed-hide-nontext ()
+  (interactive)
+  (remove-overlays (point-min) (point-max) 'invisible t)
+  (goto-char (point-min))
+  (subed-jump-to-subtitle-id)
+  (while (not (eobp))
+    (my/subed-hide-nontext-at-current)
+    (or (subed-forward-subtitle-id) (goto-char (point-max)))))
+
+(defun my/subed-show-all ()
+  (interactive)
+  (let ((inhibit-read-only t))
+    (with-silent-modifications
+      (remove-text-properties (point-min) (point-max) '(read-only t))
+      (remove-overlays (point-min) (point-max) 'invisible t))))
+
+(defun my/ignore-read-only (f &rest args)
+  (let ((inhibit-read-only t))
+    (apply f args)))
+
+(advice-add 'subed-split-and-merge-dwim :around #'my/ignore-read-only)
+(advice-add 'subed-split-subtitle :around #'my/ignore-read-only)
+(advice-add 'subed-merge-with-next :around #'my/ignore-read-only)
+(advice-add 'subed-merge-with-previous :around #'my/ignore-read-only)
+(advice-add 'subed-regenerate-ids :around #'my/ignore-read-only)
+#+end_src
 **** Other subtitle code
 #+begin_src emacs-lisp
 (defun my/subed-forward-word (&optional arg)

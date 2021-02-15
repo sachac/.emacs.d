@@ -539,7 +539,6 @@ possible, although I prefer ido's way of switching buffers.
          ("C-x c y" . helm-yas-complete)
          ("C-x c Y" . helm-yas-create-snippet-on-region)
          ("C-x c SPC" . helm-all-mark-rings)))
-(ido-mode -1) ;; Turn off ido mode in case I enabled it accidentally
 (use-package helm-ls-git)
 #+END_SRC
 Great for describing bindings. I'll replace the binding for =where-is= too.

@@ -1368,6 +1368,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
                :buffer "*helm-find-files*") "Find")
     ("j" my/helm-journal "Journal")
     ("n" my/capture-timestamped-note)
+    ("l" (my/toggle-or-create "*scratch*" (lambda () (switch-to-buffer (startup--get-buffer-create-scratch)))) "Lisp")
     ("d" my/emacs-news-check-duplicates "Dupe")
     ("c" my/org-categorize-emacs-news/body "Categorize")
     ("h" (lambda () (interactive) (my/org-update-link-description "HN")) "Link HN")
@@ -1611,7 +1612,23 @@ Copied from Prelude: http://emacsredux.com/blog/2013/03/27/open-file-in-external
 Don't use docview for PDFs.
 (add-to-list 'org-file-apps '("pdf" . "evince %s"))
 
+*** Toggle
+
+    Based on https://www.reddit.com/r/emacs/comments/l4v1ux/one_of_the_most_useful_small_lisp_functions_in_my/
     
+    #+begin_src emacs-lisp
+(defun my/toggle-or-create (buffer-name buffer-create-fn &optional switch-cont)
+  (interactive)
+  (let ((target-buf (get-buffer buffer-name)))
+    (prin1 target-buf)
+    (cond
+     ((equal (current-buffer) target-buf) (switch-to-buffer nil))
+     (target-buf
+      (switch-to-buffer target-buf)
+      (if switch-cont (funcall switch-cont)))
+     (t (funcall buffer-create-fn)
+        (if switch-cont (funcall switch-cont))))))
+       #+end_src
 ** Reading
 
 https://github.com/xahlee/xah_emacs_init/blob/master/xah_emacs_font.el

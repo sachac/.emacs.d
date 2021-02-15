@@ -525,9 +525,7 @@ possible, although I prefer ido's way of switching buffers.
           helm-yas-display-key-on-candidate t
           helm-quick-update t
           helm-M-x-requires-pattern nil
-          helm-ff-skip-boring-files t)
-    (helm-mode))
-  :config
+          helm-ff-skip-boring-files t))
   (defadvice helm-files-insert-as-org-links (around sacha activate)
     (insert (mapconcat (lambda (candidate)
                          (org-link-make-string candidate))

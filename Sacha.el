@@ -926,6 +926,7 @@ Based on `elisp-get-fnsym-args-string.'"
     ("m" my/share-emacs-news "Mail"))
   (global-set-key (kbd "<f5>") 'my/shortcuts/body))
 
+(use-package pretty-hydra)
 (defun my/org-insert-link ()
   (interactive)
   (when (org-in-regexp org-bracket-link-regexp 1)
@@ -5420,6 +5421,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
     :super-groups '((:auto-parent t))))
 
 (use-package obs-websocket
+  :after pretty-hydra
   :config
   (add-to-list 'obs-websocket-on-message-payload-functions #'my/obs-websocket-message-handler)
   (defhydra my/stream-recording (:exit t)
@@ -5430,28 +5432,36 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
            ("p" (my/play-latest-recording) "Play last")
            ("c" (obs-websocket-send "ResumeRecording") "Continue")
            ("e" (obs-websocket-send "StopRecording") "End"))
-  (defhydra my/stream (:exit t)
-    "Control the stream"
-    ("a" my/show-emacs-tasks "Agenda")
-    ("c" my/obs-websocket-add-caption "Add caption")
-    ("C" obs-websocket-connect "Connect")
-    ("d" (obs-websocket-send "SetCurrentScene" :scene-name "Desktop") "Desktop")
-    ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs")
-    ("i" my/stream-intermission "Intermission")
-    ("vs" (browse-url "https://twitch.tv/sachachua") "View stream")
-    ("vv" (browse-url "https://dashboard.twitch.tv/u/sachachua/stream-manager") "View manager")
-    ("vc" (find-file (my/obs-websocket-subtitle-file)) "View captions")
-    ("vr" (my/play-latest-recording) "View recording")
-    ("m" my/mic-toggle "Microphone")
-    ("bm" my/stream-toggle-background-music "Background music")
-    ("bt" selectric-mode "Typing sounds")
-    ("t" my/stream-message "Message")
-    ("x" (obs-websocket-send "StopStreaming") "Stream - end")
-    ("<f8>" my/stream-message "Message") ;; Then I can just f8 f8
-    ("sb" (obs-websocket-send "StartStreaming") "Stream - start")
-    ("ss" (obs-websocket-send "StartStopStreaming") "Stream - toggle")
-    ("se" (obs-websocket-send "StopStreaming") "Stream - end")
-    ("r" my/stream-recording/body "Recording"))
+  (pretty-hydra-define my/stream (:quit-key "q")
+    ("Setup"
+     (("C" obs-websocket-connect "Connect")
+      ("bt" selectric-mode "Typing sounds")
+      ("bm" my/stream-toggle-background-music "Background music")
+      ("a" my/show-emacs-tasks "Agenda")
+      ("vs" (browse-url "https://twitch.tv/sachachua") "View stream")
+      ("vv" (browse-url "https://dashboard.twitch.tv/u/sachachua/stream-manager") "View manager")
+      ("m" my/mic-toggle "Microphone"))
+     "Streaming"
+     (("x" (obs-websocket-send "StopStreaming") "Stream - end")
+      ("sb" (obs-websocket-send "StartStreaming") "Stream - start")
+      ("ss" (obs-websocket-send "StartStopStreaming") "Stream - toggle")
+      ("se" (obs-websocket-send "StopStreaming") "Stream - end"))
+     "Recording"
+     (("rb" (obs-websocket-send "StartRecording") "Begin")
+      ("rr" (obs-websocket-send "StartStopRecording") "Toggle")
+      ("rp" (obs-websocket-send "PauseRecording") "Pause")
+      ("rv" (my/play-latest-recording) "Play last")
+      ("rc" (obs-websocket-send "ResumeRecording") "Continue")
+      ("re" (obs-websocket-send "StopRecording") "End"))
+     "Scenes"
+     (("d" (obs-websocket-send "SetCurrentScene" :scene-name "Desktop") "Desktop")
+      ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs")
+      ("i" my/stream-intermission "Intermission"))
+     "Captions"
+     (("c" my/obs-websocket-add-caption "Add caption")
+      ("vc" (find-file (my/obs-websocket-subtitle-file)) "View captions")
+      ("t" my/stream-message "Message" :hint nil)     
+      ("<f8>" my/stream-message "Message" :hint nil))))
   (global-set-key (kbd "<f8>") #'my/stream/body)
   (add-to-list 'obs-websocket-on-message-payload-functions #'my/obs-websocket-message-handler)
   :load-path "~/code/obs-websocket-el" :ensure nil)

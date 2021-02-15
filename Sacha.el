@@ -78,18 +78,53 @@
 (use-package company-prescient :init (company-prescient-mode +1))
 (use-package consult :quelpa (consult :fetcher github :repo "minad/consult")
   :after projectile
-  :config
-  (setq consult-project-root-function #'projectile-project-root)
   :bind (("C-x r x" . consult-register)
          ("C-x r b" . consult-bookmark)
+         ("C-c k" . consult-kmacro)
+         ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complet-command
+         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+         ("C-x 5 b" . consult-buffer-other-frame)
+         ("M-#" . consult-register-load)
+         ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+         ("C-M-#" . consult-register)
          ("M-g o" . consult-outline) 
          ("M-g m" . consult-mark)
          ("C-x b" . consult-buffer)
-         ("M-y" . consult-yank)
+         ("M-y" . consult-yank-pop)
+         ("<help> a" . consult-apropos)            ;; orig. apropos-command
+          ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+         ("M-g o" . consult-outline)
+         ("M-g m" . consult-mark)
+         ("M-g k" . consult-global-mark)
+         ("M-g i" . consult-imenu)
+         ("M-g I" . consult-project-imenu)
+         ("M-g e" . consult-error)
+         ;; M-s bindings (search-map)
+         ("M-s f" . consult-find)
+         ("M-s L" . consult-locate)
+         ("M-s g" . consult-grep)
+         ("M-s G" . consult-git-grep)
+         ("M-s r" . consult-ripgrep)
+         ("M-s l" . consult-line)
+         ("M-s m" . consult-multi-occur)
+         ("M-s k" . consult-keep-lines)
+         ("M-s u" . consult-focus-lines)
+         ;; Isearch integration
+         ("M-s e" . consult-isearch)
          ("M-g l" . consult-line)    
          ("M-s m" . consult-multi-occur)
          ("C-x c o" . consult-multi-occur)
-         ("C-x c SPC" . consult-mark)))
+         ("C-x c SPC" . consult-mark)
+         :map isearch-mode-map
+         ("M-e" . consult-isearch)                 ;; orig. isearch-edit-string
+         ("M-s e" . consult-isearch)               ;; orig. isearch-edit-string
+         ("M-s l" . consult-line))
+  :init
+  (setq register-preview-delay 0
+        register-preview-function #'consult-register-format)
+  :config
+  (setq consult-project-root-function #'projectile-project-root)
+  (setq consult-narrow-key "<"))
 (use-package marginalia :quelpa (marginalia :fetcher github :repo "minad/marginalia")
   :init
   (marginalia-mode)
@@ -123,7 +158,7 @@
       :category project
       :action   ,#'projectile-switch-project-by-name
       :items    ,projectile-known-projects))
-(use-package consult :config (add-to-list 'consult-buffer-sources my/consult-source-projectile-projects))
+(use-package consult :config (add-to-list 'consult-buffer-sources my/consult-source-projectile-projects 'append)))
 
 (defun my/marginalia-annotate-variable (cand)
   "Annotate variable CAND with its documentation string."
@@ -254,7 +289,7 @@ Based on `elisp-get-fnsym-args-string.'"
 
 (use-package helm
   :diminish helm-mode
-  :init
+  :config
   (progn
     (require 'helm-config)
     (require 'helm-for-files)
@@ -279,9 +314,7 @@ Based on `elisp-get-fnsym-args-string.'"
           helm-yas-display-key-on-candidate t
           helm-quick-update t
           helm-M-x-requires-pattern nil
-          helm-ff-skip-boring-files t)
-    (helm-mode))
-  :config
+          helm-ff-skip-boring-files t))
   (defadvice helm-files-insert-as-org-links (around sacha activate)
     (insert (mapconcat (lambda (candidate)
                          (org-link-make-string candidate))
@@ -295,7 +328,6 @@ Based on `elisp-get-fnsym-args-string.'"
          ("C-x c y" . helm-yas-complete)
          ("C-x c Y" . helm-yas-create-snippet-on-region)
          ("C-x c SPC" . helm-all-mark-rings)))
-(ido-mode -1) ;; Turn off ido mode in case I enabled it accidentally
 (use-package helm-ls-git)
 
 (use-package helm-descbinds
@@ -918,6 +950,7 @@ Based on `elisp-get-fnsym-args-string.'"
                :buffer "*helm-find-files*") "Find")
     ("j" my/helm-journal "Journal")
     ("n" my/capture-timestamped-note)
+    ("l" (my/toggle-or-create "*scratch*" (lambda () (switch-to-buffer (startup--get-buffer-create-scratch)))) "Lisp")
     ("d" my/emacs-news-check-duplicates "Dupe")
     ("c" my/org-categorize-emacs-news/body "Categorize")
     ("h" (lambda () (interactive) (my/org-update-link-description "HN")) "Link HN")
@@ -1091,6 +1124,18 @@ Based on `elisp-get-fnsym-args-string.'"
                      (t (read-shell-command "Open current file with: ")))
                     " "
                     (shell-quote-argument buffer-file-name)))))
+
+(defun my/toggle-or-create (buffer-name buffer-create-fn &optional switch-cont)
+  (interactive)
+  (let ((target-buf (get-buffer buffer-name)))
+    (prin1 target-buf)
+    (cond
+     ((equal (current-buffer) target-buf) (switch-to-buffer nil))
+     (target-buf
+      (switch-to-buffer target-buf)
+      (if switch-cont (funcall switch-cont)))
+     (t (funcall buffer-create-fn)
+        (if switch-cont (funcall switch-cont))))))
 
 (defun xah-toggle-margin-right ()
   "Toggle the right margin between `fill-column' or window width.
@@ -1711,7 +1756,8 @@ Based on `elisp-get-fnsym-args-string.'"
 (setq org-outline-path-complete-in-steps nil)
 (setq org-refile-allow-creating-parent-nodes 'confirm)
 (setq org-refile-use-cache nil)
-(setq org-refile-targets '((("~/orgzly/organizer.org") . (:maxlevel . 5))))
+(setq org-refile-targets '((("~/orgzly/organizer.org"
+                             "~/orgzly/routines.org") . (:maxlevel . 5))))
 (setq org-blank-before-new-entry nil)
 
 ;; Example: (org-refile 4 nil (my/org-refile-get-location-by-substring "Other Emacs"))
@@ -5299,7 +5345,7 @@ so that it's still active even after you stage a change. Very experimental."
   (message "Muting.")
   (my/mic-off)
   (force-mode-line-update)
-  (my/obs-websocket-add-caption (my/obs-websocket-recording-time-msecs) "[Microphone off]"))
+  (when obs-websocket-recording-p (my/obs-websocket-add-caption "[Microphone off]")))
 
 (defun my/push-to-talk ()
   "Tap to toggle microphone on and off, or repeat the command to make it push to talk."
@@ -5307,9 +5353,9 @@ so that it's still active even after you stage a change. Very experimental."
   (cond
    ((null my/mic-p) ;; It's off, so turn it on
     (when (timerp my/push-to-talk-mute-timer)
-      (cancel-timer my/push-to-talk-mute-timer))
+      (cancel-timer my/push-to-talk-mute-timer)) 
     (my/mic-on)
-    (my/obs-websocket-add-caption (my/obs-websocket-recording-time-msecs) "[Microphone on]")
+    (when obs-websocket-recording-p (my/obs-websocket-add-caption "[Microphone on]"))
     (setq my/push-to-talk-last-time (current-time)))
    ((timerp my/push-to-talk-mute-timer) ;; Push-to-talk mode
     (cancel-timer my/push-to-talk-mute-timer)
@@ -5334,7 +5380,7 @@ so that it's still active even after you stage a change. Very experimental."
     (text-scale-set 3)
     (insert text)
     (goto-char (point-min)))
-  (my/obs-websocket-add-caption (my/obs-websocket-stream-time-msecs) text)
+  (my/obs-websocket-add-caption text)
   (when (erc-get-buffer "#sachachua")
     (with-current-buffer (erc-get-buffer "#sachachua")
       (erc-send-message text))))
@@ -5360,7 +5406,7 @@ so that it's still active even after you stage a change. Very experimental."
   "Find HH:MM:SS.MS pattern in TIME-CODE and convert it to milliseconds.
 Return nil if TIME-CODE doesn't match the pattern."
   (save-match-data
-    (when (string-match "\\([0-9]+\\):\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)" time-string)
+    (when (and time-string (string-match "\\([0-9]+\\):\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)" time-string))
       (let ((hours (string-to-number (match-string 1 time-string)))
             (mins  (string-to-number (match-string 2 time-string)))
             (secs  (string-to-number (match-string 3 time-string)))
@@ -5373,11 +5419,12 @@ Return nil if TIME-CODE doesn't match the pattern."
 (defun my/obs-websocket-adjust-timecode (timecode-time)
   "Returns the current adjusted time in milliseconds based on TIMECODE-TIME. 
 TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
-  (+ 
-   (my/obs-websocket-timecode-to-msecs (car timecode-time))
-   (* 1000.0
-      (- (time-to-seconds (current-time)) 
-         (time-to-seconds (cdr timecode-time))))))
+  (when timecode-time
+    (+ 
+     (my/obs-websocket-timecode-to-msecs (car timecode-time))
+     (* 1000.0
+        (- (time-to-seconds (current-time)) 
+           (time-to-seconds (cdr timecode-time)))))))
 
 (defun my/obs-websocket-stream-time-msecs ()
   "Return current stream time in milliseconds."
@@ -5394,16 +5441,19 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
     (expand-file-name (concat (file-name-sans-extension filename) ".vtt")
                       (file-name-directory filename))))
 
-(defun my/obs-websocket-add-caption (ms text)
-  (interactive (list (my/obs-websocket-recording-time-msecs) (read-string "Text: ")))
-  (with-current-buffer (find-file-noselect (my/obs-websocket-caption-file))
-    (goto-char (point-max))
-    (when (bobp) (insert "WEBVTT\n\n"))
-    (subed-append-subtitle nil ms nil text)
-    (save-excursion
-      (when (subed-backward-subtitle-text)
-        (subed-set-subtitle-time-stop ms)))
-    (save-buffer)))
+(defun my/obs-websocket-add-caption (text &optional ms)
+  (interactive (list (read-string "Text: ")))
+  (obs-websocket-send "SendCaptions" :text text)
+  (setq ms (or ms (my/obs-websocket-recording-time-msecs)))
+  (when obs-websocket-recording-filename
+    (with-current-buffer (find-file-noselect (my/obs-websocket-caption-file))
+      (goto-char (point-max))
+      (when (bobp) (insert "WEBVTT\n\n"))
+      (subed-append-subtitle nil ms nil text)
+      (save-excursion
+        (when (subed-backward-subtitle-text)
+          (subed-set-subtitle-time-stop ms)))
+      (save-buffer))))
 
 (defun my/stream-intermission (text)
   "Start an intermission and prompt me for a message."
@@ -5432,6 +5482,11 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
            ("p" (my/play-latest-recording) "Play last")
            ("c" (obs-websocket-send "ResumeRecording") "Continue")
            ("e" (obs-websocket-send "StopRecording") "End"))
+  (defvaralias 'my/mic-toggle 'my/mic-p)
+  (defun my/stream-toggle-streaming () (interactive)  (obs-websocket-send "StartStopStreaming"))
+  (defun my/stream-toggle-recording () (interactive) (obs-websocket-send "StartStopRecording"))
+  (defvaralias 'my/stream-toggle-streaming 'obs-websocket-streaming-p)
+  (defvaralias 'my/stream-toggle-recording 'obs-websocket-recording-p)
   (pretty-hydra-define my/stream (:quit-key "q")
     ("Setup"
      (("C" obs-websocket-connect "Connect")
@@ -5440,28 +5495,20 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
       ("a" my/show-emacs-tasks "Agenda")
       ("vs" (browse-url "https://twitch.tv/sachachua") "View stream")
       ("vv" (browse-url "https://dashboard.twitch.tv/u/sachachua/stream-manager") "View manager")
-      ("m" my/mic-toggle "Microphone"))
-     "Streaming"
-     (("x" (obs-websocket-send "StopStreaming") "Stream - end")
-      ("sb" (obs-websocket-send "StartStreaming") "Stream - start")
-      ("ss" (obs-websocket-send "StartStopStreaming") "Stream - toggle")
-      ("se" (obs-websocket-send "StopStreaming") "Stream - end"))
-     "Recording"
-     (("rb" (obs-websocket-send "StartRecording") "Begin")
-      ("rr" (obs-websocket-send "StartStopRecording") "Toggle")
-      ("rp" (obs-websocket-send "PauseRecording") "Pause")
-      ("rv" (my/play-latest-recording) "Play last")
-      ("rc" (obs-websocket-send "ResumeRecording") "Continue")
-      ("re" (obs-websocket-send "StopRecording") "End"))
+      ("m" my/mic-toggle "Toggle mic" :toggle t))
+     "Streaming/recording"
+     (("s" my/stream-toggle-streaming "Streaming - toggle" :toggle t :exit t)
+      ("r" my/stream-toggle-recording "Recording - toggle" :toggle t :exit t)
+      ("v" (my/play-latest-recording) "Play last"))
      "Scenes"
-     (("d" (obs-websocket-send "SetCurrentScene" :scene-name "Desktop") "Desktop")
-      ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs")
-      ("i" my/stream-intermission "Intermission"))
+     (("d" (obs-websocket-send "SetCurrentScene" :scene-name "Desktop") "Desktop" :exit t)
+      ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs" :exit t)
+      ("i" my/stream-intermission "Intermission" :exit t))
      "Captions"
-     (("c" my/obs-websocket-add-caption "Add caption")
-      ("vc" (find-file (my/obs-websocket-subtitle-file)) "View captions")
-      ("t" my/stream-message "Message" :hint nil)     
-      ("<f8>" my/stream-message "Message" :hint nil))))
+     (("n" my/obs-websocket-add-caption "Add caption" :exit t)
+      ("c" (find-file (my/obs-websocket-subtitle-file)) "View captions" :exit t)
+      ("t" my/stream-message "Message" :hint nil :exit t)
+      ("<f8>" my/stream-message "Message" :hint nil :exit t))))
   (global-set-key (kbd "<f8>") #'my/stream/body)
   (add-to-list 'obs-websocket-on-message-payload-functions #'my/obs-websocket-message-handler)
   :load-path "~/code/obs-websocket-el" :ensure nil)

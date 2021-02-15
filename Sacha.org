@@ -7302,7 +7302,7 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
   (message "Muting.")
   (my/mic-off)
   (force-mode-line-update)
-  (my/obs-websocket-add-caption (my/obs-websocket-recording-time-msecs) "[Microphone off]"))
+  (when obs-websocket-recording-p (my/obs-websocket-add-caption "[Microphone off]")))
 
 (defun my/push-to-talk ()
   "Tap to toggle microphone on and off, or repeat the command to make it push to talk."
@@ -7310,9 +7310,9 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
   (cond
    ((null my/mic-p) ;; It's off, so turn it on
     (when (timerp my/push-to-talk-mute-timer)
-      (cancel-timer my/push-to-talk-mute-timer))
+      (cancel-timer my/push-to-talk-mute-timer)) 
     (my/mic-on)
-    (my/obs-websocket-add-caption (my/obs-websocket-recording-time-msecs) "[Microphone on]")
+    (when obs-websocket-recording-p (my/obs-websocket-add-caption "[Microphone on]"))
     (setq my/push-to-talk-last-time (current-time)))
    ((timerp my/push-to-talk-mute-timer) ;; Push-to-talk mode
     (cancel-timer my/push-to-talk-mute-timer)
@@ -7342,7 +7342,7 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
     (text-scale-set 3)
     (insert text)
     (goto-char (point-min)))
-  (my/obs-websocket-add-caption (my/obs-websocket-stream-time-msecs) text)
+  (my/obs-websocket-add-caption text)
   (when (erc-get-buffer "#sachachua")
     (with-current-buffer (erc-get-buffer "#sachachua")
       (erc-send-message text))))
@@ -7374,7 +7374,7 @@ somewhere. I should make this work with recording timecodes, too.
   "Find HH:MM:SS.MS pattern in TIME-CODE and convert it to milliseconds.
 Return nil if TIME-CODE doesn't match the pattern."
   (save-match-data
-    (when (string-match "\\([0-9]+\\):\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)" time-string)
+    (when (and time-string (string-match "\\([0-9]+\\):\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)" time-string))
       (let ((hours (string-to-number (match-string 1 time-string)))
             (mins  (string-to-number (match-string 2 time-string)))
             (secs  (string-to-number (match-string 3 time-string)))
@@ -7387,11 +7387,12 @@ Return nil if TIME-CODE doesn't match the pattern."
 (defun my/obs-websocket-adjust-timecode (timecode-time)
   "Returns the current adjusted time in milliseconds based on TIMECODE-TIME. 
 TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
-  (+ 
-   (my/obs-websocket-timecode-to-msecs (car timecode-time))
-   (* 1000.0
-      (- (time-to-seconds (current-time)) 
-         (time-to-seconds (cdr timecode-time))))))
+  (when timecode-time
+    (+ 
+     (my/obs-websocket-timecode-to-msecs (car timecode-time))
+     (* 1000.0
+        (- (time-to-seconds (current-time)) 
+           (time-to-seconds (cdr timecode-time)))))))
 
 (defun my/obs-websocket-stream-time-msecs ()
   "Return current stream time in milliseconds."
@@ -7408,16 +7409,19 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
     (expand-file-name (concat (file-name-sans-extension filename) ".vtt")
                       (file-name-directory filename))))
 
-(defun my/obs-websocket-add-caption (ms text)
-  (interactive (list (my/obs-websocket-recording-time-msecs) (read-string "Text: ")))
-  (with-current-buffer (find-file-noselect (my/obs-websocket-caption-file))
-    (goto-char (point-max))
-    (when (bobp) (insert "WEBVTT\n\n"))
-    (subed-append-subtitle nil ms nil text)
-    (save-excursion
-      (when (subed-backward-subtitle-text)
-        (subed-set-subtitle-time-stop ms)))
-    (save-buffer)))
+(defun my/obs-websocket-add-caption (text &optional ms)
+  (interactive (list (read-string "Text: ")))
+  (obs-websocket-send "SendCaptions" :text text)
+  (setq ms (or ms (my/obs-websocket-recording-time-msecs)))
+  (when obs-websocket-recording-filename
+    (with-current-buffer (find-file-noselect (my/obs-websocket-caption-file))
+      (goto-char (point-max))
+      (when (bobp) (insert "WEBVTT\n\n"))
+      (subed-append-subtitle nil ms nil text)
+      (save-excursion
+        (when (subed-backward-subtitle-text)
+          (subed-set-subtitle-time-stop ms)))
+      (save-buffer))))
 #+end_src
                                             
 #+begin_src emacs-lisp

@@ -152,13 +152,17 @@
   ;; auto-updating embark collect buffer
   :hook (embark-collect-mode . embark-consult-preview-minor-mode))
 
+(use-package consult
+  :after projectile
+  :config
+  (projectile-load-known-projects)
   (setq my/consult-source-projectile-projects
-    `(:name     "Projectile projects"
-      :narrow   ?P
-      :category project
-      :action   ,#'projectile-switch-project-by-name
-      :items    ,projectile-known-projects))
-(use-package consult :config (add-to-list 'consult-buffer-sources my/consult-source-projectile-projects 'append)))
+        `(:name "Projectile projects"
+                :narrow   ?P
+                :category project
+                :action   ,#'projectile-switch-project-by-name
+                :items    ,projectile-known-projects))
+  (add-to-list 'consult-buffer-sources my/consult-source-projectile-projects 'append))
 
 (defun my/marginalia-annotate-variable (cand)
   "Annotate variable CAND with its documentation string."
@@ -284,8 +288,7 @@ Based on `elisp-get-fnsym-args-string.'"
   (advice-add 'embark-keymap-prompter :filter-return #'my/store-action-key+cmd) 
   (add-to-list 'embark-allow-edit-commands #'my/stream-message) 
   (add-hook 'embark-collect-mode-hook #'my/shrink-selectrum) 
-  (add-hook 'embark-pre-action-hook #'my/refresh-selectrum) 
-  (add-hook 'embark-post-action-hook #'my/embark-collect--update-linked))
+  (add-hook 'embark-pre-action-hook #'my/refresh-selectrum))
 
 (use-package helm
   :diminish helm-mode
@@ -762,6 +765,7 @@ Based on `elisp-get-fnsym-args-string.'"
    ("<f2> <down>" . windmove-down)
    ))
 
+(setq bookmark-watch-bookmark-file 'silent)
 (defvar my/refile-map (make-sparse-keymap))
 
 (defmacro my/defshortcut (key file)
@@ -1305,10 +1309,10 @@ Based on `elisp-get-fnsym-args-string.'"
       (kill-new cmd)
       (shell-command cmd))))
 
-(defun my/subed-hide-nontext-at-current ()
-  (let* ((start (subed-jump-to-subtitle-id))
-         (end (subed-jump-to-subtitle-text))
-         (new-overlay (make-overlay start end)))
+(define-minor-mode my/subed-hide-nontext-minor-mode
+  "Minor mode for hiding non-text stuff.")
+(defun my/subed-hide-nontext-overlay (start end)
+  (let ((new-overlay (make-overlay start end)))
     (overlay-put new-overlay 'invisible t)
     (overlay-put new-overlay 'intangible t)
     (overlay-put new-overlay 'evaporate t)
@@ -1321,11 +1325,16 @@ Based on `elisp-get-fnsym-args-string.'"
 (defun my/subed-hide-nontext ()
   (interactive)
   (remove-overlays (point-min) (point-max) 'invisible t)
-  (goto-char (point-min))
-  (subed-jump-to-subtitle-id)
-  (while (not (eobp))
-    (my/subed-hide-nontext-at-current)
-    (or (subed-forward-subtitle-id) (goto-char (point-max)))))
+  (when my/subed-hide-nontext-minor-mode
+    (save-excursion
+      (goto-char (point-min))
+      (subed-jump-to-subtitle-id)
+      (my/subed-hide-nontext-overlay (point-min) (subed-jump-to-subtitle-text))
+      (let (next)
+        (while (setq next (save-excursion (subed-forward-subtitle-text)))
+          (subed-jump-to-subtitle-end)
+          (my/subed-hide-nontext-overlay (1+ (point)) (1- next))
+          (subed-forward-subtitle-text))))))
 
 (defun my/subed-show-all ()
   (interactive)
@@ -1336,13 +1345,15 @@ Based on `elisp-get-fnsym-args-string.'"
 
 (defun my/ignore-read-only (f &rest args)
   (let ((inhibit-read-only t))
-    (apply f args)))
+    (apply f args)
+    (my/subed-hide-nontext)))
 
 (advice-add 'subed-split-and-merge-dwim :around #'my/ignore-read-only)
 (advice-add 'subed-split-subtitle :around #'my/ignore-read-only)
 (advice-add 'subed-merge-with-next :around #'my/ignore-read-only)
 (advice-add 'subed-merge-with-previous :around #'my/ignore-read-only)
 (advice-add 'subed-regenerate-ids :around #'my/ignore-read-only)
+(advice-add 'subed-kill-subtitle :around #'my/ignore-read-only)
 
 (defun my/subed-forward-word (&optional arg)
   "Skip timestamps."
@@ -1465,6 +1476,33 @@ Based on `elisp-get-fnsym-args-string.'"
          ((= c ?j) (subed-mpv-jump-to-current-subtitle))
          ((= c ?.) (setq done t)))
       ))))
+
+(defun my/geeqie-next ()
+  (interactive)
+  (shell-command "geeqie --remote -n"))
+(defun my/geeqie-previous ()
+  (interactive)
+  (shell-command "geeqie --remote -b"))
+(defun my/geeqie-filename ()
+  (string-trim (shell-command-to-string "geeqie --remote --tell")))
+(defun my/geeqie-view (filenames)
+  (interactive "f")
+  (shell-command
+   (concat "geeqie --remote "
+           (mapconcat (lambda (f)
+                        (concat "file:" (shell-quote-argument f)))
+                      (if (listp filename) filenames (list filenames))
+                      " "))))
+(defhydra my/photo ()
+  "Photos"
+  ("n" my/geeqie-next "Next")
+  ("p" my/geeqie-previous "Previous")
+  ("<up>" (forward-line -1) :hint nil)
+  ("<down>" forward-line :hint nil)
+  ("i" (insert (my/geeqie-filename) "\n")
+   "Insert filename")
+  ("v" (my/geeqie-view (string-trim (thing-at-point 'line))) "View")
+  ("l" (insert "- " (my/geeqie-filename) "\n") "Insert filename as list item"))
 
 (setq org-export-with-sub-superscripts nil)
 

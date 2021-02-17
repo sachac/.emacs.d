@@ -2269,19 +2269,26 @@ Based on `elisp-get-fnsym-args-string.'"
   "Usual list of contexts.")
 (defun my/org-agenda-skip-scheduled ()
   (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
+
 (setq org-agenda-custom-commands
       `(("a" "Agenda"
          ((agenda "" ((org-agenda-span 2)))
+          ;; Projects
+          (tags "+project-someday-TODO=\"DONE\"-TODO=\"SOMEDAY\"-inactive-evilplans"
+                ((org-tags-exclude-from-inheritance '("project"))
+                 (org-agenda-prefix-format "  ")
+                 (org-agenda-overriding-header "Projects: ")
+                 (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
+          ;; Inbox
+          (alltodo ""
+                   ((org-agenda-files '("~/orgzly/Inbox.org" "~/orgzly/computer-inbox.org"))
+                    (org-agenda-prefix-format "  ")
+                    (org-agenda-overriding-header "Inbox: ")))
           ;; Unscheduled
           (tags-todo "TODO=\"TODO\"-project-cooking-routine-errands-shopping-video-evilplans" 
                      ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
                       (org-agenda-overriding-header "Unscheduled TODO entries: ")
                       (org-agenda-sorting-strategy '(priority-down effort-up tag-up category-keep))))
-          ;; Active projects
-          (tags "+project-someday-TODO=\"DONE\"-TODO=\"SOMEDAY\"-inactive-evilplans"
-                ((org-tags-exclude-from-inheritance '("project"))
-                 (org-agenda-overriding-header "Projects: ")
-                 (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
           ))
         ("e" "Emacs" (tags "emacs"))
         ("i" "Inbox" alltodo ""
@@ -5300,21 +5307,66 @@ so that it's still active even after you stage a change. Very experimental."
                 urls)))
 
 (defvar my/stream-message-buffer-name "Stream message")
+;; https://emacs.stackexchange.com/questions/19035/finding-frames-by-name
+(defun my/get-frame-by-name (fname)
+  "If there is a frame named FNAME, return it, else nil."
+  (seq-find (lambda (frame)
+              (when (equal fname (frame-parameter frame 'name))
+             frame))
+            (frame-list)))
+;; (obs-websocket-send "GetSourceSettings" :sourceName "Command log" :callback (lambda  (frame payload) (prin1 payload)))
+(defun my/wmctl-get-id (window-name)
+  (string-to-number (replace-regexp-in-string "^0x\\|\n" "" (shell-command-to-string (format "wmctrl -l | grep %s | awk '{print $1}'" (shell-quote-argument window-name)))) 16))
+
+(defun my/stream-fix-sources ()
+  (interactive)
+  (obs-websocket-send "SetSourceSettings" :sourceName "Command log"
+                      :sourceSettings
+                      `(:capture_window
+                        ,(format "%d\n%s\n%s"
+                                 (my/wmctl-get-id "command-log")
+                                 " *command-log*"
+                                 "emacs")))
+  (obs-websocket-send "SetSourceSettings" :sourceName "Message"
+                      :sourceSettings
+                      `(:capture_window
+                        ,(format "%d\n%s\n%s"
+                                 (my/wmctl-get-id "Stream")
+                                 "Stream message"
+                                 "emacs"))))
+
+(defun my/stream-set-up-frames ()
+  (interactive)
+  (command-log-mode 1)
+  (with-selected-frame (or (my/get-frame-by-name my/stream-message-buffer-name)
+                           (make-frame '((minibuffer . nil))))
+    (switch-to-buffer (get-buffer-create my/stream-message-buffer-name))
+    (erase-buffer)
+    (text-scale-set 3)
+    (set-frame-position nil 0 0)
+    (set-window-dedicated-p (get-buffer-window) t)
+    (set-frame-parameter nil 'menu-bar-lines 0)
+    (set-frame-size nil 1366 100 t))
+  (with-selected-frame (or (my/get-frame-by-name (buffer-name clm/command-log-buffer))
+                           (make-frame '((minibuffer . nil))))
+  
+    (text-scale-set 3)
+    (set-frame-position nil 0 0)
+    (set-window-dedicated-p (get-buffer-window) t)
+    (set-frame-parameter nil 'menu-bar-lines 0)
+    (set-frame-size nil 1366 100 t)))
 (defun my/stream-set-up ()
   (interactive)
   (obs-websocket-connect)
   (my/stream-toggle-background-music)
-  (selectric-mode)
+  (selectric-mode 1)
+  (my/stream-set-up-frames)
+  (my/stream-fix-sources)
   (obs-websocket-minor-mode 1)
   (unless (and (erc-get-buffer "#sachachua")
                (with-current-buffer (erc-get-buffer "#sachachua")
                  (erc-server-process-alive)))
-    (my/twitch-irc))
-  (unless (get-buffer-window my/stream-message-buffer-name t)
-    (with-current-buffer (get-buffer-create my/stream-message-buffer-name)
-      (erase-buffer)
-      (text-scale-set 4)
-      (set-frame-position (make-frame) 0 0))))
+    (my/twitch-irc)))
 
 (defvar my/background-music-process nil "Process for playing background music")
 (defun my/stream-toggle-background-music (&optional enable)

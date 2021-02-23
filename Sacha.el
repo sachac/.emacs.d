@@ -41,7 +41,7 @@
 
 (defun my/reload-emacs-configuration ()
   (interactive)
-  (load-file "~/sync/emacs/Sacha.el"))
+  (load-file "~/code/.emacs.d/Sacha.el"))
 
 (use-package dash :ensure t)
 (use-package diminish :ensure t)
@@ -139,11 +139,15 @@
   :config
   (setq embark-prompter 'embark-keymap-prompter) 
   (add-to-list 'embark-target-finders 'my/embark-org-element) 
-  (add-to-list 'embark-allow-edit-commands #'my/stream-message) 
+  (add-to-list 'embark-allow-edit-commands #'my/stream-message)
+  (embark-define-keymap embark-sketch-actions
+    ("o" (lambda (f) (interactive) (insert (org-link-make-string "sketch:" (file-name-nondirectory f)))))
+    ("v" my/geeqie-view))
   :bind (("C-c e" . embark-act) 
-         ("C-;" . embark-act) 
+         ("C-;" . embark-act)
          :map embark-general-map ("m" . my/stream-message)
          :map embark-variable-map ("l" . edit-list)))
+
 (use-package 
   embark-consult 
   :after (embark consult) 
@@ -163,6 +167,32 @@
                 :action   ,#'projectile-switch-project-by-name
                 :items    ,projectile-known-projects))
   (add-to-list 'consult-buffer-sources my/consult-source-projectile-projects 'append))
+
+(defun my/date-from-filename (filename)
+  (let ((f (file-name-nondirectory filename)))
+    (if (string-match "^[-0-9]+" f)
+        (replace-regexp-in-string "[^0-9]" "" (match-string 0 f))
+      nil)))
+
+(defvar my/sketches nil "Cache for sketch filenames.")
+(defun my/update-sketch-cache ()
+  (interactive)
+  (setq my/sketches (sort
+                          (apply 'append (mapcar (lambda (dir)
+                                                   (directory-files dir t "\\.\\(jpe?g\\|png\\)$"))
+                                                 my/sketch-directories))
+                          (lambda (a b)
+                            (string< (concat (or (my/date-from-filename b) "0") (file-name-nondirectory b))
+                                     (concat (or (my/date-from-filename a) "0") (file-name-nondirectory a)) )))))
+
+(defun my/complete-sketch-filename ()
+  (consult--read (or my/sketches (my/update-sketch-cache))
+   :sort nil
+   :prompt "Sketch: " :category 'sketch))
+
+(use-package marginalia
+  :config
+  (add-to-list 'marginalia-prompt-categories '("sketch" . sketch)))
 
 (defun my/marginalia-annotate-variable (cand)
   "Annotate variable CAND with its documentation string."
@@ -1477,6 +1507,11 @@ Based on `elisp-get-fnsym-args-string.'"
          ((= c ?.) (setq done t)))
       ))))
 
+(defvar my/scan-directory "~/sync/scans")
+(defvar my/portfolio-directory "~/sync/portfolio")
+(defvar my/private-sketches-directory "~/cloud/private-sketches")
+(defvar my/sketches-directory "~/sync/sketches")
+
 (defun my/geeqie-next ()
   (interactive)
   (shell-command "geeqie --remote -n"))
@@ -1491,18 +1526,121 @@ Based on `elisp-get-fnsym-args-string.'"
    (concat "geeqie --remote "
            (mapconcat (lambda (f)
                         (concat "file:" (shell-quote-argument f)))
-                      (if (listp filename) filenames (list filenames))
+                      (cond
+                       ((listp filenames) filenames)
+                       ((file-directory-p filenames)
+                        (list (car (seq-filter #'file-regular-p (directory-files filenames t)))))
+                       (t (list filenames)))
                       " "))))
-(defhydra my/photo ()
-  "Photos"
+
+(defvar my/rotate-jpeg-using-exiftran nil)
+
+(defun my/rotate-image-clockwise (filename)
+  (if (and my/rotate-jpeg-using-exiftran
+           (string-match "jpe?g" (file-name-extension filename)))
+      (call-process "exiftran" nil nil nil "-i" "-9" filename)
+    (call-process "mogrify" nil nil nil "-rotate" "90" filename)))
+
+(defun my/rotate-image-counterclockwise (filename)
+  (if (and my/rotate-jpeg-using-exiftran
+           (string-match "jpe?g" (file-name-extension filename)))
+      (call-process "exiftran" nil nil nil "-i" "-2" filename)
+    (call-process "mogrify" nil nil nil "-rotate" "270" filename)))
+
+(defun my/geeqie-rotate-clockwise ()
+  (interactive)
+  (my/rotate-image-clockwise (my/geeqie-filename))
+  (my/geeqie-view (my/geeqie-filename)))
+
+(defun my/geeqie-rotate-counterclockwise ()
+  (interactive)
+  (my/rotate-image-counterclockwise (my/geeqie-filename))
+  (my/geeqie-view (my/geeqie-filename)))
+
+(defun my/rename-file-based-on-modification-time (filename)
+  "Rename files to their modification time."
+  (rename-file filename
+               (expand-file-name
+                (concat
+                 (format-time-string "%Y%m%d_%H%M%S"
+                                     (file-attribute-modification-time (file-attributes filename)))
+                 "."
+                 (file-name-extension filename))
+                (file-name-directory filename))))
+
+(defun my/geeqie-change-date (filename new-time)
+  (interactive (list (my/geeqie-filename)
+                     (let ((org-read-date-prefer-future nil))
+                       (org-read-date nil t))))
+  (let ((new-file (expand-file-name
+                   (replace-regexp-in-string
+                    "^[0-9]*"
+                    (format-time-string
+                     "%Y%m%d"
+                     new-time)
+                    (file-name-nondirectory filename))
+                   (file-name-directory filename))))
+    (rename-file filename new-file)
+    (my/geeqie-view new-file)))
+
+(defun my/geeqie-rename-current (old-filename new-filename)
+  (interactive
+   (list (my/geeqie-filename)
+         (read-string "Filename: " (concat (file-name-base (my/geeqie-filename)) " "))))
+  (rename-file old-filename
+               (expand-file-name
+                (concat new-filename "." (file-name-extension old-filename))
+                (file-name-directory old-filename))))
+
+(defun my/geeqie-crop-to-rectangle ()
+  (interactive)
+  (call-process
+   "mogrify" nil nil nil "-crop"
+   (string-trim (shell-command-to-string "geeqie --remote --get-rectangle"))
+   (my/geeqie-filename))
+  (my/geeqie-view (my/geeqie-filename)))
+
+(defun my/geeqie-scans ()
+  "Rename files and open the first one."
+  (interactive)
+  (mapc 'my/rename-file-based-on-modification-time (directory-files my/scan-directory t "^scan"))
+  (call-process "geeqie" nil nil nil "--remote" (concat "file:" (shell-quote-argument (seq-find 'file-regular-p (directory-files "~/sync/scans" t "^[0-9].*\\(gif\\|png\\|jpg\\)"))))))
+
+(defhydra my/geeqie ()
+  "Manage images with geeqie."
+  ("op" (my/geeqie-view my/portfolio-directory) "Open portfolio")
+  ("op" (my/geeqie-view my/camera-directory) "Open portfolio")
+  ("os" my/geeqie-scans "Open scans")
+  ("[" my/geeqie-rotate-counterclockwise "CCW")
+  ("]" my/geeqie-rotate-clockwise "CW")
+  ("r" my/geeqie-rename-current "Rename")
+  ("c" my/geeqie-crop-to-rectangle "Crop")
   ("n" my/geeqie-next "Next")
   ("p" my/geeqie-previous "Previous")
+  ("d" my/geeqie-change-date "Change date")
+  ("m" my/move-portfolio-files "Move portfolio files")
+  ("O" (shell-command (format "mogrify -auto-orient %s" (shell-quote-argument (my/geeqie-filename)))) "Rotate based on EXIF")
   ("<up>" (forward-line -1) :hint nil)
   ("<down>" forward-line :hint nil)
-  ("i" (insert (my/geeqie-filename) "\n")
+  ("im" (insert (format "{{<photo nas=\"1\" src=\"%s\">}}" (my/geeqie-filename))))
+  ("if" (insert (my/geeqie-filename) "\n")
    "Insert filename")
   ("v" (my/geeqie-view (string-trim (thing-at-point 'line))) "View")
-  ("l" (insert "- " (my/geeqie-filename) "\n") "Insert filename as list item"))
+  ("il" (insert "- " (my/geeqie-filename) "\n") "Insert filename as list item"))
+
+(defun my/move-portfolio-files ()
+  (interactive)
+  (mapc (lambda (f)
+          (let ((new-dir
+                 (cond
+                  ((string-match "#private" f) my/private-sketches-directory)
+                  ((string-match "#me\\>" f) my/sketches-directory)
+                  (t my/portfolio-directory))))
+            (when new-dir (rename-file f (expand-file-name (file-name-nondirectory f) new-dir)))))
+        (seq-filter
+         'file-regular-p
+         (directory-files my/scan-directory t "^[0-9]+.*#")))
+  (shell-command-to-string "make-sketch-thumbnails"))
 
 (setq org-export-with-sub-superscripts nil)
 
@@ -1789,7 +1927,7 @@ Based on `elisp-get-fnsym-args-string.'"
 (eval-after-load 'org-capture
   '(bind-key "C-c C-r" 'my/org-refile-and-jump org-capture-mode-map))
 
-(setq org-reverse-note-order t)
+(setq org-reverse-note-order nil)
 (setq org-refile-use-outline-path 'file)
 (setq org-outline-path-complete-in-steps nil)
 (setq org-refile-allow-creating-parent-nodes 'confirm)
@@ -1912,6 +2050,7 @@ Based on `elisp-get-fnsym-args-string.'"
          "TOBLOG(b)"  ; next action
          "WAITING(w@/!)"
          "SOMEDAY(.)" "|" "DONE(x!)" "CANCELLED(c)")
+        (sequence "PROJECT" "|" "DONE(x)")
         (sequence "LEARN" "TRY" "TEACH" "|" "COMPLETE(x)")
         (sequence "TOSKETCH" "SKETCHED" "|" "POSTED")
         (sequence "TOBUY" "TOSHRINK" "TOCUT"  "TOSEW" "|" "DONE(x)")
@@ -3861,6 +4000,11 @@ and indent it one level."
   (progn
     (add-hook 'org-babel-after-execute-hook 'org-display-inline-images)
     (setq org-confirm-babel-evaluate nil)
+    (setq org-link-elisp-confirm-function
+          (lambda (prompt)
+            (if (string-match "vendor" (buffer-file-name))
+                (y-or-n-p prompt)
+              t)))
     (org-babel-do-load-languages
      'org-babel-load-languages
      '((dot . t)
@@ -5318,8 +5462,24 @@ so that it's still active even after you stage a change. Very experimental."
 (defun my/wmctl-get-id (window-name)
   (string-to-number (replace-regexp-in-string "^0x\\|\n" "" (shell-command-to-string (format "wmctrl -l | grep %s | awk '{print $1}'" (shell-quote-argument window-name)))) 16))
 
+(defvar my/stream-ffmpeg-multicast-process nil "Process for multicasting the stream")
+(defun my/stream-start-ffmpeg-multicast ()
+  (interactive)
+  (unless (process-live-p my/stream-ffmpeg-multicast-process)
+    (setq my/stream-ffmpeg-multicast-process (start-process "FFmpeg multicast" "*ffmpeg multicast*" "~/bin/ffmpeg-multicast"))))
+
 (defun my/stream-fix-sources ()
   (interactive)
+  (obs-websocket-send
+   "SetSourceSettings"
+   :sourceName "Gstreamer - command log"
+   :sourceSettings
+   `(:pipeline ,(format "ximagesrc xid=0x%x use-damage=0 ! queue max-size-buffers=0 max-size-time=0 max-size-bytes=0  min-threshold-time=4000000000 ! video." (my/wmctl-get-id "command-log")) :use_timestamps_audio t :use_timestamps_video t) :sourceType "gstreamer-source")
+  (obs-websocket-send
+   "SetSourceSettings"
+   :sourceName "Gstreamer - message"
+   :sourceSettings
+   `(:pipeline ,(format "ximagesrc xid=0x%x use-damage=0 ! queue max-size-buffers=0 max-size-time=0 max-size-bytes=0  min-threshold-time=4000000000 ! video." (my/wmctl-get-id "Stream message")) :use_timestamps_audio t :use_timestamps_video t) :sourceType "gstreamer-source")
   (obs-websocket-send "SetSourceSettings" :sourceName "Command log"
                       :sourceSettings
                       `(:capture_window
@@ -5339,7 +5499,7 @@ so that it's still active even after you stage a change. Very experimental."
   (interactive)
   (command-log-mode 1)
   (with-selected-frame (or (my/get-frame-by-name my/stream-message-buffer-name)
-                           (make-frame '((minibuffer . nil))))
+                           (make-frame))
     (switch-to-buffer (get-buffer-create my/stream-message-buffer-name))
     (erase-buffer)
     (text-scale-set 3)
@@ -5347,16 +5507,20 @@ so that it's still active even after you stage a change. Very experimental."
     (set-window-dedicated-p (get-buffer-window) t)
     (set-frame-parameter nil 'menu-bar-lines 0)
     (set-frame-size nil 1366 100 t))
-  (with-selected-frame (or (my/get-frame-by-name (buffer-name clm/command-log-buffer))
-                           (make-frame '((minibuffer . nil))))
-  
-    (text-scale-set 3)
-    (set-frame-position nil 0 0)
-    (set-window-dedicated-p (get-buffer-window) t)
-    (set-frame-parameter nil 'menu-bar-lines 0)
-    (set-frame-size nil 1366 100 t)))
+  (save-window-excursion
+    (clm/open-command-log-buffer))
+  (with-current-buffer clm/command-log-buffer
+      (with-selected-frame (or (my/get-frame-by-name (buffer-name clm/command-log-buffer))
+                             (make-frame))
+      (text-scale-set 3)
+      (set-frame-position nil 0 0)
+      (set-window-dedicated-p (get-buffer-window) t)
+      (set-frame-parameter nil 'menu-bar-lines 0)
+      (set-frame-size nil 1366 100 t))))
+
 (defun my/stream-set-up ()
   (interactive)
+  (my/stream-start-ffmpeg-multicast)
   (obs-websocket-connect)
   (my/stream-toggle-background-music)
   (selectric-mode 1)
@@ -5591,12 +5755,15 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
       ("r" my/stream-toggle-recording "Recording - toggle" :toggle t :exit t)
       ("v" (my/play-latest-recording) "Play last"))
      "Scenes"
-     (("d" (obs-websocket-send "SetCurrentScene" :scene-name "Desktop") "Desktop" :exit t)
+     (("d" (obs-websocket-send "SetCurrentScene" :scene-name "Gstreamer") "Desktop" :exit t)
       ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs" :exit t)
-      ("i" my/stream-intermission "Intermission" :exit t))
+      ("i" (lambda () (interactive)
+             (obs-websocket-send "SetCurrentScene" :scene-name "Intermission")
+             (call-interactively #'my/stream-message))
+       "Intermission" :exit t))
      "Captions"
      (("n" my/obs-websocket-add-caption "Add caption" :exit t)
-      ("c" (find-file (my/obs-websocket-subtitle-file)) "View captions" :exit t)
+      ("c" (find-file (my/obs-websocket-caption-file)) "View captions" :exit t)
       ("t" my/stream-message "Message" :hint nil :exit t)
       ("<f8>" my/stream-message "Message" :hint nil :exit t))))
   (global-set-key (kbd "<f8>") #'my/stream/body)
@@ -5614,6 +5781,57 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
           (subed-mpv-find-video latest)
           (pop-to-buffer (current-buffer)))
       (mpv-play (my/latest-file my/recordings-dir)))))
+
+(defvar my/stream-captions-websocket nil)
+(defvar my/stream-captions-history nil)
+(defvar my/stream-captions-last-caption nil)
+
+(define-minor-mode my/stream-captions-minor-mode "Toggle the captions server."
+  :lighter "CAP"
+  :global t)
+
+(defun my/stream-captions-on-message (websocket frame)
+  (let* ((payload (json-parse-string (websocket-frame-payload frame) :object-type 'plist :array-type 'list))
+         (caption (string-trim (plist-get (car (plist-get (car (plist-get payload :results)) :alternatives)) :transcript))))
+    (setq my/stream-captions-last-caption caption)
+    (call-process "notify-send" nil nil nil caption)
+    (my/obs-websocket-add-caption caption)
+    (setq my/stream-captions-history (cons caption my/stream-captions-history))))
+
+(defun my/stream-captions-edit-last (caption)
+  (interactive (list (read-string "Caption: " my/stream-captions-last-caption 'my/stream-captions-history my/stream-captions-last-caption)))
+  (when (> (length caption) 0)
+    (my/obs-websocket-add-caption caption)))
+(global-set-key (kbd "<f11>") 'my/stream-captions-edit-last)
+    
+(defun my/stream-captions-on-close (&rest args)
+  (message "Captions websocket closed.")
+  (my/stream-captions-minor-mode 0)
+  (setq my/stream-captions-websocket nil))
+ 
+(defun my/stream-captions-websocket-connect ()
+  (interactive)
+  (setq my/stream-captions-history nil)
+  (my/stream-captions-minor-mode 1)
+  (setq my/stream-captions-websocket (websocket-open "ws://localhost:8085"
+                                                     :on-message #'my/stream-captions-on-message
+                                                     :on-close #'my/stream-captions-on-close)))
+
+(defvar my/stream-captions-process nil)
+(defun my/stream-captions-start ()
+  (interactive)
+  (let ((default-directory "~/code/speech"))
+    (setq my/stream-captions-process (start-process "Stream captions" (get-buffer-create "*stream captions*") "node" "test.js"))
+    (sleep-for 2)
+    (my/stream-captions-websocket-connect)))
+
+(defun my/stream-captions-sentinel (process event)
+  (let ((status (process-status my/stream-captions-process)))
+    (if (member status '(stop exit signal))
+        (my/stream-captions-minor-mode -1))))
+(defun my/stream-captions-stop ()
+  (interactive)
+  (stop-process my/stream-captions-process))
 
 (use-package smartparens
   :config
@@ -6273,10 +6491,10 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 
 (defun my/org-sketch-complete (&optional prefix)
   (concat "sketch:"
-          (completing-read "Sketch: " (my/list-sketches "."))))
+          (my/complete-sketch-filename)))
 (defun my/org-image-complete (&optional prefix)
-  (concat "sketch:"
-          (completing-read "Sketch: " (my/list-sketches "." nil my/image-directories))))
+  (concat "image:"
+          (completing-read "Image: " (my/list-sketches "." nil my/image-directories))))
 ;; Based on https://emacs.stackexchange.com/questions/38098/org-mode-custom-youtube-link-syntax
 (defun my/org-sketch-preview (start end path bracketp)
   "Include overlays for sketches."
@@ -6322,7 +6540,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
    :follow 'my/org-sketch-open
    :export 'my/org-image-export
    :complete 'my/org-sketch-complete
-   :activate-func 'my/org-sketch-preview))
+   :activate-func nil))
 
 (use-package org
   :config

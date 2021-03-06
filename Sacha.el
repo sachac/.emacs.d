@@ -36,8 +36,6 @@
   :config (auto-compile-on-load-mode))
 (setq load-prefer-newer t)
 
-(load-file "~/.config/emacs/.emacs.secrets")
-
 (defun my/reload-emacs-configuration ()
   (interactive)
   (load-file "~/code/.emacs.d/Sacha.el"))
@@ -145,6 +143,8 @@
   (embark-define-keymap embark-sketch-actions
     ("o" (lambda (f) (interactive) (insert (org-link-make-string "sketch:" (file-name-nondirectory f)))))
     ("v" my/geeqie-view))
+  (embark-define-keymap embark-journal-actions
+    ("e" my/journal-edit))
   :bind (("C-c e" . embark-act) 
          ("C-;" . embark-act)
          :map embark-general-map
@@ -245,7 +245,13 @@ Based on `elisp-get-fnsym-args-string.'"
 		         (t (help-function-arglist sym)))))
       ;; Stringify, and store before highlighting, downcasing, etc.
 	    (elisp-function-argstring args)))))
-    
+(defun my/marginalia-annotate-journal (cand)
+  (when-let ((o (cdr (assoc cand my/journal-search-cache))))
+    (marginalia--fields
+     ((plist-get o :Category)
+      :face 'marginalia-documentation
+      :truncate 13))))
+
 (defun my/marginalia-annotate-function-with-args (cand)
   "Annotate symbol CAND with its arguments and documentation string."
   (when-let (sym (intern-soft cand))
@@ -266,6 +272,7 @@ Based on `elisp-get-fnsym-args-string.'"
 (use-package marginalia
   :after elisp-mode
   :config
+  (add-to-list 'marginalia-annotators-heavy (cons 'journal #'my/marginalia-annotate-journal))
   (add-to-list 'marginalia-annotators-heavy (cons 'function #'my/marginalia-annotate-function-with-args))
   (add-to-list 'marginalia-prompt-categories (cons "\\<function\\>" 'function)))
 
@@ -3802,17 +3809,12 @@ and indent it one level."
         (json-object-type 'plist)
         (url-request-data (json-encode-plist plist)))
     (with-current-buffer (url-retrieve-synchronously "https://journal.sachachua.com/api/entries")
-      (goto-char url-http-end-of-headers)
+      (goto-char (point-min))
+      (re-search-forward "^$")
       (json-read))))
 
 (defun my/journal-get-by-zidstring (zidstring)
-  (let ((url-request-method "GET")
-        (url-request-extra-headers '(("Content-Type" . "application/json")))
-        (json-object-type 'plist)
-        (url-request-data (json-encode-plist plist)))
-    (with-current-buffer (url-retrieve-synchronously (concat "https://journal.sachachua.com/api/entries/" zidstring)
-      (goto-char url-http-end-of-headers)
-      (json-read)))))
+  (my/json-request (concat "https://journal.sachachua.com/api/entries/" zidstring)))
 
 (defun my/journal-edit (zidstring)
   (interactive (list (my/journal-id-from-string (my/journal-completing-read))))
@@ -3825,45 +3827,41 @@ and indent it one level."
 (defun my/journal-update (&rest plist)
   "Update journal entry using PLIST."
   (let ((url-request-method "PUT")
-        (url-request-extra-headers '(("Content-Type" . "application/json")))
-        (json-object-type 'plist)
         (url-request-data (json-encode-plist plist)))
-    (with-current-buffer (url-retrieve-synchronously (concat "https://journal.sachachua.com/api/entries/" (plist-get plist :ZIDString))
-      (goto-char url-http-end-of-headers)
-      (json-read)))))
+    (my/json-request (concat "https://journal.sachachua.com/api/entries/" (plist-get plist :ZIDString)))))
 ;; (my/journal-post "Hello, world")
   
 (defun my/journal-get-entries (from to &optional search)
+  "Return parsed CSV of entries limited by FROM, TO, and SEARCH."
   (with-current-buffer
       (url-retrieve-synchronously (format "https://journal.sachachua.com/api/entries.csv?from=%s&to=%s&q=%s" from to (or search "")))
     (goto-char (point-min))
     (delete-region (point-min) (search-forward "\n\n"))
     (cdr (pcsv-parse-buffer))))
 
-(defun my/journal-get (url)
-  (with-current-buffer (url-retrieve-synchronously (format "https://journal.sachachua.com/%s" url))
-    (goto-char (point-min))
-    (search-forward "\n\n")
-    (json-parse-buffer)))
+(defun my/journal-get (url) (my/json-request (format "https://journal.sachachua.com/%s" url)))
 (defun my/journal-get-entry (zid) (my/journal-get (format "api/entries/zid/%s" zid)))
 
 (defun my/json-request (url)
-  (with-current-buffer (url-retrieve-synchronously url)
-    (goto-char url-http-end-of-headers)
-    (json-read)))
+  (let ((json-object-type 'plist)
+        (url-request-extra-headers (cons '("Content-Type" . "application/json") url-request-extra-headers)))
+    (with-current-buffer (url-retrieve-synchronously url)
+      (goto-char (point-min))
+      (re-search-forward "^$" nil t)
+      (json-read))))
 
+(defvar my/journal-search-cache nil "List of search results.")
 (defun my/journal-search-query (query-str)
   (let* ((url-request-method "GET")
          (json-response (my/json-request (format "https://journal.sachachua.com/api/entries?q=%s&limit=50"
                                                  query-str))))
-    (mapcar (lambda (o)
+    (setq my/journal-search-cache (mapcar (lambda (o)
               (cons
                (format "%s %s"
-                       (cdr (assoc 'ZIDString o))
-                       (cdr (assoc 'Note o)))
+                       (plist-get o :ZIDString)
+                       (plist-get o :Note))
                o))
-            json-response)))
-; (my/journal-search-query "sofa")
+            json-response))))
 
 (defun my/journal-completing-read ()
   (completing-read "Journal entry: "
@@ -5128,6 +5126,23 @@ so that it's still active even after you stage a change. Very experimental."
                                  "Kicked (kickban)"))))
   )
 
+(defun my/announce-on-irc-and-twitter (channels message host port)
+  (call-process "t" nil 0 nil "update" message)
+  (with-temp-buffer
+    (insert "PASS " erc-password "\n"
+            "USER " erc-nick "\n"
+            "NICK " erc-nick "\n"
+            (mapconcat (lambda (o)
+                         (format "PRIVMSG %s :%s\n" o message))
+                       channels "")
+            "QUIT\n")
+    (call-process-region (point-min) (point-max) "ncat" nil 0 nil
+                         "--ssl" host port)))
+
+(defun my/schedule-announcement (time message)
+  (interactive (list (org-read-date t t) (read-string "Message: ")))
+  (run-at-time time nil #'my/announce-on-irc-and-twitter '("#emacs" "#emacsconf") message erc-server erc-port))
+
 (defmacro my/org-with-current-task (&rest body)
   "Execute BODY with the point at the subtree of the current task."
   `(if (derived-mode-p 'org-agenda-mode)
@@ -5607,7 +5622,6 @@ so that it's still active even after you stage a change. Very experimental."
                       (unless (looking-at "HTTP/1.1 200 OK") url))))
                 urls)))
 
-(defvar my/stream-message-buffer-name "Stream message")
 ;; https://emacs.stackexchange.com/questions/19035/finding-frames-by-name
 (defun my/get-frame-by-name (fname)
   "If there is a frame named FNAME, return it, else nil."
@@ -5617,7 +5631,7 @@ so that it's still active even after you stage a change. Very experimental."
             (frame-list)))
 ;; (obs-websocket-send "GetSourceSettings" :sourceName "Command log" :callback (lambda  (frame payload) (prin1 payload)))
 (defun my/wmctl-get-id (window-name)
-  (string-to-number (replace-regexp-in-string "^0x\\|\n" "" (shell-command-to-string (format "wmctrl -l | grep %s | awk '{print $1}'" (shell-quote-argument window-name)))) 16))
+  (string-to-number (replace-regexp-in-string "^0x\\|\n" "" (shell-command-to-string (format "wmctrl -l | grep %s | head -1 | awk '{print $1}'" (shell-quote-argument window-name)))) 16))
 
 (defvar my/stream-ffmpeg-multicast nil "Process for multicasting the stream")
 (defun my/stream-ffmpeg-multicast ()
@@ -5632,24 +5646,12 @@ so that it's still active even after you stage a change. Very experimental."
    :sourceName "Gstreamer - command log"
    :sourceSettings
    `(:pipeline ,(format "ximagesrc xid=0x%x use-damage=0 ! queue max-size-buffers=0 max-size-time=0 max-size-bytes=0  min-threshold-time=4000000000 ! video." (my/wmctl-get-id "command-log")) :use_timestamps_audio t :use_timestamps_video t) :sourceType "gstreamer-source")
-  (obs-websocket-send
-   "SetSourceSettings"
-   :sourceName "Gstreamer - message"
-   :sourceSettings
-   `(:pipeline ,(format "ximagesrc xid=0x%x use-damage=0 ! queue max-size-buffers=0 max-size-time=0 max-size-bytes=0  min-threshold-time=4000000000 ! video." (my/wmctl-get-id "Stream message")) :use_timestamps_audio t :use_timestamps_video t) :sourceType "gstreamer-source")
   (obs-websocket-send "SetSourceSettings" :sourceName "Command log"
                       :sourceSettings
                       `(:capture_window
                         ,(format "%d\n%s\n%s"
                                  (my/wmctl-get-id "command-log")
                                  " *command-log*"
-                                 "emacs")))
-  (obs-websocket-send "SetSourceSettings" :sourceName "Message"
-                      :sourceSettings
-                      `(:capture_window
-                        ,(format "%d\n%s\n%s"
-                                 (my/wmctl-get-id "Stream")
-                                 "Stream message"
                                  "emacs"))))
 
 (use-package command-log-mode
@@ -5663,24 +5665,11 @@ so that it's still active even after you stage a change. Very experimental."
 (defun my/stream-set-up-frames ()
   (interactive)
   (global-command-log-mode 1)
-  (with-selected-frame (or (my/get-frame-by-name my/stream-message-buffer-name)
-                           (make-frame))
-    (switch-to-buffer (get-buffer-create my/stream-message-buffer-name))
-    (erase-buffer)
-    (text-scale-set 3)
-    (set-frame-position nil 0 0)
-    (set-window-dedicated-p (get-buffer-window) t)
-    (set-frame-parameter nil 'menu-bar-lines 0)
-    (set-frame-size nil 1366 100 t))
+  (unless (my/get-frame-by-name (buffer-name clm/command-log-buffer))
+    (switch-to-buffer-other-frame clm/command-log-buffer))
   (clm/with-command-log-buffer
-    (with-selected-frame (or (my/get-frame-by-name (buffer-name clm/command-log-buffer))
-                             (make-frame))
-      (switch-to-buffer clm/command-log-buffer nil t)
-      (text-scale-set 3)
-      (set-frame-position nil 0 0)
-      (set-window-dedicated-p (get-buffer-window) t)
-      (set-frame-parameter nil 'menu-bar-lines 0)
-      (set-frame-size nil 1366 150 t))))
+    (text-scale-set 3))
+  (call-process "wmctrl" nil 0 nil "-r" (number-to-string (my/wmctl-get-id "command-log")) "-e" "0,0,100,1366,100"))o
 
 (defun my/stream-set-up ()
   (interactive)
@@ -5792,14 +5781,18 @@ so that it's still active even after you stage a change. Very experimental."
 
 (defun my/stream-message (text)
   (interactive "MText: ")
-  (with-current-buffer
-      (get-buffer-create "Stream message")
-    (erase-buffer)
-    (menu-bar-mode -1)
-    (text-scale-set 3)
-    (insert text)
-    (goto-char (point-min)))
+  (obs-websocket-send "SetSourceSettings" :sourceName "OBSMessage" :sourceSettings 
+                      (list :text
+                            (concat "Notes at stream.sachachua.com\n"
+                                    (mapconcat 'identity (org-wrap text 80) "\n"))))
   (my/obs-websocket-add-caption text)
+  (when obs-websocket-streaming-p
+    (with-current-buffer (find-file-noselect "~/code/stream/index.org")
+      (org-link-search "Timestamps")
+      (forward-line 1)
+      (insert (format "- (%s) %s\n"
+                      (format-seconds "%h:%.2m:%.2s%z" (my/obs-websocket-stream-time-secs))
+                      text))))
   (when (erc-get-buffer "#sachachua")
     (with-current-buffer (erc-get-buffer "#sachachua")
       (erc-send-message text))))
@@ -5845,12 +5838,20 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
         (- (time-to-seconds (current-time)) 
            (time-to-seconds (cdr timecode-time)))))))
 
+(defun my/obs-websocket-stream-time-secs ()
+  "Return current stream time in seconds."
+  (/ (my/obs-websocket-adjust-timecode my/obs-websocket-last-stream-timecode) 1000.0))
+
 (defun my/obs-websocket-stream-time-msecs ()
   "Return current stream time in milliseconds."
   (my/obs-websocket-adjust-timecode my/obs-websocket-last-stream-timecode))
 
+(defun my/obs-websocket-recording-time-secs ()
+  "Return current recording time in seconds."
+  (/ (my/obs-websocket-adjust-timecode my/obs-websocket-last-recording-timecode) 1000.0))
+
 (defun my/obs-websocket-recording-time-msecs ()
-  "Return current stream time in milliseconds."
+  "Return current recording time in milliseconds."
   (my/obs-websocket-adjust-timecode my/obs-websocket-last-recording-timecode))
 
 (defun my/obs-websocket-caption-file (&optional filename)
@@ -5914,6 +5915,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
       ("bt" selectric-mode "Typing sounds")
       ("bm" my/stream-toggle-background-music "Background music")
       ("a" my/show-emacs-tasks "Agenda")
+      ("I" my/stream-captions-insert "Insert caption" :toggle t)
       ("us" (browse-url "https://twitch.tv/sachachua") "View stream")
       ("uv" (browse-url "https://dashboard.twitch.tv/u/sachachua/stream-manager") "View manager")
       ("uy" (browse-url "https://studio.youtube.com/channel/UClT2UAbC6j7TqOWurVhkuHQ/livestreaming/dashboard") "Youtube")
@@ -5975,6 +5977,8 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 (defvar my/stream-captions-websocket nil)
 (defvar my/stream-captions-history nil)
 (defvar my/stream-captions-last-caption nil)
+(defvar my/stream-captions-insert nil "Non-nil means insert into the current buffer.")
+(defun my/stream-captions-insert () (interactive) (setq my/stream-captions-insert (not my/stream-captions-insert)))
 
 (define-minor-mode my/stream-captions-minor-mode "Toggle the captions server."
   :lighter "CAP"
@@ -5986,6 +5990,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
     (setq my/stream-captions-last-caption caption)
     (call-process "notify-send" nil nil nil caption)
     (my/obs-websocket-add-caption caption)
+    (when my/stream-captions-insert (insert caption))
     (setq my/stream-captions-history (cons caption my/stream-captions-history))))
 
 (defun my/stream-captions-edit-last (caption)

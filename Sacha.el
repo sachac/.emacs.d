@@ -69,7 +69,7 @@
 
 (setq sentence-end-double-space nil)
 
-(use-package selectrum :init (selectrum-mode +1)) 
+(use-package selectrum :quelpa (selectrum :fetcher github :repo "raxod502/selectrum") :init (selectrum-mode +1)) 
 (use-package prescient :config (prescient-persist-mode +1))
 (use-package selectrum-prescient :init (selectrum-prescient-mode +1) :after selectrum)
 (use-package company-prescient :init (company-prescient-mode +1))
@@ -650,7 +650,7 @@ Based on `elisp-get-fnsym-args-string.'"
        ((not (equal answ t))
         (user-error "Invalid target location"))))))
 
-(fset 'org-refile-get-location 'my/org-refile-get-location)
+;(fset 'org-refile-get-location 'my/org-refile-get-location)
 
 (defun my/org-capture-prefill-template (template &rest values)
   "Pre-fill TEMPLATE with VALUES."
@@ -1325,10 +1325,14 @@ Based on `elisp-get-fnsym-args-string.'"
       (save-buffer)
       (buffer-file-name))))
 
+(defun my/msecs-to-timestamp (msecs)
+  "Convert MSECS to string in the format HH:MM:SS.MS."
+  (concat (format-seconds "%02h:%02m:%02s" (/ msecs 1000))
+          "." (format "%03d" (mod msecs 1000))))
+
 (defun my/subed-make-animated-gif (beg end name)
   (interactive "r\nMName: ")
   (let* ((video-file (subed-guess-video-file))
-         (time-format "%.2h:%.2m:%.2,3s")
          (msecs (my/subed-get-region-start-stop beg end))
          (new-file (my/extend-file-name video-file name "gif"))
          cmd)
@@ -1336,8 +1340,8 @@ Based on `elisp-get-fnsym-args-string.'"
       (setq cmd
             (format "ffmpeg -y -i %s -ss %s -t %s -vf subtitles=%s -r 10 -c:a copy -shortest -async 1 %s"
                     (shell-quote-argument video-file)
-                    (format-seconds time-format (/ (car msecs) 1000.0))
-                    (format-seconds time-format (/ (- (cdr msecs) (car msecs)) 1000.0))
+                    (my/msecs-to-timestamp (car msecs))
+                    (my/msecs-to-timestamp (- (cdr msecs) (car msecs)))
                     (shell-quote-argument (my/subed-write-adjusted-subtitles beg end name))                
                     (shell-quote-argument new-file)))
       (message "%s" cmd)
@@ -1345,9 +1349,12 @@ Based on `elisp-get-fnsym-args-string.'"
       (shell-command cmd))))
 
 (defun my/subed-cut-video (beg end name)
-  (interactive "r\nMName: ")
+  (interactive (append (if (use-region-p) (list (point) (mark))
+                         (list
+                          (save-excursion (subed-jump-to-subtitle-id))
+                          (save-excursion (subed-jump-to-subtitle-end))))
+                       (list (read-string "Name: "))))
   (let* ((video-file (subed-guess-video-file))
-         (time-format "%.2h:%.2m:%.2,3s")
          (msecs (my/subed-get-region-start-stop beg end))
          (new-file (my/extend-file-name video-file name))
          cmd)
@@ -1355,8 +1362,8 @@ Based on `elisp-get-fnsym-args-string.'"
       (setq cmd
             (format "ffmpeg -y -i %s -ss %s -t %s -i %s -c:a copy -c:v copy -c:s mov_text -shortest -async 1 %s"
                       (shell-quote-argument video-file)
-                      (format-seconds time-format (/ (car msecs) 1000.0))
-                      (format-seconds time-format (/ (- (cdr msecs) (car msecs)) 1000.0))
+                      (my/msecs-to-timestamp (car msecs))
+                      (my/msecs-to-timestamp (- (cdr msecs) (car msecs)))
                       (shell-quote-argument (my/subed-write-adjusted-subtitles beg end name))                
                       (shell-quote-argument new-file)))
       (message "%s" cmd)
@@ -2287,6 +2294,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
                     `("~/orgzly/organizer.org"
                       "~/orgzly/Inbox.org"
                       "~/orgzly/computer-inbox.org"
+                      "~/code/stream/index.org"
                       "~/code/stream/notes.org"
                       "~/personal/sewing.org"
                       "~/orgzly/people.org"
@@ -3645,8 +3653,7 @@ and indent it one level."
            (match-string 1))
          :duration
          (when (re-search-forward "approxDurationMs\":\"\\([0-9]+\\)\"" nil t)
-           (format-seconds "%h:%.2m:%.2s%z"
-                           (/ (string-to-number (match-string 1)) 1000.0))))
+           (my/msecs-to-timestamp (string-to-number (match-string 1)))))
       (kill-buffer))))
 
 (defun my/link-video (list)
@@ -5641,6 +5648,11 @@ so that it's still active even after you stage a change. Very experimental."
 
 (defun my/stream-fix-sources ()
   (interactive)
+  (obs-websocket-send "SetVolume" :source "Mic/Aux" :volume 1)
+  (mapc (lambda (buf)
+          (when (and (buffer-file-name buf) (string-match "secret" (buffer-file-name buf)))
+            (kill-buffer-ask buf)))
+        (buffer-list)) 
   (obs-websocket-send
    "SetSourceSettings"
    :sourceName "Gstreamer - command log"
@@ -5669,7 +5681,7 @@ so that it's still active even after you stage a change. Very experimental."
     (switch-to-buffer-other-frame clm/command-log-buffer))
   (clm/with-command-log-buffer
     (text-scale-set 3))
-  (call-process "wmctrl" nil 0 nil "-r" (number-to-string (my/wmctl-get-id "command-log")) "-e" "0,0,100,1366,100"))o
+  (call-process "wmctrl" nil 0 nil "-r" (number-to-string (my/wmctl-get-id "command-log")) "-e" "0,0,100,1366,100"))
 
 (defun my/stream-set-up ()
   (interactive)
@@ -5791,7 +5803,7 @@ so that it's still active even after you stage a change. Very experimental."
       (org-link-search "Timestamps")
       (forward-line 1)
       (insert (format "- (%s) %s\n"
-                      (format-seconds "%h:%.2m:%.2s%z" (my/obs-websocket-stream-time-secs))
+                      (format-seconds "%h:%.2m:%.2s%z" (floor (my/obs-websocket-stream-time-secs)))
                       text))))
   (when (erc-get-buffer "#sachachua")
     (with-current-buffer (erc-get-buffer "#sachachua")
@@ -5878,6 +5890,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 (defun my/stream-intermission (text)
   "Start an intermission and prompt me for a message."
   (interactive "MText: ")
+  (set-background-color "#330000")
   (obs-websocket-send "SetCurrentScene" :scene-name "Intermission")
   (my/stream-message text))
 
@@ -5910,11 +5923,11 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
   (defvaralias 'my/stream-toggle-recording 'obs-websocket-recording-p)
   (pretty-hydra-define my/stream (:quit-key "q")
     ("Setup"
-     (("C" obs-websocket-connect "Connect")
-      ("f" my/stream-ffmpeg-multicast "FFMpeg Multicast" :toggle t)
+     (("w" (org-open-link-from-string "[[file:~/code/stream/notes.org::#streaming-workflow][Streaming]]") "Workflow")
+      ("o" (org-open-link-from-string "[[file:~/code/stream/index.org::#plans]]") "Notes")
+      ("a" my/show-emacs-tasks "Agenda")
       ("bt" selectric-mode "Typing sounds")
       ("bm" my/stream-toggle-background-music "Background music")
-      ("a" my/show-emacs-tasks "Agenda")
       ("I" my/stream-captions-insert "Insert caption" :toggle t)
       ("us" (browse-url "https://twitch.tv/sachachua") "View stream")
       ("uv" (browse-url "https://dashboard.twitch.tv/u/sachachua/stream-manager") "View manager")
@@ -5925,17 +5938,14 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
       ("r" my/stream-toggle-recording "Recording - toggle" :toggle t :exit t)
       ("v" (my/play-latest-recording) "Play last"))
      "Scenes"
-     (("d" (obs-websocket-send "SetCurrentScene" :scene-name "Desktop") "Desktop" :exit t)
+     (("d" (progn (set-background-color "black") (obs-websocket-send "SetCurrentScene" :scene-name "Desktop")) "Desktop" :exit t)
       ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs" :exit t)
-      ("i" (lambda () (interactive)
-             (obs-websocket-send "SetCurrentScene" :scene-name "Intermission")
-             (call-interactively #'my/stream-message))
-       "Intermission" :exit t))
+      ("i" my/stream-intermission "Intermission" :exit t))
      "Captions"
      (("n" my/obs-websocket-add-caption "Add caption" :exit t)
       ("c" (find-file (my/obs-websocket-caption-file)) "View captions" :exit t)
       ("t" my/stream-message "Message" :hint nil :exit t)
-      ("<f8>" my/stream-message "Message" :hint nil :exit t))))
+      ("<f8>" my/stream-message "Message" :hint nil :exit t)))) 
   (global-set-key (kbd "<f8>") #'my/stream/body)
   (add-to-list 'obs-websocket-on-message-payload-functions #'my/obs-websocket-message-handler)
   :load-path "~/code/obs-websocket-el" :ensure nil)

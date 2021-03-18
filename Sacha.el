@@ -89,7 +89,7 @@
          ("C-x b" . consult-buffer)
          ("M-y" . consult-yank-pop)
          ("<help> a" . consult-apropos)            ;; orig. apropos-command
-          ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+         ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
          ("M-g o" . consult-outline)
          ("M-g m" . consult-mark)
          ("M-g k" . consult-global-mark)
@@ -145,12 +145,15 @@
     ("v" my/geeqie-view))
   (embark-define-keymap embark-journal-actions
     ("e" my/journal-edit))
-  :bind (("C-c e" . embark-act) 
-         ("C-;" . embark-act)
-         :map embark-general-map
-         (("j" . my/journal-post)
-          ("m" . my/stream-message))
-         :map embark-variable-map ("l" . edit-list)))
+  :bind
+  (:map minibuffer-local-map
+        (("C-c e" . embark-act)
+         ("C-;" . embark-act))
+        :map embark-general-map
+        (("j" . my/journal-post)
+         ("m" . my/stream-message))
+        :map embark-variable-map
+        ("l" . edit-list)))
 
 (use-package 
   embark-consult 
@@ -336,6 +339,28 @@ Based on `elisp-get-fnsym-args-string.'"
   (add-to-list 'embark-allow-edit-commands #'my/stream-message) 
   (add-hook 'embark-collect-mode-hook #'my/shrink-selectrum) 
   (add-hook 'embark-pre-action-hook #'my/refresh-selectrum))
+
+      (defun my/cmap-org-block-target ()
+	(when (and (derived-mode-p 'org-mode)
+		   (org-in-src-block-p))
+	  (cons 'my/cmap-org-block-map 'cmap-no-arg)))
+      (defun my/org-indent-block ()
+	(interactive)
+	(save-excursion
+	 (unless (looking-at "^[ \t]*#\\+begin")
+	   (re-search-backward "^[ \t]*#\\+begin" nil t))
+	 (org-indent-block)))
+      (defun my/org-copy-block-contents ()
+	(interactive)
+	(kill-new (org-element-property :value (org-element-context))))
+      (use-package cmap :quelpa (cmap :fetcher github :repo "jyp/cmap")
+	:config
+	(add-to-list 'cmap-targets #'my/cmap-org-block-target)
+	(defvar my/cmap-org-block-map 
+	  (cmap-keymap
+	   ("w" . my/org-copy-block-contents)
+	   ("i" . my/org-indent-block)))
+	:bind ("C-c e" . cmap-cmap))
 
 (use-package helm
   :diminish helm-mode
@@ -750,17 +775,14 @@ Based on `elisp-get-fnsym-args-string.'"
     (setq undo-tree-visualizer-timestamps t)
     (setq undo-tree-visualizer-diff t)))
 
-(use-package guide-key
-  :defer t
-  :diminish guide-key-mode
-  :config
-  (progn
-    (setq guide-key/guide-key-sequence '("C-x r" "C-x 4" "C-c"))
-    (guide-key-mode 1)))  ; Enable guide-key-mode
+(use-package which-key :init (which-key-mode 1))
+(use-package which-key-posframe :if my/laptop-p :init (which-key-posframe-mode 1))
 
 (prefer-coding-system 'utf-8)
 (when (display-graphic-p)
   (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
+
+    (setq kill-ring-max 1000)
 
 (defadvice kill-region (before slick-cut activate compile)
   "When called interactively with no active region, kill a single line instead."
@@ -1309,19 +1331,24 @@ Based on `elisp-get-fnsym-args-string.'"
   (concat (file-name-sans-extension original) " " name "."
           (or extension (file-name-extension original))))
 
-(defun my/subed-write-adjusted-subtitles (beg end name)
-  (interactive "r\nMName: ")
-  (let ((s (buffer-substring-no-properties (save-excursion (goto-char (min beg end)) (subed-jump-to-subtitle-id))
-                                           (save-excursion (goto-char (max beg end)) (or (subed-jump-to-subtitle-end) (point)))))
-        (original (buffer-file-name))
-        (offset (- (save-excursion (goto-char (min beg end)) (subed-subtitle-msecs-start)))))
-    (with-current-buffer (find-file-noselect (my/extend-file-name original name))
+(defun my/adjust-subtitles (offset)
+  "Change all of the start and end times by OFFSET."
+  (interactive (list (subed--string-to-msecs (read-string "Time: "))))
+  (subed-for-each-subtitle (point-min) (point-max) nil
+    (subed-adjust-subtitle-time-start offset t t)
+    (subed-adjust-subtitle-time-stop offset t t))
+  (subed-regenerate-ids))
+
+(defun my/subed-write-adjusted-subtitles (source-file start-msecs end-msecs dest-file)
+  (let ((s (with-current-buffer (find-file-noselect source-file)
+             (buffer-substring-no-properties
+              (subed-jump-to-subtitle-id-at-msecs start-msecs)
+              (progn (subed-jump-to-subtitle-id-at-msecs end-msecs) (subed-jump-to-subtitle-end)))))
+        (offset (- start-msecs)))
+    (with-current-buffer (find-file-noselect dest-file)
       (erase-buffer)
       (insert s)
-      (subed-for-each-subtitle (point-min) (point-max) nil
-        (subed-adjust-subtitle-time-start offset)
-        (subed-adjust-subtitle-time-stop offset))
-      (subed-regenerate-ids)
+      (my/adjust-subtitles offset)
       (save-buffer)
       (buffer-file-name))))
 
@@ -1348,27 +1375,55 @@ Based on `elisp-get-fnsym-args-string.'"
       (kill-new cmd)
       (shell-command cmd))))
 
-(defun my/subed-cut-video (beg end name)
-  (interactive (append (if (use-region-p) (list (point) (mark))
-                         (list
-                          (save-excursion (subed-jump-to-subtitle-id))
-                          (save-excursion (subed-jump-to-subtitle-end))))
-                       (list (read-string "Name: "))))
-  (let* ((video-file (subed-guess-video-file))
-         (msecs (my/subed-get-region-start-stop beg end))
-         (new-file (my/extend-file-name video-file name))
-         cmd)
+(defun my/subed-ffmpeg-make-mute-filter (segments)
+  (mapconcat
+   (lambda (s)
+     (format "volume=enable='between(t,%.3f,%.3f)':volume=0"
+             (/ (car s) 1000.0)
+             (/ (cdr s) 1000.0)))
+   segments ", "))
+
+
+
+
+
+
+
+(defun my/subed-cut-video (beg end name video-file caption-file)
+  (interactive
+   (append
+    (if (use-region-p)
+        (list (point) (mark))
+      (list (save-excursion (subed-jump-to-subtitle-id))
+            (save-excursion (subed-jump-to-subtitle-end))))
+    (list
+     (read-string "Name: ")
+     (read-file-name "Video: ")
+     (read-file-name "Captions: "))))
+  (let*
+      ((msecs (my/subed-get-region-start-stop beg end))
+       (new-file name)
+       (mute (my/subed-get-mute-segments))
+       cmd)
     (when (> (length name) 0)
       (setq cmd
-            (format "ffmpeg -y -i %s -ss %s -t %s -i %s -c:a copy -c:v copy -c:s mov_text -shortest -async 1 %s"
-                      (shell-quote-argument video-file)
-                      (my/msecs-to-timestamp (car msecs))
-                      (my/msecs-to-timestamp (- (cdr msecs) (car msecs)))
-                      (shell-quote-argument (my/subed-write-adjusted-subtitles beg end name))                
-                      (shell-quote-argument new-file)))
+            (format "ffmpeg -y -i %s -i %s -ss %s -t %s %s -c:v copy -c:s copy -shortest -async 1 %s"
+                    (shell-quote-argument caption-file)
+                    (shell-quote-argument video-file)
+                    (my/msecs-to-timestamp
+                     (car msecs))
+                    (my/msecs-to-timestamp
+                     (-
+                      (cdr msecs)
+                      (car msecs)))
+                    (if mute
+                        (format "-af %s"
+                                (shell-quote-argument
+                                 (my/subed-ffmpeg-make-mute-filter mute)))
+                      "-c:a copy")
+                    (shell-quote-argument new-file)))
       (message "%s" cmd)
-      (kill-new cmd)
-      (shell-command cmd))))
+      (kill-new cmd))))
 
 (define-minor-mode my/subed-hide-nontext-minor-mode
   "Minor mode for hiding non-text stuff.")
@@ -1505,23 +1560,206 @@ Based on `elisp-get-fnsym-args-string.'"
       (subed-set-subtitle-time-stop timestamp)
       (setq timestamp (subed-subtitle-msecs-start)))))
 
-(defvar my/subed-common-edits nil "List of words and replacements.")
-(setq my/subed-common-edits
-      '(("i" "I" t)
-        ("i've" "I've" t)
-        ("i'm" "I'm" t)
-        ("gonna" "going to" t)
-        ("wanna" "want to" t)
-        ("e-max" "Emacs" t)
-        ("emacs news" "Emacs News" t)
-        ("imax" "Emacs" t)))
+(defun my/caption-download-srv2 (id)
+  (interactive "MID: ")
+  (call-process "youtube-dl" nil nil nil "--write-auto-sub" "--sub-lang" "en" "--skip-download" "--sub-format" "srv2"
+                (concat "https://youtu.be/" id)))
+
+(defvar-local my/caption-cache nil "Word-level timing in the form ((start . ms) (end . ms) (text . ms))")
+(defun my/caption-extract-words-from-json3 ()
+  (let* ((data (progn (goto-char (point-min)) (json-read)))
+         (reversed (reverse (alist-get 'events data)))
+         (last-event (seq-first reversed))
+         (last-ms (+ (alist-get 'tStartMs last-event)
+                     (alist-get 'dDurationMs last-event))))
+    (reverse
+     (cl-loop for e across reversed append
+              (mapcar
+               (lambda (seg)
+                 (let ((rec `((start ,(+ (alist-get 'tStartMs e)
+                                   (or (alist-get 'tOffsetMs seg) 0)))
+                         (end ,(min last-ms
+                                    (+ (alist-get 'tStartMs e)
+                                       (or (alist-get 'dDurationMs e) 0))))
+                         (text ,(alist-get 'utf8 seg)))))
+                   (setq last-ms (alist-get 'start rec))
+                   rec))
+               (reverse (alist-get 'segs e)))))))
+
+(defun my/caption-extract-words-from-srv2 ()
+  (let* ((data (xml-parse-region))
+         (text-elements (reverse (dom-by-tag data 'text)))
+         (last-start (+ (string-to-number
+                         (alist-get 't (xml-node-attributes (car text-elements))))
+                        (string-to-number (alist-get 'd (xml-node-attributes (car text-elements)))))))
+    (reverse
+     (mapcar #'(lambda (element)
+                 (let ((rec (list (cons 'start (string-to-number (alist-get 't (xml-node-attributes element))))
+                                  (cons 'end last-start)
+                                  (cons 'text (car (xml-node-children element))))))
+                   (setq last-start (alist-get 'start rec))
+                   rec))
+             text-elements))))
+
+(defun my/caption-fix-common-errors (data)
+  (mapc (lambda (o)
+          (mapc (lambda (e)
+                  (when (string-match (concat "\\<" (car e) "\\>") (alist-get 'text o))
+                    (map-put! o 'text (replace-match (cadr e) t t (alist-get 'text o)))))
+                my/subed-common-edits))
+        data))
+
+(defun my/caption-load-word-data (file)
+  "Load word-level timing from FILE."
+  (interactive "fFile: ")
+  (let (data)
+    (with-current-buffer (find-file-noselect file)
+      (cond
+       ((string-match "\\.json3\\'" file)
+        (setq data (my/caption-extract-words-from-json3)))
+       ((string-match "\\.srv2\\'" file)
+        (setq data (my/caption-extract-words-from-srv2)))
+       (t (error "Unknown format."))))
+    (setq-local my/caption-cache (my/caption-fix-common-errors data))))
+
+(defun my/caption-look-up-word ()
+  (save-excursion
+    (let* ((end (subed-subtitle-msecs-stop))
+           (start (subed-subtitle-msecs-start))
+           (remaining-words (split-string (buffer-substring (point) (subed-jump-to-subtitle-end))))
+           (words (reverse (seq-filter (lambda (o)
+                                         (and (<= (alist-get 'end o) end)
+                                              (>= (alist-get 'start o) start)
+                                              (not (string-match "^\n*$" (alist-get 'text o)))))
+                                       my/caption-cache)))
+           (offset 0)
+           candidate done)
+      (while (not done)
+        (setq candidate (elt words (+ (1- (length remaining-words)) offset)))
+        (cond
+         ((and candidate (string-match (concat "\\<" (car remaining-words) "\\>") (alist-get 'text candidate)))
+          (setq done t))
+         ((> offset (length words)) (setq done t))
+         ((> offset 0) (setq offset (- offset)))
+         (t (setq offset (1+ (- offset))))))
+      candidate)))
+
+(defun my/caption-split ()
+  "Split the current subtitle based on word-level timing if available."
+  (interactive)
+  (save-excursion
+    (let ((data (my/caption-look-up-word)))
+      (prin1 data)
+      (subed-split-subtitle (and data (- (alist-get 'start data) (subed-subtitle-msecs-start)))))))
+(defun my/caption-split-and-merge-with-next () (interactive) (my/caption-split) (subed-forward-subtitle-id) (subed-merge-with-next))
+(defun my/caption-split-and-merge-with-previous () (interactive) (my/caption-split) (subed-merge-with-previous))
+(use-package subed
+  :if my/laptop-p
+  :load-path "~/vendor/subed/subed"
+  :bind
+  (:map subed-mode-map
+        ("M-'" . my/caption-split-and-merge-with-previous)
+        ("M-," . my/caption-split)
+        ("M-." . my/caption-split-and-merge-with-next)))
+
+(defvar my/caption-breaks
+  '("the" "this" "we" "we're" "I" "finally" "but" "and" "when")
+  "List of words to try to break at.")
+(defun my/caption-make-groups (list)
+  (let (result
+        current-item
+        done
+        (current-length 0)
+        (limit 70)
+        (lower-limit 30)
+        (break-regexp (concat "\\<" (regexp-opt my/caption-breaks) "\\>")))
+    (while list
+      (cond
+       ((null (car list)))
+       ((string-match "^\n*$" (alist-get 'text (car list)))
+        (push (cons '(text . " ") (car list)) current-item)
+        (setq current-length (1+ current-length)))
+       ((< (+ current-length (length (alist-get 'text (car list)))) limit)
+        (setq current-item (cons (car list) current-item)
+              current-length (+ current-length (length (alist-get 'text (car list))) 1)))
+       (t (setq done nil)
+          (while (not done)
+          (cond
+           ((< current-length lower-limit)
+            (setq done t))
+           ((and (string-match break-regexp (alist-get 'text (car current-item)))
+                 (not (string-match break-regexp (alist-get 'text (cadr current-item)))))
+            (setq current-length (- current-length (length (alist-get 'text (car current-item)))))
+            (push (pop current-item) list)
+            (setq done t))
+           (t
+            (setq current-length (- current-length (length (alist-get 'text (car current-item)))))
+            (push (pop current-item) list))))
+          (push nil list)
+          (setq result (cons (reverse current-item) result) current-item nil current-length 0)))
+      (setq list (cdr list)))
+    (reverse result)))
+
+(defun my/caption-format-as-subtitle (list &optional word-timing)
+  "Turn a LIST of the form (((start . ms) (end . ms) (text . s)) ...) into VTT.
+If WORD-TIMING is non-nil, include word-level timestamps."
+  (format "%s --> %s\n%s\n\n"
+          (subed-vtt--msecs-to-timestamp (alist-get 'start (car list)))
+          (subed-vtt--msecs-to-timestamp (alist-get 'end (car (last list))))
+          (s-trim (mapconcat (lambda (entry)
+                               (if word-timing
+                                   (format " <%s>%s"
+                                           (subed-vtt--msecs-to-timestamp (alist-get 'start entry))
+                                           (string-trim (alist-get 'text entry)))
+                                 (alist-get 'text entry)))
+                             list ""))))
+
+(defun my/caption-to-vtt (&optional data)
+  (interactive)
+  (with-temp-file "captions.vtt"
+    (insert "WEBVTT\n\n"
+            (mapconcat
+             (lambda (entry) (my/caption-format-as-subtitle entry))
+             (my/caption-make-groups
+              (or data (my/caption-fix-common-errors my/caption-cache)))
+             ""))))
+
+(defvar my/subed-common-edits '(("i" "I")
+                                ("i've" "I've")
+                                ("i'm" "I'm")
+                                ("gonna" "going to")
+                                ("wanna" "want to")
+                                ("transit" "transient")
+                                ("uh" "")
+                                ("um" "")
+                                ("maggot" "Magit")
+                                ("e-max" "Emacs")
+                                ("emex" "Emacs")
+                                ("emax" "Emacs")
+                                ("emacs news" "Emacs News")
+                                ("iv" "ivy")
+                                ("ui" "UI")
+                                ("tico" "TECO")
+                                ("orgrim" "org-roam")
+                                ("imax" "Emacs")
+                                ("non-nail" "non-nil")
+                                ("comets" "commits")
+                                ("sql" "SQL")
+                                ("imaxconf" "EmacsConf")
+                                ("svg" "SVG")
+                                ("maggit" "magit")
+                                ("axwm" "EXWM")
+                                ("bmx" "Emacs"))
+  "List of words and replacements.")
+
 (defun my/subed-find-next-fix-point ()
   (when (re-search-forward
          (format "\\<%s\\>"
                  (regexp-opt (mapcar 'car my/subed-common-edits)))
          nil t)
     (goto-char (match-beginning 0))))
-(defun my/subed-common-fixes ()
+
+(defun my/subed-fix-common-errors ()
   (interactive)
   (let (done)
     (while (and
@@ -1529,8 +1767,8 @@ Based on `elisp-get-fnsym-args-string.'"
             (my/subed-find-next-fix-point))
       (let* ((entry (cdr (assoc (match-string 0) my/subed-common-edits)))
              (c (if (elt entry 1)
-                    ?y
-                  (and entry (read-char (format "%s (yn.): " (car entry)))))))
+                    (and entry (read-char (format "%s (yn.): " (car entry))))
+                  ?y)))
         (cond
          ((null entry) (goto-char (match-end 0)))
          ((= c ?y) (replace-match (car entry) t t))
@@ -1979,6 +2217,7 @@ Based on `elisp-get-fnsym-args-string.'"
 (setq org-refile-allow-creating-parent-nodes 'confirm)
 (setq org-refile-use-cache nil)
 (setq org-refile-targets '((("~/orgzly/organizer.org"
+                             "~/code/stream/index.org.org"
                              "~/code/stream/notes.org"
                              "~/code/.emacs.d/Sacha.org"
                              "~/orgzly/routines.org") . (:maxlevel . 5))))
@@ -4195,6 +4434,11 @@ and indent it one level."
              (replace-regexp-in-string "-mode$" "" mode)
              contents))))
 
+(defun my/org-table-as-alist (table)
+  "Convert TABLE to an alist. Remember to set :colnames no."
+  (let ((headers (seq-map 'intern (car table))))
+    (cl-loop for x in (cdr table) collect (-zip headers x))))
+
 (setq calendar-week-start-day 6) ;; My weeks start on Saturday
 
 (defun my/org-get-invoice-range-based-on-date (date)
@@ -5079,6 +5323,7 @@ so that it's still active even after you stage a change. Very experimental."
 (use-package company
   :if my/laptop-p
   :config (add-hook 'prog-mode-hook 'company-mode))
+(use-package company-posframe :if my/laptop-p :init (company-posframe-mode 1))
 
 (use-package tern
   :if my/laptop-p
@@ -5164,7 +5409,7 @@ so that it's still active even after you stage a change. Very experimental."
   (my/org-with-current-task
    (org-clock-in)
    (call-interactively 'my/org-quantified-track)
-   (when obs-websocket-streaming-p (my/stream-message (org-get-heading t t t t)))
+   (when (websocket-openp obs-websocket)  (my/stream-message (org-get-heading t t t t)))
    (cond
     ((org-entry-get (point) "AUTO")
      (org-link-open-from-string (org-entry-get (point) "AUTO")))
@@ -5671,6 +5916,7 @@ so that it's still active even after you stage a change. Very experimental."
   :commands
   command-log-mode
   clm/open-command-log-buffer
+  global-command-log-mode
   :defines
   clm/command-log-buffer
   )
@@ -5875,7 +6121,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 
 (defun my/obs-websocket-add-caption (text &optional ms)
   (interactive (list (read-string "Text: ")))
-  (obs-websocket-send "SendCaptions" :text text)
+ (when (websocket-openp obs-websocket) (obs-websocket-send "SendCaptions" :text text))
   (setq ms (or ms (my/obs-websocket-recording-time-msecs)))
   (when obs-websocket-recording-filename
     (with-current-buffer (find-file-noselect (my/obs-websocket-caption-file))
@@ -5994,14 +6240,24 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
   :lighter "CAP"
   :global t)
 
+(defun my/get-last-n-chars (text limit)
+  (if (< (length text) limit)
+      text
+    (substring text (- (length text) limit))))
+
 (defun my/stream-captions-on-message (websocket frame)
   (let* ((payload (json-parse-string (websocket-frame-payload frame) :object-type 'plist :array-type 'list))
-         (caption (string-trim (plist-get (car (plist-get (car (plist-get payload :results)) :alternatives)) :transcript))))
-    (setq my/stream-captions-last-caption caption)
-    (call-process "notify-send" nil nil nil caption)
-    (my/obs-websocket-add-caption caption)
-    (when my/stream-captions-insert (insert caption))
-    (setq my/stream-captions-history (cons caption my/stream-captions-history))))
+         (type (plist-get payload :type))
+         (caption (string-trim (plist-get (car (plist-get (car (plist-get (plist-get payload :stream) :results)) :alternatives)) :transcript))))
+    
+    (if (string= type "interim")
+        (when (websocket-openp obs-websocket) (obs-websocket-send "SendCaptions" :text (my/get-last-n-chars caption 80)))
+      (setq my/stream-captions-last-caption caption)
+      (call-process "notify-send" nil nil nil caption)
+      (my/obs-websocket-add-caption caption)
+      (when my/stream-captions-insert (insert caption))
+      (setq my/stream-captions-history (cons caption my/stream-captions-history)))))
+
 
 (defun my/stream-captions-edit-last (caption)
   (interactive (list (read-string "Caption: " my/stream-captions-last-caption 'my/stream-captions-history my/stream-captions-last-caption)))
@@ -6758,6 +7014,14 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
    "copy"
    :follow (lambda (link) (kill-new link))
 ))
+
+(use-package org
+  :config
+  (org-link-set-parameters
+   "config"
+   :follow (lambda (id) (org-open-link-from-string (format "[[~/code/.emacs.d/Sacha.org::%s]]" id)))
+   :export (lambda (link description format)
+             (format "<a href=\"https://sachachua.com/dotemacs#%s\">%s</a>" link description))))
 
 (defun my/helm-source-org-sketch-list ()
   (my/list-sketches "."))
@@ -7543,6 +7807,20 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
   (setenv "PATH" (concat "\"c:/program files/postgresql/9.3/bin;\"" (getenv "PATH"))))
 
 (defvar my/unfocusing nil)
+(defun run-with-local-idle-timer (secs repeat function &rest args)
+  "Like `run-with-idle-timer', but always runs in the `current-buffer'.
+
+Cancels itself, if this buffer was killed."
+  (let* (;; Chicken and egg problem.
+         (fns (make-symbol "local-idle-timer"))
+         (timer (apply 'run-with-idle-timer secs repeat fns args))
+         (fn `(lambda (&rest args)
+                (if (not (buffer-live-p ,(current-buffer)))
+                    (cancel-timer ,timer)
+                  (with-current-buffer ,(current-buffer)
+                    (apply (function ,function) args))))))
+    (fset fns fn)
+    fn))
 (defun my/org-babel-tangle-if-saved-in-focus ()
   (unless my/unfocusing
-    (org-babel-tangle)))
+    (run-with-local-idle-timer 5 nil #'org-babel-tangle)))

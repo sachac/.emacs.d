@@ -1034,6 +1034,7 @@ Based on `elisp-get-fnsym-args-string.'"
     ("s" save-buffer "Save")
     ("m" my/share-emacs-news "Mail"))
   (global-set-key (kbd "<f5>") 'my/shortcuts/body))
+(use-package hydra-posframe :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe") :if my/laptop-p :after hydra)
 
 (use-package pretty-hydra)
 (defun my/org-insert-link ()
@@ -1562,29 +1563,45 @@ Based on `elisp-get-fnsym-args-string.'"
 
 (defun my/caption-download-srv2 (id)
   (interactive "MID: ")
+  (when (string-match "v=\\([^&]+\\)" id) (setq id (match-string 1 id)))
   (call-process "youtube-dl" nil nil nil "--write-auto-sub" "--sub-lang" "en" "--skip-download" "--sub-format" "srv2"
-                (concat "https://youtu.be/" id)))
+                (concat "https://youtu.be/" id))
+  (my/caption-load-word-data (my/latest-file "." "\\.srv2\\'")))
 
 (defvar-local my/caption-cache nil "Word-level timing in the form ((start . ms) (end . ms) (text . ms))")
+(defun my/caption-json-time-to-ms (json)
+  (+ (* 1000 (string-to-number (alist-get 'seconds json)))
+     (/ (alist-get 'nanos json) 1000000)))
+
 (defun my/caption-extract-words-from-json3 ()
   (let* ((data (progn (goto-char (point-min)) (json-read)))
-         (reversed (reverse (alist-get 'events data)))
+         (json3-p (alist-get 'events data))
+         (reversed (reverse
+                    (or (alist-get 'events data)
+                        (cl-loop for seg in (car (alist-get 'results data))
+                                 nconc (alist-get 'words (car (alist-get 'alternatives seg)))))))
          (last-event (seq-first reversed))
-         (last-ms (+ (alist-get 'tStartMs last-event)
-                     (alist-get 'dDurationMs last-event))))
+         (last-ms (if json3-p
+                      (+ (alist-get 'tStartMs last-event)
+                         (alist-get 'dDurationMs last-event)))))
     (reverse
      (cl-loop for e across reversed append
-              (mapcar
-               (lambda (seg)
-                 (let ((rec `((start ,(+ (alist-get 'tStartMs e)
-                                   (or (alist-get 'tOffsetMs seg) 0)))
-                         (end ,(min last-ms
-                                    (+ (alist-get 'tStartMs e)
-                                       (or (alist-get 'dDurationMs e) 0))))
-                         (text ,(alist-get 'utf8 seg)))))
-                   (setq last-ms (alist-get 'start rec))
-                   rec))
-               (reverse (alist-get 'segs e)))))))
+              (if json3-p
+                  (mapcar
+                   (lambda (seg)
+                     (let ((rec
+                            `((start ,(+ (alist-get 'tStartMs e)
+                                         (or (alist-get 'tOffsetMs seg) 0)))
+                              (end ,(min last-ms
+                                         (+ (alist-get 'tStartMs e)
+                                            (or (alist-get 'dDurationMs e) 0))))
+                              (text ,(alist-get 'utf8 seg)))))
+                       (setq last-ms (alist-get 'start rec))
+                       rec))
+                   (reverse (alist-get 'segs e)))
+                `((start ,(my/caption-json-time-to-ms (alist-get 'startTime seg)))
+                  (end ,(my/caption-json-time-to-ms (alist-get 'endTime seg)))
+                  (text ,(alist-get 'word seg))))))))
 
 (defun my/caption-extract-words-from-srv2 ()
   (let* ((data (xml-parse-region))
@@ -1615,25 +1632,32 @@ Based on `elisp-get-fnsym-args-string.'"
   (let (data)
     (with-current-buffer (find-file-noselect file)
       (cond
-       ((string-match "\\.json3\\'" file)
+       ((string-match "\\.json" file)
         (setq data (my/caption-extract-words-from-json3)))
        ((string-match "\\.srv2\\'" file)
         (setq data (my/caption-extract-words-from-srv2)))
        (t (error "Unknown format."))))
-    (setq-local my/caption-cache (my/caption-fix-common-errors data))))
+    (setq-local my/caption-cache
+                (mapcar (lambda (entry)
+                          (setf (alist-get 'text entry)
+                                (replace-regexp-in-string "&#39;" "'" (alist-get 'text entry)))
+                          entry)
+                        (my/caption-fix-common-errors data)))))
 
 (defun my/caption-look-up-word ()
   (save-excursion
     (let* ((end (subed-subtitle-msecs-stop))
            (start (subed-subtitle-msecs-start))
-           (remaining-words (split-string (buffer-substring (point) (subed-jump-to-subtitle-end))))
-           (words (reverse (seq-filter (lambda (o)
-                                         (and (<= (alist-get 'end o) end)
-                                              (>= (alist-get 'start o) start)
-                                              (not (string-match "^\n*$" (alist-get 'text o)))))
-                                       my/caption-cache)))
+           (remaining-words (split-string (buffer-substring (point) (or (subed-jump-to-subtitle-end) (point)))))
+           (words (if remaining-words
+                      (reverse (seq-filter (lambda (o)
+                                             (and (<= (alist-get 'end o) end)
+                                                  (>= (alist-get 'start o) start)
+                                                  (not (string-match "^\n*$" (alist-get 'text o)))))
+                                           my/caption-cache))))
            (offset 0)
-           candidate done)
+           (done (null remaining-words))
+           candidate)
       (while (not done)
         (setq candidate (elt words (+ (1- (length remaining-words)) offset)))
         (cond
@@ -1644,6 +1668,12 @@ Based on `elisp-get-fnsym-args-string.'"
          (t (setq offset (1+ (- offset))))))
       candidate)))
 
+(defun my/caption-unwrap ()
+  (interactive)
+  (subed-jump-to-subtitle-text)
+  (let ((limit (save-excursion (or (subed-jump-to-subtitle-end) (point)))))
+         (while (re-search-forward "\n" limit t)
+           (replace-match " "))))
 (defun my/caption-split ()
   "Split the current subtitle based on word-level timing if available."
   (interactive)
@@ -1651,15 +1681,26 @@ Based on `elisp-get-fnsym-args-string.'"
     (let ((data (my/caption-look-up-word)))
       (prin1 data)
       (subed-split-subtitle (and data (- (alist-get 'start data) (subed-subtitle-msecs-start)))))))
-(defun my/caption-split-and-merge-with-next () (interactive) (my/caption-split) (subed-forward-subtitle-id) (subed-merge-with-next))
-(defun my/caption-split-and-merge-with-previous () (interactive) (my/caption-split) (subed-merge-with-previous))
+(defun my/caption-split-and-merge-with-next ()
+  (interactive)
+  (my/caption-split)
+  (my/caption-unwrap)
+  (subed-forward-subtitle-id)
+  (subed-merge-with-next)
+  (my/caption-unwrap))
+(defun my/caption-split-and-merge-with-previous ()
+  (interactive)
+  (my/caption-split)
+  (subed-merge-with-previous)
+  (my/caption-unwrap))
 (use-package subed
   :if my/laptop-p
   :load-path "~/vendor/subed/subed"
   :bind
   (:map subed-mode-map
-        ("M-'" . my/caption-split-and-merge-with-previous)
-        ("M-," . my/caption-split)
+        ("M-'" . my/caption-split)
+        ("M-," . my/caption-split-and-merge-with-previous)
+        ("M-q" . my/caption-unwrap)
         ("M-." . my/caption-split-and-merge-with-next)))
 
 (defvar my/caption-breaks
@@ -3303,106 +3344,6 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
           (backward-char)
           (org-open-at-point))))))
 
-(defun my/evernote-export-and-extract (start-date end-date)
-  "Extract notes created on or after START-DATE and before END-DATE."
-  (let ((filename "c:/sacha/tmp/Evernote.enex"))
-    (call-process
-     "c:/Program Files (x86)/Evernote/Evernote/enscript.exe"
-     nil t t
-     "exportNotes"
-     "/q" (concat
-           " tag:roundup"
-           " created:" (replace-regexp-in-string "-" "" start-date)
-           " -created:" (replace-regexp-in-string "-" "" end-date))
-     "/f" filename)
-    (my/evernote-extract-links-for-review filename)))
-
-(defun my/evernote-extract-links-for-review (filename)
-  "Extract note names and URLs from FILENAME.
-             The file should be an ENEX export."
-  (interactive (list (read-file-name "File: ")
-                     (org-read-date)
-                     (org-read-date)))
-  (let (list)
-    (with-temp-buffer
-      (insert-file-contents filename)
-      (goto-char (point-min))
-      (while (re-search-forward "<title>\\(.+?\\)</title>\\(.*?\n\\)*?via Diigo.*?href=\"\\(.*?\\)\"" nil t)
-        (setq list
-              (cons
-               (cons
-                (match-string-no-properties 1)
-                (match-string-no-properties 3)) list))))
-    (setq list
-          (mapconcat (lambda (x)
-                       (concat "- [["
-                               (kensanata/resolve-redirect (cdr x))
-                               "][" (car x) "]]: ")) list "\n"))
-    (if (called-interactively-p 'any)
-        (insert list)
-      list)))
-
-(defun my/evernote-export-and-extract-journal ()
-  "Extract and file journal entries."
-  (interactive)
-  (let ((filename "c:\\sacha\\tmp\\journal.enex")
-        (journal-file "~/personal/journal.org"))
-    (call-process
-     "c:/Program Files (x86)/Evernote/Evernote/enscript.exe"
-     nil t t
-     "exportNotes"
-     "/q" (concat
-           " notebook:!Inbox"
-           " intitle:Journal")
-     "/f" filename)
-    (my/evernote-process-journal-entries filename journal-file)))
-
-(defun my/evernote-process-journal-entries (filename journal-file)
-  "Insert all the journal entries if they do not yet exist."
-  (let ((data (car (xml-parse-file filename))))
-    (mapc (lambda (x)
-            (if (and  (listp x) (equal (car x) 'note))
-                (my/evernote-create-journal-note x journal-file)))
-          data)))
-
-(defun my/evernote-get-creation-date (note)
-  "Return NOTE's created date as (month day year)."
-  (let ((created (cadr (assoc-default 'created note))))
-    (list (string-to-number (substring created 4 6)) ; month
-          (string-to-number (substring created 6 8)) ; day
-          (string-to-number (substring created 0 4))))) ; year
-
-(defun my/evernote-create-journal-note (note journal-file)
-  "Save the given NOTE to the JOURNAL-FILE."
-  (with-current-buffer (find-file journal-file)
-    (org-datetree-find-date-create (my/evernote-get-creation-date note))
-    (forward-line 1)
-    (when (org-at-heading-p) (save-excursion (insert "\n")))
-    (let ((content (my/evernote-convert-content-to-org note)))
-      (unless (save-excursion
-                (re-search-forward (regexp-quote content)
-                                   (max (point) (save-excursion (org-end-of-subtree t))) t))
-        (insert content)))))
-
-(defun my/evernote-convert-content-to-org (note)
-  "Convert Evernote content for NOTE to HTML"
-  (with-temp-buffer
-    (insert (cadr (assoc-default 'content note)))
-    (goto-char (point-min))
-    (while (re-search-forward "div>" nil t)
-      (replace-match "p>"))
-    (shell-command-on-region (point-min) (point-max) "pandoc -f html -t org" nil t)
-    (goto-char (point-min))
-    (while (re-search-forward "^\\\\+" nil t)
-      (replace-match ""))
-    (goto-char (point-min))
-    (while (re-search-forward "\\\\+$" nil t)
-      (replace-match ""))
-    (goto-char (point-min))
-    (while (re-search-forward "\n\n\n+" nil t)
-      (replace-match "\n\n"))
-    (s-trim (buffer-string))))
-
 (defun my/org-review-month (start-date)
   "Review the month's clocked tasks and time."
   (interactive (list (org-read-date)))
@@ -3690,10 +3631,11 @@ and indent it one level."
     (org-html-publish-to-html plist filename pub-dir)))
 
 (setq org-html-head "<link rel=\"stylesheet\" type=\"text/css\"
-       href=\"//sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"></link>
-       <link rel=\"stylesheet\" type=\"text/css\" href=\"//sachachua.com/org-export.css\"></link>
-       <link rel=\"stylesheet\" type=\"text/css\" href=\"//sachachua.com/blog/wp-content/themes/sacha-v3/style.css\"></link>
-       <script src=\"//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"></script>")
+       href=\"https://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"></link>
+       <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/org-export.css\"></link>
+       <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/blog/wp-content/themes/sacha-v3/style.css\"></link>
+       <script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"></script>
+       <script src=\"https://sachachua.com/blog/wp-content/themes/sacha-v3/misc.js\"></script>")
 (setq org-html-htmlize-output-type 'css)
 (setq org-src-fontify-natively t)
 
@@ -4063,12 +4005,17 @@ and indent it one level."
   (my/json-request (concat "https://journal.sachachua.com/api/entries/" zidstring)))
 
 (defun my/journal-edit (zidstring)
-  (interactive (list (my/journal-id-from-string (my/journal-completing-read))))
-  (let ((entry (my/journal-get-by-zidstring zidstring)))
-    (plist-put entry :Note (read-string "Note: " (plist-get entry :Note)))
-    (plist-put entry :Category (my/journal-read-category (plist-get entry :Category)))
-    (plist-put entry :Other (read-string "Other: " (plist-get entry :Other)))
-    (apply 'my/journal-update entry)))
+  (interactive (list (my/journal-completing-read)))
+  (let* ((id (my/journal-id-from-string zidstring))
+         (entry (and id (my/journal-get-by-zidstring id))))
+    (if (null id)
+        (my/journal-post zidstring
+                         :Category (my/journal-read-category (plist-get entry :Category))
+                         :Other (read-string "Other: " (plist-get entry :Other)))
+      (plist-put entry :Note (read-string "Note: " (plist-get entry :Note)))
+      (plist-put entry :Category (my/journal-read-category (plist-get entry :Category)))
+      (plist-put entry :Other (read-string "Other: " (plist-get entry :Other)))
+      (apply 'my/journal-update entry))))
 
 (defun my/journal-update (&rest plist)
   "Update journal entry using PLIST."
@@ -5323,7 +5270,7 @@ so that it's still active even after you stage a change. Very experimental."
 (use-package company
   :if my/laptop-p
   :config (add-hook 'prog-mode-hook 'company-mode))
-(use-package company-posframe :if my/laptop-p :init (company-posframe-mode 1))
+(use-package company-posframe :if my/laptop-p :init (company-posframe-mode 1) :diminish)
 
 (use-package tern
   :if my/laptop-p
@@ -5377,23 +5324,6 @@ so that it's still active even after you stage a change. Very experimental."
                              (or reason
                                  "Kicked (kickban)"))))
   )
-
-(defun my/announce-on-irc-and-twitter (channels message host port)
-  (call-process "t" nil 0 nil "update" message)
-  (with-temp-buffer
-    (insert "PASS " erc-password "\n"
-            "USER " erc-nick "\n"
-            "NICK " erc-nick "\n"
-            (mapconcat (lambda (o)
-                         (format "PRIVMSG %s :%s\n" o message))
-                       channels "")
-            "QUIT\n")
-    (call-process-region (point-min) (point-max) "ncat" nil 0 nil
-                         "--ssl" host port)))
-
-(defun my/schedule-announcement (time message)
-  (interactive (list (org-read-date t t) (read-string "Message: ")))
-  (run-at-time time nil #'my/announce-on-irc-and-twitter '("#emacs" "#emacsconf") message erc-server erc-port))
 
 (defmacro my/org-with-current-task (&rest body)
   "Execute BODY with the point at the subtree of the current task."

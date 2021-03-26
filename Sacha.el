@@ -1819,6 +1819,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
       ))))
 
 (defvar my/scan-directory "~/sync/scans")
+(defvar my/ipad-directory "~/sync/ipad")
 (defvar my/portfolio-directory "~/sync/portfolio")
 (defvar my/camera-directory "~/sync/camera")
 (defvar my/private-sketches-directory "~/cloud/private-sketches")
@@ -1929,6 +1930,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
   "Manage images with geeqie."
   ("op" (my/geeqie-view my/portfolio-directory) "Open portfolio")
   ("oc" (my/geeqie-view my/camera-directory) "Open camera")
+  ("oi" (my/geeqie-view my/ipad-directory) "Open ipad")
   ("os" my/geeqie-scans "Open scans")
   ("[" my/geeqie-rotate-counterclockwise "CCW")
   ("]" my/geeqie-rotate-clockwise "CW")
@@ -2036,6 +2038,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 (use-package org
   :config
   (progn
+    (add-to-list 'org-speed-commands-user '("A" org-archive-subtree-default))
     (add-to-list 'org-speed-commands-user '("x" org-todo "DONE"))
     (add-to-list 'org-speed-commands-user '("X" call-interactively 'my/org-mark-done-and-add-to-journal))
     (add-to-list 'org-speed-commands-user '("y" org-todo-yesterday "DONE"))
@@ -2573,6 +2576,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
             (mapcar (lambda (x) (and x (file-exists-p x) x))
                     `("~/orgzly/organizer.org"
                       "~/orgzly/Inbox.org"
+                      "~/orgzly/decisions.org"
                       "~/orgzly/computer-inbox.org"
                       "~/code/stream/index.org"
                       "~/code/stream/notes.org"
@@ -2752,6 +2756,11 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
                    ((org-agenda-files '("~/orgzly/Inbox.org" "~/orgzly/computer-inbox.org"))
                     (org-agenda-prefix-format "%-6e ")
                     (org-agenda-overriding-header "Inbox: ")))
+          (todo "WAITING-inactive"
+                ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
+                 (org-agenda-prefix-format "%-6e ")
+                 (org-agenda-overriding-header "Waiting: ")
+                 (org-agenda-sorting-strategy '(priority-down effort-up tag-up category-keep))))
           ;; Unscheduled
           (tags-todo "TODO=\"TODO\"-project-cooking-routine-errands-shopping-video-evilplans" 
                      ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
@@ -3621,6 +3630,19 @@ and indent it one level."
   (browse-url (concat "https://sachachua.com/blog/wp-admin/post.php?action=edit&post=" (org-entry-get (point) "POSTID"))))
 (use-package htmlize)
 
+  (defun my/org-export-filter-body-add-emacs-configuration-link (string backend info)
+    (concat string "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs\">Emacs configuration.</a></div>"))
+
+(use-package org2blog
+  :config
+  (advice-add 'org2blog-entry-save
+              :around
+              (lambda (orig-fun &rest args)
+                (if (string-match "\\.emacs\\.d/Sacha\\.org" (buffer-file-name))
+                    (let ((org-export-filter-body-functions (cons 'my/org-export-filter-body-add-emacs-configuration-link org-export-filter-body-functions)))
+                      (apply orig-fun args))
+                  (apply orig-fun args)))))
+
 (defun my/org-html-export-trustingly ()
   (interactive)
   (let ((org-confirm-babel-evaluate nil))
@@ -3629,6 +3651,21 @@ and indent it one level."
 (defun my/org-html-publish-to-html-trustingly (plist filename pub-dir)
   (let ((org-confirm-babel-evaluate nil))
     (org-html-publish-to-html plist filename pub-dir)))
+
+(use-package org-special-block-extras
+  :quelpa (org-special-block-extras :fetcher github :repo "alhassy/org-special-block-extras")
+  :if my/laptop-p
+  :hook (org-mode-hook . org-special-block-extras-mode)
+  :config
+  ;; Use short names like ‘defblock’ instead of the fully qualified name
+  ;; ‘org-special-block-extras--defblock’
+  (org-special-block-extras-short-names)
+  (defblock columns nil nil
+    "Top level (HTML)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
+    (format "<div class=\"row\">%s</div>" contents))
+  (defblock column50 nil nil 
+    "Top level (HTML)OSPE-RESPECT-NEWLINES? Split into columns."
+    (format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents)))
 
 (setq org-html-head "<link rel=\"stylesheet\" type=\"text/css\"
        href=\"https://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"></link>
@@ -4298,8 +4335,11 @@ and indent it one level."
                     "\n")))
     (if (called-interactively-p 'any) (insert result) result)))
 
-(setq org-attach-store-link-p 'attached)
-(setq org-attach-auto-tag nil)
+(use-package org-attach
+  :ensure nil
+  :config
+  (setq org-attach-store-link-p 'attached)
+  (setq org-attach-auto-tag nil))
 
 (use-package ob-http)
 
@@ -4496,8 +4536,6 @@ and indent it one level."
   "Check if invoice range is sane."
   (should (equal (my/org-get-invoice-range-based-on-date "2015-12-05")
                  '("2015-11-01 00:00" "2015-12-01 00:00"))))
-
-(add-to-list 'org-speed-commands-user '("a" call-interactively 'org-archive-subtree-default))
 
 (use-package ox-reveal :disabled t)
 
@@ -4728,6 +4766,8 @@ and indent it one level."
 
 (eval-after-load 'python-mode
   '(bind-key "C-c C-c" 'compile python-mode-map))
+
+(use-package edit-list :commands edit-list)
 
 (use-package "eldoc"
   :if my/laptop-p
@@ -6769,6 +6809,8 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
                        (/ (- approx-width (length x)) 2))
        (setq row (1+ row)))
      list)))
+
+(auto-image-file-mode -1)
 
 (defvar my/sketch-directories
   '("~/sync/sketches"

@@ -187,15 +187,20 @@
   (interactive)
   (setq my/sketches (sort
                           (apply 'append (mapcar (lambda (dir)
-                                                   (directory-files dir t "\\.\\(jpe?g\\|png\\)$"))
+                                                   (directory-files dir t "\\.\\(jpe?g\\|png\\|svg\\)$"))
                                                  my/sketch-directories))
                           (lambda (a b)
                             (string< (concat (or (my/date-from-filename b) "0") (file-name-nondirectory b))
                                      (concat (or (my/date-from-filename a) "0") (file-name-nondirectory a)) )))))
 
+(defun my/preview-image (candidate state)
+  (when candidate (my/geeqie-view (list candidate)))
+  nil)
+
 (defun my/complete-sketch-filename ()
   (consult--read (or my/sketches (my/update-sketch-cache))
    :sort nil
+   :state 'my/preview-image
    :prompt "Sketch: " :category 'sketch))
 
 (use-package marginalia
@@ -1835,7 +1840,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
   (string-trim (shell-command-to-string "geeqie --remote --tell")))
 (defun my/geeqie-view (filenames)
   (interactive "f")
-  (shell-command
+  (start-process-shell-command "geeqie" nil
    (concat "geeqie --remote "
            (mapconcat (lambda (f)
                         (concat "file:" (shell-quote-argument f)))
@@ -1844,8 +1849,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
                        ((file-directory-p filenames)
                         (list (car (seq-filter #'file-regular-p (directory-files filenames t)))))
                        (t (list filenames)))
-                      " ")
-           " &")))
+                      " "))))
 
 (defvar my/rotate-jpeg-using-exiftran nil)
 
@@ -6844,14 +6848,14 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
                  (lambda (dir)
                    (and (file-directory-p dir)
                         (if (functionp base)
-                            (-filter base (directory-files dir t ".*\\.\\(png\\|psd\\|tiff\\|jpg\\)?$"))
+                            (-filter base (directory-files dir t ".*\\.\\(png\\|psd\\|tiff\\|jpg\\|svg\\)?$"))
                           (directory-files
                            dir t
                            (concat 
                             "\\("
                             (if as-regexp base (regexp-quote base))
                             "\\)"
-                            ".*\\(\\.\\(png\\|psd\\|tiff\\|jpg\\)\\)?$"
+                            ".*\\(\\.\\(png\\|psd\\|tiff\\|jpg\\|svg\\)\\)?$"
                             )))))
                  (or directories my/image-directories))))
          'string<)))
@@ -6919,8 +6923,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
      (t path))))
 
 (defun my/org-sketch-complete (&optional prefix)
-  (concat "sketch:"
-          (my/complete-sketch-filename)))
+  (concat "sketch:" (my/complete-sketch-filename)))
 (defun my/org-image-complete (&optional prefix)
   (concat "image:"
           (completing-read "Image: " (my/list-sketches "." nil my/image-directories))))

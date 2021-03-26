@@ -133,6 +133,9 @@
               (lambda () (when (bound-and-true-p selectrum-mode) (selectrum-exhibit))))
   :bind (:map minibuffer-local-completion-map
               ("C-i" . marginalia-cycle-annotators)))
+(defun my/sketch-insert-file-as-link (f)
+  (interactive "fSketch: ")
+  (insert (org-link-make-string (concat "sketch:" (file-name-nondirectory f))) "\n"))
 (use-package embark 
   :after selectrum 
   :config
@@ -141,12 +144,19 @@
   (add-to-list 'embark-allow-edit-commands #'my/stream-message)
   (add-to-list 'embark-allow-edit-commands #'my/journal-post)
   (embark-define-keymap embark-sketch-actions
-    ("o" (lambda (f) (interactive) (insert (org-link-make-string "sketch:" (file-name-nondirectory f)))))
+    "Org Mode sketch-related actions"
+    ("o" my/sketch-insert-file-as-link)
     ("v" my/geeqie-view))
   (embark-define-keymap embark-journal-actions
+    "Journal"
     ("e" my/journal-edit))
+  (add-to-list 'embark-keymap-alist '(sketch . embark-sketch-actions))
+  (add-to-list 'embark-keymap-alist '(journal . embark-journal-actions))
   :bind
   (:map minibuffer-local-map
+        (("C-c e" . embark-act)
+         ("C-;" . embark-act))
+        :map embark-collect-mode-map
         (("C-c e" . embark-act)
          ("C-;" . embark-act))
         :map embark-general-map
@@ -198,10 +208,12 @@
   nil)
 
 (defun my/complete-sketch-filename ()
+  (interactive)
   (consult--read (or my/sketches (my/update-sketch-cache))
    :sort nil
    :state 'my/preview-image
-   :prompt "Sketch: " :category 'sketch))
+   :prompt "Sketch: "
+   :category 'sketch))
 
 (use-package marginalia
   :config
@@ -5776,7 +5788,7 @@ so that it's still active even after you stage a change. Very experimental."
 (define-key global-map [menu-bar my-menu agenda] '("Org agenda" . (lambda () (interactive) (org-agenda nil "a"))))
 (define-key global-map [menu-bar my-menu audio] '("Process audio" . (lambda () (interactive) (shell-command "~/bin/process-audio &"))))
 (define-key global-map [menu-bar my-menu new-index-card] '("New index card" . (lambda () (interactive)
-                                                                                (my/org-sketch-open (my/prepare-index-card-template)))))
+                                                                                (my/org-sketch-edit (my/prepare-index-card-template)))))
 
 (use-package pcsv)
 
@@ -6902,8 +6914,10 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
       ((eq input ?f) 'my/open-images-in-feh)
       (t 'my/open-images-in-krita))
      files)))
-(defun my/org-sketch-open (id &optional arg)
+(defun my/org-sketch-edit (id &optional arg)
   (my/org-image-open id arg my/sketch-directories))
+(defun my/org-sketch-open (id &optional arg)
+  (my/geeqie-view (my/get-image-filename id my/sketch-directories)))
 (defun my/org-image-export (link description format)
   (let* ((path (concat "https://sketches.sachachua.com/filename/" link))
          (image (concat "https://sketches.sachachua.com/static/" link))

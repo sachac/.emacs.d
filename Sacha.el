@@ -2609,6 +2609,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
                       "~/code/sachac.github.io/evil-plans/index.org"
                       "~/orgzly/cooking.org"
                       "~/orgzly/routines.org"))))
+(setq org-agenda-dim-blocked-tasks nil)
 (add-to-list 'auto-mode-alist '("\\.txt$" . org-mode))
 
 (setq org-agenda-span 2)

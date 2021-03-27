@@ -3573,6 +3573,7 @@ only a few of them them for faster scanning.
                       "~/code/sachac.github.io/evil-plans/index.org"
                       "~/orgzly/cooking.org"
                       "~/orgzly/routines.org"))))
+(setq org-agenda-dim-blocked-tasks nil)
 (add-to-list 'auto-mode-alist '("\\.txt$" . org-mode))
 #+end_src
 

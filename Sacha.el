@@ -1584,7 +1584,7 @@ Based on `elisp-get-fnsym-args-string.'"
   (interactive "MID: ")
   (when (string-match "v=\\([^&]+\\)" id) (setq id (match-string 1 id)))
   (let ((default-directory "/tmp"))
-    (call-process "youtube-dl" nil nil nil "--write-auto-sub" "--sub-lang" "en" "--skip-download" "--sub-format" "srv2"
+    (call-process "youtube-dl" nil nil nil "--write-auto-sub" "--write-sub" "--no-warnings" "--sub-lang" "en" "--skip-download" "--sub-format" "srv2"
                   (concat "https://youtu.be/" id))
     (my/caption-load-word-data (my/latest-file "/tmp" "\\.srv2\\'"))))
 
@@ -1850,6 +1850,41 @@ If WORD-TIMING is non-nil, include word-level timestamps."
          ((= c ?j) (subed-mpv-jump-to-current-subtitle))
          ((= c ?.) (setq done t)))
       ))))
+
+(require 'dash)
+
+(defun my/msecs-to-timestamp (msecs)
+  "Convert MSECS to string in the format HH:MM:SS.MS."
+  (concat (format-seconds "%02h:%02m:%02s" (/ msecs 1000))
+          "." (format "%03d" (mod msecs 1000))))
+
+(defun my/org-insert-youtube-video-with-transcript (url)
+  (interactive "MURL: ")
+  (let* ((id (if (string-match "v=\\([^&]+\\)" url) (match-string 1 url) url))
+         (temp-file (make-temp-name "org-youtube-"))
+         (temp-file-name (concat temp-file ".en.srv1"))
+         data)
+    (when (and (call-process "youtube-dl" nil nil nil
+                             "--write-sub" "--write-auto-sub"  "--no-warnings" "--sub-lang" "en" "--skip-download" "--sub-format" "srv1"
+                             "-o" temp-file
+                             (format "https://youtube.com/watch?v=%s" id))
+               (file-exists-p temp-file-name))
+      (insert
+       (format "#+begin_export html
+<iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/%s\" title=\"YouTube video player\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>\n#+end_export\n" id)
+       "\n"
+       (mapconcat (lambda (o)
+                    (format "| [[https://youtube.com/watch?v=%s&t=%ss][%s]] | %s |\n"
+                            id
+                            (dom-attr o 'start)
+                            (my/msecs-to-timestamp (* 1000 (string-to-number (dom-attr o 'start))))
+                            (->> (dom-text o)
+                                 (replace-regexp-in-string "[ \n]+" " ")
+                                 (replace-regexp-in-string "&#39;" "'")
+                                 (replace-regexp-in-string "&quot;" "\""))))
+                  (dom-by-tag (xml-parse-file temp-file-name) 'text)
+                  ""))
+      (delete-file temp-file-name))))
 
 (defvar my/scan-directory "~/sync/scans")
 (defvar my/ipad-directory "~/sync/ipad")
@@ -3576,7 +3611,9 @@ and indent it one level."
             (setq definition (buffer-substring-no-properties (point) (save-excursion (end-of-defun) (point))))))
       ;; Fallback: Print function definition
       (setq definition (concat (prin1-to-string (symbol-function function)) "\n")))
-    (insert "#+begin_src emacs-lisp\n" definition "#+end_src\n")))
+    (if (org-in-src-block-p)
+        (insert definition)
+      (insert "#+begin_src emacs-lisp\n" definition "#+end_src\n"))))
 
 (use-package org
   :config
@@ -3600,6 +3637,10 @@ and indent it one level."
     (goto-char (point-min))
     (when (re-search-forward (format "^#\\+NAME:[ \t]+%s[ \t]*$" (regexp-quote name)) nil t)
       (org-babel-execute-src-block))))
+
+(defun my/org-insert-latest-screenshot ()
+  (interactive)
+  (insert (org-link-make-string (concat "file:" (my/latest-file "~/screenshots")))))
 
 (setq org-export-with-section-numbers nil)
 (setq org-html-include-timestamps nil)

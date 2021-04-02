@@ -561,32 +561,34 @@ https://github.com/oantolin/embark/wiki/Additional-Configuration#pause-selectrum
 
 *** Contextual actions with cmap
 
-    It doesn't look like Embark allows me to consider different targets. cmap might be interesting.
+    It doesn't look like Embark allows me to consider different targets. cmap might be interesting as a way of providing a context menu.
 
     #+begin_src emacs-lisp
-      (defun my/cmap-org-block-target ()
+(defun my/cmap-org-block-target ()
 	(when (and (derived-mode-p 'org-mode)
-		   (org-in-src-block-p))
+		         (org-in-src-block-p))
 	  (cons 'my/cmap-org-block-map 'cmap-no-arg)))
-      (defun my/org-indent-block ()
+(defun my/org-indent-block ()
 	(interactive)
 	(save-excursion
-	 (unless (looking-at "^[ \t]*#\\+begin")
-	   (re-search-backward "^[ \t]*#\\+begin" nil t))
-	 (org-indent-block)))
-      (defun my/org-copy-block-contents ()
+	  (unless (looking-at "^[ \t]*#\\+begin")
+	    (re-search-backward "^[ \t]*#\\+begin" nil t))
+	  (org-indent-block)))
+(defun my/org-copy-block-contents ()
 	(interactive)
 	(kill-new (org-element-property :value (org-element-context))))
-      (use-package cmap :quelpa (cmap :fetcher github :repo "jyp/cmap")
+(use-package cmap :quelpa (cmap :fetcher github :repo "jyp/cmap")
 	:config
 	(add-to-list 'cmap-targets #'my/cmap-org-block-target)
 	(defvar my/cmap-org-block-map 
 	  (cmap-keymap
 	   ("w" . my/org-copy-block-contents)
 	   ("i" . my/org-indent-block)))
-	:bind ("C-c e" . cmap-cmap))
+	:bind (("C-c e" . cmap-cmap)
+         :map cmap-org-link-map
+         ("c" . my/caption-show)))
     #+end_src 
-   https://github.com/oantolin/embark/issues/92
+
 *** Helm - interactive completion
 
 Helm makes it easy to complete various things. I find it to be easier
@@ -2214,9 +2216,10 @@ can do with the following function:
 (defun my/caption-download-srv2 (id)
   (interactive "MID: ")
   (when (string-match "v=\\([^&]+\\)" id) (setq id (match-string 1 id)))
-  (call-process "youtube-dl" nil nil nil "--write-auto-sub" "--sub-lang" "en" "--skip-download" "--sub-format" "srv2"
-                (concat "https://youtu.be/" id))
-  (my/caption-load-word-data (my/latest-file "." "\\.srv2\\'")))
+  (let ((default-directory "/tmp"))
+    (call-process "youtube-dl" nil nil nil "--write-auto-sub" "--sub-lang" "en" "--skip-download" "--sub-format" "srv2"
+                  (concat "https://youtu.be/" id))
+    (my/caption-load-word-data (my/latest-file "/tmp" "\\.srv2\\'"))))
 #+end_src
 
 I started parsing JSON files, but SRV2 seemed to be more reliably
@@ -2382,12 +2385,12 @@ certain words, these functions help:
 (defvar my/caption-breaks
   '("the" "this" "we" "we're" "I" "finally" "but" "and" "when")
   "List of words to try to break at.")
-(defun my/caption-make-groups (list)
+(defun my/caption-make-groups (list &optional threshold)
   (let (result
         current-item
         done
         (current-length 0)
-        (limit 70)
+        (limit (or threshold 70))
         (lower-limit 30)
         (break-regexp (concat "\\<" (regexp-opt my/caption-breaks) "\\>")))
     (while list
@@ -2441,6 +2444,24 @@ If WORD-TIMING is non-nil, include word-level timestamps."
               (or data (my/caption-fix-common-errors my/caption-cache)))
              ""))))
 #+end_src
+
+This tidbit displays a buffer with the text of the subtitles so that I can quickly skim it.
+
+#+begin_src emacs-lisp
+(defun my/caption-show (id)
+  (interactive "MID: ")
+  (when (string-match "v=\\([^&]+\\)" id) (setq id (match-string 1 id)))
+  (with-current-buffer (get-buffer-create "*Captions*")
+    (erase-buffer)
+    (my/caption-download-srv2 id)
+    (insert
+     (mapconcat (lambda (entry) (alist-get 'text entry)) my/caption-cache "")
+     "\n")
+    (fill-paragraph (point-min) (point-max))
+    (goto-char (point-min))
+    (display-buffer (current-buffer))))
+#+end_src
+
 **** Edit text
 #+begin_src emacs-lisp
 (defvar my/subed-common-edits '(("i" "I")
@@ -4753,6 +4774,23 @@ appropriate level.
         (:tangle . "no")))
     #+end_src
 
+**** TODO Execute named babel block
+
+  #+NAME: test
+  #+begin_src emacs-lisp
+(defun my/org-execute-src-block-by-name (name)
+  (interactive (list (completing-read "Block: "(org-babel-src-block-names))))
+  (save-excursion 
+    (goto-char (point-min))
+    (when (re-search-forward (format "^#\\+NAME:[ \t]+%s[ \t]*$" (regexp-quote name)) nil t)
+      (org-babel-execute-src-block))))
+  #+end_src
+
+  #+RESULTS: test
+  :results:
+  my/org-execute-src-block-by-name
+  :end:
+
 *** Publishing
 **** Cleaning up export
 Timestamps and section numbers make my published files look more
@@ -4866,6 +4904,7 @@ I can use thumbnail support for now...
       :POST_DATE: [2021-03-25 Thu 23:37]
       :BLOG:     sacha
       :POSTID:   29700
+      :CUSTOM_ID: post_footer
       :END:
       :LOGBOOK:
       - State "DONE"       from "TODO"       [2021-03-25 Thu 23:43]
@@ -4881,8 +4920,12 @@ I can use thumbnail support for now...
       below accomplishes that.
       
       #+begin_src emacs-lisp
-  (defun my/org-export-filter-body-add-emacs-configuration-link (string backend info)
-    (concat string "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs\">Emacs configuration.</a></div>"))
+(defun my/org-export-filter-body-add-emacs-configuration-link (string backend info)
+  (concat string
+          (let ((id (org-entry-get-with-inheritance "CUSTOM_ID")))
+            (format
+             "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs%s\">Emacs configuration.</a></div>"
+             (if id (concat "#" id) "")))))
 
 (use-package org2blog
   :config
@@ -5310,7 +5353,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
   '("Kaizen" "Us" "Field trip" "Gross motor" "Fine motor"
     "Sensory" "Language" "Music" "Art"
     "Self-care and independence" "Eating" "Sleep" "Emotion"
-    "Household" "Social" "Pretend" "Cognition" "World" "Other" "Oops" "Thoughts" "Uncategorized")
+    "Household" "Social" "Pretend" "Cognition" "World" "Other" "Oops" "Thoughts" "Consulting" "Track" "Uncategorized")
   "List of categories to display. 
       Unknown categories will be added to the end.")
 
@@ -5404,9 +5447,9 @@ So that I can easily add links at point. Formatted as an Org list for now.
       (plist-put entry :Note (read-string "Note: " (plist-get entry :Note)))
       (plist-put entry :Category (my/journal-read-category (plist-get entry :Category)))
       (plist-put entry :Other (read-string "Other: " (plist-get entry :Other)))
-      (apply 'my/journal-update entry))))
+      (my/journal-update entry))))
 
-(defun my/journal-update (&rest plist)
+(defun my/journal-update (plist)
   "Update journal entry using PLIST."
   (let ((url-request-method "PUT")
         (url-request-data (json-encode-plist plist)))
@@ -6286,7 +6329,14 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-utils.el
     (kill-region (point) prev-pos)))
 (bind-key "C-M-<backspace>" 'sanityinc/kill-back-to-indentation)
 #+end_src
-
+*** Alignment
+    From https://blog.lambda.cx/posts/emacs-align-columns/
+    #+begin_src emacs-lisp
+(defun my/align-non-space (BEG END)
+  "Align non-space columns in region BEG END."
+  (interactive "r")
+  (align-regexp BEG END "\\(\\s-*\\)\\S-+" 1 1 t))
+#+end_src
 *** Adapt to being on Windows
 
 I'm on Windows, so I use Cygwin to add Unix-y tools to make my life easier.
@@ -8469,7 +8519,36 @@ With data logging $0.004 USD / 15 seconds
     (sp-with-modes sp--lisp-modes
       (sp-local-pair "(" nil :bind "C-("))))
 #+end_src
+*** Lispy
+    #+begin_src emacs-lisp
+(use-package lispy :hook (emacs-lisp-mode . lispy-mode))
+    #+end_src
 
+Might need to tweak it because I use the Dvorak layout, so hjkl doesn't make as much sense for me.
+
+- [ ] C-1 help
+- [ ] C-2 args
+- [ ] xb turn expression into let-bound, M-m to finish
+- [ ] xu remove var
+- [ ] xd turn lambda into defun
+- [ ] n copy to kill ring
+- [ ] M-m mark symbol
+- [ ] i indent
+- [ ] Z lispy-edebug-stop
+- [ ] xf lispy-flatten (replace macro or function)
+- [ ] xc lispy-to-cond
+- [ ] V visit
+- [ ] N narrow
+- [ ] W widen
+- [ ] O one line
+- [ ] oh pop out, oj down slurp, ok up, ol right
+- [ ] ; comment
+- [ ] r raise
+- [ ] s, w move down and up
+- [ ] t teleport
+- [ ] p eval other window
+- [ ] xT, ert
+- [ ] xe, defun
 ** Encryption 
 
 #+begin_src emacs-lisp 

@@ -357,27 +357,29 @@ Based on `elisp-get-fnsym-args-string.'"
   (add-hook 'embark-collect-mode-hook #'my/shrink-selectrum) 
   (add-hook 'embark-pre-action-hook #'my/refresh-selectrum))
 
-      (defun my/cmap-org-block-target ()
+(defun my/cmap-org-block-target ()
 	(when (and (derived-mode-p 'org-mode)
-		   (org-in-src-block-p))
+		         (org-in-src-block-p))
 	  (cons 'my/cmap-org-block-map 'cmap-no-arg)))
-      (defun my/org-indent-block ()
+(defun my/org-indent-block ()
 	(interactive)
 	(save-excursion
-	 (unless (looking-at "^[ \t]*#\\+begin")
-	   (re-search-backward "^[ \t]*#\\+begin" nil t))
-	 (org-indent-block)))
-      (defun my/org-copy-block-contents ()
+	  (unless (looking-at "^[ \t]*#\\+begin")
+	    (re-search-backward "^[ \t]*#\\+begin" nil t))
+	  (org-indent-block)))
+(defun my/org-copy-block-contents ()
 	(interactive)
 	(kill-new (org-element-property :value (org-element-context))))
-      (use-package cmap :quelpa (cmap :fetcher github :repo "jyp/cmap")
+(use-package cmap :quelpa (cmap :fetcher github :repo "jyp/cmap")
 	:config
 	(add-to-list 'cmap-targets #'my/cmap-org-block-target)
 	(defvar my/cmap-org-block-map 
 	  (cmap-keymap
 	   ("w" . my/org-copy-block-contents)
 	   ("i" . my/org-indent-block)))
-	:bind ("C-c e" . cmap-cmap))
+	:bind (("C-c e" . cmap-cmap)
+         :map cmap-org-link-map
+         ("c" . my/caption-show)))
 
 (use-package helm
   :diminish helm-mode
@@ -1581,9 +1583,10 @@ Based on `elisp-get-fnsym-args-string.'"
 (defun my/caption-download-srv2 (id)
   (interactive "MID: ")
   (when (string-match "v=\\([^&]+\\)" id) (setq id (match-string 1 id)))
-  (call-process "youtube-dl" nil nil nil "--write-auto-sub" "--sub-lang" "en" "--skip-download" "--sub-format" "srv2"
-                (concat "https://youtu.be/" id))
-  (my/caption-load-word-data (my/latest-file "." "\\.srv2\\'")))
+  (let ((default-directory "/tmp"))
+    (call-process "youtube-dl" nil nil nil "--write-auto-sub" "--sub-lang" "en" "--skip-download" "--sub-format" "srv2"
+                  (concat "https://youtu.be/" id))
+    (my/caption-load-word-data (my/latest-file "/tmp" "\\.srv2\\'"))))
 
 (defvar-local my/caption-cache nil "Word-level timing in the form ((start . ms) (end . ms) (text . ms))")
 (defun my/caption-json-time-to-ms (json)
@@ -1723,12 +1726,12 @@ Based on `elisp-get-fnsym-args-string.'"
 (defvar my/caption-breaks
   '("the" "this" "we" "we're" "I" "finally" "but" "and" "when")
   "List of words to try to break at.")
-(defun my/caption-make-groups (list)
+(defun my/caption-make-groups (list &optional threshold)
   (let (result
         current-item
         done
         (current-length 0)
-        (limit 70)
+        (limit (or threshold 70))
         (lower-limit 30)
         (break-regexp (concat "\\<" (regexp-opt my/caption-breaks) "\\>")))
     (while list
@@ -1781,6 +1784,19 @@ If WORD-TIMING is non-nil, include word-level timestamps."
              (my/caption-make-groups
               (or data (my/caption-fix-common-errors my/caption-cache)))
              ""))))
+
+(defun my/caption-show (id)
+  (interactive "MID: ")
+  (when (string-match "v=\\([^&]+\\)" id) (setq id (match-string 1 id)))
+  (with-current-buffer (get-buffer-create "*Captions*")
+    (erase-buffer)
+    (my/caption-download-srv2 id)
+    (insert
+     (mapconcat (lambda (entry) (alist-get 'text entry)) my/caption-cache "")
+     "\n")
+    (fill-paragraph (point-min) (point-max))
+    (goto-char (point-min))
+    (display-buffer (current-buffer))))
 
 (defvar my/subed-common-edits '(("i" "I")
                                 ("i've" "I've")
@@ -3578,6 +3594,13 @@ and indent it one level."
         (:hlines . "no")
         (:tangle . "no")))
 
+(defun my/org-execute-src-block-by-name (name)
+  (interactive (list (completing-read "Block: "(org-babel-src-block-names))))
+  (save-excursion 
+    (goto-char (point-min))
+    (when (re-search-forward (format "^#\\+NAME:[ \t]+%s[ \t]*$" (regexp-quote name)) nil t)
+      (org-babel-execute-src-block))))
+
 (setq org-export-with-section-numbers nil)
 (setq org-html-include-timestamps nil)
 (setq org-export-with-sub-superscripts nil)
@@ -3647,8 +3670,12 @@ and indent it one level."
   (browse-url (concat "https://sachachua.com/blog/wp-admin/post.php?action=edit&post=" (org-entry-get (point) "POSTID"))))
 (use-package htmlize)
 
-  (defun my/org-export-filter-body-add-emacs-configuration-link (string backend info)
-    (concat string "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs\">Emacs configuration.</a></div>"))
+(defun my/org-export-filter-body-add-emacs-configuration-link (string backend info)
+  (concat string
+          (let ((id (org-entry-get-with-inheritance "CUSTOM_ID")))
+            (format
+             "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs%s\">Emacs configuration.</a></div>"
+             (if id (concat "#" id) "")))))
 
 (use-package org2blog
   :config
@@ -3975,7 +4002,7 @@ and indent it one level."
   '("Kaizen" "Us" "Field trip" "Gross motor" "Fine motor"
     "Sensory" "Language" "Music" "Art"
     "Self-care and independence" "Eating" "Sleep" "Emotion"
-    "Household" "Social" "Pretend" "Cognition" "World" "Other" "Oops" "Thoughts" "Uncategorized")
+    "Household" "Social" "Pretend" "Cognition" "World" "Other" "Oops" "Thoughts" "Consulting" "Track" "Uncategorized")
   "List of categories to display. 
       Unknown categories will be added to the end.")
 
@@ -4069,9 +4096,9 @@ and indent it one level."
       (plist-put entry :Note (read-string "Note: " (plist-get entry :Note)))
       (plist-put entry :Category (my/journal-read-category (plist-get entry :Category)))
       (plist-put entry :Other (read-string "Other: " (plist-get entry :Other)))
-      (apply 'my/journal-update entry))))
+      (my/journal-update entry))))
 
-(defun my/journal-update (&rest plist)
+(defun my/journal-update (plist)
   "Update journal entry using PLIST."
   (let ((url-request-method "PUT")
         (url-request-data (json-encode-plist plist)))
@@ -4768,6 +4795,11 @@ and indent it one level."
     (back-to-indentation)
     (kill-region (point) prev-pos)))
 (bind-key "C-M-<backspace>" 'sanityinc/kill-back-to-indentation)
+
+(defun my/align-non-space (BEG END)
+  "Align non-space columns in region BEG END."
+  (interactive "r")
+  (align-regexp BEG END "\\(\\s-*\\)\\S-+" 1 1 t))
 
 (when (eq system-type 'windows-nt)
   (setenv "CYGWIN" "nodosfilewarning")
@@ -6365,6 +6397,8 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
       ;;; lisp modes
     (sp-with-modes sp--lisp-modes
       (sp-local-pair "(" nil :bind "C-("))))
+
+(use-package lispy :hook (emacs-lisp-mode . lispy-mode))
 
 (setq epa-file-encrypt-to '("sacha@sachachua.com"))
 (setq epa-pinentry-mode 'loopback)

@@ -4862,6 +4862,9 @@ Make it easy to publish and browse a file.
 (bind-key "<apps> b" 'my/org-publish-and-browse)
 #+end_src
 **** Org2blog
+     :PROPERTIES:
+     :CUSTOM_ID: org2blog
+     :END:
 
 I use org2blog to post to my blog, which is Wordpress-based. I used to
 use punchagan's org2blog, but there's a completely different one in
@@ -4904,7 +4907,6 @@ I can use thumbnail support for now...
       :POST_DATE: [2021-03-25 Thu 23:37]
       :BLOG:     sacha
       :POSTID:   29700
-      :CUSTOM_ID: post_footer
       :END:
       :LOGBOOK:
       - State "DONE"       from "TODO"       [2021-03-25 Thu 23:43]

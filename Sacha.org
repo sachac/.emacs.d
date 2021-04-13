@@ -1,7 +1,11 @@
 #+TITLE: Sacha Chua's Emacs configuration
-#+OPTIONS: toc:4 h:4
+#+OPTIONS: toc:nil h:4
 #+STARTUP: showeverything
 #+PROPERTY: header-args:emacs-lisp    :tangle yes :results silent :exports code
+
+Last exported: {{{modification-time(%Y-%m-%d %H:%M)}}}
+
+#+TOC: headlines 4
 
 * Configuration   :emacs:
 ** About this file
@@ -63,13 +67,13 @@ config can load =Sacha.el= without loading Org first.
 
 Here's how we start:
 
+#+NAME: startup
 #+begin_src emacs-lisp 
 ;; This sets up the load path so that we can override it
 (package-initialize)
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
 (add-to-list 'load-path "~/vendor/org-mode/lisp")
 (add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
-(require 'org)
 (setq custom-file "~/.config/emacs/custom-settings.el")
 (setq use-package-always-ensure t)
 (load custom-file t)
@@ -77,6 +81,7 @@ Here's how we start:
 
 ** System information
 
+#+NAME: system-info
 #+begin_src emacs-lisp
 (defvar my/laptop-p (equal (system-name) "sacha-kubuntu"))
 (defvar my/server-p (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
@@ -99,8 +104,8 @@ Here's how we start:
 #+BEGIN_SRC emacs-lisp 
 (unless (assoc-default "melpa" package-archives)
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
-(unless (assoc-default "org" package-archives)
-  (add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/") t))
+(unless (assoc-default "nongnu" package-archives)
+  (add-to-list 'package-archives '("nongnu" . "https://elpa.nongnu.org/nongnu/") t))
 #+END_SRC
 
 Use =M-x package-refresh-contents= to reload the list of packages
@@ -111,6 +116,7 @@ after adding these for the first time.
 Sometimes I load files outside the package system. As long as they're
 in a directory in my =load-path=, Emacs can find them.
 
+#+NAME: package-setup
 #+BEGIN_SRC emacs-lisp 
 (add-to-list 'load-path "~/elisp")
 (unless (package-installed-p 'use-package)
@@ -290,6 +296,7 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
   (advice-add #'marginalia-cycle :after
               (lambda () (when (bound-and-true-p selectrum-mode) (selectrum-exhibit))))
   :bind (:map minibuffer-local-completion-map
+              ("M-A" . marginalia-cycle)
               ("C-i" . marginalia-cycle-annotators)))
 (defun my/sketch-insert-file-as-link (f)
   (interactive "fSketch: ")
@@ -561,9 +568,19 @@ https://github.com/oantolin/embark/wiki/Additional-Configuration#pause-selectrum
 
 *** Contextual actions with cmap
 
-    It doesn't look like Embark allows me to consider different targets. cmap might be interesting as a way of providing a context menu.
+    It doesn't look like Embark allows me to consider different
+    targets at the same time, since =embark--target= stops at the
+    first =embark-target-finders= function that returns non-nil.. cmap
+    might be interesting as a way of providing a context menu.
 
-    #+begin_src emacs-lisp
+#+begin_src emacs-lisp
+(defun my/cmap-org-link-element-target ()
+  "Org-mode link target. Returns the element."
+  (when (derived-mode-p 'org-mode)
+    (let ((context (org-element-context)))
+      (when (eq (org-element-type context) 'link)
+        (cons 'my/cmap-org-link-element-map context)))))
+    
 (defun my/cmap-org-block-target ()
 	(when (and (derived-mode-p 'org-mode)
 		         (org-in-src-block-p))
@@ -577,17 +594,25 @@ https://github.com/oantolin/embark/wiki/Additional-Configuration#pause-selectrum
 (defun my/org-copy-block-contents ()
 	(interactive)
 	(kill-new (org-element-property :value (org-element-context))))
+(defun my/org-link-element-copy-link (element)
+  (interactive (list (org-element-context)))
+  (kill-new (org-element-property :raw-link element)))
+
 (use-package cmap :quelpa (cmap :fetcher github :repo "jyp/cmap")
 	:config
 	(add-to-list 'cmap-targets #'my/cmap-org-block-target)
-	(defvar my/cmap-org-block-map 
+  (add-to-list 'cmap-targets #'my/cmap-org-link-element-target)
+  (defvar my/cmap-org-link-element-map
+    (cmap-keymap
+      ("w" . my/org-link-element-copy-link)
+      ("c" . my/caption-show)))
+  (add-to-list 'which-key-replacement-alist '((nil . "^my/org-link-element-") . (nil . "")))
+	(defvar my/cmap-org-block-map
 	  (cmap-keymap
-	   ("w" . my/org-copy-block-contents)
-	   ("i" . my/org-indent-block)))
-	:bind (("C-c e" . cmap-cmap)
-         :map cmap-org-link-map
-         ("c" . my/caption-show)))
-    #+end_src 
+	    ("w" . my/org-copy-block-contents)
+	    ("i" . my/org-indent-block)))
+	:bind (("C-c e" . cmap-cmap)))
+#+end_src 
 
 *** Helm - interactive completion
 
@@ -984,6 +1009,37 @@ fact that Org Mode will deal with the date tree and finding the right
 position itself.
 
 #+begin_src emacs-lisp
+(defvar my/screenshot-directory "~/screenshots")
+(defun my/org-insert-screenshot (file &optional note)
+  (interactive (list
+                (if current-prefix-arg
+                    (expand-file-name
+                     (consult--read
+                      (reverse (directory-files my/screenshot-directory nil "\\.png$"))
+                      :sort nil
+                      :require-match t
+                      :category 'file
+                      :state (lambda (candidate state)
+                               (when candidate
+                                 (with-current-buffer (find-file-noselect (expand-file-name candidate my/screenshot-directory))
+                                   (display-buffer (current-buffer))))))
+                     my/screenshot-directory)
+                  (my/latest-file my/screenshot-directory))))
+  (save-window-excursion
+    (with-current-buffer (find-file-noselect file) (display-buffer (current-buffer)))  
+    (insert "#+CAPTION: " (or note (read-string "Caption: "))))
+  (save-excursion (insert "\n" (org-link-make-string (concat "file:" file)) "\n")))
+
+(use-package major-mode-hydra
+  :bind
+  ("<f14>" . major-mode-hydra))
+(major-mode-hydra-define org-mode nil
+  ("Shortcuts"
+   (("s" my/org-insert-screenshot "Insert screenshot")
+    ("g" my/geeqie/body "Geeqie"))))
+#+end_src
+
+#+begin_src emacs-lisp
 (defun my/org-capture-prefill-template (template &rest values)
   "Pre-fill TEMPLATE with VALUES."
   (setq template (or template (org-capture-get :template)))
@@ -1004,20 +1060,7 @@ position itself.
           (replace-match (car values) nil t))
       (setq values (cdr values)))
     (buffer-string)))
-(defun my/capture-screenshot (time &optional note)
-  "Capture screenshot and save it to a file labeled with TIME and NOTE.
-       Return the filename."
-  (interactive (list (current-time) (read-string "Note: ")))
-  (let* ((filename (expand-file-name
-                    (concat "Screenshot_"
-                            (format-time-string "%Y%0m%d_%H%M%S" time)
-                            (if note (concat " " note) "")
-                            ".png")
-                    "~/Pictures"))
-         (cmd (concat "spectacle -b -o "
-                      (shell-quote-argument filename))))
-    (shell-command cmd)
-    filename))
+
 (defun my/capture-timestamped-note (time note)
   "Disable Helm and capture a quick timestamped note."
   (interactive (list (current-time) (read-string "Note: ")))
@@ -1033,9 +1076,11 @@ position itself.
                                                  note)))
     (org-capture-place-template)
     (org-capture-finalize)))
+
 (defun my/capture-timestamped-note-with-screenshot (time note)
+  "Include a link to the latest screenshot."
   (interactive (list (current-time) (read-string "Note: ")))
-  (kill-new (my/capture-screenshot time note))
+  (kill-new (my/latest-file my/screenshot-directory))
   (my/capture-timestamped-note time note))
 #+end_src
   
@@ -1361,6 +1406,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
   (goto-char (random (point-max))))
 
 (use-package hydra
+  :commands defhydra
   :config
   (defhydra my/goto-random-char-hydra ()
     ("r" my/goto-random-char))
@@ -1388,17 +1434,8 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
     ("<down>" (join-line 1))
     ("t" join-line)
     ("n" (join-line 1)))
-  (defhydra my/org (:color blue)
-    "Convenient Org stuff."
-    ("p" my/org-show-active-projects "Active projects")
-    ("a" (org-agenda nil "a") "Agenda"))
-  (defhydra my/engine-mode-hydra (:color blue)
-    "Engine mode"
-    ("b" engine/search-my-blog "blog")
-    ("f" engine/search-my-photos "flickr")
-    ("m" engine/search-mail "mail")
-    ("g" engine/search-google "google")
-    ("e" engine/search-emacswiki "emacswiki"))
+  
+  
   ;; From https://github.com/abo-abo/hydra
   (defhydra hydra-buffer-menu (:color pink
                                       :hint nil)
@@ -1430,55 +1467,62 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
     ("o" Buffer-menu-other-window "other-window" :color blue)
     ("q" quit-window "quit" :color blue))
 
-  (define-key Buffer-menu-mode-map "." 'hydra-buffer-menu/body)
+  (define-key Buffer-menu-mode-map "." 'hydra-buffer-menu/body))
 
-  (defun my/org-update-link-description (description)
-    "Update the current link's DESCRIPTION."
-    (interactive "MDescription: ")
-    (let (link)
-      (save-excursion
-        (cond
-         ((org-in-regexp org-link-bracket-re 1)
-          (setq link (org-link-unescape (match-string-no-properties 1)))
-          (delete-region (match-beginning 0) (match-end 0))
-          (insert (org-link-make-string link description))
-          (sit-for 0))
-         ((or (org-in-regexp org-link-angle-re)
-              (org-in-regexp org-link-plain-re))
-          (setq link (org-unbracket-string "<" ">" (match-string 0)))
-          (delete-region (match-beginning 0) (match-end 0))
-          (insert (org-link-make-string link description))
-          (sit-for 0))))))
-  
-  (defhydra my/shortcuts (:exit t)
-    "Shortcuts"
-    ("f" (helm :sources '(helm-source-projectile-files-list
-                          helm-source-files-in-current-dir
-                          helm-source-projectile-projects
-                          helm-source-recentf
-                          helm-source-bookmarks
-                          helm-source-ls-git
-                          helm-source-locate)
-               :buffer "*helm-find-files*") "Find")
-    ("j" my/helm-journal "Journal")
-    ("n" my/capture-timestamped-note)
-    ("l" (my/toggle-or-create "*scratch*" (lambda () (switch-to-buffer (startup--get-buffer-create-scratch)))) "Lisp")
-    ("d" my/emacs-news-check-duplicates "Dupe")
-    ("c" my/org-categorize-emacs-news/body "Categorize")
-    ("h" (lambda () (interactive) (my/org-update-link-description "HN")) "Link HN")
-    ("i" (lambda () (interactive) (my/org-update-link-description "Irreal")) "Link Irreal")
-    ("s" save-buffer "Save")
-    ("m" my/share-emacs-news "Mail"))
-  (global-set-key (kbd "<f5>") 'my/shortcuts/body))
+(defun my/org-update-link-description (description)
+  "Update the current link's DESCRIPTION."
+  (interactive "MDescription: ")
+  (let (link)
+    (save-excursion
+      (cond
+       ((org-in-regexp org-link-bracket-re 1)
+        (setq link (org-link-unescape (match-string-no-properties 1)))
+        (delete-region (match-beginning 0) (match-end 0))
+        (insert (org-link-make-string link description))
+        (sit-for 0))
+       ((or (org-in-regexp org-link-angle-re)
+            (org-in-regexp org-link-plain-re))
+        (setq link (org-unbracket-string "<" ">" (match-string 0)))
+        (delete-region (match-beginning 0) (match-end 0))
+        (insert (org-link-make-string link description))
+        (sit-for 0))))))
 (use-package hydra-posframe :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe") :if my/laptop-p :after hydra)
 
-(use-package pretty-hydra)
+(use-package pretty-hydra
+  :config
+  (pretty-hydra-define my/shortcuts (:exit t)
+    ("Global"
+     (("j" my/helm-journal "Journal")
+      ("n" my/capture-timestamped-note)
+      ("s" save-buffer "Save")
+      ("+" text-scale-increase)  
+      ("-" text-scale-decrease)
+      ("g" my/geeqie/body))
+     "Navigation"
+     (("l" (my/toggle-or-create "*scratch*" (lambda () (switch-to-buffer (startup--get-buffer-create-scratch)))) "Lisp"))
+     "Emacs News"
+     (("d" my/emacs-news-check-duplicates "Dupe")
+      ("c" my/org-categorize-emacs-news/body "Categorize")
+      ("h" (lambda () (interactive) (my/org-update-link-description "HN")) "Link HN")
+      ("i" (lambda () (interactive) (my/org-update-link-description "Irreal")) "Link Irreal")
+      ("m" my/share-emacs-news "Mail"))))
+  :bind
+  ("<f5>" . 'my/shortcuts/body))
+
 (defun my/org-insert-link ()
   (interactive)
   (when (org-in-regexp org-bracket-link-regexp 1)
     (goto-char (match-end 0))
     (insert "\n"))
   (call-interactively 'org-insert-link))
+
+(defhydra my/engine-mode-hydra (:color blue)
+  "Engine mode"
+  ("b" engine/search-my-blog "blog")
+  ("f" engine/search-my-photos "flickr")
+  ("m" engine/search-mail "mail")
+  ("g" engine/search-google "google")
+  ("e" engine/search-emacswiki "emacswiki"))
 
 (defhydra my/key-chord-commands ()
   "Main"
@@ -1501,8 +1545,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
   ("r" my/describe-random-interactive-function)
   ("l" org-insert-last-stored-link)
   ("L" my/org-insert-link)
-  ("+" text-scale-increase)
-  ("-" text-scale-decrease))
+  )
 #+END_SRC
 
 Now let's set up the actual keychords.
@@ -1531,7 +1574,7 @@ Now let's set up the actual keychords.
   (key-chord-define-global "  "     'my/insert-space-or-expand)
   (key-chord-define-global "vv" 'god-mode-all)
   (key-chord-define-global "JJ"     'my/switch-to-previous-buffer)
-  (key-chord-mode 1))
+  (key-chord-mode -1)) ;; disable for now
 #+END_SRC
 
 Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char=. It turns out I actually do use =C-t= a fair bit, but I can always add it back as an option.
@@ -1540,15 +1583,6 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
 (bind-key "C-t" 'my/key-chord-commands/body)
 #+end_src
 
-I used to have these as part of my main hydra, but I haven't been
-doing transcripts lately, so I'll free up those keystrokes for
-something else.
-
-#+begin_example
-                                     ("h" emms-pause :color blue)
-                                     ("t" emms-seek-backward)
-                                     ("s" emms-seek-to :color blue)
-#+end_example
 *** Smartscan
 
 From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el, this makes =M-n= and =M-p= look for the symbol at point.
@@ -2448,19 +2482,24 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 This tidbit displays a buffer with the text of the subtitles so that I can quickly skim it.
 
 #+begin_src emacs-lisp
-(defun my/caption-show (id)
-  (interactive "MID: ")
-  (when (string-match "v=\\([^&]+\\)" id) (setq id (match-string 1 id)))
+(defun my/caption-show (url)
+  (interactive (list
+                (let ((link (and (derived-mode-p 'org-mode)
+                                 (org-element-context))))
+                  (if (and link 
+                           (eq (org-element-type link) 'link))
+                      (read-string (format "URL (%s): " (org-element-property :raw-link link)) nil nil
+                                   (org-element-property :raw-link link))
+                    (read-string "URL: ")))))
+  (when (and (listp url) (org-element-property :raw-link url)) (setq url (org-element-property :raw-link url)))
   (with-current-buffer (get-buffer-create "*Captions*")
     (erase-buffer)
-    (my/caption-download-srv2 id)
-    (insert
-     (mapconcat (lambda (entry) (alist-get 'text entry)) my/caption-cache "")
-     "\n")
-    (fill-paragraph (point-min) (point-max))
+    (org-mode)
+    (my/org-insert-youtube-video-with-transcript url)
     (goto-char (point-min))
     (display-buffer (current-buffer))))
 #+end_src
+
 
 **** Edit text
 #+begin_src emacs-lisp
@@ -2722,34 +2761,48 @@ references.
     (my/geeqie-next)
     (delete-file file t)))
 
-(defhydra my/geeqie ()
-  "Manage images with geeqie."
-  ("op" (my/geeqie-view my/portfolio-directory) "Open portfolio")
-  ("oc" (my/geeqie-view my/camera-directory) "Open camera")
-  ("oi" (my/geeqie-view my/ipad-directory) "Open ipad")
-  ("os" my/geeqie-scans "Open scans")
-  ("[" my/geeqie-rotate-counterclockwise "CCW")
-  ("]" my/geeqie-rotate-clockwise "CW")
-  ("r" my/geeqie-rename-current "Rename")
-  ("c" my/geeqie-crop-to-rectangle "Crop")
-  ("k" (start-process "krita" nil "krita" (my/geeqie-filename)) "krita")
-  ("g" (start-process "gimp" nil "gimp" (my/geeqie-filename)) "gimp")
-  ("n" my/geeqie-next "Next")
-  ("p" my/geeqie-previous "Previous")
-  ("d" my/geeqie-change-date "Change date")
-  ("x" my/geeqie-delete-and-next "Delete")
-  ("m" my/move-portfolio-files "Move portfolio files")
-  ("s" (rename-file (my/geeqie-filename)
-                    (expand-file-name (file-name-nondirectory (my/geeqie-filename)) my/sketches-directory))
-   "Save to sketch directory")
-  ("O" (shell-command (format "mogrify -auto-orient %s" (shell-quote-argument (my/geeqie-filename)))) "Rotate based on EXIF")
-  ("<up>" (forward-line -1) :hint nil)
-  ("<down>" forward-line :hint nil)
-  ("im" (insert (format "{{<photo nas=\"1\" src=\"%s\">}}" (my/geeqie-filename))))
-  ("if" (insert (my/geeqie-filename) "\n")
-   "Insert filename")
-  ("v" (my/geeqie-view (string-trim (thing-at-point 'line))) "View")
-  ("il" (insert "- " (my/geeqie-filename) "\n") "Insert filename as list item"))
+(use-package ewmctrl)
+(defun my/geeqie-setup ()
+  (interactive)
+  (shell-command "wmctrl -r :ACTIVE: -b remove,maximized_vert,maximized_horz; xdotool getactivewindow windowsize 50% 100%")
+  (shell-command "geeqie &"))
+(pretty-hydra-define my/geeqie ()
+  ("Open"
+   (("oo" my/geeqie-setup "Setup")
+    ("op" (my/geeqie-view my/portfolio-directory) "Portfolio")
+    ("oc" (my/geeqie-view my/camera-directory) "Camera")
+    ("oi" (my/geeqie-view my/ipad-directory) "iPad")
+    ("ox" (my/geeqie-view "~/screenshots") "Screenshots")
+    ("os" my/geeqie-scans "Scans"))
+   "Modify"
+   (("[" my/geeqie-rotate-counterclockwise "CCW")
+    ("]" my/geeqie-rotate-clockwise "CW")
+    ("r" my/geeqie-rename-current "Rename")
+    ("d" my/geeqie-change-date "Change date")
+    ("c" my/geeqie-crop-to-rectangle "Crop")
+    ("k" (start-process "krita" nil "krita" (my/geeqie-filename)) "krita")
+    ("O" (shell-command (format "mogrify -auto-orient %s" (shell-quote-argument (my/geeqie-filename)))) "Rotate based on EXIF")
+    ("g" (start-process "gimp" nil "gimp" (my/geeqie-filename)) "gimp"))
+   "Navigate"
+   (("n" my/geeqie-next "Next")
+    ("p" my/geeqie-previous "Previous")
+    ("x" my/geeqie-delete-and-next "Delete"))
+   "Save"
+   (("p" (rename-file (my/geeqie-filename)
+                      (expand-file-name (file-name-nondirectory (my/geeqie-filename)) my/sketches-directory))
+     "Portfolio")
+    ("s" (rename-file (my/geeqie-filename)
+                      (expand-file-name (file-name-nondirectory (my/geeqie-filename)) my/sketches-directory)) 
+     "Sketch"))
+   "Other"
+   (("<up>" (forward-line -1) :hint nil)
+    ("<down>" forward-line :hint nil)
+    
+    ("im" (insert (format "{{<photo nas=\"1\" src=\"%s\">}}" (my/geeqie-filename))))
+    ("if" (insert (my/geeqie-filename) "\n")
+     "Insert filename")
+    ("v" (my/geeqie-view (string-trim (thing-at-point 'line))) "View")
+    ("il" (insert "- " (my/geeqie-filename) "\n") "Insert filename as list item"))))
 
 (defun my/move-portfolio-files ()
   (interactive)
@@ -2846,8 +2899,6 @@ currently experimenting with.
 (bind-key "C-c l" 'org-store-link)
 (bind-key "C-c L" 'org-insert-link-global)
 (bind-key "C-c O" 'org-open-at-point-global)
-(bind-key "<f9> <f9>" 'org-agenda-list)
-(bind-key "<f9> <f8>" (lambda () (interactive) (org-capture nil "r")))
 #+END_SRC
 
 =append-next-kill= is more useful to me than =org-table-copy-region=.
@@ -2897,11 +2948,21 @@ These are great for quickly acting on tasks.
       (save-excursion (and (looking-at (org-item-re)) (looking-back "^[ \t]*" nil)))))
 (setq org-use-speed-commands 'my/org-use-speed-commands-for-headings-and-lists)
 
-(defun my/org-mark-done-and-add-to-journal (&optional note)
-  (interactive (list (read-string "Note: " (org-get-heading t t t t))))
+(defun my/org-mark-done-and-add-to-journal (&optional note category)
+  (interactive (list (read-string "Note: " (org-get-heading t t t t))
+                     (or (org-entry-get-with-inheritance "JOURNAL_CAT") (my/read-journal-category))))
   (my/org-with-current-task
    (org-todo "DONE")
-   (org-entry-put (point) "ZIDSTRING" (plist-get (my/journal-post (or note (org-get-heading t t t t))) :ZIDString))))
+   (org-entry-put (point) "JOURNAL_CAT" category)
+   (let ((zid (org-entry-get (point) "ZIDSTRING")))
+     (if zid
+         (my/journal-update (list :ZIDString zid :Note note :Category category))
+       (org-entry-put (point) "ZIDSTRING"
+                      (plist-get
+                       (my/journal-post (or note (org-get-heading t t t t))
+                                        :Category category
+                                        :Date (format-time-string "%Y-%m-%d %H:%M" (org-read-date nil t (org-entry-get (point) "CREATED"))))
+                       :ZIDString))))))
 
 (use-package org
   :config
@@ -4442,7 +4503,7 @@ Now we put it all together...
 #+begin_src emacs-lisp 
 (defun my/org-prepare-weekly-review (&optional date skip-urls)
   "Prepare weekly review template."
-  (interactive (list (org-read-date))) 
+  (interactive (list (org-read-date nil nil nil "Ending on Fri: " nil "-fri"))) 
   (let ((base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
         start end links prev)
     (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6)) (current-time-zone)))
@@ -4840,6 +4901,10 @@ appropriate level.
     (if (org-in-src-block-p)
         (insert definition)
       (insert "#+begin_src emacs-lisp\n" definition "#+end_src\n"))))
+(defun my/org-insert-function-and-key (keys)
+  (interactive (caar (help--read-key-sequence)))
+  (insert (format "=%s= (=%s=)" (symbol-name (key-binding keys t))
+                  (key-description keys))))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -4852,6 +4917,7 @@ appropriate level.
 #+end_src
 *** Org Babel
 
+#+NAME: org-babel-default-header-args
     #+begin_src emacs-lisp
 (setq org-babel-default-header-args
       '((:session . "none")
@@ -4881,15 +4947,11 @@ appropriate level.
   :end:
 
 *** Publishing
-#+begin_src emacs-lisp
-(defun my/org-insert-latest-screenshot ()
-  (interactive)
-  (insert (org-link-make-string (concat "file:" (my/latest-file "~/screenshots")))))
-#+end_src
 **** Cleaning up export
 Timestamps and section numbers make my published files look more
 complicated than they are. Let's turn them off by default.
 
+#+NAME: org-clean-up-export
 #+begin_src emacs-lisp 
 (setq org-export-with-section-numbers nil)
 (setq org-html-include-timestamps nil)
@@ -4897,17 +4959,7 @@ complicated than they are. Let's turn them off by default.
 (setq org-export-with-toc nil)
 (setq org-html-toplevel-hlevel 2)
 (setq org-export-htmlize-output-type 'css)
-#+end_src
-
-Sometimes I have broken or local links, and that's okay.
-
-#+begin_src emacs-lisp 
 (setq org-export-with-broken-links t)
-#+end_src
-
-Don't wrap ASCII exports.
-
-#+begin_src emacs-lisp 
 (setq org-ascii-text-width 10000)
 #+end_src
 
@@ -4960,31 +5012,23 @@ Make it easy to publish and browse a file.
      :CUSTOM_ID: org2blog
      :END:
 
-I use org2blog to post to my blog, which is Wordpress-based. I used to
-use punchagan's org2blog, but there's a completely different one in
-ELPA, so I figured I'd give that a try. UPDATE 2014-10-29: Overriding
-it with the Git version (see the first section of this config) so that
-I can use thumbnail support for now...
+I use org2blog to post to my blog, which is Wordpress-based. 
 
 #+begin_src emacs-lisp 
 (use-package org2blog
-  :commands 'org2blog/wp-post-subtree
+  :if my/laptop-p
+  :load-path "~/vendor/org2blog"
+  :commands 
+  org2blog/wp-post-subtree
+  org2blog--hydra-main/body
   :config
-  (progn
-    (setq org2blog/wp-track-posts nil)
-    (setq org2blog/wp-use-tags-as-categories t)
-    (defadvice org2blog/wp-post-buffer (around sacha activate)
-      (let ((org-confirm-babel-evaluate nil)
-            (org-html-toplevel-hlevel 3))
-        ad-do-it))))
-
-(defun my/org2blog-subtree ()
-  "Post to my blog and get files ready."
-  (interactive)
-  (org2blog/wp-post-subtree)
-  (my/org-stage-image-files-in-subtree)
-  (shell-command "start c:\\sacha\\dropbox\\inbox\\selection")
-  (browse-url "http://sachachua.com/blog/wp-admin/edit.php?page=cal"))
+  (setq org2blog/wp-image-upload t)
+  (setq org2blog/wp-track-posts nil)
+  (setq org2blog/wp-use-tags-as-categories t)
+  (defadvice org2blog/wp-post-buffer (around sacha activate)
+    (let ((org-confirm-babel-evaluate nil)
+          (org-html-toplevel-hlevel 3))
+      ad-do-it)))
 
 (defun my/org2blog-edit-post ()
   "Browse to the edit page."
@@ -5050,25 +5094,30 @@ I want to be able to export without having to say yes to code blocks all the tim
     (org-html-publish-to-html plist filename pub-dir)))
 #+end_src
 **** Special blocks
+#+NAME: org-special-blocks
      #+begin_src emacs-lisp
 (use-package org-special-block-extras
-  :quelpa (org-special-block-extras :fetcher github :repo "alhassy/org-special-block-extras")
   :if my/laptop-p
   :hook (org-mode-hook . org-special-block-extras-mode)
   :config
   ;; Use short names like ‘defblock’ instead of the fully qualified name
   ;; ‘org-special-block-extras--defblock’
   (org-special-block-extras-short-names)
+  (defblock details nil nil (title nil)
+    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Use summary and details."
+    (format "<details open><summary>%s</summary>%s</details>"
+            (or title "Details") raw-contents))
   (defblock columns nil nil
-    "Top level (HTML)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
+    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
     (format "<div class=\"row\">%s</div>" contents))
   (defblock column50 nil nil 
-    "Top level (HTML)OSPE-RESPECT-NEWLINES? Split into columns."
+    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Split into columns."
     (format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents)))
 #+end_src
 **** Stylesheet / header
 Might as well take advantage of my stylesheet:
 
+#+NAME: org-styles
 #+begin_src emacs-lisp 
 (setq org-html-head "<link rel=\"stylesheet\" type=\"text/css\"
        href=\"https://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"></link>
@@ -5214,6 +5263,91 @@ don't need this any more...
   :ensure t            ;Auto-install the package from Melpa (optional)
   :after ox)
  #+end_src
+**** Org Mode: Asynchronous export and tangle of a large file  :org:
+     :PROPERTIES:
+     :CUSTOM_ID: org-async-export-and-tangle
+     :END:
+
+I have a pretty large [[https://sachachua.com/dotemacs][Emacs configuration file]]. It's annoying to wait
+11 seconds for it to export to HTML or 12 seconds to tangle.
+Fortunately, Org Mode allows me to export asynchronously. I tried it
+out from =org-export-dispatch= (=C-c C-e=) by using the =C-a= option.
+It worked pretty well, but it was a bit slow because it loaded my full
+configuration. Fortunately, there's a way to use a smaller
+configuration that focuses on just the packages needed.
+
+#+NAME: org-async-variables
+#+begin_src emacs-lisp
+(setq org-export-async-init-file "~/.config/emacs/org-async-export-config.el")
+(setq org-export-async-debug t)
+#+end_src
+
+I've named the source blocks, and this block assembles the config from
+those named blocks by using noweb.
+
+#+begin_src emacs-lisp :noweb no-export :tangle "~/.config/emacs/org-async-export-config.el" :results nil
+<<org-async-variables>>
+<<startup>>
+<<system-info>>
+<<package-setup>>
+<<org-babel-default-header-args>>
+<<org-styles>>
+<<org-special-blocks>>
+<<org-clean-up-export>>
+#+end_src
+
+This is what the code looks like when it's expanded:
+
+#+begin_src emacs-lisp :noweb yes :results nil
+<<org-async-variables>>
+<<startup>>
+<<system-info>>
+<<package-setup>>
+<<org-babel-default-header-args>>
+<<org-styles>>
+<<org-special-blocks>>
+<<org-clean-up-export>>
+#+end_src
+
+I want my config file to be tangled and exported to HTML
+regularly so that I don't forget to do so. The following code exports
+my config, but only if I saved it myself instead of when I auto-save
+it by focusing away from Emacs.
+
+#+begin_src emacs-lisp
+(defvar my/unfocusing nil)
+(defun my/org-async-export-and-tangle ()
+  (async-start
+   `(lambda ()
+     ;; make async emacs aware of packages (for byte-compilation)
+      (package-initialize)
+      (setq package-enable-at-startup nil)
+      (require 'org)
+      (org-babel-tangle-file ,(buffer-file-name)))
+   (lambda (result) (message "Tangled.")))
+  (org-html-export-to-html t))
+(defun my/org-export-and-tangle-if-saved-in-focus ()
+  (unless my/unfocusing
+    (my/org-async-export-and-tangle)))
+
+(define-minor-mode my/org-export-and-tangle-when-saved-in-focus-mode
+  "Toggle a mode for exporting and tangling when saved.
+Interactively with no argument, this command toggles the mode.
+A positive prefix argument enables the mode, any other prefix
+argument disables it.  From Lisp, argument omitted or nil enables
+the mode, `toggle' toggles the state."
+  :group 'my
+  (if my/org-export-and-tangle-when-saved-in-focus-mode
+      (add-hook 'after-save-hook #'my/org-export-and-tangle-if-saved-in-focus nil t)
+    (remove-hook 'after-save-hook #'my/org-export-and-tangle-if-saved-in-focus t)))
+
+(use-package org
+  :hook ((org-mode .
+                   (lambda () (when (string= (buffer-file-name) (expand-file-name "~/code/.emacs.d/Sacha.org")) (my/org-export-and-tangle-when-saved-in-focus-mode 1))))))
+#+end_src
+
+Let's see if this makes it easier for me to tweak things. 
+
 *** Org roam
 
     #+begin_src emacs-lisp
@@ -5966,7 +6100,7 @@ I don't want to get distracted by the same code in the other window, so I want o
      #+begin_src emacs-lisp 
 (defun my/copy-code-as-org-block-and-gist (beg end)
   (interactive "r")
-  (let ((filename (file-name-base))
+  (let ((filename (or (file-name-base) ""))
         (mode (symbol-name major-mode))
         (contents
          (if (use-region-p) (buffer-substring beg end) (buffer-string)))
@@ -6517,9 +6651,6 @@ More things that I need to get used to...
   :defer t
   :bind (:map emacs-lisp-mode-map ("C-c C-v" . erefactor-map)))
 
-(use-package paredit 
-  :if my/laptop-p
-  :hook (emacs-lisp-mode . paredit-mode))
 (use-package redshank
   :if my/laptop-p
   :disabled t
@@ -8622,6 +8753,173 @@ With data logging $0.004 USD / 15 seconds
 
 Might need to tweak it because I use the Dvorak layout, so hjkl doesn't make as much sense for me.
 
+**** SOMEDAY Keep track of the number of times specified commands have been called
+
+     #+begin_src emacs-lisp
+(use-package keyfreq
+  :after lispy
+  :commands keyfreq-mode
+  :hook 
+  (lispy-mode . keyfreq-mode)
+  (lispy-mode . keyfreq-autosave-mode)
+  :config
+  (defvar my/keyfreq-included-commands (seq-filter (lambda (sym)
+              (and (commandp sym)
+                   (string-match "^lispy-" (symbol-name sym))))
+            obarray))
+  (advice-add 'keyfreq-pre-command-hook :around
+              (lambda (orig-fun)
+                "Limit to `my/keyfreq-included-commands'."
+                (let ((command real-last-command) count)
+                  (when (and command (symbolp command)
+                             (memq command my/keyfreq-included-commands))
+                    (funcall orig-fun))))
+              (list :name "track-lispy")))
+     #+end_src
+**** Emacs: Making a hydra cheatsheet for Lispy                       :emacs:
+     :PROPERTIES:
+     :ID:       o2b:912426e0-a60e-4a60-adac-c7781a0fa8eb
+     :POST_DATE: [2021-04-13 Tue 00:57]
+     :BLOG:     sacha
+     :POSTID:   29718
+     :CUSTOM_ID: hydra-lispy
+     :END:
+
+   I wanted to get the hang of Lispy thanks to Leo Vivier's presentation
+   at EmacsSF, but there are [[https://oremacs.com/lispy/][a lot of keyboard shortcuts to explore]].
+   In [[https://karl-voit.at/2021/04/10/GLT21-emacs-org-features/][Karl Voit's demo of Org Mode at GLT21]], he showed how he uses
+   Hydra to make cheat sheets. That makes perfect sense, of course, as
+   Hydra can display text and allow you to run commands while the text
+   is displayed. I wanted to make a Hydra that would show me
+   categorized commands to make it easier to look up and eventually
+   remember them. I also wanted to skip the commands that I already knew or
+   that I didn't want to focus on just yet.
+
+   Fortunately, the function reference had a link to [[https://raw.githubusercontent.com/abo-abo/lispy/gh-pages/index.org][the Org file used to
+   generate it]]. I copied the tables, merged them together, named them
+   with =#+NAME: bindings=, replaced the links with plain text, and added
+   a third column with the category I wanted to put commands into.
+
+   #+begin_export html
+   <details><summary>#bindings</summary>
+   #+end_export 
+
+   #+NAME: bindings
+   | key | function                      | column   |
+   |-----+-------------------------------+----------|
+   | <   | lispy-barf                    |          |
+   | A   | lispy-beginning-of-defun      |          |
+   | j   | lispy-down                    |          |
+   | Z   | lispy-edebug-stop             |          |
+   | B   | lispy-ediff-regions           |          |
+   | G   | lispy-goto-local              |          |
+   | h   | lispy-left                    |          |
+   | N   | lispy-narrow                  |          |
+   | y   | lispy-occur                   |          |
+   | o   | lispy-other-mode              |          |
+   | J   | lispy-outline-next            |          |
+   | K   | lispy-outline-prev            |          |
+   | P   | lispy-paste                   |          |
+   | l   | lispy-right                   |          |
+   | I   | lispy-shifttab                |          |
+   | >   | lispy-slurp                   |          |
+   | SPC | lispy-space                   |          |
+   | xB  | lispy-store-region-and-buffer |          |
+   | u   | lispy-undo                    |          |
+   | k   | lispy-up                      |          |
+   | v   | lispy-view                    |          |
+   | V   | lispy-visit                   |          |
+   | W   | lispy-widen                   |          |
+   | D   | pop-tag-mark                  |          |
+   | x   | see                           |          |
+   | L   | unbound                       |          |
+   | U   | unbound                       |          |
+   | X   | unbound                       |          |
+   | Y   | unbound                       |          |
+   | H   | lispy-ace-symbol-replace      | Edit     |
+   | c   | lispy-clone                   | Edit     |
+   | C   | lispy-convolute               | Edit     |
+   | n   | lispy-new-copy                | Edit     |
+   | O   | lispy-oneline                 | Edit     |
+   | r   | lispy-raise                   | Edit     |
+   | R   | lispy-raise-some              | Edit     |
+   | \   | lispy-splice                  | Edit     |
+   | S   | lispy-stringify               | Edit     |
+   | i   | lispy-tab                     | Edit     |
+   | xj  | lispy-debug-step-in           | Eval     |
+   | xe  | lispy-edebug                  | Eval     |
+   | xT  | lispy-ert                     | Eval     |
+   | e   | lispy-eval                    | Eval     |
+   | E   | lispy-eval-and-insert         | Eval     |
+   | xr  | lispy-eval-and-replace        | Eval     |
+   | p   | lispy-eval-other-window       | Eval     |
+   | q   | lispy-ace-paren               | Move     |
+   | z   | lispy-knight                  | Move     |
+   | s   | lispy-move-down               | Move     |
+   | w   | lispy-move-up                 | Move     |
+   | t   | lispy-teleport                | Move     |
+   | Q   | lispy-ace-char                | Nav      |
+   | -   | lispy-ace-subword             | Nav      |
+   | a   | lispy-ace-symbol              | Nav      |
+   | b   | lispy-back                    | Nav      |
+   | d   | lispy-different               | Nav      |
+   | f   | lispy-flow                    | Nav      |
+   | F   | lispy-follow                  | Nav      |
+   | g   | lispy-goto                    | Nav      |
+   | xb  | lispy-bind-variable           | Refactor |
+   | xf  | lispy-flatten                 | Refactor |
+   | xc  | lispy-to-cond                 | Refactor |
+   | xd  | lispy-to-defun                | Refactor |
+   | xi  | lispy-to-ifs                  | Refactor |
+   | xl  | lispy-to-lambda               | Refactor |
+   | xu  | lispy-unbind-variable         | Refactor |
+   | M   | lispy-multiline               | Other    |
+   | xh  | lispy-describe                | Other    |
+   | m   | lispy-mark-list               | Other    |
+
+   #+begin_export html
+   </details>
+   #+end_export 
+
+   I wrote this Emacs Lisp code with the header arguments =#+begin_src emacs-lisp :var bindings=bindings :colnames yes=:
+
+   #+BEGIN_SRC emacs-lisp
+(eval
+ (append
+  '(defhydra my/lispy-cheat-sheet (:hint nil :foreign-keys run)
+     ("<f14>" nil :exit t))
+  (cl-loop for x in bindings
+           unless (string= "" (elt x 2))
+           collect
+           (list (car x)
+                 (intern (elt x 1))
+                 (when (string-match "lispy-\\(?:eval-\\)?\\(.+\\)"
+                                     (elt x 1))
+                   (match-string 1 (elt x 1)))
+                 :column
+                 (elt x 2)))))
+(with-eval-after-load "lispy"
+  (define-key lispy-mode-map (kbd "<f14>") 'my/lispy-cheat-sheet/body))
+   #+END_SRC
+
+   Here's the result:
+
+   #+CAPTION: Hydra-based cheat sheet
+   [[https://sachachua.com/blog/wp-content/uploads/2021/04/Screenshot_20210413_002503.png]]
+
+   I'm experimenting with having my Windows key be =F14= if tapped and
+   =Super_L= if held down. I use KDE, so I [[https://zren.github.io/kde/#windowsmeta-key][disabled the Applications
+   shortcut]] with:
+
+   #+begin_example
+kwriteconfig5 --file ~/.config/kwinrc --group ModifierOnlyShortcuts --key Meta ""
+qdbus org.kde.KWin /KWin reconfigure
+   #+end_example
+
+   and then used =xcape -e 'Super_L=F14'= to make it work.
+
+   Looking forward to getting the hang of this!
+   # /home/sacha/screenshots/Screenshot_20210413_002503.png https://sachachua.com/blog/wp-content/uploads/2021/04/Screenshot_20210413_002503.png
 ** Encryption 
 
 #+begin_src emacs-lisp 
@@ -10333,6 +10631,26 @@ I wanted to write a function that could take a list structured like this:
           (forward-line 1))))))
     #+end_src
 
+*** Xournalpp and Krita
+
+Let's try xournal++.
+
+
+#+begin_src emacs-lisp
+(use-package org-krita
+  :ensure t
+  :quelpa (org-krita :fetcher github :repo "lepisma/org-krita" :files ("*.el" "resources"))
+  :hook (org-mode . org-krita-mode))
+(use-package org-xournalpp
+  :quelpa (org-xournalpp :fetcher gitlab :repo "vherrmann/org-xournalpp" :files ("*.el" "resources"))
+  :hook (org-mode . org-xournalpp-mode))
+#+end_src
+
+I think I prefer Krita because I'm more used to cropping with it.
+Xournal++ uses vectors and makes it easier to insert space when
+drawing notebook-style stuff, so that might be interesting too. I
+probably want to write something that converts it to PNG for export.
+
 *** Sketched books
 :PROPERTIES:
 :CUSTOM_ID: insert-point
@@ -10504,9 +10822,7 @@ Aspect ratio is width / height
 
 add-output-png is:
 
-#+begin_src sh
-#!/bin/bash
-
+#+begin_src sh :eval no :shebang "#!/bin/bash"
 xdotool windowactivate --sync $(xdotool search --name krita | tail -1); sleep 1
 xdotool key --delay 50 Alt+l n m ; sleep 3
 xdotool type ~/Dropbox/Inbox/output.png ; sleep 1
@@ -10681,28 +10997,3 @@ Hmmm, I'm having a hard time getting used to this.
 #+end_src
 
 
-* Local Variables
-
-#+begin_src emacs-lisp
-(defvar my/unfocusing nil)
-(defun run-with-local-idle-timer (secs repeat function &rest args)
-  "Like `run-with-idle-timer', but always runs in the `current-buffer'.
-
-Cancels itself, if this buffer was killed."
-  (let* (;; Chicken and egg problem.
-         (fns (make-symbol "local-idle-timer"))
-         (timer (apply 'run-with-idle-timer secs repeat fns args))
-         (fn `(lambda (&rest args)
-                (if (not (buffer-live-p ,(current-buffer)))
-                    (cancel-timer ,timer)
-                  (with-current-buffer ,(current-buffer)
-                    (apply (function ,function) args))))))
-    (fset fns fn)
-    fn))
-(defun my/org-babel-tangle-if-saved-in-focus ()
-  (unless my/unfocusing
-    (run-with-local-idle-timer 5 nil #'org-babel-tangle)))
-#+end_src
-# Local Variables:
-# eval: (add-hook 'after-save-hook #'my/org-babel-tangle-if-saved-in-focus nil t)
-# End:

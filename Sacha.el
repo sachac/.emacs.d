@@ -3,7 +3,6 @@
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
 (add-to-list 'load-path "~/vendor/org-mode/lisp")
 (add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
-(require 'org)
 (setq custom-file "~/.config/emacs/custom-settings.el")
 (setq use-package-always-ensure t)
 (load custom-file t)
@@ -20,8 +19,8 @@
 
 (unless (assoc-default "melpa" package-archives)
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
-(unless (assoc-default "org" package-archives)
-  (add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/") t))
+(unless (assoc-default "nongnu" package-archives)
+  (add-to-list 'package-archives '("nongnu" . "https://elpa.nongnu.org/nongnu/") t))
 
 (add-to-list 'load-path "~/elisp")
 (unless (package-installed-p 'use-package)
@@ -132,6 +131,7 @@
   (advice-add #'marginalia-cycle :after
               (lambda () (when (bound-and-true-p selectrum-mode) (selectrum-exhibit))))
   :bind (:map minibuffer-local-completion-map
+              ("M-A" . marginalia-cycle)
               ("C-i" . marginalia-cycle-annotators)))
 (defun my/sketch-insert-file-as-link (f)
   (interactive "fSketch: ")
@@ -357,6 +357,13 @@ Based on `elisp-get-fnsym-args-string.'"
   (add-hook 'embark-collect-mode-hook #'my/shrink-selectrum) 
   (add-hook 'embark-pre-action-hook #'my/refresh-selectrum))
 
+(defun my/cmap-org-link-element-target ()
+  "Org-mode link target. Returns the element."
+  (when (derived-mode-p 'org-mode)
+    (let ((context (org-element-context)))
+      (when (eq (org-element-type context) 'link)
+        (cons 'my/cmap-org-link-element-map context)))))
+    
 (defun my/cmap-org-block-target ()
 	(when (and (derived-mode-p 'org-mode)
 		         (org-in-src-block-p))
@@ -370,16 +377,24 @@ Based on `elisp-get-fnsym-args-string.'"
 (defun my/org-copy-block-contents ()
 	(interactive)
 	(kill-new (org-element-property :value (org-element-context))))
+(defun my/org-link-element-copy-link (element)
+  (interactive (list (org-element-context)))
+  (kill-new (org-element-property :raw-link element)))
+
 (use-package cmap :quelpa (cmap :fetcher github :repo "jyp/cmap")
 	:config
 	(add-to-list 'cmap-targets #'my/cmap-org-block-target)
-	(defvar my/cmap-org-block-map 
+  (add-to-list 'cmap-targets #'my/cmap-org-link-element-target)
+  (defvar my/cmap-org-link-element-map
+    (cmap-keymap
+      ("w" . my/org-link-element-copy-link)
+      ("c" . my/caption-show)))
+  (add-to-list 'which-key-replacement-alist '((nil . "^my/org-link-element-") . (nil . "")))
+	(defvar my/cmap-org-block-map
 	  (cmap-keymap
-	   ("w" . my/org-copy-block-contents)
-	   ("i" . my/org-indent-block)))
-	:bind (("C-c e" . cmap-cmap)
-         :map cmap-org-link-map
-         ("c" . my/caption-show)))
+	    ("w" . my/org-copy-block-contents)
+	    ("i" . my/org-indent-block)))
+	:bind (("C-c e" . cmap-cmap)))
 
 (use-package helm
   :diminish helm-mode
@@ -696,6 +711,35 @@ Based on `elisp-get-fnsym-args-string.'"
 
 ;(fset 'org-refile-get-location 'my/org-refile-get-location)
 
+(defvar my/screenshot-directory "~/screenshots")
+(defun my/org-insert-screenshot (file &optional note)
+  (interactive (list
+                (if current-prefix-arg
+                    (expand-file-name
+                     (consult--read
+                      (reverse (directory-files my/screenshot-directory nil "\\.png$"))
+                      :sort nil
+                      :require-match t
+                      :category 'file
+                      :state (lambda (candidate state)
+                               (when candidate
+                                 (with-current-buffer (find-file-noselect (expand-file-name candidate my/screenshot-directory))
+                                   (display-buffer (current-buffer))))))
+                     my/screenshot-directory)
+                  (my/latest-file my/screenshot-directory))))
+  (save-window-excursion
+    (with-current-buffer (find-file-noselect file) (display-buffer (current-buffer)))  
+    (insert "#+CAPTION: " (or note (read-string "Caption: "))))
+  (save-excursion (insert "\n" (org-link-make-string (concat "file:" file)) "\n")))
+
+(use-package major-mode-hydra
+  :bind
+  ("<f14>" . major-mode-hydra))
+(major-mode-hydra-define org-mode nil
+  ("Shortcuts"
+   (("s" my/org-insert-screenshot "Insert screenshot")
+    ("g" my/geeqie/body "Geeqie"))))
+
 (defun my/org-capture-prefill-template (template &rest values)
   "Pre-fill TEMPLATE with VALUES."
   (setq template (or template (org-capture-get :template)))
@@ -716,20 +760,7 @@ Based on `elisp-get-fnsym-args-string.'"
           (replace-match (car values) nil t))
       (setq values (cdr values)))
     (buffer-string)))
-(defun my/capture-screenshot (time &optional note)
-  "Capture screenshot and save it to a file labeled with TIME and NOTE.
-       Return the filename."
-  (interactive (list (current-time) (read-string "Note: ")))
-  (let* ((filename (expand-file-name
-                    (concat "Screenshot_"
-                            (format-time-string "%Y%0m%d_%H%M%S" time)
-                            (if note (concat " " note) "")
-                            ".png")
-                    "~/Pictures"))
-         (cmd (concat "spectacle -b -o "
-                      (shell-quote-argument filename))))
-    (shell-command cmd)
-    filename))
+
 (defun my/capture-timestamped-note (time note)
   "Disable Helm and capture a quick timestamped note."
   (interactive (list (current-time) (read-string "Note: ")))
@@ -745,9 +776,11 @@ Based on `elisp-get-fnsym-args-string.'"
                                                  note)))
     (org-capture-place-template)
     (org-capture-finalize)))
+
 (defun my/capture-timestamped-note-with-screenshot (time note)
+  "Include a link to the latest screenshot."
   (interactive (list (current-time) (read-string "Note: ")))
-  (kill-new (my/capture-screenshot time note))
+  (kill-new (my/latest-file my/screenshot-directory))
   (my/capture-timestamped-note time note))
 
 (use-package recomplete
@@ -801,7 +834,7 @@ Based on `elisp-get-fnsym-args-string.'"
 (when (display-graphic-p)
   (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
 
-    (setq kill-ring-max 1000)
+(setq kill-ring-max 1000)
 
 (defadvice kill-region (before slick-cut activate compile)
   "When called interactively with no active region, kill a single line instead."
@@ -944,6 +977,7 @@ Based on `elisp-get-fnsym-args-string.'"
   (goto-char (random (point-max))))
 
 (use-package hydra
+  :commands defhydra
   :config
   (defhydra my/goto-random-char-hydra ()
     ("r" my/goto-random-char))
@@ -971,17 +1005,8 @@ Based on `elisp-get-fnsym-args-string.'"
     ("<down>" (join-line 1))
     ("t" join-line)
     ("n" (join-line 1)))
-  (defhydra my/org (:color blue)
-    "Convenient Org stuff."
-    ("p" my/org-show-active-projects "Active projects")
-    ("a" (org-agenda nil "a") "Agenda"))
-  (defhydra my/engine-mode-hydra (:color blue)
-    "Engine mode"
-    ("b" engine/search-my-blog "blog")
-    ("f" engine/search-my-photos "flickr")
-    ("m" engine/search-mail "mail")
-    ("g" engine/search-google "google")
-    ("e" engine/search-emacswiki "emacswiki"))
+  
+  
   ;; From https://github.com/abo-abo/hydra
   (defhydra hydra-buffer-menu (:color pink
                                       :hint nil)
@@ -1013,55 +1038,62 @@ Based on `elisp-get-fnsym-args-string.'"
     ("o" Buffer-menu-other-window "other-window" :color blue)
     ("q" quit-window "quit" :color blue))
 
-  (define-key Buffer-menu-mode-map "." 'hydra-buffer-menu/body)
+  (define-key Buffer-menu-mode-map "." 'hydra-buffer-menu/body))
 
-  (defun my/org-update-link-description (description)
-    "Update the current link's DESCRIPTION."
-    (interactive "MDescription: ")
-    (let (link)
-      (save-excursion
-        (cond
-         ((org-in-regexp org-link-bracket-re 1)
-          (setq link (org-link-unescape (match-string-no-properties 1)))
-          (delete-region (match-beginning 0) (match-end 0))
-          (insert (org-link-make-string link description))
-          (sit-for 0))
-         ((or (org-in-regexp org-link-angle-re)
-              (org-in-regexp org-link-plain-re))
-          (setq link (org-unbracket-string "<" ">" (match-string 0)))
-          (delete-region (match-beginning 0) (match-end 0))
-          (insert (org-link-make-string link description))
-          (sit-for 0))))))
-  
-  (defhydra my/shortcuts (:exit t)
-    "Shortcuts"
-    ("f" (helm :sources '(helm-source-projectile-files-list
-                          helm-source-files-in-current-dir
-                          helm-source-projectile-projects
-                          helm-source-recentf
-                          helm-source-bookmarks
-                          helm-source-ls-git
-                          helm-source-locate)
-               :buffer "*helm-find-files*") "Find")
-    ("j" my/helm-journal "Journal")
-    ("n" my/capture-timestamped-note)
-    ("l" (my/toggle-or-create "*scratch*" (lambda () (switch-to-buffer (startup--get-buffer-create-scratch)))) "Lisp")
-    ("d" my/emacs-news-check-duplicates "Dupe")
-    ("c" my/org-categorize-emacs-news/body "Categorize")
-    ("h" (lambda () (interactive) (my/org-update-link-description "HN")) "Link HN")
-    ("i" (lambda () (interactive) (my/org-update-link-description "Irreal")) "Link Irreal")
-    ("s" save-buffer "Save")
-    ("m" my/share-emacs-news "Mail"))
-  (global-set-key (kbd "<f5>") 'my/shortcuts/body))
+(defun my/org-update-link-description (description)
+  "Update the current link's DESCRIPTION."
+  (interactive "MDescription: ")
+  (let (link)
+    (save-excursion
+      (cond
+       ((org-in-regexp org-link-bracket-re 1)
+        (setq link (org-link-unescape (match-string-no-properties 1)))
+        (delete-region (match-beginning 0) (match-end 0))
+        (insert (org-link-make-string link description))
+        (sit-for 0))
+       ((or (org-in-regexp org-link-angle-re)
+            (org-in-regexp org-link-plain-re))
+        (setq link (org-unbracket-string "<" ">" (match-string 0)))
+        (delete-region (match-beginning 0) (match-end 0))
+        (insert (org-link-make-string link description))
+        (sit-for 0))))))
 (use-package hydra-posframe :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe") :if my/laptop-p :after hydra)
 
-(use-package pretty-hydra)
+(use-package pretty-hydra
+  :config
+  (pretty-hydra-define my/shortcuts (:exit t)
+    ("Global"
+     (("j" my/helm-journal "Journal")
+      ("n" my/capture-timestamped-note)
+      ("s" save-buffer "Save")
+      ("+" text-scale-increase)  
+      ("-" text-scale-decrease)
+      ("g" my/geeqie/body))
+     "Navigation"
+     (("l" (my/toggle-or-create "*scratch*" (lambda () (switch-to-buffer (startup--get-buffer-create-scratch)))) "Lisp"))
+     "Emacs News"
+     (("d" my/emacs-news-check-duplicates "Dupe")
+      ("c" my/org-categorize-emacs-news/body "Categorize")
+      ("h" (lambda () (interactive) (my/org-update-link-description "HN")) "Link HN")
+      ("i" (lambda () (interactive) (my/org-update-link-description "Irreal")) "Link Irreal")
+      ("m" my/share-emacs-news "Mail"))))
+  :bind
+  ("<f5>" . 'my/shortcuts/body))
+
 (defun my/org-insert-link ()
   (interactive)
   (when (org-in-regexp org-bracket-link-regexp 1)
     (goto-char (match-end 0))
     (insert "\n"))
   (call-interactively 'org-insert-link))
+
+(defhydra my/engine-mode-hydra (:color blue)
+  "Engine mode"
+  ("b" engine/search-my-blog "blog")
+  ("f" engine/search-my-photos "flickr")
+  ("m" engine/search-mail "mail")
+  ("g" engine/search-google "google")
+  ("e" engine/search-emacswiki "emacswiki"))
 
 (defhydra my/key-chord-commands ()
   "Main"
@@ -1084,8 +1116,7 @@ Based on `elisp-get-fnsym-args-string.'"
   ("r" my/describe-random-interactive-function)
   ("l" org-insert-last-stored-link)
   ("L" my/org-insert-link)
-  ("+" text-scale-increase)
-  ("-" text-scale-decrease))
+  )
 
 (use-package key-chord
   :if my/laptop-p
@@ -1110,7 +1141,7 @@ Based on `elisp-get-fnsym-args-string.'"
   (key-chord-define-global "  "     'my/insert-space-or-expand)
   (key-chord-define-global "vv" 'god-mode-all)
   (key-chord-define-global "JJ"     'my/switch-to-previous-buffer)
-  (key-chord-mode 1))
+  (key-chord-mode -1)) ;; disable for now
 
 (bind-key "C-t" 'my/key-chord-commands/body)
 
@@ -1785,16 +1816,20 @@ If WORD-TIMING is non-nil, include word-level timestamps."
               (or data (my/caption-fix-common-errors my/caption-cache)))
              ""))))
 
-(defun my/caption-show (id)
-  (interactive "MID: ")
-  (when (string-match "v=\\([^&]+\\)" id) (setq id (match-string 1 id)))
+(defun my/caption-show (url)
+  (interactive (list
+                (let ((link (and (derived-mode-p 'org-mode)
+                                 (org-element-context))))
+                  (if (and link 
+                           (eq (org-element-type link) 'link))
+                      (read-string (format "URL (%s): " (org-element-property :raw-link link)) nil nil
+                                   (org-element-property :raw-link link))
+                    (read-string "URL: ")))))
+  (when (and (listp url) (org-element-property :raw-link url)) (setq url (org-element-property :raw-link url)))
   (with-current-buffer (get-buffer-create "*Captions*")
     (erase-buffer)
-    (my/caption-download-srv2 id)
-    (insert
-     (mapconcat (lambda (entry) (alist-get 'text entry)) my/caption-cache "")
-     "\n")
-    (fill-paragraph (point-min) (point-max))
+    (org-mode)
+    (my/org-insert-youtube-video-with-transcript url)
     (goto-char (point-min))
     (display-buffer (current-buffer))))
 
@@ -1993,34 +2028,48 @@ If WORD-TIMING is non-nil, include word-level timestamps."
     (my/geeqie-next)
     (delete-file file t)))
 
-(defhydra my/geeqie ()
-  "Manage images with geeqie."
-  ("op" (my/geeqie-view my/portfolio-directory) "Open portfolio")
-  ("oc" (my/geeqie-view my/camera-directory) "Open camera")
-  ("oi" (my/geeqie-view my/ipad-directory) "Open ipad")
-  ("os" my/geeqie-scans "Open scans")
-  ("[" my/geeqie-rotate-counterclockwise "CCW")
-  ("]" my/geeqie-rotate-clockwise "CW")
-  ("r" my/geeqie-rename-current "Rename")
-  ("c" my/geeqie-crop-to-rectangle "Crop")
-  ("k" (start-process "krita" nil "krita" (my/geeqie-filename)) "krita")
-  ("g" (start-process "gimp" nil "gimp" (my/geeqie-filename)) "gimp")
-  ("n" my/geeqie-next "Next")
-  ("p" my/geeqie-previous "Previous")
-  ("d" my/geeqie-change-date "Change date")
-  ("x" my/geeqie-delete-and-next "Delete")
-  ("m" my/move-portfolio-files "Move portfolio files")
-  ("s" (rename-file (my/geeqie-filename)
-                    (expand-file-name (file-name-nondirectory (my/geeqie-filename)) my/sketches-directory))
-   "Save to sketch directory")
-  ("O" (shell-command (format "mogrify -auto-orient %s" (shell-quote-argument (my/geeqie-filename)))) "Rotate based on EXIF")
-  ("<up>" (forward-line -1) :hint nil)
-  ("<down>" forward-line :hint nil)
-  ("im" (insert (format "{{<photo nas=\"1\" src=\"%s\">}}" (my/geeqie-filename))))
-  ("if" (insert (my/geeqie-filename) "\n")
-   "Insert filename")
-  ("v" (my/geeqie-view (string-trim (thing-at-point 'line))) "View")
-  ("il" (insert "- " (my/geeqie-filename) "\n") "Insert filename as list item"))
+(use-package ewmctrl)
+(defun my/geeqie-setup ()
+  (interactive)
+  (shell-command "wmctrl -r :ACTIVE: -b remove,maximized_vert,maximized_horz; xdotool getactivewindow windowsize 50% 100%")
+  (shell-command "geeqie &"))
+(pretty-hydra-define my/geeqie ()
+  ("Open"
+   (("oo" my/geeqie-setup "Setup")
+    ("op" (my/geeqie-view my/portfolio-directory) "Portfolio")
+    ("oc" (my/geeqie-view my/camera-directory) "Camera")
+    ("oi" (my/geeqie-view my/ipad-directory) "iPad")
+    ("ox" (my/geeqie-view "~/screenshots") "Screenshots")
+    ("os" my/geeqie-scans "Scans"))
+   "Modify"
+   (("[" my/geeqie-rotate-counterclockwise "CCW")
+    ("]" my/geeqie-rotate-clockwise "CW")
+    ("r" my/geeqie-rename-current "Rename")
+    ("d" my/geeqie-change-date "Change date")
+    ("c" my/geeqie-crop-to-rectangle "Crop")
+    ("k" (start-process "krita" nil "krita" (my/geeqie-filename)) "krita")
+    ("O" (shell-command (format "mogrify -auto-orient %s" (shell-quote-argument (my/geeqie-filename)))) "Rotate based on EXIF")
+    ("g" (start-process "gimp" nil "gimp" (my/geeqie-filename)) "gimp"))
+   "Navigate"
+   (("n" my/geeqie-next "Next")
+    ("p" my/geeqie-previous "Previous")
+    ("x" my/geeqie-delete-and-next "Delete"))
+   "Save"
+   (("p" (rename-file (my/geeqie-filename)
+                      (expand-file-name (file-name-nondirectory (my/geeqie-filename)) my/sketches-directory))
+     "Portfolio")
+    ("s" (rename-file (my/geeqie-filename)
+                      (expand-file-name (file-name-nondirectory (my/geeqie-filename)) my/sketches-directory)) 
+     "Sketch"))
+   "Other"
+   (("<up>" (forward-line -1) :hint nil)
+    ("<down>" forward-line :hint nil)
+    
+    ("im" (insert (format "{{<photo nas=\"1\" src=\"%s\">}}" (my/geeqie-filename))))
+    ("if" (insert (my/geeqie-filename) "\n")
+     "Insert filename")
+    ("v" (my/geeqie-view (string-trim (thing-at-point 'line))) "View")
+    ("il" (insert "- " (my/geeqie-filename) "\n") "Insert filename as list item"))))
 
 (defun my/move-portfolio-files ()
   (interactive)
@@ -2066,8 +2115,6 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 (bind-key "C-c l" 'org-store-link)
 (bind-key "C-c L" 'org-insert-link-global)
 (bind-key "C-c O" 'org-open-at-point-global)
-(bind-key "<f9> <f9>" 'org-agenda-list)
-(bind-key "<f9> <f8>" (lambda () (interactive) (org-capture nil "r")))
 
 (with-eval-after-load 'org
   (bind-key "C-M-w" 'append-next-kill org-mode-map)
@@ -2096,11 +2143,21 @@ If WORD-TIMING is non-nil, include word-level timestamps."
       (save-excursion (and (looking-at (org-item-re)) (looking-back "^[ \t]*" nil)))))
 (setq org-use-speed-commands 'my/org-use-speed-commands-for-headings-and-lists)
 
-(defun my/org-mark-done-and-add-to-journal (&optional note)
-  (interactive (list (read-string "Note: " (org-get-heading t t t t))))
+(defun my/org-mark-done-and-add-to-journal (&optional note category)
+  (interactive (list (read-string "Note: " (org-get-heading t t t t))
+                     (or (org-entry-get-with-inheritance "JOURNAL_CAT") (my/read-journal-category))))
   (my/org-with-current-task
    (org-todo "DONE")
-   (org-entry-put (point) "ZIDSTRING" (plist-get (my/journal-post (or note (org-get-heading t t t t))) :ZIDString))))
+   (org-entry-put (point) "JOURNAL_CAT" category)
+   (let ((zid (org-entry-get (point) "ZIDSTRING")))
+     (if zid
+         (my/journal-update (list :ZIDString zid :Note note :Category category))
+       (org-entry-put (point) "ZIDSTRING"
+                      (plist-get
+                       (my/journal-post (or note (org-get-heading t t t t))
+                                        :Category category
+                                        :Date (format-time-string "%Y-%m-%d %H:%M" (org-read-date nil t (org-entry-get (point) "CREATED"))))
+                       :ZIDString))))))
 
 (use-package org
   :config
@@ -3280,7 +3337,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
 
 (defun my/org-prepare-weekly-review (&optional date skip-urls)
   "Prepare weekly review template."
-  (interactive (list (org-read-date))) 
+  (interactive (list (org-read-date nil nil nil "Ending on Fri: " nil "-fri"))) 
   (let ((base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
         start end links prev)
     (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6)) (current-time-zone)))
@@ -3614,6 +3671,10 @@ and indent it one level."
     (if (org-in-src-block-p)
         (insert definition)
       (insert "#+begin_src emacs-lisp\n" definition "#+end_src\n"))))
+(defun my/org-insert-function-and-key (keys)
+  (interactive (caar (help--read-key-sequence)))
+  (insert (format "=%s= (=%s=)" (symbol-name (key-binding keys t))
+                  (key-description keys))))
 
 (use-package org
   :config
@@ -3638,19 +3699,13 @@ and indent it one level."
     (when (re-search-forward (format "^#\\+NAME:[ \t]+%s[ \t]*$" (regexp-quote name)) nil t)
       (org-babel-execute-src-block))))
 
-(defun my/org-insert-latest-screenshot ()
-  (interactive)
-  (insert (org-link-make-string (concat "file:" (my/latest-file "~/screenshots")))))
-
 (setq org-export-with-section-numbers nil)
 (setq org-html-include-timestamps nil)
 (setq org-export-with-sub-superscripts nil)
 (setq org-export-with-toc nil)
 (setq org-html-toplevel-hlevel 2)
 (setq org-export-htmlize-output-type 'css)
-
 (setq org-export-with-broken-links t)
-
 (setq org-ascii-text-width 10000)
 
 (setq org-publish-project-alist
@@ -3687,23 +3742,19 @@ and indent it one level."
 (bind-key "<apps> b" 'my/org-publish-and-browse)
 
 (use-package org2blog
-  :commands 'org2blog/wp-post-subtree
+  :if my/laptop-p
+  :load-path "~/vendor/org2blog"
+  :commands 
+  org2blog/wp-post-subtree
+  org2blog--hydra-main/body
   :config
-  (progn
-    (setq org2blog/wp-track-posts nil)
-    (setq org2blog/wp-use-tags-as-categories t)
-    (defadvice org2blog/wp-post-buffer (around sacha activate)
-      (let ((org-confirm-babel-evaluate nil)
-            (org-html-toplevel-hlevel 3))
-        ad-do-it))))
-
-(defun my/org2blog-subtree ()
-  "Post to my blog and get files ready."
-  (interactive)
-  (org2blog/wp-post-subtree)
-  (my/org-stage-image-files-in-subtree)
-  (shell-command "start c:\\sacha\\dropbox\\inbox\\selection")
-  (browse-url "http://sachachua.com/blog/wp-admin/edit.php?page=cal"))
+  (setq org2blog/wp-image-upload t)
+  (setq org2blog/wp-track-posts nil)
+  (setq org2blog/wp-use-tags-as-categories t)
+  (defadvice org2blog/wp-post-buffer (around sacha activate)
+    (let ((org-confirm-babel-evaluate nil)
+          (org-html-toplevel-hlevel 3))
+      ad-do-it)))
 
 (defun my/org2blog-edit-post ()
   "Browse to the edit page."
@@ -3738,18 +3789,21 @@ and indent it one level."
     (org-html-publish-to-html plist filename pub-dir)))
 
 (use-package org-special-block-extras
-  :quelpa (org-special-block-extras :fetcher github :repo "alhassy/org-special-block-extras")
   :if my/laptop-p
   :hook (org-mode-hook . org-special-block-extras-mode)
   :config
   ;; Use short names like ‘defblock’ instead of the fully qualified name
   ;; ‘org-special-block-extras--defblock’
   (org-special-block-extras-short-names)
+  (defblock details nil nil (title nil)
+    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Use summary and details."
+    (format "<details open><summary>%s</summary>%s</details>"
+            (or title "Details") raw-contents))
   (defblock columns nil nil
-    "Top level (HTML)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
+    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
     (format "<div class=\"row\">%s</div>" contents))
   (defblock column50 nil nil 
-    "Top level (HTML)OSPE-RESPECT-NEWLINES? Split into columns."
+    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Split into columns."
     (format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents)))
 
 (setq org-html-head "<link rel=\"stylesheet\" type=\"text/css\"
@@ -3851,27 +3905,130 @@ and indent it one level."
                  ("\\subsection\{%s\}" . "\\subsection*\{%s\}")
                  ("\\subsubsection\{%s\}" . "\\subsubsection*\{%s\}"))))
 
-     (setq org-plantuml-jar-path (expand-file-name "/usr/share/plantuml/plantuml.jar"))
+(setq org-plantuml-jar-path (expand-file-name "/usr/share/plantuml/plantuml.jar"))
 (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
 
 (use-package ox-hugo
   :ensure t            ;Auto-install the package from Melpa (optional)
   :after ox)
 
-    (use-package org-roam
-      :if my/laptop-p
-      :ensure t
-      :hook
-      (after-init . org-roam-mode)
-      :custom
-      (org-roam-directory "/home/sacha/sync/org-roam")
-      :bind (:map org-roam-mode-map
-              (("C-c n l" . org-roam)
-               ("C-c n f" . org-roam-find-file)
-               ("C-c n g" . org-roam-graph))
-              :map org-mode-map
-              (("C-c n i" . org-roam-insert))
-              (("C-c n I" . org-roam-insert-immediate))))
+(setq org-export-async-init-file "~/.config/emacs/org-async-export-config.el")
+(setq org-export-async-debug t)
+
+(setq org-export-async-init-file "~/.config/emacs/org-async-export-config.el")
+(setq org-export-async-debug t)
+;; This sets up the load path so that we can override it
+(package-initialize)
+(add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
+(add-to-list 'load-path "~/vendor/org-mode/lisp")
+(add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
+(setq custom-file "~/.config/emacs/custom-settings.el")
+(setq use-package-always-ensure t)
+(load custom-file t)
+(defvar my/laptop-p (equal (system-name) "sacha-kubuntu"))
+(defvar my/server-p (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
+(defvar my/phone-p (not (null (getenv "ANDROID_ROOT")))
+  "If non-nil, GNU Emacs is running on Termux.")
+(when my/phone-p (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3"))
+(global-auto-revert-mode)  ; simplifies syncing
+(add-to-list 'load-path "~/elisp")
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
+(setq use-package-verbose t)
+(setq use-package-always-ensure t)
+(require 'use-package)
+(use-package quelpa)
+(use-package quelpa-use-package)
+(use-package auto-compile
+  :if my/laptop-p
+  :config (auto-compile-on-load-mode))
+(setq load-prefer-newer t)
+(setq org-babel-default-header-args
+      '((:session . "none")
+        (:results . "drawer replace")
+        (:exports . "code")
+        (:cache . "no")
+        (:eval . "never-export")
+        (:hlines . "no")
+        (:tangle . "no")))
+(setq org-html-head "<link rel=\"stylesheet\" type=\"text/css\"
+       href=\"https://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"></link>
+       <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/org-export.css\"></link>
+       <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/blog/wp-content/themes/sacha-v3/style.css\"></link>
+       <script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"></script>
+       <script src=\"https://sachachua.com/blog/wp-content/themes/sacha-v3/misc.js\"></script>")
+(setq org-html-htmlize-output-type 'css)
+(setq org-src-fontify-natively t)
+(use-package org-special-block-extras
+  :if my/laptop-p
+  :hook (org-mode-hook . org-special-block-extras-mode)
+  :config
+  ;; Use short names like ‘defblock’ instead of the fully qualified name
+  ;; ‘org-special-block-extras--defblock’
+  (org-special-block-extras-short-names)
+  (defblock details nil nil (title nil)
+    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Use summary and details."
+    (format "<details open><summary>%s</summary>%s</details>"
+            (or title "Details") raw-contents))
+  (defblock columns nil nil
+    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
+    (format "<div class=\"row\">%s</div>" contents))
+  (defblock column50 nil nil 
+    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Split into columns."
+    (format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents)))
+(setq org-export-with-section-numbers nil)
+(setq org-html-include-timestamps nil)
+(setq org-export-with-sub-superscripts nil)
+(setq org-export-with-toc nil)
+(setq org-html-toplevel-hlevel 2)
+(setq org-export-htmlize-output-type 'css)
+(setq org-export-with-broken-links t)
+(setq org-ascii-text-width 10000)
+
+(defvar my/unfocusing nil)
+(defun my/org-async-export-and-tangle ()
+  (async-start
+   `(lambda ()
+     ;; make async emacs aware of packages (for byte-compilation)
+      (package-initialize)
+      (setq package-enable-at-startup nil)
+      (require 'org)
+      (org-babel-tangle-file ,(buffer-file-name)))
+   (lambda (result) (message "Tangled.")))
+  (org-html-export-to-html t))
+(defun my/org-export-and-tangle-if-saved-in-focus ()
+  (unless my/unfocusing
+    (my/org-async-export-and-tangle)))
+
+(define-minor-mode my/org-export-and-tangle-when-saved-in-focus-mode
+  "Toggle a mode for exporting and tangling when saved.
+Interactively with no argument, this command toggles the mode.
+A positive prefix argument enables the mode, any other prefix
+argument disables it.  From Lisp, argument omitted or nil enables
+the mode, `toggle' toggles the state."
+  :group 'my
+  (if my/org-export-and-tangle-when-saved-in-focus-mode
+      (add-hook 'after-save-hook #'my/org-export-and-tangle-if-saved-in-focus nil t)
+    (remove-hook 'after-save-hook #'my/org-export-and-tangle-if-saved-in-focus t)))
+
+(use-package org
+  :hook ((org-mode .
+                   (lambda () (when (string= (buffer-file-name) (expand-file-name "~/code/.emacs.d/Sacha.org")) (my/org-export-and-tangle-when-saved-in-focus-mode 1))))))
+
+(use-package org-roam
+  :if my/laptop-p
+  :ensure t
+  :hook
+  (after-init . org-roam-mode)
+  :custom
+  (org-roam-directory "/home/sacha/sync/org-roam")
+  :bind (:map org-roam-mode-map
+          (("C-c n l" . org-roam)
+           ("C-c n f" . org-roam-find-file)
+           ("C-c n g" . org-roam-graph))
+          :map org-mode-map
+          (("C-c n i" . org-roam-insert))
+          (("C-c n I" . org-roam-insert-immediate))))
 
 (defun org-repair-export-blocks ()
   "Repair export blocks and INCLUDE keywords in current buffer."
@@ -4495,7 +4652,7 @@ and indent it one level."
 
 (defun my/copy-code-as-org-block-and-gist (beg end)
   (interactive "r")
-  (let ((filename (file-name-base))
+  (let ((filename (or (file-name-base) ""))
         (mode (symbol-name major-mode))
         (contents
          (if (use-region-p) (buffer-substring beg end) (buffer-string)))
@@ -4888,9 +5045,6 @@ and indent it one level."
   :defer t
   :bind (:map emacs-lisp-mode-map ("C-c C-v" . erefactor-map)))
 
-(use-package paredit 
-  :if my/laptop-p
-  :hook (emacs-lisp-mode . paredit-mode))
 (use-package redshank
   :if my/laptop-p
   :disabled t
@@ -5618,7 +5772,7 @@ so that it's still active even after you stage a change. Very experimental."
                     (lambda (x) (if (string-equal (substring x 0 1) ".") x))
                     ido-temp-list)))))
 
-                                        ;(setq eimp-mogrify-program "c:/Program Files/ImageMagick-6.8.3-Q16/mogrify.exe")
+;(setq eimp-mogrify-program "c:/Program Files/ImageMagick-6.8.3-Q16/mogrify.exe")
 
 (defun my/ssh-refresh ()
   "Reset the environment variable SSH_AUTH_SOCK"
@@ -6268,7 +6422,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
           (pop-to-buffer (current-buffer)))
       (mpv-play (my/latest-file my/recordings-dir)))))
 
- (setq imp-default-user-filters '((org-mode . my/imp-htmlize-filter)
+(setq imp-default-user-filters '((org-mode . my/imp-htmlize-filter)
                                   (mhtml-mode . nil)
                                   (html-mode . nil)
                                   (web-mode  . nil)))
@@ -6440,6 +6594,43 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
       (sp-local-pair "(" nil :bind "C-("))))
 
 (use-package lispy :hook (emacs-lisp-mode . lispy-mode))
+
+(use-package keyfreq
+  :after lispy
+  :commands keyfreq-mode
+  :hook 
+  (lispy-mode . keyfreq-mode)
+  (lispy-mode . keyfreq-autosave-mode)
+  :config
+  (defvar my/keyfreq-included-commands (seq-filter (lambda (sym)
+              (and (commandp sym)
+                   (string-match "^lispy-" (symbol-name sym))))
+            obarray))
+  (advice-add 'keyfreq-pre-command-hook :around
+              (lambda (orig-fun)
+                "Limit to `my/keyfreq-included-commands'."
+                (let ((command real-last-command) count)
+                  (when (and command (symbolp command)
+                             (memq command my/keyfreq-included-commands))
+                    (funcall orig-fun))))
+              (list :name "track-lispy")))
+
+(eval
+ (append
+  '(defhydra my/lispy-cheat-sheet (:hint nil :foreign-keys run)
+     ("<f14>" nil :exit t))
+  (cl-loop for x in bindings
+           unless (string= "" (elt x 2))
+           collect
+           (list (car x)
+                 (intern (elt x 1))
+                 (when (string-match "lispy-\\(?:eval-\\)?\\(.+\\)"
+                                     (elt x 1))
+                   (match-string 1 (elt x 1)))
+                 :column
+                 (elt x 2)))))
+(with-eval-after-load "lispy"
+  (define-key lispy-mode-map (kbd "<f14>") 'my/lispy-cheat-sheet/body))
 
 (setq epa-file-encrypt-to '("sacha@sachachua.com"))
 (setq epa-pinentry-mode 'loopback)
@@ -7634,6 +7825,14 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
             (progn (forward-line) (insert (match-string 0)) (replace-match ""))
           (forward-line 1))))))
 
+(use-package org-krita
+  :ensure t
+  :quelpa (org-krita :fetcher github :repo "lepisma/org-krita" :files ("*.el" "resources"))
+  :hook (org-mode . org-krita-mode))
+(use-package org-xournalpp
+  :quelpa (org-xournalpp :fetcher gitlab :repo "vherrmann/org-xournalpp" :files ("*.el" "resources"))
+  :hook (org-mode . org-xournalpp-mode))
+
 (setq yas-indent-line 'fixed)
 (defun my/convert-sketch-title-to-filename (text)
   (setq text (replace-regexp-in-string "[?!]$" "" text))
@@ -7870,22 +8069,3 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 
 (when (eq system-type 'windows-nt)
   (setenv "PATH" (concat "\"c:/program files/postgresql/9.3/bin;\"" (getenv "PATH"))))
-
-(defvar my/unfocusing nil)
-(defun run-with-local-idle-timer (secs repeat function &rest args)
-  "Like `run-with-idle-timer', but always runs in the `current-buffer'.
-
-Cancels itself, if this buffer was killed."
-  (let* (;; Chicken and egg problem.
-         (fns (make-symbol "local-idle-timer"))
-         (timer (apply 'run-with-idle-timer secs repeat fns args))
-         (fn `(lambda (&rest args)
-                (if (not (buffer-live-p ,(current-buffer)))
-                    (cancel-timer ,timer)
-                  (with-current-buffer ,(current-buffer)
-                    (apply (function ,function) args))))))
-    (fset fns fn)
-    fn))
-(defun my/org-babel-tangle-if-saved-in-focus ()
-  (unless my/unfocusing
-    (run-with-local-idle-timer 5 nil #'org-babel-tangle)))

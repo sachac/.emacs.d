@@ -909,35 +909,59 @@ Based on `elisp-get-fnsym-args-string.'"
 
 (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
 
-(let* ((file "~/code/emacs-calendar/README.org")
-       (record `((filename . ,file) (position . 1) (rear-context-string) (front-context-string))))
-  (bookmark-store file record nil))
-     
-(my/defshortcut ?C "~/code/emacs-calendar/README.org")
-(my/defshortcut ?e "~/code/.emacs.d/Sacha.org")
-(my/defshortcut ?E "~/sync/emacs-news/index.org")
-(my/defshortcut ?f "~/code/font/README.org")
-(my/defshortcut ?i "~/orgzly/computer-inbox.org")
-(my/defshortcut ?I "~/orgzly/Inbox.org")
-(my/defshortcut ?o "~/orgzly/organizer.org")
-(my/defshortcut ?s "~/code/stream/notes.org")
-(my/defshortcut ?b "~/personal/business.org")
-(my/defshortcut ?p "/ssh:web:/mnt/prev/home/sacha/planet/en.ini")
-(my/defshortcut ?B "~/Dropbox/books")
-(my/defshortcut ?n "~/sync/notes")
-(my/defshortcut ?N "~/sync/notes/QuickNote.md")
-(my/defshortcut ?w "~/Dropbox/public/sharing/index.org")
-(my/defshortcut ?W "~/Dropbox/public/sharing/blog.org")
-(my/defshortcut ?r "~/personal/reviews.org")
-(my/defshortcut ?j "~/personal/journal.org")
-(my/defshortcut ?J "~/cloud/a/Journal.csv")
-(my/defshortcut ?g "~/code/sachac.github.io/evil-plans/index.org")
-(my/defshortcut ?c "~/code/dev/elisp-course.org")
-(my/defshortcut ?C "~/personal/calendar.org")
-(my/defshortcut ?l "~/orgzly/learning.org")
-(my/defshortcut ?L "~/orgzly/stories.org")
-(my/defshortcut ?q "~/sync/notes/QuickNote.md")
-(my/defshortcut ?Q "~/personal/questions.org")
+(defmacro defshortcuts (name body &optional docstring &rest heads)
+  (declare (indent defun) (doc-string 3))
+  (cond ((stringp docstring))
+        (t
+         (setq heads (cons docstring heads))
+         (setq docstring "")))
+  (list
+   'progn
+   (append `(defhydra ,name (:exit t))
+           (mapcar (lambda (h)
+                     (list (elt h 0) (list 'find-file (elt h 1)) (elt h 2)))
+                   heads))
+   (cons 'progn
+         (mapcar (lambda (h) (list 'my/defshortcut (string-to-char (elt h 0)) (elt h 1)))
+                 heads))))
+
+(defmacro defshortcuts+ (name body &optional docstring &rest heads)
+  (declare (indent defun) (doc-string 3))
+  (cond ((stringp docstring))
+        (t
+         (setq heads (cons docstring heads))
+         (setq docstring "")))
+  (list
+   'progn
+   (append `(defhydra+ ,name (:exit t))
+           (mapcar (lambda (h)
+                     (list (elt h 0) (list 'find-file (elt h 1)) (elt h 2)))
+                   heads))
+   (cons 'progn
+         (mapcar (lambda (h) (list 'my/defshortcut (string-to-char (elt h 0)) (elt h 1)))
+                 heads))))
+
+(use-package hydra
+  :config
+  (defshortcuts my/file-shortcuts ()
+    ("C" "~/code/emacs-calendar/README.org" "Emacs calendar")
+    ("e" "~/code/.emacs.d/Sacha.org" "Config")
+    ("E" "~/sync/emacs-news/index.org" "Emacs News")
+    ("f" "~/code/font/README.org" "Font")
+    ("i" "~/orgzly/computer-inbox.org" "Computer inbox")
+    ("I" "~/orgzly/Inbox.org" "Phone inbox")
+    ("o" "~/orgzly/organizer.org" "Main org file")
+    ("s" "~/code/stream/notes.org" "Public Emacs notes")
+    ("b" "~/personal/business.org" "Business")
+    ("p" "/ssh:web:/mnt/prev/home/sacha/planet/en.ini" "Planet Emacsen")
+    ("B" "/ssh:web|sudo::/etc/nginx/sites-available" "Nginx sites")
+    ("w" "~/Dropbox/public/sharing/index.org" "Sharing index")
+    ("W" "~/Dropbox/public/sharing/blog.org" "Blog index")
+    ("1" "~/code/static-blog/" "Static blog")
+    ("r" "~/personal/reviews.org" "Reviews")
+    ("g" "~/code/sachac.github.io/evil-plans/index.org" "Evil plans"))
+  :bind
+  ("C-c f" . #'my/file-shortcuts/body))
 
 (defun my/key-chord-define (keymap keys command)
   "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
@@ -1117,6 +1141,37 @@ Based on `elisp-get-fnsym-args-string.'"
   ("l" org-insert-last-stored-link)
   ("L" my/org-insert-link)
   )
+
+(defun my/hydra-format-head (h)
+  (let ((key-binding (elt h 0))
+        (hint (elt h 2))
+        (cmd (and (elt h 1) (prin1-to-string (elt h 1)))))
+    (if cmd
+        (format "%s (%s) - %s" hint key-binding cmd)
+      (format "%s (%s)" hint key-binding))))
+
+(defun my/hydra-current-heads-as-candidates ()
+  (let ((base (replace-regexp-in-string "/body$" "" (symbol-name hydra-curr-body-fn))))
+    (mapcar (lambda (h)
+              (cons (my/hydra-format-head h) (hydra--head-name h (intern base))))
+            (symbol-value (intern (concat base "/heads"))))))
+
+(defun my/hydra-execute-extended (prefixarg &optional command-name typed)
+  (declare (interactive-only command-execute))
+  (interactive (let ((execute-extended-command--last-typed nil)
+                     (candidates (my/hydra-current-heads-as-candidates)))
+                 (hydra-keyboard-quit)
+                 (list current-prefix-arg
+                       (completing-read "Cmd: " candidates)
+                       execute-extended-command--last-typed)))
+  (let* ((candidates (my/hydra-current-heads-as-candidates))
+         (bind (assoc-default command-name candidates 'string=)))
+    (cond
+     ((null bind) nil)
+     ((hydra--callablep bind) (call-interactively bind)))))
+
+(with-eval-after-load 'hydra
+  (define-key hydra-base-map (kbd "<tab>") #'my/hydra-execute-extended))
 
 (use-package key-chord
   :if my/laptop-p
@@ -1895,7 +1950,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 
 (defun my/org-insert-youtube-video-with-transcript (url)
   (interactive "MURL: ")
-  (let* ((id (if (string-match "v=\\([^&]+\\)" url) (match-string 1 url) url))
+  (let* ((id (if (string-match "\\(?:v=\\|youtu\\.be/\\)\\([^&]+\\)" url) (match-string 1 url) url))
          (temp-file (make-temp-name "org-youtube-"))
          (temp-file-name (concat temp-file ".en.srv1"))
          data)
@@ -2124,7 +2179,6 @@ If WORD-TIMING is non-nil, include word-level timestamps."
   (bind-key "C-c R" 'org-reveal org-mode-map)
   (bind-key "C-c o" 'my/org-follow-entry-link org-mode-map)
   (bind-key "C-c d" 'my/org-move-line-to-destination org-mode-map)
-  (bind-key "C-c f" 'my/org-file-blog-index-entries org-mode-map)
   (bind-key "C-c t s"  'my/split-sentence-and-capitalize org-mode-map)
   (bind-key "C-c t -"  'my/split-sentence-delete-word-and-capitalize org-mode-map)
   (bind-key "C-c t d"  'my/delete-word-and-capitalize org-mode-map)
@@ -2143,20 +2197,27 @@ If WORD-TIMING is non-nil, include word-level timestamps."
       (save-excursion (and (looking-at (org-item-re)) (looking-back "^[ \t]*" nil)))))
 (setq org-use-speed-commands 'my/org-use-speed-commands-for-headings-and-lists)
 
+(defun my/org-subtree-text ()
+  (save-excursion
+    (buffer-substring (save-excursion (org-end-of-meta-data t) (point)) (org-end-of-subtree))))
+
 (defun my/org-mark-done-and-add-to-journal (&optional note category)
   (interactive (list (read-string "Note: " (org-get-heading t t t t))
                      (or (org-entry-get-with-inheritance "JOURNAL_CAT") (my/read-journal-category))))
   (my/org-with-current-task
    (org-todo "DONE")
    (org-entry-put (point) "JOURNAL_CAT" category)
-   (let ((zid (org-entry-get (point) "ZIDSTRING")))
+   (let ((zid (org-entry-get (point) "ZIDSTRING"))
+         (other (substring-no-properties (my/org-subtree-text)))
+         (date (format-time-string "%Y-%m-%d %H:%M" (org-read-date nil t (org-entry-get (point) "CREATED")))))
      (if zid
-         (my/journal-update (list :ZIDString zid :Note note :Category category))
+         (my/journal-update (list :ZIDString zid :Note note :Category category :Other other))
        (org-entry-put (point) "ZIDSTRING"
                       (plist-get
                        (my/journal-post (or note (org-get-heading t t t t))
                                         :Category category
-                                        :Date (format-time-string "%Y-%m-%d %H:%M" (org-read-date nil t (org-entry-get (point) "CREATED"))))
+                                        :Other other
+                                        :Date date)
                        :ZIDString))))))
 
 (use-package org
@@ -2170,7 +2231,6 @@ If WORD-TIMING is non-nil, include word-level timestamps."
     (add-to-list 'org-speed-commands-user '("s" call-interactively 'org-schedule))
     (add-to-list 'org-speed-commands-user '("d" my/org-move-line-to-destination))
     (add-to-list 'org-speed-commands-user '("i" call-interactively 'org-clock-in))
-    (add-to-list 'org-speed-commands-user '("P" call-interactively 'org2blog/wp-post-subtree))
     (add-to-list 'org-speed-commands-user '("o" call-interactively 'org-clock-out))
     (add-to-list 'org-speed-commands-user '("$" call-interactively 'org-archive-subtree))
     (bind-key "!" 'my/org-clock-in-and-track org-agenda-mode-map)))
@@ -3338,14 +3398,26 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
 (defun my/org-prepare-weekly-review (&optional date skip-urls)
   "Prepare weekly review template."
   (interactive (list (org-read-date nil nil nil "Ending on Fri: " nil "-fri"))) 
-  (let ((base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
-        start end links prev)
+  (let* ((post-date (current-time))
+         (base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
+         start end links prev
+         (title (format-time-string "Weekly review: Week ending %B %e, %Y" base-date))
+         (post-location (concat (format-time-string "%Y/%m/" post-date) (my/make-slug title))))
     (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6)) (current-time-zone)))
     (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date))) (current-time-zone)))
     (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6)) (current-time-zone)))
     (outline-next-heading)
     (insert
-     "** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
+     "** " title "  :weekly:\n"
+     (format
+      ":PROPERTIES:
+:EXPORT_DATE: %s
+:EXPORT_ELEVENTY_PERMALINK: %s
+:EXPORT_ELEVENTY_FILE_NAME: %s
+:END:\n"
+      (format-time-string "%Y-%m-%d")
+      (concat "/blog/" post-location "/")
+      post-location)
      (my/org-summarize-journal-csv start end nil my/journal-category-map my/journal-categories)
      "\n\n*Blog posts*\n\n"
      (my/org-list-from-rss "https://sachachua.com/blog/feed" start end)
@@ -3365,7 +3437,9 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
                                "Personal")
                              "The other week %" "Last week %")
       nil)
-     "\n\n")))
+     "\n\n")
+    ))
+
 (defun my/prepare-missing-weekly-reviews ()
   "Prepare missing weekly reviews based on LAST_REVIEW property."
   (interactive)
@@ -3699,6 +3773,33 @@ and indent it one level."
     (when (re-search-forward (format "^#\\+NAME:[ \t]+%s[ \t]*$" (regexp-quote name)) nil t)
       (org-babel-execute-src-block))))
 
+(defun my/org-export-filter-body-add-emacs-configuration-link (string backend info)
+  (when (and (plist-get info :input-file) (string-match "\\.emacs\\.d/Sacha\\.org" (plist-get info :input-file)))
+    (concat string
+            (let ((id (org-entry-get-with-inheritance "CUSTOM_ID")))
+              (format
+               "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs%s\">Emacs configuration.</a></div>"
+               (if id (concat "#" id) ""))))))
+
+(use-package org
+  :config
+  (add-to-list 'org-export-filter-body-functions #'my/org-export-filter-body-add-emacs-configuration-link))
+
+(defun my/org-11ty-prepare-subtree ()
+  (interactive)
+  (unless (or (org-entry-get (point) "EXPORT_DATE")
+              (org-entry-get-with-inheritance "DATE"))
+    (org-entry-put (point) "EXPORT_DATE" (format-time-string "%Y-%m-%d")))
+  (unless (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK")
+    (org-entry-put (point) "EXPORT_ELEVENTY_PERMALINK"
+                   (concat (format-time-string "/blog/%Y/%m/")
+                           (my/make-slug (org-get-heading t t t t))
+                           "/")))
+  (unless (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
+    (org-entry-put (point) "EXPORT_ELEVENTY_FILE_NAME"
+                   (concat (format-time-string "%Y/%m/")
+                           (my/make-slug (org-get-heading t t t t))))))
+
 (setq org-export-with-section-numbers nil)
 (setq org-html-include-timestamps nil)
 (setq org-export-with-sub-superscripts nil)
@@ -3740,44 +3841,6 @@ and indent it one level."
   (my/org-publish-maybe)
   (browse-url (org-export-output-file-name ".html" nil default-directory)))
 (bind-key "<apps> b" 'my/org-publish-and-browse)
-
-(use-package org2blog
-  :if my/laptop-p
-  :load-path "~/vendor/org2blog"
-  :commands 
-  org2blog/wp-post-subtree
-  org2blog--hydra-main/body
-  :config
-  (setq org2blog/wp-image-upload t)
-  (setq org2blog/wp-track-posts nil)
-  (setq org2blog/wp-use-tags-as-categories t)
-  (defadvice org2blog/wp-post-buffer (around sacha activate)
-    (let ((org-confirm-babel-evaluate nil)
-          (org-html-toplevel-hlevel 3))
-      ad-do-it)))
-
-(defun my/org2blog-edit-post ()
-  "Browse to the edit page."
-  (interactive)
-  (browse-url (concat "https://sachachua.com/blog/wp-admin/post.php?action=edit&post=" (org-entry-get (point) "POSTID"))))
-(use-package htmlize)
-
-(defun my/org-export-filter-body-add-emacs-configuration-link (string backend info)
-  (concat string
-          (let ((id (org-entry-get-with-inheritance "CUSTOM_ID")))
-            (format
-             "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs%s\">Emacs configuration.</a></div>"
-             (if id (concat "#" id) "")))))
-
-(use-package org2blog
-  :config
-  (advice-add 'org2blog-entry-save
-              :around
-              (lambda (orig-fun &rest args)
-                (if (string-match "\\.emacs\\.d/Sacha\\.org" (buffer-file-name))
-                    (let ((org-export-filter-body-functions (cons 'my/org-export-filter-body-add-emacs-configuration-link org-export-filter-body-functions)))
-                      (apply orig-fun args))
-                  (apply orig-fun args)))))
 
 (defun my/org-html-export-trustingly ()
   (interactive)
@@ -4189,6 +4252,53 @@ the mode, `toggle' toggles the state."
       (dired-virtual "/")
       (switch-to-buffer (current-buffer)))))
 
+(defun my/make-slug (s)
+  (thread-last s
+    (downcase)
+    (replace-regexp-in-string "[^a-z0-9]+" "-")
+    (replace-regexp-in-string "^-\\|-$" "")))
+(defun my/org-set-custom-id (id)
+  "Set the CUSTOM_ID property to ID at point."
+  (interactive (list
+                (let ((default-custom-id (my/make-slug (elt (org-heading-components) 4))))
+                  (read-string (format "ID (%s): " default-custom-id) nil nil default-custom-id))))
+  (org-entry-put (point) "CUSTOM_ID" id))
+
+(with-eval-after-load 'hydra
+  (defhydra my/hydra/org-speed-commands ()
+    ("i" my/org-set-custom-id "CUSTOM_ID" :exit t)
+    ("<up>" my/hydra/org-mode/body :exit t))
+  (defhydra my/hydra/org-mode (:foreign-keys run)
+    ("b" my/org-back-to-heading "Heading")
+    ("n" org-forward-heading-same-level "Next")
+    ("p" org-backward-heading-same-level "Previous")
+    ("a" org-archive-subtree-default "Archive")
+    ("k" org-cut-subtree "Kill")
+    ("<f14>" nil "Exit" :exit t))
+  (defhydra my/hydra/org-link ()
+    ("c" my/caption-show "Captions")
+    ("w" my/org-link-element-copy-link "Copy link"))
+  (defhydra my/hydra/org-src ()
+    ("e" org-babel-execute-src-block "Exec")
+    ("i" org-edit-special "Edit")
+    ("d" org-babel-demarcate-block "Demarcate")
+    ("g" org-babel-goto-named-src-block "Goto")
+    ("r" org-babel-open-src-block-result "Result")
+    ("x" org-babel-expand-src-block "Expand")
+    ("t" (org-babel-tangle '(4)) "Tangle at point")
+    ("T" (org-babel-tangle '(16)) "Tangle target file")
+    ("<up>" my/hydra/org-mode/body :exit t))
+  (defun my/hydra/org-dwim ()
+    (interactive)
+    (let ((context (org-element-context)))
+      (cond
+       ((and (bolp) (looking-at org-outline-regexp))
+        (my/hydra/org-speed-commands/body))
+       ((org-in-src-block-p) (my/hydra/org-src/body))
+       ((eq (org-element-type context) 'link) (my/hydra/org-link/body))
+       (t (my/hydra/org-mode/body)))))
+  (define-key org-mode-map (kbd "<f14>") 'my/hydra/org-dwim))
+
 (defvar my/journal-category-map
   '(("Gross" . "Gross motor")
     ("Fine" . "Fine motor")
@@ -4282,6 +4392,10 @@ the mode, `toggle' toggles the state."
 
 (defun my/journal-get-by-zidstring (zidstring)
   (my/json-request (concat "https://journal.sachachua.com/api/entries/" zidstring)))
+
+(defun my/journal-insert-ref (zidstring)
+  (interactive (list (my/journal-completing-read)))
+  (insert (org-link-make-string (concat "ref:" (my/journal-id-from-string zidstring)))))
 
 (defun my/journal-edit (zidstring)
   (interactive (list (my/journal-completing-read)))
@@ -4947,7 +5061,7 @@ the mode, `toggle' toggles the state."
 
 (use-package web-mode
   :if my/laptop-p
-  :mode "\\.html?\\'"
+  :mode "\\(\\.html?\\|\\.njk\\)\\'"
   :config
   (progn
     (setq web-mode-markup-indent-offset 2)
@@ -4999,11 +5113,9 @@ the mode, `toggle' toggles the state."
   (interactive "r")
   (align-regexp BEG END "\\(\\s-*\\)\\S-+" 1 1 t))
 
-(when (eq system-type 'windows-nt)
-  (setenv "CYGWIN" "nodosfilewarning")
-  (setq shell-file-name "C:/emacs/libexec/emacs/24.4/i686-pc-mingw32/cmdproxy.exe")
-  (add-hook 'comint-output-filter-functions 'shell-strip-ctrl-m nil t)
-  (add-hook 'comint-output-filter-functions 'comint-watch-for-password-prompt nil t))
+(use-package yaml-mode
+  :if my/laptop-p
+  :mode "\\.yml\\'")
 
 (use-package expand-region
   :defer t
@@ -5052,7 +5164,6 @@ the mode, `toggle' toggles the state."
   :init (add-hook 'emacs-lisp-mode-hook 'redshank-mode))
 
 (define-key emacs-lisp-mode-map (kbd "C-c .") 'find-function-at-point)
-(bind-key "C-c f" 'find-function)
 
 (defun my/sort-sexps-in-region (beg end)
   "Can be handy for sorting out duplicates.
@@ -5611,6 +5722,7 @@ so that it's still active even after you stage a change. Very experimental."
 
 (defmacro my/org-with-current-task (&rest body)
   "Execute BODY with the point at the subtree of the current task."
+  (declare (debug t))
   `(if (derived-mode-p 'org-agenda-mode)
        (save-window-excursion
          (org-agenda-switch-to)
@@ -6615,10 +6727,11 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
                     (funcall orig-fun))))
               (list :name "track-lispy")))
 
+(let ((bindings '(("<" "lispy-barf" "") ("A" "lispy-beginning-of-defun" "") ("j" "lispy-down" "") ("Z" "lispy-edebug-stop" "") ("B" "lispy-ediff-regions" "") ("G" "lispy-goto-local" "") ("h" "lispy-left" "") ("N" "lispy-narrow" "") ("y" "lispy-occur" "") ("o" "lispy-other-mode" "") ("J" "lispy-outline-next" "") ("K" "lispy-outline-prev" "") ("P" "lispy-paste" "") ("l" "lispy-right" "") ("I" "lispy-shifttab" "") (">" "lispy-slurp" "") ("SPC" "lispy-space" "") ("xB" "lispy-store-region-and-buffer" "") ("u" "lispy-undo" "") ("k" "lispy-up" "") ("v" "lispy-view" "") ("V" "lispy-visit" "") ("W" "lispy-widen" "") ("D" "pop-tag-mark" "") ("x" "see" "") ("L" "unbound" "") ("U" "unbound" "") ("X" "unbound" "") ("Y" "unbound" "") ("H" "lispy-ace-symbol-replace" "Edit") ("c" "lispy-clone" "Edit") ("C" "lispy-convolute" "Edit") ("n" "lispy-new-copy" "Edit") ("O" "lispy-oneline" "Edit") ("r" "lispy-raise" "Edit") ("R" "lispy-raise-some" "Edit") ("\\" "lispy-splice" "Edit") ("S" "lispy-stringify" "Edit") ("i" "lispy-tab" "Edit") ("xj" "lispy-debug-step-in" "Eval") ("xe" "lispy-edebug" "Eval") ("xT" "lispy-ert" "Eval") ("e" "lispy-eval" "Eval") ("E" "lispy-eval-and-insert" "Eval") ("xr" "lispy-eval-and-replace" "Eval") ("p" "lispy-eval-other-window" "Eval") ("q" "lispy-ace-paren" "Move") ("z" "lispy-knight" "Move") ("s" "lispy-move-down" "Move") ("w" "lispy-move-up" "Move") ("t" "lispy-teleport" "Move") ("Q" "lispy-ace-char" "Nav") ("-" "lispy-ace-subword" "Nav") ("a" "lispy-ace-symbol" "Nav") ("b" "lispy-back" "Nav") ("d" "lispy-different" "Nav") ("f" "lispy-flow" "Nav") ("F" "lispy-follow" "Nav") ("g" "lispy-goto" "Nav") ("xb" "lispy-bind-variable" "Refactor") ("xf" "lispy-flatten" "Refactor") ("xc" "lispy-to-cond" "Refactor") ("xd" "lispy-to-defun" "Refactor") ("xi" "lispy-to-ifs" "Refactor") ("xl" "lispy-to-lambda" "Refactor") ("xu" "lispy-unbind-variable" "Refactor") ("M" "lispy-multiline" "Other") ("xh" "lispy-describe" "Other") ("m" "lispy-mark-list" "Other"))))
 (eval
  (append
   '(defhydra my/lispy-cheat-sheet (:hint nil :foreign-keys run)
-     ("<f14>" nil :exit t))
+     ("<f14>" nil "Exit" :exit t))
   (cl-loop for x in bindings
            unless (string= "" (elt x 2))
            collect
@@ -6631,6 +6744,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
                  (elt x 2)))))
 (with-eval-after-load "lispy"
   (define-key lispy-mode-map (kbd "<f14>") 'my/lispy-cheat-sheet/body))
+)
 
 (setq epa-file-encrypt-to '("sacha@sachachua.com"))
 (setq epa-pinentry-mode 'loopback)
@@ -6658,6 +6772,10 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 
 (my/convert-shell-scripts-to-interactive-commands "~/bin")
 
+(setq ediff-toggle-skip-similar t
+      ediff-diff-options "-w"
+      ediff-window-setup-function 'ediff-setup-windows-plain
+      ediff-split-window-function 'split-window-horizontally)
 (defun my/resolve-orgzly-syncthing ()
   (interactive)
   (ibizaman/syncthing-resolve-conflicts "~/sync/orgzly"))
@@ -7669,21 +7787,6 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
                            (shell-quote-argument (expand-file-name index-card))))
     (my/rotate-screen 180)
     (my/set-up-sketch-buffer)))
-
-(defun my/org-stage-image-files-in-subtree ()
-  "Move corresponding linked images to staging directory."
-  (interactive)
-  (save-excursion
-    (save-restriction
-      (org-narrow-to-subtree)
-      (goto-char (point-min))
-      (while (re-search-forward org-bracket-link-regexp nil t)
-        (let ((filename (file-name-nondirectory (or (match-string 3) (match-string 1)))))
-          (when (and (string-match "\\.png$" filename)
-                     (file-exists-p (expand-file-name filename "~/Dropbox/Inbox/To blog")))
-            (rename-file
-             (expand-file-name filename "~/Dropbox/Inbox/To blog")
-             "~/Dropbox/Inbox/Selection")))))))
 
 (defun my/org-get-list-categories ()
   "Return a list of (category indent matching-regexp sample).

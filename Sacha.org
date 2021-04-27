@@ -1414,6 +1414,9 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
     (define-key keymap (vector 'key-chord key1 key2) command)))
 (fset 'key-chord-define 'my/key-chord-define)
 
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
 (defun my/switch-to-previous-buffer ()
   "Switch to previously open buffer.
       Repeated invocations toggle between the two most recently open buffers."
@@ -2682,7 +2685,7 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
 
 (defun my/org-insert-youtube-video-with-transcript (url)
   (interactive "MURL: ")
-  (let* ((id (if (string-match "v=\\([^&]+\\)" url) (match-string 1 url) url))
+  (let* ((id (if (string-match "\\(?:v=\\|youtu\\.be/\\)\\([^&]+\\)" url) (match-string 1 url) url))
          (temp-file (make-temp-name "org-youtube-"))
          (temp-file-name (concat temp-file ".en.srv1"))
          data)
@@ -3010,7 +3013,6 @@ currently experimenting with.
   (bind-key "C-c R" 'org-reveal org-mode-map)
   (bind-key "C-c o" 'my/org-follow-entry-link org-mode-map)
   (bind-key "C-c d" 'my/org-move-line-to-destination org-mode-map)
-  (bind-key "C-c f" 'my/org-file-blog-index-entries org-mode-map)
   (bind-key "C-c t s"  'my/split-sentence-and-capitalize org-mode-map)
   (bind-key "C-c t -"  'my/split-sentence-delete-word-and-capitalize org-mode-map)
   (bind-key "C-c t d"  'my/delete-word-and-capitalize org-mode-map)
@@ -3046,20 +3048,27 @@ These are great for quickly acting on tasks.
       (save-excursion (and (looking-at (org-item-re)) (looking-back "^[ \t]*" nil)))))
 (setq org-use-speed-commands 'my/org-use-speed-commands-for-headings-and-lists)
 
+(defun my/org-subtree-text ()
+  (save-excursion
+    (buffer-substring (save-excursion (org-end-of-meta-data t) (point)) (org-end-of-subtree))))
+
 (defun my/org-mark-done-and-add-to-journal (&optional note category)
   (interactive (list (read-string "Note: " (org-get-heading t t t t))
                      (or (org-entry-get-with-inheritance "JOURNAL_CAT") (my/read-journal-category))))
   (my/org-with-current-task
    (org-todo "DONE")
    (org-entry-put (point) "JOURNAL_CAT" category)
-   (let ((zid (org-entry-get (point) "ZIDSTRING")))
+   (let ((zid (org-entry-get (point) "ZIDSTRING"))
+         (other (substring-no-properties (my/org-subtree-text)))
+         (date (format-time-string "%Y-%m-%d %H:%M" (org-read-date nil t (org-entry-get (point) "CREATED")))))
      (if zid
-         (my/journal-update (list :ZIDString zid :Note note :Category category))
+         (my/journal-update (list :ZIDString zid :Note note :Category category :Other other))
        (org-entry-put (point) "ZIDSTRING"
                       (plist-get
                        (my/journal-post (or note (org-get-heading t t t t))
                                         :Category category
-                                        :Date (format-time-string "%Y-%m-%d %H:%M" (org-read-date nil t (org-entry-get (point) "CREATED"))))
+                                        :Other other
+                                        :Date date)
                        :ZIDString))))))
 
 (use-package org
@@ -3073,7 +3082,6 @@ These are great for quickly acting on tasks.
     (add-to-list 'org-speed-commands-user '("s" call-interactively 'org-schedule))
     (add-to-list 'org-speed-commands-user '("d" my/org-move-line-to-destination))
     (add-to-list 'org-speed-commands-user '("i" call-interactively 'org-clock-in))
-    (add-to-list 'org-speed-commands-user '("P" call-interactively 'org2blog/wp-post-subtree))
     (add-to-list 'org-speed-commands-user '("o" call-interactively 'org-clock-out))
     (add-to-list 'org-speed-commands-user '("$" call-interactively 'org-archive-subtree))
     (bind-key "!" 'my/org-clock-in-and-track org-agenda-mode-map)))
@@ -3514,7 +3522,7 @@ The parentheses indicate keyboard shortcuts that I can use to set the
 task state. =@= and =!= toggle logging. =@= prompts you for a note,
 and =!= automatically logs the timestamp of the state change.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp pack
 (setq org-todo-keywords
       '((sequence
          "STARTED(s)"
@@ -4602,14 +4610,26 @@ Now we put it all together...
 (defun my/org-prepare-weekly-review (&optional date skip-urls)
   "Prepare weekly review template."
   (interactive (list (org-read-date nil nil nil "Ending on Fri: " nil "-fri"))) 
-  (let ((base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
-        start end links prev)
+  (let* ((post-date (current-time))
+         (base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
+         start end links prev
+         (title (format-time-string "Weekly review: Week ending %B %e, %Y" base-date))
+         (post-location (concat (format-time-string "%Y/%m/" post-date) (my/make-slug title))))
     (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6)) (current-time-zone)))
     (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date))) (current-time-zone)))
     (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6)) (current-time-zone)))
     (outline-next-heading)
     (insert
-     "** Weekly review: Week ending " (format-time-string "%B %e, %Y" base-date) "  :weekly:\n"
+     "** " title "  :weekly:\n"
+     (format
+      ":PROPERTIES:
+:EXPORT_DATE: %s
+:EXPORT_ELEVENTY_PERMALINK: %s
+:EXPORT_ELEVENTY_FILE_NAME: %s
+:END:\n"
+      (format-time-string "%Y-%m-%d")
+      (concat "/blog/" post-location "/")
+      post-location)
      (my/org-summarize-journal-csv start end nil my/journal-category-map my/journal-categories)
      "\n\n*Blog posts*\n\n"
      (my/org-list-from-rss "https://sachachua.com/blog/feed" start end)
@@ -4629,7 +4649,9 @@ Now we put it all together...
                                "Personal")
                              "The other week %" "Last week %")
       nil)
-     "\n\n")))
+     "\n\n")
+    ))
+
 (defun my/prepare-missing-weekly-reviews ()
   "Prepare missing weekly reviews based on LAST_REVIEW property."
   (interactive)
@@ -5661,6 +5683,72 @@ So that I can easily add links at point. Formatted as an Org list for now.
       (switch-to-buffer (current-buffer)))))
 #+end_src
 
+*** TODO Speed command for adding a custom ID to Org Mode posts
+    SCHEDULED: <2021-04-14 Wed>
+    :PROPERTIES:
+    :CREATED:  [2021-04-13 Tue 19:28]
+    :CUSTOM_ID: add-custom-id
+    :ID:       o2b:e80c2eef-fed6-4658-8172-2d8d7cdd2588
+    :BLOG:     sacha
+    :POSTID:   29719
+    :END:
+
+  Nudged by [[https://amitp.blogspot.com/2021/04/automatically-generate-ids-for-emacs.html][Amit's post about adding custom IDs to Org headings]], I
+  decided to write a speed command to add a custom ID with a reasonable
+  default, and to make it happen whenever I post something from my Emacs
+  config (like this one). I'm running out of brainspace for speed
+  commands, so I'm going to try sticking it into a hydra so that I can
+  add future things to the hydra instead. I'll probably figure out some
+  kind of [[https://sachachua.com/blog/2021/04/emacs-making-a-hydra-cheatsheet-for-lispy/][cheat sheet thing]] for speed commands too.
+
+  #+begin_src emacs-lisp
+(defun my/make-slug (s)
+  (thread-last s
+    (downcase)
+    (replace-regexp-in-string "[^a-z0-9]+" "-")
+    (replace-regexp-in-string "^-\\|-$" "")))
+(defun my/org-set-custom-id (id)
+  "Set the CUSTOM_ID property to ID at point."
+  (interactive (list
+                (let ((default-custom-id (my/make-slug (elt (org-heading-components) 4))))
+                  (read-string (format "ID (%s): " default-custom-id) nil nil default-custom-id))))
+  (org-entry-put (point) "CUSTOM_ID" id))
+
+(with-eval-after-load 'hydra
+  (defhydra my/hydra/org-speed-commands ()
+    ("i" my/org-set-custom-id "CUSTOM_ID" :exit t)
+    ("<up>" my/hydra/org-mode/body :exit t))
+  (defhydra my/hydra/org-mode (:foreign-keys run)
+    ("b" my/org-back-to-heading "Heading")
+    ("n" org-forward-heading-same-level "Next")
+    ("p" org-backward-heading-same-level "Previous")
+    ("a" org-archive-subtree-default "Archive")
+    ("k" org-cut-subtree "Kill")
+    ("<f14>" nil "Exit" :exit t))
+  (defhydra my/hydra/org-link ()
+    ("c" my/caption-show "Captions")
+    ("w" my/org-link-element-copy-link "Copy link"))
+  (defhydra my/hydra/org-src ()
+    ("e" org-babel-execute-src-block "Exec")
+    ("i" org-edit-special "Edit")
+    ("d" org-babel-demarcate-block "Demarcate")
+    ("g" org-babel-goto-named-src-block "Goto")
+    ("r" org-babel-open-src-block-result "Result")
+    ("x" org-babel-expand-src-block "Expand")
+    ("t" (org-babel-tangle '(4)) "Tangle at point")
+    ("T" (org-babel-tangle '(16)) "Tangle target file")
+    ("<up>" my/hydra/org-mode/body :exit t))
+  (defun my/hydra/org-dwim ()
+    (interactive)
+    (let ((context (org-element-context)))
+      (cond
+       ((and (bolp) (looking-at org-outline-regexp))
+        (my/hydra/org-speed-commands/body))
+       ((org-in-src-block-p) (my/hydra/org-src/body))
+       ((eq (org-element-type context) 'link) (my/hydra/org-link/body))
+       (t (my/hydra/org-mode/body)))))
+  (define-key org-mode-map (kbd "<f14>") 'my/hydra/org-dwim))
+  #+end_src
 *** Journal
 
 #+begin_src emacs-lisp 
@@ -5757,6 +5845,10 @@ So that I can easily add links at point. Formatted as an Org list for now.
 
 (defun my/journal-get-by-zidstring (zidstring)
   (my/json-request (concat "https://journal.sachachua.com/api/entries/" zidstring)))
+
+(defun my/journal-insert-ref (zidstring)
+  (interactive (list (my/journal-completing-read)))
+  (insert (org-link-make-string (concat "ref:" (my/journal-id-from-string zidstring)))))
 
 (defun my/journal-edit (zidstring)
   (interactive (list (my/journal-completing-read)))
@@ -6589,7 +6681,7 @@ and turn it into:
 
 (use-package web-mode
   :if my/laptop-p
-  :mode "\\.html?\\'"
+  :mode "\\(\\.html?\\|\\.njk\\)\\'"
   :config
   (progn
     (setq web-mode-markup-indent-offset 2)
@@ -6659,16 +6751,12 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-utils.el
   (interactive "r")
   (align-regexp BEG END "\\(\\s-*\\)\\S-+" 1 1 t))
 #+end_src
-*** Adapt to being on Windows
+*** YAML
 
-I'm on Windows, so I use Cygwin to add Unix-y tools to make my life easier.
-These config snippets seem to help too.
-#+begin_src emacs-lisp 
-(when (eq system-type 'windows-nt)
-  (setenv "CYGWIN" "nodosfilewarning")
-  (setq shell-file-name "C:/emacs/libexec/emacs/24.4/i686-pc-mingw32/cmdproxy.exe")
-  (add-hook 'comint-output-filter-functions 'shell-strip-ctrl-m nil t)
-  (add-hook 'comint-output-filter-functions 'comint-watch-for-password-prompt nil t))
+#+begin_src emacs-lisp
+(use-package yaml-mode
+  :if my/laptop-p
+  :mode "\\.yml\\'")
 #+end_src
 
 *** Expand region
@@ -6755,7 +6843,6 @@ More things that I need to get used to...
 
 #+begin_src emacs-lisp 
 (define-key emacs-lisp-mode-map (kbd "C-c .") 'find-function-at-point)
-(bind-key "C-c f" 'find-function)
 #+end_src
 
 **** Sorting
@@ -7492,6 +7579,7 @@ IRC is a great way to hang out with other Emacs geeks.
 #+begin_src emacs-lisp 
 (defmacro my/org-with-current-task (&rest body)
   "Execute BODY with the point at the subtree of the current task."
+  (declare (debug t))
   `(if (derived-mode-p 'org-agenda-mode)
        (save-window-excursion
          (org-agenda-switch-to)
@@ -8887,8 +8975,8 @@ Might need to tweak it because I use the Dvorak layout, so hjkl doesn't make as 
    remember them. I also wanted to skip the commands that I already knew or
    that I didn't want to focus on just yet.
 
-   Fortunately, the function reference had a link to [[https://raw.githubusercontent.com/abo-abo/lispy/gh-pages/index.org][the Org file used to
-   generate it]]. I copied the tables, merged them together, named them
+   Fortunately, the function reference had a link to [[https://raw.githubusercontent.com/abo-abo/lispy/gh-pages/index.org][the Org file used to generate it]]. 
+   I copied the tables, merged them together, named them
    with =#+NAME: bindings=, replaced the links with plain text, and added
    a third column with the category I wanted to put commands into.
 
@@ -8975,11 +9063,11 @@ Might need to tweak it because I use the Dvorak layout, so hjkl doesn't make as 
 
    I wrote this Emacs Lisp code with the header arguments =#+begin_src emacs-lisp :var bindings=bindings :colnames yes=:
 
-   #+BEGIN_SRC emacs-lisp
+   #+BEGIN_SRC emacs-lisp :var bindings=bindings :colnames yes :results silent :exports code
 (eval
  (append
   '(defhydra my/lispy-cheat-sheet (:hint nil :foreign-keys run)
-     ("<f14>" nil :exit t))
+     ("<f14>" nil "Exit" :exit t))
   (cl-loop for x in bindings
            unless (string= "" (elt x 2))
            collect
@@ -9085,6 +9173,10 @@ From https://www.reddit.com/r/emacs/comments/bqqqra/quickly_find_syncthing_confl
 In termux, you also need to =pkg install diffutils=.
 
 #+begin_src emacs-lisp
+(setq ediff-toggle-skip-similar t
+      ediff-diff-options "-w"
+      ediff-window-setup-function 'ediff-setup-windows-plain
+      ediff-split-window-function 'split-window-horizontally)
 (defun my/resolve-orgzly-syncthing ()
   (interactive)
   (ibizaman/syncthing-resolve-conflicts "~/sync/orgzly"))
@@ -9295,6 +9387,16 @@ In termux, you also need to =pkg install diffutils=.
     (message "You clicked somewhere weird.")))
 #+end_src
 * Inactive/infrequent things
+** Chronos
+
+Tip from zaeph. Might not use this much yet, as I don't spend that much time in front of my computer. Could be handy someday, though.
+
+#+begin_src emacs-lisp :tangle no
+(use-package chronos 
+ :config
+ (add-hook 'chronos-expiry-functions #'chronos-desktop-notifications-notify)
+ (add-hook 'chronos-expiry-functions #'chronos-buffer-notify))
+#+end_src
 ** Paint
 
 #+begin_src emacs-lisp
@@ -10474,32 +10576,6 @@ use Emacs Lisp to make setup or processing easier?
                            (shell-quote-argument (expand-file-name index-card))))
     (my/rotate-screen 180)
     (my/set-up-sketch-buffer)))
-#+end_src
-
-*** Move to-blog sketches to a staging folder for easier upload
-
-This function moves the specified files from my =To blog= folder to my
-=Selection= folder. That makes it easier to upload them to Wordpress
-and then delete them afterwards. I use the Wordpress web interface
-instead of org2blog's file upload support because sometimes the
-Org2blog file uploads don't work as well as I'd like, and I haven't
-looked into debugging that yet.
-
-#+begin_src emacs-lisp 
-(defun my/org-stage-image-files-in-subtree ()
-  "Move corresponding linked images to staging directory."
-  (interactive)
-  (save-excursion
-    (save-restriction
-      (org-narrow-to-subtree)
-      (goto-char (point-min))
-      (while (re-search-forward org-bracket-link-regexp nil t)
-        (let ((filename (file-name-nondirectory (or (match-string 3) (match-string 1)))))
-          (when (and (string-match "\\.png$" filename)
-                     (file-exists-p (expand-file-name filename "~/Dropbox/Inbox/To blog")))
-            (rename-file
-             (expand-file-name filename "~/Dropbox/Inbox/To blog")
-             "~/Dropbox/Inbox/Selection")))))))
 #+end_src
 
 *** Digital index piles with Emacs

@@ -1577,6 +1577,75 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
   )
 #+END_SRC
 
+
+**** TODO Emacs Hydra: Allow completion when I can't remember the command name
+     :PROPERTIES:
+     :CREATED:  [2021-04-25 Sun 21:45]
+     :Effort:   0:30
+     :QUANTIFIED: Emacs
+     :EXPORT_DATE: 2021-04-25
+     :EXPORT_ELEVENTY_PERMALINK: /blog/2021/04/emacs-hydra-allow-completion-when-i-can-t-remember-the-command-name/
+     :EXPORT_ELEVENTY_FILE_NAME: blog/2021/04/emacs-hydra-allow-completion-when-i-can-t-remember-the-command-name/
+     :CUSTOM_ID: hydra-completion
+     :END:
+   :LOGBOOK:
+   CLOCK: [2021-04-25 Sun 22:32]
+   :END:
+
+   So it turns out that I'm pretty much zonked after a day with the
+   kiddo and have a hard time remembering keystrokes or speed-reading
+   [[dotemacs:hydra-lispy][my Hydra cheat sheets]]. I want to be able to use M-x-like completion
+   in my Hydra so that I can type a few characters and then maybe see
+   the shortcuts there. Here's what it looks like:
+
+#+CAPTION: Hydra completion
+[[https://sachachua.com/blog/2021/04/emacs-hydra-allow-completion-when-i-can-t-remember-the-command-name/Screenshot_20210425_232535.png]]
+   
+#+begin_src emacs-lisp :results none
+(defun my/hydra-format-head (h)
+  (let ((key-binding (elt h 0))
+        (hint (elt h 2))
+        (cmd (and (elt h 1) (prin1-to-string (elt h 1)))))
+    (if cmd
+        (format "%s (%s) - %s" hint key-binding cmd)
+      (format "%s (%s)" hint key-binding))))
+
+(defun my/hydra-current-heads-as-candidates ()
+  (let ((base (replace-regexp-in-string "/body$" "" (symbol-name hydra-curr-body-fn))))
+    (mapcar (lambda (h)
+              (cons (my/hydra-format-head h) (hydra--head-name h (intern base))))
+            (symbol-value (intern (concat base "/heads"))))))
+
+(defun my/hydra-execute-extended (prefixarg &optional command-name typed)
+  (declare (interactive-only command-execute))
+  (interactive (let ((execute-extended-command--last-typed nil)
+                     (candidates (my/hydra-current-heads-as-candidates)))
+                 (hydra-keyboard-quit)
+                 (list current-prefix-arg
+                       (completing-read "Cmd: " candidates)
+                       execute-extended-command--last-typed)))
+  (let* ((candidates (my/hydra-current-heads-as-candidates))
+         (bind (assoc-default command-name candidates 'string=)))
+    (cond
+     ((null bind) nil)
+     ((hydra--callablep bind) (call-interactively bind)))))
+   #+end_src
+
+   This is how I add it to all my hydras:
+
+   #+begin_src emacs-lisp :results none
+(with-eval-after-load 'hydra
+  (define-key hydra-base-map (kbd "<tab>") #'my/hydra-execute-extended))
+   #+end_src
+
+   #+RESULTS:
+   :results:
+   my/hydra-execute-extended
+   :end:
+
+   Proooobably works? Very rough. Might be useful for those fuzzy-brain days.
+   
+*** Keychords
 Now let's set up the actual keychords.
 
 #+BEGIN_SRC emacs-lisp 

@@ -1332,38 +1332,62 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
 
 (define-key my/refile-map "," 'my/org-refile-to-previous-in-file)
 
-(let* ((file "~/code/emacs-calendar/README.org")
-       (record `((filename . ,file) (position . 1) (rear-context-string) (front-context-string))))
-  (bookmark-store file record nil))
-     
-(my/defshortcut ?C "~/code/emacs-calendar/README.org")
-(my/defshortcut ?e "~/code/.emacs.d/Sacha.org")
-(my/defshortcut ?E "~/sync/emacs-news/index.org")
-(my/defshortcut ?f "~/code/font/README.org")
-(my/defshortcut ?i "~/orgzly/computer-inbox.org")
-(my/defshortcut ?I "~/orgzly/Inbox.org")
-(my/defshortcut ?o "~/orgzly/organizer.org")
-(my/defshortcut ?s "~/code/stream/notes.org")
-(my/defshortcut ?b "~/personal/business.org")
-(my/defshortcut ?p "/ssh:web:/mnt/prev/home/sacha/planet/en.ini")
-(my/defshortcut ?B "~/Dropbox/books")
-(my/defshortcut ?n "~/sync/notes")
-(my/defshortcut ?N "~/sync/notes/QuickNote.md")
-(my/defshortcut ?w "~/Dropbox/public/sharing/index.org")
-(my/defshortcut ?W "~/Dropbox/public/sharing/blog.org")
-(my/defshortcut ?r "~/personal/reviews.org")
-(my/defshortcut ?j "~/personal/journal.org")
-(my/defshortcut ?J "~/cloud/a/Journal.csv")
-(my/defshortcut ?g "~/code/sachac.github.io/evil-plans/index.org")
-(my/defshortcut ?c "~/code/dev/elisp-course.org")
-(my/defshortcut ?C "~/personal/calendar.org")
-(my/defshortcut ?l "~/orgzly/learning.org")
-(my/defshortcut ?L "~/orgzly/stories.org")
-(my/defshortcut ?q "~/sync/notes/QuickNote.md")
-(my/defshortcut ?Q "~/personal/questions.org")
-#+END_SRC
+(defmacro defshortcuts (name body &optional docstring &rest heads)
+  (declare (indent defun) (doc-string 3))
+  (cond ((stringp docstring))
+        (t
+         (setq heads (cons docstring heads))
+         (setq docstring "")))
+  (list
+   'progn
+   (append `(defhydra ,name (:exit t))
+           (mapcar (lambda (h)
+                     (list (elt h 0) (list 'find-file (elt h 1)) (elt h 2)))
+                   heads))
+   (cons 'progn
+         (mapcar (lambda (h) (list 'my/defshortcut (string-to-char (elt h 0)) (elt h 1)))
+                 heads))))
 
-*** Key chords and Hydras
+(defmacro defshortcuts+ (name body &optional docstring &rest heads)
+  (declare (indent defun) (doc-string 3))
+  (cond ((stringp docstring))
+        (t
+         (setq heads (cons docstring heads))
+         (setq docstring "")))
+  (list
+   'progn
+   (append `(defhydra+ ,name (:exit t))
+           (mapcar (lambda (h)
+                     (list (elt h 0) (list 'find-file (elt h 1)) (elt h 2)))
+                   heads))
+   (cons 'progn
+         (mapcar (lambda (h) (list 'my/defshortcut (string-to-char (elt h 0)) (elt h 1)))
+                 heads))))
+
+(use-package hydra
+  :config
+  (defshortcuts my/file-shortcuts ()
+    ("C" "~/code/emacs-calendar/README.org" "Emacs calendar")
+    ("e" "~/code/.emacs.d/Sacha.org" "Config")
+    ("E" "~/sync/emacs-news/index.org" "Emacs News")
+    ("f" "~/code/font/README.org" "Font")
+    ("i" "~/orgzly/computer-inbox.org" "Computer inbox")
+    ("I" "~/orgzly/Inbox.org" "Phone inbox")
+    ("o" "~/orgzly/organizer.org" "Main org file")
+    ("s" "~/code/stream/notes.org" "Public Emacs notes")
+    ("b" "~/personal/business.org" "Business")
+    ("p" "/ssh:web:/mnt/prev/home/sacha/planet/en.ini" "Planet Emacsen")
+    ("B" "/ssh:web|sudo::/etc/nginx/sites-available" "Nginx sites")
+    ("w" "~/Dropbox/public/sharing/index.org" "Sharing index")
+    ("W" "~/Dropbox/public/sharing/blog.org" "Blog index")
+    ("1" "~/code/static-blog/" "Static blog")
+    ("r" "~/personal/reviews.org" "Reviews")
+    ("g" "~/code/sachac.github.io/evil-plans/index.org" "Evil plans"))
+  :bind
+  ("C-c f" . #'my/file-shortcuts/body))
+  #+end_src
+
+*** Key chords and hydras
 :PROPERTIES:
 :CUSTOM_ID: key-chord
 :END:

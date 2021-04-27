@@ -2,8 +2,13 @@
 #+OPTIONS: toc:nil h:4
 #+STARTUP: showeverything
 #+PROPERTY: header-args:emacs-lisp    :tangle yes :results silent :exports code
+#+ELEVENTY_COLLECTIONS: _posts
+#+ELEVENTY_BASE_DIR: ~/code/static-blog/content/
+#+ELEVENTY_CATEGORIES: emacs
+#+ELEVENTY_LAYOUT: layouts/post
+#+LINK: dotemacs  https://sachachua.com/dotemacs#%s
 
-Last exported: {{{modification-time(%Y-%m-%d %H:%M)}}}
+Last exported:  {{{modification-time(%Y-%m-%d %H:%M)}}}
 
 #+TOC: headlines 4
 
@@ -4947,6 +4952,73 @@ appropriate level.
   :end:
 
 *** Publishing
+
+**** DONE Add a note to the bottom of blog posts exported from my config file
+     CLOSED: [2021-03-25 Thu 23:43]
+     :PROPERTIES:
+     :ID:       o2b:a2b0a30e-aece-45fd-a42d-44f9afd397c2
+     :POST_DATE: [2021-03-25 Thu 23:37]
+     :BLOG:     sacha
+     :POSTID:   29700
+     :EXPORT_MODIFIED: 2021-04-18
+     :EXPORT_DATE: 2021-03-25
+     :EXPORT_ELEVENTY_PERMALINK: /blog/2021/03/org2blog-add-a-note-to-the-bottom-of-blog-posts-exported-from-my-config-file/
+     :EXPORT_ELEVENTY_FILE_NAME: downloaded/2021/03/org2blog-add-a-note-to-the-bottom-of-blog-posts-exported-from-my-config-file
+     :EXPORT_ELEVENTY_CATEGORIES: emacs org
+     :CUSTOM_ID: config-footer
+     :END:
+     :LOGBOOK:
+     - State "DONE"       from "TODO"       [2021-03-25 Thu 23:43]
+     :END:
+
+     Update: 2021-04-18: Tweaked the code so that I could add it to
+     the main =org-export-filter-body-functions= list now that I'm
+     using Eleventy and ox-11ty.el instead of Wordpress and org2blog.
+
+     I occasionally post snippets from my Emacs configuration file,
+     drafting the notes directly in my literate config and posting
+     them via org2blog. I figured it might be a good idea to include
+     a link to my config at the end of the posts, but I didn't want
+     to scatter redundant links in my config file itself. Wouldn't it
+     be cool if the link could be automatically added whenever I use
+     org2blog to post a subtree from my config file? I think the code
+     below accomplishes that.
+      
+     #+BEGIN_SRC emacs-lisp :tangle yes
+(defun my/org-export-filter-body-add-emacs-configuration-link (string backend info)
+  (when (and (plist-get info :input-file) (string-match "\\.emacs\\.d/Sacha\\.org" (plist-get info :input-file)))
+    (concat string
+            (let ((id (org-entry-get-with-inheritance "CUSTOM_ID")))
+              (format
+               "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs%s\">Emacs configuration.</a></div>"
+               (if id (concat "#" id) ""))))))
+
+(use-package org
+  :config
+  (add-to-list 'org-export-filter-body-functions #'my/org-export-filter-body-add-emacs-configuration-link))
+     #+END_SRC
+
+
+**** 11ty
+
+#+begin_src emacs-lisp
+(defun my/org-11ty-prepare-subtree ()
+  (interactive)
+  (unless (or (org-entry-get (point) "EXPORT_DATE")
+              (org-entry-get-with-inheritance "DATE"))
+    (org-entry-put (point) "EXPORT_DATE" (format-time-string "%Y-%m-%d")))
+  (unless (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK")
+    (org-entry-put (point) "EXPORT_ELEVENTY_PERMALINK"
+                   (concat (format-time-string "/blog/%Y/%m/")
+                           (my/make-slug (org-get-heading t t t t))
+                           "/")))
+  (unless (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
+    (org-entry-put (point) "EXPORT_ELEVENTY_FILE_NAME"
+                   (concat (format-time-string "%Y/%m/")
+                           (my/make-slug (org-get-heading t t t t))))))
+
+#+end_src
+
 **** Cleaning up export
 Timestamps and section numbers make my published files look more
 complicated than they are. Let's turn them off by default.
@@ -5007,78 +5079,6 @@ Make it easy to publish and browse a file.
   (browse-url (org-export-output-file-name ".html" nil default-directory)))
 (bind-key "<apps> b" 'my/org-publish-and-browse)
 #+end_src
-**** Org2blog
-     :PROPERTIES:
-     :CUSTOM_ID: org2blog
-     :END:
-
-I use org2blog to post to my blog, which is Wordpress-based. 
-
-#+begin_src emacs-lisp 
-(use-package org2blog
-  :if my/laptop-p
-  :load-path "~/vendor/org2blog"
-  :commands 
-  org2blog/wp-post-subtree
-  org2blog--hydra-main/body
-  :config
-  (setq org2blog/wp-image-upload t)
-  (setq org2blog/wp-track-posts nil)
-  (setq org2blog/wp-use-tags-as-categories t)
-  (defadvice org2blog/wp-post-buffer (around sacha activate)
-    (let ((org-confirm-babel-evaluate nil)
-          (org-html-toplevel-hlevel 3))
-      ad-do-it)))
-
-(defun my/org2blog-edit-post ()
-  "Browse to the edit page."
-  (interactive)
-  (browse-url (concat "https://sachachua.com/blog/wp-admin/post.php?action=edit&post=" (org-entry-get (point) "POSTID"))))
-(use-package htmlize)
-#+end_src
-
-
-***** DONE Org2blog: Add a note to the bottom of blog posts exported from my config file
-      CLOSED: [2021-03-25 Thu 23:43]
-      :PROPERTIES:
-      :ID:       o2b:a2b0a30e-aece-45fd-a42d-44f9afd397c2
-      :POST_DATE: [2021-03-25 Thu 23:37]
-      :BLOG:     sacha
-      :POSTID:   29700
-      :END:
-      :LOGBOOK:
-      - State "DONE"       from "TODO"       [2021-03-25 Thu 23:43]
-      :END:
-
-      I occasionally post snippets from my Emacs configuration file,
-      drafting the notes directly in my literate config and posting
-      them via org2blog. I figured it might be a good idea to include
-      a link to my config at the end of the posts, but I didn't want
-      to scatter redundant links in my config file itself. Wouldn't it
-      be cool if the link could be automatically added whenever I use
-      org2blog to post a subtree from my config file? I think the code
-      below accomplishes that.
-      
-      #+begin_src emacs-lisp
-(defun my/org-export-filter-body-add-emacs-configuration-link (string backend info)
-  (concat string
-          (let ((id (org-entry-get-with-inheritance "CUSTOM_ID")))
-            (format
-             "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs%s\">Emacs configuration.</a></div>"
-             (if id (concat "#" id) "")))))
-
-(use-package org2blog
-  :config
-  (advice-add 'org2blog-entry-save
-              :around
-              (lambda (orig-fun &rest args)
-                (if (string-match "\\.emacs\\.d/Sacha\\.org" (buffer-file-name))
-                    (let ((org-export-filter-body-functions (cons 'my/org-export-filter-body-add-emacs-configuration-link org-export-filter-body-functions)))
-                      (apply orig-fun args))
-                  (apply orig-fun args)))))
-    #+end_src
-
-
 **** Publish without prompting
 
 I want to be able to export without having to say yes to code blocks all the time.
@@ -5522,7 +5522,6 @@ So that I can easily add links at point. Formatted as an Org list for now.
                 '("copy-thumbnail" :protocol "copy-thumbnail" :function my/org-protocol-copy-thumbnail)))
 
 #+end_src
-
 
 **** Fix elisp links
 

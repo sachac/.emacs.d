@@ -8,6 +8,7 @@
 #+ELEVENTY_LAYOUT: layouts/post
 #+LINK: dotemacs  https://sachachua.com/dotemacs#%s
 
+
 Last exported:  {{{modification-time(%Y-%m-%d %H:%M)}}}
 
 #+TOC: headlines 4
@@ -138,6 +139,207 @@ in a directory in my =load-path=, Emacs can find them.
 #+END_SRC
 
 ** General configuration
+*** Hydras
+
+    #+BEGIN_SRC emacs-lisp
+(use-package hydra :commands defhydra)
+(use-package use-package-hydra)
+(use-package hydra-posframe :if my/laptop-p  :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe") :after hydra)
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(with-eval-after-load 'hydra
+  (defhydra my/window-movement ()
+    ("<left>" windmove-left)
+    ("<right>" windmove-right)
+    ("<down>" windmove-down)
+    ("<up>" windmove-up)
+    ("y" other-window "other")
+    ("h" switch-window "switch-window")
+    ("b" consult-buffer "buffer")
+    ("f" find-file "file")
+    ("F" find-file-other-window "other file")
+    ("v" (progn (split-window-right) (windmove-right)))
+    ("o" delete-other-windows :color blue)
+    ("a" ace-window)
+    ("s" ace-swap-window)
+    ("d" delete-window "delete")
+    ("D" ace-delete-window "ace delete")
+    ("i" ace-maximize-window "maximize")
+     ("q" nil)))
+  #+END_SRC
+
+  #+BEGIN_SRC emacs-lisp
+(with-eval-after-load 'hydra
+  (defhydra my/shortcuts (:exit t)
+    ("j" my/helm-journal "Journal")
+    ("C" my/resolve-orgzly-syncthing "Conflicts")
+    ("n" my/capture-timestamped-note "Note")
+    ("c" my/org-categorize-emacs-news/body "Categorize")
+    ("d" my/emacs-news-check-duplicates "Dupe")
+    ("s" save-buffer "Save")
+    ("f" my/file-shortcuts/body "File shortcut")
+    ("+" text-scale-increase "Increase")  
+    ("-" text-scale-decrease "Decrease")
+    ("g" my/geeqie/body "Geeqie")
+    ("l" (my/toggle-or-create "*scratch*" (lambda () (switch-to-buffer (startup--get-buffer-create-scratch)))) "Lisp")
+    ("e" eshell-toggle "Eshell")
+    ("w" my/engine-mode-hydra/body "Search web")
+    ("E" my/emacs-news/body "Emacs News"))
+  (global-set-key (kbd "<f5>") #'my/shortcuts/body)
+  (defhydra my/emacs-news (:exit t)
+    "Emacs News"
+    ("f" (find-file "~/sync/emacs-news/index.org") "News")
+    ("C" (find-file "~/code/emacs-calendar/README.org") "Calendar")
+    ("C" (find-file "/ssh:web:/var/www/emacslife.com/calendar/README.org" "Calendar on server"))
+    ("d" my/emacs-news-check-duplicates "Dupe")
+    ("c" my/org-categorize-emacs-news/body "Categorize")
+    ("h" (my/org-update-link-description "HN") "Link HN")
+    ("i" (my/org-update-link-description "Irreal") "Link Irreal")
+    ("m" my/share-emacs-news "Mail")
+    ("t" (browse-url "https://tweetdeck.twitter.com") "Twitter")))
+
+(defun my/org-update-link-description (description)
+  "Update the current link's DESCRIPTION."
+  (interactive "MDescription: ")
+  (let (link)
+    (save-excursion
+      (cond
+       ((org-in-regexp org-link-bracket-re 1)
+        (setq link (org-link-unescape (match-string-no-properties 1)))
+        (delete-region (match-beginning 0) (match-end 0))
+        (insert (org-link-make-string link description))
+        (sit-for 0))
+       ((or (org-in-regexp org-link-angle-re)
+            (org-in-regexp org-link-plain-re))
+        (setq link (org-unbracket-string "<" ">" (match-string 0)))
+        (delete-region (match-beginning 0) (match-end 0))
+        (insert (org-link-make-string link description))
+        (sit-for 0))))))
+
+(defun my/org-insert-link ()
+  (interactive)
+  (when (org-in-regexp org-bracket-link-regexp 1)
+    (goto-char (match-end 0))
+    (insert "\n"))
+  (call-interactively 'org-insert-link))
+#+END_SRC
+
+
+#+BEGIN_SRC emacs-lisp
+(defun my/switch-to-previous-buffer ()
+  "Switch to previously open buffer.
+      Repeated invocations toggle between the two most recently open buffers."
+  (interactive)
+  (switch-to-buffer (other-buffer (current-buffer) 1)))
+
+(defun my/org-check-agenda ()
+  "Peek at agenda."
+  (interactive)
+  (cond
+   ((derived-mode-p 'org-agenda-mode)
+    (if (window-parent) (delete-window) (bury-buffer)))
+   ((get-buffer "*Org Agenda*")
+    (switch-to-buffer-other-window "*Org Agenda*"))
+   (t (org-agenda nil "a"))))
+
+(defun my/goto-random-char ()
+  (interactive)
+  (goto-char (random (point-max))))
+
+#+END_SRC
+
+From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
+#+BEGIN_SRC emacs-lisp
+(defvar hydra-stack nil)
+
+(defun hydra-push (expr)
+  (push `(lambda () ,expr) hydra-stack))
+
+(defun hydra-pop ()
+  (interactive)
+  (let ((x (pop hydra-stack)))
+    (when x (funcall x))))
+
+(defun hydra-go-and-push (expr)
+  (push expr hydra-stack)
+  (prin1 hydra-stack)
+  (funcall expr))
+
+;; example (progn (hydra-b/body) (hydra-push '(hydra-a/body)))
+;; or   ("q" hydra-pop "exit")
+#+END_SRC
+
+
+**** TODO Emacs Hydra: Allow completion when I can't remember the command name
+     :PROPERTIES:
+     :CREATED:  [2021-04-25 Sun 21:45]
+     :Effort:   0:30
+     :QUANTIFIED: Emacs
+     :EXPORT_DATE: 2021-04-25
+     :EXPORT_MODIFIED: 2021-04-29
+     :EXPORT_ELEVENTY_PERMALINK: /blog/2021/04/emacs-hydra-allow-completion-when-i-can-t-remember-the-command-name/
+     :EXPORT_ELEVENTY_FILE_NAME: blog/2021/04/emacs-hydra-allow-completion-when-i-can-t-remember-the-command-name/
+     :CUSTOM_ID: hydra-completion
+     :END:
+   :LOGBOOK:
+   CLOCK: [2021-04-25 Sun 22:32]
+   :END:
+2021-04-29: Added the ability to complete using an arbitrary Hydra.
+   
+   So it turns out that I'm pretty much zonked after a day with the
+   kiddo and have a hard time remembering keystrokes or speed-reading
+   [[dotemacs:hydra-lispy][my Hydra cheat sheets]]. I want to be able to use M-x-like completion
+   in my Hydra so that I can type a few characters and then maybe see
+   the shortcuts there. Here's what it looks like:
+
+#+CAPTION: Hydra completion
+[[https://sachachua.com/blog/2021/04/emacs-hydra-allow-completion-when-i-can-t-remember-the-command-name/Screenshot_20210425_232535.png]]
+   
+#+begin_src emacs-lisp :results none
+(defun my/hydra-format-head (h)
+  (let ((key-binding (elt h 0))
+        (hint (elt h 2))
+        (cmd (and (elt h 1) (prin1-to-string (elt h 1)))))
+    (if cmd
+        (format "%s (%s) - %s" hint key-binding cmd)
+      (format "%s (%s)" hint key-binding))))
+
+(defun my/hydra-heads-to-candidates (base)
+  (mapcar (lambda (h)
+            (cons (my/hydra-format-head h) (hydra--head-name h base)))
+          (symbol-value (intern (concat (symbol-name base) "/heads")))))
+
+(defun my/hydra-execute-extended (&optional prefixarg hydra-base)
+  (declare (command-execute))
+  (interactive (list current-prefix-arg nil))
+  (hydra-keyboard-quit)
+  (let* ((candidates (my/hydra-heads-to-candidates
+                      (or hydra-base
+                          (intern
+                           (replace-regexp-in-string "/body$" ""
+                                                     (symbol-name hydra-curr-body-fn))))))
+         (command-name (completing-read "Cmd: " candidates))
+         (bind (assoc-default command-name candidates 'string=)))
+    (cond
+     ((null bind) nil)
+     ((hydra--callablep bind) (call-interactively bind)))))
+   #+end_src
+
+   This is how I add it to all my hydras:
+
+   #+begin_src emacs-lisp :results none
+(with-eval-after-load 'hydra
+  (define-key hydra-base-map (kbd "<tab>") #'my/hydra-execute-extended))
+   #+end_src
+
+   #+RESULTS:
+   :results:
+   my/hydra-execute-extended
+   :end:
+
+   Proooobably works? Very rough. Might be useful for those fuzzy-brain days.
+   
 *** Reload
 
 #+begin_src emacs-lisp
@@ -254,6 +456,8 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
          ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
          ("C-M-#" . consult-register)
          ("M-g o" . consult-outline) 
+         ("M-g h" . consult-org-heading)
+         ("M-g a" . consult-org-agenda)
          ("M-g m" . consult-mark)
          ("C-x b" . consult-buffer)
          ("M-y" . consult-yank-pop)
@@ -1034,14 +1238,6 @@ position itself.
     (with-current-buffer (find-file-noselect file) (display-buffer (current-buffer)))  
     (insert "#+CAPTION: " (or note (read-string "Caption: "))))
   (save-excursion (insert "\n" (org-link-make-string (concat "file:" file)) "\n")))
-
-(use-package major-mode-hydra
-  :bind
-  ("<f14>" . major-mode-hydra))
-(major-mode-hydra-define org-mode nil
-  ("Shortcuts"
-   (("s" my/org-insert-screenshot "Insert screenshot")
-    ("g" my/geeqie/body "Geeqie"))))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -1089,10 +1285,6 @@ position itself.
   (my/capture-timestamped-note time note))
 #+end_src
   
-Then I can call it with =h h n= for =my/capture-timestamped-note= or
-=h h i= for =my/capture-timestamped-note-with-screenshot= via keyboard
-shortcuts defined elsewhere in my [[https://sachachua.com/dotemacs][config]] (see =my/key-chord-commands=).
-
 *** Recomplete
 
 https://gitlab.com/ideasman42/emacs-recomplete
@@ -1387,7 +1579,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
   ("C-c f" . #'my/file-shortcuts/body))
   #+end_src
 
-*** Key chords and hydras
+*** Key chords
 :PROPERTIES:
 :CUSTOM_ID: key-chord
 :END:
@@ -1416,265 +1608,54 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
 
 #+END_SRC
 
-#+BEGIN_SRC emacs-lisp
-(defun my/switch-to-previous-buffer ()
-  "Switch to previously open buffer.
-      Repeated invocations toggle between the two most recently open buffers."
-  (interactive)
-  (switch-to-buffer (other-buffer (current-buffer) 1)))
-
-(defun my/org-check-agenda ()
-  "Peek at agenda."
-  (interactive)
-  (cond
-   ((derived-mode-p 'org-agenda-mode)
-    (if (window-parent) (delete-window) (bury-buffer)))
-   ((get-buffer "*Org Agenda*")
-    (switch-to-buffer-other-window "*Org Agenda*"))
-   (t (org-agenda nil "a"))))
-
-(defun my/goto-random-char ()
-  (interactive)
-  (goto-char (random (point-max))))
-
-(use-package hydra
-  :commands defhydra
-  :config
-  (defhydra my/goto-random-char-hydra ()
-    ("r" my/goto-random-char))
-
-  (defhydra my/window-movement ()
-    ("<left>" windmove-left)
-    ("<right>" windmove-right)
-    ("<down>" windmove-down)
-    ("<up>" windmove-up)
-    ("y" other-window "other")
-    ("h" switch-window "switch-window")
-    ("f" find-file "file")
-    ("F" find-file-other-window "other file")
-    ("v" (progn (split-window-right) (windmove-right)))
-    ("o" delete-other-windows :color blue)
-    ("a" ace-window)
-    ("s" ace-swap-window)
-    ("d" delete-window "delete")
-    ("D" ace-delete-window "ace delete")
-    ("i" ace-maximize-window "maximize")
-    ("b" helm-buffers-list)
-    ("q" nil))
-  (defhydra join-lines ()
-    ("<up>" join-line)
-    ("<down>" (join-line 1))
-    ("t" join-line)
-    ("n" (join-line 1)))
-  
-  
-  ;; From https://github.com/abo-abo/hydra
-  (defhydra hydra-buffer-menu (:color pink
-                                      :hint nil)
-    "
-      ^Mark^             ^Unmark^           ^Actions^          ^Search
-      ^^^^^^^^-----------------------------------------------------------------
-      _m_: mark          _u_: unmark        _x_: execute       _R_: re-isearch
-      _s_: save          _U_: unmark up     _b_: bury          _I_: isearch
-      _d_: delete        ^ ^                _g_: refresh       _O_: multi-occur
-      _D_: delete up     ^ ^                _T_: files only: % -28`Buffer-menu-files-only
-      _~_: modified
-      "
-    ("m" Buffer-menu-mark)
-    ("u" Buffer-menu-unmark)
-    ("U" Buffer-menu-backup-unmark)
-    ("d" Buffer-menu-delete)
-    ("D" Buffer-menu-delete-backwards)
-    ("s" Buffer-menu-save)
-    ("~" Buffer-menu-not-modified)
-    ("x" Buffer-menu-execute)
-    ("b" Buffer-menu-bury)
-    ("g" revert-buffer)
-    ("T" Buffer-menu-toggle-files-only)
-    ("O" Buffer-menu-multi-occur :color blue)
-    ("I" Buffer-menu-isearch-buffers :color blue)
-    ("R" Buffer-menu-isearch-buffers-regexp :color blue)
-    ("c" nil "cancel")
-    ("v" Buffer-menu-select "select" :color blue)
-    ("o" Buffer-menu-other-window "other-window" :color blue)
-    ("q" quit-window "quit" :color blue))
-
-  (define-key Buffer-menu-mode-map "." 'hydra-buffer-menu/body))
-
-(defun my/org-update-link-description (description)
-  "Update the current link's DESCRIPTION."
-  (interactive "MDescription: ")
-  (let (link)
-    (save-excursion
-      (cond
-       ((org-in-regexp org-link-bracket-re 1)
-        (setq link (org-link-unescape (match-string-no-properties 1)))
-        (delete-region (match-beginning 0) (match-end 0))
-        (insert (org-link-make-string link description))
-        (sit-for 0))
-       ((or (org-in-regexp org-link-angle-re)
-            (org-in-regexp org-link-plain-re))
-        (setq link (org-unbracket-string "<" ">" (match-string 0)))
-        (delete-region (match-beginning 0) (match-end 0))
-        (insert (org-link-make-string link description))
-        (sit-for 0))))))
-(use-package hydra-posframe :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe") :if my/laptop-p :after hydra)
-
-(use-package pretty-hydra
-  :config
-  (pretty-hydra-define my/shortcuts (:exit t)
-    ("Global"
-     (("j" my/helm-journal "Journal")
-      ("n" my/capture-timestamped-note)
-      ("s" save-buffer "Save")
-      ("+" text-scale-increase)  
-      ("-" text-scale-decrease)
-      ("g" my/geeqie/body))
-     "Navigation"
-     (("l" (my/toggle-or-create "*scratch*" (lambda () (switch-to-buffer (startup--get-buffer-create-scratch)))) "Lisp"))
-     "Emacs News"
-     (("d" my/emacs-news-check-duplicates "Dupe")
-      ("c" my/org-categorize-emacs-news/body "Categorize")
-      ("h" (lambda () (interactive) (my/org-update-link-description "HN")) "Link HN")
-      ("i" (lambda () (interactive) (my/org-update-link-description "Irreal")) "Link Irreal")
-      ("m" my/share-emacs-news "Mail"))))
-  :bind
-  ("<f5>" . 'my/shortcuts/body))
-
-(defun my/org-insert-link ()
-  (interactive)
-  (when (org-in-regexp org-bracket-link-regexp 1)
-    (goto-char (match-end 0))
-    (insert "\n"))
-  (call-interactively 'org-insert-link))
-
-(defhydra my/engine-mode-hydra (:color blue)
-  "Engine mode"
-  ("b" engine/search-my-blog "blog")
-  ("f" engine/search-my-photos "flickr")
-  ("m" engine/search-mail "mail")
-  ("g" engine/search-google "google")
-  ("e" engine/search-emacswiki "emacswiki"))
-
-(defhydra my/key-chord-commands ()
-  "Main"
-  ("k" kill-sexp)
-  ("h" my/org-jump :color blue)
-  ("x" my/org-finish-previous-task-and-clock-in-new-one "Finish and clock in" :color blue)
-  ("b" helm-buffers-list :color blue)
-  ("f" find-file :color blue)
-  ("a" my/org-check-agenda :color blue)
-  ("c" (call-interactively 'org-capture) "capture" :color blue)
-  ("t" (org-capture nil "T") "Capture task")
-  ("." repeat)
-  ("C-t" transpose-chars)
-  ("o" my/org-off-my-computer :color blue)
-  ("w" my/engine-mode-hydra/body "web" :exit t)
-  ("m" imenu :color blue)
-  ("i" my/capture-timestamped-note-with-screenshot :exit t)
-  ("n" my/capture-timestamped-note "Timestamped note" :exit t)
-  ("q" quantified-track :color blue)
-  ("r" my/describe-random-interactive-function)
-  ("l" org-insert-last-stored-link)
-  ("L" my/org-insert-link)
-  )
-#+END_SRC
-
-
-**** TODO Emacs Hydra: Allow completion when I can't remember the command name
-     :PROPERTIES:
-     :CREATED:  [2021-04-25 Sun 21:45]
-     :Effort:   0:30
-     :QUANTIFIED: Emacs
-     :EXPORT_DATE: 2021-04-25
-     :EXPORT_ELEVENTY_PERMALINK: /blog/2021/04/emacs-hydra-allow-completion-when-i-can-t-remember-the-command-name/
-     :EXPORT_ELEVENTY_FILE_NAME: blog/2021/04/emacs-hydra-allow-completion-when-i-can-t-remember-the-command-name/
-     :CUSTOM_ID: hydra-completion
-     :END:
-   :LOGBOOK:
-   CLOCK: [2021-04-25 Sun 22:32]
-   :END:
-
-   So it turns out that I'm pretty much zonked after a day with the
-   kiddo and have a hard time remembering keystrokes or speed-reading
-   [[dotemacs:hydra-lispy][my Hydra cheat sheets]]. I want to be able to use M-x-like completion
-   in my Hydra so that I can type a few characters and then maybe see
-   the shortcuts there. Here's what it looks like:
-
-#+CAPTION: Hydra completion
-[[https://sachachua.com/blog/2021/04/emacs-hydra-allow-completion-when-i-can-t-remember-the-command-name/Screenshot_20210425_232535.png]]
-   
-#+begin_src emacs-lisp :results none
-(defun my/hydra-format-head (h)
-  (let ((key-binding (elt h 0))
-        (hint (elt h 2))
-        (cmd (and (elt h 1) (prin1-to-string (elt h 1)))))
-    (if cmd
-        (format "%s (%s) - %s" hint key-binding cmd)
-      (format "%s (%s)" hint key-binding))))
-
-(defun my/hydra-current-heads-as-candidates ()
-  (let ((base (replace-regexp-in-string "/body$" "" (symbol-name hydra-curr-body-fn))))
-    (mapcar (lambda (h)
-              (cons (my/hydra-format-head h) (hydra--head-name h (intern base))))
-            (symbol-value (intern (concat base "/heads"))))))
-
-(defun my/hydra-execute-extended (prefixarg &optional command-name typed)
-  (declare (interactive-only command-execute))
-  (interactive (let ((execute-extended-command--last-typed nil)
-                     (candidates (my/hydra-current-heads-as-candidates)))
-                 (hydra-keyboard-quit)
-                 (list current-prefix-arg
-                       (completing-read "Cmd: " candidates)
-                       execute-extended-command--last-typed)))
-  (let* ((candidates (my/hydra-current-heads-as-candidates))
-         (bind (assoc-default command-name candidates 'string=)))
-    (cond
-     ((null bind) nil)
-     ((hydra--callablep bind) (call-interactively bind)))))
-   #+end_src
-
-   This is how I add it to all my hydras:
-
-   #+begin_src emacs-lisp :results none
-(with-eval-after-load 'hydra
-  (define-key hydra-base-map (kbd "<tab>") #'my/hydra-execute-extended))
-   #+end_src
-
-   #+RESULTS:
-   :results:
-   my/hydra-execute-extended
-   :end:
-
-   Proooobably works? Very rough. Might be useful for those fuzzy-brain days.
-   
-*** Keychords
 Now let's set up the actual keychords.
 
 #+BEGIN_SRC emacs-lisp 
 (use-package key-chord
   :if my/laptop-p
+  :hydra (my/key-chord-commands
+          ()
+          "Main"
+          ("k" kill-sexp)
+          ("h" my/org-jump :color blue)
+          ("x" my/org-finish-previous-task-and-clock-in-new-one "Finish and clock in" :color blue)
+          ("b" helm-buffers-list :color blue)
+          ("f" find-file :color blue)
+          ("a" my/org-check-agenda :color blue)
+          ("c" (call-interactively 'org-capture) "capture" :color blue)
+          ("t" (org-capture nil "T") "Capture task")
+          ("." repeat)
+          ("C-t" transpose-chars)
+          ("o" my/org-off-my-computer :color blue)
+          ("w" my/engine-mode-hydra/body "web" :exit t)
+          ("m" imenu :color blue)
+          ("i" my/capture-timestamped-note-with-screenshot :exit t)
+          ("n" my/capture-timestamped-note "Timestamped note" :exit t)
+          ("q" quantified-track :color blue)
+          ("r" my/describe-random-interactive-function)
+          ("l" org-insert-last-stored-link)
+          ("L" my/org-insert-link))
   :init
   (setq key-chord-one-key-delay 0.16)
   (setq key-chord-two-keys-delay 0.002)
-  (key-chord-define-global "uu"     'undo)
-  (key-chord-define-global "jr"     'my/goto-random-char-hydra/my/goto-random-char)
-  (key-chord-define-global "kk"     'kill-whole-line)
+  (key-chord-define-global "uu" 'undo)
+  (key-chord-define-global "jr" 'my/goto-random-char-hydra/my/goto-random-char)
+  (key-chord-define-global "kk" 'kill-whole-line)
   (key-chord-define-global "et" 'my/stream-message)
   (key-chord-define-global "em" 'embark-act)
   (key-chord-define-global ".t" 'my/stream/body)
-  (key-chord-define-global "jj"     'avy-goto-word-1)
-  (key-chord-define-global "yy"    'my/window-movement/body)
-  (key-chord-define-global "jw"     'switch-window)
-  (key-chord-define-global "jl"     'avy-goto-line)
-  (key-chord-define-global "j."     'join-lines/body)
-  (key-chord-define-global "FF"     'find-file)
-  (key-chord-define-global "qq"     'my/quantified-hydra/body)
-  (key-chord-define-global "hh"     'my/key-chord-commands/body)
-  (key-chord-define-global "xx"     'er/expand-region)
-  (key-chord-define-global "  "     'my/insert-space-or-expand)
+  (key-chord-define-global "jj" 'avy-goto-word-1)
+  (key-chord-define-global "yy" 'my/window-movement/body)
+  (key-chord-define-global "jw" 'switch-window)
+  (key-chord-define-global "jl" 'avy-goto-line)
+  (key-chord-define-global "j." 'join-lines/body)
+  (key-chord-define-global "FF" 'find-file)
+  (key-chord-define-global "qq" 'my/quantified-hydra/body)
+  (key-chord-define-global "hh" 'my/key-chord-commands/body)
+  (key-chord-define-global "xx" 'er/expand-region)
+  (key-chord-define-global "  " 'my/insert-space-or-expand)
   (key-chord-define-global "vv" 'god-mode-all)
-  (key-chord-define-global "JJ"     'my/switch-to-previous-buffer)
+  (key-chord-define-global "JJ" 'my/switch-to-previous-buffer)
   (key-chord-mode -1)) ;; disable for now
 #+END_SRC
 
@@ -1991,7 +1972,8 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 
 *** Expand
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
+(setq save-abbrevs 'silently)
 (bind-key "M-/" 'hippie-expand)
 #+END_SRC
 
@@ -2745,6 +2727,122 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
    # /home/sacha/screenshots/Screenshot_20210401_233420.png https://sachachua.com/blog/wp-content/uploads/2021/04/Screenshot_20210401_233420.png
    # /home/sacha/screenshots/Screenshot_20210401_234041.png https://sachachua.com/blog/wp-content/uploads/2021/04/Screenshot_20210401_234041.png
    # /home/sacha/screenshots/Screenshot_20210401_234956.png 
+
+** Plover
+   :PROPERTIES:
+   :CUSTOM_ID: plover
+   :END:
+
+https://github.com/sachac/plover-websocket-el
+
+#+begin_src emacs-lisp
+(use-package plover-websocket
+  :load-path "~/code/plover-websocket-el"
+  :if my/laptop-p
+  :config (setq plover-websocket-plover-command "cd ~/vendor/plover; tox -e launch")
+  :hydra
+  (my/plover (:exit t)
+             ("<f1>" plover-websocket-connect "Open websocket")
+             ("<f2>" plover-websocket-add-translation "Add translation")
+             ("<f3>" plover-websocket-lookup "Lookup")
+             ("<f4>" plover-websocket-configure "Configure")
+             ("<f5>" plover-websocket-focus "Focus")
+             ("<f6>" plover-websocket-toggle-plover "Toggle Plover")
+             ("<f7>" plover-websocket-quit "Quit")
+             ("<f8>" my/plover-drilling-time "Drill"))
+  :bind
+  ("<f6>" . #'my/plover/body))
+
+#+end_src
+
+*** Running Plover drills from Emacs
+
+I'm learning stenography because I deal with a lot of text, and it
+seems interestin. I'd like to someday be able to live-caption
+EmacsConf, meetups, and other technical things. I've got a lot of
+muscle memory to pick up, which means drills drills drills drills.
+
+#+begin_src emacs-lisp
+(defvar my/plover-drills
+   (mapcar (lambda (desc)
+             (cons desc (concat "https://joshuagrams.github.io/steno-jig/learn-keyboard.html?drill=" (url-encode-url desc))))
+           '("Left hand, bottom row"
+             "Right hand, bottom row"
+             "Left hand, top row"
+             "Right hand, top row"
+             "Right hand, full bottom row"
+             "Right hand, full top row"
+             "Vowels"
+             "Left hand"
+             "Right hand"
+             "All keys"
+             "Left + Right"
+             "Left + Vowel"
+             "Vowel + Right"
+             "Left + Vowel + Right"
+             "Columns: D, B, L, -N")))
+
+(defvar my/plover-drill-history nil "Previous drills")
+(defvar my/plover-drill-file "~/code/plover-notes/README.org")
+
+(defun my/plover-stenojig-custom-drill (words)
+  (interactive "MWords: ")
+  (plover-websocket-resume-plover)
+  (unwind-protect
+    (progn
+    (browse-url-chrome (concat "file:///home/sacha/vendor/steno-jig/from-url.html?go=true&type=randomly&timeLimit=2&name=test&hints=true&drillItems=" (url-encode-url words)))
+    (read-string "Ignore this: "))
+  (plover-websocket-suspend-plover)))
+
+(defun my/plover-drill (drill)
+  "Run a single Plover keyboard drill and capture stats in an Org table."
+  (interactive (list (consult--read my/plover-drills :prompt "Drill: " :sort nil
+                                    :history my/plover-drill-history
+                                    :default (car my/plover-drill-history))))
+  (plover-websocket-resume-plover)
+  (plover-websocket-send :translation "{PLOVER:TOGGLE_DICT:-main.json}")
+  (switch-to-buffer (find-file my/plover-drill-file))
+  (goto-char (point-min))
+  (re-search-forward "#\\+NAME: drill\n")
+  (insert (format "| %s | %s |  |\n"
+                  (org-link-make-string (assoc-default drill my/plover-drills) drill)
+                  (format-time-string "[%Y-%m-%d %a %H:%M]")))
+  (backward-char 3)
+  (browse-url (assoc-default drill my/plover-drills))
+  (read-string "Ignore this:")
+  (plover-websocket-send :translation "{PLOVER:TOGGLE_DICT:+main.json}")
+  (plover-websocket-suspend-plover)
+  (insert (read-string (format "Time (%s): " (string-join (reverse (my/plover-recent-stats drill)) ", "))))
+  (end-of-line)
+  (forward-char 1))
+
+(defun my/plover-recent-stats (drill-name)
+  (mapcar
+   (lambda (o) (substring-no-properties (elt o 2)))
+   (seq-take
+    (sort (seq-filter (lambda (o) (string-match (regexp-quote drill-name) (car o)))
+	                    (org-with-wide-buffer
+                       (save-excursion
+                         (goto-char (point-min))
+                         (if (re-search-forward "#\\+NAME: drill\n" nil t)
+														(org-table-to-lisp)))))
+          (lambda (a b) (string< (string-trim (elt b 1))
+                                 (string-trim (elt a 1)))))
+    3)))
+
+ (defun my/plover-drilling-time ()
+   "Keep drilling Plover.
+Restore main dictionary and turn off Plover when done."
+   (interactive)
+   (quantified-track "Steno")
+   (call-process "wmctrl" nil 0 nil "-i" "-a" (number-to-string (my/wmctl-get-id "emacs")))
+   (unwind-protect (while t (my/plover-drill (consult--read my/plover-drills :prompt "Drill: " :sort nil
+                                                            :history 'my/plover-drill-history
+                                                            :default (car my/plover-drill-history))))
+     (plover-websocket-send :translation "{PLOVER:TOGGLE_DICT:+main.json}")
+     (plover-websocket-suspend-plover)))
+  #+end_src
+
 ** TOBLOG Manage photos with geeqie
    SCHEDULED: <2021-03-03 Wed>
 
@@ -3054,7 +3152,7 @@ These are great for quickly acting on tasks.
 
 (defun my/org-mark-done-and-add-to-journal (&optional note category)
   (interactive (list (read-string "Note: " (org-get-heading t t t t))
-                     (or (org-entry-get-with-inheritance "JOURNAL_CAT") (my/read-journal-category))))
+                     (or (org-entry-get (point) "JOURNAL_CAT") (my/read-journal-category))))
   (my/org-with-current-task
    (org-todo "DONE")
    (org-entry-put (point) "JOURNAL_CAT" category)
@@ -3177,17 +3275,6 @@ Org files from multiple computers.
 (setq org-default-notes-file "~/orgzly/organizer.org")
 #+end_src
 
-This makes it easier to add links from outside.
-
-#+begin_src emacs-lisp 
-(defun my/yank-more ()
-  (interactive)
-  (insert "[[")
-  (yank)
-  (insert "][more]]"))
-(global-set-key (kbd "<f6>") 'my/yank-more)
-#+end_src
-
 **** Date trees
 
 This quickly adds a same-level heading for the succeeding day.
@@ -3237,7 +3324,7 @@ entries, notes, and other semi-structured pieces of information.
 (setq org-capture-templates
       `(("t" "Quick task" entry
          (file ,my/org-inbox-file)
-         "* TODO %^{Task}\n"
+         "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
          :immediate-finish t)
         ("p" "Podcast log - timestamped" item
          (file+olp+datetree "~/orgzly/timestamped.org")
@@ -3245,10 +3332,10 @@ entries, notes, and other semi-structured pieces of information.
          :immediate-finish t)
         ("T" "Task" entry
          (file ,my/org-inbox-file)
-         "* TODO %^{Task}\n")
+         "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n")
         ("." "Today" entry
          (file ,my/org-inbox-file)
-         "* TODO %^{Task}\nSCHEDULED: %t\n"
+         "* TODO %^{Task}\nSCHEDULED: %t\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
          :immediate-finish t)
         ("v" "Video" entry
          (file ,my/org-inbox-file)
@@ -3256,21 +3343,21 @@ entries, notes, and other semi-structured pieces of information.
          :immediate-finish t)
         ("e" "Errand" entry
          (file ,my/org-inbox-file)
-         "* TODO %^{Task}  :errands:\n"
+         "* TODO %^{Task}  :errands:\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
          :immediate-finish t)
         ("n" "Note" entry
          (file ,my/org-inbox-file)
-         "* %^{Note}\n"
+         "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
          :immediate-finish t)
         ("r" "Note" entry
          (file ,my/org-inbox-file)
-         "* %?\n%U - %a")
+         "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n - %a")
         ("N" "Note" entry
          (file ,my/org-inbox-file)
-         "* %^{Note}\n")
+         "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n")
         ("i" "Interrupting task" entry
          (file ,my/org-inbox-file)
-         "* STARTED %^{Task}"
+         "* STARTED %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
          :clock-in :clock-resume)
         ("b" "Business task" entry
          (file+headline "~/personal/business.org" "Tasks")
@@ -3369,6 +3456,7 @@ able to clock in on them.
 (setq org-refile-targets '((("~/orgzly/organizer.org"
                              "~/code/stream/index.org.org"
                              "~/code/stream/notes.org"
+                             "~/code/plover-notes/README.org"
                              "~/code/.emacs.d/Sacha.org"
                              "~/orgzly/routines.org") . (:maxlevel . 5))))
 (setq org-blank-before-new-entry nil)
@@ -3835,6 +3923,7 @@ only a few of them them for faster scanning.
                       "~/orgzly/computer-inbox.org"
                       "~/code/stream/index.org"
                       "~/code/stream/notes.org"
+                      "~/code/plover-notes/README.org"
                       "~/personal/sewing.org"
                       "~/orgzly/people.org"
                       "~/Dropbox/wsmef/trip.txt"
@@ -4720,10 +4809,7 @@ Now we put it all together...
               (format "- %s\n"
                       (org-link-make-string
                        (replace-regexp-in-string "#" "%23"
-                                                 (concat "https://sketches.sachachua.com/"
-                                                         (if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][a-z]" base)
-                                                             (concat "id/" (match-string 0 base))
-                                                           (concat "filename/" base))))
+                                                 (concat "sketch:" base))
                        base))))
           (let ((my/sketch-directories '("~/sync/sketches"))) (my/get-sketch-filenames-between-dates start end filter))
           "")))
@@ -4799,13 +4885,13 @@ Here's a function like =my/org-prepare-weekly-review=:
 
 #+begin_src emacs-lisp 
 
-(defun _my/extract-posts-from-webpage (url)
-  (with-current-buffer (url-retrieve-synchronously url)
-    (goto-char (point-min))
-    (re-search-forward "<pre>")
-    (buffer-substring
-     (point)
-     (progn (re-search-forward "</pre>") (match-beginning 0)))))
+(defun _my/list-blog-posts (start-date end-date)
+  (seq-filter (lambda (o)
+                (and (or (null start-date) (string< start-date (plist-get o :date)))
+                     (or (null end-date) (string< (plist-get o :date) end-date))))
+              (let ((json-object-type 'plist))
+                (json-read-file "~/code/static-blog/_site/blog/all/index.json"))))
+
 (defun my/org-get-last-week ()
   "Return dates for filtering last week."
   (if (string= (format-time-string "%u") "6") ;; my week starts on Saturday
@@ -4829,6 +4915,8 @@ Here's a function like =my/org-prepare-weekly-review=:
   (let* ((date (decode-time time))
          (month (elt date 4))
          (year (elt date 5))
+         (post-date (current-time))
+         post-location
          title
          start-date
          end-date
@@ -4840,20 +4928,31 @@ Here's a function like =my/org-prepare-weekly-review=:
     (calendar-increment-month month year -1)
     (setq start-date (format "%4d-%02d-01 0:00" year month)
           end-date (format "%4d-%02d-01 0:00" (elt date 5) (elt date 4))
-          title (format-time-string "%B %Y" (encode-time 0 0 0 1 month year))
-          posts (_my/extract-posts-from-webpage
-                 (format "https://sachachua.com/blog/%4d/%d?org=1"
-                         year month))
+          title (format-time-string "Monthly review: %B %Y" (encode-time 0 0 0 1 month year))
+          post-location (concat (format-time-string "%Y/%m/" post-date) (my/make-slug title))
+          posts (mapconcat (lambda (o) (concat "- " (org-link-make-string (concat "https://sachachua.com" (plist-get o :permalink))
+                                                                          (plist-get o :title))))
+                           (_my/list-blog-posts
+                            (substring start-date 0 10)
+                            (substring end-date 0 10))
+                           "\n")
           sketches (my/sketches-export-and-extract (substring start-date 0 10) (substring end-date 0 10) nil t))
     (calendar-increment-month month year -1)
     (setq previous-date (format "%4d-%02d-01 0:00" year month))
     (setq time (my/quantified-compare previous-date start-date start-date end-date '("Business" "Discretionary - Play" "Unpaid work" "A-" "Discretionary - Family" "Discretionary - Social" "Sleep" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
     (goto-char (line-end-position))
     (insert
-     "\n\n** Monthly review: "
-     title
-     "  :monthly:review:\n\n"
-     (my/org-summarize-journal-csv start-date end-date nil my/journal-category-map my/journal-categories '(zid)) "\n\n"
+     "\n\n** " title "  :monthly:review:\n"
+     (format
+      ":PROPERTIES:
+:EXPORT_DATE: %s
+:EXPORT_ELEVENTY_PERMALINK: %s
+:EXPORT_ELEVENTY_FILE_NAME: %s
+:END:\n"
+      (format-time-string "%Y-%m-%d")
+      (concat "/blog/" post-location "/")
+      post-location)
+     (my/org-summarize-journal-csv start-date end-date "monthly-highlight" my/journal-category-map my/journal-categories) "\n\n"
      "*Blog posts*\n"
      posts "\n\n"
      "*Sketches*\n\n"
@@ -5047,6 +5146,7 @@ appropriate level.
         (:eval . "never-export")
         (:hlines . "no")
         (:tangle . "no")))
+(setq org-edit-src-auto-save-idle-delay 5)
     #+end_src
 
 **** TODO Execute named babel block
@@ -5110,7 +5210,8 @@ appropriate level.
 
 (use-package org
   :config
-  (add-to-list 'org-export-filter-body-functions #'my/org-export-filter-body-add-emacs-configuration-link))
+  (with-eval-after-load 'ox
+    (add-to-list 'org-export-filter-body-functions #'my/org-export-filter-body-add-emacs-configuration-link)))
      #+END_SRC
 
 
@@ -5465,7 +5566,7 @@ Let's see if this makes it easier for me to tweak things.
 
 *** Org roam
 
-    #+begin_src emacs-lisp
+    #+begin_src emacs-lisp :eval no :tangle no
     (use-package org-roam
       :if my/laptop-p
       :ensure t
@@ -5715,6 +5816,8 @@ So that I can easily add links at point. Formatted as an Org list for now.
   (org-entry-put (point) "CUSTOM_ID" id))
 
 (with-eval-after-load 'hydra
+  (define-key hydra-base-map (kbd "<down>") 'hydra-pop)
+
   (defhydra my/hydra/org-speed-commands ()
     ("i" my/org-set-custom-id "CUSTOM_ID" :exit t)
     ("<up>" my/hydra/org-mode/body :exit t))
@@ -5724,12 +5827,16 @@ So that I can easily add links at point. Formatted as an Org list for now.
     ("p" org-backward-heading-same-level "Previous")
     ("a" org-archive-subtree-default "Archive")
     ("k" org-cut-subtree "Kill")
+    ("<up>" (hydra-go-and-push 'my/shortcuts/body) "Parent")
     ("<f14>" nil "Exit" :exit t))
   (defhydra my/hydra/org-link ()
+    ("RET" org-open-at-point "Open")
+    ("e" org-insert-link "Edit")
     ("c" my/caption-show "Captions")
     ("w" my/org-link-element-copy-link "Copy link"))
-  (defhydra my/hydra/org-src ()
+  (defhydra my/hydra/org-src (:inherit (my/hydra/org-mode/heads))
     ("e" org-babel-execute-src-block "Exec")
+    ("E" my/org-execute-src-block-by-name "Exec by name")
     ("i" org-edit-special "Edit")
     ("d" org-babel-demarcate-block "Demarcate")
     ("g" org-babel-goto-named-src-block "Goto")
@@ -5873,7 +5980,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
 (defun my/journal-get-entries (from to &optional search)
   "Return parsed CSV of entries limited by FROM, TO, and SEARCH."
   (with-current-buffer
-      (url-retrieve-synchronously (format "https://journal.sachachua.com/api/entries.csv?from=%s&to=%s&q=%s" from to (or search "")))
+      (url-retrieve-synchronously (format "https://journal.sachachua.com/api/entries.csv?from=%s&to=%s&regex=1&q=%s" from to (or search "")))
     (goto-char (point-min))
     (delete-region (point-min) (search-forward "\n\n"))
     (cdr (pcsv-parse-buffer))))
@@ -5882,12 +5989,10 @@ So that I can easily add links at point. Formatted as an Org list for now.
 (defun my/journal-get-entry (zid) (my/journal-get (format "api/entries/zid/%s" zid)))
 #+end_src
 
-The following code creates a Helm source that allows me to quickly
-search through my journal and insert links, a list of entries with
-links, a list of plain entries, or plain entries. I can also easily view the entries.
+The following code lets me complete journal entries and get their ZIDs.
 
 #+NAME: helm-journal
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :lexical t
 (defun my/json-request (url)
   (let ((json-object-type 'plist)
         (url-request-extra-headers (cons '("Content-Type" . "application/json") url-request-extra-headers)))
@@ -5899,7 +6004,7 @@ links, a list of plain entries, or plain entries. I can also easily view the ent
 (defvar my/journal-search-cache nil "List of search results.")
 (defun my/journal-search-query (query-str)
   (let* ((url-request-method "GET")
-         (json-response (my/json-request (format "https://journal.sachachua.com/api/entries?q=%s&limit=50"
+         (json-response (my/json-request (format "https://journal.sachachua.com/api/entries?q=%s&limit=50&sort=date&regex=1"
                                                  query-str))))
     (setq my/journal-search-cache (mapcar (lambda (o)
               (cons
@@ -5909,18 +6014,47 @@ links, a list of plain entries, or plain entries. I can also easily view the ent
                o))
             json-response))))
 
+(defun my/journal-search-query-async (query-str next)
+  (let* ((url-request-method "GET")
+         (url-request-extra-headers (cons '("Content-Type" . "application/json") url-request-extra-headers)))
+    (url-retrieve
+     (format "https://journal.sachachua.com/api/entries?q=%s&limit=50&sort=date&regex=1"
+             query-str)
+     (lambda (status)
+       (goto-char (point-min))
+       (re-search-forward "^$" nil t)
+       (setq my/journal-search-cache
+             (mapcar (lambda (o)
+                       (cons
+                        (format "%s %s"
+                                (plist-get o :ZIDString)
+                                (plist-get o :Note))
+                        o))
+                     (let ((json-object-type 'plist))
+                       (json-read))))
+       (funcall next 'flush)
+       (if my/journal-search-cache (funcall next my/journal-search-cache))))))
+
+(defun my/journal--async-search (next)
+  (lambda (action)
+    (cond
+     ((eq action 'setup)                ;; Should figure out how to start
+      (my/journal-search-query-async "" next))
+     ((and (stringp action) (not (string= action ""))) 
+      (my/journal-search-query-async action next))
+     (t (funcall next action)))))
+
 (defun my/journal-completing-read ()
-  (completing-read "Journal entry: "
-                   (lambda (string predicate flag)
-                     (if (eq flag 'metadata)
-                         `(metadata
-                           (display-sort-function . ,#'identity)
-                           (category . journal))
-                       (let ((list (my/journal-search-query string)))
-                         (mapcar 'car
-                                 (if predicate
-                                     (seq-filter predicate list)
-                                   list)))))))
+  (interactive)
+  (consult--read
+   (thread-first (consult--async-sink)
+     (consult--async-refresh-immediate)
+     (my/journal--async-search)
+     (consult--async-throttle)
+     (consult--async-split))
+   :sort nil
+   :prompt "Entry: "
+   :category 'journal))
 
 (defun my/journal-id-from-string (s)
   (when (string-match "^[-0-9]+" s) (match-string 0 s)))
@@ -5938,11 +6072,11 @@ links, a list of plain entries, or plain entries. I can also easily view the ent
     (unless (file-exists-p filename)
       (copy-file my/sketch-large-template-file filename))
     (my/org-sketch-open filename)))
+#+end_src
 
-(defun my/helm-journal-search (&optional values predicate ignore)
-  (if (> (length helm-pattern) 2)
-      (my/journal-search-query helm-pattern)))
+I should probably figure out how to switch this over to my Consult-based workflow:
 
+#+begin_src emacs-lisp :lexical t
 (defun my/journal-format-entry (type o)
   (cond
    ((eq type 'org-link-zid-only)
@@ -5966,33 +6100,6 @@ links, a list of plain entries, or plain entries. I can also easily view the ent
     ((eq type 'list-item-with-zid) "")
     ((eq type 'list-item) "")
     ((eq type 'text) " "))))
-
-(defun my/helm-journal ()
-  (interactive)
-  (helm :sources
-        (list
-         (helm-build-dummy-source "Create post"
-           :action (lambda (cand) (my/journal-post cand)))
-         (helm-build-sync-source "Journal"
-           :volatile t
-           :candidates 'my/helm-journal-search
-           :action
-           (append
-            (mapcar (lambda (o)
-                      (cons (car o)
-                            `(lambda (candidate)
-                               (insert (my/journal-format-entries ,(cdr o) (helm-marked-candidates))))))
-                    '(("Insert as link" . 'org-link-zid-only)
-                      ("Insert as list with links" . 'list-item-with-zid)
-                      ("Insert as list" . 'list-item)
-                      ("Insert as text" . 'text)))
-            (helm-make-actions
-             "View"
-             (lambda (candidate)
-               (browse-url (format "https://journal.sachachua.com/zids/%s" 
-                                   (mapconcat (lambda (o) (assoc-default 'ZIDString o))
-                                              (helm-marked-candidates) ","))))))))))
-
 #+end_src
 
 This lets me define a custom link type.
@@ -7885,13 +7992,19 @@ On my phone:
 #+begin_src emacs-lisp 
 (use-package engine-mode
   :config
-  (progn
-    (defengine my-blog "https://www.google.ca/search?q=site:sachachua.com+%s" :keybinding "b")
-    (defengine mail "https://mail.google.com/mail/u/0/#search/%s" :keybinding "m")
-    (defengine google "http://google.com/search?q=%s" :keybinding "g")
-    (defengine emacswiki "http://google.com/search?q=site:emacswiki.org+%s" :keybinding "e")
-    (bind-key* "C-c s" 'my/engine-mode-hydra/body)
-    (engine-mode)))
+  (defengine my-blog "https://www.google.ca/search?q=site:sachachua.com+%s" :keybinding "b")
+  (defengine mail "https://mail.google.com/mail/u/0/#search/%s" :keybinding "m")
+  (defengine google "https://google.com/search?q=%s" :keybinding "g")
+  (defengine emacswiki "https://google.com/search?q=site:emacswiki.org+%s" :keybinding "e")
+  (engine-mode)
+  :hydra
+  (my/engine-mode-hydra
+   (:color blue)
+   "Engine mode"
+   ("b" engine/search-my-blog "blog")
+   ("m" engine/search-mail "mail")
+   ("g" engine/search-google "google")
+   ("e" engine/search-emacswiki "emacswiki")))
 #+end_src
 ** Mail
 *** Gnus
@@ -8355,11 +8468,6 @@ ffmpeg -v quiet -f flv -listen 1 -i rtmp://127.0.0.1:5555 -c copy -f flv $YOUTUB
           (when (and (buffer-file-name buf) (string-match "secret" (buffer-file-name buf)))
             (kill-buffer-ask buf)))
         (buffer-list)) 
-  (obs-websocket-send
-   "SetSourceSettings"
-   :sourceName "Gstreamer - command log"
-   :sourceSettings
-   `(:pipeline ,(format "ximagesrc xid=0x%x use-damage=0 ! queue max-size-buffers=0 max-size-time=0 max-size-bytes=0  min-threshold-time=4000000000 ! video." (my/wmctl-get-id "command-log")) :use_timestamps_audio t :use_timestamps_video t) :sourceType "gstreamer-source")
   (obs-websocket-send "SetSourceSettings" :sourceName "Command log"
                       :sourceSettings
                       `(:capture_window
@@ -8676,47 +8784,44 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 #+begin_src emacs-lisp
 (use-package obs-websocket
   :if my/laptop-p
-  :after pretty-hydra
+  :hydra
+  (my/stream-recording (:exit t)
+                       "Recording"
+                       ("b" (obs-websocket-send "StartRecording") "Begin")
+                       ("r" (obs-websocket-send "StartStopRecording") "Toggle")
+                       (" " (obs-websocket-send "PauseRecording") "Pause")
+                       ("p" (my/play-latest-recording) "Play last")
+                       ("c" (obs-websocket-send "ResumeRecording") "Continue")
+                       ("e" (obs-websocket-send "StopRecording") "End"))
+  (my/stream
+   (:quit-key "q")
+   ("w" (org-open-link-from-string "[[file:~/code/stream/notes.org::#streaming-workflow][Streaming]]") "Workflow" :column "Setup")
+   ("o" (org-open-link-from-string "[[file:~/code/stream/index.org::#plans]]") "Notes")
+   ("a" my/show-emacs-tasks "Agenda")
+   ("bt" selectric-mode "Typing sounds")
+   ("bm" my/stream-toggle-background-music "Background music")
+   ("I" my/stream-captions-insert (format "Insert caption [%s]" (if my/stream-captions-insert "X" " ")))
+   ("us" (browse-url "https://twitch.tv/sachachua") "View stream")
+   ("uv" (browse-url "https://dashboard.twitch.tv/u/sachachua/stream-manager") "View manager")
+   ("uy" (browse-url "https://studio.youtube.com/channel/UClT2UAbC6j7TqOWurVhkuHQ/livestreaming/dashboard") "Youtube")
+   ("m" my/mic-toggle (if my/mic-toggle "MIC IS ON [X]" "Mic [ ]"))
+   ("s" my/stream-toggle-streaming (format "Streaming [%s]" (if my/stream-toggle-streaming "X" " ")) :exit t :column "Streaming/recording")
+   ("r" my/stream-toggle-recording (format "Recording [%s]" (if my/stream-toggle-recording "X" " ")) :exit t)
+   ("v" (my/play-latest-recording) "Play last")
+   ("d" (progn (set-background-color "black") (obs-websocket-send "SetCurrentScene" :scene-name "Desktop")) "Desktop" :exit t :column "Scenes")
+   ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs" :exit t)
+   ("i" my/stream-intermission "Intermission" :exit t)
+   ("n" my/obs-websocket-add-caption "Add caption" :exit t :column "Captions")
+   ("c" (find-file (my/obs-websocket-caption-file)) "View captions" :exit t)
+   ("t" my/stream-message "Message" :hint nil :exit t)
+   ("<f8>" my/stream-message "Message" :hint nil :exit t))
   :config
   (add-to-list 'obs-websocket-on-message-payload-functions #'my/obs-websocket-message-handler)
-  (defhydra my/stream-recording (:exit t)
-           "Recording"
-           ("b" (obs-websocket-send "StartRecording") "Begin")
-           ("r" (obs-websocket-send "StartStopRecording") "Toggle")
-           (" " (obs-websocket-send "PauseRecording") "Pause")
-           ("p" (my/play-latest-recording) "Play last")
-           ("c" (obs-websocket-send "ResumeRecording") "Continue")
-           ("e" (obs-websocket-send "StopRecording") "End"))
   (defvaralias 'my/mic-toggle 'my/mic-p)
-  (defun my/stream-toggle-streaming () (interactive)  (obs-websocket-send "StartStopStreaming"))
+  (defun my/stream-toggle-streaming () (interactive) (obs-websocket-send "StartStopStreaming"))
   (defun my/stream-toggle-recording () (interactive) (obs-websocket-send "StartStopRecording"))
   (defvaralias 'my/stream-toggle-streaming 'obs-websocket-streaming-p)
   (defvaralias 'my/stream-toggle-recording 'obs-websocket-recording-p)
-  (pretty-hydra-define my/stream (:quit-key "q")
-    ("Setup"
-     (("w" (org-open-link-from-string "[[file:~/code/stream/notes.org::#streaming-workflow][Streaming]]") "Workflow")
-      ("o" (org-open-link-from-string "[[file:~/code/stream/index.org::#plans]]") "Notes")
-      ("a" my/show-emacs-tasks "Agenda")
-      ("bt" selectric-mode "Typing sounds")
-      ("bm" my/stream-toggle-background-music "Background music")
-      ("I" my/stream-captions-insert "Insert caption" :toggle t)
-      ("us" (browse-url "https://twitch.tv/sachachua") "View stream")
-      ("uv" (browse-url "https://dashboard.twitch.tv/u/sachachua/stream-manager") "View manager")
-      ("uy" (browse-url "https://studio.youtube.com/channel/UClT2UAbC6j7TqOWurVhkuHQ/livestreaming/dashboard") "Youtube")
-      ("m" my/mic-toggle "Toggle mic" :toggle t))
-     "Streaming/recording"
-     (("s" my/stream-toggle-streaming "Streaming - toggle" :toggle t :exit t)
-      ("r" my/stream-toggle-recording "Recording - toggle" :toggle t :exit t)
-      ("v" (my/play-latest-recording) "Play last"))
-     "Scenes"
-     (("d" (progn (set-background-color "black") (obs-websocket-send "SetCurrentScene" :scene-name "Desktop")) "Desktop" :exit t)
-      ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs" :exit t)
-      ("i" my/stream-intermission "Intermission" :exit t))
-     "Captions"
-     (("n" my/obs-websocket-add-caption "Add caption" :exit t)
-      ("c" (find-file (my/obs-websocket-caption-file)) "View captions" :exit t)
-      ("t" my/stream-message "Message" :hint nil :exit t)
-      ("<f8>" my/stream-message "Message" :hint nil :exit t)))) 
   (global-set-key (kbd "<f8>") #'my/stream/body)
   (add-to-list 'obs-websocket-on-message-payload-functions #'my/obs-websocket-message-handler)
   :load-path "~/code/obs-websocket-el" :ensure nil)
@@ -8727,15 +8832,34 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
     #+begin_src emacs-lisp
 (use-package mpv :if my/laptop-p)
 (defvar my/recordings-dir "~/videos/")
-(defun my/play-latest-recording ()
-  (interactive)
+(defun my/play-latest-recording (&optional arg)
+  (interactive "P")
   (let ((latest (my/latest-file my/recordings-dir)))
-    (if (file-exists-p (my/obs-websocket-caption-file latest))
+    (if (and arg (file-exists-p (my/obs-websocket-caption-file latest)))
         (with-current-buffer (find-file-noselect (my/obs-websocket-caption-file (my/latest-file my/recordings-dir)))
           (goto-char (point-min))
           (subed-mpv-find-video latest)
           (pop-to-buffer (current-buffer)))
-      (mpv-play (my/latest-file my/recordings-dir)))))
+      (mpv-play (my/latest-file my/recordings-dir "mkv")))))
+(defun my/rename-last-recording ()
+  (interactive)
+  (let ((latest (my/latest-file my/recordings-dir "mkv")))
+    (rename-file latest
+                 (expand-file-name
+                  (concat (read-string "New name: " (format-time-string "%Y-%m-%d ")) "." (file-name-extension latest))
+                  my/recordings-dir))))
+
+(defun my/upload-recording (recording tags)
+  (interactive (list (let ((latest (my/latest-file my/recordings-dir "mkv\\|mp4\\|webm")))
+                       (read-file-name "Recording: " my/recordings-dir latest t)
+                       (read-string "Tags: " "emacs"))))
+  (start-process "youtube-upload" nil "youtube-upload" recording "--privacy=unlisted" "--license=creativeCommon"
+                 (format 
+                  "--tags=\"%s\""
+                  tags)
+                 "--open-link"
+                 (format "--title=%s" (shell-quote-argument (file-name-base recording))) 
+                 (format "--client-secrets=%s" google-video-credentials)))
     #+end_src
 *** Live captions
 
@@ -8788,7 +8912,7 @@ With data logging $0.004 USD / 15 seconds
     (substring text (- (length text) limit))))
 
 (defun my/stream-captions-on-message (websocket frame)
-  (let* ((payload (json-parse-string (websocket-frame-payload frame) :object-type 'plist :array-type 'list))
+  (let* ((payload (let ((json-object-type 'plist) (json-array-type 'list)) (json-read-from-string (websocket-frame-payload frame))))
          (type (plist-get payload :type))
          (caption (string-trim (plist-get (car (plist-get (car (plist-get (plist-get payload :stream) :results)) :alternatives)) :transcript))))
     
@@ -9080,6 +9204,8 @@ Might need to tweak it because I use the Dvorak layout, so hjkl doesn't make as 
                  (elt x 2)))))
 (with-eval-after-load "lispy"
   (define-key lispy-mode-map (kbd "<f14>") 'my/lispy-cheat-sheet/body))
+(with-eval-after-load 'evil-lispy
+  (evil-define-key nil evil-lispy-mode-map (kbd "<f14>") 'my/lispy-cheat-sheet/body))
    #+END_SRC
 
    Here's the result:
@@ -9387,6 +9513,68 @@ In termux, you also need to =pkg install diffutils=.
     (message "You clicked somewhere weird.")))
 #+end_src
 * Inactive/infrequent things
+
+** Evil mode
+
+   I should probably get the hang of evil-mode in preparation for
+   learning stenography, since control-key shortcuts are harder to
+   stroke. I haven't quite figured out my config yet, though.
+    
+   #+begin_src emacs-lisp :eval no :tangle no
+(use-package general :demand t
+  :config
+  (setq general-override-states '(insert
+                                  emacs
+                                  hybrid
+                                  normal
+                                  visual
+                                  motion
+                                  operator
+                                  replace))
+  (general-evil-setup)
+  (general-create-definer my-leader-def :prefix "SPC" :non-normal-prefix "C-SPC" :keymaps '(normal))
+  (my-leader-def
+    "pp" 'projectile-switch-project
+    "pf" 'projectile-find-file-dwim
+    "pF" 'projectile-find-file-other-window
+    "w" 'save-buffer
+    "Hk" 'describe-key
+    "Hf" 'describe-function
+    "b" 'consult-buffer)
+  (my-leader-def org-mode-map
+    "o" 'org-open-at-point
+    "il" 'org-insert-link
+    "ib" 'org-insert-structure-template
+    "ih" 'org-insert-heading
+    ">" 'org-demote
+    "<" 'org-promote)
+  (general-override-mode)
+  :if my/laptop-p)
+
+(use-package evil
+  :init
+  (setq evil-default-state 'emacs
+        evil-want-keybinding nil)
+  (evil-mode 1)
+  :if my/laptop-p)
+(use-package evil-lispy
+  :hook (emacs-lisp-mode . evil-lispy-mode)
+  :if my/laptop-p)
+(use-package evil-org :hook (org-mode . evil-org-mode)
+  :config
+  (evil-leader/set-key-for-mode 'org-mode
+    "t" 'org-show-todo-tree
+    "a" 'org-agenda
+    "c" 'org-archive-subtree
+    "l" 'evil-org-open-links
+    "o" 'evil-org-recompute-clocks)
+  :if my/laptop-p)
+;; Move with htns; k for kill, j for join, C-h insert newline, C-t insert above
+(use-package evil-dvorak :hook (evil-mode . evil-dvorak-mode) :diminish evil-dvorak-mode :if my/laptop-p)
+(use-package evil-collection :init (evil-collection-init) :if my/laptop-p)
+   #+end_src
+
+*** TODO Learn how to use evil mode 
 ** Chronos
 
 Tip from zaeph. Might not use this much yet, as I don't spend that much time in front of my computer. Could be handy someday, though.

@@ -262,7 +262,7 @@ From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
     (when x (funcall x))))
 
 (defun hydra-go-and-push (expr)
-  (push expr hydra-stack)
+  (push hydra-curr-body-fn hydra-stack)
   (prin1 hydra-stack)
   (funcall expr))
 
@@ -773,8 +773,6 @@ https://github.com/oantolin/embark/wiki/Additional-Configuration#pause-selectrum
   (add-hook 'embark-collect-mode-hook #'my/shrink-selectrum) 
   (add-hook 'embark-pre-action-hook #'my/refresh-selectrum))
     #+end_src
-
-
 *** Contextual actions with cmap
 
     It doesn't look like Embark allows me to consider different
@@ -2842,7 +2840,6 @@ Restore main dictionary and turn off Plover when done."
      (plover-websocket-send :translation "{PLOVER:TOGGLE_DICT:+main.json}")
      (plover-websocket-suspend-plover)))
   #+end_src
-
 ** TOBLOG Manage photos with geeqie
    SCHEDULED: <2021-03-03 Wed>
 
@@ -2868,6 +2865,17 @@ references.
   (shell-command "geeqie --remote -b"))
 (defun my/geeqie-filename ()
   (string-trim (shell-command-to-string "geeqie --remote --tell")))
+(defun my/geeqie-insert-file-link ()
+  (interactive)
+  (insert (org-link-make-string (concat "file:" (string-trim (shell-command-to-string "geeqie --remote --tell"))))))
+(use-package org :config (require 'org-attach))
+(defun my/copy-and-link-latest-download ()
+  (interactive)
+  (org-attach-attach (my/latest-file "~/Downloads") nil 'cp)
+  (org-insert-link nil (caar org-stored-links)))
+
+
+
 (defun my/geeqie-view (filenames)
   (interactive "f")
   (start-process-shell-command "geeqie" nil
@@ -5335,12 +5343,11 @@ Might as well take advantage of my stylesheet:
 
 #+NAME: org-styles
 #+begin_src emacs-lisp 
-(setq org-html-head "<link rel=\"stylesheet\" type=\"text/css\"
-       href=\"https://sachachua.com/blog/wp-content/themes/sacha-v3/foundation/css/foundation.min.css\"></link>
-       <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/org-export.css\"></link>
-       <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/blog/wp-content/themes/sacha-v3/style.css\"></link>
+(setq org-html-head "
+       <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/assets/css/style.css\"></link>
+       <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/assets/css/org-export.css\"></link>
        <script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"></script>
-       <script src=\"https://sachachua.com/blog/wp-content/themes/sacha-v3/misc.js\"></script>")
+       <script src=\"https://sachachua.com/assets/js/misc.js\"></script>")
 (setq org-html-htmlize-output-type 'css)
 (setq org-src-fontify-natively t)
 #+end_src
@@ -5820,20 +5827,25 @@ So that I can easily add links at point. Formatted as an Org list for now.
 
   (defhydra my/hydra/org-speed-commands ()
     ("i" my/org-set-custom-id "CUSTOM_ID" :exit t)
-    ("<up>" my/hydra/org-mode/body :exit t))
+    ("<up>" my/hydra/org-mode/body :exit t)
+    ("u" (hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil))
   (defhydra my/hydra/org-mode (:foreign-keys run)
     ("b" my/org-back-to-heading "Heading")
     ("n" org-forward-heading-same-level "Next")
     ("p" org-backward-heading-same-level "Previous")
     ("a" org-archive-subtree-default "Archive")
+    ("j" my/org-mark-done-and-add-to-journal "Journal" :exit t)
     ("k" org-cut-subtree "Kill")
-    ("<up>" (hydra-go-and-push 'my/shortcuts/body) "Parent")
+    ("<up>" (hydra-go-and-push 'my/shortcuts/body) :exit t hint nil)
+    ("u" (hydra-go-and-push 'my/shortcuts/body) :exit t :hint nil)
     ("<f14>" nil "Exit" :exit t))
   (defhydra my/hydra/org-link ()
     ("RET" org-open-at-point "Open")
     ("e" org-insert-link "Edit")
     ("c" my/caption-show "Captions")
-    ("w" my/org-link-element-copy-link "Copy link"))
+    ("w" my/org-link-element-copy-link "Copy link")
+    ("u" (hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil)
+    ("<up>" (hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil))
   (defhydra my/hydra/org-src (:inherit (my/hydra/org-mode/heads))
     ("e" org-babel-execute-src-block "Exec")
     ("E" my/org-execute-src-block-by-name "Exec by name")
@@ -5844,17 +5856,23 @@ So that I can easily add links at point. Formatted as an Org list for now.
     ("x" org-babel-expand-src-block "Expand")
     ("t" (org-babel-tangle '(4)) "Tangle at point")
     ("T" (org-babel-tangle '(16)) "Tangle target file")
-    ("<up>" my/hydra/org-mode/body :exit t))
-  (defun my/hydra/org-dwim ()
+    ("u" (hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil)
+    ("<up>" (hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil)
+    )
+  (defun my/hydra/dwim ()
     (interactive)
-    (let ((context (org-element-context)))
-      (cond
-       ((and (bolp) (looking-at org-outline-regexp))
-        (my/hydra/org-speed-commands/body))
-       ((org-in-src-block-p) (my/hydra/org-src/body))
-       ((eq (org-element-type context) 'link) (my/hydra/org-link/body))
-       (t (my/hydra/org-mode/body)))))
-  (define-key org-mode-map (kbd "<f14>") 'my/hydra/org-dwim))
+    (if (derived-mode-p 'org-mode)
+        (let ((context (org-element-context)))
+          (cond
+           ((and (bolp) (looking-at org-outline-regexp))
+            (my/hydra/org-speed-commands/body))
+           ((org-in-src-block-p) (my/hydra/org-src/body))
+           ((eq (org-element-type context) 'link) (my/hydra/org-link/body))
+           (t (my/hydra/org-mode/body))))
+      (my/shortcuts/body)))
+  (define-key org-mode-map (kbd "<f14>") 'my/hydra/dwim)
+  (global-set-key (kbd "<f14>") 'my/hydra/dwim)
+  (global-set-key (kbd "S-SPC") 'my/hydra/dwim))
   #+end_src
 *** Journal
 

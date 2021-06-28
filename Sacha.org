@@ -185,7 +185,7 @@ in a directory in my =load-path=, Emacs can find them.
     ("l" (my/toggle-or-create "*scratch*" (lambda () (switch-to-buffer (startup--get-buffer-create-scratch)))) "Lisp")
     ("e" eshell-toggle "Eshell")
     ("w" my/engine-mode-hydra/body "Search web")
-    ("E" my/emacs-news/body "Emacs News"))
+    ("E" my/emacs-news/body "Emacs News")) 
   (global-set-key (kbd "<f5>") #'my/shortcuts/body)
   (defhydra my/emacs-news (:exit t)
     "Emacs News"
@@ -253,15 +253,15 @@ From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
 #+BEGIN_SRC emacs-lisp
 (defvar hydra-stack nil)
 
-(defun hydra-push (expr)
+(defun my/hydra-push (expr)
   (push `(lambda () ,expr) hydra-stack))
 
-(defun hydra-pop ()
+(defun my/hydra-pop ()
   (interactive)
   (let ((x (pop hydra-stack)))
     (when x (funcall x))))
 
-(defun hydra-go-and-push (expr)
+(defun my/hydra-go-and-push (expr)
   (push hydra-curr-body-fn hydra-stack)
   (prin1 hydra-stack)
   (funcall expr))
@@ -460,7 +460,6 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
          ("M-g a" . consult-org-agenda)
          ("M-g m" . consult-mark)
          ("C-x b" . consult-buffer)
-         ("M-y" . consult-yank-pop)
          ("<help> a" . consult-apropos)            ;; orig. apropos-command
          ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
          ("M-g o" . consult-outline)
@@ -1566,7 +1565,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
     ("o" "~/orgzly/organizer.org" "Main org file")
     ("s" "~/code/stream/notes.org" "Public Emacs notes")
     ("b" "~/personal/business.org" "Business")
-    ("p" "/ssh:web:/mnt/prev/home/sacha/planet/en.ini" "Planet Emacsen")
+    ("p" "/scp:web:/mnt/prev/home/sacha/planet/en.ini" "Planet Emacsen")
     ("B" "/ssh:web|sudo::/etc/nginx/sites-available" "Nginx sites")
     ("w" "~/Dropbox/public/sharing/index.org" "Sharing index")
     ("W" "~/Dropbox/public/sharing/blog.org" "Blog index")
@@ -2752,18 +2751,94 @@ https://github.com/sachac/plover-websocket-el
   ("<f6>" . #'my/plover/body))
 
 #+end_src
+*** Looking things up
+    
+#+begin_src emacs-lisp
+(defun my/plover-search-dictionary-for-strokes-jq (stroke-regexp)
+  (json-parse-string
+   (shell-command-to-string
+    (format "cat ~/.config/plover/main.json | jq 'with_entries(if (.key|test(\"%s\")) then ( {key: .key, value: .value}) else empty end)'"
+            stroke-regexp))
+   :object-type 'alist))
+(defvar my/plover-main-dict (mapcar (lambda (o) (cons (symbol-name (car o)) (cdr o))) (json-read-file "~/.config/plover/main.json")))
+(defun my/plover-search-dictionary-for-strokes (stroke-regexp)
+  (interactive "MStroke regexp: ")
+  (let ((results (seq-filter (lambda (o) (string-match stroke-regexp (car o))) my/plover-main-dict)))
+    (when (called-interactively-p 'any) (my/plover-display-dictionary-results results))
+    results))
+(defvar my/plover-dict-cache nil "Alist of (filename . ((stroke . translation) ...))")
+(defvar my/plover-home "~/.config/plover")
+(defun my/plover-dict (&optional filename)
+  (setq filename (expand-file-name (or filename "main.json") my/plover-home))
+  (or (cdr (assoc-default filename my/plover-dict-cache))
+      (let ((result (mapcar (lambda (o) (cons (symbol-name (car o)) (cdr o))) (json-read-file filename))))
+        (push (cons filename result) my/plover-dict-cache )
+        result)))
 
+(defun my/plover-search-dictionary-for-translation (translation &optional start file)
+  (interactive "MTranslation: \nP")
+  (let* ((regexp (concat "^" (regexp-quote translation) (unless start "$")))
+         (results (seq-filter (lambda (o) (string-match regexp (cdr o))) (my/plover-dict file))))
+    (when (called-interactively-p 'any) (my/plover-display-dictionary-results results))
+    results))
+
+(defun my/plover-display-dictionary-results (results)
+  (with-current-buffer (get-buffer-create "*Plover*")
+    (erase-buffer)
+    (insert (format "%d entries\n" (length results))
+            (mapconcat (lambda (o) (format "%s\t%s" (car o) (cdr o))) results "\n"))
+    (goto-char (point-min))
+    (display-buffer (current-buffer))))
+
+(defmacro my/with-plover-fingerspelling (&rest body)
+  `(progn
+     (plover-websocket-send :translation "{PLOVER:SOLO_DICT:+commands.json,+fingerspelling.json}")
+     (prog1 (progn ,@body)
+       (plover-websocket-send :translation "{PLOVER:END_SOLO_DICT}"))))
+
+(defun my/consult-plover-read-stroke-or-translation ()
+  (interactive)
+  (let ((dict (mapcar (lambda (o) (cons (format "%s: %s" (car o) (cdr o)) o))
+                      (my/plover-dict))))
+    (my/with-plover-fingerspelling
+     (consult--read
+      dict
+      :prompt "Strokes/translation: "
+      :category 'plover-stroke))))
+
+(defun my/consult-plover-and-execute-strokes (choice)
+  (interactive (list (my/consult-plover-read-stroke-or-translation)))
+  (when (string-match "^\\([^ ]+\\): \\(.+\\)" choice)
+    (plover-websocket-send :translation (match-string 2 choice) :force t :zero_last_stroke_length t)))
+
+(defun my/consult-plover-search-strokes (regexp solo-p)
+  (interactive (list (with-plover-plain (read-string "Strokes: ")) current-prefix-arg))
+  (consult--read
+   (mapcar (lambda (o) (cons (format "%s: %s" (car o) (cdr o)) o))
+           (my/plover-search-dictionary-for-strokes (if solo-p (concat "^" regexp "\\(?:/\\|$\\)" ) (concat "^" regexp))))
+   :prompt "Narrow: "))
+
+  
+
+;; (list
+;;  (benchmark-run 2 (my/plover-search-dictionary-for-strokes-jq "^THER"))
+;;  (benchmark-run 2 (my/plover-search-dictionary-for-translation "stenography" t "typey-type.json")
+;; (benchmark-run 2 (my/plover-search-dictionary-for-translation "stenography" t))
+;;  (benchmark-run 2 (my/plover-search-dictionary-for-strokes "^THER/")))
+
+#+end_src
 *** Running Plover drills from Emacs
 
 I'm learning stenography because I deal with a lot of text, and it
-seems interestin. I'd like to someday be able to live-caption
+seems interesting. I'd like to someday be able to live-caption
 EmacsConf, meetups, and other technical things. I've got a lot of
 muscle memory to pick up, which means drills drills drills drills.
 
 #+begin_src emacs-lisp
 (defvar my/plover-drills
+  (append
    (mapcar (lambda (desc)
-             (cons desc (concat "https://joshuagrams.github.io/steno-jig/learn-keyboard.html?drill=" (url-encode-url desc))))
+             (cons desc (concat "https://joshuagrams.github.io/steno-jig/learn-keyboard.html?drill=" (url-encode-url (replace-regexp-in-string "\\+" "%2B" desc)))))
            '("Left hand, bottom row"
              "Right hand, bottom row"
              "Left hand, top row"
@@ -2778,7 +2853,11 @@ muscle memory to pick up, which means drills drills drills drills.
              "Left + Vowel"
              "Vowel + Right"
              "Left + Vowel + Right"
-             "Columns: D, B, L, -N")))
+             "Columns: D, B, L, -N"
+             "x"))
+   (mapcar (lambda (desc)
+             (cons desc (concat "https://joshuagrams.github.io/steno-jig/learn-plover.html?hints=yes&type=randomly&timeLimit=2&drill=" (url-encode-url (replace-regexp-in-string "\\+" "%2B" desc)))))
+           '("One Syllable Words" "Consonant Clusters" "Where's the TRUFT?" "Dropping Unstressed Vowels" "Inversion" "The Fifth Vowel Key" "Long Vowel Chords" "Diphthong Chords" "Vowel Disambiguator Chords" "The Missing Keys" "The Remaining Missing Letters" "Review Through Missing Letters" "Digraphs" "Review Through Digraphs" "Common Compound Clusters" "Review Through Common Compound Clusters" "Common Briefs 1-20" "Common Briefs 21-40" "Common Briefs 41-60" "Common Briefs 61-80" "Common Briefs 81-100"))))
 
 (defvar my/plover-drill-history nil "Previous drills")
 (defvar my/plover-drill-file "~/code/plover-notes/README.org")
@@ -2797,22 +2876,26 @@ muscle memory to pick up, which means drills drills drills drills.
   (interactive (list (consult--read my/plover-drills :prompt "Drill: " :sort nil
                                     :history my/plover-drill-history
                                     :default (car my/plover-drill-history))))
-  (plover-websocket-resume-plover)
-  (plover-websocket-send :translation "{PLOVER:TOGGLE_DICT:-main.json}")
-  (switch-to-buffer (find-file my/plover-drill-file))
-  (goto-char (point-min))
-  (re-search-forward "#\\+NAME: drill\n")
-  (insert (format "| %s | %s |  |\n"
-                  (org-link-make-string (assoc-default drill my/plover-drills) drill)
-                  (format-time-string "[%Y-%m-%d %a %H:%M]")))
-  (backward-char 3)
-  (browse-url (assoc-default drill my/plover-drills))
-  (read-string "Ignore this:")
-  (plover-websocket-send :translation "{PLOVER:TOGGLE_DICT:+main.json}")
-  (plover-websocket-suspend-plover)
-  (insert (read-string (format "Time (%s): " (string-join (reverse (my/plover-recent-stats drill)) ", "))))
-  (end-of-line)
-  (forward-char 1))
+  (unless (string= (downcase (string-trim drill)) "x")
+    (let ((url (assoc-default drill my/plover-drills)))
+      (plover-websocket-resume-plover)
+      (when (string-match "learn-keyboard" url)
+        (plover-websocket-send :translation "{PLOVER:TOGGLE_DICT:-main.json,-user.json}"))
+      (switch-to-buffer (find-file my/plover-drill-file))
+      (goto-char (point-min))
+      (re-search-forward "#\\+NAME: drill\n")
+      (insert (format "| %s | %s |  |\n"
+                      (org-link-make-string url drill)
+                      (format-time-string "[%Y-%m-%d %a %H:%M]")))
+      (backward-char 3)
+      (browse-url url)
+      (read-string "Ignore this: ")
+      (when (string-match "learn-keyboard" url)
+        (plover-websocket-send :translation "{PLOVER:TOGGLE_DICT:+main.json,+user.json}"))
+      (insert (read-string (format "Time (%s): " (string-join (reverse (my/plover-recent-stats drill)) ", "))))
+      (end-of-line)
+      (forward-char 1)
+      t)))
 
 (defun my/plover-recent-stats (drill-name)
   (mapcar
@@ -2834,12 +2917,805 @@ Restore main dictionary and turn off Plover when done."
    (interactive)
    (quantified-track "Steno")
    (call-process "wmctrl" nil 0 nil "-i" "-a" (number-to-string (my/wmctl-get-id "emacs")))
-   (unwind-protect (while t (my/plover-drill (consult--read my/plover-drills :prompt "Drill: " :sort nil
-                                                            :history 'my/plover-drill-history
-                                                            :default (car my/plover-drill-history))))
-     (plover-websocket-send :translation "{PLOVER:TOGGLE_DICT:+main.json}")
-     (plover-websocket-suspend-plover)))
+   (while (my/plover-drill (consult--read my/plover-drills :prompt "Drill: " :sort nil
+                                          :history 'my/plover-drill-history
+                                          :default (car my/plover-drill-history)))))
   #+end_src
+*** Making it easier to execute commands
+
+#+begin_src emacs-lisp :lexical t
+(setq enable-recursive-minibuffers t)
+(defun my/replace-heading (new-text) 
+  (interactive (list (read-string (concat (org-get-heading t t t t) ": "))))
+  (org-back-to-heading)
+  (when (looking-at org-complex-heading-regexp)
+    (replace-match new-text t t nil 4)))
+
+(defun my/process-inbox-entries ()
+  (interactive)
+  (catch 'exit
+    (while t
+      (plover-websocket-send :stroke '["K-" "P-" "A-" "*"])
+      (my/read-command-string
+       (lambda () (concat (org-get-heading t t t t) ": "))
+       '(("replace and post"
+          (lambda () (interactive)
+            (call-interactively 'my/replace-heading)
+            (call-interactively 'my/org-mark-done-and-add-to-journal)
+            (org-forward-heading-same-level 1)))
+         ("edit" my/replace-heading)
+         ("post" my/org-mark-done-and-add-to-journal)
+         ("refile" org-refile)
+         ("to do" org-todo)
+         ("next" org-forward-heading-same-level)
+         ("open link" (lambda () (interactive)
+                        (save-excursion
+                          (when (re-search-forward org-link-any-re nil t)
+                            (goto-char (match-beginning 0))
+                            (org-open-at-point)))))
+         ("yesterday" (lambda ()  (interactive)
+                        (save-excursion
+                          (re-search-forward org-element--timestamp-regexp)
+                          (goto-char (match-beginning 0))
+                          (org-timestamp-down-day))))
+         ("previous" org-backward-heading-same-level)
+         ("new journal" my/journal-post)
+         ("practice" (lambda () (interactive) (quantified-track "steno") (browse-url "https://didoesdigital.com/typey-type/progress")))
+         ("lowercase" downcase-word)
+         ("capitalize" capitalize-word)
+         ("clean" my/org-clean-up-inbox)
+         ("replace heading" my/replace-heading)
+         ("cut subtree" org-cut-subtree)
+         ("export subtree to 11ty" (lambda () (interactive) (org-11ty-export-to-11ty t t)))
+         ("exit" (throw 'exit nil)))
+       (lambda (input)
+         (my/replace-heading input)
+         (call-interactively 'my/org-mark-done-and-add-to-journal)
+         (org-forward-heading-same-level 1))
+       t))))
+
+(defmacro my/read-command-string (prompt commands default-fn &optional include-commands)
+  (declare (debug t))
+  `(let* ((command
+           (consult--read
+            (append ,commands
+                    (if ,include-commands
+                        (let (res)
+                          (mapatoms
+                           (lambda (o)
+                             (when (commandp o) (push (symbol-name o) res))))
+                          res)))
+            :prompt (cond
+                     ((functionp ,prompt) (funcall ,prompt))
+                     ((stringp ,prompt) ,prompt) 
+                     (t "Command: "))
+            :category 'function
+            :sort nil))
+          (entry (assoc-default command ,commands)))
+     (cond
+      ((and entry (listp (car entry)))
+       (if (functionp (car entry))
+           (funcall (car entry))
+         (eval (car entry) t)))
+      (entry (call-interactively (car entry)))
+      ((commandp (intern command)) (call-interactively (intern command)))
+      ((functionp ,default-fn) (funcall ,default-fn command)))))
+
+(defun my/read-commands ()
+  (interactive)
+  (cond
+   ((derived-mode-p 'org-mode)
+    (my/process-inbox-entries))
+   ((derived-mode-p 'subed-mode)
+    (my/plover/edit-subtitles))))
+ 
+#+end_src
+*** Suggesting briefs
+
+Only checks one dictionary for now, but probably good enough
+
+#+begin_src emacs-lisp
+(defun my/plover-briefpedia (translation)
+  (interactive "MTranslation: ")
+  (with-current-buffer (url-retrieve-synchronously (concat "http://briefpedia.com/AjaxTables.php?search=" (url-encode-url translation)))
+    (goto-char (point-min))
+    (re-search-forward "^$")
+    (save-excursion
+      (insert "<div>")
+      (goto-char (point-max)) (insert "</div>"))
+    (let* ((data (xml-parse-region (point) (point-max)))
+           (entries (mapcar (lambda (o) (string-trim (dom-text o))) (dom-by-tag (dom-by-id data "divEnglishTable") 'a)))
+           (conflicts (seq-group-by 'car
+                                     (mapcar (lambda (row) (mapcar (lambda (cell) (string-trim (dom-texts cell))) (dom-by-tag row 'td)))
+                                             (cdr (dom-by-tag (dom-by-id data "divCrossTable") 'tr))))))
+      (mapcar (lambda (entry) (cons entry (mapcar 'cadr (assoc-default entry conflicts)))) entries))))
+
+(defun my/plover-read-outline-for-brief (base-prompt)
+  (let* ((prompt (or base-prompt "Outline: "))
+         new-brief
+         (brief (with-plover-plain (read-string prompt)))
+         (my-conflicts (my/plover-check-for-conflict brief)))
+    (while my-conflicts
+      (setq prompt (format "%s%s conflicts %s (alt: %s): "
+                           (if base-prompt (concat base-prompt "\n") "")
+                           brief (car my-conflicts) (string-join (cdr my-conflicts) ", ")))
+      (setq new-brief (with-plover-plain (read-string prompt)))
+      (if (string= new-brief "")
+          (setq my-conflicts nil)
+        (setq brief new-brief)
+        (setq my-conflicts (my/plover-check-for-conflict brief))))
+    brief))
+
+(defun my/plover-brief-with-check (translation)
+  (interactive "MTranslation: ")
+  (setq translation (string-trim translation))
+  (let ((brief (my/plover-read-outline-for-brief (format "Outline for %s: " translation))))
+    (when brief
+      (kill-new (format "| %s | %s |" brief translation))
+      (plover-websocket-add-translation brief translation))))
+
+(defun my/plover-briefpedia-suggest (translation)
+  (interactive "MTranslation: ")
+  (setq translation (string-trim translation))
+  (let* ((entries (my/plover-briefpedia translation))
+         (current (my/plover-search-dictionary-for-translation translation))
+         (brief
+          (my/plover-read-outline-for-brief 
+           (concat
+            (if current (format "Current: %s\n" (mapconcat 'car current "; ")) "")
+            (if entries
+                (concat (mapconcat
+                         (lambda (entry)
+                           (let ((dict-conflict (my/plover-check-for-conflict (car entry))))
+                             (cond
+                              ((and (cdr entry) dict-conflict)
+                               (format "%s - dict conflict: %s (%s)\nbrief conflict: %s"
+                                       (car entry)
+                                       (car dict-conflict)
+                                       (string-join (cdr dict-conflict) "; ")
+                                       (string-join (cdr entry) "; ")))
+                              ((cdr entry)
+                               (format "%s - brief conflict: %s"
+                                       (car entry)
+                                       (string-join (cdr entry) "; ")))
+                              (t (car entry)))))
+                         entries
+                         "\n")
+                        "\nOutline: ")
+              "No suggestions. Outline: ")))))
+    (when brief
+      (kill-new (format "| %s | %s |" brief translation))
+      (plover-websocket-add-translation brief translation))))
+
+(defun my/plover-check-for-conflict (outline)
+  (let* ((case-fold-search nil)
+         (translation (cdar (my/plover-search-dictionary-for-strokes (concat "^" outline "$"))))
+         (alternatives (and translation (my/plover-search-dictionary-for-translation translation))))
+    (if translation (cons translation (mapcar 'car alternatives)))))
+#+end_src
+*** Practising within Emacs
+   Main function: =M-x my/practise-steno=, called in an Org table of =| translation | outline |=
+ 
+ #+begin_src emacs-lisp :lexical t
+(defun my/practise-steno-interleave (base item)
+  "Interleave BASE words with item."
+  (cons item
+        (-interleave base (make-list (length base) item))))
+;; Copied from elfeed--shuffle
+(defun my/practise-steno-shuffle (seq)
+  "Destructively shuffle SEQ."
+  (let ((n (length seq)))
+    (prog1 seq
+      (dotimes (i n)
+        (cl-rotatef (elt seq i) (elt seq (+ i (cl-random (- n i)))))))))
+(defun my/practise-steno-repeat (seq times)
+  (funcall 'append (make-list times seq)))
+(defface my/practise-steno-correct '((t :foreground "green")) "Correct.")
+(defface my/practise-steno-wrong '((t :foreground "red")) "Wrong.")
+(defface my/practise-steno-highlight '((t :background "white" :foreground "black")) "Focus.")
+(defface my/practise-steno-base '((t :height 150)) "Base.")
+(defvar my/practise-steno-items nil)
+(defvar my/practise-steno-index 0)
+(defvar my/practise-steno-buffer-name "*Steno practice*")
+(defvar my/practise-steno-start-of-input nil)
+(defvar my/practise-steno-current-overlay nil)
+(defvar my/practise-steno-previous-overlay nil)
+(defvar my/practise-steno-highlight-overlay nil)
+(defvar my/practise-steno-stroke-buffer nil)
+(defvar my/practise-steno-for-review nil)
+
+;; From https://stackoverflow.com/questions/1249497/command-to-center-screen-horizontally-around-cursor-on-emacs
+(defun my/horizontal-recenter ()
+  "Make the point horizontally centered in the window."
+  (interactive)
+  (let ((mid (/ (window-width) 2))
+        (pixel-pos (car (window-absolute-pixel-position)))
+        (pixel-mid (/ (window-pixel-width) 2))
+        (line-len (save-excursion (end-of-line) (current-column)))
+        (cur (current-column)))
+    (while (< pixel-mid pixel-pos)
+      (set-window-hscroll (selected-window)
+                          (1+ (window-hscroll)))
+      (setq pixel-pos (car (window-absolute-pixel-position))))))
+
+(defun my/practise-steno--handle-correct ()
+  (if my/practise-steno-previous-overlay
+      (move-overlay my/practise-steno-previous-overlay (overlay-start my/practise-steno-previous-overlay)
+                    (+ (overlay-end my/practise-steno-previous-overlay) (match-end 0)))
+    (setq my/practise-steno-previous-overlay
+          (make-overlay (overlay-end my/practise-steno-previous-overlay)
+                        (+ (overlay-end my/practise-steno-previous-overlay) (match-end 0))))
+    (overlay-put my/practise-steno-previous-overlay 'face 'my/practise-steno-correct)))
+
+(defun my/practise-steno--mark-incorrect-and-fixed ()
+  (overlay-put (make-overlay (overlay-end my/practise-steno-previous-overlay)
+                             (+ (overlay-end my/practise-steno-previous-overlay) (match-beginning 0)))
+               'face 'my/practise-steno-wrong)
+  ;; make a new overlay
+  (setq my/practise-steno-previous-overlay (copy-overlay my/practise-steno-previous-overlay))
+  (move-overlay my/practise-steno-previous-overlay
+                (+ (overlay-end my/practise-steno-previous-overlay) (match-beginning 0))
+                (+ (overlay-end my/practise-steno-previous-overlay) (match-end 0)))
+  (setq my/practise-steno-for-review (append my/practise-steno-for-review (list (elt my/practise-steno-items my/practise-steno-index))))
+  ;; highlight the sample as incorrect, too
+  (let ((incorrect-sample (copy-overlay my/practise-steno-highlight-overlay)))
+    (overlay-put incorrect-sample 'face 'my/practise-steno-wrong)
+    (save-excursion
+      (goto-char (overlay-start my/practise-steno-highlight-overlay))
+      (insert (make-string
+               (+
+                (if (bolp) 1 0)
+                (match-beginning 0))
+               ?\ )))))
+
+(defun my/practise-steno--move-to-next-item ()
+  (setq my/practise-steno-stroke-buffer nil)
+  (setq my/practise-steno-index (1+ my/practise-steno-index))
+  (move-overlay my/practise-steno-current-overlay (overlay-end my/practise-steno-previous-overlay) (point))
+  (if (elt my/practise-steno-items my/practise-steno-index)
+      (move-overlay my/practise-steno-highlight-overlay
+                    (1+ (overlay-end my/practise-steno-highlight-overlay))
+                    (+ (overlay-end my/practise-steno-highlight-overlay)
+                       1 (length (car (elt my/practise-steno-items my/practise-steno-index)))))
+    (when my/practise-steno-for-review
+      (goto-char (point-max))
+      (kill-new (mapconcat 'car my/practise-steno-for-review " "))
+      (insert "\nFor review: " (mapconcat 'car my/practise-steno-for-review " ")))))
+
+(defun my/practise-steno--handle-completed-item ()
+  ;; extend the feedback overlay to the current point
+  (if (= (match-beginning 0) 0)
+      (my/practise-steno--handle-correct)
+    ;; mark incorrect area
+    (my/practise-steno--mark-incorrect-and-fixed))
+  (my/practise-steno--move-to-next-item))
+
+(defun my/practise-steno-check (&rest _)
+  (interactive)
+  (let* ((sample (car (elt my/practise-steno-items my/practise-steno-index)))
+         (input (and (< (overlay-end my/practise-steno-previous-overlay) (point))
+                     (buffer-substring-no-properties (overlay-end my/practise-steno-previous-overlay) (point)))))
+    (when (and sample input)
+      (if (string-match (concat " *" (regexp-quote sample) " *") input)
+          (my/practise-steno--handle-completed-item)
+        ;; still in progress
+        (move-overlay my/practise-steno-current-overlay
+                      (overlay-start my/practise-steno-current-overlay)
+                      (1+ (point))))
+      (my/horizontal-recenter))))
+
+(defun my/practise-steno-store-strokes (payload)
+  (when (and (plist-get payload :stroked) (string= (buffer-name) my/practise-steno-buffer-name))
+    (let ((current-item (elt my/practise-steno-items my/practise-steno-index))
+          (rtfcre (plist-get (plist-get payload :stroked) :rtfcre)))
+      (save-excursion
+        (goto-char (point-max))
+        (insert (if (bolp) "" " ") rtfcre))
+      (when (and (cadr current-item)
+               (> (- (overlay-end my/practise-steno-current-overlay)
+                     (overlay-start my/practise-steno-current-overlay))
+                  (length (car current-item))))
+        (setq my/practise-steno-stroke-buffer (append my/practise-steno-stroke-buffer (list rtfcre)))
+        (momentary-string-display (format " (%s -> %s)"
+                                          (string-join my/practise-steno-stroke-buffer " ")
+                                          (cadr current-item))
+                                  (point)
+                                  ?\0
+                                  "")))))
+
+(defun my/practise-steno (items)
+  "Display ITEMS for practicing.
+ITEMS should be a list like ((word) (word) (word))."
+  (interactive (list (let ((table (org-table-to-lisp)))
+                       (if table
+                           (if current-prefix-arg
+                               (subseq table
+                                       (1- (org-table-current-line))
+                                       (min (length table) (+ (org-table-current-line) current-prefix-arg -1)))
+                             table)
+                         my/practise-steno-items))))
+  (with-current-buffer (get-buffer-create my/practise-steno-buffer-name)
+    (erase-buffer)
+    (insert "\n" (mapconcat 'car items " ") "\n")
+    (save-excursion (insert "\n\n"))
+    (toggle-truncate-lines 1)
+    (setq my/practise-steno-items items
+          my/practise-steno-index 0
+          my/practise-steno-start-of-input (point)
+          my/practise-steno-for-review nil
+          my/practise-steno-current-overlay (make-overlay (point) (1+ (point)))
+          my/practise-steno-previous-overlay (make-overlay (point) (point))
+          my/practise-steno-stroke-buffer nil
+          my/practise-steno-highlight-overlay (make-overlay (1+ (point-min)) (+ 1 (point-min) (length (car (car items))))))
+    (buffer-face-set "my/practise-steno-base")
+    (overlay-put my/practise-steno-previous-overlay 'face 'my/practise-steno-correct)
+    (overlay-put my/practise-steno-highlight-overlay 'face 'my/practise-steno-highlight)
+    (overlay-put my/practise-steno-current-overlay 'modification-hooks '(my/practise-steno-check))
+    (overlay-put my/practise-steno-current-overlay 'insert-in-front-hooks '(my/practise-steno-check))
+    (overlay-put my/practise-steno-current-overlay 'face 'my/practise-steno-wrong)
+    ;; (add-hook 'after-change-functions 'my/practise-steno-check nil t)
+    (add-hook 'plover-websocket-on-message-payload-functions 'my/practise-steno-store-strokes)
+    (switch-to-buffer (current-buffer))))
+
+(defun my/practise-steno-word-list (words)
+  (interactive (list (mapcar 'list (split-string (read-string "Words: ")))))
+  (my/practise-steno words))
+  
+    
+;; (call-interactively 'my/practise-steno)
+ #+end_src
+
+ #+RESULTS:
+ :results:
+ my/practise-steno-show
+ :end:
+
+*** Editing subtitles
+
+#+begin_src emacs-lisp
+(defun my/subed-subtitle-set-text (text)
+  (interactive "MNew text: ")
+  (subed-jump-to-subtitle-text)
+  (delete-region (point) (or (subed-jump-to-subtitle-end) (point)))
+  (insert text))
+
+(defun my/plover/edit-find-target (input)
+  (or (looking-at (concat "\\b" (regexp-quote input) "\\b"))
+      (re-search-forward (concat "\\b" (regexp-quote input) "\\b")
+                         nil t)))
+(defun my/plover/edit-subtitles ()
+  (interactive)
+  (catch 'exit
+    (while t
+      (my/read-command-string
+       "Command: "
+       '(("toggle" subed-mpv-toggle-pause)
+         ("jump" (lambda () (interactive) (subed-mpv-jump-to-current-subtitle)))
+         ("split [text before split]" subed-split-subtitle)
+         ("center" recenter-top-bottom)
+         (" previous" (lambda () (interactive) (subed-merge-with-previous) (fill-paragraph)))
+         ("merge next" (lambda () (interactive) (subed-merge-with-next) (fill-paragraph)))
+         ("slow" (lambda () (interactive) (subed-mpv-playback-speed 0.5)))
+         ("fast" (lambda () (interactive) (subed-mpv-playback-speed 2)))
+         ("scroll" scroll-up-command)
+         ("fill" fill-paragraph)
+         ("next [text]" search-forward)
+         ("replace <text>")
+         ("previous [text]" search-backward)
+         ("cap [text]" capitalize-word)
+         ("delete [text]" kill-word)
+         (", [text]" (lambda () (interactive) (insert ",")))
+         ("end [text] - adds period and capitalizes next word" (lambda () (interactive) (insert ".") (capitalize-word 1)))
+         ("oops" 'undo)
+         ("exit" (throw 'exit nil)))
+       (lambda (input)
+         (cond
+          ((string-match "^split \\(.+\\) *$" input)
+           (when (my/plover/edit-find-target (match-string 1 input))
+             (goto-char (match-end 0))
+             (subed-split-subtitle)
+             (fill-paragraph)))
+          ((string-match "^delete \\(.+\\) *$" input)
+           (when (my/plover/edit-find-target (match-string 1 input))
+             (replace-match "")))
+          ((string-match "^, \\(.+\\) *$" input)
+           (when (my/plover/edit-find-target (match-string 1 input))
+             (goto-char (match-end 0))
+             (insert ",")))
+          ((string-match "^end \\(.+\\) *$" input)
+           (when (my/plover/edit-find-target (match-string 1 input))
+             (goto-char (match-end 0))
+             (insert ".")
+             (unless (save-excursion (subed-jump-to-subtitle-end))
+               (subed-forward-subtitle-text))
+             (capitalize-word 1)))
+          ((string-match "^zap \\(.+\\)$" input)
+           (delete-region (point)
+                          (my/plover/edit-find-target (match-string 1 input))))
+          ((string-match "^replace \\(.+\\)$" input)
+           (kill-word 1)
+           (insert (match-string 1 input)))
+          ((string-match "^cap \\(.+\\) *$" input)
+           (when (my/plover/edit-find-target (match-string 1 input))
+             (replace-match (capitalize (match-string 0)) t t)))
+          ((string-match "^... \\(.+\\) *$" input)
+           (when (my/plover/edit-find-target (match-string 1 input))
+             (insert "...")))
+          ((string-match "^next \\(.+\\) *$" input)
+           (my/plover/edit-find-target (match-string 1 input)))
+          ((string-match "^previous \\(.+\\) *$" input)
+           (re-search-backward (concat "\\b" (regexp-quote (match-string 1 input)) "\\b") nil t)
+           (goto-char (match-end 0)))
+          (t (re-search-forward (concat "\\b" (regexp-quote input) "\\b")))
+          ;; (t (my/subed-subtitle-set-text input))
+          ))
+       nil))))
+#+end_src
+    
+*** Using inotify to add Plover Clippy suggestions into Emacs
+    :PROPERTIES:
+    :EXPORT_DATE: 2021-06-18
+    :EXPORT_ELEVENTY_PERMALINK: /blog/2021/06/using-inotify-to-add-plover-clippy-suggestions-into-emacs/
+    :EXPORT_ELEVENTY_FILE_NAME: blog/2021/06/using-inotify-to-add-plover-clippy-suggestions-into-emacs/
+    :CUSTOM_ID: plover_clippy_buffer
+    :END:
+
+Update 2021-06-19: Changed to a vertical layout, added extra notes, simplified
+
+I don't have a lot of screen space on my laptop, so I don't usually
+have the [[https://github.com/openstenoproject/plover][Plover]] suggestion window open as I type. I came up with a
+[[https://github.com/sachac/plover-sacha-plugin/blob/main/plover_sacha_plugin/commands.py][Plover plugin]] to let me flash the last [[https://github.com/tckmn/plover_clippy][Plover Clippy]] suggestion as a
+temporary notification. It went by too quickly, though, so I wrote
+something that uses inotify to monitor the clippy.txt log and put it
+an Emacs buffer instead. It results in text like this:
+
+#+begin_example
+Clippy
+KHREUP PEU
+added
+ATD
+#+end_example
+
+#+begin_src emacs-lisp
+(defvar my/clippy-recent-suggestions nil "Recent suggestions, limited by `my/clippy-recent-suggestions-limit`.")
+(defvar my/clippy-recent-suggestions-limit nil "If non-nil, keep this many suggestions.")
+(defvar my/clippy-extra-notes nil "Extra notes to add at the end.")
+(defun my/clippy-last ()
+  (let ((value (string-trim (shell-command-to-string "tail -1 ~/.config/plover/clippy.txt | cut -c 23-"))))
+    (when (string-match "^\\(.*?\\)[ \t]+|| .*? -> \\(.+\\)" value)
+      (cons (match-string 1 value) (match-string 2 value)))))
+
+(defun my/clippy-show (&rest _)
+  (interactive)
+  (with-current-buffer (get-buffer-create "*Clippy*")
+    (let ((last (my/clippy-last)))
+      (if my/clippy-recent-suggestions-limit
+          (progn
+            (unless (equal last (car my/clippy-recent-suggestions))
+              (setq my/clippy-recent-suggestions (seq-take (cons last my/clippy-recent-suggestions) my/clippy-recent-suggestions-limit)))
+            (erase-buffer)
+            (insert (mapconcat (lambda (o) (format "| %s | %s |\n"  (car o) (cdr o))) my/clippy-recent-suggestions "")))
+        (unless (equal last (car my/clippy-recent-suggestions))
+          (setq my/clippy-recent-suggestions (cons last my/clippy-recent-suggestions))
+          (goto-char (point-min))
+          (insert (format "| %s | %s |\n" (car last) (cdr last))))))
+    (when (get-buffer-window (current-buffer))
+      (set-window-point (get-buffer-window (current-buffer)) (point-min)))))
+
+(defun my/insert-symbol (symbol-name)
+  (interactive (list
+                (let ((orig-buffer (current-buffer)))
+                  (completing-read
+                   "Insert symbol: "
+                   #'help--symbol-completion-table
+                   (lambda (vv)
+                     ;; In case the variable only exists in the buffer
+                     ;; the command we switch back to that buffer before
+                     ;; we examine the variable.
+                     (with-current-buffer orig-buffer
+                       (or (get vv 'variable-documentation)
+                           (functionp vv)
+                           (and (boundp vv) (not (keywordp vv))))))))))
+  (insert symbol-name))
+
+(defun my/insert-variable (symbol-name)
+  (interactive (list
+                (let ((orig-buffer (current-buffer)))
+                  (completing-read
+                   "Insert variable: "
+                   #'help--symbol-completion-table
+                   (lambda (vv)
+                     ;; In case the variable only exists in the buffer
+                     ;; the command we switch back to that buffer before
+                     ;; we examine the variable.
+                     (with-current-buffer orig-buffer
+                       (or (get vv 'variable-documentation)
+                           (and (boundp vv) (not (keywordp vv))))))))))
+  (insert symbol-name))
+
+(defun my/insert-function (symbol-name)
+  (interactive (list
+                (completing-read
+                 "Insert function: "
+                 #'help--symbol-completion-table
+                 'functionp)))
+  (insert symbol-name))
+
+(defvar my/clippy-monitor nil)
+(defun my/clippy-toggle-monitor ()
+  (interactive)
+  (if (inotify-valid-p my/clippy-monitor)
+      (progn
+        (message "Turning off")
+        (inotify-rm-watch my/clippy-monitor))
+    (message "Turning on")
+    (setq my/clippy-monitor
+          (inotify-add-watch
+           (expand-file-name "~/.config/plover/clippy.txt") 'modify
+           #'my/clippy-show))))
+#+end_src
+
+*** Stenoing interface
+
+#+begin_src emacs-lisp
+
+(defvar my/plover-quick-notes "~/code/plover-notes/scratch.org")
+(defvar my/plover-current-stroke-buffer "*Current stroke*")
+(defun my/plover-add-note (string)
+  (interactive "MNote: ")
+  (with-current-buffer (find-file-noselect my/plover-quick-notes)
+    (goto-char (point-min))
+    (insert string)
+    (unless (bolp) (insert "\n"))))
+
+(defun my/plover-add-last-clippy-to-notes ()
+  (interactive)
+  (my/plover-add-note (format "| %s | %s |\n" (caar my/clippy-recent-suggestions) (cdar my/clippy-recent-suggestions))))
+
+(defun my/plover-scroll-notes ()
+  (interactive)
+  (message "Hello")
+  (when (get-buffer-window (get-file-buffer my/plover-quick-notes))
+    (with-selected-window (get-buffer-window (get-file-buffer my/plover-quick-notes))
+      (scroll-up))))
+
+(defun my/plover-scroll-notes-down ()
+  (interactive)
+  (message "World")
+  (when (get-buffer-window (get-file-buffer my/plover-quick-notes))
+    (with-selected-window (get-buffer-window (get-file-buffer my/plover-quick-notes))
+      (scroll-down))))
+
+(defun my/plover-spectra-last-clippy ()
+  (interactive)
+  (browse-url (format "http://localhost:8081/?outline=%s&translation=%s"
+                      (car (split-string (cdar my/clippy-recent-suggestions) ", "))
+                      (caar my/clippy-recent-suggestions))))
+
+(defun my/plover-layout-windows ()
+  "Organize my windows."
+  (interactive)
+  (delete-other-windows)
+  (when plover-websocket-stroke-buffer-name
+    (with-selected-window (split-window-below -4)
+      (switch-to-buffer plover-websocket-stroke-buffer-name)))
+  (with-selected-window (split-window-right 100)
+    (switch-to-buffer (get-buffer-create "*Clippy*"))
+    (when my/plover-quick-notes
+      (with-selected-window (split-window-below 10)
+        (switch-to-buffer (find-file my/plover-quick-notes))))))
+
+(defun my/plover-clear-stroke-log ()
+  (interactive)
+  (with-current-buffer (get-buffer-create plover-websocket-stroke-buffer-name)
+    (erase-buffer)))
+
+(setq plover-websocket-stroke-buffer-name "*Stroke log*")
+#+end_src
+*** Cheat sheets
+    :PROPERTIES:
+    :CREATED:  [2021-05-26 Wed 15:38]
+    :END:
+
+  #+begin_src emacs-lisp
+(defhydra my/hydra/cheatsheet/plover ()
+  "SKHW- symbols -LTZ modifiers TWR- journal phrases
+newparSKWRAURBGS bsPW-FP capKPA !space!capTK-LS cap!spaceKPA rmspcTK-FPS*
+number: dupeD, revEU, 00/#OD, 00Z, $DZ, timeK- or -BG
+`KH-FG  ^KR-RT ~T*LD <AEPBGT =QA*LS >A*EPBGT |PAO*EUP \\_R*UND
+-H-N --TK-RB ,KW-BG ;SKWR*RBGS :capSTPH-FPLT :KL-N !SKHRAPL
+?H-F /OI .nspP-P ...SKWR-RBGS 'A*E,AE \"KW-GS,KR-GS
+(PREN,* [PWR-BGT,* {TPR-BGT,* @KWRAT $TK-PL *STA*R
+\\SPWHRAERB \\&SP-PBD #HAERB percPERS +PHR*US
+retro KA*PD cap last *UPD cap all HRO*ERD lowered #* star AFPS add space TK-FPS del space
+next HRO*ER lower KPA*L cap all
+mode SPH-: RL lower R reset T Title -FPLT _RBGS")
+
+(defhydra my/hydra/cheatsheet/jade-plover-phrasing ()
+  "S: SWR I, KPWR you, KWHR he, SKWHR she, TWH they, TWR we, KPWH it, STKPWHR nothing
+M: OE don't (AOE really don't OEU don't really)
+AU didn't, E doesn't, O can't, A or U really, AOEU don't even
+E: PB know, P want, RPL remember, BL believe, FG forget, R are
+BG can, BGD could, BGT can't, BLG like, BLGT like to, BLGTS likes to
+BLT believe that, BS said, BT be the, BTS be said to, BTZ say to
+D had, F have, FGT forgot, FLG feel like, FLGT felt like, FLT felt
+FPLT must, FR ever, FRB wish, FRBT wish to, FS was, FT have to, FTS has to, FZ has, GT get, L will, LG love, PBD need, PBG think, PBL mean,
+PLD mind, PLG imagine, PLT might
+"
+  )
+
+(defhydra my/hydra/cheatsheet/emily-symbols ()
+  "SKHW+ A (spc before) O (spc after) * (cap)
+        v   E         U     EU
+FG ws   Tab Backspace Del   Esc
+RPBG    Up  Left      Right Down
+FPBL    ↑   ←         →     ↓
+FRPBG   PgU Home      End   PgD
+blank   ''  {*!}      {*?}  spc
+FPL     (   [         <     {
+RBG     )   ]         >     }
+'F *L +G &FBG \"FP #FRLG $RPBL percFRPB
+,B -PL .R /RP :LG ;RB =PBLG @FRPBLG \\FB \\^RPG
+_BG `P |PB ~FPBG
+-S 2x -T 3x -ST 4x"
+  )
+(defhydra my/hydra/cheatsheet/emily-modifiers ()
+  "-LTZ F (C-) R (S-) P(s-) B(M-)
+Z is STKPW
+AO makes SKWR binary 0-9
+Symbols with *, AO variants
+TR tab delete backspace esc
+KPWR up left down right
+KPWHR pgup end home pgdown
+blank esc tab return spc
+TPH ( < [ {
+KWR ) > ] } 
+P `
+H '
+!HR \"PH #TKHR $KPWH percPWHR &SKP *T +K ,W -TP .R /WH :TK ;WR
+=TKPW ?TPW @TKPWHR \\PR ^KPR |PW ~TPWR")
+  #+end_src
+
+  #+RESULTS:
+  :results:
+  my/hydra/cheatsheet/emily-modifiers/body
+  :end:
+
+*** Coding with Plover
+
+#+begin_src emacs-lisp
+(defun my/plover-insert-defun ()
+  "Prompt for parts of a function definition."
+  (interactive)    
+  (insert "(defun ")
+  (plover-websocket-send :translation "{MODE:LOWER}{MODE:SET_SPACE:-}")
+  (insert (replace-regexp-in-string "-$" "" (read-string "Function name: ")))
+  (insert " (")
+  (plover-websocket-send :translation "{MODE:SET_SPACE: }")
+  (let ((args (replace-regexp-in-string "\\<optional\\>" "&optional" (string-trim (read-string "Args: ")))))
+    (insert args)
+    (insert ")\n")
+    (if (y-or-n-p "Interactive? ")
+        (if (string= args "")
+            (insert "(interactive)\n")
+          (insert "(interactive (list))\n"))))
+  (plover-websocket-send :translation "{MODE:RESET}{}{-|}")
+  (insert (format "\"%s\"\n"
+                  (replace-regexp-in-string "\"" "\\\"" (string-trim (read-string "Docstring: ")))))
+  (save-excursion (insert ")") (lispy--normalize-1))
+  (plover-websocket-send :translation "{MODE:LOWER}"))
+
+(defun my/plover-insert-defvar ()
+  (interactive)
+  "Define a variable."
+  (insert "(defvar ")
+  (plover-websocket-send :translation "{MODE:LOWER}{MODE:SET_SPACE:-}")
+  (insert (replace-regexp-in-string "-$" "" (read-string "Variable name: ")))
+  (insert " ")
+  (plover-websocket-send :translation "{MODE:RESET}{}{-|}")
+  (insert (string-trim (read-string "Default value: ")))
+  (insert (format " \"%s\")\n"
+                  (replace-regexp-in-string "\"" "\\\"" (string-trim (read-string "Docstring: "))))))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun my/org-edit-special-dwim ()
+  (interactive)
+  (cond
+    ((org-src-edit-buffer-p) (org-edit-src-exit))
+    ((org-in-src-block-p) (org-edit-special))
+    ((derived-mode-p 'org-mode)
+     (org-insert-structure-template "src emacs-lisp")
+     (org-edit-special))))
+(defun my/org-execute-special-dwim ()
+  (interactive)
+  (cond
+    ((org-src-edit-buffer-p) (eval-buffer))
+    ((org-in-src-block-p) (org-babel-execute-src-block))
+    (t (eval-buffer))))
+#+end_src
+
+*** Measuring WPM
+
+#+begin_src emacs-lisp
+(use-package typing-speed :load-path "~/elisp"
+  :config (setq typing-speed-window 120))
+#+end_src
+
+**** TODO measure strokes per second, strokes per word
+*** Displaying frequency-sorted completions with stroke hints
+
+#+begin_src emacs-lisp
+(defvar my/company-strokedict--grep-executable "grep")
+
+(defun my/company-strokedict--candidates (prefix)
+  "Fetches the candidates matching PREFIX."
+  (mapcar (lambda (o)
+            (let ((data (split-string o "\t")))
+              (propertize (car data) 'meta (cadr data))))
+          (split-string
+           (shell-command-to-string (concat
+                                     my/company-strokedict--grep-executable
+                                     " -i "
+                                     (shell-quote-argument (concat "^" prefix))
+                                     " "
+                                     "~/.config/plover/annotated.txt -m 10"))
+           "\n")))
+
+(defun my/company-strokedict--annotation (candidate)
+  (let ((stroke (get-text-property 0 'meta candidate)))
+    (if stroke
+        (format " (%s)" stroke)
+      "")))
+
+(defun my/company-strokedict (command &optional arg &rest ignored)
+  "`company-mode' backend for user-provided dictionaries. Dictionary files are lazy
+loaded."
+  (interactive (list 'interactive))
+  (cl-case command
+    (interactive     (company-begin-backend 'my/company-strokedict))
+    (candidates      (my/company-strokedict--candidates arg))
+    (prefix  (when-let ((prefix (company-grab-word))) (substring-no-properties prefix)))
+    (annotation (my/company-strokedict--annotation arg))
+    (sorted          t)
+    (duplicates      t)
+    (no-cache        t)))
+
+(use-package company
+  :config
+  (add-to-list 'company-backends 'my/company-strokedict))
+#+end_src
+
+This code added stroke annotations from the Typey Type dictionary to the frequency-sorted word list from https://github.com/hermitdave/FrequencyWords/blob/master/content/2018/en/en_full.txt.
+
+#+begin_src python :tangle "~/tmp/annotate_words.py"
+import json
+
+with open("/home/sacha/tmp/en_full.txt") as f:
+    lines = f.readlines()
+with open("/home/sacha/.config/plover/dictionaries/typey-type.json") as f:
+    typey = json.load(f)
+typey_inv = {v: k for k, v in typey.items()}
+with open("/home/sacha/.config/plover/dictionaries/combined.json") as f:
+    combined = json.load(f)
+combined_inv = {}
+for k, v in combined.items():
+    if v in combined_inv:
+        combined_inv[v] = combined_inv[v] + ', ' + k
+    else:
+        combined_inv[v] = k
+with open("/home/sacha/.config/plover/annotated.txt", "w") as f:
+    for line in lines:
+        word = line.split()[0]
+        if word in typey_inv:
+            f.write("%s\t%s\n" % (word, typey_inv[word]))
+        elif word in combined:
+            f.write("%s\t%s\n" % (word, combined[word]))
+        else:
+            f.write("%s\n" % word)
+#+end_src
+
+
 ** TOBLOG Manage photos with geeqie
    SCHEDULED: <2021-03-03 Wed>
 
@@ -3158,8 +4034,13 @@ These are great for quickly acting on tasks.
   (save-excursion
     (buffer-substring (save-excursion (org-end-of-meta-data t) (point)) (org-end-of-subtree))))
 
+(defun my/org-mark-done ()
+  (interactive)
+  (my/org-with-current-task (org-todo "DONE")))
 (defun my/org-mark-done-and-add-to-journal (&optional note category)
-  (interactive (list (read-string "Note: " (org-get-heading t t t t))
+  (interactive (list (if current-prefix-arg 
+                         (read-string (format "Note (%s): " (org-get-heading t t t t)))
+                       (org-get-heading t t t t))
                      (or (org-entry-get (point) "JOURNAL_CAT") (my/read-journal-category))))
   (my/org-with-current-task
    (org-todo "DONE")
@@ -3175,7 +4056,8 @@ These are great for quickly acting on tasks.
                                         :Category category
                                         :Other other
                                         :Date date)
-                       :ZIDString))))))
+                       :ZIDString)))
+     (org-back-to-heading))))
 
 (use-package org
   :config
@@ -3334,9 +4216,17 @@ entries, notes, and other semi-structured pieces of information.
          (file ,my/org-inbox-file)
          "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
          :immediate-finish t)
-        ("p" "Podcast log - timestamped" item
-         (file+olp+datetree "~/orgzly/timestamped.org")
-         "%<%H:%M:%S,%3N> %^{Note}"
+        ;; ("p" "Podcast log - timestamped" item
+        ;;  (file+olp+datetree "~/orgzly/timestamped.org")
+        ;;  "%<%H:%M:%S,%3N> %^{Note}"
+        ;;  :immediate-finish t)
+        ("b" "Plover note" table-line
+         (file+headline "~/code/plover-notes/README.org" "Brief notes")
+         "| %^{Stroke} | %^{Translation} | %^{Note} |"
+         :immediate-finish t)
+        ("c" "Plover review from clippy" table-line
+         (file+headline "~/code/plover-notes/README.org" "For review")
+         "%(let ((last (my/clippy-last))) (format \"| %s | %s |\" (car last) (cdr last)))" 
          :immediate-finish t)
         ("T" "Task" entry
          (file ,my/org-inbox-file)
@@ -3374,7 +4264,7 @@ entries, notes, and other semi-structured pieces of information.
          (file+olp+datetree "~/orgzly/journal.org")
          "%K - %a\n%i\n%?\n"
          :unnarrowed t)
-        ("c" "Protocol Link" entry (file+headline ,org-default-notes-file "Inbox")
+        ("C" "Protocol Link" entry (file+headline ,org-default-notes-file "Inbox")
          "* [[%:link][%:description]] \n\n#+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n%?\n\nCaptured: %U")
         ("db" "Done - Business" entry
          (file+headline "~/personal/business.org" "Tasks")
@@ -4665,9 +5555,7 @@ The following code makes it easy to add a line:
       (re-search-forward "<\\?xml")
       (goto-char (match-beginning 0))
       (let* ((feed (xml-parse-region (point) (point-max)))
-            (from-time (org-read-date nil t from-date))
-            (to-time (if to-date (org-read-date nil t to-date)))
-            (is-rss (> (length (xml-get-children (car feed) 'entry)) 0)))
+             (is-rss (> (length (xml-get-children (car feed) 'entry)) 0)))
         (mapconcat (lambda (link)
                      (format "- %s\n" 
                              (org-link-make-string (car link) (cdr link))))
@@ -4692,10 +5580,12 @@ The following code makes it easy to add a line:
                                 (caddr (car (xml-get-children entry 'link)))
                                 (caddr (car (xml-get-children entry 'title)))))
                              (-filter (lambda (entry)
-                                        (let ((entry-time (date-to-time (elt (car (xml-get-children entry 'pubDate)) 2))))
+                                        (let ((entry-time (format-time-string "%Y-%m-%d"
+                                                                              (date-to-time (elt (car (xml-get-children entry 'pubDate)) 2))
+                                                                              t)))
                                           (and
-                                           (not (time-less-p entry-time from-time))
-                                           (or (null to-time) (time-less-p entry-time to-time)))))
+                                           (not (string< entry-time from-date))
+                                           (or (null to-date) (string< entry-time to-date)))))
                                       (xml-get-children (car (xml-get-children (car feed) 'channel)) 'item))))
                    ""))))
 
@@ -5226,6 +6116,8 @@ appropriate level.
 **** 11ty
 
 #+begin_src emacs-lisp
+(use-package ox-11ty
+  :load-path "~/code/ox-11ty")
 (defun my/org-11ty-prepare-subtree ()
   (interactive)
   (unless (or (org-entry-get (point) "EXPORT_DATE")
@@ -5764,6 +6656,8 @@ So that I can easily add links at point. Formatted as an Org list for now.
 :END:
 
 #+begin_src emacs-lisp 
+(setq dired-dwim-target t)
+
 (defun my/org-get-links-in-region (beg end)
   (save-excursion
     (let (results)
@@ -5823,12 +6717,14 @@ So that I can easily add links at point. Formatted as an Org list for now.
   (org-entry-put (point) "CUSTOM_ID" id))
 
 (with-eval-after-load 'hydra
-  (define-key hydra-base-map (kbd "<down>") 'hydra-pop)
+  (define-key hydra-base-map (kbd "<down>") 'my/hydra-pop)
+  (define-key hydra-base-map (kbd "<up>") (lambda () (interactive) (my/hydra-go-and-push 'my/shortcuts/body)))
+
 
   (defhydra my/hydra/org-speed-commands ()
     ("i" my/org-set-custom-id "CUSTOM_ID" :exit t)
     ("<up>" my/hydra/org-mode/body :exit t)
-    ("u" (hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil))
+    ("u" (my/hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil))
   (defhydra my/hydra/org-mode (:foreign-keys run)
     ("b" my/org-back-to-heading "Heading")
     ("n" org-forward-heading-same-level "Next")
@@ -5836,16 +6732,16 @@ So that I can easily add links at point. Formatted as an Org list for now.
     ("a" org-archive-subtree-default "Archive")
     ("j" my/org-mark-done-and-add-to-journal "Journal" :exit t)
     ("k" org-cut-subtree "Kill")
-    ("<up>" (hydra-go-and-push 'my/shortcuts/body) :exit t hint nil)
-    ("u" (hydra-go-and-push 'my/shortcuts/body) :exit t :hint nil)
+    ("<up>" (my/hydra-go-and-push 'my/shortcuts/body) :exit t hint nil)
+    ("u" (my/hydra-go-and-push 'my/shortcuts/body) :exit t :hint nil)
     ("<f14>" nil "Exit" :exit t))
   (defhydra my/hydra/org-link ()
     ("RET" org-open-at-point "Open")
     ("e" org-insert-link "Edit")
     ("c" my/caption-show "Captions")
     ("w" my/org-link-element-copy-link "Copy link")
-    ("u" (hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil)
-    ("<up>" (hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil))
+    ("u" (my/hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil)
+    ("<up>" (my/hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil))
   (defhydra my/hydra/org-src (:inherit (my/hydra/org-mode/heads))
     ("e" org-babel-execute-src-block "Exec")
     ("E" my/org-execute-src-block-by-name "Exec by name")
@@ -5856,8 +6752,8 @@ So that I can easily add links at point. Formatted as an Org list for now.
     ("x" org-babel-expand-src-block "Expand")
     ("t" (org-babel-tangle '(4)) "Tangle at point")
     ("T" (org-babel-tangle '(16)) "Tangle target file")
-    ("u" (hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil)
-    ("<up>" (hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil)
+    ("u" (my/hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil)
+    ("<up>" (my/hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil)
     )
   (defun my/hydra/dwim ()
     (interactive)
@@ -5871,8 +6767,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
            (t (my/hydra/org-mode/body))))
       (my/shortcuts/body)))
   (define-key org-mode-map (kbd "<f14>") 'my/hydra/dwim)
-  (global-set-key (kbd "<f14>") 'my/hydra/dwim)
-  (global-set-key (kbd "S-SPC") 'my/hydra/dwim))
+  (global-set-key (kbd "<f14>") 'my/hydra/dwim))
   #+end_src
 *** Journal
 
@@ -5983,7 +6878,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
         (my/journal-post zidstring
                          :Category (my/journal-read-category (plist-get entry :Category))
                          :Other (read-string "Other: " (plist-get entry :Other)))
-      (plist-put entry :Note (read-string "Note: " (plist-get entry :Note)))
+      (plist-put entry :Note (read-string (format "Note (%s): " (plist-get entry :Note))))
       (plist-put entry :Category (my/journal-read-category (plist-get entry :Category)))
       (plist-put entry :Other (read-string "Other: " (plist-get entry :Other)))
       (my/journal-update entry))))
@@ -6355,6 +7250,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
        (python . t)
        (shell . t)
        (calc . t)
+       (js . t)
        (sqlite . t)
        (http . t)
        (ledger . t)
@@ -6791,6 +7687,36 @@ and turn it into:
   (add-function :after after-focus-change-function 'my/org-save-all-org-buffers))
 #+end_src
 
+**** Org links
+
+From https://xenodium.com/emacs-dwim-do-what-i-mean/
+#+begin_src emacs-lisp
+(defun ar/org-insert-link-dwim ()
+  "Like `org-insert-link' but with personal dwim preferences."
+  (interactive)
+  (let* ((point-in-link (org-in-regexp org-link-any-re 1))
+         (clipboard-url (when (string-match-p "^http" (current-kill 0))
+                          (current-kill 0)))
+         (region-content (when (region-active-p)
+                           (buffer-substring-no-properties (region-beginning)
+                                                           (region-end)))))
+    (cond ((and region-content clipboard-url (not point-in-link))
+           (delete-region (region-beginning) (region-end))
+           (insert (org-make-link-string clipboard-url region-content)))
+          ((and clipboard-url (not point-in-link))
+           (insert (org-make-link-string
+                    clipboard-url
+                    (read-string "title: "
+                                 (with-current-buffer (url-retrieve-synchronously clipboard-url)
+                                   (dom-text (car
+                                              (dom-by-tag (libxml-parse-html-region
+                                                           (point-min)
+                                                           (point-max))
+                                                          'title))))))))
+          (t
+           (call-interactively 'org-insert-link)))))
+(use-package org :bind (:map org-mode-map ("C-c C-l" . ar/org-insert-link-dwim)))
+#+end_src
 ** Coding
 *** Web development
 #+begin_src emacs-lisp 
@@ -7643,6 +8569,13 @@ with HTTPS sites.
 (use-package dockerfile-mode
   :mode ("Dockerfile\\'" . dockerfile-mode))
 #+end_src
+
+*** SOMEDAY Google Spreadsheets and Python - automate spreadsheet stuff?
+    :PROPERTIES:
+    :CREATED:  [2021-06-26 Sat 22:10]
+    :END:
+
+  https://www.twilio.com/blog/2017/02/an-easy-way-to-read-and-write-to-a-google-spreadsheet-in-python.html
 
 ** Internet Relay Chat
 
@@ -8677,8 +9610,7 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
   (interactive "MText: ")
   (obs-websocket-send "SetSourceSettings" :sourceName "OBSMessage" :sourceSettings 
                       (list :text
-                            (concat "Notes at stream.sachachua.com\n"
-                                    (mapconcat 'identity (org-wrap text 80) "\n"))))
+                            (concat (mapconcat 'identity (org-wrap text 80) "\n"))))
   (my/obs-websocket-add-caption text)
   (when obs-websocket-streaming-p
     (with-current-buffer (find-file-noselect "~/code/stream/index.org")
@@ -9358,7 +10290,7 @@ In termux, you also need to =pkg install diffutils=.
 
 (defun ibizaman/syncthing--get-sync-conflicts (directory)
   "Return a list of all sync conflict files in a DIRECTORY."
-  (directory-files-recursively directory "\\.sync-conflict-"))
+  (seq-filter (lambda (o) (not (string-match "\\.stversions" o))) (directory-files-recursively directory "\\.sync-conflict-")))
 
 
 (defvar ibizaman/syncthing--conflict-history nil

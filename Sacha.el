@@ -589,12 +589,6 @@ Based on `elisp-get-fnsym-args-string.'"
 (use-package helm-ls-git
   :if my/laptop-p)
 
-(use-package helm-descbinds
-  :defer t
-  :if my/laptop-p
-  :bind (("C-h b" . helm-descbinds)
-         ("C-h w" . helm-descbinds)))
-
 (defvar my/book-notes-directory "~/Dropbox/books")
 (defun my/helm-do-grep-book-notes ()
   "Search my book notes."
@@ -967,9 +961,6 @@ Based on `elisp-get-fnsym-args-string.'"
     (setq undo-tree-visualizer-timestamps t)
     (setq undo-tree-visualizer-diff t)))
 
-(use-package which-key :init (which-key-mode 1))
-(use-package which-key-posframe :if my/laptop-p :init (which-key-posframe-mode 1))
-
 (prefer-coding-system 'utf-8)
 (when (display-graphic-p)
   (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
@@ -998,6 +989,18 @@ Based on `elisp-get-fnsym-args-string.'"
       (when func
         (funcall func arg))
       (set-transient-map keymap t))))
+
+(use-package helm-descbinds
+  :defer t
+  :if my/laptop-p
+  :bind (("C-h b" . helm-descbinds)
+         ("C-h w" . helm-descbinds)))
+
+(use-package sortie :load-path "~/elisp")
+(use-package keysee :after sortie :load-path "~/elisp" :init (kc-mode))
+
+(use-package which-key :init (which-key-mode 1))
+(use-package which-key-posframe :if my/laptop-p :init (which-key-posframe-mode 1))
 
 (bind-key "C-x p" 'pop-to-mark-command)
 (setq set-mark-command-repeat-pop t)

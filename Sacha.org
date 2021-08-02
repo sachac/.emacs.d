@@ -872,15 +872,6 @@ possible, although I prefer ido's way of switching buffers.
 (use-package helm-ls-git
   :if my/laptop-p)
 #+END_SRC
-Great for describing bindings. I'll replace the binding for =where-is= too.
-
-#+BEGIN_SRC emacs-lisp 
-(use-package helm-descbinds
-  :defer t
-  :if my/laptop-p
-  :bind (("C-h b" . helm-descbinds)
-         ("C-h w" . helm-descbinds)))
-#+END_SRC
 
 helm-grep? Bit slow and hard to read, though.
 #+BEGIN_SRC emacs-lisp 
@@ -1379,15 +1370,6 @@ This lets you use =C-x u= (=undo-tree-visualize=) to visually walk through the c
     (setq undo-tree-visualizer-diff t)))
 #+END_SRC
 
-*** which-key and which-key-posframe
-
-It's hard to remember keyboard shortcuts. 
-
-#+BEGIN_SRC emacs-lisp
-(use-package which-key :init (which-key-mode 1))
-(use-package which-key-posframe :if my/laptop-p :init (which-key-posframe-mode 1))
-#+END_SRC
-
 *** UTF-8
 
 From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
@@ -1440,6 +1422,44 @@ command by default, and to use =kbd= for the keybinding definitions.
 #+END_SRC
 
 **** TODO Look for opportunities to use this
+** Discovering things
+*** Helm-descbinds
+    Great for describing bindings. I'll replace the binding for =where-is= too.
+
+ #+BEGIN_SRC emacs-lisp 
+(use-package helm-descbinds
+  :defer t
+  :if my/laptop-p
+  :bind (("C-h b" . helm-descbinds)
+         ("C-h w" . helm-descbinds)))
+ #+END_SRC
+
+*** Try out keysee.el
+:PROPERTIES:
+:CREATED:  [2021-07-28 Wed 20:53]
+:END:
+
+From https://www.reddit.com/r/emacs/comments/otjn19/is_there_a_way_to_add_search_to_whichkey_instead/
+
+#+begin_src emacs-lisp
+(use-package sortie :load-path "~/elisp")
+(use-package keysee :after sortie :load-path "~/elisp" :init (kc-mode))
+#+end_src
+
+#+RESULTS:
+:results:
+nil
+:end:
+
+
+*** which-key and which-key-posframe
+
+It's hard to remember keyboard shortcuts. 
+
+#+BEGIN_SRC emacs-lisp
+(use-package which-key :init (which-key-mode 1))
+(use-package which-key-posframe :if my/laptop-p :init (which-key-posframe-mode 1))
+#+END_SRC
 
 ** Navigation
 
@@ -6214,20 +6234,20 @@ I want to be able to export without having to say yes to code blocks all the tim
      #+begin_src emacs-lisp
 (use-package org-special-block-extras
   :if my/laptop-p
-  :hook (org-mode-hook . org-special-block-extras-mode)
+  :hook (org-mode . org-special-block-extras-mode)
   :config
   ;; Use short names like ‘defblock’ instead of the fully qualified name
   ;; ‘org-special-block-extras--defblock’
   (org-special-block-extras-short-names)
   (defblock details nil nil (title nil)
-    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Use summary and details."
+    "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Use summary and details."
     (format "<details open><summary>%s</summary>%s</details>"
             (or title "Details") raw-contents))
   (defblock columns nil nil
-    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
+    "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
     (format "<div class=\"row\">%s</div>" contents))
   (defblock column50 nil nil 
-    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Split into columns."
+    "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns."
     (format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents)))
 #+end_src
 **** Stylesheet / header
@@ -7475,7 +7495,7 @@ I don't want to get distracted by the same code in the other window, so I want o
                 "\\(?: +\\(.*?\\)\\)??"
                 "\\(?:[ \t]+\\(:[-[:alnum:]:_@#%]+:\\)\\)?"
                 "[ \t]*$")))
-(use-package org :hook (org-mode-hook . my/org-add-dashes-to-tag-regexps))
+(use-package org :hook (org-mode . my/org-add-dashes-to-tag-regexps))
 #+end_src
 
 

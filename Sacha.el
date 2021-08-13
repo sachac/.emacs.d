@@ -352,9 +352,10 @@
                                      (concat (or (my/date-from-filename a) "0") (file-name-nondirectory a)) )))))
 
 (defun my/preview-image (candidate state)
-  (when candidate (my/geeqie-view (list candidate)))
+  (when (and my/sketch-preview candidate) (my/geeqie-view (list candidate)))
   nil)
 
+(defvar my/sketch-preview nil "Non-nil means preview images.")
 (defun my/complete-sketch-filename ()
   (interactive)
   (consult--read (or my/sketches (my/update-sketch-cache))
@@ -1095,7 +1096,7 @@ Based on `elisp-get-fnsym-args-string.'"
     ("I" "~/orgzly/Inbox.org" "Phone inbox")
     ("o" "~/orgzly/organizer.org" "Main org file")
     ("s" "~/code/stream/notes.org" "Public Emacs notes")
-    ("b" "~/personal/business.org" "Business")
+    ("b" "~/orgzly/business.org" "Business")
     ("p" "/scp:web:/mnt/prev/home/sacha/planet/en.ini" "Planet Emacsen")
     ("B" "/ssh:web|sudo::/etc/nginx/sites-available" "Nginx sites")
     ("w" "~/Dropbox/public/sharing/index.org" "Sharing index")
@@ -3052,7 +3053,7 @@ loaded."
   (interactive (list (if current-prefix-arg 
                          (read-string (format "Note (%s): " (org-get-heading t t t t)))
                        (org-get-heading t t t t))
-                     (or (org-entry-get (point) "JOURNAL_CAT") (my/read-journal-category))))
+                     (or (org-entry-get (point) "JOURNAL_CAT") (my/journal-read-category))))
   (my/org-with-current-task
    (org-todo "DONE")
    (org-entry-put (point) "JOURNAL_CAT" category)
@@ -3619,9 +3620,10 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
                       "~/code/plover-notes/README.org"
                       "~/personal/sewing.org"
                       "~/orgzly/people.org"
+                      "~/orgzly/business.org"
                       "~/Dropbox/wsmef/trip.txt"
                       ,my/kid-org-file
-                      "~/personal/business.org"
+                      "~/personal/orgzly.org"
                       "~/personal/calendar.org"
                       "~/Dropbox/tasker/summary.txt"
                       "~/Dropbox/public/sharing/index.org"
@@ -3814,7 +3816,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
         ("T" tags-todo "TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}" nil "~/cloud/agenda/nonroutine.html")
         ("f" tags-todo "focus-TODO=\"DONE\"-TODO=\"CANCELLED\"")
         ("b" todo ""
-         ((org-agenda-files '("~/personal/business.org"))))
+         ((org-agenda-files '("~/orgzly/business.org"))))
         ("B" todo ""
          ((org-agenda-files '("~/Dropbox/books"))))
         ("x" "Column view" todo ""  ; Column view
@@ -3834,7 +3836,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
         ("5" "Quick tasks" tags-todo "EFFORT>=\"0:05\"&EFFORT<=\"0:15\"")
         ("0" "Unestimated tasks" tags-todo "EFFORT=\"\"")
         ("gb" "Business" todo ""
-         ((org-agenda-files '("~/personal/business.org"))
+         ((org-agenda-files '("~/orgzly/business.org"))
           (org-agenda-view-columns-initially t)))
         ("gc" "Coding" tags-todo "@coding"
          ((org-agenda-view-columns-initially t)))
@@ -4270,13 +4272,13 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
 :END:\n"
       (format-time-string "%Y-%m-%d")
       (concat "/blog/" post-location "/")
-      post-location)
+      (concat "blog/" post-location)
      (my/org-summarize-journal-csv start end nil my/journal-category-map my/journal-categories)
      "\n\n*Blog posts*\n\n"
      (my/org-list-from-rss "https://sachachua.com/blog/feed" start end)
      "\n\n*Sketches*\n\n"
      (my/sketches-export-and-extract start end) "\n"
-     "\n\n*Time*\n\n"
+     "\n\n#+begin_my/details Time\n"
      (orgtbl-to-orgtbl
       (my/quantified-compare prev start start end
                              '("A-"
@@ -4290,7 +4292,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
                                "Personal")
                              "The other week %" "Last week %")
       nil)
-     "\n\n")
+     "\n#+end_my/details\n\n")
     ))
 
 (defun my/prepare-missing-weekly-reviews ()
@@ -4667,6 +4669,24 @@ and indent it one level."
                    (concat (format-time-string "%Y/%m/")
                            (my/make-slug (org-get-heading t t t t))))))
 
+(defun my/11ty-convert-to-njk ()
+  (interactive)
+  (let* ((filename (buffer-file-name))
+         (old-buffer (current-buffer))
+         (new-name (concat (file-name-base filename) ".njk")))
+    (save-buffer)
+    (rename-file filename new-name)
+    (find-file new-name)
+    (kill-buffer old-buffer)))
+
+(defun my/11ty-browse-page ()
+  (interactive)
+  (if (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")
+      (browse-url (concat "http://localhost:8080" (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
+    (let* ((json-object-type 'plist)
+           (data (json-read-file (concat (file-name-base (buffer-file-name)) ".11tydata.json"))))
+      (browse-url (concat "http://localhost:8080" (plist-get data :permalink))))))
+
 (setq org-export-with-section-numbers nil)
 (setq org-html-include-timestamps nil)
 (setq org-export-with-sub-superscripts nil)
@@ -4720,20 +4740,53 @@ and indent it one level."
 
 (use-package org-special-block-extras
   :if my/laptop-p
-  :hook (org-mode-hook . org-special-block-extras-mode)
+  :hook (org-mode . org-special-block-extras-mode)
   :config
   ;; Use short names like ‘defblock’ instead of the fully qualified name
   ;; ‘org-special-block-extras--defblock’
   (org-special-block-extras-short-names)
-  (defblock details nil nil (title nil)
-    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Use summary and details."
-    (format "<details open><summary>%s</summary>%s</details>"
-            (or title "Details") raw-contents))
+(org-special-block-extras-defblock my/details (title "Details") (title-color "black")
+  "Enclose contents in a folded up box, for HTML.
+
+For LaTeX, this is just a boring, but centered, box.
+
+By default, the TITLE of such blocks is “Details”
+and its TITLE-COLOR is green.
+
+In HTML, we show folded, details, regions with a nice greenish colour.
+
+In the future ---i.e., when I have time---
+it may be prudent to expose more aspects as arguments,
+such as ‘background-color’.
+"
+  (format
+   (pcase backend
+     (`latex "\\begin{quote}
+                  \\begin{tcolorbox}[colback=%s,title={%s},sharp corners,boxrule=0.4pt]
+                    %s
+                  \\end{tcolorbox}
+                \\end{quote}")
+     (_ "<details class=\"code-details\"
+                 style =\"padding: 1em;
+                          border-radius: 15px;
+                          font-size: 0.9em;
+                          box-shadow: 0.05em 0.1em 5px 0.01em  #00000057;\">
+                  <summary>
+                    <strong>
+                      <font face=\"Courier\" size=\"3\" color=\"%s\">
+                         %s
+                      </font>
+                    </strong>
+                  </summary>
+                  %s
+               </details>"))
+   title-color title contents))
+
   (defblock columns nil nil
-    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
+    "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
     (format "<div class=\"row\">%s</div>" contents))
   (defblock column50 nil nil 
-    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Split into columns."
+    "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns."
     (format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents)))
 
 (setq org-html-head "
@@ -4890,20 +4943,53 @@ and indent it one level."
 (setq org-src-fontify-natively t)
 (use-package org-special-block-extras
   :if my/laptop-p
-  :hook (org-mode-hook . org-special-block-extras-mode)
+  :hook (org-mode . org-special-block-extras-mode)
   :config
   ;; Use short names like ‘defblock’ instead of the fully qualified name
   ;; ‘org-special-block-extras--defblock’
   (org-special-block-extras-short-names)
-  (defblock details nil nil (title nil)
-    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Use summary and details."
-    (format "<details open><summary>%s</summary>%s</details>"
-            (or title "Details") raw-contents))
+(org-special-block-extras-defblock my/details (title "Details") (title-color "black")
+  "Enclose contents in a folded up box, for HTML.
+
+For LaTeX, this is just a boring, but centered, box.
+
+By default, the TITLE of such blocks is “Details”
+and its TITLE-COLOR is green.
+
+In HTML, we show folded, details, regions with a nice greenish colour.
+
+In the future ---i.e., when I have time---
+it may be prudent to expose more aspects as arguments,
+such as ‘background-color’.
+"
+  (format
+   (pcase backend
+     (`latex "\\begin{quote}
+                  \\begin{tcolorbox}[colback=%s,title={%s},sharp corners,boxrule=0.4pt]
+                    %s
+                  \\end{tcolorbox}
+                \\end{quote}")
+     (_ "<details class=\"code-details\"
+                 style =\"padding: 1em;
+                          border-radius: 15px;
+                          font-size: 0.9em;
+                          box-shadow: 0.05em 0.1em 5px 0.01em  #00000057;\">
+                  <summary>
+                    <strong>
+                      <font face=\"Courier\" size=\"3\" color=\"%s\">
+                         %s
+                      </font>
+                    </strong>
+                  </summary>
+                  %s
+               </details>"))
+   title-color title contents))
+
   (defblock columns nil nil
-    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
+    "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
     (format "<div class=\"row\">%s</div>" contents))
   (defblock column50 nil nil 
-    "Top level (HTML & wp)OSPE-RESPECT-NEWLINES? Split into columns."
+    "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns."
     (format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents)))
 (setq org-export-with-section-numbers nil)
 (setq org-html-include-timestamps nil)
@@ -5245,24 +5331,28 @@ the mode, `toggle' toggles the state."
     filtered))
 
 (defun my/journal-read-category (&optional initial)
-  (completing-read "Category: " my/journal-categories nil nil initial))
+  (consult--read my/journal-categories :sort nil :prompt "Category: " :initial initial))
 
 (defun my/journal-post (note &rest plist)
   (interactive (list (read-string "Note: ")
+                           :Date (concat (org-read-date "Date: ") " 23:00")
                      :Category (my/journal-read-category)
                      :Other (read-string "Other: ")))
   (setq plist (append `(:Note ,note) plist))
   (let ((url-request-method "POST")
         (url-request-extra-headers '(("Content-Type" . "application/json")))
         (json-object-type 'plist)
-        (url-request-data (json-encode-plist plist)))
-    (with-current-buffer (url-retrieve-synchronously "https://journal.sachachua.com/api/entries")
+        (url-request-data (json-encode-plist plist))
+        data)
+    (with-current-buffer (url-retrieve-synchronously (concat my/journal-url "api/entries"))
       (goto-char (point-min))
       (re-search-forward "^$")
-      (json-read))))
+      (setq data (json-read))
+      (message "%s" (plist-get data :ZIDString))
+      data)))
 
 (defun my/journal-get-by-zidstring (zidstring)
-  (my/json-request (concat "https://journal.sachachua.com/api/entries/" zidstring)))
+  (my/journal-get (concat "api/entries/" zidstring)))
 
 (defun my/journal-insert-ref (zidstring)
   (interactive (list (my/journal-completing-read)))
@@ -5285,18 +5375,22 @@ the mode, `toggle' toggles the state."
   "Update journal entry using PLIST."
   (let ((url-request-method "PUT")
         (url-request-data (json-encode-plist plist)))
-    (my/json-request (concat "https://journal.sachachua.com/api/entries/" (plist-get plist :ZIDString)))))
+    (my/json-request (concat my/journal-url "/api/entries/" (plist-get plist :ZIDString)))))
 ;; (my/journal-post "Hello, world")
   
 (defun my/journal-get-entries (from to &optional search)
   "Return parsed CSV of entries limited by FROM, TO, and SEARCH."
   (with-current-buffer
-      (url-retrieve-synchronously (format "https://journal.sachachua.com/api/entries.csv?from=%s&to=%s&regex=1&q=%s" from to (or search "")))
+      (url-retrieve-synchronously (format "%s/api/entries.csv?from=%s&to=%s&regex=1&q=%s"
+                                          my/journal-url
+                                          (or from "")
+                                          (or to "")
+                                          (or search "")))
     (goto-char (point-min))
     (delete-region (point-min) (search-forward "\n\n"))
     (cdr (pcsv-parse-buffer))))
 
-(defun my/journal-get (url) (my/json-request (format "https://journal.sachachua.com/%s" url)))
+(defun my/journal-get (url) (my/json-request (concat my/journal-url "/" url)))
 (defun my/journal-get-entry (zid) (my/journal-get (format "api/entries/zid/%s" zid)))
 
 (defun my/json-request (url)
@@ -5310,7 +5404,7 @@ the mode, `toggle' toggles the state."
 (defvar my/journal-search-cache nil "List of search results.")
 (defun my/journal-search-query (query-str)
   (let* ((url-request-method "GET")
-         (json-response (my/json-request (format "https://journal.sachachua.com/api/entries?q=%s&limit=50&sort=date&regex=1"
+         (json-response (my/journal-get (format "api/entries?q=%s&limit=50&sort=date&regex=1"
                                                  query-str))))
     (setq my/journal-search-cache (mapcar (lambda (o)
               (cons
@@ -5324,8 +5418,9 @@ the mode, `toggle' toggles the state."
   (let* ((url-request-method "GET")
          (url-request-extra-headers (cons '("Content-Type" . "application/json") url-request-extra-headers)))
     (url-retrieve
-     (format "https://journal.sachachua.com/api/entries?q=%s&limit=50&sort=date&regex=1"
-             query-str)
+     (format "%s/api/entries?q=%s&limit=50&sort=date&regex=1"
+             my/journal-url
+       query-str)
      (lambda (status)
        (goto-char (point-min))
        (re-search-forward "^$" nil t)
@@ -5404,11 +5499,11 @@ the mode, `toggle' toggles the state."
     ((eq type 'text) " "))))
 
 (defun my/org-journal-open (id &optional arg)
-  (browse-url (format "https://journal.sachachua.com/zid/%s" id)))
+  (browse-url (format "%s/zid/%s" my/journal-url id)))
 
 (defun my/org-journal-export (link description format)
-  (let* ((path (concat "https://journal.sachachua.com/zid/" link))
-         (image (concat "https://journal.sachacuha.com/zid/" link))
+  (let* ((path (concat "%s/zid/" my/journal-url link))
+         (image (concat "%s/zid/" my/journal-url link))
          (desc (or description link)))
     (cond
      ((or (eq format 'html) (eq format 'wp))
@@ -5503,6 +5598,60 @@ the mode, `toggle' toggles the state."
         (if (string= category ".")
             (setq done t)
           (my/update-journal-entry (assoc-default "Note" x nil "") text category))))))
+
+(defun my/journal-insert-matching-entries (from to match)
+  (interactive (list (org-read-date "From: ") (org-read-date "To: ") (read-string "Match: ")))
+  (insert
+  (mapconcat
+   (lambda (o)
+     (format "- %s %s" (my/journal-zidstring o) (my/journal-note o)))
+   (seq-filter (lambda (o) (string-match match (my/journal-other o)))
+    (my/journal-get-entries from to))
+   "\n")))
+(defun my/journal-convert-to-refs (beg end)
+  (interactive "r")
+  (save-restriction
+    (goto-char beg)
+    (narrow-to-region beg end)
+    (while (re-search-forward "^- \\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\) .*?$" nil t)
+      (replace-match "ref:\\1"))))
+  (defun my/journal-get-refs-from-region (beg end)
+    (interactive "r")
+    (save-excursion
+      (goto-char beg)
+      (cl-loop for pos = (re-search-forward " \\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\) " end t)
+               while pos
+               collect (match-string 1))))
+
+(defun my/journal-add-tag (tag beg end)
+  (interactive "MTag: \nr")
+  (let* ((url-request-method "POST")
+         (url-request-extra-headers '(("Content-Type" . "application/json")))
+         (zids (my/journal-get-refs-from-region beg end))
+         (json-object-type 'plist)
+         (url-request-data (json-encode-plist (list :zids zids :tags (split-string tag " ")))))
+    (pp (my/journal-get "api/entries/tag/bulk"))))
+
+(defun my/journal-remove-tag (tag beg end)
+  (interactive "MTag: \nr")
+  (let* ((url-request-method "DELETE")
+         (url-request-extra-headers '(("Content-Type" . "application/json")))
+         (zids (my/journal-get-refs-from-region beg end))
+         (json-object-type 'plist)
+         (url-request-data (json-encode-plist (list :zids zids :tags (split-string tag " ")))))
+    (pp (my/journal-get "api/entries/tag/bulk"))))
+
+(defun my/journal-post-with-refs (note date other beg end)
+  (interactive (list
+                (read-string "Note: ")
+                (concat (org-read-date "Date: ") " 23:00")
+                (read-string "Other: ")
+                (min (point) (mark))
+                (max (point) (mark))))
+  (my/journal-post note :Date date :Other (concat other "\n"
+                                                  (mapconcat (lambda (o) (concat "ref:" o))
+                                                             (my/journal-get-refs-from-region beg end)
+                                                             " "))))
 
 (defun my/get-image-caption (file)
   (let ((caption (shell-command-to-string (format "exiftool -s -s -s -ImageDescription %s" (shell-quote-argument file)))))
@@ -5792,7 +5941,7 @@ the mode, `toggle' toggles the state."
                 "\\(?: +\\(.*?\\)\\)??"
                 "\\(?:[ \t]+\\(:[-[:alnum:]:_@#%]+:\\)\\)?"
                 "[ \t]*$")))
-(use-package org :hook (org-mode-hook . my/org-add-dashes-to-tag-regexps))
+(use-package org :hook (org-mode . my/org-add-dashes-to-tag-regexps))
 
 (defun my/read-phone-entries ()
   "Copy phone data to a summary Org file."
@@ -8152,25 +8301,26 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
            Return the matching filenames, if any.
            If AS-REGEXP is non-nil, treat BASE as a regular expression.
            If BASE is a function, use that to filter."
-  (-filter
-   (lambda (o) (not (string-match "\\.xmp" o)))
-   (sort (-flatten
-          (delq nil
-                (mapcar
-                 (lambda (dir)
-                   (and (file-directory-p dir)
-                        (if (functionp base)
-                            (-filter base (directory-files dir t ".*\\.\\(png\\|psd\\|tiff\\|jpg\\|svg\\)?$"))
-                          (directory-files
-                           dir t
-                           (concat 
-                            "\\("
-                            (if as-regexp base (regexp-quote base))
-                            "\\)"
-                            ".*\\(\\.\\(png\\|psd\\|tiff\\|jpg\\|svg\\)\\)?$"
-                            )))))
-                 (or directories my/image-directories))))
-         'string<)))
+  (let ((base-regexp (concat 
+                      "\\("
+                      (if as-regexp base (regexp-quote base))
+                      "\\)"
+                      ".*\\(\\.\\(png\\|psd\\|tiff\\|jpg\\|svg\\)\\)?$"
+                      )))
+    (-filter
+     (lambda (o) (not (string-match "\\.xmp" o)))
+     (sort (-flatten
+            (delq nil
+                  (mapcar
+                   (lambda (dir)
+                     (and (file-directory-p dir)
+                          (if (functionp base)
+                              (-filter base (directory-files dir t ".*\\.\\(png\\|psd\\|tiff\\|jpg\\|svg\\)?$"))
+                            (directory-files
+                             dir t
+                             base-regexp))))
+                   (or directories my/image-directories))))
+           'string<))))
 
 (defun my/get-image-filename (base &optional as-regexp directories)
   "Check several directories for files matching BASE.
@@ -8218,11 +8368,13 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
   (my/org-image-open id arg my/sketch-directories))
 (defun my/org-sketch-open (id &optional arg)
   (my/geeqie-view (my/get-image-filename id my/sketch-directories)))
-(defun my/org-image-export (link description format)
+(defun my/org-image-export (link description format info)
   (let* ((path (concat "https://sketches.sachachua.com/filename/" link))
          (image (concat "https://sketches.sachachua.com/static/" link))
+         (backend (org-export-backend-name (plist-get info :back-end)))
          (desc (or description link)))
     (cond
+     ((eq backend '11ty) (format "{%% sketchLink \"%s\", \"%s\" %%}" link desc))
      ((or (eq format 'html) (eq format 'wp))
       (if description
           (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc)

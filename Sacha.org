@@ -74,15 +74,15 @@ config can load =Sacha.el= without loading Org first.
 Here's how we start:
 
 #+NAME: startup
-#+begin_src emacs-lisp 
-;; This sets up the load path so that we can override it
-(package-initialize)
-(add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
-(add-to-list 'load-path "~/vendor/org-mode/lisp")
-(add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
-(setq custom-file "~/.config/emacs/custom-settings.el")
-(setq use-package-always-ensure t)
-(load custom-file t)
+#+begin_src emacs-lisp
+  ;; This sets up the load path so that we can override it
+  (setq warning-suppress-log-types '((package reinitialization)))  (package-initialize)
+  (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
+  (add-to-list 'load-path "~/vendor/org-mode/lisp")
+  (add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
+  (setq custom-file "~/.config/emacs/custom-settings.el")
+  (setq use-package-always-ensure t)
+  (load custom-file t)
 #+END_SRC
 
 ** System information
@@ -99,7 +99,7 @@ Here's how we start:
 
 ** Personal information
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (setq user-full-name "Sacha Chua"
       user-mail-address "sacha@sachachua.com")
 #+END_SRC
@@ -107,7 +107,7 @@ Here's how we start:
 ** Emacs initialization
 *** Add package sources
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (unless (assoc-default "melpa" package-archives)
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
 (unless (assoc-default "nongnu" package-archives)
@@ -123,7 +123,7 @@ Sometimes I load files outside the package system. As long as they're
 in a directory in my =load-path=, Emacs can find them.
 
 #+NAME: package-setup
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (add-to-list 'load-path "~/elisp")
 (unless (package-installed-p 'use-package)
   (package-install 'use-package))
@@ -144,7 +144,8 @@ in a directory in my =load-path=, Emacs can find them.
     #+BEGIN_SRC emacs-lisp
 (use-package hydra :commands defhydra)
 (use-package use-package-hydra)
-(use-package hydra-posframe :if my/laptop-p  :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe") :after hydra)
+(if my/laptop-p
+        (use-package hydra-posframe :if my/laptop-p  :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe") :after hydra))
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
@@ -179,13 +180,13 @@ in a directory in my =load-path=, Emacs can find them.
     ("d" my/emacs-news-check-duplicates "Dupe")
     ("s" save-buffer "Save")
     ("f" my/file-shortcuts/body "File shortcut")
-    ("+" text-scale-increase "Increase")  
+    ("+" text-scale-increase "Increase")
     ("-" text-scale-decrease "Decrease")
     ("g" my/geeqie/body "Geeqie")
     ("l" (my/toggle-or-create "*scratch*" (lambda () (switch-to-buffer (startup--get-buffer-create-scratch)))) "Lisp")
     ("e" eshell-toggle "Eshell")
     ("w" my/engine-mode-hydra/body "Search web")
-    ("E" my/emacs-news/body "Emacs News")) 
+    ("E" my/emacs-news/body "Emacs News"))
   (global-set-key (kbd "<f5>") #'my/shortcuts/body)
   (defhydra my/emacs-news (:exit t)
     "Emacs News"
@@ -286,7 +287,7 @@ From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
    CLOCK: [2021-04-25 Sun 22:32]
    :END:
 2021-04-29: Added the ability to complete using an arbitrary Hydra.
-   
+
    So it turns out that I'm pretty much zonked after a day with the
    kiddo and have a hard time remembering keystrokes or speed-reading
    [[dotemacs:hydra-lispy][my Hydra cheat sheets]]. I want to be able to use M-x-like completion
@@ -295,7 +296,7 @@ From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
 
 #+CAPTION: Hydra completion
 [[https://sachachua.com/blog/2021/04/emacs-hydra-allow-completion-when-i-can-t-remember-the-command-name/Screenshot_20210425_232535.png]]
-   
+
 #+begin_src emacs-lisp :results none
 (defun my/hydra-format-head (h)
   (let ((key-binding (elt h 0))
@@ -311,7 +312,6 @@ From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
           (symbol-value (intern (concat (symbol-name base) "/heads")))))
 
 (defun my/hydra-execute-extended (&optional prefixarg hydra-base)
-  (declare (command-execute))
   (interactive (list current-prefix-arg nil))
   (hydra-keyboard-quit)
   (let* ((candidates (my/hydra-heads-to-candidates
@@ -339,7 +339,7 @@ From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
    :end:
 
    Proooobably works? Very rough. Might be useful for those fuzzy-brain days.
-   
+
 *** Reload
 
 #+begin_src emacs-lisp
@@ -350,7 +350,7 @@ From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
 
 *** Libraries
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package dash :ensure t)
 (use-package diminish :ensure t)
 #+end_src
@@ -359,13 +359,13 @@ From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
 
 This is one of the things people usually want to change right away. By default, Emacs saves backup files in the current directory. These are the files ending in =~= that are cluttering up your directory lists. The following code stashes them all in =~/.config/emacs/backups=, where I can find them with =C-x C-f= (=find-file=) if I really need to.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (setq backup-directory-alist '(("." . "~/.config/emacs/backups")))
 #+END_SRC
 
 Disk space is cheap. Save lots.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (setq delete-old-versions -1)
 (setq version-control t)
 (setq vc-make-backup-files t)
@@ -375,7 +375,7 @@ Disk space is cheap. Save lots.
 *** History
 
 From http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html:
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (setq savehist-file "~/.config/emacs/savehist")
 (savehist-mode 1)
 (setq history-length t)
@@ -402,7 +402,7 @@ From http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html:
 
 When you're starting out, the tool bar can be very helpful. [[http://sachachua.com/blog/2014/03/emacs-basics-using-mouse/][(Emacs Basics: Using the Mouse]]). Eventually, you may want to reclaim that extra little bit of screenspace. The following code turns that thing off. (Although I changed my mind about the menu - I want that again.)
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (tool-bar-mode -1)
 #+END_SRC
 
@@ -418,7 +418,7 @@ I like having the clock.
 
 =winner-mode= lets you use =C-c <left>= and =C-c <right>= to switch between window configurations. This is handy when something has popped up a buffer that you want to look at briefly before returning to whatever you were working on. When you're done, press =C-c <left>=.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (use-package winner
   :defer t)
 #+END_SRC
@@ -428,7 +428,7 @@ I like having the clock.
 In my world, sentences end with a single space. This makes
 sentence navigation commands work for me.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (setq sentence-end-double-space nil)
 #+END_SRC
 
@@ -439,8 +439,8 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
 
 **** Basic configuration
 
-     #+begin_src emacs-lisp 
-(use-package selectrum :quelpa (selectrum :fetcher github :repo "raxod502/selectrum") :init (selectrum-mode +1)) 
+     #+begin_src emacs-lisp
+(use-package selectrum :quelpa (selectrum :fetcher github :repo "raxod502/selectrum") :init (selectrum-mode +1))
 (use-package prescient :config (prescient-persist-mode +1))
 (use-package selectrum-prescient :init (selectrum-prescient-mode +1) :after selectrum)
 (use-package company-prescient :init (company-prescient-mode +1))
@@ -455,7 +455,7 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
          ("M-#" . consult-register-load)
          ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
          ("C-M-#" . consult-register)
-         ("M-g o" . consult-outline) 
+         ("M-g o" . consult-outline)
          ("M-g h" . consult-org-heading)
          ("M-g a" . consult-org-agenda)
          ("M-g m" . consult-mark)
@@ -480,7 +480,7 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
          ("M-s u" . consult-focus-lines)
          ;; Isearch integration
          ("M-s e" . consult-isearch)
-         ("M-g l" . consult-line)    
+         ("M-g l" . consult-line)
          ("M-s m" . consult-multi-occur)
          ("C-x c o" . consult-multi-occur)
          ("C-x c SPC" . consult-mark)
@@ -509,11 +509,11 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
 (defun my/sketch-insert-file-as-link (f)
   (interactive "fSketch: ")
   (insert (org-link-make-string (concat "sketch:" (file-name-nondirectory f))) "\n"))
-(use-package embark 
-  :after selectrum 
+(use-package embark
+  :after selectrum
   :config
-  (setq embark-prompter 'embark-keymap-prompter) 
-  (add-to-list 'embark-target-finders 'my/embark-org-element) 
+  (setq embark-prompter 'embark-keymap-prompter)
+  (add-to-list 'embark-target-finders 'my/embark-org-element)
   (add-to-list 'embark-allow-edit-commands #'my/stream-message)
   (add-to-list 'embark-allow-edit-commands #'my/journal-post)
   (embark-define-keymap embark-sketch-actions
@@ -538,9 +538,9 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
         :map embark-variable-map
         ("l" . edit-list)))
 
-(use-package 
-  embark-consult 
-  :after (embark consult) 
+(use-package
+  embark-consult
+  :after (embark consult)
   :demand t                ; only necessary if you have the hook below
   ;; if you want to have consult previews as you move around an
   ;; auto-updating embark collect buffer
@@ -599,8 +599,20 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
   :config
   (add-to-list 'marginalia-prompt-categories '("sketch" . sketch)))
      #+end_src
+**** Consult directory navigation
 
-**** Marginalia and hiding the value of password-ish variables     
+     #+begin_src emacs-lisp
+     (use-package consult-dir
+       :ensure t
+       :bind (("C-x C-d" . consult-dir)
+              :map minibuffer-local-completion-map
+              ("C-x C-d" . consult-dir)
+              ("C-x C-j" . consult-dir-jump-file)
+              :map selectrum-minibuffer-map
+              ("C-x C-d" . consult-dir)
+              ("C-x C-j" . consult-dir-jump-file)))
+         #+end_src
+**** Marginalia and hiding the value of password-ish variables
      :PROPERTIES:
      :ID:       o2b:3820f642-27ea-4e3c-a261-a9c59417175f
      :POST_DATE: [2021-02-05 Fri 01:15]
@@ -686,7 +698,7 @@ Based on `elisp-get-fnsym-args-string.'"
       (marginalia--fields
        ((marginalia--symbol-class sym) :face 'marginalia-modified
         :truncate symbol-class-width)
-       ((my/elisp-get-function-args sym) 
+       ((my/elisp-get-function-args sym)
         :truncate (/ (- marginalia-truncate-width symbol-class-width) 3)
         :face 'my/marginalia-arguments)
        ((marginalia--function-doc sym)
@@ -709,7 +721,7 @@ Based on `elisp-get-fnsym-args-string.'"
 
 #+NAME: embark
 #+begin_src emacs-lisp :var foo="bar"
-(defun my/embark-org-element () 
+(defun my/embark-org-element ()
   "Target an Org Mode element at point."
   (save-window-excursion
     (save-excursion
@@ -721,21 +733,21 @@ Based on `elisp-get-fnsym-args-string.'"
           (let* ((context ;; Borrowed from org-open-at-point
 	                ;; Only consider supported types, even if they are not the
 	                ;; closest one.
-	                (org-element-lineage (org-element-context) 
-                                       '(headline src-block link) t)) 
-                 (type (org-element-type context)) 
-                 (value (org-element-property :value context))) 
-            (cond ((eq type 'headline) 
-                   (cons 'org-heading (org-element-property :title context))) 
-                  ((eq type 'src-block) 
+	                (org-element-lineage (org-element-context)
+                                       '(headline src-block link) t))
+                 (type (org-element-type context))
+                 (value (org-element-property :value context)))
+            (cond ((eq type 'headline)
+                   (cons 'org-heading (org-element-property :title context)))
+                  ((eq type 'src-block)
                    (cons 'org-src-block (org-element-property :name context)))
-                  ((eq type 'link) 
+                  ((eq type 'link)
                    (cons 'url (org-element-property :raw-link context))))))))))
 
-(defun my/embark-org-src-block-copy-noweb-reference (element) 
-  (kill-new (if (org-element-property element :parameters) 
-                (format "<<%s(%s)>>" (org-element-property element :name) 
-                        (org-element-property element :parameters)) 
+(defun my/embark-org-src-block-copy-noweb-reference (element)
+  (kill-new (if (org-element-property element :parameters)
+                (format "<<%s(%s)>>" (org-element-property element :name)
+                        (org-element-property element :parameters))
               (format "<<%s>>" (org-element-property element :parameters)))))
 #+end_src
 **** Cargo-culted stuff
@@ -743,34 +755,34 @@ Based on `elisp-get-fnsym-args-string.'"
 https://github.com/oantolin/embark/wiki/Additional-Configuration#pause-selectrum-while-using-embark-collect-live
 
 #+begin_src emacs-lisp
-(defun my/refresh-selectrum () 
+(defun my/refresh-selectrum ()
   (setq selectrum--previous-input-string nil))
-(defun my/store-action-key+cmd (cmd) 
+(defun my/store-action-key+cmd (cmd)
   (setq keycast--this-command-keys (this-single-command-keys) keycast--this-command cmd))
-(defun my/force-keycast-update (&rest _) 
+(defun my/force-keycast-update (&rest _)
   (force-mode-line-update t))
 (use-package keycast
   :if my/laptop-p
-  :after embark 
-  :config (dolist (cmd '(embark-act embark-act-noexit embark-become)) 
-            (advice-add cmd 
+  :after embark
+  :config (dolist (cmd '(embark-act embark-act-noexit embark-become))
+            (advice-add cmd
                         :before #'my/force-keycast-update)))
 
-(defun my/shrink-selectrum () 
-  (when (eq embark-collect--kind :live) 
-    (with-selected-window (active-minibuffer-window) 
-      (setq-local selectrum-num-candidates-displayed 1) 
-      (setq-local selectrum-display-style '(horizontal :before-candidates "[" 
-                                                       :after-candidates "]" 
-                                                       :more-candidates "" 
+(defun my/shrink-selectrum ()
+  (when (eq embark-collect--kind :live)
+    (with-selected-window (active-minibuffer-window)
+      (setq-local selectrum-num-candidates-displayed 1)
+      (setq-local selectrum-display-style '(horizontal :before-candidates "["
+                                                       :after-candidates "]"
+                                                       :more-candidates ""
                                                        :candidates-separator "")))))
-(use-package 
-  embark 
+(use-package
+  embark
   :config
                                         ;(setq embark-prompter 'embark-completing-read-prompter)
-  (advice-add 'embark-keymap-prompter :filter-return #'my/store-action-key+cmd) 
-  (add-to-list 'embark-allow-edit-commands #'my/stream-message) 
-  (add-hook 'embark-collect-mode-hook #'my/shrink-selectrum) 
+  (advice-add 'embark-keymap-prompter :filter-return #'my/store-action-key+cmd)
+  (add-to-list 'embark-allow-edit-commands #'my/stream-message)
+  (add-hook 'embark-collect-mode-hook #'my/shrink-selectrum)
   (add-hook 'embark-pre-action-hook #'my/refresh-selectrum))
     #+end_src
 *** Contextual actions with cmap
@@ -787,7 +799,7 @@ https://github.com/oantolin/embark/wiki/Additional-Configuration#pause-selectrum
     (let ((context (org-element-context)))
       (when (eq (org-element-type context) 'link)
         (cons 'my/cmap-org-link-element-map context)))))
-    
+
 (defun my/cmap-org-block-target ()
 	(when (and (derived-mode-p 'org-mode)
 		         (org-in-src-block-p))
@@ -819,7 +831,7 @@ https://github.com/oantolin/embark/wiki/Additional-Configuration#pause-selectrum
 	    ("w" . my/org-copy-block-contents)
 	    ("i" . my/org-indent-block)))
 	:bind (("C-c e" . cmap-cmap)))
-#+end_src 
+#+end_src
 
 *** Helm - interactive completion
 
@@ -827,7 +839,7 @@ Helm makes it easy to complete various things. I find it to be easier
 to configure than ido in order to get completion in as many places as
 possible, although I prefer ido's way of switching buffers.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (use-package helm
   :diminish helm-mode
   :if my/laptop-p
@@ -875,7 +887,7 @@ possible, although I prefer ido's way of switching buffers.
 #+END_SRC
 
 helm-grep? Bit slow and hard to read, though.
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (defvar my/book-notes-directory "~/Dropbox/books")
 (defun my/helm-do-grep-book-notes ()
   "Search my book notes."
@@ -916,7 +928,7 @@ to create tasks if my description doesn't match anything. To make
 things simpler, I'll just reuse one of my =org-capture-templates=, and
 I'll pre-fill it with the candidate from Helm.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (ert-deftest my/org-capture-prefill-template ()
   (should
    ;; It should fill things in one field at ia time
@@ -1002,7 +1014,7 @@ That means that my creation task should return something ready for
 always going to call it when I want to jump to something. I might as
 well add that bit of code that sets up clocking in, too.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (defvar my/helm-org-refile-locations nil)
 (defvar my/org-refile-last-location nil)
 
@@ -1224,7 +1236,7 @@ position itself.
                      my/screenshot-directory)
                   (my/latest-file my/screenshot-directory))))
   (save-window-excursion
-    (with-current-buffer (find-file-noselect file) (display-buffer (current-buffer)))  
+    (with-current-buffer (find-file-noselect file) (display-buffer (current-buffer)))
     (insert "#+CAPTION: " (or note (read-string "Caption: "))))
   (save-excursion (insert "\n" (org-link-make-string (concat "file:" file)) "\n")))
 #+end_src
@@ -1273,7 +1285,7 @@ position itself.
   (kill-new (my/latest-file my/screenshot-directory))
   (my/capture-timestamped-note time note))
 #+end_src
-  
+
 *** Recomplete
 
 https://gitlab.com/ideasman42/emacs-recomplete
@@ -1287,19 +1299,11 @@ https://gitlab.com/ideasman42/emacs-recomplete
 
 I like this because it lets me see the completions coming up.
 
-*** Mode line format
-
-Display a more compact mode line
-
-#+BEGIN_SRC emacs-lisp 
-(use-package smart-mode-line)
-#+END_SRC
-
 *** Change "yes or no" to "y or n"
 
 Lazy people like me never want to type "yes" when "y" will suffice.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (fset 'yes-or-no-p 'y-or-n-p)
 #+END_SRC
 
@@ -1311,7 +1315,7 @@ to be able to read it, especially when it comes to lots of text.
 This binds =C-M-e= in a minibuffer) so that you can edit the
 contents of the minibuffer before submitting it.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (use-package miniedit
   :commands minibuffer-edit
   :init (miniedit-install))
@@ -1323,10 +1327,10 @@ I like light on dark because I find it to be more restful. The
 color-theme in ELPA was a little odd, though, so we define some advice to make
 it work. Some things still aren't quite right.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (defun my/setup-color-theme ()
   (interactive)
-  (when (display-graphic-p) 
+  (when (display-graphic-p)
     (color-theme-sanityinc-solarized-dark))
   (set-background-color "black")
   (set-face-foreground 'secondary-selection "darkblue")
@@ -1341,7 +1345,7 @@ I sometimes need to switch to a lighter background for screenshots.
 For that, I use =color-theme-vim=.
 
 Some more tweaks to solarized:
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (when window-system
   (custom-set-faces
    '(erc-input-face ((t (:foreground "antique white"))))
@@ -1361,7 +1365,7 @@ People often struggle with the Emacs undo model, where there's really no concept
 #
 This lets you use =C-x u= (=undo-tree-visualize=) to visually walk through the changes you've made, undo back to a certain point (or redo), and go down different branches.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (use-package undo-tree
   :diminish undo-tree-mode
   :config
@@ -1375,7 +1379,7 @@ This lets you use =C-x u= (=undo-tree-visualize=) to visually walk through the c
 
 From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (prefer-coding-system 'utf-8)
 (when (display-graphic-p)
   (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
@@ -1386,10 +1390,10 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
     #+begin_src emacs-lisp
     (setq kill-ring-max 1000)
     #+end_src
-    
+
 From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (defadvice kill-region (before slick-cut activate compile)
   "When called interactively with no active region, kill a single line instead."
   (interactive
@@ -1404,7 +1408,7 @@ Based on http://oremacs.com/2015/01/14/repeatable-commands/ . Modified to
 accept =nil= as the first value if you don't want the keymap to run a
 command by default, and to use =kbd= for the keybinding definitions.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (defun my/def-rep-command (alist)
   "Return a lambda that calls the first function of ALIST.
       It sets the transient map to all functions of ALIST,
@@ -1427,7 +1431,7 @@ command by default, and to use =kbd= for the keybinding definitions.
 *** Helm-descbinds
     Great for describing bindings. I'll replace the binding for =where-is= too.
 
- #+BEGIN_SRC emacs-lisp 
+ #+BEGIN_SRC emacs-lisp
 (use-package helm-descbinds
   :defer t
   :if my/laptop-p
@@ -1443,8 +1447,8 @@ command by default, and to use =kbd= for the keybinding definitions.
 From https://www.reddit.com/r/emacs/comments/otjn19/is_there_a_way_to_add_search_to_whichkey_instead/
 
 #+begin_src emacs-lisp
-(use-package sortie :load-path "~/elisp")
-(use-package keysee :after sortie :load-path "~/elisp" :init (kc-mode))
+(use-package sortie :if my/laptop-p :load-path "~/elisp")
+(use-package keysee :after sortie :if my/laptop-p :load-path "~/elisp" :commands kc-mode :init (kc-mode))
 #+end_src
 
 #+RESULTS:
@@ -1455,7 +1459,7 @@ nil
 
 *** which-key and which-key-posframe
 
-It's hard to remember keyboard shortcuts. 
+It's hard to remember keyboard shortcuts.
 
 #+BEGIN_SRC emacs-lisp
 (use-package which-key :init (which-key-mode 1))
@@ -1468,7 +1472,7 @@ It's hard to remember keyboard shortcuts.
 
 Handy way of getting back to previous places.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (bind-key "C-x p" 'pop-to-mark-command)
 (setq set-mark-command-repeat-pop t)
 #+END_SRC
@@ -1477,7 +1481,7 @@ Handy way of getting back to previous places.
 
 This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= to see if I can get used to that...
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (use-package helm-swoop
   :if my/laptop-p
   :bind
@@ -1506,7 +1510,7 @@ This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= t
 Windmove lets you move between windows with something more natural than cycling through =C-x o= (=other-window=).
 Windmove doesn't behave well with Org, so we need to use different keybindings.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (use-package windmove
   :bind
   (("<f2> <right>" . windmove-right)
@@ -1521,7 +1525,7 @@ Registers allow you to jump to a file or other location quickly. To
 jump to a register, use =C-x r j= followed by the letter of the
 register. Using registers for all these file shortcuts is probably a bit of a waste since I can easily define my own keymap, but since I rarely go beyond register A anyway. Also, I might as well add shortcuts for refiling.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (setq bookmark-watch-bookmark-file 'silent)
 (defvar my/refile-map (make-sparse-keymap))
 (require 'bookmark)
@@ -1606,7 +1610,7 @@ Experimenting with this. =key-chord= lets you define keyboard
 shortcuts that use ordinary keys.
 
 Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (defun my/key-chord-define (keymap keys command)
   "Define in KEYMAP, a key-chord of two keys in KEYS starting a COMMAND.
       \nKEYS can be a string or a vector of two elements. Currently only elements
@@ -1628,7 +1632,7 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
 
 Now let's set up the actual keychords.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (use-package key-chord
   :if my/laptop-p
   :hydra (my/key-chord-commands
@@ -1679,14 +1683,14 @@ Now let's set up the actual keychords.
 
 Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char=. It turns out I actually do use =C-t= a fair bit, but I can always add it back as an option.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (bind-key "C-t" 'my/key-chord-commands/body)
 #+end_src
 
 *** Smartscan
 
 From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el, this makes =M-n= and =M-p= look for the symbol at point.
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (use-package smartscan
   :if my/laptop-p
   :defer t
@@ -1697,7 +1701,7 @@ From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el, this makes =M
 
 From http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (require 'find-dired)
 (setq find-ls-option '("-print0 | xargs -0 ls -ld" . "-ld"))
 #+END_SRC
@@ -1709,19 +1713,19 @@ Allow my use of =C-x C-q= while in peep-dired mode.
 #+begin_src emacs-lisp  :tangle no
 (use-package peep-dired
   :if my/laptop-p
-  :bind (:map peep-dired-mode-map 
+  :bind (:map peep-dired-mode-map
               ("SPC" . nil)
               ("<backspace>" . nil)))
 #+end_src
 
 **** Saving photos
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/save-photo (name)
   (interactive "MName: ")
   (let* ((file (dired-get-filename))
          new-name)
-    (cond 
+    (cond
      ((string-match "CameraZOOM-\\([0-9][0-9][0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9][0-9]\\)" file)
       (setq new-name
             (format "%s-%s-%s %s.%s.%s.%s %s.jpg"
@@ -1766,7 +1770,7 @@ Allow my use of =C-x C-q= while in peep-dired mode.
 *** Move to beginning of line
 Copied from http://emacsredux.com/blog/2013/05/22/smarter-navigation-to-the-beginning-of-a-line/
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (defun my/smarter-move-beginning-of-line (arg)
   "Move point back to indentation of beginning of line.
 
@@ -1797,7 +1801,7 @@ Copied from http://emacsredux.com/blog/2013/05/22/smarter-navigation-to-the-begi
 
 *** Recent files
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (require 'recentf)
 (setq recentf-max-saved-items 200
       recentf-max-menu-items 15)
@@ -1809,7 +1813,7 @@ Copied from http://emacsredux.com/blog/2013/05/22/smarter-navigation-to-the-begi
 http://emacsredux.com/blog/2013/03/27/copy-filename-to-the-clipboard/
 https://github.com/bbatsov/prelude
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (defun prelude-copy-file-name-to-clipboard ()
   "Copy the current buffer file name to the clipboard."
   (interactive)
@@ -1848,7 +1852,7 @@ Don't use docview for PDFs.
 *** Toggle
 
     Based on https://www.reddit.com/r/emacs/comments/l4v1ux/one_of_the_most_useful_small_lisp_functions_in_my/
-    
+
     #+begin_src emacs-lisp
 (defun my/toggle-or-create (buffer-name buffer-create-fn &optional switch-cont)
   (interactive)
@@ -1862,12 +1866,29 @@ Don't use docview for PDFs.
      (t (funcall buffer-create-fn)
         (if switch-cont (funcall switch-cont))))))
        #+end_src
+*** Dogears
+
+    https://github.com/alphapapa/dogears.el
+
+    #+begin_src emacs-lisp
+    ;; Install and load `quelpa-use-package'.
+(use-package dogears
+  :quelpa (dogears :fetcher github :repo "alphapapa/dogears.el")
+
+  ;; These bindings are optional, of course:
+  :bind (:map global-map
+              ("M-g d" . dogears-go)
+              ("M-g M-b" . dogears-back)
+              ("M-g M-f" . dogears-forward)
+              ("M-g M-d" . dogears-list)
+              ("M-g M-D" . dogears-sidebar)))
+              #+end_src
 ** Reading
 
 https://github.com/xahlee/xah_emacs_init/blob/master/xah_emacs_font.el
 From Xah Lee:
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (defun xah-toggle-margin-right ()
   "Toggle the right margin between `fill-column' or window width.
      This command is convenient when reading novel, documentation."
@@ -1888,7 +1909,7 @@ From Xah Lee:
 #+end_src
 ** Shuffling lines
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/shuffle-lines-in-region (beg end)
   (interactive "r")
   (let ((list (split-string (buffer-substring beg end) "[\r\n]+")))
@@ -1905,7 +1926,7 @@ From Xah Lee:
   :mode ("\\.\\(njk\\|md\\)\\'" . markdown-mode))
 #+end_src
 *** Avoiding weasel words
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (use-package artbollocks-mode
   :if my/laptop-p
   :defer t
@@ -1938,7 +1959,7 @@ From Xah Lee:
 
 I unfill paragraphs a lot because Wordpress likes adding extra =<br>= tags if I don't. (I should probably just tweak my Wordpress installation.)
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (defun my/unfill-paragraph (&optional region)
   "Takes a multi-line paragraph and makes it into a single line of text."
   (interactive (progn
@@ -1953,7 +1974,7 @@ I never actually justify text, so I might as well change the way
 =fill-paragraph= works. With the code below, =M-q= will fill the
 paragraph normally, and =C-u M-q= will unfill it.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (defun my/fill-or-unfill-paragraph (&optional unfill region)
   "Fill paragraph (or REGION).
         With the prefix argument UNFILL, unfill it instead."
@@ -1967,14 +1988,14 @@ paragraph normally, and =C-u M-q= will unfill it.
 
 Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't actually break the text into multiple lines - it only looks that way.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (remove-hook 'text-mode-hook #'turn-on-auto-fill)
 (add-hook 'text-mode-hook 'turn-on-visual-line-mode)
 #+END_SRC
 
 *** Unicode
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (defmacro my/insert-unicode (unicode-name)
   `(lambda () (interactive)
      (insert-char (cdr (assoc-string ,unicode-name (ucs-names))))))
@@ -1984,7 +2005,7 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 
 *** Clean up spaces
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (bind-key "M-SPC" 'cycle-spacing)
 #+END_SRC
 
@@ -1996,13 +2017,13 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 #+END_SRC
 
 From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el - Exclude very large buffers from dabbrev
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (defun sanityinc/dabbrev-friend-buffer (other-buffer)
   (< (buffer-size other-buffer) (* 1 1024 1024)))
 (setq dabbrev-friend-buffer-function 'sanityinc/dabbrev-friend-buffer)
 #+END_SRC
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (setq hippie-expand-try-functions-list
       '(yas-hippie-try-expand
         try-expand-all-abbrevs
@@ -2021,7 +2042,7 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
     :PROPERTIES:
     :CUSTOM_ID: subed
     :END:
-    
+
 **** Extract part of a video
 
 #+begin_src emacs-lisp
@@ -2077,7 +2098,7 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
                     (shell-quote-argument video-file)
                     (my/msecs-to-timestamp (car msecs))
                     (my/msecs-to-timestamp (- (cdr msecs) (car msecs)))
-                    (shell-quote-argument (my/subed-write-adjusted-subtitles beg end name))                
+                    (shell-quote-argument (my/subed-write-adjusted-subtitles beg end name))
                     (shell-quote-argument new-file)))
       (message "%s" cmd)
       (kill-new cmd)
@@ -2257,7 +2278,7 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
   (:map subed-mode-map
         ("M-j" . subed-mpv-jump-to-current-subtitle)
         ("M-[" . subed-mpv-seek))
-  :hook 
+  :hook
   ((subed-mode . subed-disable-sync-point-to-player)
    (subed-mode . subed-disable-sync-player-to-point)
    (subed-mode . subed-disable-loop-over-current-subtitle)
@@ -2273,7 +2294,7 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
 :BLOG:     sacha
 :POSTID:   29659
 :END:
-     
+
 I like how people are making more and more Emacs-related videos. I
 think subtitles, transcripts, and show notes would go a long way to
 helping people quickly search, skim, and squeeze these videos into
@@ -2283,7 +2304,7 @@ Youtube's automatically-generated subtitles overlap. I think some
 players scroll the subtitles, but the ones I use just display them
 in alternating positions. I like to have non-overlapping subtitles,
 so here's some code that works with [[https://github.com/rndusr/subed][subed.el]] to fix the timestamps.
-  
+
 #+begin_src emacs-lisp
 (defun my/subed-fix-timestamps ()
   "Change all ending timestamps to the start of the next subtitle."
@@ -2315,7 +2336,7 @@ probably get a little faster if I figure out good workflows for:
   I experimented with making a hydra for this before, but thinking
   about the keys to use slowed me down a bit and it didn't flow very
   well. Might be worth tinkering with.
-    
+
   Transcribing from scratch takes me about 4-5x playtime. I haven't
   tweaked out my workflow for that one yet because I've only
   transcribed one talk with subed.el , and there's a pretty big
@@ -2587,7 +2608,7 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
   (interactive (list
                 (let ((link (and (derived-mode-p 'org-mode)
                                  (org-element-context))))
-                  (if (and link 
+                  (if (and link
                            (eq (org-element-type link) 'link))
                       (read-string (format "URL (%s): " (org-element-property :raw-link link)) nil nil
                                    (org-element-property :raw-link link))
@@ -2744,7 +2765,7 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
 
    # /home/sacha/screenshots/Screenshot_20210401_233420.png https://sachachua.com/blog/wp-content/uploads/2021/04/Screenshot_20210401_233420.png
    # /home/sacha/screenshots/Screenshot_20210401_234041.png https://sachachua.com/blog/wp-content/uploads/2021/04/Screenshot_20210401_234041.png
-   # /home/sacha/screenshots/Screenshot_20210401_234956.png 
+   # /home/sacha/screenshots/Screenshot_20210401_234956.png
 
 ** Plover
    :PROPERTIES:
@@ -2773,7 +2794,7 @@ https://github.com/sachac/plover-websocket-el
 
 #+end_src
 *** Looking things up
-    
+
 #+begin_src emacs-lisp
 (defun my/plover-search-dictionary-for-strokes-jq (stroke-regexp)
   (json-parse-string
@@ -2781,7 +2802,7 @@ https://github.com/sachac/plover-websocket-el
     (format "cat ~/.config/plover/main.json | jq 'with_entries(if (.key|test(\"%s\")) then ( {key: .key, value: .value}) else empty end)'"
             stroke-regexp))
    :object-type 'alist))
-(defvar my/plover-main-dict (mapcar (lambda (o) (cons (symbol-name (car o)) (cdr o))) (json-read-file "~/.config/plover/main.json")))
+(defvar my/plover-main-dict (if my/laptop-p (mapcar (lambda (o) (cons (symbol-name (car o)) (cdr o))) (json-read-file "~/.config/plover/main.json"))))
 (defun my/plover-search-dictionary-for-strokes (stroke-regexp)
   (interactive "MStroke regexp: ")
   (let ((results (seq-filter (lambda (o) (string-match stroke-regexp (car o))) my/plover-main-dict)))
@@ -2839,7 +2860,7 @@ https://github.com/sachac/plover-websocket-el
            (my/plover-search-dictionary-for-strokes (if solo-p (concat "^" regexp "\\(?:/\\|$\\)" ) (concat "^" regexp))))
    :prompt "Narrow: "))
 
-  
+
 
 ;; (list
 ;;  (benchmark-run 2 (my/plover-search-dictionary-for-strokes-jq "^THER"))
@@ -2946,7 +2967,7 @@ Restore main dictionary and turn off Plover when done."
 
 #+begin_src emacs-lisp :lexical t
 (setq enable-recursive-minibuffers t)
-(defun my/replace-heading (new-text) 
+(defun my/replace-heading (new-text)
   (interactive (list (read-string (concat (org-get-heading t t t t) ": "))))
   (org-back-to-heading)
   (when (looking-at org-complex-heading-regexp)
@@ -3008,7 +3029,7 @@ Restore main dictionary and turn off Plover when done."
                           res)))
             :prompt (cond
                      ((functionp ,prompt) (funcall ,prompt))
-                     ((stringp ,prompt) ,prompt) 
+                     ((stringp ,prompt) ,prompt)
                      (t "Command: "))
             :category 'function
             :sort nil))
@@ -3029,7 +3050,7 @@ Restore main dictionary and turn off Plover when done."
     (my/process-inbox-entries))
    ((derived-mode-p 'subed-mode)
     (my/plover/edit-subtitles))))
- 
+
 #+end_src
 *** Suggesting briefs
 
@@ -3081,7 +3102,7 @@ Only checks one dictionary for now, but probably good enough
   (let* ((entries (my/plover-briefpedia translation))
          (current (my/plover-search-dictionary-for-translation translation))
          (brief
-          (my/plover-read-outline-for-brief 
+          (my/plover-read-outline-for-brief
            (concat
             (if current (format "Current: %s\n" (mapconcat 'car current "; ")) "")
             (if entries
@@ -3116,7 +3137,7 @@ Only checks one dictionary for now, but probably good enough
 #+end_src
 *** Practising within Emacs
    Main function: =M-x my/practise-steno=, called in an Org table of =| translation | outline |=
- 
+
  #+begin_src emacs-lisp :lexical t
 (defun my/practise-steno-interleave (base item)
   "Interleave BASE words with item."
@@ -3281,8 +3302,8 @@ ITEMS should be a list like ((word) (word) (word))."
 (defun my/practise-steno-word-list (words)
   (interactive (list (mapcar 'list (split-string (read-string "Words: ")))))
   (my/practise-steno words))
-  
-    
+
+
 ;; (call-interactively 'my/practise-steno)
  #+end_src
 
@@ -3372,7 +3393,7 @@ ITEMS should be a list like ((word) (word) (word))."
           ))
        nil))))
 #+end_src
-    
+
 *** Using inotify to add Plover Clippy suggestions into Emacs
     :PROPERTIES:
     :EXPORT_DATE: 2021-06-18
@@ -3590,7 +3611,7 @@ KPWR up left down right
 KPWHR pgup end home pgdown
 blank esc tab return spc
 TPH ( < [ {
-KWR ) > ] } 
+KWR ) > ] }
 P `
 H '
 !HR \"PH #TKHR $KPWH percPWHR &SKP *T +K ,W -TP .R /WH :TK ;WR
@@ -3607,7 +3628,7 @@ H '
 #+begin_src emacs-lisp
 (defun my/plover-insert-defun ()
   "Prompt for parts of a function definition."
-  (interactive)    
+  (interactive)
   (insert "(defun ")
   (plover-websocket-send :translation "{MODE:LOWER}{MODE:SET_SPACE:-}")
   (insert (replace-regexp-in-string "-$" "" (read-string "Function name: ")))
@@ -3659,7 +3680,7 @@ H '
 *** Measuring WPM
 
 #+begin_src emacs-lisp
-(use-package typing-speed :load-path "~/elisp"
+(use-package typing-speed :if my/laptop-p :load-path "~/elisp"
   :config (setq typing-speed-window 120))
 #+end_src
 
@@ -3896,12 +3917,12 @@ references.
                       (expand-file-name (file-name-nondirectory (my/geeqie-filename)) my/sketches-directory))
      "Portfolio")
     ("s" (rename-file (my/geeqie-filename)
-                      (expand-file-name (file-name-nondirectory (my/geeqie-filename)) my/sketches-directory)) 
+                      (expand-file-name (file-name-nondirectory (my/geeqie-filename)) my/sketches-directory))
      "Sketch"))
    "Other"
    (("<up>" (forward-line -1) :hint nil)
     ("<down>" forward-line :hint nil)
-    
+
     ("im" (insert (format "{{<photo nas=\"1\" src=\"%s\">}}" (my/geeqie-filename))))
     ("if" (insert (my/geeqie-filename) "\n")
      "Insert filename")
@@ -3997,7 +4018,7 @@ currently experimenting with.
 
 *** Keyboard shortcuts
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (bind-key "C-c r" 'org-capture)
 (bind-key "C-c a" 'org-agenda)
 (bind-key "C-c l" 'org-store-link)
@@ -4007,7 +4028,7 @@ currently experimenting with.
 
 =append-next-kill= is more useful to me than =org-table-copy-region=.
 
-#+BEGIN_SRC emacs-lisp 
+#+BEGIN_SRC emacs-lisp
 (with-eval-after-load 'org
   (bind-key "C-M-w" 'append-next-kill org-mode-map)
   (bind-key "C-TAB" 'org-cycle org-mode-map)
@@ -4026,7 +4047,7 @@ currently experimenting with.
 
 I don't use the diary, but I do use the clock a lot.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (with-eval-after-load 'org-agenda
   (bind-key "i" 'org-agenda-clock-in org-agenda-mode-map))
 #+end_src
@@ -4042,7 +4063,7 @@ These are great for quickly acting on tasks.
 
 
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-use-effective-time t)
 
 (defun my/org-use-speed-commands-for-headings-and-lists ()
@@ -4059,7 +4080,7 @@ These are great for quickly acting on tasks.
   (interactive)
   (my/org-with-current-task (org-todo "DONE")))
 (defun my/org-mark-done-and-add-to-journal (&optional note category)
-  (interactive (list (if current-prefix-arg 
+  (interactive (list (if current-prefix-arg
                          (read-string (format "Note (%s): " (org-get-heading t t t t)))
                        (org-get-heading t t t t))
                      (or (org-entry-get (point) "JOURNAL_CAT") (my/journal-read-category))))
@@ -4083,23 +4104,23 @@ These are great for quickly acting on tasks.
 (use-package org
   :config
   (progn
-    (add-to-list 'org-speed-commands-user '("A" org-archive-subtree-default))
-    (add-to-list 'org-speed-commands-user '("x" org-todo "DONE"))
-    (add-to-list 'org-speed-commands-user '("X" call-interactively 'my/org-mark-done-and-add-to-journal))
-    (add-to-list 'org-speed-commands-user '("y" org-todo-yesterday "DONE"))
-    (add-to-list 'org-speed-commands-user '("!" my/org-clock-in-and-track))
-    (add-to-list 'org-speed-commands-user '("s" call-interactively 'org-schedule))
-    (add-to-list 'org-speed-commands-user '("d" my/org-move-line-to-destination))
-    (add-to-list 'org-speed-commands-user '("i" call-interactively 'org-clock-in))
-    (add-to-list 'org-speed-commands-user '("o" call-interactively 'org-clock-out))
-    (add-to-list 'org-speed-commands-user '("$" call-interactively 'org-archive-subtree))
+    (add-to-list 'org-speed-commands '("A" org-archive-subtree-default))
+    (add-to-list 'org-speed-commands '("x" org-todo "DONE"))
+    (add-to-list 'org-speed-commands '("X" call-interactively 'my/org-mark-done-and-add-to-journal))
+    (add-to-list 'org-speed-commands '("y" org-todo-yesterday "DONE"))
+    (add-to-list 'org-speed-commands '("!" my/org-clock-in-and-track))
+    (add-to-list 'org-speed-commands '("s" call-interactively 'org-schedule))
+    (add-to-list 'org-speed-commands '("d" my/org-move-line-to-destination))
+    (add-to-list 'org-speed-commands '("i" call-interactively 'org-clock-in))
+    (add-to-list 'org-speed-commands '("o" call-interactively 'org-clock-out))
+    (add-to-list 'org-speed-commands '("$" call-interactively 'org-archive-subtree))
     (bind-key "!" 'my/org-clock-in-and-track org-agenda-mode-map)))
 #+end_src
 
-*** Navigation
+*** Org navigation
 
 From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-command-to-jump-to-an-org-heading
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-goto-interface 'outline
       org-goto-max-level 10)
 (require 'imenu)
@@ -4113,7 +4134,7 @@ From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-comm
 **** Link Org subtrees and navigate between them
 The following code makes it easier for me to link trees with entries, as in http://sachachua.com/evil-plans
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-follow-entry-link ()
   "Follow the defined link for this entry."
   (interactive)
@@ -4138,7 +4159,7 @@ The following code makes it easier for me to link trees with entries, as in http
 
 I often cut and paste subtrees. This makes it easier to cut
 something and paste it elsewhere in the hierarchy.
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (with-eval-after-load 'org
   (bind-key "C-c k" 'org-cut-subtree org-mode-map)
   (setq org-yank-adjusted-subtrees t))
@@ -4155,9 +4176,9 @@ org-back-to-heading isn't interactive yet. It's useful.
   (org-back-to-heading))
 
 (use-package org
-  :bind (:map org-mode-map 
+  :bind (:map org-mode-map
               ("C-c b" . my/org-back-to-heading)
-              ("C-c p" . org-display-outline-path))) 
+              ("C-c p" . org-display-outline-path)))
 #+end_src
 
 **** Dealing with big tables
@@ -4181,7 +4202,7 @@ My org files are in my =personal= directory, which is actually a
 symlink to a directory in my Dropbox. That way, I can update my
 Org files from multiple computers.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-directory "~/personal")
 (setq org-default-notes-file "~/orgzly/organizer.org")
 #+end_src
@@ -4189,7 +4210,7 @@ Org files from multiple computers.
 **** Date trees
 
 This quickly adds a same-level heading for the succeeding day.
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-insert-heading-for-next-day ()
   "Insert a same-level heading for the following day."
   (interactive)
@@ -4208,7 +4229,7 @@ This quickly adds a same-level heading for the succeeding day.
 
 I use =org-capture= templates to quickly jot down tasks, ledger
 entries, notes, and other semi-structured pieces of information.
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-contacts-template-email (&optional return-value)
   "Try to return the contact email for a template.
          If not found return RETURN-VALUE or something that would ask the user."
@@ -4247,7 +4268,7 @@ entries, notes, and other semi-structured pieces of information.
          :immediate-finish t)
         ("c" "Plover review from clippy" table-line
          (file+headline "~/code/plover-notes/README.org" "For review")
-         "%(let ((last (my/clippy-last))) (format \"| %s | %s |\" (car last) (cdr last)))" 
+         "%(let ((last (my/clippy-last))) (format \"| %s | %s |\" (car last) (cdr last)))"
          :immediate-finish t)
         ("T" "Task" entry
          (file ,my/org-inbox-file)
@@ -4350,7 +4371,7 @@ they could inherit the QUANTIFIED property that I use to track time
 (and any Beeminder-related properties too), but I also wanted to be
 able to clock in on them.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-refile-and-jump ()
   (interactive)
   (if (derived-mode-p 'org-capture-mode)
@@ -4366,7 +4387,7 @@ able to clock in on them.
 
 =org-refile= lets you organize notes by typing in the headline to file them under.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-reverse-note-order nil)
 (setq org-refile-use-outline-path 'file)
 (setq org-outline-path-complete-in-steps nil)
@@ -4390,7 +4411,7 @@ able to clock in on them.
 CLOCK: [2015-02-05 Thu 19:48]--[2015-02-05 Thu 20:03] =>  0:15
 :END:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 ;; Example: (org-refile 4 nil (my/org-refile-get-location-by-substring "Other Emacs"))
 (defun my/org-refile-get-location-by-substring (regexp &optional file)
   "Return the refile location identified by REGEXP."
@@ -4453,7 +4474,7 @@ CLOCK: [2015-02-05 Thu 19:48]--[2015-02-05 Thu 20:03] =>  0:15
 
 ***** Quick way to jump
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-jump ()
   (interactive)
   (let ((current-prefix-arg '(4)))
@@ -4502,7 +4523,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
 **** Estimating WPM
 
 I'm curious about how fast I type some things.
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (require 'org-clock)
 (defun my/org-entry-wpm ()
   (interactive)
@@ -4544,7 +4565,7 @@ and =!= automatically logs the timestamp of the state change.
         (sequence "TODELEGATE(-)" "DELEGATED(d)" "|" "COMPLETE(x)")))
 #+end_src
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-todo-keyword-faces
       '(("TODO" . (:foreground "green" :weight bold))
         ("DONE" . (:foreground "cyan" :weight bold))
@@ -4552,7 +4573,7 @@ and =!= automatically logs the timestamp of the state change.
         ("SOMEDAY" . (:foreground "gray" :weight bold))))
 #+end_src
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-log-done 'time)
 #+end_src
 
@@ -4562,19 +4583,19 @@ Projects are headings with the =:project:= tag, so we generally don't
 want that tag inherited, except when we display unscheduled tasks that
 don't belong to any projects.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-tags-exclude-from-inheritance '("project"))
 #+end_src
 
 This code makes it easy for me to focus on one project and its tasks.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package org
   :config
-  (add-to-list 'org-speed-commands-user '("N" org-narrow-to-subtree))
-  (add-to-list 'org-speed-commands-user '("W" widen))
-  (add-to-list 'org-speed-commands-user '("T" my/org-agenda-for-subtree))
-  (add-to-list 'org-speed-commands-user '("b" my/org-bounce-to-file)))
+  (add-to-list 'org-speed-commands '("N" org-narrow-to-subtree))
+  (add-to-list 'org-speed-commands '("W" widen))
+  (add-to-list 'org-speed-commands '("T" my/org-agenda-for-subtree))
+  (add-to-list 'org-speed-commands '("b" my/org-bounce-to-file)))
 
 (defun my/org-agenda-for-subtree ()
   (interactive)
@@ -4589,15 +4610,15 @@ There's probably a proper way to do this, maybe with =<=. Oh, that would work ni
 
 And sorting:
 
-#+begin_src emacs-lisp 
-(add-to-list 'org-speed-commands-user '("S" call-interactively 'org-sort))
+#+begin_src emacs-lisp
+(add-to-list 'org-speed-commands '("S" call-interactively 'org-sort))
 #+end_src
 
 ***** Tag tasks with GTD-ish contexts
 
 This defines keyboard shortcuts for those, too.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-tag-alist '(("work" . ?b)
                       ("home" . ?h)
                       ("writing" . ?w)
@@ -4619,14 +4640,14 @@ This defines keyboard shortcuts for those, too.
 
 That way, it's easy to see short tasks that I can finish.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (add-to-list 'org-global-properties
              '("Effort_ALL". "0:05 0:15 0:30 1:00 2:00 3:00 4:00"))
 #+end_src
 
 ***** Track time
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package org
   :init
   (progn
@@ -4646,7 +4667,7 @@ That way, it's easy to see short tasks that I can finish.
 
 Too many clock entries clutter up a heading.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-log-into-drawer "LOGBOOK")
 (setq org-clock-into-drawer 1)
 #+end_src
@@ -4657,7 +4678,7 @@ I like using org-habits to track consistency. My task names tend
 to be a bit long, though, so I've configured the graph column to
 show a little bit more to the right.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-habit-graph-column 80)
 (setq org-habit-show-habits-only-for-today nil)
 #+end_src
@@ -4672,7 +4693,7 @@ If you want to use habits, be sure to schedule your tasks and add a STYLE proper
 From "Add an effort estimate on the fly when clocking in" on the
 [[http://orgmode.org/worg/org-hacks.html][Org Hacks]] page:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (add-hook 'org-clock-in-prepare-hook
           'my/org-mode-ask-effort)
 
@@ -4693,14 +4714,14 @@ From "Add an effort estimate on the fly when clocking in" on the
 I (theoretically) want to be able to schedule tasks for dates like the first Saturday
 of every month. Fortunately, [[http://stackoverflow.com/questions/13555385/org-mode-how-to-schedule-repeating-tasks-for-the-first-saturday-of-every-month][someone else has figured that out!]]
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 ;; Get this from https://raw.github.com/chenfengyuan/elisp/master/next-spec-day.el
 (load "~/elisp/next-spec-day.el" t)
 #+end_src
 
 **** Task dependencies
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-enforce-todo-dependencies t)
 (setq org-track-ordered-property-with-tag t)
 (setq org-agenda-dim-blocked-tasks t)
@@ -4739,7 +4760,7 @@ Org makes it easy to insert blocks by typing =<s[TAB]=, etc.
 I hardly ever use LaTeX, but I insert a lot of Emacs Lisp blocks, so I
 redefine =<l= to insert a Lisp block instead.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-structure-template-alist
       '(("a" . "export ascii")
         ("c" . "center")
@@ -4757,7 +4778,7 @@ redefine =<l= to insert a Lisp block instead.
 
 This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exporting-org-mode-nested-blocks-to-html
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-html-quote2 (block backend info)
   (when (org-export-derived-backend-p backend 'html)
     (when (string-match "\\`<div class=\"quote2\">" block)
@@ -4771,7 +4792,7 @@ This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exportin
 
 **** Emacs chats, Emacs hangouts
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-link-youtube-time (url beg end)
   "Link times of the form h:mm to YouTube video at URL.
        Works on region defined by BEG and END."
@@ -4831,7 +4852,7 @@ This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exportin
 I have quite a few Org files, but I keep my agenda items and TODOs in
 only a few of them them for faster scanning.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defvar my/kid-org-file nil "Defined in secrets")
 (setq org-agenda-files
       (delq nil
@@ -4867,7 +4888,7 @@ agenda. I want to see my log entries, but I don't want to see
 scheduled items that I've finished. I like seeing a time grid so that
 I can get a sense of how appointments are spread out.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-agenda-span 2)
 (setq org-agenda-tags-column -100) ; take advantage of the screen width
 (setq org-agenda-sticky nil)
@@ -4886,7 +4907,7 @@ I can get a sense of how appointments are spread out.
 
 Some other keyboard shortcuts:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (bind-key "Y" 'org-agenda-todo-yesterday org-agenda-mode-map)
 #+end_src
 
@@ -4896,7 +4917,7 @@ Some other keyboard shortcuts:
 I like looking at weekends as [[http://sachachua.com/blog/2010/11/week-beginnings/][week beginnings]] instead, so I want the
 Org agenda to start on Saturdays.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-agenda-start-on-weekday 6)
 #+end_src
 
@@ -4922,7 +4943,7 @@ them. Here's a sample of the output:
        organizer:  Learn how to develop for Android devices
 #+end_example
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-agenda-project-agenda ()
   "Return the project headline and up to `org-agenda-max-entries' tasks."
   (save-excursion
@@ -5065,7 +5086,7 @@ hang of using these more!
 | p           | My projects                                                                                    |
 | 2           | Projects with tasks                                                                            |
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (bind-key "<apps> a" 'org-agenda)
 (defvar my/org-agenda-contexts
   '((tags-todo "phone")
@@ -5100,7 +5121,7 @@ hang of using these more!
                  (org-agenda-overriding-header "Waiting: ")
                  (org-agenda-sorting-strategy '(priority-down effort-up tag-up category-keep))))
           ;; Unscheduled
-          (tags-todo "TODO=\"TODO\"-project-cooking-routine-errands-shopping-video-evilplans" 
+          (tags-todo "TODO=\"TODO\"-project-cooking-routine-errands-shopping-video-evilplans"
                      ((org-agenda-skip-function 'my/org-agenda-skip-scheduled)
                       (org-agenda-prefix-format "%-6e ")
                       (org-agenda-overriding-header "Unscheduled TODO entries: ")
@@ -5245,7 +5266,7 @@ hang of using these more!
 Great for quickly going through the to-do list. Gets rid of one
 extra keystroke. ;)
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-agenda-done (&optional arg)
   "Mark current TODO as done.
        This changes the line at point, all other lines in the agenda referring to
@@ -5258,7 +5279,7 @@ extra keystroke. ;)
 
 **** Make it easy to mark a task as done and create a follow-up task
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-agenda-mark-done-and-add-followup ()
   "Mark the current TODO as done and add another task after it.
        Creates it at the same level as the previous task, so it's better to use
@@ -5273,7 +5294,7 @@ extra keystroke. ;)
 
 **** Capture something based on the agenda
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-agenda-new ()
   "Create a new note or task at the current agenda item.
        Creates it at the same level as the previous task, so it's better to use
@@ -5287,11 +5308,11 @@ extra keystroke. ;)
 
 **** Sorting by date and priority
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-agenda-sorting-strategy
       '((agenda time-up priority-down tag-up category-keep effort-up)
         ;; (todo user-defined-up todo-state-up priority-down effort-up)
-        (todo todo-state-up priority-down effort-up) 
+        (todo todo-state-up priority-down effort-up)
         (tags user-defined-up)
         (search category-keep)))
 (setq org-agenda-cmp-user-defined 'my/org-sort-agenda-items-user-defined)
@@ -5364,7 +5385,7 @@ extra keystroke. ;)
 **** Preventing things from falling through the cracks
 This helps me keep track of unscheduled tasks, because I sometimes
 forget to assign tasks a date. I also want to keep track of stuck projects.
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-agenda-list-unscheduled (&rest ignore)
   "Create agenda view for tasks that are unscheduled and not done."
   (let* ((org-agenda-todo-ignore-with-date t)
@@ -5389,7 +5410,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 #+end_src
 **** Projects
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-show-active-projects ()
   "Show my current projects."
   (interactive)
@@ -5558,7 +5579,7 @@ I use this to put together a quick summary of how I spent my time.
 
 The following code makes it easy to add a line:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-add-line-item-task (task)
   (interactive "MTask: ")
   (org-insert-heading)
@@ -5573,13 +5594,13 @@ The following code makes it easy to add a line:
 (defun my/org-list-from-rss (url from-date &optional to-date)
     "Convert URL to an Org list"
     (with-current-buffer (url-retrieve-synchronously url)
-      (goto-char (point-min))  
+      (goto-char (point-min))
       (re-search-forward "<\\?xml")
       (goto-char (match-beginning 0))
       (let* ((feed (xml-parse-region (point) (point-max)))
              (is-rss (> (length (xml-get-children (car feed) 'entry)) 0)))
         (mapconcat (lambda (link)
-                     (format "- %s\n" 
+                     (format "- %s\n"
                              (org-link-make-string (car link) (cdr link))))
                    (if is-rss
                        (mapcar
@@ -5615,68 +5636,68 @@ The following code makes it easy to add a line:
 
 Now we put it all together...
 
-#+begin_src emacs-lisp 
-(defun my/org-prepare-weekly-review (&optional date skip-urls)
-  "Prepare weekly review template."
-  (interactive (list (org-read-date nil nil nil "Ending on Fri: " nil "-fri"))) 
-  (let* ((post-date (current-time))
-         (base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
-         start end links prev
-         (title (format-time-string "Weekly review: Week ending %B %e, %Y" base-date))
-         (post-location (concat (format-time-string "%Y/%m/" post-date) (my/make-slug title))))
-    (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6)) (current-time-zone)))
-    (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date))) (current-time-zone)))
-    (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6)) (current-time-zone)))
-    (outline-next-heading)
-    (insert
-     "** " title "  :weekly:\n"
-     (format
-      ":PROPERTIES:
-:EXPORT_DATE: %s
-:EXPORT_ELEVENTY_PERMALINK: %s
-:EXPORT_ELEVENTY_FILE_NAME: %s
-:END:\n"
-      (format-time-string "%Y-%m-%d")
-      (concat "/blog/" post-location "/")
-      (concat "blog/" post-location)
-     (my/org-summarize-journal-csv start end nil my/journal-category-map my/journal-categories)
-     "\n\n*Blog posts*\n\n"
-     (my/org-list-from-rss "https://sachachua.com/blog/feed" start end)
-     "\n\n*Sketches*\n\n"
-     (my/sketches-export-and-extract start end) "\n"
-     "\n\n#+begin_my/details Time\n"
-     (orgtbl-to-orgtbl
-      (my/quantified-compare prev start start end
-                             '("A-"
-                               "Business"
-                               "Discretionary - Play"
-                               "Unpaid work"
-                               "Discretionary - Social"
-                               "Discretionary - Family"
-                               "Sleep"
-                               "Discretionary - Productive"
-                               "Personal")
-                             "The other week %" "Last week %")
-      nil)
-     "\n#+end_my/details\n\n")
-    ))
+#+begin_src emacs-lisp
+  (defun my/org-prepare-weekly-review (&optional date skip-urls)
+    "Prepare weekly review template."
+    (interactive (list (org-read-date nil nil nil "Ending on Fri: " nil "-fri")))
+    (let* ((post-date (current-time))
+	   (base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
+	   start end links prev
+	   (title (format-time-string "Weekly review: Week ending %B %e, %Y" base-date))
+	   (post-location (concat (format-time-string "%Y/%m/" post-date) (my/make-slug title))))
+      (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6)) (current-time-zone)))
+      (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date))) (current-time-zone)))
+      (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6)) (current-time-zone)))
+      (outline-next-heading)
+      (insert
+       "** " title "  :weekly:\n"
+       (format
+	":PROPERTIES:
+  :EXPORT_DATE: %s
+  :EXPORT_ELEVENTY_PERMALINK: %s
+  :EXPORT_ELEVENTY_FILE_NAME: %s
+  :END:\n"
+	(format-time-string "%Y-%m-%d")
+	(concat "/blog/" post-location "/")
+	(concat "blog/" post-location)
+       (my/org-summarize-journal-csv start end nil my/journal-category-map my/journal-categories)
+       "\n\n*Blog posts*\n\n"
+       (my/org-list-from-rss "https://sachachua.com/blog/feed" start end)
+       "\n\n*Sketches*\n\n"
+       (my/sketches-export-and-extract start end) "\n"
+       "\n\n#+begin_my/details Time\n"
+       (orgtbl-to-orgtbl
+	(my/quantified-compare prev start start end
+			       '("A-"
+				 "Business"
+				 "Discretionary - Play"
+				 "Unpaid work"
+				 "Discretionary - Social"
+				 "Discretionary - Family"
+				 "Sleep"
+				 "Discretionary - Productive"
+				 "Personal")
+			       "The other week %" "Last week %")
+	nil)
+       "\n#+end_my/details\n\n")
+      )))
 
-(defun my/prepare-missing-weekly-reviews ()
-  "Prepare missing weekly reviews based on LAST_REVIEW property."
-  (interactive)
-  (let ((today (substring (org-read-date nil nil ".") 0 10))
-        (date (org-entry-get (point) "LAST_REVIEW")))
-    (while (string< date today)
-      (setq date (substring (org-read-date nil nil "++1w" nil (org-time-string-to-time date)) 0 10))
-      (unless (string< today date)
-        (save-excursion
-          (my/org-prepare-weekly-review date))
-        (org-entry-put (point) "LAST_REVIEW" date)))))
+  (defun my/prepare-missing-weekly-reviews ()
+    "Prepare missing weekly reviews based on LAST_REVIEW property."
+    (interactive)
+    (let ((today (substring (org-read-date nil nil ".") 0 10))
+	  (date (org-entry-get (point) "LAST_REVIEW")))
+      (while (string< date today)
+	(setq date (substring (org-read-date nil nil "++1w" nil (org-time-string-to-time date)) 0 10))
+	(unless (string< today date)
+	  (save-excursion
+	    (my/org-prepare-weekly-review date))
+	  (org-entry-put (point) "LAST_REVIEW" date)))))
 #+end_src
 
 ***** Flickr extract
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun _my/clean-up-flickr-list (list)
   (setq list
         (replace-regexp-in-string "\\[\"" "[" list))
@@ -5740,7 +5761,7 @@ Now we put it all together...
 
 ***** Link-related convenience functions
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun kensanata/resolve-redirect (url)
   "Resolve shortened URL by launching `curl --head' and parsing the result."
   (let* ((curl (shell-command-to-string
@@ -5788,7 +5809,7 @@ Now we put it all together...
 
 I want to be able to see what I worked on in a month so that I can write my [[http://sachachua.com/blog/category/monthly][monthly reviews]]. This code makes it easy to display a month's clocked tasks and time. I haven't been particularly thorough in tracking time before, but now that I have a shortcut that logs in Quantified Awesome as well as in Org, I should end up clocking more.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-review-month (start-date)
   "Review the month's clocked tasks and time."
   (interactive (list (org-read-date)))
@@ -5803,9 +5824,9 @@ I want to be able to see what I worked on in a month so that I can write my [[ht
 
 Here's a function like =my/org-prepare-weekly-review=:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 
-(defun _my/list-blog-posts (start-date end-date)
+(defun my/list-blog-posts (start-date end-date)
   (seq-filter (lambda (o)
                 (and (or (null start-date) (string< start-date (plist-get o :date)))
                      (or (null end-date) (string< (plist-get o :date) end-date))))
@@ -5826,7 +5847,7 @@ Here's a function like =my/org-prepare-weekly-review=:
          start-date
          end-date)
     (calendar-increment-month month year 1)
-    (cons 
+    (cons
      (format "%4d-%02d-01" (elt date 5) (elt date 4))
      (format "%4d-%02d-01" year month))))
 
@@ -5852,7 +5873,7 @@ Here's a function like =my/org-prepare-weekly-review=:
           post-location (concat (format-time-string "%Y/%m/" post-date) (my/make-slug title))
           posts (mapconcat (lambda (o) (concat "- " (org-link-make-string (concat "https://sachachua.com" (plist-get o :permalink))
                                                                           (plist-get o :title))))
-                           (_my/list-blog-posts
+                           (my/list-blog-posts
                             (substring start-date 0 10)
                             (substring end-date 0 10))
                            "\n")
@@ -5889,7 +5910,7 @@ Here's a function like =my/org-prepare-weekly-review=:
 
 This makes it easier to reorganize lines in my weekly review.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-move-line-to-destination ()
   "Moves the current list item to DESTINATION in the current buffer.
 If no DESTINATION is found, move it to the end of the list
@@ -5914,7 +5935,7 @@ and indent it one level."
 
 #+end_src
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-move-line-to-end-of-list ()
   "Move the current list item to the end of the list."
   (interactive)
@@ -5929,7 +5950,7 @@ and indent it one level."
 
 **** Organizing my blog index
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-file-blog-index-entries ()
   "Keep filing until I press `C-g'."
   (interactive)
@@ -5978,9 +5999,9 @@ top-down hierarchy. My old code for refiling to an Org heading in the
 current buffer didn't work any more, but =helm-org-in-buffer-headings=
 seems to be promising. I made it a speed command (see the value of
 =org-use-speed-commands= elsewhere in my config) so that I can easily
-refile. 
+refile.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defvar my/org-last-refile-marker nil "Marker for last refile")
 (defun my/org-refile-in-file (&optional prefix)
   "Refile to a target within the current file."
@@ -6009,9 +6030,9 @@ refile.
         (org-end-of-subtree t t)
         (org-paste-subtree target-level)))))
 
-(add-to-list 'org-speed-commands-user '("w" call-interactively 'org-refile))
-(add-to-list 'org-speed-commands-user '("W" call-interactively 'my/org-refile-in-file))
-(add-to-list 'org-speed-commands-user '("." call-interactively 'my/org-refile-to-previous))
+(add-to-list 'org-speed-commands '("w" call-interactively 'org-refile))
+(add-to-list 'org-speed-commands '("W" call-interactively 'my/org-refile-in-file))
+(add-to-list 'org-speed-commands '("." call-interactively 'my/org-refile-to-previous))
 #+end_src
 
 TODO: Figure out why I'm getting duplicates. Next step might be to fiddle with =helm-org-in-buffer-headings= so that it preselects the previous candidate, but that can happen later.
@@ -6022,7 +6043,7 @@ appropriate level.
 
 *** Inserting code
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-insert-defun (function)
   "Inserts an Org source block with the definition for FUNCTION."
   (interactive (find-function-read))
@@ -6030,7 +6051,7 @@ appropriate level.
          (new-buf (car buffer-point))
          (new-point (cdr buffer-point))
          definition)
-    (if buffer-point        
+    (if (and buffer-point new-point)
         (with-current-buffer new-buf ;; Try to get original definition
           (save-excursion
             (goto-char new-point)
@@ -6048,8 +6069,8 @@ appropriate level.
 
 #+begin_src emacs-lisp
 (use-package org
+  :hook (org-mode . org-indent-mode)
   :config
-  (org-indent-mode 1)
   (setq org-indent-indentation-per-level 2)
   (setq org-edit-src-content-indentation 0)
   (setq org-src-preserve-indentation t))
@@ -6075,7 +6096,7 @@ appropriate level.
   #+begin_src emacs-lisp
 (defun my/org-execute-src-block-by-name (name)
   (interactive (list (completing-read "Block: "(org-babel-src-block-names))))
-  (save-excursion 
+  (save-excursion
     (goto-char (point-min))
     (when (re-search-forward (format "^#\\+NAME:[ \t]+%s[ \t]*$" (regexp-quote name)) nil t)
       (org-babel-execute-src-block))))
@@ -6118,7 +6139,7 @@ appropriate level.
      be cool if the link could be automatically added whenever I use
      org2blog to post a subtree from my config file? I think the code
      below accomplishes that.
-      
+
      #+BEGIN_SRC emacs-lisp :tangle yes
 (defun my/org-export-filter-body-add-emacs-configuration-link (string backend info)
   (when (and (plist-get info :input-file) (string-match "\\.emacs\\.d/Sacha\\.org" (plist-get info :input-file)))
@@ -6145,15 +6166,13 @@ appropriate level.
   (unless (or (org-entry-get (point) "EXPORT_DATE")
               (org-entry-get-with-inheritance "DATE"))
     (org-entry-put (point) "EXPORT_DATE" (format-time-string "%Y-%m-%d")))
-  (unless (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK")
-    (org-entry-put (point) "EXPORT_ELEVENTY_PERMALINK"
-                   (concat (format-time-string "/blog/%Y/%m/")
-                           (my/make-slug (org-get-heading t t t t))
-                           "/")))
-  (unless (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
-    (org-entry-put (point) "EXPORT_ELEVENTY_FILE_NAME"
-                   (concat (format-time-string "%Y/%m/")
-                           (my/make-slug (org-get-heading t t t t))))))
+  (let ((path (concat "blog/" (format-time-string "%Y/%m/")
+                      (my/make-slug (org-get-heading t t t t))
+                              "/")))
+    (unless (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK")
+      (org-entry-put (point) "EXPORT_ELEVENTY_PERMALINK" (concat "/" path)))
+    (unless (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
+      (org-entry-put (point) "EXPORT_ELEVENTY_FILE_NAME" path))))
 
 (defun my/11ty-convert-to-njk ()
   (interactive)
@@ -6172,14 +6191,24 @@ appropriate level.
     (let* ((json-object-type 'plist)
            (data (json-read-file (concat (file-name-base (buffer-file-name)) ".11tydata.json"))))
       (browse-url (concat "http://localhost:8080" (plist-get data :permalink))))))
+
+(defun my/org-11ty-find-file ()
+  (interactive)
+  (find-file (expand-file-name
+              (concat (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")
+                      (if (string-match "/$" (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME"))
+                          "index" "")
+                      ".html")
+              "~/code/static-blog")))
 #+end_src
+
 
 **** Cleaning up export
 Timestamps and section numbers make my published files look more
 complicated than they are. Let's turn them off by default.
 
 #+NAME: org-clean-up-export
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-export-with-section-numbers nil)
 (setq org-html-include-timestamps nil)
 (setq org-export-with-sub-superscripts nil)
@@ -6192,7 +6221,7 @@ complicated than they are. Let's turn them off by default.
 
 This makes it easier to publish my files:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-publish-project-alist
       '(("stream"
          :base-directory "~/code/stream"
@@ -6213,7 +6242,7 @@ This makes it easier to publish my files:
 
 If a file is in a publishing project, publish it.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-publish-maybe ()
   (require 'ox-publish)
   (interactive)
@@ -6226,7 +6255,7 @@ If a file is in a publishing project, publish it.
 
 Make it easy to publish and browse a file.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-publish-and-browse ()
   (interactive)
   (save-buffer)
@@ -6238,7 +6267,7 @@ Make it easy to publish and browse a file.
 
 I want to be able to export without having to say yes to code blocks all the time.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-html-export-trustingly ()
   (interactive)
   (let ((org-confirm-babel-evaluate nil))
@@ -6250,7 +6279,7 @@ I want to be able to export without having to say yes to code blocks all the tim
 #+end_src
 **** Special blocks
 #+NAME: org-special-blocks
-     #+begin_src emacs-lisp
+     #+begin_src emacs-lisp :lexical t
 (use-package org-special-block-extras
   :if my/laptop-p
   :hook (org-mode . org-special-block-extras-mode)
@@ -6258,28 +6287,16 @@ I want to be able to export without having to say yes to code blocks all the tim
   ;; Use short names like ‘defblock’ instead of the fully qualified name
   ;; ‘org-special-block-extras--defblock’
   (org-special-block-extras-short-names)
-(org-special-block-extras-defblock my/details (title "Details") (title-color "black")
-  "Enclose contents in a folded up box, for HTML.
-
-For LaTeX, this is just a boring, but centered, box.
-
-By default, the TITLE of such blocks is “Details”
-and its TITLE-COLOR is green.
-
-In HTML, we show folded, details, regions with a nice greenish colour.
-
-In the future ---i.e., when I have time---
-it may be prudent to expose more aspects as arguments,
-such as ‘background-color’.
-"
-  (format
-   (pcase backend
-     (`latex "\\begin{quote}
-                  \\begin{tcolorbox}[colback=%s,title={%s},sharp corners,boxrule=0.4pt]
-                    %s
-                  \\end{tcolorbox}
-                \\end{quote}")
-     (_ "<details class=\"code-details\"
+  (defblock my_details (title "Details") (title-color "Green")
+    "Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Enclose contents in a folded up box."
+    (cond
+     ((eq backend '11ty)
+      (format
+       "{%% details \"%s\"%%}\n%s\n{%% enddetails %%}"
+       title contents))
+     ((eq backend 'html)
+      (format
+       "<details class=\"code-details\"
                  style =\"padding: 1em;
                           border-radius: 15px;
                           font-size: 0.9em;
@@ -6292,13 +6309,13 @@ such as ‘background-color’.
                     </strong>
                   </summary>
                   %s
-               </details>"))
-   title-color title contents))
+               </details>"
+       title-color title contents))))
 
   (defblock columns nil nil
     "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
     (format "<div class=\"row\">%s</div>" contents))
-  (defblock column50 nil nil 
+  (defblock column50 nil nil
     "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns."
     (format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents)))
 #+end_src
@@ -6306,7 +6323,7 @@ such as ‘background-color’.
 Might as well take advantage of my stylesheet:
 
 #+NAME: org-styles
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-html-head "
        <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/assets/css/style.css\"></link>
        <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/assets/css/org-export.css\"></link>
@@ -6320,7 +6337,7 @@ Might as well take advantage of my stylesheet:
 
 Make it easy to scroll to the top:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-html-preamble "<a name=\"top\" id=\"top\"></a>")
 (setq org-html-postamble "
        <style type=\"text/css\">
@@ -6361,7 +6378,7 @@ Make it easy to scroll to the top:
 **** Copy region
 Sometimes I want a region's HTML in my kill-ring/clipboard without any of the extra fluff:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-copy-region-as-html (beg end &optional level)
   "Make it easier to copy code for Wordpress posts and other things."
   (interactive "r\np")
@@ -6373,7 +6390,7 @@ Sometimes I want a region's HTML in my kill-ring/clipboard without any of the ex
 
 Sometimes I want a subtree:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-copy-subtree-as-html ()
   (interactive)
   (my/org-copy-region-as-html
@@ -6384,7 +6401,7 @@ Sometimes I want a subtree:
 **** UTF-8 checkboxes
 
 This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone.
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-html-checkbox-type 'unicode)
 (setq org-html-checkbox-types
       '((unicode (on . "<span class=\"task-done\">&#x2611;</span>")
@@ -6399,7 +6416,7 @@ I want it to export as sacha-emacs.org in my Dropbox's public
 directory. Although now that I'm shifting to Github Pages, maybe I
 don't need this any more...
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-share-emacs ()
   "Share my Emacs configuration."
   (interactive)
@@ -6421,7 +6438,7 @@ don't need this any more...
 #+end_src
 
 **** Beamer
-#+begin_src emacs-lisp  
+#+begin_src emacs-lisp
 (with-eval-after-load 'org
   (require 'ox-latex)
   (add-to-list 'org-latex-classes
@@ -6501,7 +6518,7 @@ regularly so that I don't forget to do so. The following code exports
 my config, but only if I saved it myself instead of when I auto-save
 it by focusing away from Emacs.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :noweb yes
 (defvar my/unfocusing nil)
 (defun my/org-async-export-and-tangle ()
   (async-start
@@ -6510,9 +6527,11 @@ it by focusing away from Emacs.
       (package-initialize)
       (setq package-enable-at-startup nil)
       (require 'org)
-      (org-babel-tangle-file ,(buffer-file-name)))
-   (lambda (result) (message "Tangled.")))
-  (org-html-export-to-html t))
+      (org-babel-tangle-file ,(buffer-file-name))
+    )
+   (lambda (result)
+             (org-html-export-to-html t)
+             (message "Tangled."))))
 (defun my/org-export-and-tangle-if-saved-in-focus ()
   (unless my/unfocusing
     (my/org-async-export-and-tangle)))
@@ -6533,7 +6552,7 @@ the mode, `toggle' toggles the state."
                    (lambda () (when (string= (buffer-file-name) (expand-file-name "~/code/.emacs.d/Sacha.org")) (my/org-export-and-tangle-when-saved-in-focus-mode 1))))))
 #+end_src
 
-Let's see if this makes it easier for me to tweak things. 
+Let's see if this makes it easier for me to tweak things.
 
 *** Org roam
 
@@ -6593,7 +6612,7 @@ http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS
 
 *** Links
 **** Quick links
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-link-abbrev-alist
       '(("google" . "http://www.google.com/search?q=")
         ("gmap" . "http://maps.google.com/maps?q=%s")
@@ -6641,8 +6660,8 @@ https://endlessparentheses.com/embedding-youtube-videos-with-org-mode-links.html
 
 So that I can easily add links at point. Formatted as an Org list for now.
 
-#+begin_src emacs-lisp 
-(defun my/org-protocol-insert-link (info) 
+#+begin_src emacs-lisp
+(defun my/org-protocol-insert-link (info)
   "Store and insert the link at point based on INFO."
   (org-protocol-store-link info)
   (with-current-buffer (window-buffer (selected-window))
@@ -6658,7 +6677,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
 (defun my/get-youtube-info (url)
   (with-current-buffer (url-retrieve-synchronously url)
     (goto-char (point-min))
-    (prog1 
+    (prog1
         (list
          :url
          url
@@ -6683,7 +6702,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
           (plist-put list :thumbnail (match-string-no-properties 1)))))
     list))
 
-(defun my/org-protocol-copy-thumbnail (info) 
+(defun my/org-protocol-copy-thumbnail (info)
   "Store and insert the link at point based on INFO."
   (interactive "MURL: ")
   (when (stringp info) (setq info (list :url info)))
@@ -6727,7 +6746,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
 :CUSTOM_ID: org-dired
 :END:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq dired-dwim-target t)
 
 (defun my/org-get-links-in-region (beg end)
@@ -6814,7 +6833,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
     ("w" my/org-link-element-copy-link "Copy link")
     ("u" (my/hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil)
     ("<up>" (my/hydra-go-and-push 'my/hydra/org-mode/body) :exit t :hint nil))
-  (defhydra my/hydra/org-src (:inherit (my/hydra/org-mode/heads))
+  (defhydra my/hydra/org-src ()
     ("e" org-babel-execute-src-block "Exec")
     ("E" my/org-execute-src-block-by-name "Exec by name")
     ("i" org-edit-special "Edit")
@@ -6843,7 +6862,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
   #+end_src
 *** Journal
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defvar my/journal-category-map
   '(("Gross" . "Gross motor")
     ("Fine" . "Fine motor")
@@ -6856,7 +6875,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
     "Sensory" "Language" "Music" "Art"
     "Self-care and independence" "Eating" "Sleep" "Emotion"
     "Household" "Social" "Pretend" "Cognition" "World" "Other" "Oops" "Thoughts" "Consulting" "Track" "Uncategorized")
-  "List of categories to display. 
+  "List of categories to display.
       Unknown categories will be added to the end.")
 
 (defun my/journal-date (o) (elt o 3))
@@ -6871,9 +6890,9 @@ So that I can easily add links at point. Formatted as an Org list for now.
 (defun my/org-group-journal-entries (filtered &optional category-map categories)
   (setq category-map (or category-map (my/journal-category-map)))
   (setq categories (or categories (my/journal-categories)))
-  (let* ((grouped (-group-by 'my/journal-category filtered))    
+  (let* ((grouped (-group-by 'my/journal-category filtered))
          (mapped-list
-          (mapcar 
+          (mapcar
            (lambda (o)
              (cons (or (assoc-default (car o) category-map) (car o))
                    (cdr o)))
@@ -6965,7 +6984,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
         (url-request-data (json-encode-plist plist)))
     (my/json-request (concat my/journal-url "/api/entries/" (plist-get plist :ZIDString)))))
 ;; (my/journal-post "Hello, world")
-  
+
 (defun my/journal-get-entries (from to &optional search)
   "Return parsed CSV of entries limited by FROM, TO, and SEARCH."
   (with-current-buffer
@@ -7034,7 +7053,7 @@ The following code lets me complete journal entries and get their ZIDs.
     (cond
      ((eq action 'setup)                ;; Should figure out how to start
       (my/journal-search-query-async "" next))
-     ((and (stringp action) (not (string= action ""))) 
+     ((and (stringp action) (not (string= action "")))
       (my/journal-search-query-async action next))
      (t (funcall next action)))))
 
@@ -7159,9 +7178,9 @@ This lets me define a custom link type.
          nil))
   (let ((list (my/org-journal-format-tree
                (my/org-group-journal-entries
-                (my/journal-get-entries from to search) 
+                (my/journal-get-entries from to search)
                 category-map categories)
-               include)))    
+               include)))
     (if (called-interactively-p 'any) (insert list) list)))
 
 #+end_src
@@ -7263,10 +7282,10 @@ This lets me define a custom link type.
                                                              (my/journal-get-refs-from-region beg end)
                                                              " "))))
    #+end_src
-   
-   
+
+
 **** Photos
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/get-image-caption (file)
   (let ((caption (shell-command-to-string (format "exiftool -s -s -s -ImageDescription %s" (shell-quote-argument file)))))
     (when (> (length caption) 0) (format "#+CAPTION: %s" caption))))
@@ -7288,7 +7307,7 @@ This lets me define a custom link type.
   (shell-command (format "exiftool -ImageDescription=\"%s\" %s" (shell-quote-argument caption) (shell-quote-argument file))))
 #+end_src
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defvar my/photo-directory "/mnt/nfs/photos/inbox")
 (defun my/get-photo-rating (file)
   (let ((rating (shell-command-to-string (concat "exiftool -s -s -s -Rating " (shell-quote-argument file)))))
@@ -7342,7 +7361,7 @@ Org lets you attach files to an Org file. Haven't gotten the hang of this yet, b
 
 *** HTTP
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package ob-http)
 #+end_src
 
@@ -7362,7 +7381,7 @@ Org lets you attach files to an Org file. Haven't gotten the hang of this yet, b
 
 Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[http://sachachua.com/evil-plans]] for examples and source.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-ditaa-jar-path "c:/sacha/Dropbox/bin/ditaa.jar")
 (setq org-startup-with-inline-images t)
 (use-package org
@@ -7400,7 +7419,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
 
 Good way to remind myself that I have lots of STARTED tasks.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-summarize-task-status ()
   "Count number of tasks by status.
       Probably should make this a dblock someday."
@@ -7419,7 +7438,7 @@ Good way to remind myself that I have lots of STARTED tasks.
 #+end_src
 
 *** Spreadsheets
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-days-between (start end)
   "Number of days between START and END (exclusive).
       This includes START but not END."
@@ -7431,13 +7450,13 @@ Good way to remind myself that I have lots of STARTED tasks.
 **** Editing source code
 I don't want to get distracted by the same code in the other window, so I want org src to use the current window.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-src-window-setup 'current-window)
 #+end_src
 
 **** Copying and sharing code
 
-     #+begin_src emacs-lisp 
+     #+begin_src emacs-lisp
 (defun my/copy-code-as-org-block-and-gist (beg end)
   (interactive "r")
   (let ((filename (or (file-name-base) ""))
@@ -7454,7 +7473,7 @@ I don't want to get distracted by the same code in the other window, so I want o
 **** Tables
 
      Requires dash.
-     
+
      #+begin_src emacs-lisp
 (defun my/org-table-as-alist (table)
   "Convert TABLE to an alist. Remember to set :colnames no."
@@ -7463,7 +7482,7 @@ I don't want to get distracted by the same code in the other window, so I want o
      #+end_src
 *** Invoices
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq calendar-week-start-day 6) ;; My weeks start on Saturday
 
 (defun my/org-get-invoice-range-based-on-date (date)
@@ -7566,7 +7585,7 @@ I don't want to get distracted by the same code in the other window, so I want o
 
 (defun my/org-quantified-hours-table ()
   (my/org-quantified-format-detailed-hours-as-table
-   (apply 'my/org-quantified-get-detailed-hours-based-on-range 
+   (apply 'my/org-quantified-get-detailed-hours-based-on-range
           (org-entry-get-with-inheritance "QUANTIFIED_CATEGORY")
           (my/org-get-invoice-range-based-on-date (org-entry-get-with-inheritance "INVOICE_DATE")))))
 
@@ -7577,13 +7596,13 @@ I don't want to get distracted by the same code in the other window, so I want o
 #+end_src
 
 *** Presentations
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package ox-reveal :disabled t)
 #+end_src
 
-*** Allow dashes in tags 
+*** Allow dashes in tags
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-add-dashes-to-tag-regexps ()
   (setq org-complex-heading-regexp
         (concat "^\\(\\*+\\)"
@@ -7620,7 +7639,7 @@ I have a tiny Tasker script that makes it easy to log timestamped
 entries as files in a directory that I synchronize with Dropbox. This
 code pulls that information into my ~/Dropbox/tasker/
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/read-phone-entries ()
   "Copy phone data to a summary Org file."
   (interactive)
@@ -7662,7 +7681,7 @@ code pulls that information into my ~/Dropbox/tasker/
 :END:
 
 **** Package links
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-package-open (package-name)
   (interactive "MPackage name: ")
   (describe-package (intern package-name)))
@@ -7703,7 +7722,7 @@ code pulls that information into my ~/Dropbox/tasker/
 
 This setting puts Org ASCII export links right after the text instead of in a separate section:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq org-ascii-links-to-notes nil)
 #+end_src
 
@@ -7713,7 +7732,7 @@ This one exports links from my secret =my/reddit-upvoted-json=. You
 can get your Reddit upvoted JSON URL at
 https://www.reddit.com/prefs/feeds/ .
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/reddit-list-upvoted (date)
   (interactive (list (org-read-date)))
   (let ((threshold (org-read-date nil t (concat (substring date 0 (min (length date) 10)) " 0:00")))
@@ -7767,7 +7786,7 @@ depending on the number of links. I have a pretty consistent order.
 John Wiegley suggested promoting Emacs Lisp and Emacs development
 links at the top of the list. I like to sort the rest of the list
 roughly by interest: general links first, then Org, then coding, then
-other links at the bottom. 
+other links at the bottom.
 
 Here's some code that sorts Org lists in a custom sequence, with
 unknown items at the bottom for easy re-ordering. It will take a list like:
@@ -7798,7 +7817,7 @@ and turn it into:
        - Link B
 #+end_example
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-sort-list-in-custom-order (order)
   "Sort the current Org list so that items are in the specified order.
        ORDER is a list of regexps."
@@ -7854,7 +7873,7 @@ From https://xenodium.com/emacs-dwim-do-what-i-mean/
 #+end_src
 ** Coding
 *** Web development
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 ;; from FAQ at http://web-mode.org/ for smartparens
 (defun my/web-mode-hook ()
   (setq web-mode-enable-auto-pairing nil))
@@ -7912,15 +7931,15 @@ https://www.mattduck.com/lsp-python-getting-started.html
   :after lsp-mode)
 #+end_src
 *** Tab width of 2 is compact and readable
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq-default tab-width 2)
 #+end_src
 
 *** More indentation things
 
 From https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-utils.el
-    
-#+begin_src emacs-lisp 
+
+#+begin_src emacs-lisp
 (defun sanityinc/kill-back-to-indentation ()
   "Kill from point back to the first non-whitespace character on the line."
   (interactive)
@@ -7949,7 +7968,7 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-utils.el
 
 This is something I have to get the hang of too. It gradually expands the selection. Handy for Emacs Lisp.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package expand-region
   :defer t
   :bind ("C-=" . er/expand-region)
@@ -7959,7 +7978,7 @@ This is something I have to get the hang of too. It gradually expands the select
 
 *** Compilation
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (eval-after-load 'python-mode
   '(bind-key "C-c C-c" 'compile python-mode-map))
 #+end_src
@@ -7970,7 +7989,7 @@ This is something I have to get the hang of too. It gradually expands the select
 #+end_src
 **** Eldoc
 Eldoc provides minibuffer hints when working with Emacs Lisp.
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package "eldoc"
   :if my/laptop-p
   :diminish eldoc-mode
@@ -7998,7 +8017,7 @@ Eldoc provides minibuffer hints when working with Emacs Lisp.
 
 More things that I need to get used to...
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 ;; C-c C-v l : elint current buffer in clean environment.
 ;; C-c C-v L : elint current buffer by multiple emacs binaries.
 ;;             See `erefactor-lint-emacsen'
@@ -8027,13 +8046,13 @@ More things that I need to get used to...
 
 **** Jumping to code
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (define-key emacs-lisp-mode-map (kbd "C-c .") 'find-function-at-point)
 #+end_src
 
 **** Sorting
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/sort-sexps-in-region (beg end)
   "Can be handy for sorting out duplicates.
        Sorts the sexps from BEG to END. Leaves the point at where it
@@ -8065,7 +8084,7 @@ More things that I need to get used to...
 
 Borrowed from Steve Purcell's config. This pretty-prints the results.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (bind-key "M-:" 'pp-eval-expression)
 
 (defun sanityinc/eval-last-sexp-or-region (prefix)
@@ -8081,7 +8100,7 @@ Borrowed from Steve Purcell's config. This pretty-prints the results.
 **** Stubbing
 
 From https://ag91.github.io/blog/2020/12/31/top-down-elisping-a-simple-snippet-to-stub-a-function-while-your-are-designing-your-code/
-     
+
 #+begin_src emacs-lisp
 (defun my/stub-elisp-defun ()
   "Stub an elisp function from symbol at point."
@@ -8104,7 +8123,7 @@ From https://ag91.github.io/blog/2020/12/31/top-down-elisping-a-simple-snippet-t
 (bind-key "C-:" #'my/stub-elisp-defun emacs-lisp-mode-map)
 #+end_src
 *** Snippets
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package yasnippet
   :diminish yas-minor-mode
   :init (yas-global-mode)
@@ -8123,7 +8142,7 @@ From https://ag91.github.io/blog/2020/12/31/top-down-elisping-a-simple-snippet-t
 #+end_src
 
 From http://emacswiki.org/emacs/Yasnippet
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun shk-yas/helm-prompt (prompt choices &optional display-fn)
   "Use helm to select a snippet. Put this into `yas/prompt-functions.'"
   (interactive)
@@ -8146,7 +8165,7 @@ From http://emacswiki.org/emacs/Yasnippet
 #+end_src
 
 From https://github.com/pcmantz/elisp/blob/master/my-bindings.el
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq default-cursor-color "gray")
 (setq yasnippet-can-fire-cursor-color "purple")
 
@@ -8186,7 +8205,7 @@ From https://github.com/pcmantz/elisp/blob/master/my-bindings.el
 #+end_src
 
 This requires me to modify the behaviour of hippie-expand so that it doesn't ding so much.
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/hippie-expand-maybe (arg)
   "Try to expand text before point, using multiple methods.
       The expansion functions in `hippie-expand-try-functions-list' are
@@ -8242,12 +8261,12 @@ Because
 *** Show column number
 
 I sometimes need to know where I am in a line.
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (column-number-mode 1)
 #+end_src
 
 *** Don't show whitespace in diff, but show context
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq vc-diff-switches '("-b" "-B" "-u"))
 (setq vc-git-diff-switches nil)
 #+end_src
@@ -8256,26 +8275,26 @@ I sometimes need to know where I am in a line.
 
 I like js2-mode.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (add-to-list 'auto-mode-alist '("\\.js\\'\\|\\.json\\'" . js2-mode))
 #+end_src
 
 Handy shortcuts:
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package js2-mode
   :if my/laptop-p
   :mode "\\.js\\'"
   :bind (:map js2-mode-map ("C-c C-c" . projectile-compile-project)))
 #+end_src
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package coffee-mode
   :if my/laptop-p
   :mode "\\.coffee\\'"
   :bind (:map coffee-mode-map ("C-c C-c" . compile)))
 #+end_src
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package jasminejs-mode
   :if my/laptop-p
   :after js2-mode
@@ -8285,7 +8304,7 @@ Handy shortcuts:
 
 This makes script blocks easier to copy:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defvar my/javascript-test-regexp (concat (regexp-quote "/** Testing **/") "\\(.*\n\\)*")
   "Regular expression matching testing-related code to remove.
       See `my/copy-javascript-region-or-buffer'.")
@@ -8312,7 +8331,7 @@ This makes script blocks easier to copy:
 
 This makes it easier to debug:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defvar my/debug-counter 1)
 (defun my/insert-or-flush-debug (&optional reset beg end)
   (interactive "pr")
@@ -8339,38 +8358,39 @@ This makes it easier to debug:
 
 And the rest of the js2 config:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package js2-mode
   :if my/laptop-p
   :commands js2-mode
   :defer t
   :interpreter "node"
-  :init (setq js2-basic-offset 2)
+  :init (setq js-indent-level 2)
   :bind (:map js2-mode-map
               ("C-x C-e" . js-send-last-sexp)
               ("C-M-x" . js-send-last-sexp-and-go)
-              ("C-c b" . js-send-buffer)
               ("C-c d" . my/insert-or-flush-debug)
               ("C-c C-b" . js-send-buffer-and-go)
               ("C-c w" . my/copy-javascript-region-or-buffer))
   :config (js2-imenu-extras-setup))
 #+end_src
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package coffee-mode
   :if my/laptop-p
   :defer t
   :config (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
 #+end_src
+**** Indium
 
+     #+begin_src emacs-lisp
+(use-package indium
+:hook ((js2-mode . indium-interaction-mode)))
+     #+end_src
 **** React
 
 #+begin_src emacs-lisp
 (use-package rjsx-mode
-  :if my/laptop-p
-  ;:mode "\\.js\\'"
-  :config (setq js2-basic-offset 2))
-
+  :if my/laptop-p)
 #+end_src
 
 *** HTML
@@ -8380,7 +8400,7 @@ offby1 says there's (setq nxml-sexp-element-flag t)
 
 <span><span>Hello world</span></span>
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/clean-up-spans-in-region (beg end)
   (interactive "r")
   (save-excursion
@@ -8430,7 +8450,7 @@ offby1 says there's (setq nxml-sexp-element-flag t)
 
 Thanks to sheijk for hints on tweaking magit to limit it to the current directory!
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/magit-stage-all-and-commit (message)
   (interactive (list (progn (magit-diff-unstaged) (read-string "Commit Message: "))))
   (magit-stage-modified)
@@ -8560,7 +8580,7 @@ Based on http://xenodium.com/emacs-clone-git-repo-from-clipboard/ :
 
 *** git-messenger - shows commit message
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package git-messenger
   :bind (("C-x v m" . git-messenger:popup-message)))
 #+end_src
@@ -8571,7 +8591,7 @@ I don't often use a TAGS file, but when I do, I don't want to have
 to set my tags file per project. I search for it in the directory
 tree instead.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/recursive-find-file (file &optional directory)
   "Find the first FILE in DIRECTORY or its parents."
   (setq directory (or directory (file-name-directory (buffer-file-name)) (pwd)))
@@ -8593,7 +8613,7 @@ tree instead.
 
 *** Projects
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package projectile
   :diminish projectile-mode
   :config
@@ -8610,13 +8630,13 @@ tree instead.
 
 *** Exploring MELPA recipes
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 
 #+end_src
 
 *** Ruby
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package rinari :if my/laptop-p)
 (use-package bundler :if my/laptop-p)
 (use-package robe
@@ -8630,7 +8650,7 @@ tree instead.
   :mode "\\.haml\\'")
 #+end_src
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/rspec-verify-single ()
   "Runs the specified example at the point of the current buffer."
   (interactive)
@@ -8655,7 +8675,7 @@ tree instead.
 
 SASS
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package sass-mode
   :if my/laptop-p
   :hook (sass-mode-hook . (lambda () (setq indent-tabs-mode nil))))
@@ -8669,10 +8689,10 @@ Chrome. You may need to start Chrome with =chrome
 --allow-running-insecure-content=, if you're using the user script
 with HTTPS sites.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package skewer-mode
   :if my/laptop-p
-  :hook 
+  :hook
   ((js2-mode-hook . skewer-mode)
    (css-mode-hook . skewer-css-mode)
    (html-mode-hook . skewer-html-mode)))
@@ -8680,7 +8700,7 @@ with HTTPS sites.
 
 *** Autocomplete
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package company
   :if my/laptop-p
   :config (add-hook 'prog-mode-hook 'company-mode))
@@ -8689,7 +8709,7 @@ with HTTPS sites.
 
 *** Tern - for Javascript
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package tern
   :if my/laptop-p
   :bind (:map tern-mode-keymap ("C-c C-c" . compile))
@@ -8715,7 +8735,7 @@ with HTTPS sites.
 ** Internet Relay Chat
 
 IRC is a great way to hang out with other Emacs geeks.
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package erc
   :if my/laptop-p
   :config
@@ -8769,7 +8789,7 @@ IRC is a great way to hang out with other Emacs geeks.
 :END:
 <<clock-in>>
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defmacro my/org-with-current-task (&rest body)
   "Execute BODY with the point at the subtree of the current task."
   (declare (debug t))
@@ -8860,7 +8880,7 @@ IRC is a great way to hang out with other Emacs geeks.
 
 This is for comparing times in column view and in tables.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/compare-times (clocked estimated)
   (if (and (> (length clocked) 0) estimated)
       (format "%.2f"
@@ -8876,7 +8896,7 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 #+end_example
 
 *** Workrave
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defvar my/workrave-file (expand-file-name ".\\Workrave\\historystats" (getenv "AppData")))
 
 (defun my/workrave-transform-statistics (&optional file)
@@ -8907,7 +8927,7 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
         result))))
 #+end_src
 *** Blog
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/strip-blog-share ()
   (interactive)
   (let (base)
@@ -8919,7 +8939,7 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 #+end_src
 *** Artrage
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/artrage-export-png (directory &optional prefix)
   "Change an Artrage script file (arscript) to export images to DIRECTORY.
           If PREFIX is specified, use that instead of image-."
@@ -8943,13 +8963,13 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 
 http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en.html has lots of tips.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq gnutls-trustfiles '("c:/sacha/cacert.pem.txt"))
 #+end_src
 
 *** color-theme sometimes comes across lists. Odd!
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defadvice face-attribute (around sacha activate)
   (if (symbolp (ad-get-arg 0))
       ad-do-it))
@@ -8957,7 +8977,7 @@ http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en
 
 *** ido-sort-mtime stopped working when I upgraded to Windows 8
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defadvice ido-sort-mtime (around sacha activate)
   (setq ido-temp-list
         (sort ido-temp-list
@@ -8976,7 +8996,7 @@ http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en
 #+end_src
 *** Cygwin mogrify doesn't work for me, but ImageMagick does
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
                                         ;(setq eimp-mogrify-program "c:/Program Files/ImageMagick-6.8.3-Q16/mogrify.exe")
 #+end_src
 
@@ -8984,7 +9004,7 @@ http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en
 
 From https://github.com/nhoffman/.emacs.d/blob/master/init.org
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/ssh-refresh ()
   "Reset the environment variable SSH_AUTH_SOCK"
   (interactive)
@@ -9001,7 +9021,7 @@ From https://github.com/nhoffman/.emacs.d/blob/master/init.org
 
 ** Display
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun sanityinc/adjust-opacity (frame incr)
   (let* ((oldalpha (or (frame-parameter frame 'alpha) 100))
          (newalpha (+ incr oldalpha)))
@@ -9017,8 +9037,8 @@ From https://github.com/nhoffman/.emacs.d/blob/master/init.org
 I use Orgzly on an Android phone, synchronizing my files with
 Syncthing. (See =my/resolve-orgzly-syncthing= elsewhere in this
 cnofig.) Sometimes I use Termux, too.
-   
-#+begin_src emacs-lisp 
+
+#+begin_src emacs-lisp
 (setq browse-url-browser-function 'browse-url-xdg-open)
 (unless window-system
   (xterm-mouse-mode 1)
@@ -9062,7 +9082,7 @@ cnofig.) Sometimes I use Termux, too.
 
 ** Clipboard
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package clipmon
   :disabled t
   :init (progn (setq clipmon-action 'kill-new clipmon-timeout nil clipmon-sound nil clipmon-cursor-color nil clipmon-suffix nil) (clipmon-mode)))
@@ -9075,7 +9095,7 @@ On my phone:
 #+end_src
 ** Search
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package engine-mode
   :config
   (defengine my-blog "https://www.google.ca/search?q=site:sachachua.com+%s" :keybinding "b")
@@ -9115,20 +9135,20 @@ I use Gmail for my mail because it:
 
     I like using [[http://gmane.org][Gmane]] to read mailing lists, and I use IMAP to read my Gmail.
 
-    #+begin_src emacs-lisp 
+    #+begin_src emacs-lisp
 (setq gnus-select-method '(nnnil ""))
 (setq gnus-secondary-select-methods
       '((nntp "news.gmane.io")
         ;; (nnmaildir "mail"
         ;;            (directory "~/Maildir")
-        ;;            (directory-files nnheader-directory-files-safe) 
+        ;;            (directory-files nnheader-directory-files-safe)
         ;;            (get-new-mail nil))
         (nnimap "imap.googlemail.com"
                 (nnimap-address "imap.googlemail.com")
                 (nnimap-server-port 993)
                 (nnimap-stream ssl)
                 (nnimap-authenticator login))
-        ;; (nnimap "localhost" 
+        ;; (nnimap "localhost"
         ;;   (nnimap-address "localhost")
         ;;   (nnimap-stream network)
         ;;   (nnimap-user "sacha")
@@ -9182,7 +9202,7 @@ I use Gmail for my mail because it:
 
     Some more config. Not sure how much of this is needed.
 
-    #+begin_src emacs-lisp 
+    #+begin_src emacs-lisp
 (setq message-send-mail-function 'smtpmail-send-it
       smtpmail-starttls-credentials '(("localhost" 25 "sacha@local.sachachua.com" nil))
       smtpmail-auth-credentials '(("localhost" 25 "sacha@local.sachachua.com" nil))
@@ -9200,7 +9220,7 @@ I use Gmail for my mail because it:
     tries to display them. Sometimes my Gnus crashes when it tries to
     display HTML mail.
 
-    #+begin_src emacs-lisp 
+    #+begin_src emacs-lisp
 (use-package gnus
   :config
   (require 'mm-decode)
@@ -9212,13 +9232,13 @@ I use Gmail for my mail because it:
 
     Hide quoted text.
 
-    #+begin_src emacs-lisp 
+    #+begin_src emacs-lisp
 (setq gnus-treat-hide-citation t)
     #+end_src
 
     Get smarter about filtering depending on what I reed or mark. I use =!= (tick) for marking threads as something that interests me.
 
-    #+begin_src emacs-lisp 
+    #+begin_src emacs-lisp
 (setq gnus-use-adaptive-scoring t)
 (setq gnus-default-adaptive-score-alist
       '((gnus-unread-mark)
@@ -9229,17 +9249,17 @@ I use Gmail for my mail because it:
 
 *** Notmuch
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq notmuch-message-headers '("Subject" "To" "Cc" "Date" "Reply-To"))
 #+end_src
 ** Ledger (personal finance)
 
 Make it easier to review my credit card transactions
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package ledger-mode
   :load-path "~/vendor/ledger-mode"
-  :mode "\\.ledger$" 
+  :mode "\\.ledger$"
   :bind (:map ledger-mode-map
               ("C-c C-n" . my/ledger-change-account)
               ("C-c a" . my/ledger-set-unknown-account)
@@ -9248,7 +9268,7 @@ Make it easier to review my credit card transactions
   (interactive)
   (find-file (my/latest-file "~/Downloads")))
 #+end_src
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defvar my/ledger-account-list-cache nil)
 (make-variable-buffer-local 'my/ledger-account-list-cache)
 (defadvice ledger-accounts-list (around sacha activate)
@@ -9346,7 +9366,7 @@ automatically. Anyway, with =--daemon=, Emacs doesn't start off in a
 graphical environment, so the frames that =emacsclient -c= creates
 don't get the theme applied. This fixes that:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (add-hook 'after-make-frame-functions
           (lambda (frame)
             (select-frame frame)
@@ -9361,7 +9381,7 @@ don't get the theme applied. This fixes that:
 
 Handy when I'm in tablet mode.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (define-key-after global-map [menu-bar my-menu] (cons "Shortcuts" (make-sparse-keymap "Custom shortcuts")) 'tools)
 (define-key global-map [menu-bar my-menu journal] '("Show journal entries" . my/show-missing-journal-entries))
 (define-key global-map [menu-bar my-menu agenda] '("Org agenda" . (lambda () (interactive) (org-agenda nil "a"))))
@@ -9395,7 +9415,7 @@ I often define keyboard macros to process multiple lines in a region.
 Maybe =multiple-cursors= will be an even better way. Looks promising!
 [[http://emacsrocks.com/e13.html][See Emacs Rocks episode 13 (multiple-cursors) for a great demo]].
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package multiple-cursors
   :bind
   (("C-c m t" . mc/mark-all-like-this)
@@ -9429,11 +9449,11 @@ Thanks to [[http://irreal.org/blog/?p=1733][Irreal]] and [[http://planet.emacsen
 
 M-x edit-list makes it easier to edit an Emacs Lisp list.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package edit-list :commands edit-list)
 #+end_src
 
-*** Quickly jump to positions                                         
+*** Quickly jump to positions
 :PROPERTIES:
 :ID:       56f173e7-d2a2-4589-84d7-c6b435c8a5f8
 :DRILL_LAST_INTERVAL: 0.0
@@ -9448,7 +9468,7 @@ M-x edit-list makes it easier to edit an Emacs Lisp list.
 
 Quickly jump to a position in the current view.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package avy
   :if my/laptop-p)
 (use-package avy-zap
@@ -9461,7 +9481,7 @@ Quickly jump to a position in the current view.
 *** Deleting things
 
 From Steve Purcell, who linked to http://www.emacswiki.org/emacs/ZapToISearch
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun zap-to-isearch (rbeg rend)
   "Kill the region between the mark and the closest portion of
       the isearch match string. The behaviour is meant to be analogous
@@ -9496,7 +9516,7 @@ From Steve Purcell, who linked to http://www.emacswiki.org/emacs/ZapToISearch
 Emacs lets you edit files on remote servers, which is pretty darn
 cool. On Windows, these things help a little.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (when (eq system-type 'windows-nt)
   (setq tramp-default-method "plink")
   (setq tramp-auto-save-directory "c:\\sacha\\tmp"))
@@ -9543,7 +9563,7 @@ cool. On Windows, these things help a little.
 
 #+begin_src sh :eval no :tangle "~/bin/ffmpeg-multicast" :shebang "#!/bin/bash"
 source ~/.profile
-ffmpeg -v quiet -f flv -listen 1 -i rtmp://127.0.0.1:5555 -c copy -f flv $YOUTUBE -c copy -f flv $TWITCH 
+ffmpeg -v quiet -f flv -listen 1 -i rtmp://127.0.0.1:5555 -c copy -f flv $YOUTUBE -c copy -f flv $TWITCH
 #+end_src
 
 #+begin_src emacs-lisp
@@ -9553,7 +9573,7 @@ ffmpeg -v quiet -f flv -listen 1 -i rtmp://127.0.0.1:5555 -c copy -f flv $YOUTUB
   (mapc (lambda (buf)
           (when (and (buffer-file-name buf) (string-match "secret" (buffer-file-name buf)))
             (kill-buffer-ask buf)))
-        (buffer-list)) 
+        (buffer-list))
   (obs-websocket-send "SetSourceSettings" :sourceName "Command log"
                       :sourceSettings
                       `(:capture_window
@@ -9595,7 +9615,7 @@ ffmpeg -v quiet -f flv -listen 1 -i rtmp://127.0.0.1:5555 -c copy -f flv $YOUTUB
     (my/twitch-irc)))
     #+end_src
 
-    
+
 *** Controlling my stream audio from Emacs: background music, typing sounds, and push to talk  :emacs:
 :PROPERTIES:
 :ID:       o2b:466b53d1-3074-472a-870d-915b88401249
@@ -9646,7 +9666,7 @@ People also suggested typing sounds. I guess that's a good way to get
 a sense of activity. The default selectric sound was a little too loud
 for me, so we'll use the move sound for now. It would be nice to make
 this more random-sounding someday.
-    
+
 #+begin_src emacs-lisp
 (defun my/selectric-type-sound ()
   "Make the sound of typing."
@@ -9719,7 +9739,7 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
   (cond
    ((null my/mic-p) ;; It's off, so turn it on
     (when (timerp my/push-to-talk-mute-timer)
-      (cancel-timer my/push-to-talk-mute-timer)) 
+      (cancel-timer my/push-to-talk-mute-timer))
     (my/mic-on)
     (when obs-websocket-recording-p (my/obs-websocket-add-caption "[Microphone on]"))
     (setq my/push-to-talk-last-time (current-time)))
@@ -9728,7 +9748,7 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
     (setq my/push-to-talk-mute-timer
           (run-at-time my/push-to-talk-threshold nil #'my/push-to-talk-mute)))
    ;; Might be push to talk, if we're within the key repeating time
-   ((< (- (time-to-seconds (current-time)) (time-to-seconds my/push-to-talk-last-time)) 
+   ((< (- (time-to-seconds (current-time)) (time-to-seconds my/push-to-talk-last-time))
        my/push-to-talk-threshold)
     (setq my/push-to-talk-mute-timer
           (run-at-time my/push-to-talk-threshold nil #'my/push-to-talk-mute)))
@@ -9743,7 +9763,7 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
 #+begin_src emacs-lisp
 (defun my/stream-message (text)
   (interactive "MText: ")
-  (obs-websocket-send "SetSourceSettings" :sourceName "OBSMessage" :sourceSettings 
+  (obs-websocket-send "SetSourceSettings" :sourceName "OBSMessage" :sourceSettings
                       (list :text
                             (concat (mapconcat 'identity (org-wrap text 80) "\n"))))
   (my/obs-websocket-add-caption text)
@@ -9763,7 +9783,7 @@ It looks like neither [[https://github.com/Palakis/obs-websocket/releases/tag/4.
 work on Linux, so maybe I'll just save timestamped notes
 somewhere. I should make this work with recording timecodes, too.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defvar my/obs-websocket-last-stream-timecode nil "(timecode-string . system-time)")
 (defvar my/obs-websocket-last-recording-timecode nil "(timecode-string . system-time)")
 
@@ -9796,13 +9816,13 @@ Return nil if TIME-CODE doesn't match the pattern."
            (truncate msecs))))))
 
 (defun my/obs-websocket-adjust-timecode (timecode-time)
-  "Returns the current adjusted time in milliseconds based on TIMECODE-TIME. 
+  "Returns the current adjusted time in milliseconds based on TIMECODE-TIME.
 TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
   (when timecode-time
-    (+ 
+    (+
      (my/obs-websocket-timecode-to-msecs (car timecode-time))
      (* 1000.0
-        (- (time-to-seconds (current-time)) 
+        (- (time-to-seconds (current-time))
            (time-to-seconds (cdr timecode-time)))))))
 
 (defun my/obs-websocket-stream-time-secs ()
@@ -9867,19 +9887,26 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 
 *** General streaming configuration
 #+begin_src emacs-lisp
+
+(defvar my/stream-captions-insert nil "Non-nil means insert into the current buffer.")
 (use-package obs-websocket
   :if my/laptop-p
-  :hydra
-  (my/stream-recording (:exit t)
-                       "Recording"
-                       ("b" (obs-websocket-send "StartRecording") "Begin")
-                       ("r" (obs-websocket-send "StartStopRecording") "Toggle")
-                       (" " (obs-websocket-send "PauseRecording") "Pause")
-                       ("p" (my/play-latest-recording) "Play last")
-                       ("c" (obs-websocket-send "ResumeRecording") "Continue")
-                       ("e" (obs-websocket-send "StopRecording") "End"))
-  (my/stream
-   (:quit-key "q")
+  :config
+  (add-to-list 'obs-websocket-on-message-payload-functions #'my/obs-websocket-message-handler)
+  :load-path "~/code/obs-websocket-el" :ensure nil)
+(with-eval-after-load obs-websocket
+  (defun my/stream-toggle-streaming () (interactive) (obs-websocket-send "StartStopStreaming"))
+  (defun my/stream-toggle-recording () (interactive) (obs-websocket-send "StartStopRecording"))
+  (defvaralias 'my/stream-toggle-streaming 'obs-websocket-streaming-p)
+  (defvaralias 'my/stream-toggle-recording 'obs-websocket-recording-p)
+  (defhydra my/stream-recording (:exit t) "Recording"
+    ("b" (obs-websocket-send "StartRecording") "Begin")
+    ("r" (obs-websocket-send "StartStopRecording") "Toggle")
+    (" " (obs-websocket-send "PauseRecording") "Pause")
+    ("p" (my/play-latest-recording) "Play last")
+    ("c" (obs-websocket-send "ResumeRecording") "Continue")
+    ("e" (obs-websocket-send "StopRecording") "End"))
+  (defhydra my/stream (:quit-key "q")
    ("w" (org-open-link-from-string "[[file:~/code/stream/notes.org::#streaming-workflow][Streaming]]") "Workflow" :column "Setup")
    ("o" (org-open-link-from-string "[[file:~/code/stream/index.org::#plans]]") "Notes")
    ("a" my/show-emacs-tasks "Agenda")
@@ -9889,9 +9916,9 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
    ("us" (browse-url "https://twitch.tv/sachachua") "View stream")
    ("uv" (browse-url "https://dashboard.twitch.tv/u/sachachua/stream-manager") "View manager")
    ("uy" (browse-url "https://studio.youtube.com/channel/UClT2UAbC6j7TqOWurVhkuHQ/livestreaming/dashboard") "Youtube")
-   ("m" my/mic-toggle (if my/mic-toggle "MIC IS ON [X]" "Mic [ ]"))
-   ("s" my/stream-toggle-streaming (format "Streaming [%s]" (if my/stream-toggle-streaming "X" " ")) :exit t :column "Streaming/recording")
-   ("r" my/stream-toggle-recording (format "Recording [%s]" (if my/stream-toggle-recording "X" " ")) :exit t)
+   ("m" my/mic-toggle (if my/mic-p "MIC IS ON [X]" "Mic [ ]"))
+   ("s" my/stream-toggle-streaming (format "Streaming [%s]" (if obs-websocket-streaming-p "X" " ")) :exit t :column "Streaming/recording")
+   ("r" my/stream-toggle-recording (format "Recording [%s]" (if obs-websocket-recording-p "X" " ")) :exit t)
    ("v" (my/play-latest-recording) "Play last")
    ("d" (progn (set-background-color "black") (obs-websocket-send "SetCurrentScene" :scene-name "Desktop")) "Desktop" :exit t :column "Scenes")
    ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs" :exit t)
@@ -9900,16 +9927,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
    ("c" (find-file (my/obs-websocket-caption-file)) "View captions" :exit t)
    ("t" my/stream-message "Message" :hint nil :exit t)
    ("<f8>" my/stream-message "Message" :hint nil :exit t))
-  :config
-  (add-to-list 'obs-websocket-on-message-payload-functions #'my/obs-websocket-message-handler)
-  (defvaralias 'my/mic-toggle 'my/mic-p)
-  (defun my/stream-toggle-streaming () (interactive) (obs-websocket-send "StartStopStreaming"))
-  (defun my/stream-toggle-recording () (interactive) (obs-websocket-send "StartStopRecording"))
-  (defvaralias 'my/stream-toggle-streaming 'obs-websocket-streaming-p)
-  (defvaralias 'my/stream-toggle-recording 'obs-websocket-recording-p)
-  (global-set-key (kbd "<f8>") #'my/stream/body)
-  (add-to-list 'obs-websocket-on-message-payload-functions #'my/obs-websocket-message-handler)
-  :load-path "~/code/obs-websocket-el" :ensure nil)
+  (global-set-key (kbd "<f8>") #'my/stream/body))
 #+end_src
 
 *** Playing recordings
@@ -9939,11 +9957,11 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
                        (read-file-name "Recording: " my/recordings-dir latest t)
                        (read-string "Tags: " "emacs"))))
   (start-process "youtube-upload" nil "youtube-upload" recording "--privacy=unlisted" "--license=creativeCommon"
-                 (format 
+                 (format
                   "--tags=\"%s\""
                   tags)
                  "--open-link"
-                 (format "--title=%s" (shell-quote-argument (file-name-base recording))) 
+                 (format "--title=%s" (shell-quote-argument (file-name-base recording)))
                  (format "--client-secrets=%s" google-video-credentials)))
     #+end_src
 *** Live captions
@@ -9984,7 +10002,6 @@ With data logging $0.004 USD / 15 seconds
 (defvar my/stream-captions-websocket nil)
 (defvar my/stream-captions-history nil)
 (defvar my/stream-captions-last-caption nil)
-(defvar my/stream-captions-insert nil "Non-nil means insert into the current buffer.")
 (defun my/stream-captions-insert () (interactive) (setq my/stream-captions-insert (not my/stream-captions-insert)))
 
 (define-minor-mode my/stream-captions-minor-mode "Toggle the captions server."
@@ -10000,7 +10017,7 @@ With data logging $0.004 USD / 15 seconds
   (let* ((payload (let ((json-object-type 'plist) (json-array-type 'list)) (json-read-from-string (websocket-frame-payload frame))))
          (type (plist-get payload :type))
          (caption (string-trim (plist-get (car (plist-get (car (plist-get (plist-get payload :stream) :results)) :alternatives)) :transcript))))
-    
+
     (if (string= type "interim")
         (when (websocket-openp obs-websocket) (obs-websocket-send "SendCaptions" :text (my/get-last-n-chars caption 80)))
       (setq my/stream-captions-last-caption caption)
@@ -10015,12 +10032,12 @@ With data logging $0.004 USD / 15 seconds
   (when (> (length caption) 0)
     (my/obs-websocket-add-caption caption)))
 (global-set-key (kbd "<f11>") 'my/stream-captions-edit-last)
-    
+
 (defun my/stream-captions-on-close (&rest args)
   (message "Captions websocket closed.")
   (my/stream-captions-minor-mode 0)
   (setq my/stream-captions-websocket nil))
- 
+
 (defun my/stream-captions-websocket-connect ()
   (interactive)
   (setq my/stream-captions-history nil)
@@ -10049,7 +10066,7 @@ With data logging $0.004 USD / 15 seconds
 ** Other nifty Emacs things I want to learn
 *** Smartparens mode						      :drill:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package smartparens
   :if my/laptop-p
   :config
@@ -10148,7 +10165,7 @@ Might need to tweak it because I use the Dvorak layout, so hjkl doesn't make as 
 (use-package keyfreq
   :after lispy
   :commands keyfreq-mode
-  :hook 
+  :hook
   (lispy-mode . keyfreq-mode)
   (lispy-mode . keyfreq-autosave-mode)
   :config
@@ -10184,14 +10201,14 @@ Might need to tweak it because I use the Dvorak layout, so hjkl doesn't make as 
    remember them. I also wanted to skip the commands that I already knew or
    that I didn't want to focus on just yet.
 
-   Fortunately, the function reference had a link to [[https://raw.githubusercontent.com/abo-abo/lispy/gh-pages/index.org][the Org file used to generate it]]. 
+   Fortunately, the function reference had a link to [[https://raw.githubusercontent.com/abo-abo/lispy/gh-pages/index.org][the Org file used to generate it]].
    I copied the tables, merged them together, named them
    with =#+NAME: bindings=, replaced the links with plain text, and added
    a third column with the category I wanted to put commands into.
 
    #+begin_export html
    <details><summary>#bindings</summary>
-   #+end_export 
+   #+end_export
 
    #+NAME: bindings
    | key | function                      | column   |
@@ -10268,7 +10285,7 @@ Might need to tweak it because I use the Dvorak layout, so hjkl doesn't make as 
 
    #+begin_export html
    </details>
-   #+end_export 
+   #+end_export
 
    I wrote this Emacs Lisp code with the header arguments =#+begin_src emacs-lisp :var bindings=bindings :colnames yes=:
 
@@ -10311,9 +10328,9 @@ qdbus org.kde.KWin /KWin reconfigure
 
    Looking forward to getting the hang of this!
    # /home/sacha/screenshots/Screenshot_20210413_002503.png https://sachachua.com/blog/wp-content/uploads/2021/04/Screenshot_20210413_002503.png
-** Encryption 
+** Encryption
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq epa-file-encrypt-to '("sacha@sachachua.com"))
 (setq epa-pinentry-mode 'loopback)
 (setq epg-pinentry-mode 'loopback)
@@ -10352,7 +10369,7 @@ Emacs Lisp functions.
 Here's the code that scans a given directory for executable files and
 creates interactive functions, and some code that calls it for my [[https://github.com/sachac/scripts][~/bin]] directory.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (require 'dash)
 (require 'dash-functional)
 (defmacro my/convert-shell-scripts-to-interactive-commands (directory)
@@ -10467,7 +10484,7 @@ In termux, you also need to =pkg install diffutils=.
 
 ** Search logs
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/search-irc-logs ()
   (interactive)
   (let ((helm-rg-default-directory "~/backups/server/home/.znc/users/sachac/moddata/log/freenode"))
@@ -10490,7 +10507,7 @@ In termux, you also need to =pkg install diffutils=.
 * Temporary workarounds
 ** Tablet clicks count as drags
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun widget-button-click (event)
   "Invoke the button that the mouse is pointing at."
   (interactive "e")
@@ -10604,7 +10621,7 @@ In termux, you also need to =pkg install diffutils=.
    I should probably get the hang of evil-mode in preparation for
    learning stenography, since control-key shortcuts are harder to
    stroke. I haven't quite figured out my config yet, though.
-    
+
    #+begin_src emacs-lisp :eval no :tangle no
 (use-package general :demand t
   :config
@@ -10659,13 +10676,13 @@ In termux, you also need to =pkg install diffutils=.
 (use-package evil-collection :init (evil-collection-init) :if my/laptop-p)
    #+end_src
 
-*** TODO Learn how to use evil mode 
+*** TODO Learn how to use evil mode
 ** Chronos
 
 Tip from zaeph. Might not use this much yet, as I don't spend that much time in front of my computer. Could be handy someday, though.
 
 #+begin_src emacs-lisp :tangle no
-(use-package chronos 
+(use-package chronos
  :config
  (add-hook 'chronos-expiry-functions #'chronos-desktop-notifications-notify)
  (add-hook 'chronos-expiry-functions #'chronos-buffer-notify))
@@ -10677,7 +10694,7 @@ Tip from zaeph. Might not use this much yet, as I don't spend that much time in 
   :disabled t
   :if my/laptop-p
   :load-path "~/cloud/elisp"
-  :init 
+  :init
   (progn
     (setq paint-foreground-color "white" paint-background-color "black")
     (defun my/paint () (interactive) (delete-other-windows) (paint 1600 900 nil))))
@@ -10685,7 +10702,7 @@ Tip from zaeph. Might not use this much yet, as I don't spend that much time in 
 
 ** Oddmuse
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package oddmuse
   :if my/laptop-p
   :load-path "~/vendor/oddmuse-el"
@@ -10729,7 +10746,7 @@ number of interactive functions. I filtered the list to include only
 documented functions that had not been marked as obsolete: 8,415 in
 my current Emacs, which should be plenty to go through. =)
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/describe-random-interactive-function ()
   (interactive)
   "Show the documentation for a random interactive function.
@@ -10737,7 +10754,7 @@ my current Emacs, which should be plenty to go through. =)
   (let (result)
     (mapatoms
      (lambda (s)
-       (when (and (commandp s) 
+       (when (and (commandp s)
                   (documentation s t)
                   (null (get s 'byte-obsolete-info)))
          (setq result (cons s result)))))
@@ -10755,7 +10772,7 @@ not interactive functions, but they were handy for building this
 little bit of code. We'll see how it goes! =)
 
 ** Org - mapping blog posts and image URLs from bulk exports
-#+begin_src emacs-lisp  :tangle no 
+#+begin_src emacs-lisp  :tangle no
 (defun my/org-map-blog-and-image-urls ()
   "Extract and map blog post / image URLs."
   (interactive)
@@ -10780,7 +10797,7 @@ little bit of code. We'll see how it goes! =)
 #+end_src
 ** Transcript editing
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/split-sentence-and-capitalize ()
   (interactive)
   (delete-char 1)
@@ -10868,7 +10885,7 @@ still need to do. This [[http://lists.gnu.org/archive/html/emacs-orgmode/2007-03
 
 I don't automatically turn this on because I think it slows things down a little.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package rainbow-delimiters :disabled t)
 #+end_src
 
@@ -10886,7 +10903,7 @@ Handy for collecting items together.
       (yank))))
 #+end_src
 ** Time tracking, previous weekly review
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defvar my/org-quantified-categories
   '(("Business"
      ("Earn" . "Business - Earn")
@@ -10946,7 +10963,7 @@ Handy for collecting items together.
 
 *** List upcoming tasks so that I can see if I'm overloaded
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-summarize-upcoming-week ()
   "Summarize upcoming tasks as a list."
   (interactive)
@@ -10983,7 +11000,7 @@ off. I still need to match it up with the plans for the previous week
 to see which items I'd planned ahead, and which ones were new tasks.
 (Hmm, is it important to track those separately? I might just skip it.)
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/org-summarize-previous-week ()
   "Summarize previously-completed tasks as a list."
   (interactive)
@@ -11020,7 +11037,7 @@ to see which items I'd planned ahead, and which ones were new tasks.
 #+end_src
 
 *** Compare time use
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/quantified-compare (start1 end1 start2 end2 &optional categories label1 label2)
   "Return a table comparing the times for START1 - END1 and START2 - END2."
   (let* ((start2 (org-read-date nil nil (or start2 "-sat")))
@@ -11037,7 +11054,7 @@ to see which items I'd planned ahead, and which ones were new tasks.
     ;; Build a list comparing the two
     (append
      `(("Category" ,label1 ,label2 "Diff %" "h/wk" "Diff h/wk") hline)
-     (sort 
+     (sort
       (mapcar (lambda (key)
                 (list
                  key
@@ -11057,7 +11074,7 @@ to see which items I'd planned ahead, and which ones were new tasks.
 #+end_src
 ** Animation for Emacs chats
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/animate-emacs-chat ()
   (interactive)
   (text-scale-set 6)
@@ -11221,12 +11238,12 @@ easier to discover commands.
            Return the matching filenames, if any.
            If AS-REGEXP is non-nil, treat BASE as a regular expression.
            If BASE is a function, use that to filter."
-  (let ((base-regexp (concat 
-                      "\\("
-                      (if as-regexp base (regexp-quote base))
-                      "\\)"
-                      ".*\\(\\.\\(png\\|psd\\|tiff\\|jpg\\|svg\\)\\)?$"
-                      )))
+  (let ((base-regexp (unless (functionp base)
+                       (concat
+                        "\\("
+                        (if as-regexp base (regexp-quote base))
+                        "\\)"
+                        ".*\\(\\.\\(png\\|psd\\|tiff\\|jpg\\|svg\\)\\)?$"))))
     (-filter
      (lambda (o) (not (string-match "\\.xmp" o)))
      (sort (-flatten
@@ -11244,8 +11261,8 @@ easier to discover commands.
 
 (defun my/get-image-filename (base &optional as-regexp directories)
   "Check several directories for files matching BASE.
-           Return the first matching filename, if any.
-           If AS-REGEXP is non-nil, treat BASE as a regular expression."
+Return the first matching filename, if any.
+If AS-REGEXP is non-nil, treat BASE as a regular expression."
   (if (file-exists-p base)
       base
     (car (my/get-image-filenames base as-regexp directories))))
@@ -11257,7 +11274,7 @@ easier to discover commands.
   (interactive (list (read-string "Filter: ")))
   (let ((my/sketch-directories (or directories my/sketch-directories)))
     (funcall (if (called-interactively-p 'interactive)
-                 (lambda (x) (insert (mapconcat (lambda (y) (concat "- " (org-link-make-string (concat "sketch:" y)))) x "\n"))) 'identity)
+                 (lambda (x) (insert (mapconcat (lambda (y) (concat "- " (org-link-make-string (concat "sketchLink:" y)))) x "\n"))) 'identity)
              (sort (-uniq
                     (mapcar (if full-filename 'identity
                               'file-name-nondirectory)
@@ -11266,7 +11283,7 @@ easier to discover commands.
 #+end_src
 
 *** Org Mode sketch: links
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/open-images-in-krita (files)
   (apply 'call-process "krita" nil 0 nil "--nosplash" files))
 (defun my/open-images-in-gwenview (files)
@@ -11310,6 +11327,21 @@ easier to discover commands.
         (format "{{<photo nas=\"1\" src=\"%s\">}}" link)))
      ((eq format 'ascii) (format "%s <%s>" desc path))
      (t path))))
+
+(defun my/org-image-export-link (link description format info)
+  (let* ((backend (org-export-backend-name (plist-get info :back-end)))
+         (desc (or description link)))
+    (format "{%% sketchLink \"%s\", \"%s\" %%}" (file-name-base link) desc)))
+
+(defun my/org-image-export-thumb (link description format info)
+  (let* ((backend (org-export-backend-name (plist-get info :back-end)))
+         (desc (or description link)))
+    (format "{%% sketchThumb \"%s\", \"%s\" %%}" (file-name-base link) desc)))
+
+(defun my/org-image-export-full (link description format info)
+  (let* ((backend (org-export-backend-name (plist-get info :back-end)))
+         (desc (or description link)))
+    (format "{%% sketchFull \"%s\", \"%s\" %%}" (file-name-base link) desc)))
 
 (defun my/org-sketch-complete (&optional prefix)
   (concat "sketch:" (my/complete-sketch-filename)))
@@ -11359,7 +11391,25 @@ easier to discover commands.
   (org-link-set-parameters
    "sketch"
    :follow 'my/org-sketch-open
-   :export 'my/org-image-export
+   :export 'my/org-image-export-link
+   :complete 'my/org-sketch-complete
+   :activate-func nil)
+  (org-link-set-parameters
+   "sketchLink"
+   :follow 'my/org-sketch-open
+   :export 'my/org-image-export-link
+   :complete 'my/org-sketch-complete
+   :activate-func nil)
+  (org-link-set-parameters
+   "sketchThumb"
+   :follow 'my/org-sketch-open
+   :export 'my/org-image-export-thumb
+   :complete 'my/org-sketch-complete
+   :activate-func nil)
+  (org-link-set-parameters
+   "sketchFull"
+   :follow 'my/org-sketch-open
+   :export 'my/org-image-export-full
    :complete 'my/org-sketch-complete
    :activate-func nil))
 
@@ -11372,7 +11422,7 @@ easier to discover commands.
    :export 'my/org-image-export
    :complete 'my/org-image-complete))
 
-#+end_src 
+#+end_src
 *** Copy
 
     #+begin_src emacs-lisp
@@ -11437,7 +11487,7 @@ easier to discover commands.
 
 This makes a buffer with big buttons so that I can easily tap them with my stylus.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/set-up-sketch-buffer ()
   "Populate a widget buffer with a few handy buttons."
   (interactive)
@@ -11447,7 +11497,7 @@ This makes a buffer with big buttons so that I can easily tap them with my stylu
       (widget-create 'push-button
                      :notify (lambda (&rest ignore)
                                (my/org-clock-in-and-track-by-name "Draw"))
-                     "Track: Draw")        
+                     "Track: Draw")
       (widget-create 'push-button
                      :notify (lambda (&rest ignore)
                                (my/org-clock-in-and-track-by-name "Draw journal entries"))
@@ -11466,7 +11516,7 @@ This makes a buffer with big buttons so that I can easily tap them with my stylu
                      "Date")
       (widget-create 'push-button
                      :notify (lambda (&rest ignore) (shell-command "~/bin/rotate-screen")) "Rotate")
-      (insert "\n")        
+      (insert "\n")
       (widget-create 'push-button
                      :notify (lambda (&rest ignore)
                                (shell-command "~/bin/add-output-png"))
@@ -11482,7 +11532,7 @@ This makes a buffer with big buttons so that I can easily tap them with my stylu
                                (my/rotate-screen 0)
                                (delete-window)
                                (my/rename-scanned-cards))
-                     "Rename")        
+                     "Rename")
       (widget-create 'push-button
                      :notify (lambda (&rest ignore)
                                (my/rotate-screen 0)
@@ -11532,7 +11582,7 @@ This makes a buffer with big buttons so that I can easily tap them with my stylu
                             ((= degrees 270) "right")))))))
 
 #+end_src
-    
+
 *** Templates
 #+begin_src emacs-lisp
 
@@ -11545,8 +11595,8 @@ This makes a buffer with big buttons so that I can easily tap them with my stylu
                         (if name
                             (concat " "
                                     (my/convert-sketch-title-to-filename (or name "")))
-                          
-                              "") 
+
+                              "")
                             "." (file-name-extension template))
                     "~/Dropbox/Inbox"))
     (copy-file (or template my/index-card-template-file) name)
@@ -11617,7 +11667,7 @@ CLOSED: [2015-07-19 Sun 11:53]
   CLOCK: [2015-07-19 Sun 11:18]--[2015-07-19 Sun 11:53] =>  0:35
 :END:
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/draw-journal-entry (date)
   "Creates a blank journal entry for DATE and brings up the log."
   (interactive (list (org-read-date)))
@@ -11678,7 +11728,7 @@ CLOSED: [2015-07-19 Sun 11:53]
 
 *** Rename scanned index cards
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package s)
 (defun my/process-tiff (files)
   "Convert, display, rename, and upload FILES."
@@ -11800,7 +11850,7 @@ learning outline.
 The =image+= package is handy for displaying the images so
 that they're scaled to the window size.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package image+
   :if my/laptop-p
   ;;    :load-path "~/elisp/Emacs-imagex"
@@ -11813,7 +11863,7 @@ that they're scaled to the window size.
 For sketchnotes of books, I set up the filename based on properties in
 my Org Mode tree for that book.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/prepare-sketchnote-file ()
   (interactive)
   (let* ((base-name (org-entry-get-with-inheritance  "BASENAME")))
@@ -11830,16 +11880,16 @@ use Emacs Lisp to make setup or processing easier?
 
 *** Make it easy to follow up on a sketch
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/follow-up-on-sketch (filename)
   "Prompt for FILENAME to follow up on.
       Create an index card with it as a layer, and add the ref to the filename."
   (interactive (list (helm-read-file-name "Image: " :initial-input "~/sketches/")))
   ;; Allow the specification of a short identifier
-  (unless (file-exists-p filename) 
+  (unless (file-exists-p filename)
     (setq filename (car (directory-files "~/sketches" t (concat "^" filename)))))
   (let ((async-shell-command-buffer 'new-buffer)
-        (index-card (my/prepare-index-card-template      
+        (index-card (my/prepare-index-card-template
                      (format "-- index card ref %s"
                              (and (string-match "^[^ \\.]+" (file-name-nondirectory filename))
                                   (match-string 0 (file-name-nondirectory filename)))))))
@@ -11911,7 +11961,7 @@ I wanted to write a function that could take a list structured like this:
     that a category is anything whose text does not match
     =org-bracket-link-regexp=.
 
-    #+begin_src emacs-lisp 
+    #+begin_src emacs-lisp
 (defun my/org-get-list-categories ()
   "Return a list of (category indent matching-regexp sample).
         List categories are items that don't contain links."
@@ -11965,7 +12015,7 @@ I wanted to write a function that could take a list structured like this:
     The next step was to write a function that guessed the list category
     based on the item text, and moved the item there.
 
-    #+begin_src emacs-lisp 
+    #+begin_src emacs-lisp
 (defvar my/helm-org-list-candidates nil)
 (defun my/helm-org-list-categories-init-candidates ()
   "Return a list of categories from this list in a form ready for Helm."
@@ -12006,7 +12056,7 @@ I wanted to write a function that could take a list structured like this:
     because I wanted to read information from the buffer before Helm
     kicked in.
 
-    #+begin_src emacs-lisp 
+    #+begin_src emacs-lisp
 (defvar my/org-browse-link-while-categorizing 'eww-readable
   "Set to nil to skip browsing.")
 
@@ -12042,7 +12092,7 @@ I wanted to write a function that could take a list structured like this:
 
     Actually, it might be helpful to be able to sort lists by a keyword.
 
-    #+begin_src emacs-lisp 
+    #+begin_src emacs-lisp
 (defun my/org-sort-list-by-regexp (regexp)
   (interactive "MRegexp: ")
   (let ((sort-func
@@ -12058,12 +12108,12 @@ I wanted to write a function that could take a list structured like this:
       ((org-at-table-p) 'org-table-sort-lines)
       ((org-at-item-p) 'org-sort-list)
       (t 'org-sort-entries))
-     nil ?f sort-func 'string<)))
+     nil ?f sort-func (lambda (a b) (if (and (stringp a) (stringp b)) (string< a b) t)))))
     #+end_src
 
     This one files sketches into the headings I've started using in questions.org.
 
-    #+begin_src emacs-lisp 
+    #+begin_src emacs-lisp
 (defun my/refile-sketches-to-questions ()
   (interactive)
   (while (looking-at "^  \\+ \\[\\[.*?\\]\\[\\(.*?\\) -- \\(.*?\\)\\]\\]\n")
@@ -12102,7 +12152,7 @@ probably want to write something that converts it to PNG for export.
 
 Convenience functions to make my life easier when sketchnoting books.
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (setq yas-indent-line 'fixed)
 (defun my/convert-sketch-title-to-filename (text)
   (setq text (replace-regexp-in-string "[?!]$" "" text))
@@ -12167,7 +12217,7 @@ Convenience functions to make my life easier when sketchnoting books.
 Based on [[http://williamedwardscoder.tumblr.com/post/84505278488/making-image-mosaics]]
 Aspect ratio is width / height
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/get-tile-dimensions (num-items orig-width orig-height target-aspect-ratio)
   (let ((rows 1) (cols 1)
         (current-aspect (/ orig-width (float orig-height)))
@@ -12234,9 +12284,9 @@ Aspect ratio is width / height
          (full-filename (my/get-sketch-filename filename)))
     (if full-filename
         (my/org-sketch-open full-filename)
-      (my/create-index-card-montage 
+      (my/create-index-card-montage
        (mapcar 'my/get-sketch-filename
-               (my/extract-image-filenames (min (point) (mark)) (max (point) (mark)))) 
+               (my/extract-image-filenames (min (point) (mark)) (max (point) (mark))))
        "2x"
        (my/prepare-index-card-template filename)))))
 
@@ -12280,12 +12330,12 @@ xdotool key Return
 #+RESULTS:
 
 *** Other sketch-related functions
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defun my/show-sketches-as-slideshow (list &optional shuffle)
   "Display a quick slideshow of sketches in LIST.
           If LIST is a string, look up those sketch filenames in my Flickr copy."
   (interactive "MFilter: \nP")
-  (apply 'call-process "feh" nil nil nil "-D" "1" "-F" (if shuffle "-z" """") 
+  (apply 'call-process "feh" nil nil nil "-D" "1" "-F" (if shuffle "-z" """")
          (-filter (lambda (x) (string-match "photostream" x))
                   (if (stringp list)
                       (my/list-sketches list t)
@@ -12331,7 +12381,7 @@ xdotool key Return
   (quantified-track "Drawing")
   (my/prepare-index-card "Journal"))
 
-(add-to-list 'org-speed-commands-user '("d" call-interactively 'my/prepare-index-card-for-subtree))
+(add-to-list 'org-speed-commands '("d" call-interactively 'my/prepare-index-card-for-subtree))
 #+end_src
 
 ** Tools for organizing
@@ -12378,7 +12428,7 @@ xdotool key Return
 
 ** Speech synthesis (experimental)
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (defvar my/espeak-command "c:/program files (x86)/espeak/command_line/espeak.exe")
 (defun my/say (string &optional speed)
   (interactive "MString: ")
@@ -12393,8 +12443,8 @@ Hmmm, I'm having a hard time getting used to this.
 #+begin_src emacs-lisp :tangle no
 (use-package exwm
   :if my/laptop-p
-  :init 
-  (progn 
+  :init
+  (progn
     (require 'exwm-config)
     (exwm-config-default)
     (exwm-enable)
@@ -12435,9 +12485,7 @@ Hmmm, I'm having a hard time getting used to this.
 
 * Path
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (when (eq system-type 'windows-nt)
   (setenv "PATH" (concat "\"c:/program files/postgresql/9.3/bin;\"" (getenv "PATH"))))
 #+end_src
-
-

@@ -4292,28 +4292,27 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
 :END:\n"
       (format-time-string "%Y-%m-%d")
       (concat "/blog/" post-location "/")
-      (concat "blog/" post-location)
+      (concat "blog/" post-location))
      (my/org-summarize-journal-csv start end nil my/journal-category-map my/journal-categories)
      "\n\n*Blog posts*\n\n"
      (my/org-list-from-rss "https://sachachua.com/blog/feed" start end)
      "\n\n*Sketches*\n\n"
      (my/sketches-export-and-extract start end) "\n"
-     "\n\n#+begin_my/details Time\n"
+     "\n\n#+begin_my_details Time\n"
      (orgtbl-to-orgtbl
       (my/quantified-compare prev start start end
-			     '("A-"
-			       "Business"
-			       "Discretionary - Play"
-			       "Unpaid work"
-			       "Discretionary - Social"
-			       "Discretionary - Family"
-			       "Sleep"
-			       "Discretionary - Productive"
-			       "Personal")
-			     "The other week %" "Last week %")
+                             '("A-"
+                               "Business"
+                               "Discretionary - Play"
+                               "Unpaid work"
+                               "Discretionary - Social"
+                               "Discretionary - Family"
+                               "Sleep"
+                               "Discretionary - Productive"
+                               "Personal")
+                             "The other week %" "Last week %")
       nil)
-     "\n#+end_my/details\n\n")
-    )))
+     "\n#+end_my_details\n\n")))
 
 (defun my/prepare-missing-weekly-reviews ()
   "Prepare missing weekly reviews based on LAST_REVIEW property."
@@ -5007,15 +5006,14 @@ and indent it one level."
 (defun my/org-async-export-and-tangle ()
   (async-start
    `(lambda ()
-     ;; make async emacs aware of packages (for byte-compilation)
+      ;; make async emacs aware of packages (for byte-compilation)
       (package-initialize)
       (setq package-enable-at-startup nil)
       (require 'org)
       (org-babel-tangle-file ,(buffer-file-name))
-    )
-   (lambda (result)
-             (org-html-export-to-html t)
-             (message "Tangled."))))
+      )
+   (lambda (&rest results) (message "Tangled.")))
+  (org-html-export-to-html t))
 (defun my/org-export-and-tangle-if-saved-in-focus ()
   (unless my/unfocusing
     (my/org-async-export-and-tangle)))
@@ -5349,7 +5347,7 @@ the mode, `toggle' toggles the state."
         (json-object-type 'plist)
         (url-request-data (json-encode-plist plist))
         data)
-    (with-current-buffer (url-retrieve-synchronously (concat my/journal-url "api/entries"))
+    (with-current-buffer (url-retrieve-synchronously (concat my/journal-url "/api/entries"))
       (goto-char (point-min))
       (re-search-forward "^$")
       (setq data (json-read))
@@ -7210,6 +7208,9 @@ so that it's still active even after you stage a change. Very experimental."
   :if my/laptop-p)
 (use-package avy-zap
   :if my/laptop-p
+  :config
+  (setq avy-zap-forward-only t)
+  (setq avy-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s))
   :bind
   (("M-z" . avy-zap-up-to-char-dwim)
    ("M-Z" . avy-zap-to-char-dwim)))

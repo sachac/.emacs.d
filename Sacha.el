@@ -1,11 +1,11 @@
-  ;; This sets up the load path so that we can override it
-  (setq warning-suppress-log-types '((package reinitialization)))  (package-initialize)
-  (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
-  (add-to-list 'load-path "~/vendor/org-mode/lisp")
-  (add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
-  (setq custom-file "~/.config/emacs/custom-settings.el")
-  (setq use-package-always-ensure t)
-  (load custom-file t)
+;; This sets up the load path so that we can override it
+(setq warning-suppress-log-types '((package reinitialization)))  (package-initialize)
+(add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
+(add-to-list 'load-path "~/vendor/org-mode/lisp")
+(add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
+(setq custom-file "~/.config/emacs/custom-settings.el")
+(setq use-package-always-ensure t)
+(load custom-file t)
 
 (defvar my-laptop-p (equal (system-name) "sacha-kubuntu"))
 (defvar my-server-p (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
@@ -301,17 +301,19 @@
   (add-to-list 'embark-keymap-alist '(sketch . embark-sketch-actions))
   (add-to-list 'embark-keymap-alist '(journal . embark-journal-actions))
   :bind
-  (:map minibuffer-local-map
-        (("C-c e" . embark-act)
-         ("C-;" . embark-act))
-        :map embark-collect-mode-map
-        (("C-c e" . embark-act)
-         ("C-;" . embark-act))
-        :map embark-general-map
-        (("j" . my-journal-post)
-         ("m" . my-stream-message))
-        :map embark-variable-map
-        ("l" . edit-list)))
+  (("C-." . embark-act)
+   ("C-;" . embark-act)
+   :map minibuffer-local-map
+   (("C-c e" . embark-act)
+    ("C-;" . embark-act))
+   :map embark-collect-mode-map
+   (("C-c e" . embark-act)
+    ("C-;" . embark-act))
+   :map embark-general-map
+   (("j" . my-journal-post)
+    ("m" . my-stream-message))
+   :map embark-variable-map
+   ("l" . edit-list)))
 
 (use-package
   embark-consult
@@ -368,7 +370,7 @@
   :config
   (add-to-list 'marginalia-prompt-categories '("sketch" . sketch)))
 
-     (use-package consult-dir
+(use-package consult-dir
        :ensure t
        :bind (("C-x C-d" . consult-dir)
               :map minibuffer-local-completion-map
@@ -377,6 +379,27 @@
               :map selectrum-minibuffer-map
               ("C-x C-d" . consult-dir)
               ("C-x C-j" . consult-dir-jump-file)))
+
+;; https://karthinks.com/software/jumping-directories-in-eshell/
+(defun eshell/z (&optional regexp)
+  "Navigate to a previously visited directory in eshell, or to
+any directory proferred by `consult-dir'."
+  (let ((eshell-dirs (delete-dups
+                      (mapcar 'abbreviate-file-name
+                              (ring-elements eshell-last-dir-ring)))))
+    (cond
+     ((and (not regexp) (featurep 'consult-dir))
+      (let* ((consult-dir--source-eshell `(:name "Eshell"
+                                                 :narrow ?e
+                                                 :category file
+                                                 :face consult-file
+                                                 :items ,eshell-dirs))
+             (consult-dir-sources (cons consult-dir--source-eshell
+                                        consult-dir-sources)))
+        (eshell/cd (substring-no-properties
+                    (consult-dir--pick "Switch directory: ")))))
+     (t (eshell/cd (if regexp (eshell-find-previous-directory regexp)
+                     (completing-read "cd: " eshell-dirs)))))))
 
 (defun my-marginalia-annotate-variable (cand)
   "Annotate variable CAND with its documentation string."
@@ -974,7 +997,7 @@ Based on `elisp-get-fnsym-args-string.'"
 (when (display-graphic-p)
   (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
 
-    (setq kill-ring-max 1000)
+(setq kill-ring-max 1000)
 
 (defadvice kill-region (before slick-cut activate compile)
   "When called interactively with no active region, kill a single line instead."
@@ -1302,7 +1325,7 @@ Based on `elisp-get-fnsym-args-string.'"
      (t (funcall buffer-create-fn)
         (if switch-cont (funcall switch-cont))))))
 
-    ;; Install and load `quelpa-use-package'.
+;; Install and load `quelpa-use-package'.
 (use-package dogears
   :quelpa (dogears :fetcher github :repo "alphapapa/dogears.el")
 
@@ -3091,20 +3114,20 @@ loaded."
                        :ZIDString)))
      (org-back-to-heading))))
 
-(use-package org
-  :config
-  (progn
-    (add-to-list 'org-speed-commands '("A" org-archive-subtree-default))
-    (add-to-list 'org-speed-commands '("x" org-todo "DONE"))
-    (add-to-list 'org-speed-commands '("X" call-interactively 'my-org-mark-done-and-add-to-journal))
-    (add-to-list 'org-speed-commands '("y" org-todo-yesterday "DONE"))
-    (add-to-list 'org-speed-commands '("!" my-org-clock-in-and-track))
-    (add-to-list 'org-speed-commands '("s" call-interactively 'org-schedule))
-    (add-to-list 'org-speed-commands '("d" my-org-move-line-to-destination))
-    (add-to-list 'org-speed-commands '("i" call-interactively 'org-clock-in))
-    (add-to-list 'org-speed-commands '("o" call-interactively 'org-clock-out))
-    (add-to-list 'org-speed-commands '("$" call-interactively 'org-archive-subtree))
-    (bind-key "!" 'my-org-clock-in-and-track org-agenda-mode-map)))
+(with-eval-after-load 'org
+  (let ((listvar (if (boundp 'org-speed-commands) 'org-speed-commands
+                   'org-speed-commands-user)))
+    (add-to-list listvar '("A" org-archive-subtree-default))
+    (add-to-list listvar '("x" org-todo "DONE"))
+    (add-to-list listvar '("X" call-interactively 'my-org-mark-done-and-add-to-journal))
+    (add-to-list listvar '("y" org-todo-yesterday "DONE"))
+    (add-to-list listvar '("!" my-org-clock-in-and-track))
+    (add-to-list listvar '("s" call-interactively 'org-schedule))
+    (add-to-list listvar '("d" my-org-move-line-to-destination))
+    (add-to-list listvar '("i" call-interactively 'org-clock-in))
+    (add-to-list listvar '("o" call-interactively 'org-clock-out))
+    (add-to-list listvar '("$" call-interactively 'org-archive-subtree)))
+  (bind-key "!" 'my-org-clock-in-and-track org-agenda-mode-map))
 
 (setq org-goto-interface 'outline
       org-goto-max-level 10)
@@ -3454,12 +3477,13 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
 
 (setq org-tags-exclude-from-inheritance '("project"))
 
-(use-package org
-  :config
-  (add-to-list 'org-speed-commands '("N" org-narrow-to-subtree))
-  (add-to-list 'org-speed-commands '("W" widen))
-  (add-to-list 'org-speed-commands '("T" my-org-agenda-for-subtree))
-  (add-to-list 'org-speed-commands '("b" my-org-bounce-to-file)))
+(with-eval-after-load 'org
+  (let ((listvar (if (boundp 'org-speed-commands) 'org-speed-commands
+                   'org-speed-commands-user)))
+    (add-to-list listvar '("N" org-narrow-to-subtree))
+    (add-to-list listvar '("W" widen))
+    (add-to-list listvar '("T" my-org-agenda-for-subtree))
+    (add-to-list listvar '("b" my-org-bounce-to-file))))
 
 (defun my-org-agenda-for-subtree ()
   (interactive)
@@ -3468,7 +3492,10 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
    (let ((org-agenda-view-columns-initially t))
      (org-agenda nil "t" 'subtree))))
 
-(add-to-list 'org-speed-commands '("S" call-interactively 'org-sort))
+(with-eval-after-load 'org
+  (let ((listvar (if (boundp 'org-speed-commands) 'org-speed-commands
+                   'org-speed-commands-user)))
+    (add-to-list listvar '("S" call-interactively 'org-sort))))
 
 (setq org-tag-alist '(("work" . ?b)
                       ("home" . ?h)
@@ -4270,61 +4297,61 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
                                       (xml-get-children (car (xml-get-children (car feed) 'channel)) 'item))))
                    ""))))
 
-  (defun my-org-prepare-weekly-review (&optional date skip-urls)
-    "Prepare weekly review template."
-    (interactive (list (org-read-date nil nil nil "Ending on Fri: " nil "-fri")))
-    (let* ((post-date (current-time))
-	   (base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
-	   start end links prev
-	   (title (format-time-string "Weekly review: Week ending %B %e, %Y" base-date))
-	   (post-location (concat (format-time-string "%Y/%m/" post-date) (my-make-slug title))))
-      (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6)) (current-time-zone)))
-      (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date))) (current-time-zone)))
-      (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6)) (current-time-zone)))
-      (outline-next-heading)
-      (insert
-       "** " title "  :weekly:\n"
-       (format
-        ":PROPERTIES:
-  :EXPORT_DATE: %s
-  :EXPORT_ELEVENTY_PERMALINK: %s
-  :EXPORT_ELEVENTY_FILE_NAME: %s
-  :END:\n"
-        (format-time-string "%Y-%m-%d")
-        (concat "/blog/" post-location "/")
-        (concat "blog/" post-location))
-       (my-org-summarize-journal-csv start end nil my-journal-category-map my-journal-categories)
-       "\n\n*Blog posts*\n\n"
-       (my-org-list-from-rss "https://sachachua.com/blog/feed" start end)
-       "\n\n*Sketches*\n\n"
-       (my-sketches-export-and-extract start end) "\n"
-       "\n\n#+begin_my_details Time\n"
-       (orgtbl-to-orgtbl
-        (my-quantified-compare prev start start end
-                               '("A-"
-                                 "Business"
-                                 "Discretionary - Play"
-                                 "Unpaid work"
-                                 "Discretionary - Social"
-                                 "Discretionary - Family"
-                                 "Sleep"
-                                 "Discretionary - Productive"
-                                 "Personal")
-                               "The other week %" "Last week %")
-        nil)
-       "\n#+end_my_details\n\n")))
+(defun my-org-prepare-weekly-review (&optional date skip-urls)
+  "Prepare weekly review template."
+  (interactive (list (org-read-date nil nil nil "Ending on Fri: " nil "-fri")))
+  (let* ((post-date (current-time))
+	 (base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
+	 start end links prev
+	 (title (format-time-string "Weekly review: Week ending %B %e, %Y" base-date))
+	 (post-location (concat (format-time-string "%Y/%m/" post-date) (my-make-slug title))))
+    (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6)) (current-time-zone)))
+    (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date))) (current-time-zone)))
+    (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6)) (current-time-zone)))
+    (outline-next-heading)
+    (insert
+     "** " title "  :weekly:\n"
+     (format
+      ":PROPERTIES:
+:EXPORT_DATE: %s
+:EXPORT_ELEVENTY_PERMALINK: %s
+:EXPORT_ELEVENTY_FILE_NAME: %s
+:END:\n"
+      (format-time-string "%Y-%m-%d")
+      (concat "/blog/" post-location "/")
+      (concat "blog/" post-location))
+     (my-org-summarize-journal-csv start end nil my-journal-category-map my-journal-categories)
+     "\n\n*Blog posts*\n\n"
+     (my-org-list-from-rss "https://sachachua.com/blog/feed" start end)
+     "\n\n*Sketches*\n\n"
+     (my-sketches-export-and-extract start end) "\n"
+     "\n\n#+begin_my_details Time\n"
+     (orgtbl-to-orgtbl
+      (my-quantified-compare prev start start end
+                             '("A-"
+                               "Business"
+                               "Discretionary - Play"
+                               "Unpaid work"
+                               "Discretionary - Social"
+                               "Discretionary - Family"
+                               "Sleep"
+                               "Discretionary - Productive"
+                               "Personal")
+                             "The other week %" "Last week %")
+      nil)
+     "\n#+end_my_details\n\n")))
 
-  (defun my-prepare-missing-weekly-reviews ()
-    "Prepare missing weekly reviews based on LAST_REVIEW property."
-    (interactive)
-    (let ((today (substring (org-read-date nil nil ".") 0 10))
-	  (date (org-entry-get (point) "LAST_REVIEW")))
-      (while (string< date today)
-	(setq date (substring (org-read-date nil nil "++1w" nil (org-time-string-to-time date)) 0 10))
-	(unless (string< today date)
-	  (save-excursion
-	    (my-org-prepare-weekly-review date))
-	  (org-entry-put (point) "LAST_REVIEW" date)))))
+(defun my-prepare-missing-weekly-reviews ()
+  "Prepare missing weekly reviews based on LAST_REVIEW property."
+  (interactive)
+  (let ((today (substring (org-read-date nil nil ".") 0 10))
+	(date (org-entry-get (point) "LAST_REVIEW")))
+    (while (string< date today)
+      (setq date (substring (org-read-date nil nil "++1w" nil (org-time-string-to-time date)) 0 10))
+      (unless (string< today date)
+	(save-excursion
+	  (my-org-prepare-weekly-review date))
+	(org-entry-put (point) "LAST_REVIEW" date)))))
 
 (defun _my-clean-up-flickr-list (list)
   (setq list
@@ -4608,9 +4635,12 @@ and indent it one level."
         (org-end-of-subtree t t)
         (org-paste-subtree target-level)))))
 
-(add-to-list 'org-speed-commands '("w" call-interactively 'org-refile))
-(add-to-list 'org-speed-commands '("W" call-interactively 'my-org-refile-in-file))
-(add-to-list 'org-speed-commands '("." call-interactively 'my-org-refile-to-previous))
+(with-eval-after-load 'org
+  (let ((listvar (if (boundp 'org-speed-commands) 'org-speed-commands
+                   'org-speed-commands-user)))
+    (add-to-list listvar '("w" call-interactively 'org-refile))
+    (add-to-list listvar '("W" call-interactively 'my-org-refile-in-file))
+    (add-to-list listvar '("." call-interactively 'my-org-refile-to-previous))))
 
 (defun my-org-insert-defun (function)
   "Inserts an Org source block with the definition for FUNCTION."
@@ -4672,6 +4702,7 @@ and indent it one level."
     (add-to-list 'org-export-filter-body-functions #'my-org-export-filter-body-add-emacs-configuration-link)))
 
 (use-package ox-11ty
+  :if my-laptop-p
   :load-path "~/code/ox-11ty")
 (defun my-org-11ty-prepare-subtree ()
   (interactive)
@@ -4901,7 +4932,7 @@ and indent it one level."
                  ("\\subsection\{%s\}" . "\\subsection*\{%s\}")
                  ("\\subsubsection\{%s\}" . "\\subsubsection*\{%s\}"))))
 
-     (setq org-plantuml-jar-path (expand-file-name "/usr/share/plantuml/plantuml.jar"))
+(setq org-plantuml-jar-path (expand-file-name "/usr/share/plantuml/plantuml.jar"))
 (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
 
 (use-package ox-hugo
@@ -4913,14 +4944,14 @@ and indent it one level."
 
 (setq org-export-async-init-file "~/.config/emacs/org-async-export-config.el")
 (setq org-export-async-debug t)
-  ;; This sets up the load path so that we can override it
-  (setq warning-suppress-log-types '((package reinitialization)))  (package-initialize)
-  (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
-  (add-to-list 'load-path "~/vendor/org-mode/lisp")
-  (add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
-  (setq custom-file "~/.config/emacs/custom-settings.el")
-  (setq use-package-always-ensure t)
-  (load custom-file t)
+;; This sets up the load path so that we can override it
+(setq warning-suppress-log-types '((package reinitialization)))  (package-initialize)
+(add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
+(add-to-list 'load-path "~/vendor/org-mode/lisp")
+(add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
+(setq custom-file "~/.config/emacs/custom-settings.el")
+(setq use-package-always-ensure t)
+(load custom-file t)
 (defvar my-laptop-p (equal (system-name) "sacha-kubuntu"))
 (defvar my-server-p (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
 (defvar my-phone-p (not (null (getenv "ANDROID_ROOT")))
@@ -5157,7 +5188,7 @@ the mode, `toggle' toggles the state."
   '(add-to-list 'org-protocol-protocol-alist
                 '("copy-thumbnail" :protocol "copy-thumbnail" :function my-org-protocol-copy-thumbnail)))
 
-(defun my-org-elisp-link-export (link description format)
+(defun my-org-elisp-link-export (link description format &optional arg)
   (cond
    ((eq format 'html) (format "<span title=\"%s\">%s</span>" (replace-regexp-in-string "\"" "&quot;" link) description))
    ((eq format 'text) description)
@@ -5504,7 +5535,7 @@ the mode, `toggle' toggles the state."
 (defun my-org-journal-open (id &optional arg)
   (browse-url (format "%s/zid/%s" my-journal-url id)))
 
-(defun my-org-journal-export (link description format)
+(defun my-org-journal-export (link description format &optional arg)
   (let* ((path (concat "%s/zid/" my-journal-url link))
          (image (concat "%s/zid/" my-journal-url link))
          (desc (or description link)))
@@ -5995,7 +6026,7 @@ the mode, `toggle' toggles the state."
     (my-org-package-export "fireplace" "fireplace" 'html)
     "<a target=\"_blank\" href=\"http://melpa.org/#/fireplace\">fireplace</a>"
     )))
-(defun my-org-package-export (link description format)
+(defun my-org-package-export (link description format &optional arg)
   (let* ((package-info (car (assoc-default (intern link) package-archive-contents)))
          (package-source (package-desc-archive package-info))
          (path (format
@@ -6516,6 +6547,9 @@ the mode, `toggle' toggles the state."
 
 ;; (ert "my-clean-up-spans-in-string")
 
+(add-hook 'after-save-hook
+          'executable-make-buffer-file-executable-if-script-p)
+
 (defun my-magit-stage-all-and-commit (message)
   (interactive (list (progn (magit-diff-unstaged) (read-string "Commit Message: "))))
   (magit-stage-modified)
@@ -6767,6 +6801,11 @@ so that it's still active even after you stage a change. Very experimental."
                              nick
                              (or reason
                                  "Kicked (kickban)"))))
+  (defun my-erc-clean-up ()
+    "Clean up dead ERC buffers."
+    (interactive)
+    (mapc #'kill-buffer (erc-buffer-list (lambda () (null (erc-server-process-alive)))))
+    (erc-update-mode-line))
   )
 
 (defmacro my-org-with-current-task (&rest body)
@@ -6933,7 +6972,7 @@ so that it's still active even after you stage a change. Very experimental."
                     (lambda (x) (if (string-equal (substring x 0 1) ".") x))
                     ido-temp-list)))))
 
-                                        ;(setq eimp-mogrify-program "c:/Program Files/ImageMagick-6.8.3-Q16/mogrify.exe")
+;(setq eimp-mogrify-program "c:/Program Files/ImageMagick-6.8.3-Q16/mogrify.exe")
 
 (defun my-ssh-refresh ()
   "Reset the environment variable SSH_AUTH_SOCK"
@@ -7599,7 +7638,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
                  (format "--title=%s" (shell-quote-argument (file-name-base recording)))
                  (format "--client-secrets=%s" google-video-credentials)))
 
- (setq imp-default-user-filters '((org-mode . my-imp-htmlize-filter)
+(setq imp-default-user-filters '((org-mode . my-imp-htmlize-filter)
                                   (mhtml-mode . nil)
                                   (html-mode . nil)
                                   (web-mode  . nil)))
@@ -7920,7 +7959,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 
 (defun my-search-irc-logs ()
   (interactive)
-  (let ((helm-rg-default-directory "~/backups/server/home/.znc/users/sachac/moddata/log/freenode"))
+  (let ((helm-rg-default-directory "~/backups/server/home/.znc/users/sachac/moddata/log"))
     (call-interactively 'helm-rg)))
 
 (defun widget-button-click (event)
@@ -8391,9 +8430,14 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
      (t path))))
 
 (defun my-org-image-export-link (link description format info)
-  (let* ((backend (org-export-backend-name (plist-get info :back-end)))
+  (let* ((backend (if (plist-get info :backend) (org-export-backend-name (plist-get info :back-end))
+                    format))
          (desc (or description link)))
-    (format "{%% sketchLink \"%s\", \"%s\" %%}" (file-name-base link) desc)))
+    (cond ((eq backend 'md)
+           (format "[%s](%s)" desc link))
+          ((eq backend '11ty)
+           (format "{%% sketchLink \"%s\", \"%s\" %%}" (file-name-base link) desc))
+          (t (format "[[%s][%s]]" link desc)))))
 
 (defun my-org-image-export-thumb (link description format info)
   (let* ((backend (org-export-backend-name (plist-get info :back-end)))
@@ -9239,7 +9283,10 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
   (quantified-track "Drawing")
   (my-prepare-index-card "Journal"))
 
-(add-to-list 'org-speed-commands '("d" call-interactively 'my-prepare-index-card-for-subtree))
+(with-eval-after-load 'org
+  (let ((listvar (if (boundp 'org-speed-commands) 'org-speed-commands
+                   'org-speed-commands-user)))
+    (add-to-list listvar '("d" call-interactively 'my-prepare-index-card-for-subtree))))
 
 (defun my-rename-bank-statements ()
   (interactive)
@@ -9271,6 +9318,126 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
   (interactive "MString: ")
   (setq speed (or speed 175))
   (call-process my-espeak-command nil nil nil string "-s" speed))
+
+(defun my-get-shopping-details ()
+  (goto-char (point-min))
+  (let (data)
+    (cond
+     ((re-search-forward "  data-section-data
+>" nil t)
+      (setq data (json-read))
+      (let-alist data
+        (list (cons 'name .product.title)
+              (cons 'brand .product.vendor)
+              (cons 'description .product.description)
+              (cons 'image (concat "https:" .product.featured_image))
+              (cons 'price (/ .product.price 100.0)))))
+     ((and (re-search-forward "<script type=\"application/ld\\+json\">" nil t)
+           (null (re-search-forward "Fabric Fabric" nil t))) ; Carter's, Columbia?
+      (setq data (json-read))
+      (if (vectorp data) (setq data (elt data 0)))
+      (if (assoc-default '@graph data)
+          (setq data (assoc-default '@graph data)))
+      (if (vectorp data) (setq data (elt data 0)))
+      (let-alist data
+        (list (cons 'name .name)
+              (cons 'url (or .url .@id))
+              (cons 'brand .brand.name)
+              (cons 'description .description)
+              (cons 'rating .aggregateRating.ratingValue)
+              (cons 'ratingCount .aggregateRating.reviewCount)
+              (cons 'image (if (stringp .image) .image (elt .image 0)))
+              (cons 'price
+                    (assoc-default 'price (if (arrayp .offers)
+                                              (elt .offers 0)
+                                            .offers))))))
+     ((re-search-forward "amazon.ca" nil t)
+      (goto-char (point-min))
+      (re-search-forward "^$")
+      (let ((doc (libxml-parse-html-region (point) (point-max))))
+        (list (cons 'name (dom-text (dom-by-tag doc 'title)))
+              (cons 'description (dom-texts (dom-by-id doc "productDescription")))
+              (cons 'image (dom-attr (dom-by-tag (dom-by-id doc "imgTagWrapperId") 'img) 'src))
+              (cons 'price
+                    (dom-texts (dom-by-id doc "priceblock_ourprice"))))))
+     (t
+      (goto-char (point-min))
+      (re-search-forward "^$")
+      (let ((doc (libxml-parse-html-region (point) (point-max))))
+        (mapcar (lambda (property)
+                  (let ((node (dom-search
+                               doc
+                               (lambda (o)
+                                 (delq nil
+                                       (mapcar (lambda (p) (string= (dom-attr o 'property) p)) (cdr property)))))))
+                    (cons
+                     (car property)
+                     (dom-attr
+                      node
+                      'content))))
+                '((name "og:title")
+                  (brand "og:brand")
+                  (url "og:url")
+                  (image "og:image")
+                  (description "og:description")
+                  (price "og:price:amount" "product:price:amount"))))))))
+(defun my-org-insert-shopping-details ()
+  (interactive)
+  (org-insert-heading)
+  (save-excursion (yank))
+  (my-org-update-shopping-details)
+  (when (org-entry-get (point) "NAME")
+    (org-edit-headline (org-entry-get (point) "NAME")))
+  (org-end-of-subtree))
+(defun my-org-update-shopping-details ()
+  (interactive)
+  (when (re-search-forward org-any-link-re (save-excursion (org-end-of-subtree)) t)
+    (let* ((link (org-element-property :raw-link (org-element-context)))
+           data)
+      (if (string-match "theshoecompany\\|dsw" link)
+          (progn
+            (browse-url link)
+            (org-entry-put (point) "URL" link)
+            (unless (org-entry-get (point) "IMAGE")
+              (org-entry-put (point) "IMAGE" (read-string "Image: ")))
+            (unless (org-entry-get (point) "PRICE")
+              (org-entry-put (point) "PRICE" (read-string "Price: "))))
+        (setq data (with-current-buffer (url-retrieve-synchronously link)
+                     (my-get-shopping-details)))
+        (when data
+          (let-alist data
+            (org-entry-put (point) "NAME" .name)
+            (org-entry-put (point) "URL" link)
+            (org-entry-put (point) "BRAND" .brand)
+            (org-entry-put (point) "DESCRIPTION" (replace-regexp-in-string "\n" " " .description))
+            (org-entry-put (point) "IMAGE" .image)
+            (if .price (org-entry-put (point) "PRICE" (if (stringp .price) .price (format "%.2f" .price))))
+            (if .rating (org-entry-put (point) "RATING" (if (stringp .rating) .rating (format "%.1f" .rating))))
+            (if .ratingCount (org-entry-put (point) "RATING_COUNT" (if (stringp .ratingCount) .ratingCount (number-to-string .ratingCount))))
+            ))))))
+(defun my-org-format-shopping-subtree ()
+  (concat "<style>body { max-width: 100% !important } #content { max-width: 100% !important }</style><div style=\"display: flex; flex-wrap: wrap; align-items: flex-end\">"
+          (string-join
+           (save-excursion (org-map-entries
+                            (lambda ()
+                              (if (org-entry-get (point) "URL")
+                                  (format "<div class=item style=\"width: 200px\"><div><a href=\"%s\"><img src=\"%s\" height=100></a></div>
+<div><a href=\"%s\">%s</a></div>
+<div>%s</div>
+<div>%s</div>
+<div>%s</div></div>"
+                                          (org-entry-get (point) "URL")
+                                          (org-entry-get (point) "IMAGE")
+                                          (org-entry-get (point) "URL")
+                                          (url-domain (url-generic-parse-url (org-entry-get (point) "URL")))
+                                          (org-entry-get (point) "NAME")
+                                          (org-entry-get (point) "PRICE")
+                                          (or (org-entry-get (point) "NOTES") ""))
+                                "")
+                              ) nil
+                                (if (org-before-first-heading-p) nil 'tree)))
+           "")
+          "</div>"))
 
 (when (eq system-type 'windows-nt)
   (setenv "PATH" (concat "\"c:/program files/postgresql/9.3/bin;\"" (getenv "PATH"))))

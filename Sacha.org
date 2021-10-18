@@ -528,17 +528,19 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
   (add-to-list 'embark-keymap-alist '(sketch . embark-sketch-actions))
   (add-to-list 'embark-keymap-alist '(journal . embark-journal-actions))
   :bind
-  (:map minibuffer-local-map
-        (("C-c e" . embark-act)
-         ("C-;" . embark-act))
-        :map embark-collect-mode-map
-        (("C-c e" . embark-act)
-         ("C-;" . embark-act))
-        :map embark-general-map
-        (("j" . my-journal-post)
-         ("m" . my-stream-message))
-        :map embark-variable-map
-        ("l" . edit-list)))
+  (("C-." . embark-act)
+   ("C-;" . embark-act)
+   :map minibuffer-local-map
+   (("C-c e" . embark-act)
+    ("C-;" . embark-act))
+   :map embark-collect-mode-map
+   (("C-c e" . embark-act)
+    ("C-;" . embark-act))
+   :map embark-general-map
+   (("j" . my-journal-post)
+    ("m" . my-stream-message))
+   :map embark-variable-map
+   ("l" . edit-list)))
 
 (use-package
   embark-consult
@@ -604,7 +606,7 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
 **** Consult directory navigation
 
      #+begin_src emacs-lisp
-     (use-package consult-dir
+(use-package consult-dir
        :ensure t
        :bind (("C-x C-d" . consult-dir)
               :map minibuffer-local-completion-map
@@ -613,6 +615,27 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
               :map selectrum-minibuffer-map
               ("C-x C-d" . consult-dir)
               ("C-x C-j" . consult-dir-jump-file)))
+
+;; https://karthinks.com/software/jumping-directories-in-eshell/
+(defun eshell/z (&optional regexp)
+  "Navigate to a previously visited directory in eshell, or to
+any directory proferred by `consult-dir'."
+  (let ((eshell-dirs (delete-dups
+                      (mapcar 'abbreviate-file-name
+                              (ring-elements eshell-last-dir-ring)))))
+    (cond
+     ((and (not regexp) (featurep 'consult-dir))
+      (let* ((consult-dir--source-eshell `(:name "Eshell"
+                                                 :narrow ?e
+                                                 :category file
+                                                 :face consult-file
+                                                 :items ,eshell-dirs))
+             (consult-dir-sources (cons consult-dir--source-eshell
+                                        consult-dir-sources)))
+        (eshell/cd (substring-no-properties
+                    (consult-dir--pick "Switch directory: ")))))
+     (t (eshell/cd (if regexp (eshell-find-previous-directory regexp)
+                     (completing-read "cd: " eshell-dirs)))))))
          #+end_src
 **** Marginalia and hiding the value of password-ish variables
      :PROPERTIES:
@@ -4103,20 +4126,20 @@ These are great for quickly acting on tasks.
                        :ZIDString)))
      (org-back-to-heading))))
 
-(use-package org
-  :config
-  (progn
-    (add-to-list 'org-speed-commands '("A" org-archive-subtree-default))
-    (add-to-list 'org-speed-commands '("x" org-todo "DONE"))
-    (add-to-list 'org-speed-commands '("X" call-interactively 'my-org-mark-done-and-add-to-journal))
-    (add-to-list 'org-speed-commands '("y" org-todo-yesterday "DONE"))
-    (add-to-list 'org-speed-commands '("!" my-org-clock-in-and-track))
-    (add-to-list 'org-speed-commands '("s" call-interactively 'org-schedule))
-    (add-to-list 'org-speed-commands '("d" my-org-move-line-to-destination))
-    (add-to-list 'org-speed-commands '("i" call-interactively 'org-clock-in))
-    (add-to-list 'org-speed-commands '("o" call-interactively 'org-clock-out))
-    (add-to-list 'org-speed-commands '("$" call-interactively 'org-archive-subtree))
-    (bind-key "!" 'my-org-clock-in-and-track org-agenda-mode-map)))
+(with-eval-after-load 'org
+  (let ((listvar (if (boundp 'org-speed-commands) 'org-speed-commands
+                   'org-speed-commands-user)))
+    (add-to-list listvar '("A" org-archive-subtree-default))
+    (add-to-list listvar '("x" org-todo "DONE"))
+    (add-to-list listvar '("X" call-interactively 'my-org-mark-done-and-add-to-journal))
+    (add-to-list listvar '("y" org-todo-yesterday "DONE"))
+    (add-to-list listvar '("!" my-org-clock-in-and-track))
+    (add-to-list listvar '("s" call-interactively 'org-schedule))
+    (add-to-list listvar '("d" my-org-move-line-to-destination))
+    (add-to-list listvar '("i" call-interactively 'org-clock-in))
+    (add-to-list listvar '("o" call-interactively 'org-clock-out))
+    (add-to-list listvar '("$" call-interactively 'org-archive-subtree)))
+  (bind-key "!" 'my-org-clock-in-and-track org-agenda-mode-map))
 #+end_src
 
 *** Org navigation
@@ -4592,12 +4615,13 @@ don't belong to any projects.
 This code makes it easy for me to focus on one project and its tasks.
 
 #+begin_src emacs-lisp
-(use-package org
-  :config
-  (add-to-list 'org-speed-commands '("N" org-narrow-to-subtree))
-  (add-to-list 'org-speed-commands '("W" widen))
-  (add-to-list 'org-speed-commands '("T" my-org-agenda-for-subtree))
-  (add-to-list 'org-speed-commands '("b" my-org-bounce-to-file)))
+(with-eval-after-load 'org
+  (let ((listvar (if (boundp 'org-speed-commands) 'org-speed-commands
+                   'org-speed-commands-user)))
+    (add-to-list listvar '("N" org-narrow-to-subtree))
+    (add-to-list listvar '("W" widen))
+    (add-to-list listvar '("T" my-org-agenda-for-subtree))
+    (add-to-list listvar '("b" my-org-bounce-to-file))))
 
 (defun my-org-agenda-for-subtree ()
   (interactive)
@@ -4613,7 +4637,10 @@ There's probably a proper way to do this, maybe with =<=. Oh, that would work ni
 And sorting:
 
 #+begin_src emacs-lisp
-(add-to-list 'org-speed-commands '("S" call-interactively 'org-sort))
+(with-eval-after-load 'org
+  (let ((listvar (if (boundp 'org-speed-commands) 'org-speed-commands
+                   'org-speed-commands-user)))
+    (add-to-list listvar '("S" call-interactively 'org-sort))))
 #+end_src
 
 ***** Tag tasks with GTD-ish contexts
@@ -6031,9 +6058,12 @@ refile.
         (org-end-of-subtree t t)
         (org-paste-subtree target-level)))))
 
-(add-to-list 'org-speed-commands '("w" call-interactively 'org-refile))
-(add-to-list 'org-speed-commands '("W" call-interactively 'my-org-refile-in-file))
-(add-to-list 'org-speed-commands '("." call-interactively 'my-org-refile-to-previous))
+(with-eval-after-load 'org
+  (let ((listvar (if (boundp 'org-speed-commands) 'org-speed-commands
+                   'org-speed-commands-user)))
+    (add-to-list listvar '("w" call-interactively 'org-refile))
+    (add-to-list listvar '("W" call-interactively 'my-org-refile-in-file))
+    (add-to-list listvar '("." call-interactively 'my-org-refile-to-previous))))
 #+end_src
 
 TODO: Figure out why I'm getting duplicates. Next step might be to fiddle with =helm-org-in-buffer-headings= so that it preselects the previous candidate, but that can happen later.
@@ -6161,6 +6191,7 @@ appropriate level.
 
 #+begin_src emacs-lisp
 (use-package ox-11ty
+  :if my-laptop-p
   :load-path "~/code/ox-11ty")
 (defun my-org-11ty-prepare-subtree ()
   (interactive)
@@ -6732,7 +6763,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
 **** Fix elisp links
 
      #+begin_src emacs-lisp
-(defun my-org-elisp-link-export (link description format)
+(defun my-org-elisp-link-export (link description format &optional arg)
   (cond
    ((eq format 'html) (format "<span title=\"%s\">%s</span>" (replace-regexp-in-string "\"" "&quot;" link) description))
    ((eq format 'text) description)
@@ -7122,7 +7153,7 @@ This lets me define a custom link type.
 (defun my-org-journal-open (id &optional arg)
   (browse-url (format "%s/zid/%s" my-journal-url id)))
 
-(defun my-org-journal-export (link description format)
+(defun my-org-journal-export (link description format &optional arg)
   (let* ((path (concat "%s/zid/" my-journal-url link))
          (image (concat "%s/zid/" my-journal-url link))
          (desc (or description link)))
@@ -7697,7 +7728,7 @@ code pulls that information into my ~/Dropbox/tasker/
     (my-org-package-export "fireplace" "fireplace" 'html)
     "<a target=\"_blank\" href=\"http://melpa.org/#/fireplace\">fireplace</a>"
     )))
-(defun my-org-package-export (link description format)
+(defun my-org-package-export (link description format &optional arg)
   (let* ((package-info (car (assoc-default (intern link) package-archive-contents)))
          (package-source (package-desc-archive package-info))
          (path (format
@@ -8436,6 +8467,13 @@ offby1 says there's (setq nxml-sexp-element-flag t)
 
 ;; (ert "my-clean-up-spans-in-string")
 #+end_src
+*** Shell
+
+Make files executable if the first file has a shebang (ex: =#!/bin/bash#=)
+#+begin_src emacs-lisp
+(add-hook 'after-save-hook
+          'executable-make-buffer-file-executable-if-script-p)
+#+end_src
 
 *** Magit - nice git interface
 :PROPERTIES:
@@ -8777,6 +8815,11 @@ IRC is a great way to hang out with other Emacs geeks.
                              nick
                              (or reason
                                  "Kicked (kickban)"))))
+  (defun my-erc-clean-up ()
+    "Clean up dead ERC buffers."
+    (interactive)
+    (mapc #'kill-buffer (erc-buffer-list (lambda () (null (erc-server-process-alive)))))
+    (erc-update-mode-line))
   )
 #+end_src
 
@@ -10497,7 +10540,7 @@ In termux, you also need to =pkg install diffutils=.
 #+begin_src emacs-lisp
 (defun my-search-irc-logs ()
   (interactive)
-  (let ((helm-rg-default-directory "~/backups/server/home/.znc/users/sachac/moddata/log/freenode"))
+  (let ((helm-rg-default-directory "~/backups/server/home/.znc/users/sachac/moddata/log"))
     (call-interactively 'helm-rg)))
 #+end_src
 
@@ -11339,9 +11382,14 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
      (t path))))
 
 (defun my-org-image-export-link (link description format info)
-  (let* ((backend (org-export-backend-name (plist-get info :back-end)))
+  (let* ((backend (if (plist-get info :backend) (org-export-backend-name (plist-get info :back-end))
+                    format))
          (desc (or description link)))
-    (format "{%% sketchLink \"%s\", \"%s\" %%}" (file-name-base link) desc)))
+    (cond ((eq backend 'md)
+           (format "[%s](%s)" desc link))
+          ((eq backend '11ty)
+           (format "{%% sketchLink \"%s\", \"%s\" %%}" (file-name-base link) desc))
+          (t (format "[[%s][%s]]" link desc)))))
 
 (defun my-org-image-export-thumb (link description format info)
   (let* ((backend (org-export-backend-name (plist-get info :back-end)))
@@ -12391,7 +12439,10 @@ xdotool key Return
   (quantified-track "Drawing")
   (my-prepare-index-card "Journal"))
 
-(add-to-list 'org-speed-commands '("d" call-interactively 'my-prepare-index-card-for-subtree))
+(with-eval-after-load 'org
+  (let ((listvar (if (boundp 'org-speed-commands) 'org-speed-commands
+                   'org-speed-commands-user)))
+    (add-to-list listvar '("d" call-interactively 'my-prepare-index-card-for-subtree))))
 #+end_src
 
 ** Tools for organizing
@@ -12445,6 +12496,135 @@ xdotool key Return
   (setq speed (or speed 175))
   (call-process my-espeak-command nil nil nil string "-s" speed))
 #+end_src
+
+** TODO Figure out better workflow for comparison-shopping
+
+#+begin_src emacs-lisp
+(defun my-get-shopping-details ()
+  (goto-char (point-min))
+  (let (data)
+    (cond
+     ((re-search-forward "  data-section-data
+>" nil t)
+      (setq data (json-read))
+      (let-alist data
+        (list (cons 'name .product.title)
+              (cons 'brand .product.vendor)
+              (cons 'description .product.description)
+              (cons 'image (concat "https:" .product.featured_image))
+              (cons 'price (/ .product.price 100.0)))))
+     ((and (re-search-forward "<script type=\"application/ld\\+json\">" nil t)
+           (null (re-search-forward "Fabric Fabric" nil t))) ; Carter's, Columbia?
+      (setq data (json-read))
+      (if (vectorp data) (setq data (elt data 0)))
+      (if (assoc-default '@graph data)
+          (setq data (assoc-default '@graph data)))
+      (if (vectorp data) (setq data (elt data 0)))
+      (let-alist data
+        (list (cons 'name .name)
+              (cons 'url (or .url .@id))
+              (cons 'brand .brand.name)
+              (cons 'description .description)
+              (cons 'rating .aggregateRating.ratingValue)
+              (cons 'ratingCount .aggregateRating.reviewCount)
+              (cons 'image (if (stringp .image) .image (elt .image 0)))
+              (cons 'price
+                    (assoc-default 'price (if (arrayp .offers)
+                                              (elt .offers 0)
+                                            .offers))))))
+     ((re-search-forward "amazon.ca" nil t)
+      (goto-char (point-min))
+      (re-search-forward "^$")
+      (let ((doc (libxml-parse-html-region (point) (point-max))))
+        (list (cons 'name (dom-text (dom-by-tag doc 'title)))
+              (cons 'description (dom-texts (dom-by-id doc "productDescription")))
+              (cons 'image (dom-attr (dom-by-tag (dom-by-id doc "imgTagWrapperId") 'img) 'src))
+              (cons 'price
+                    (dom-texts (dom-by-id doc "priceblock_ourprice"))))))
+     (t
+      (goto-char (point-min))
+      (re-search-forward "^$")
+      (let ((doc (libxml-parse-html-region (point) (point-max))))
+        (mapcar (lambda (property)
+                  (let ((node (dom-search
+                               doc
+                               (lambda (o)
+                                 (delq nil
+                                       (mapcar (lambda (p) (string= (dom-attr o 'property) p)) (cdr property)))))))
+                    (cons
+                     (car property)
+                     (dom-attr
+                      node
+                      'content))))
+                '((name "og:title")
+                  (brand "og:brand")
+                  (url "og:url")
+                  (image "og:image")
+                  (description "og:description")
+                  (price "og:price:amount" "product:price:amount"))))))))
+(defun my-org-insert-shopping-details ()
+  (interactive)
+  (org-insert-heading)
+  (save-excursion (yank))
+  (my-org-update-shopping-details)
+  (when (org-entry-get (point) "NAME")
+    (org-edit-headline (org-entry-get (point) "NAME")))
+  (org-end-of-subtree))
+(defun my-org-update-shopping-details ()
+  (interactive)
+  (when (re-search-forward org-any-link-re (save-excursion (org-end-of-subtree)) t)
+    (let* ((link (org-element-property :raw-link (org-element-context)))
+           data)
+      (if (string-match "theshoecompany\\|dsw" link)
+          (progn
+            (browse-url link)
+            (org-entry-put (point) "URL" link)
+            (unless (org-entry-get (point) "IMAGE")
+              (org-entry-put (point) "IMAGE" (read-string "Image: ")))
+            (unless (org-entry-get (point) "PRICE")
+              (org-entry-put (point) "PRICE" (read-string "Price: "))))
+        (setq data (with-current-buffer (url-retrieve-synchronously link)
+                     (my-get-shopping-details)))
+        (when data
+          (let-alist data
+            (org-entry-put (point) "NAME" .name)
+            (org-entry-put (point) "URL" link)
+            (org-entry-put (point) "BRAND" .brand)
+            (org-entry-put (point) "DESCRIPTION" (replace-regexp-in-string "\n" " " .description))
+            (org-entry-put (point) "IMAGE" .image)
+            (if .price (org-entry-put (point) "PRICE" (if (stringp .price) .price (format "%.2f" .price))))
+            (if .rating (org-entry-put (point) "RATING" (if (stringp .rating) .rating (format "%.1f" .rating))))
+            (if .ratingCount (org-entry-put (point) "RATING_COUNT" (if (stringp .ratingCount) .ratingCount (number-to-string .ratingCount))))
+            ))))))
+(defun my-org-format-shopping-subtree ()
+  (concat "<style>body { max-width: 100% !important } #content { max-width: 100% !important }</style><div style=\"display: flex; flex-wrap: wrap; align-items: flex-end\">"
+          (string-join
+           (save-excursion (org-map-entries
+                            (lambda ()
+                              (if (org-entry-get (point) "URL")
+                                  (format "<div class=item style=\"width: 200px\"><div><a href=\"%s\"><img src=\"%s\" height=100></a></div>
+<div><a href=\"%s\">%s</a></div>
+<div>%s</div>
+<div>%s</div>
+<div>%s</div></div>"
+                                          (org-entry-get (point) "URL")
+                                          (org-entry-get (point) "IMAGE")
+                                          (org-entry-get (point) "URL")
+                                          (url-domain (url-generic-parse-url (org-entry-get (point) "URL")))
+                                          (org-entry-get (point) "NAME")
+                                          (org-entry-get (point) "PRICE")
+                                          (or (org-entry-get (point) "NOTES") ""))
+                                "")
+                              ) nil
+                                (if (org-before-first-heading-p) nil 'tree)))
+           "")
+          "</div>"))
+#+end_src
+
+#+RESULTS:
+:results:
+my-org-format-shopping-subtree
+:end:
 
 * Exwm
 

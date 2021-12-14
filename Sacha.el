@@ -72,6 +72,7 @@
     ("+" text-scale-increase "Increase")
     ("-" text-scale-decrease "Decrease")
     ("g" my-geeqie/body "Geeqie")
+    ("r" my-record-ffmpeg-toggle-recording "Record screen")
     ("l" (my-toggle-or-create "*scratch*" (lambda () (switch-to-buffer (startup--get-buffer-create-scratch)))) "Lisp")
     ("e" eshell-toggle "Eshell")
     ("w" my-engine-mode-hydra/body "Search web")
@@ -284,13 +285,75 @@
 (defun my-sketch-insert-file-as-link (f)
   (interactive "fSketch: ")
   (insert (org-link-make-string (concat "sketch:" (file-name-nondirectory f))) "\n"))
+(defun my-subed-set-timestamp-to-mpv-position (&optional rest)
+  (interactive)
+  (skip-chars-backward "0-9:,.")
+  (when (looking-at subed-vtt--regexp-timestamp)
+    (replace-match (save-match-data (subed-msecs-to-timestamp subed-mpv-playback-position)) t t)))
+(defun my-embark-subed-timestamp ()
+  (save-excursion
+    (skip-chars-backward "0-9:,.")
+    (when (looking-at subed-vtt--regexp-timestamp)
+      (list 'subed-timestamp
+            (propertize
+             (match-string 0)
+             'ms (subed-vtt--timestamp-to-msecs (match-string 0))
+             'position (if (bolp) 'start 'stop))))))
+(defun my-subed-adjust-timestamp (offset)
+  (interactive (list -100))
+  (save-excursion
+    (skip-chars-backward "0-9:,.")
+    (when (looking-at subed-vtt--regexp-timestamp)
+      (let ((new-ts (+ (subed-vtt--timestamp-to-msecs (match-string 0)) offset)))
+        (replace-match (save-match-data
+                         (subed-vtt--msecs-to-timestamp new-ts)))
+        (my-waveform-subed-show-after-time)
+        new-ts))))
+
+(defun my-subed-adjust-timestamp-up (offset)
+  (interactive (list 100))
+  (subed-mpv-jump (my-subed-adjust-timestamp (- offset))))
+
+(defun my-subed-adjust-timestamp-down (offset)
+  (interactive (list -100))
+  (subed-mpv-jump (my-subed-adjust-timestamp (- offset))))
+
+(defhydra my-subed-adjust-timestamp ()
+  ("<up>" my-subed-adjust-timestamp-up "Up" :exit nil)
+  ("<down>" my-subed-adjust-timestamp-down "Down" :exit nil))
+
+(defun my-subed-copy-timestamp-from-previous ()
+  (interactive)
+  (let ((ms (save-excursion (subed-backward-subtitle-time-stop) (subed-subtitle-msecs-stop))))
+    (subed-set-subtitle-time-start ms)))
+(defun my-subed-copy-timestamp-to-next ()
+  (interactive)
+  (let ((ms (subed-subtitle-msecs-stop)))
+    (save-excursion
+      (subed-forward-subtitle-time-stop) (subed-set-subtitle-time-start ms))))
+(defun my-subed-copy-timestamp-dwim ()
+  (interactive)
+  (save-excursion
+    (skip-chars-backward "0-9:,.")
+    (if (bolp)
+        (my-subed-copy-timestamp-from-previous)
+      (my-subed-copy-timestamp-to-next))))
+
 (use-package embark
   :after selectrum
   :config
   (setq embark-prompter 'embark-keymap-prompter)
   (add-to-list 'embark-target-finders 'my-embark-org-element)
+  (add-to-list 'embark-target-finders 'my-embark-subed-timestamp)
   (add-to-list 'embark-allow-edit-commands #'my-stream-message)
   (add-to-list 'embark-allow-edit-commands #'my-journal-post)
+  (embark-define-keymap embark-subed-timestamp-actions
+    "Subed timestamp actions"
+    ("." my-subed-set-timestamp-to-mpv-position)
+    ("c" my-subed-copy-timestamp-dwim)
+    ("<up>" my-subed-adjust-timestamp/my-subed-adjust-timestamp-up)
+    ("w" my-waveform-subed-show-after-time)
+    ("<down>" my-subed-adjust-timestamp/my-subed-adjust-timestamp-down))
   (embark-define-keymap embark-sketch-actions
     "Org Mode sketch-related actions"
     ("o" my-sketch-insert-file-as-link)
@@ -299,6 +362,7 @@
     "Journal"
     ("e" my-journal-edit))
   (add-to-list 'embark-keymap-alist '(sketch . embark-sketch-actions))
+  (add-to-list 'embark-keymap-alist '(subed-timestamp . embark-subed-timestamp-actions))
   (add-to-list 'embark-keymap-alist '(journal . embark-journal-actions))
   :bind
   (("C-." . embark-act)
@@ -311,7 +375,10 @@
     ("C-;" . embark-act))
    :map embark-general-map
    (("j" . my-journal-post)
-    ("m" . my-stream-message))
+    ("m" . my-stream-message)
+    ("M-w" . (lambda (s) (interactive "MString: ") (kill-new s))))
+   :map embark-symbol-map
+   ("r" . erefactor-rename-symbol-in-buffer)
    :map embark-variable-map
    ("l" . edit-list)))
 
@@ -907,6 +974,16 @@ Based on `elisp-get-fnsym-args-string.'"
     (with-current-buffer (find-file-noselect file) (display-buffer (current-buffer)))
     (insert "#+CAPTION: " (or note (read-string "Caption: "))))
   (save-excursion (insert "\n" (org-link-make-string (concat "file:" file)) "\n")))
+(defun my-copy-last-screenshot-to-file (new-filename)
+  (interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (my-latest-file my-screenshot-directory))))))
+  (copy-file (my-latest-file my-screenshot-directory) new-filename))
+
+(defun my-copy-last-screenshot-and-insert-into-org (new-filename caption)
+  (interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (my-latest-file my-screenshot-directory))))
+                     (read-string "Caption: ")))
+  (copy-file (my-latest-file my-screenshot-directory) new-filename t)
+  (insert "#+CAPTION: " caption "\n"
+          (org-link-make-string (concat "file:" (file-relative-name new-filename))) "\n"))
 
 (defun my-org-capture-prefill-template (template &rest values)
   "Pre-fill TEMPLATE with VALUES."
@@ -965,14 +1042,8 @@ Based on `elisp-get-fnsym-args-string.'"
 (defun my-setup-color-theme ()
   (interactive)
   (when (display-graphic-p)
-    (color-theme-sanityinc-solarized-dark))
-  (set-background-color "black")
-  (set-face-foreground 'secondary-selection "darkblue")
-  (set-face-background 'secondary-selection "lightblue")
-  (set-face-background 'font-lock-doc-face "black")
-  (set-face-foreground 'font-lock-doc-face "wheat")
-  (set-face-background 'font-lock-string-face "black"))
-(use-package color-theme-sanityinc-solarized :config (my-setup-color-theme))
+    (modus-themes-load-vivendi)))
+(use-package modus-themes :config (my-setup-color-theme))
 
 (when window-system
   (custom-set-faces
@@ -1033,6 +1104,21 @@ Based on `elisp-get-fnsym-args-string.'"
 
 (use-package which-key :init (which-key-mode 1))
 (use-package which-key-posframe :if my-laptop-p :init (which-key-posframe-mode 1))
+
+(use-package popper
+  :bind (("C-`"   . popper-toggle-latest)
+         ("M-`"   . popper-cycle)
+         ("C-M-`" . popper-toggle-type))
+  :init
+  (setq popper-reference-buffers
+        '("\\*Messages\\*"
+          "Output\\*$"
+          "\\*Async Shell Command\\*"
+          "\\*scratch\\*"
+          help-mode
+          compilation-mode))
+  (popper-mode +1)
+  (popper-echo-mode +1))
 
 (bind-key "C-x p" 'pop-to-mark-command)
 (setq set-mark-command-repeat-pop t)
@@ -1657,6 +1743,7 @@ Based on `elisp-get-fnsym-args-string.'"
   ("o" (insert "\n") (let ((fill-column (point-max))) (fill-paragraph))))
 (use-package subed
   :if my-laptop-p
+  :quelpa (subed :fetcher github :repo "rndusr/subed" :files (:defaults "subed/*.el"))
   :load-path "~/vendor/subed/subed"
   :mode ("\\.\\(vtt\\|srt\\)\\'" . subed-mode)
   :config
@@ -1665,6 +1752,7 @@ Based on `elisp-get-fnsym-args-string.'"
   (key-chord-define subed-mode-map "ht" 'my-subed/body)
   :bind
   (:map subed-mode-map
+        ("M-j" . avy-goto-char-timer)
         ("M-j" . subed-mpv-jump-to-current-subtitle)
         ("M-[" . subed-mpv-seek))
   :hook
@@ -1673,10 +1761,15 @@ Based on `elisp-get-fnsym-args-string.'"
    (subed-mode . subed-disable-loop-over-current-subtitle)
    (subed-mode . save-place-local-mode)
    (subed-mode . turn-on-auto-fill)
-   (subed-mode . (lambda () (setq-local fill-column 40)))))
+   (subed-mode . (lambda () (setq-local fill-column 40)))
+   (subed-mode . (lambda () (remove-hook 'before-save-hook 'subed-sort t)))))
+(use-package subed-record :load-path "~/code/subed-record"
+  :bind
+  (:map subed-mode-map ("C-c C-c" . subed-record-compile-try-flow)))
 
 (defun my-subed-fix-timestamps ()
   "Change all ending timestamps to the start of the next subtitle."
+  (interactive)
   (goto-char (point-max))
   (let ((timestamp (subed-subtitle-msecs-start)))
     (while (subed-backward-subtitle-time-start)
@@ -1744,8 +1837,11 @@ Based on `elisp-get-fnsym-args-string.'"
 (defun my-caption-fix-common-errors (data)
   (mapc (lambda (o)
           (mapc (lambda (e)
-                  (when (string-match (concat "\\<" (car e) "\\>") (alist-get 'text o))
-                    (map-put! o 'text (replace-match (cadr e) t t (alist-get 'text o)))))
+                  (when (string-match (concat "\\<" (regexp-opt (if (listp e) (seq-remove (lambda (s) (string= "" s)) e)
+                                                                  (list e)))
+                                              "\\>")
+                                      (alist-get 'text o))
+                    (map-put! o 'text (replace-match (car (if (listp e) e (list e))) t t (alist-get 'text o)))))
                 my-subed-common-edits))
         data))
 
@@ -1767,6 +1863,14 @@ Based on `elisp-get-fnsym-args-string.'"
                           entry)
                         (my-caption-fix-common-errors data)))))
 
+(defun my-caption-load-word-data-maybe ()
+  (when (file-exists-p (concat (file-name-sans-extension (buffer-file-name)) ".en.srv2"))
+    (my-caption-load-word-data (concat (file-name-sans-extension (buffer-file-name)) ".en.srv2"))
+    (message "Word data loaded.")))
+
+(with-eval-after-load 'subed
+  (add-hook 'subed-mode-hook 'my-caption-load-word-data-maybe))
+
 (defun my-caption-look-up-word ()
   (save-excursion
     (let* ((end (subed-subtitle-msecs-stop))
@@ -1784,7 +1888,7 @@ Based on `elisp-get-fnsym-args-string.'"
       (while (not done)
         (setq candidate (elt words (+ (1- (length remaining-words)) offset)))
         (cond
-         ((and candidate (string-match (concat "\\<" (car remaining-words) "\\>") (alist-get 'text candidate)))
+         ((and candidate (string-match (concat "\\<" (regexp-quote (car remaining-words)) "\\>") (alist-get 'text candidate)))
           (setq done t))
          ((> offset (length words)) (setq done t))
          ((> offset 0) (setq offset (- offset)))
@@ -1803,22 +1907,28 @@ Based on `elisp-get-fnsym-args-string.'"
   (save-excursion
     (let ((data (my-caption-look-up-word)))
       (prin1 data)
-      (subed-split-subtitle (and data (- (alist-get 'start data) (subed-subtitle-msecs-start)))))))
+      (when data
+        (subed-split-subtitle (and data (- (alist-get 'start data) (subed-subtitle-msecs-start)))))))
+  (subed-forward-subtitle-text))
 (defun my-caption-split-and-merge-with-next ()
   (interactive)
   (my-caption-split)
-  (my-caption-unwrap)
+  ;(my-caption-unwrap)
   (subed-forward-subtitle-id)
   (subed-merge-with-next)
-  (my-caption-unwrap))
+  ;(my-caption-unwrap)
+  )
 (defun my-caption-split-and-merge-with-previous ()
   (interactive)
   (my-caption-split)
   (subed-merge-with-previous)
   (my-caption-unwrap))
+
 (use-package subed
   :if my-laptop-p
   :load-path "~/vendor/subed/subed"
+  :hook
+  (subed-mode . display-fill-column-indicator-mode)
   :bind
   (:map subed-mode-map
         ("M-'" . my-caption-split)
@@ -1905,58 +2015,96 @@ If WORD-TIMING is non-nil, include word-level timestamps."
     (goto-char (point-min))
     (display-buffer (current-buffer))))
 
-(defvar my-subed-common-edits '(("i" "I")
-                                ("i've" "I've")
-                                ("i'm" "I'm")
-                                ("gonna" "going to")
-                                ("wanna" "want to")
-                                ("transit" "transient")
-                                ("uh" "")
-                                ("um" "")
-                                ("maggot" "Magit")
-                                ("e-max" "Emacs")
-                                ("emex" "Emacs")
-                                ("emax" "Emacs")
-                                ("emacs news" "Emacs News")
-                                ("iv" "ivy")
-                                ("ui" "UI")
-                                ("tico" "TECO")
-                                ("orgrim" "org-roam")
-                                ("imax" "Emacs")
-                                ("non-nail" "non-nil")
-                                ("comets" "commits")
-                                ("sql" "SQL")
-                                ("imaxconf" "EmacsConf")
-                                ("svg" "SVG")
-                                ("maggit" "magit")
-                                ("axwm" "EXWM")
-                                ("bmx" "Emacs"))
+(defvar my-subed-common-edits '("I"
+                                "I've"
+                                "I'm"
+                                "Mendeley"
+                                "JavaScript"
+                                "RSS"
+                                ("going to" "gonna")
+                                ("want to" "wanna")
+                                ("transient" "transit")
+                                ("" "uh" "um")
+                                ("Magit" "maggot")
+                                ("Emacs" "e-max" "emex" "emax" "bmx" "imax")
+                                ("Emacs News" "emacs news")
+                                ("EmacsConf" "emacs conf" "imaxconf")
+                                ("ivy" "iv")
+                                ("UI" "ui")
+                                ("TECO" "tico")
+                                ("org-roam" "orgrim" "orgrom")
+                                ("non-nil" "non-nail")
+                                ("commits" "comets")
+                                "SQL"
+                                "arXiv"
+                                "Montessori"
+                                "SVG"
+                                "YouTube" "GitHub" "GitLab" "OmegaT" "Linux" "SourceForge"
+                                "LaTeX"
+                                "Lisp"
+                                "Org"
+                                "IRC"
+                                "Reddit"
+                                "PowerPoint"
+                                "SQLite"
+                                "SQL"
+                                "I'll"
+                                "I'd"
+                                "PDFs"
+                                "PDF"
+                                "ASCII"
+                                ("Spacemacs" "spacemax")
+                                "Elisp" "Reddit" "TextMate" "macOS" "API" "IntelliSense"
+                                ("EXWM" "axwm")
+                                ("Emacs's" "emax's")
+
+                                ("BIDI" "bd")
+                                ("Perso-Arabic" "personal arabic")
+                                "Persian"
+                                "URL"
+                                "HTML")
   "List of words and replacements.")
 
 (defun my-subed-find-next-fix-point ()
   (when (re-search-forward
          (format "\\<%s\\>"
-                 (regexp-opt (mapcar 'car my-subed-common-edits)))
+                 (downcase
+                  (regexp-opt (seq-mapcat
+                               (lambda (o)
+                                 (if (listp o)
+                                     (if (string= (car o) "") (cdr o) o)
+                                   (list o)))
+                               my-subed-common-edits))))
          nil t)
-    (goto-char (match-beginning 0))))
+    (goto-char (match-beginning 0))
+    (seq-find (lambda (o)
+                (if (listp o)
+                    (seq-find (lambda (s) (string= (downcase s) (downcase (match-string 0)))) o)
+                  (string= (downcase o) (downcase (match-string 0)))))
+              my-subed-common-edits)))
+
+(defun my-subed-fix-common-error ()
+  (interactive)
+  (let ((entry (my-subed-find-next-fix-point)))
+    (replace-match (if (listp entry) (car entry) entry) t t)))
 
 (defun my-subed-fix-common-errors ()
   (interactive)
-  (let (done)
+  (let (done entry correction)
     (while (and
             (not done)
-            (my-subed-find-next-fix-point))
-      (let* ((entry (cdr (assoc (match-string 0) my-subed-common-edits)))
-             (c (if (elt entry 1)
-                    (and entry (read-char (format "%s (yn.): " (car entry))))
-                  ?y)))
+            (setq entry (my-subed-find-next-fix-point)))
+      (setq correction (if (listp entry) (car entry) entry))
+      (let* ((c (read-char (format "%s (yn.): " correction))))
         (cond
-         ((null entry) (goto-char (match-end 0)))
-         ((= c ?y) (replace-match (car entry) t t))
+         ((= c ?y) (replace-match correction t t))
          ((= c ?n) (goto-char (match-end 0)))
          ((= c ?j) (subed-mpv-jump-to-current-subtitle))
          ((= c ?.) (setq done t)))
-      ))))
+        ))))
+
+(use-package subed-waveform
+  :load-path "~/code/subed-waveform")
 
 (require 'dash)
 
@@ -2851,7 +2999,8 @@ loaded."
 
 (use-package company
   :config
-  (add-to-list 'company-backends 'my-company-strokedict))
+  ;(add-to-list 'company-backends 'my-company-strokedict)
+  )
 
 (defvar my-scan-directory "~/sync/scans")
 (defvar my-ipad-directory "~/sync/ipad")
@@ -3453,6 +3602,17 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
              (wpm (/ words minutes)))
         (message "WPM: %d (words: %d, minutes: %d)" wpm words minutes)
         (kill-new (number-to-string wpm))))))
+
+(defun my-org-log-note (note)
+  "Add NOTE to the current entry's logbook."
+  (interactive "MNote: ")
+  (setq org-log-note-window-configuration (current-window-configuration))
+  (move-marker org-log-note-return-to (point))
+  (move-marker org-log-note-marker (point))
+  (setq org-log-note-purpose 'note)
+  (with-temp-buffer
+    (insert note)
+    (org-store-log-note)))
 
 (setq org-todo-keywords
       '((sequence
@@ -4708,7 +4868,7 @@ and indent it one level."
   (interactive)
   (unless (or (org-entry-get (point) "EXPORT_DATE")
               (org-entry-get-with-inheritance "DATE"))
-    (org-entry-put (point) "EXPORT_DATE" (format-time-string "%Y-%m-%d")))
+    (org-entry-put (point) "EXPORT_DATE" (format-time-string "%Y-%m-%dT%T%z")))
   (let ((path (concat "blog/" (format-time-string "%Y/%m/")
                       (my-make-slug (org-get-heading t t t t))
                               "/")))
@@ -5376,7 +5536,7 @@ the mode, `toggle' toggles the state."
   (let ((url-request-method "POST")
         (url-request-extra-headers '(("Content-Type" . "application/json")))
         (json-object-type 'plist)
-        (url-request-data (json-encode-plist plist))
+        (url-request-data (encode-coding-string (json-encode-plist plist) 'utf-8))
         data)
     (with-current-buffer (url-retrieve-synchronously (concat my-journal-url "/api/entries"))
       (goto-char (point-min))
@@ -6158,7 +6318,7 @@ the mode, `toggle' toggles the state."
   (setq lsp-headerline-breadcrumb-enable t
         gc-cons-threshold (* 100 1024 1024)
         read-process-output-max (* 1024 1024)
-        company-idle-delay 0.0
+        company-idle-delay 0.5
         company-minimum-prefix-length 1
         create-lockfiles nil ;; lock files will kill `npm start'
         )
@@ -6207,6 +6367,9 @@ the mode, `toggle' toggles the state."
   '(bind-key "C-c C-c" 'compile python-mode-map))
 
 (use-package edit-list :commands edit-list)
+
+(setq eval-expression-print-length nil)
+(setq print-length nil)
 
 (use-package "eldoc"
   :if my-laptop-p
@@ -7112,6 +7275,17 @@ so that it's still active even after you stage a change. Very experimental."
         (gnus-catchup-mark (subject -1))))
 
 (setq notmuch-message-headers '("Subject" "To" "Cc" "Date" "Reply-To"))
+(use-package notmuch
+  :if my-laptop-p
+  :config (setq notmuch-search-oldest-first nil))
+(use-package ol-notmuch
+  ;; https://git.sr.ht/~bzg/org-contrib
+  :ensure nil
+  :if my-laptop-p
+  :load-path "~/vendor/org-contrib/lisp")
+(defun my-notmuch-important ()
+  (interactive)
+  (notmuch-search "tag:important and not tag:trash"))
 
 (use-package ledger-mode
   :load-path "~/vendor/ledger-mode"
@@ -7215,7 +7389,10 @@ so that it's still active even after you stage a change. Very experimental."
             (select-frame frame)
             (my-setup-color-theme)))
 
-(use-package crdt :load-path "~/vendor/crdt.el" :ensure nil :if my-laptop-p)
+(use-package crdt
+  :quelpa (crdt :fetcher github :repo "zaeph/crdt.el")
+  :load-path "~/vendor/crdt.el"
+  :if my-laptop-p)
 
 (define-key-after global-map [menu-bar my-menu] (cons "Shortcuts" (make-sparse-keymap "Custom shortcuts")) 'tools)
 (define-key global-map [menu-bar my-menu journal] '("Show journal entries" . my-show-missing-journal-entries))
@@ -7244,7 +7421,27 @@ so that it's still active even after you stage a change. Very experimental."
 (use-package edit-list :commands edit-list)
 
 (use-package avy
-  :if my-laptop-p)
+  :if my-laptop-p
+  :config
+  (defun avy-action-exchange (pt)
+    "Exchange sexp at PT with the one at point."
+    (set-mark pt)
+    (transpose-sexps 0))
+
+  (add-to-list 'avy-dispatch-alist '(?e . avy-action-exchange))
+
+  (defun avy-action-embark (pt)
+    (save-excursion
+      (goto-char pt)
+      (embark-act))
+    (select-window
+     (cdr (ring-ref avy-ring 0)))
+    t)
+  (setf (alist-get ?. avy-dispatch-alist) 'avy-action-embark)
+  :bind
+  ("M-j" . avy-goto-char-timer)
+  )
+
 (use-package avy-zap
   :if my-laptop-p
   :config
@@ -7608,7 +7805,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
   (global-set-key (kbd "<f8>") #'my-stream/body))
 
 (use-package mpv :if my-laptop-p)
-(defvar my-recordings-dir "~/videos/")
+(defvar my-recordings-dir "~/recordings/")
 (defun my-play-latest-recording (&optional arg)
   (interactive "P")
   (let ((latest (my-latest-file my-recordings-dir)))
@@ -7846,7 +8043,8 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
                  :column
                  (elt x 2)))))
 (with-eval-after-load "lispy"
-  (define-key lispy-mode-map (kbd "<f14>") 'my-lispy-cheat-sheet/body))
+  (define-key lispy-mode-map (kbd "<f14>") 'my-lispy-cheat-sheet/body)
+  (define-key lispy-mode-map (kbd "C-?") 'my-lispy-cheat-sheet/body))
 (with-eval-after-load 'evil-lispy
   (evil-define-key nil evil-lispy-mode-map (kbd "<f14>") 'my-lispy-cheat-sheet/body))
 )
@@ -8067,6 +8265,9 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
             (when command
               (call-interactively command)))))
     (message "You clicked somewhere weird.")))
+
+(quelpa '(emacsconf-update :fetcher url :url "https://raw.githubusercontent.com/emacsconf/emacsconf-el/main/emacsconf-update.el"))
+(global-set-key (kbd "M-g t") 'conf-go-to-talk)
 
 (use-package paint
   :disabled t

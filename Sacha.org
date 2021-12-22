@@ -2151,7 +2151,6 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
         try-complete-lisp-symbol-partially
         try-complete-lisp-symbol))
 #+END_SRC
-
 *** Subtitles
     :PROPERTIES:
     :CUSTOM_ID: subed
@@ -2588,7 +2587,7 @@ To change those ones in the VTT file I'm editing, I use
                         (my-caption-fix-common-errors data)))))
 
 (defun my-caption-load-word-data-maybe ()
-  (when (file-exists-p (concat (file-name-sans-extension (buffer-file-name)) ".en.srv2"))
+  (when (and (buffer-file-name) (file-exists-p (concat (file-name-sans-extension (buffer-file-name)) ".en.srv2")))
     (my-caption-load-word-data (concat (file-name-sans-extension (buffer-file-name)) ".en.srv2"))
     (message "Word data loaded.")))
 
@@ -2944,6 +2943,19 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
    # /home/sacha/screenshots/Screenshot_20210401_234041.png https://sachachua.com/blog/wp-content/uploads/2021/04/Screenshot_20210401_234041.png
    # /home/sacha/screenshots/Screenshot_20210401_234956.png
 
+*** Transcripts from my phone
+
+#+begin_src emacs-lisp
+(defvar my-transcript-dir "~/sync/phone")
+(defun my-open-latest-transcript ()
+  (interactive)
+  (find-file (my-latest-file my-transcript-dir "\\.txt"))
+  (kill-new (buffer-string)))
+
+(defun my-insert-latest-transcript ()
+  (interactive)
+  (insert-file-contents (my-latest-file my-transcript-dir "\\.txt")))
+#+end_src
 ** Plover
    :PROPERTIES:
    :CUSTOM_ID: plover
@@ -3946,7 +3958,7 @@ images, add extra stuff to filenames, change dates, and insert
 references.
 
 #+begin_src emacs-lisp
-(defvar my-scan-directory "~/sync/scans")
+(defvar my-scan-directory "~/sync/scans/")
 (defvar my-ipad-directory "~/sync/ipad")
 (defvar my-portfolio-directory "~/sync/portfolio")
 (defvar my-camera-directory "~/sync/camera")
@@ -5852,7 +5864,7 @@ Now we put it all together...
   :EXPORT_ELEVENTY_PERMALINK: %s
   :EXPORT_ELEVENTY_FILE_NAME: %s
   :END:\n"
-        (format-time-string "%Y-%m-%d")
+        (format-time-string "%Y-%m-%dT%T%z")
         (concat "/blog/" post-location "/")
         (concat "blog/" post-location))
        (my-org-summarize-journal-csv start end nil my-journal-category-map my-journal-categories)
@@ -7913,6 +7925,7 @@ code pulls that information into my ~/Dropbox/tasker/
                 link))
          (desc (or description link)))
     (cond
+     ((eq format '11ty) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
      ((eq format 'html) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
      ((eq format 'wp) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
      ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
@@ -8955,6 +8968,7 @@ IRC is a great way to hang out with other Emacs geeks.
 (use-package erc
   :if my-laptop-p
   :config
+  (setq erc-track-remove-disconnected-buffers t)
   (setq erc-hide-list '("PART" "QUIT" "JOIN"))
   (setq erc-autojoin-channels-alist '(("freenode.net"
                                        "#org-mode"
@@ -9474,17 +9488,21 @@ I use Gmail for my mail because it:
 (setq notmuch-message-headers '("Subject" "To" "Cc" "Date" "Reply-To"))
 (use-package notmuch
   :if my-laptop-p
-  :config (setq notmuch-search-oldest-first nil))
+  :config (setq notmuch-search-oldest-first nil)
+  (setq notmuch-archive-tags '("-inbox" "-flagged" )))
 (use-package ol-notmuch
   ;; https://git.sr.ht/~bzg/org-contrib
   :ensure nil
   :if my-laptop-p
   :load-path "~/vendor/org-contrib/lisp")
-(defun my-notmuch-important ()
+(defun my-notmuch-flagged ()
   (interactive)
-  (notmuch-search "tag:important and not tag:trash"))
+  (notmuch-search "tag:flagged and not tag:trash"))
+(defun my-notmuch-important-inbox ()
+  (interactive)
+  (notmuch-search "tag:important and tag:inbox and not tag:trash"))
 #+end_src
-** Ledger (personal finance)
+** Ledger (personal finance) in my config
 
 Make it easier to review my credit card transactions
 
@@ -9588,13 +9606,6 @@ Make it easier to review my credit card transactions
                                        (match-string 1))))))
 
 #+end_src
-
-*** SOMEDAY Withdraw equivalent of PHP 2732064.52 from insurance
-DEADLINE: <2023-01-01 Sun>
-:PROPERTIES:
-:CREATED:  [2021-09-05 Sun 01:18]
-:END:
-https://docs.google.com/spreadsheets/d/1damBk35WoljevsraSuqh4RelwoMRalIX/edit#gid=1776292500
 
 ** Emacs server
 
@@ -11620,7 +11631,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 
 (defun my-org-image-export-full (link description format info)
   (let* ((backend (org-export-backend-name (plist-get info :back-end)))
-         (desc (or description link)))
+         (desc (or description (file-name-base link))))
     (format "{%% sketchFull \"%s\", \"%s\" %%}" (file-name-base link) desc)))
 
 (defun my-org-sketch-complete (&optional prefix)
@@ -12665,6 +12676,49 @@ xdotool key Return
   (let ((listvar (if (boundp 'org-speed-commands) 'org-speed-commands
                    'org-speed-commands-user)))
     (add-to-list listvar '("d" call-interactively 'my-prepare-index-card-for-subtree))))
+#+end_src
+
+*** SOMEDAY Write about half-page scans
+:PROPERTIES:
+:CREATED:  [2021-12-19 Sun 21:16]
+:END:
+
+#+begin_src emacs-lisp
+(defun my-write-about-sketch (sketch)
+  (interactive (list (and (my-update-sketch-cache) (my-complete-sketch-filename))))
+  (shell-command "make-sketch-thumbnails")
+  (let ((post-dir (format-time-string "~/code/static-blog/blog/%Y/%m/")))
+    (unless (file-directory-p post-dir) (mkdir post-dir))
+    (find-file (expand-file-name "posts.org" post-dir)))
+  (goto-char (point-max))
+  (org-insert-heading nil nil t)
+  (insert (read-string "Title: ") (format "\n\n[[sketchFull:%s][%s]]\n\n" (file-name-nondirectory sketch) (file-name-base sketch)))
+  (my-org-11ty-prepare-subtree)
+  (delete-other-windows)
+  (save-excursion
+    (with-selected-window (split-window-horizontally)
+      (find-file sketch))))
+
+(defun my-write-about-half-page-scan (filename)
+  (interactive (list (read-file-name (format "Sketch (%s): "
+                                             (file-name-base (my-latest-file my-scan-directory)))
+                                     (expand-file-name my-scan-directory)
+                                     (my-latest-file my-scan-directory)
+                                     nil
+                                     (expand-file-name my-scan-directory)
+                                     (lambda (f) (string-match "\\.\\(jpg\\|png\\)$" f)))))
+  (let (new-name)
+    (shell-command (concat "~/bin/prepare-half-page " (shell-quote-argument filename)))
+    (if (string-match "[0-9]+-[0-9]+-[0-9]+\\([a-z]\\|-[0-9]+\\)? .*" (file-name-base filename))
+        (progn
+          (rename-file filename (expand-file-name (file-name-nondirectory filename) my-sketches-directory) t)
+          (setq new-name filename))
+      (save-window-excursion
+        (find-file filename)
+        (setq new-name (expand-file-name (concat (read-string "New name: ") "." (file-name-extension filename))
+                                         my-sketches-directory))
+        (rename-file filename new-name)))
+    (my-write-about-sketch new-name)))
 #+end_src
 
 ** Tools for organizing

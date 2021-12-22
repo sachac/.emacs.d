@@ -1864,7 +1864,7 @@ Based on `elisp-get-fnsym-args-string.'"
                         (my-caption-fix-common-errors data)))))
 
 (defun my-caption-load-word-data-maybe ()
-  (when (file-exists-p (concat (file-name-sans-extension (buffer-file-name)) ".en.srv2"))
+  (when (and (buffer-file-name) (file-exists-p (concat (file-name-sans-extension (buffer-file-name)) ".en.srv2")))
     (my-caption-load-word-data (concat (file-name-sans-extension (buffer-file-name)) ".en.srv2"))
     (message "Word data loaded.")))
 
@@ -2140,6 +2140,16 @@ If WORD-TIMING is non-nil, include word-level timestamps."
                   (dom-by-tag (xml-parse-file temp-file-name) 'text)
                   ""))
       (delete-file temp-file-name))))
+
+(defvar my-transcript-dir "~/sync/phone")
+(defun my-open-latest-transcript ()
+  (interactive)
+  (find-file (my-latest-file my-transcript-dir "\\.txt"))
+  (kill-new (buffer-string)))
+
+(defun my-insert-latest-transcript ()
+  (interactive)
+  (insert-file-contents (my-latest-file my-transcript-dir "\\.txt")))
 
 (use-package plover-websocket
   :load-path "~/code/plover-websocket-el"
@@ -3002,7 +3012,7 @@ loaded."
   ;(add-to-list 'company-backends 'my-company-strokedict)
   )
 
-(defvar my-scan-directory "~/sync/scans")
+(defvar my-scan-directory "~/sync/scans/")
 (defvar my-ipad-directory "~/sync/ipad")
 (defvar my-portfolio-directory "~/sync/portfolio")
 (defvar my-camera-directory "~/sync/camera")
@@ -4477,7 +4487,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
 :EXPORT_ELEVENTY_PERMALINK: %s
 :EXPORT_ELEVENTY_FILE_NAME: %s
 :END:\n"
-      (format-time-string "%Y-%m-%d")
+      (format-time-string "%Y-%m-%dT%T%z")
       (concat "/blog/" post-location "/")
       (concat "blog/" post-location))
      (my-org-summarize-journal-csv start end nil my-journal-category-map my-journal-categories)
@@ -4847,6 +4857,9 @@ and indent it one level."
     (goto-char (point-min))
     (when (re-search-forward (format "^#\\+NAME:[ \t]+%s[ \t]*$" (regexp-quote name)) nil t)
       (org-babel-execute-src-block))))
+
+(use-package literate-elisp :if my-laptop-p)
+(use-package poly-org :if my-laptop-p)
 
 (defun my-org-export-filter-body-add-emacs-configuration-link (string backend info)
   (when (and (plist-get info :input-file) (string-match "\\.emacs\\.d/Sacha\\.org" (plist-get info :input-file)))
@@ -6197,6 +6210,7 @@ the mode, `toggle' toggles the state."
                 link))
          (desc (or description link)))
     (cond
+     ((eq format '11ty) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
      ((eq format 'html) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
      ((eq format 'wp) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
      ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
@@ -6926,6 +6940,7 @@ so that it's still active even after you stage a change. Very experimental."
 (use-package erc
   :if my-laptop-p
   :config
+  (setq erc-track-remove-disconnected-buffers t)
   (setq erc-hide-list '("PART" "QUIT" "JOIN"))
   (setq erc-autojoin-channels-alist '(("freenode.net"
                                        "#org-mode"
@@ -7277,15 +7292,19 @@ so that it's still active even after you stage a change. Very experimental."
 (setq notmuch-message-headers '("Subject" "To" "Cc" "Date" "Reply-To"))
 (use-package notmuch
   :if my-laptop-p
-  :config (setq notmuch-search-oldest-first nil))
+  :config (setq notmuch-search-oldest-first nil)
+  (setq notmuch-archive-tags '("-inbox" "-flagged" )))
 (use-package ol-notmuch
   ;; https://git.sr.ht/~bzg/org-contrib
   :ensure nil
   :if my-laptop-p
   :load-path "~/vendor/org-contrib/lisp")
-(defun my-notmuch-important ()
+(defun my-notmuch-flagged ()
   (interactive)
-  (notmuch-search "tag:important and not tag:trash"))
+  (notmuch-search "tag:flagged and not tag:trash"))
+(defun my-notmuch-important-inbox ()
+  (interactive)
+  (notmuch-search "tag:important and tag:inbox and not tag:trash"))
 
 (use-package ledger-mode
   :load-path "~/vendor/ledger-mode"
@@ -8647,7 +8666,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 
 (defun my-org-image-export-full (link description format info)
   (let* ((backend (org-export-backend-name (plist-get info :back-end)))
-         (desc (or description link)))
+         (desc (or description (file-name-base link))))
     (format "{%% sketchFull \"%s\", \"%s\" %%}" (file-name-base link) desc)))
 
 (defun my-org-sketch-complete (&optional prefix)
@@ -9488,6 +9507,42 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
   (let ((listvar (if (boundp 'org-speed-commands) 'org-speed-commands
                    'org-speed-commands-user)))
     (add-to-list listvar '("d" call-interactively 'my-prepare-index-card-for-subtree))))
+
+(defun my-write-about-sketch (sketch)
+  (interactive (list (and (my-update-sketch-cache) (my-complete-sketch-filename))))
+  (shell-command "make-sketch-thumbnails")
+  (let ((post-dir (format-time-string "~/code/static-blog/blog/%Y/%m/")))
+    (unless (file-directory-p post-dir) (mkdir post-dir))
+    (find-file (expand-file-name "posts.org" post-dir)))
+  (goto-char (point-max))
+  (org-insert-heading nil nil t)
+  (insert (read-string "Title: ") (format "\n\n[[sketchFull:%s][%s]]\n\n" (file-name-nondirectory sketch) (file-name-base sketch)))
+  (my-org-11ty-prepare-subtree)
+  (delete-other-windows)
+  (save-excursion
+    (with-selected-window (split-window-horizontally)
+      (find-file sketch))))
+
+(defun my-write-about-half-page-scan (filename)
+  (interactive (list (read-file-name (format "Sketch (%s): "
+                                             (file-name-base (my-latest-file my-scan-directory)))
+                                     (expand-file-name my-scan-directory)
+                                     (my-latest-file my-scan-directory)
+                                     nil
+                                     (expand-file-name my-scan-directory)
+                                     (lambda (f) (string-match "\\.\\(jpg\\|png\\)$" f)))))
+  (let (new-name)
+    (shell-command (concat "~/bin/prepare-half-page " (shell-quote-argument filename)))
+    (if (string-match "[0-9]+-[0-9]+-[0-9]+\\([a-z]\\|-[0-9]+\\)? .*" (file-name-base filename))
+        (progn
+          (rename-file filename (expand-file-name (file-name-nondirectory filename) my-sketches-directory) t)
+          (setq new-name filename))
+      (save-window-excursion
+        (find-file filename)
+        (setq new-name (expand-file-name (concat (read-string "New name: ") "." (file-name-extension filename))
+                                         my-sketches-directory))
+        (rename-file filename new-name)))
+    (my-write-about-sketch new-name)))
 
 (defun my-rename-bank-statements ()
   (interactive)

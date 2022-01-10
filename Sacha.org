@@ -6357,9 +6357,10 @@ refile.
 (defvar my-org-last-refile-marker nil "Marker for last refile")
 (defun my-org-refile-in-file (&optional prefix)
   "Refile to a target within the current file."
+  (require 'helm-org)
   (interactive)
   (let ((helm-org-headings-actions
-         '(("Refile to this heading" . helm-org-heading-refile))))
+         '(("Refile to this heading" . helm-org--refile-heading-to))))
     (save-excursion
       (helm-org-in-buffer-headings)
       (org-end-of-subtree t)
@@ -8330,7 +8331,9 @@ https://www.mattduck.com/lsp-python-getting-started.html
 
 (use-package tree-sitter
   :ensure t
-  :after tree-sitter-langs)
+  :after tree-sitter-langs
+  :config
+  (global-tree-sitter-mode))
 
 (use-package turbo-log
   :quelpa (turbo-log :fetcher github :repo "Artawower/turbo-log")

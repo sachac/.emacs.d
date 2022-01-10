@@ -30,6 +30,7 @@
 (require 'use-package)
 (use-package quelpa)
 (use-package quelpa-use-package)
+(quelpa-use-package-activate-advice)
 (use-package auto-compile
   :if my-laptop-p
   :config (auto-compile-on-load-mode))
@@ -288,16 +289,16 @@
 (defun my-subed-set-timestamp-to-mpv-position (&optional rest)
   (interactive)
   (skip-chars-backward "0-9:,.")
-  (when (looking-at subed-vtt--regexp-timestamp)
+  (when (looking-at "\\(\\([0-9]+\\):\\)?\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)")
     (replace-match (save-match-data (subed-msecs-to-timestamp subed-mpv-playback-position)) t t)))
 (defun my-embark-subed-timestamp ()
   (save-excursion
     (skip-chars-backward "0-9:,.")
-    (when (looking-at subed-vtt--regexp-timestamp)
+    (when (looking-at "\\(\\([0-9]+\\):\\)?\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)")
       (list 'subed-timestamp
             (propertize
              (match-string 0)
-             'ms (subed-vtt--timestamp-to-msecs (match-string 0))
+             'ms (compile-media-timestamp-to-msecs (match-string 0))
              'position (if (bolp) 'start 'stop))))))
 (defun my-subed-adjust-timestamp (offset)
   (interactive (list -100))
@@ -380,7 +381,9 @@
    :map embark-symbol-map
    ("r" . erefactor-rename-symbol-in-buffer)
    :map embark-variable-map
-   ("l" . edit-list)))
+   ("l" . edit-list)
+   :map embark-url-map
+   ("c" . my-caption-show)))
 
 (use-package
   embark-consult
@@ -575,6 +578,42 @@ Based on `elisp-get-fnsym-args-string.'"
                         (org-element-property element :parameters))
               (format "<<%s>>" (org-element-property element :parameters)))))
 )
+
+(defun my-complete-blog-post-url ()
+  (concat "https://sachachua.com/"
+          (replace-regexp-in-string
+           "index\\.html$" ""
+           (let ((default-directory "~/code/static-blog/_site"))
+             (consult--find "Post: " #'consult--find-builder ".html#")))))
+
+(defun my-edit-blog-post ()
+  (interactive)
+  (consult-find "~/code/static-blog/blog/" ".html#"))
+
+(defun my-view-blog-post-locally ()
+  (interactive)
+  (browse-url
+   (concat "http://localhost:8080/"
+           (replace-regexp-in-string
+            "index\\.html$" ""
+            (let ((default-directory "~/code/static-blog/_site"))
+              (consult--find "Post: " #'consult--find-builder ".html#"))))))
+
+(defun my-insert-blog-post-url (url)
+  (interactive (list (my-complete-blog-post-url)))
+  (insert url))
+
+(defun my-insert-blog-post-link (url)
+  (interactive (list (my-complete-blog-post-url)))
+  (insert (org-link-make-string url
+                                (replace-regexp-in-string
+                                 " :: Sacha Chua" ""
+                                 (with-current-buffer (url-retrieve-synchronously url)
+                                   (dom-text (car
+                                              (dom-by-tag (libxml-parse-html-region
+                                                           (point-min)
+                                                           (point-max))
+                                                          'title))))))))
 
 (defun my-refresh-selectrum ()
   (setq selectrum--previous-input-string nil))
@@ -1105,6 +1144,65 @@ Based on `elisp-get-fnsym-args-string.'"
 (use-package which-key :init (which-key-mode 1))
 (use-package which-key-posframe :if my-laptop-p :init (which-key-posframe-mode 1))
 
+(defun my-helm-org-rifle-org-directory ()
+  (interactive)
+  (helm-org-rifle-directories (list org-directory) t))
+(use-package helm-org-rifle
+  :bind
+  ("M-g r r" . helm-org-rifle)
+  ("M-g r a" . helm-org-rifle-org-agenda-files)
+  ("M-g r o" . helm-org-rifle-org-directory)
+  )
+(defun my-consult-recoll-without-emacs-news ()
+  (interactive)
+  (consult-recoll--open (consult-recoll--search "-\"Emacs News\" ")))
+(use-package consult-recoll
+  :config
+  (setq consult-recoll-search-flags nil)
+  :bind
+  ("M-s s" . consult-recoll))
+
+(use-package hideshow
+  :hook
+  (prog-mode . hs-minor-mode)
+  :bind
+  ("C-<tab>" . hs-cycle)
+  ("C-<iso-lefttab>" . hs-global-cycle)
+  ("C-S-<tab>" . hs-global-cycle))
+(defun hs-cycle (&optional level)
+  (interactive "p")
+  (let (message-log-max
+        (inhibit-message t))
+    (if (= level 1)
+        (pcase last-command
+          ('hs-cycle
+           (hs-hide-level 1)
+           (setq this-command 'hs-cycle-children))
+          ('hs-cycle-children
+           ;; TODO: Fix this case. `hs-show-block' needs to be
+           ;; called twice to open all folds of the parent
+           ;; block.
+           (save-excursion (hs-show-block))
+           (hs-show-block)
+           (setq this-command 'hs-cycle-subtree))
+          ('hs-cycle-subtree
+           (hs-hide-block))
+          (_
+           (if (not (hs-already-hidden-p))
+               (hs-hide-block)
+             (hs-hide-level 1)
+             (setq this-command 'hs-cycle-children))))
+      (hs-hide-level level)
+      (setq this-command 'hs-hide-level))))
+
+(defun hs-global-cycle ()
+    (interactive)
+    (pcase last-command
+      ('hs-global-cycle
+       (save-excursion (hs-show-all))
+       (setq this-command 'hs-global-show))
+      (_ (hs-hide-all))))
+
 (use-package popper
   :bind (("C-`"   . popper-toggle-latest)
          ("M-`"   . popper-cycle)
@@ -1128,7 +1226,6 @@ Based on `elisp-get-fnsym-args-string.'"
   :bind
   (("C-S-s" . helm-swoop)
    ("M-i" . helm-swoop)
-   ("M-s s" . helm-swoop)
    ("M-s M-s" . helm-swoop)
    ("M-I" . helm-swoop-back-to-last-point)
    ("C-c M-i" . helm-multi-swoop)
@@ -1411,6 +1508,11 @@ Based on `elisp-get-fnsym-args-string.'"
      (t (funcall buffer-create-fn)
         (if switch-cont (funcall switch-cont))))))
 
+(use-package link-hint
+  :bind
+  ("M-g u" . link-hint-open-link)
+  ("M-g U" . link-hint-open-multiple-links))
+
 ;; Install and load `quelpa-use-package'.
 (use-package dogears
   :quelpa (dogears :fetcher github :repo "alphapapa/dogears.el")
@@ -1448,6 +1550,18 @@ Based on `elisp-get-fnsym-args-string.'"
 (use-package markdown-mode
   :if my-laptop-p
   :mode ("\\.\\(njk\\|md\\)\\'" . markdown-mode))
+
+(defun screenshot-svg ()
+  "Save a screenshot of the current frame as an SVG image.
+Saves to a temp file and puts the filename in the kill ring."
+  (interactive)
+  (let* ((filename (format-time-string "~/screenshots/%Y-%m-%d-%H-%M-%S.svg"))
+         (data (x-export-frames nil 'svg)))
+    (with-temp-file filename
+      (insert data))
+    (kill-new filename)
+    (message filename)))
+(global-set-key (kbd "C-c s") #'screenshot-svg)
 
 (use-package artbollocks-mode
   :if my-laptop-p
@@ -1747,7 +1861,7 @@ Based on `elisp-get-fnsym-args-string.'"
   :load-path "~/vendor/subed/subed"
   :mode ("\\.\\(vtt\\|srt\\)\\'" . subed-mode)
   :config
-  (setq subed-subtitle-spacing 0)
+  (setq subed-subtitle-spacing 1)
   (key-chord-define subed-mode-map "hu" 'my-subed/body)
   (key-chord-define subed-mode-map "ht" 'my-subed/body)
   :bind
@@ -2013,7 +2127,10 @@ If WORD-TIMING is non-nil, include word-level timestamps."
     (org-mode)
     (my-org-insert-youtube-video-with-transcript url)
     (goto-char (point-min))
-    (display-buffer (current-buffer))))
+    (let ((buffer (current-buffer)))
+      (delete-other-windows)
+      (with-selected-window (split-window-horizontally)
+        (switch-to-buffer buffer)))))
 
 (defvar my-subed-common-edits '("I"
                                 "I've"
@@ -2103,8 +2220,9 @@ If WORD-TIMING is non-nil, include word-level timestamps."
          ((= c ?.) (setq done t)))
         ))))
 
-(use-package subed-waveform
-  :load-path "~/code/subed-waveform")
+(use-package waveform :load-path "~/code/waveform-el")
+(use-package subed-waveform :load-path "~/code/subed-waveform")
+(use-package compile-media :load-path "~/code/compile-media")
 
 (require 'dash)
 
@@ -3338,7 +3456,7 @@ loaded."
           (message-log-max nil))
       (message "%s - %s" row col))))
 
-(setq org-directory "~/personal")
+(setq org-directory "~/orgzly/")
 (setq org-default-notes-file "~/orgzly/organizer.org")
 
 (defun my-org-insert-heading-for-next-day ()
@@ -3499,10 +3617,6 @@ loaded."
 (setq org-refile-allow-creating-parent-nodes 'confirm)
 (setq org-refile-use-cache nil)
 (setq org-refile-targets '((("~/orgzly/organizer.org"
-                             "~/code/stream/index.org.org"
-                             "~/code/stream/notes.org"
-                             "~/code/plover-notes/README.org"
-                             "~/code/.emacs.d/Sacha.org"
                              "~/orgzly/routines.org") . (:maxlevel . 5))))
 (setq org-blank-before-new-entry nil)
 
@@ -3999,31 +4113,49 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
 (defun my-org-agenda-skip-scheduled ()
   (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
 
+(use-package org-super-agenda)
+(use-package org-ql)
+(defun my-org-projects ()
+  (interactive)
+(org-ql-search (org-agenda-files)
+  '(and (todo "TODO" "WAITING") (ancestors (tags "project")))
+  :super-groups '((:auto-parent t))))
+
 (setq org-agenda-custom-commands
       `(("a" "Agenda"
          ((agenda "" ((org-agenda-span 2)))
-          ;; Projects
-          (tags "+project-someday-TODO=\"DONE\"-TODO=\"SOMEDAY\"-inactive-evilplans"
-                ((org-tags-exclude-from-inheritance '("project"))
-                 (org-agenda-prefix-format "  ")
-                 (org-agenda-overriding-header "Projects: ")
-                 (org-agenda-sorting-strategy '(priority-down tag-up category-keep effort-down))))
-          ;; Inbox
-          (alltodo ""
-                   ((org-agenda-files '("~/orgzly/Inbox.org" "~/orgzly/computer-inbox.org"))
-                    (org-agenda-prefix-format "%-6e ")
-                    (org-agenda-overriding-header "Inbox: ")))
-          (todo "WAITING-inactive"
-                ((org-agenda-skip-function 'my-org-agenda-skip-scheduled)
-                 (org-agenda-prefix-format "%-6e ")
-                 (org-agenda-overriding-header "Waiting: ")
-                 (org-agenda-sorting-strategy '(priority-down effort-up tag-up category-keep))))
-          ;; Unscheduled
-          (tags-todo "TODO=\"TODO\"-project-cooking-routine-errands-shopping-video-evilplans"
-                     ((org-agenda-skip-function 'my-org-agenda-skip-scheduled)
-                      (org-agenda-prefix-format "%-6e ")
-                      (org-agenda-overriding-header "Unscheduled TODO entries: ")
-                      (org-agenda-sorting-strategy '(priority-down effort-up tag-up category-keep))))
+          (alltodo
+           ""
+           ((org-agenda-overriding-header "")
+            (org-super-agenda-groups
+             '((:name "Important, unscheduled"
+                      :and (:priority "A"
+                                      :scheduled nil)
+                      :order 2)
+               (:name "Inbox"
+                      :file-path "Inbox.org"
+                      :order 1)
+               (:name "Project-related, unscheduled"
+                      :and (:tag "project" :date nil :todo ("STARTED" "WAITING" "TODO"))
+                      :order 3)
+               (:name "Waiting"
+                      :and (:todo "WAITING"
+                                  :scheduled nil)
+                      :order 4)
+               (:discard (:todo "SOMEDAY"
+                                :category "cooking"
+                                :date t))
+               (:name "Unscheduled"
+                      :scheduled nil
+                      :order 5)
+               (:discard (:anything t))
+               )
+             )))
+          ;; (tags-todo "TODO=\"TODO\"-project-cooking-routine-errands-shopping-video-evilplans"
+          ;;            ((org-agenda-skip-function 'my-org-agenda-skip-scheduled)
+          ;;             (org-agenda-prefix-format "%-6e ")
+          ;;             (org-agenda-overriding-header "Unscheduled TODO entries: ")
+          ;;             (org-agenda-sorting-strategy '(priority-down effort-up tag-up category-keep))))
           ))
         ("e" "Emacs" (tags "emacs"))
         ("i" "Inbox" alltodo ""
@@ -4110,7 +4242,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
           (org-agenda-overriding-header "Unscheduled TODO entries: ")
           (org-columns-default-format "%50ITEM %TODO %3PRIORITY %Effort{:} %TAGS")
           (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up tag-up category-keep))))
-        ("s" "Someday" tags-todo "TODO=\"SOMEDAY\""
+        ("!" "Someday" tags-todo "TODO=\"SOMEDAY\""
          ((org-agenda-skip-function 'my-org-agenda-skip-scheduled)
           (org-agenda-view-columns-initially nil)
           (org-tags-exclude-from-inheritance '("project"))
@@ -4185,7 +4317,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
 (define-key org-agenda-mode-map "N" 'my-org-agenda-new)
 
 (setq org-agenda-sorting-strategy
-      '((agenda time-up priority-down tag-up category-keep effort-up)
+      '((agenda time-up priority-down tag-up category-keep)
         ;; (todo user-defined-up todo-state-up priority-down effort-up)
         (todo todo-state-up priority-down effort-up)
         (tags user-defined-up)
@@ -4689,22 +4821,14 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
     (goto-char (line-end-position))
     (insert
      "\n\n** " title "  :monthly:review:\n"
-     (format
-      ":PROPERTIES:
-:EXPORT_DATE: %s
-:EXPORT_ELEVENTY_PERMALINK: %s
-:EXPORT_ELEVENTY_FILE_NAME: %s
-:END:\n"
-      (format-time-string "%Y-%m-%d")
-      (concat "/blog/" post-location "/")
-      post-location)
      (my-org-summarize-journal-csv start-date end-date "monthly-highlight" my-journal-category-map my-journal-categories) "\n\n"
      "*Blog posts*\n"
      posts "\n\n"
      "*Sketches*\n\n"
      sketches
      "*Time*\n\n"
-     (orgtbl-to-orgtbl time nil))))
+     (orgtbl-to-orgtbl time nil))
+    (my-org-11ty-prepare-subtree)))
 
 (defun my-org-move-line-to-destination ()
   "Moves the current list item to DESTINATION in the current buffer.
@@ -4857,6 +4981,26 @@ and indent it one level."
     (goto-char (point-min))
     (when (re-search-forward (format "^#\\+NAME:[ \t]+%s[ \t]*$" (regexp-quote name)) nil t)
       (org-babel-execute-src-block))))
+
+(defun org-babel-execute:json (body params)
+  (let ((jq (cdr (assoc :jq params)))
+        (node (cdr (assoc :node params))))
+    (cond
+     (jq
+      (with-temp-buffer
+        ;; Insert the JSON into the temp buffer
+        (insert body)
+        ;; Run jq command on the whole buffer, and replace the buffer
+        ;; contents with the result returned from jq
+        (shell-command-on-region (point-min) (point-max) (format "jq -r \"%s\"" jq) nil 't)
+        ;; Return the contents of the temp buffer as the result
+        (buffer-string)))
+     (node
+      (with-temp-buffer
+        (insert (format "const it = %s;" body))
+        (insert node)
+        (shell-command-on-region (point-min) (point-max) "node -p" nil 't)
+        (buffer-string))))))
 
 (use-package literate-elisp :if my-laptop-p)
 (use-package poly-org :if my-laptop-p)
@@ -5139,6 +5283,7 @@ and indent it one level."
 (require 'use-package)
 (use-package quelpa)
 (use-package quelpa-use-package)
+(quelpa-use-package-activate-advice)
 (use-package auto-compile
   :if my-laptop-p
   :config (auto-compile-on-load-mode))
@@ -5220,7 +5365,10 @@ and indent it one level."
   (org-html-export-to-html t))
 (defun my-org-export-and-tangle-if-saved-in-focus ()
   (unless my-unfocusing
-    (my-org-async-export-and-tangle)))
+    (run-with-idle-timer 10 nil (lambda (buf)
+                                  (with-current-buffer buf
+                                    (my-org-async-export-and-tangle)))
+                         (current-buffer))))
 
 (define-minor-mode my-org-export-and-tangle-when-saved-in-focus-mode
   "Toggle a mode for exporting and tangling when saved.
@@ -6277,20 +6425,21 @@ the mode, `toggle' toggles the state."
   :config
   (add-function :after after-focus-change-function 'my-org-save-all-org-buffers))
 
-(defun ar/org-insert-link-dwim ()
+(defun ar/org-insert-link-dwim (use-clipboard)
   "Like `org-insert-link' but with personal dwim preferences."
-  (interactive)
+  (interactive (list (equal current-prefix-arg '(4))))
   (let* ((point-in-link (org-in-regexp org-link-any-re 1))
-         (clipboard-url (when (string-match-p "^http" (current-kill 0))
-                          (current-kill 0)))
+         (clipboard-url (and use-clipboard
+                          (when (string-match-p "^http" (current-kill 0))
+                            (current-kill 0))))
          (region-content (when (region-active-p)
                            (buffer-substring-no-properties (region-beginning)
                                                            (region-end)))))
     (cond ((and region-content clipboard-url (not point-in-link))
            (delete-region (region-beginning) (region-end))
-           (insert (org-make-link-string clipboard-url region-content)))
+           (insert (org-link-make-string clipboard-url region-content)))
           ((and clipboard-url (not point-in-link))
-           (insert (org-make-link-string
+           (insert (org-link-make-string
                     clipboard-url
                     (read-string "title: "
                                  (with-current-buffer (url-retrieve-synchronously clipboard-url)
@@ -6351,6 +6500,27 @@ the mode, `toggle' toggles the state."
 (use-package dap-mode
   :if my-laptop-p
   :after lsp-mode)
+
+(use-package tree-sitter-langs
+  :ensure t
+  :defer t)
+
+(use-package tree-sitter
+  :ensure t
+  :after tree-sitter-langs)
+
+(use-package turbo-log
+  :quelpa (turbo-log :fetcher github :repo "Artawower/turbo-log")
+  :bind (("C-s-l" . turbo-log-print)
+         ("C-s-i" . turbo-log-print-immediately)
+         ("C-s-h" . turbo-log-comment-all-logs)
+         ("C-s-s" . turbo-log-uncomment-all-logs)
+         ("C-s-[" . turbo-log-paste-as-logger)
+         ("C-s-]" . turbo-log-paste-as-logger-immediately)
+         ("C-s-d" . turbo-log-delete-all-logs))
+  :config
+  (setq turbo-log-msg-format-template "\"🚀: %s\"")
+  (setq turbo-log-allow-insert-without-tree-sitter-p t))
 
 (setq-default tab-width 2)
 
@@ -6806,6 +6976,9 @@ so that it's still active even after you stage a change. Very experimental."
 
 ;; (use-package magit-gh-pulls)
 
+(use-package forge
+  :after magit)
+
 (defvar my-git-clone-destination "~/vendor")
 (defun my-git-clone-clipboard-url ()
   "Clone git URL in clipboard asynchronously and open in dired when finished."
@@ -7238,10 +7411,10 @@ so that it's still active even after you stage a change. Very experimental."
 (setq gnus-select-method '(nnnil ""))
 (setq gnus-secondary-select-methods
       '((nntp "news.gmane.io")
-        ;; (nnmaildir "mail"
-        ;;            (directory "~/Maildir")
-        ;;            (directory-files nnheader-directory-files-safe)
-        ;;            (get-new-mail nil))
+        (nnmaildir "mail"
+                   (directory "~/Maildir/account.gmail")
+                   (directory-files nnheader-directory-files-safe)
+                   (get-new-mail nil))
         (nnimap "imap.googlemail.com"
                 (nnimap-address "imap.googlemail.com")
                 (nnimap-server-port 993)
@@ -7302,6 +7475,9 @@ so that it's still active even after you stage a change. Very experimental."
 (defun my-notmuch-flagged ()
   (interactive)
   (notmuch-search "tag:flagged and not tag:trash"))
+(defun my-notmuch-inbox ()
+  (interactive)
+  (notmuch-search "tag:inbox and not tag:trash"))
 (defun my-notmuch-important-inbox ()
   (interactive)
   (notmuch-search "tag:important and tag:inbox and not tag:trash"))
@@ -8286,7 +8462,9 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
     (message "You clicked somewhere weird.")))
 
 (quelpa '(emacsconf-update :fetcher url :url "https://raw.githubusercontent.com/emacsconf/emacsconf-el/main/emacsconf-update.el"))
-(global-set-key (kbd "M-g t") 'conf-go-to-talk)
+(use-package emacsconf
+  :load-path "~/code/emacsconf-el")
+(global-set-key (kbd "M-g t") 'emacsconf-go-to-talk)
 
 (use-package paint
   :disabled t

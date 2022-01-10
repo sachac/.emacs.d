@@ -843,6 +843,45 @@ Based on `elisp-get-fnsym-args-string.'"
                         (org-element-property element :parameters))
               (format "<<%s>>" (org-element-property element :parameters)))))
 #+end_src
+**** Completing blog posts
+
+#+begin_src emacs-lisp
+(defun my-complete-blog-post-url ()
+  (concat "https://sachachua.com/"
+          (replace-regexp-in-string
+           "index\\.html$" ""
+           (let ((default-directory "~/code/static-blog/_site"))
+             (consult--find "Post: " #'consult--find-builder ".html#")))))
+
+(defun my-edit-blog-post ()
+  (interactive)
+  (consult-find "~/code/static-blog/blog/" ".html#"))
+
+(defun my-view-blog-post-locally ()
+  (interactive)
+  (browse-url
+   (concat "http://localhost:8080/"
+           (replace-regexp-in-string
+            "index\\.html$" ""
+            (let ((default-directory "~/code/static-blog/_site"))
+              (consult--find "Post: " #'consult--find-builder ".html#"))))))
+
+(defun my-insert-blog-post-url (url)
+  (interactive (list (my-complete-blog-post-url)))
+  (insert url))
+
+(defun my-insert-blog-post-link (url)
+  (interactive (list (my-complete-blog-post-url)))
+  (insert (org-link-make-string url
+                                (replace-regexp-in-string
+                                 " :: Sacha Chua" ""
+                                 (with-current-buffer (url-retrieve-synchronously url)
+                                   (dom-text (car
+                                              (dom-by-tag (libxml-parse-html-region
+                                                           (point-min)
+                                                           (point-max))
+                                                          'title))))))))
+#+end_src
 **** Cargo-culted stuff
 
 https://github.com/oantolin/embark/wiki/Additional-Configuration#pause-selectrum-while-using-embark-collect-live

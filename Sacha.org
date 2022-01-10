@@ -1015,8 +1015,7 @@ possible, although I prefer ido's way of switching buffers.
          ("C-x c y" . helm-yas-complete)
          ("C-x c Y" . helm-yas-create-snippet-on-region)
          ("C-x c SPC" . helm-all-mark-rings)))
-(use-package helm-ls-git
-  :if my-laptop-p)
+
 #+END_SRC
 
 helm-grep? Bit slow and hard to read, though.
@@ -4064,7 +4063,7 @@ loaded."
 
 This code added stroke annotations from the Typey Type dictionary to the frequency-sorted word list from https://github.com/hermitdave/FrequencyWords/blob/master/content/2018/en/en_full.txt.
 
-#+begin_src python :tangle "~/tmp/annotate_words.py"
+#+begin_src python :tangle "~/tmp/annotate_words.py" :eval no
 import json
 
 with open("/home/sacha/tmp/en_full.txt") as f:
@@ -4293,6 +4292,7 @@ Filling in for obsolete functions
 (use-package org
   :load-path ("~/vendor/org-mode/lisp" "~/vendor/org-mode/contrib/lisp")
   :config
+  (require 'oc-basic)                   ; started needing this
   (unless (functionp 'org-link-make-string)
     (fset 'org-link-make-string 'org-make-link-string))
   )
@@ -9717,7 +9717,7 @@ I use Gmail for my mail because it:
   (notmuch-search "tag:inbox and not tag:trash"))
 (defun my-notmuch-important-inbox ()
   (interactive)
-  (notmuch-search "tag:important and tag:inbox and not tag:trash"))
+  (notmuch-search "tag:primary and tag:inbox and not tag:trash"))
 #+end_src
 ** Ledger (personal finance) in my config
 

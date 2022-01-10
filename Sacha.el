@@ -726,8 +726,6 @@ Based on `elisp-get-fnsym-args-string.'"
          ("C-x c y" . helm-yas-complete)
          ("C-x c Y" . helm-yas-create-snippet-on-region)
          ("C-x c SPC" . helm-all-mark-rings)))
-(use-package helm-ls-git
-  :if my-laptop-p)
 
 (defvar my-book-notes-directory "~/Dropbox/books")
 (defun my-helm-do-grep-book-notes ()
@@ -3310,6 +3308,7 @@ loaded."
 (use-package org
   :load-path ("~/vendor/org-mode/lisp" "~/vendor/org-mode/contrib/lisp")
   :config
+  (require 'oc-basic)                   ; started needing this
   (unless (functionp 'org-link-make-string)
     (fset 'org-link-make-string 'org-make-link-string))
   )
@@ -4904,9 +4903,10 @@ and indent it one level."
 (defvar my-org-last-refile-marker nil "Marker for last refile")
 (defun my-org-refile-in-file (&optional prefix)
   "Refile to a target within the current file."
+  (require 'helm-org)
   (interactive)
   (let ((helm-org-headings-actions
-         '(("Refile to this heading" . helm-org-heading-refile))))
+         '(("Refile to this heading" . helm-org--refile-heading-to))))
     (save-excursion
       (helm-org-in-buffer-headings)
       (org-end-of-subtree t)
@@ -6507,7 +6507,9 @@ the mode, `toggle' toggles the state."
 
 (use-package tree-sitter
   :ensure t
-  :after tree-sitter-langs)
+  :after tree-sitter-langs
+  :config
+  (global-tree-sitter-mode))
 
 (use-package turbo-log
   :quelpa (turbo-log :fetcher github :repo "Artawower/turbo-log")
@@ -7480,7 +7482,7 @@ so that it's still active even after you stage a change. Very experimental."
   (notmuch-search "tag:inbox and not tag:trash"))
 (defun my-notmuch-important-inbox ()
   (interactive)
-  (notmuch-search "tag:important and tag:inbox and not tag:trash"))
+  (notmuch-search "tag:primary and tag:inbox and not tag:trash"))
 
 (use-package ledger-mode
   :load-path "~/vendor/ledger-mode"

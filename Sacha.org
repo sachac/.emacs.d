@@ -134,6 +134,7 @@ in a directory in my =load-path=, Emacs can find them.
 (require 'use-package)
 (use-package quelpa)
 (use-package quelpa-use-package)
+(quelpa-use-package-activate-advice)
 (use-package auto-compile
   :if my-laptop-p
   :config (auto-compile-on-load-mode))

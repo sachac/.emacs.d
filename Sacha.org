@@ -516,16 +516,16 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
 (defun my-subed-set-timestamp-to-mpv-position (&optional rest)
   (interactive)
   (skip-chars-backward "0-9:,.")
-  (when (looking-at subed-vtt--regexp-timestamp)
+  (when (looking-at "\\(\\([0-9]+\\):\\)?\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)")
     (replace-match (save-match-data (subed-msecs-to-timestamp subed-mpv-playback-position)) t t)))
 (defun my-embark-subed-timestamp ()
   (save-excursion
     (skip-chars-backward "0-9:,.")
-    (when (looking-at subed-vtt--regexp-timestamp)
+    (when (looking-at "\\(\\([0-9]+\\):\\)?\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)")
       (list 'subed-timestamp
             (propertize
              (match-string 0)
-             'ms (subed-vtt--timestamp-to-msecs (match-string 0))
+             'ms (compile-media-timestamp-to-msecs (match-string 0))
              'position (if (bolp) 'start 'stop))))))
 (defun my-subed-adjust-timestamp (offset)
   (interactive (list -100))

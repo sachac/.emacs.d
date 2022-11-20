@@ -1870,6 +1870,10 @@ From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el, this makes =M
 
 *** Dired
 
+#+begin_src emacs-lisp
+(setq dired-listing-switches "-altr")
+#+end_src
+
 From http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/
 
 #+BEGIN_SRC emacs-lisp
@@ -2939,7 +2943,7 @@ You can get these from https://github.com/sachac
 *** Transcripts from my phone
 
 #+begin_src emacs-lisp
-(defvar my-transcript-dir "~/sync/phone")
+(defvar my-transcript-dir "~/sync/Phone")
 (defun my-open-latest-transcript ()
   (interactive)
   (find-file (my-latest-file my-transcript-dir "\\.txt"))
@@ -4481,7 +4485,7 @@ entries, notes, and other semi-structured pieces of information.
 (setq org-capture-templates
       `(("t" "Quick task" entry
          (file ,my-org-inbox-file)
-         "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
+         "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
          :immediate-finish t :prepend t)
         ;; From https://takeonrules.com/2022/10/16/adding-another-function-to-my-workflow/
         ("c" "Contents to current clocked task"
@@ -4628,7 +4632,9 @@ able to clock in on them.
                              "~/sync/orgzly/routines.org"
                              "~/sync/orgzly/business.org"
                              "~/sync/orgzly/decisions.org"
+                             "~/proj/static-blog/blog/2022/posts.org"
                              "~/sync/orgzly/people.org"
+                             "~/sync/orgzly/Inbox.org"
                              "~/proj/emacsconf/wiki/2022/organizers-notebook/index.org") . (:maxlevel . 5))))
 (setq org-blank-before-new-entry nil)
 #+end_src
@@ -9429,6 +9435,18 @@ IRC is a great way to hang out with other Emacs geeks.
    "followers"
    #'mastodon-profile--add-author-bylines))
 
+(defun my-yank-mastodon-link ()
+  (interactive)
+  (let* ((url (current-kill 0))
+         (url-parsed (url-generic-parse-url url))
+         (user (file-name-base (url-filename url-parsed))))
+    (cond
+     ((derived-mode-p 'oddmuse-mode) (insert "[" url " " user
+                                             "@" (url-host url-parsed) "]"))
+     ((derived-mode-p 'org-mode) (insert "[[" url "][" user
+                                         "@" (url-host url-parsed) "]]"))
+     (t (insert url)))))
+
 (use-package mastodon
   :if my-laptop-p
   :quelpa (mastodon :fetcher git :url "https://codeberg.org/martianh/mastodon.el.git" :branch "develop")
@@ -9450,32 +9468,20 @@ to my Org Mode files. The following code makes it easy to open links
 to Mastodon posts using mastodon.el.
 
 #+begin_src emacs-lisp
-(defun my-mastodon-open-url (search)
-  "Open the toot at SEARCH using mastodon.el."
-  (interactive "MURL: ")
-  (let* ((url (format "%s/api/v2/search" mastodon-instance-url))
-         (params (concat "type=statuses&resolve=true"))
-         (response (mastodon-http--get-search-json url search params))
-         (statuses (alist-get 'statuses response)))
-    (when (> (length statuses) 0)
-      (with-current-buffer (get-buffer-create "*mastodon*")
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (mastodon-mode)
-          (save-excursion
-            (mapcar #'mastodon-tl--toot statuses))
-          (switch-to-buffer (current-buffer)))))))
+(autoload 'mastodon-url-lookup "mastodon")
 
 (defun my-mastodon-open-at-point ()
   "Open the URL at point, or prompt if a URL is not found."
   (interactive)
-  (my-mastodon-open-url (or (thing-at-point 'url) (read-string "URL: "))))
+  (mastodon-url-lookup (or (thing-at-point 'url) (read-string "URL: "))))
 
 (defun my-mastodon-org-open-at-point ()
   "Open things that look like Mastodon links using mastodon.el.
 I'm guessing https://server/@user/id URLs are Mastodon links."
   (let ((context (org-element-lineage (org-element-context) '(link) t)))
     (when (and (org-element-property :raw-link context)
+               ;; mastodon--masto-url-p might be related,
+               ;; but it matches a bit too much for me
                (string-match "https?://[^/]+/@[^/]+/.*"
                              (org-element-property :raw-link context)))
       (my-mastodon-open-url (org-element-property :raw-link context)))))
@@ -9770,7 +9776,7 @@ Syncthing. (See =my-resolve-orgzly-syncthing= elsewhere in this
 cnofig.) Sometimes I use Termux, too.
 
 #+begin_src emacs-lisp
-(setq browse-url-browser-function 'browse-url-xdg-open)
+(setq browse-url-browser-function 'browse-url-firefox)
 (unless window-system
   (xterm-mouse-mode 1)
   (global-set-key [mouse-4] (lambda ()
@@ -9866,7 +9872,7 @@ I use Gmail for my mail because it:
 
     I like using [[http://gmane.org][Gmane]] to read mailing lists, and I use IMAP to read my Gmail.
 
-    #+begin_src emacs-lisp
+    #+begin_src emacs-lisp :tangle yes
 (setq gnus-select-method '(nnnil ""))
 (setq gnus-secondary-select-methods
       '((nntp "news.gmane.io")
@@ -9934,22 +9940,6 @@ I use Gmail for my mail because it:
     On Linux, it's simply a matter of setting up a mail server such as
     [[https://easyengine.io/tutorials/linux/ubuntu-postfix-gmail-smtp/][Postfix]].
 
-    Some more config. Not sure how much of this is needed.
-
-    #+begin_src emacs-lisp
-(setq message-send-mail-function 'smtpmail-send-it
-      smtpmail-starttls-credentials '(("localhost" 25 "sacha@local.sachachua.com" nil))
-      smtpmail-auth-credentials '(("localhost" 25 "sacha@local.sachachua.com" nil))
-      smtpmail-default-smtp-server "localhost"
-      smtpmail-smtp-server "localhost"
-      smtpmail-smtp-service 25
-      smtpmail-local-domain "local.sachachua.com")
-(setq send-mail-function 'smtpmail-send-it)
-(setq smtpmail-smtp-server "127.0.0.1")
-(setq smtpmail-smtp-service 25)
-(setq user-mail-address "sacha@sachachua.com")
-    #+end_src
-
     Hide HTML mail. I need to fiddle with this some more, since Gnus still
     tries to display them. Sometimes my Gnus crashes when it tries to
     display HTML mail.
@@ -9987,13 +9977,11 @@ I use Gmail for my mail because it:
 (setq notmuch-message-headers '("Subject" "To" "Cc" "Date" "Reply-To"))
 (use-package notmuch
   :if my-laptop-p
-  :config (setq notmuch-search-oldest-first nil)
+  :config (setq-default notmuch-search-oldest-first nil)
+  (setq notmuch-fcc-dirs nil)
   (setq notmuch-archive-tags '("-inbox" "-flagged" )))
 (use-package ol-notmuch
-  ;; https://git.sr.ht/~bzg/org-contrib
-  :ensure nil
-  :if my-laptop-p
-  :load-path "~/vendor/org-contrib/lisp")
+  :if my-laptop-p)
 (defun my-notmuch-flagged ()
   (interactive)
   (notmuch-search "tag:flagged and not tag:trash"))
@@ -10003,6 +9991,10 @@ I use Gmail for my mail because it:
 (defun my-notmuch-important-inbox ()
   (interactive)
   (notmuch-search "tag:primary and tag:inbox and not tag:trash"))
+(defun my-notmuch-search-this-author ()
+  (interactive)
+  (notmuch-search (format "from:\"%s\""
+                          (plist-get (get-text-property (point) 'notmuch-search-result) :authors))))
 #+end_src
 ** Ledger (personal finance) in my config
 
@@ -11414,12 +11406,16 @@ In termux, you also need to =pkg install diffutils=.
   :hydra (hydra-emacsconf
           ()
           ("t" emacsconf-go-to-talk "talk")
+          ("f" emacsconf-cache-find-file "file")
           ("c" (find-file emacsconf-org-file) "conf.org")
           ("C" (let ((default-directory (file-name-directory emacsconf-org-file)))
                  (call-interactively #'projectile-find-file)) "org dir")
           ("w" (let ((default-directory emacsconf-directory))
                  (call-interactively #'projectile-find-file)))
-          ("o" (find-file (expand-file-name "2022/organizers-notebook/index.org" emacsconf-directory))
+          ("o"
+           (progn
+             (find-file (expand-file-name "2022/organizers-notebook/index.org" emacsconf-directory))
+             (call-interactively #'consult-org-heading))
            "org notes")
           ("a" (let ((default-directory emacsconf-ansible-directory))
                  (call-interactively #'projectile-find-file)) "ansible")

@@ -1308,6 +1308,8 @@ any directory proferred by `consult-dir'."
   :defer t
   :config (global-smartscan-mode t))
 
+(setq dired-listing-switches "-altr")
+
 (require 'find-dired)
 (setq find-ls-option '("-print0 | xargs -0 ls -ld" . "-ld"))
 
@@ -2064,7 +2066,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
                   ""))
       (delete-file temp-file-name))))
 
-(defvar my-transcript-dir "~/sync/phone")
+(defvar my-transcript-dir "~/sync/Phone")
 (defun my-open-latest-transcript ()
   (interactive)
   (find-file (my-latest-file my-transcript-dir "\\.txt"))
@@ -3343,7 +3345,7 @@ loaded."
 (setq org-capture-templates
       `(("t" "Quick task" entry
          (file ,my-org-inbox-file)
-         "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
+         "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
          :immediate-finish t :prepend t)
         ;; From https://takeonrules.com/2022/10/16/adding-another-function-to-my-workflow/
         ("c" "Contents to current clocked task"
@@ -3473,7 +3475,9 @@ loaded."
                              "~/sync/orgzly/routines.org"
                              "~/sync/orgzly/business.org"
                              "~/sync/orgzly/decisions.org"
+                             "~/proj/static-blog/blog/2022/posts.org"
                              "~/sync/orgzly/people.org"
+                             "~/sync/orgzly/Inbox.org"
                              "~/proj/emacsconf/wiki/2022/organizers-notebook/index.org") . (:maxlevel . 5))))
 (setq org-blank-before-new-entry nil)
 
@@ -7167,44 +7171,46 @@ so that it's still active even after you stage a change. Very experimental."
    "followers"
    #'mastodon-profile--add-author-bylines))
 
+(defun my-yank-mastodon-link ()
+  (interactive)
+  (let* ((url (current-kill 0))
+         (url-parsed (url-generic-parse-url url))
+         (user (file-name-base (url-filename url-parsed))))
+    (cond
+     ((derived-mode-p 'oddmuse-mode) (insert "[" url " " user
+                                             "@" (url-host url-parsed) "]"))
+     ((derived-mode-p 'org-mode) (insert "[[" url "][" user
+                                         "@" (url-host url-parsed) "]]"))
+     (t (insert url)))))
+
 (use-package mastodon
   :if my-laptop-p
   :quelpa (mastodon :fetcher git :url "https://codeberg.org/martianh/mastodon.el.git" :branch "develop")
   :bind
   (:map mastodon-mode-map
         ("g" . mastodon-tl--update)
+        ;; see org-capture-templates addition
+        ("o" . (lambda () (interactive) (org-capture nil "m")))
         ("@" . my-mastodon-mentions))
   :commands (mastodon-http--api mastodon-http--post mastodon-mode mastodon-http--get-search-json)
   :config
   (setq mastodon-instance-url "https://emacs.ch"
         mastodon-active-user "sachac"))
 
-(defun my-mastodon-open-url (search)
-  "Open the toot at SEARCH using mastodon.el."
-  (interactive "MURL: ")
-  (let* ((url (format "%s/api/v2/search" mastodon-instance-url))
-         (params (concat "type=statuses&resolve=true"))
-         (response (mastodon-http--get-search-json url search params))
-         (statuses (alist-get 'statuses response)))
-    (when (> (length statuses) 0)
-      (with-current-buffer (get-buffer-create "*mastodon*")
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (mastodon-mode)
-          (save-excursion
-            (mapcar #'mastodon-tl--toot statuses))
-          (switch-to-buffer (current-buffer)))))))
+(autoload 'mastodon-url-lookup "mastodon")
 
 (defun my-mastodon-open-at-point ()
   "Open the URL at point, or prompt if a URL is not found."
   (interactive)
-  (my-mastodon-open-url (or (thing-at-point 'url) (read-string "URL: "))))
+  (mastodon-url-lookup (or (thing-at-point 'url) (read-string "URL: "))))
 
 (defun my-mastodon-org-open-at-point ()
   "Open things that look like Mastodon links using mastodon.el.
 I'm guessing https://server/@user/id URLs are Mastodon links."
   (let ((context (org-element-lineage (org-element-context) '(link) t)))
     (when (and (org-element-property :raw-link context)
+               ;; mastodon--masto-url-p might be related,
+               ;; but it matches a bit too much for me
                (string-match "https?://[^/]+/@[^/]+/.*"
                              (org-element-property :raw-link context)))
       (my-mastodon-open-url (org-element-property :raw-link context)))))
@@ -7219,7 +7225,7 @@ I'm guessing https://server/@user/id URLs are Mastodon links."
       (org-link-store-props
        :link (assoc-default 'url json)
        :content (assoc-default 'content json)
-       :text (replace-regexp-in-string "<.*?>" "" (assoc-default 'content json))))))
+       :text (string-trim (mastodon-tl--render-text (assoc-default 'content json)))))))
 
 (use-package org
   :config
@@ -7425,7 +7431,7 @@ I'm guessing https://server/@user/id URLs are Mastodon links."
 (global-set-key (kbd "M-C-9") (lambda () (interactive) (sanityinc/adjust-opacity nil 2)))
 (global-set-key (kbd "M-C-0") (lambda () (interactive) (modify-frame-parameters nil `((alpha . 100)))))
 
-(setq browse-url-browser-function 'browse-url-xdg-open)
+(setq browse-url-browser-function 'browse-url-firefox)
 (unless window-system
   (xterm-mouse-mode 1)
   (global-set-key [mouse-4] (lambda ()
@@ -7514,18 +7520,6 @@ I'm guessing https://server/@user/id URLs are Mastodon links."
       gnus-activate-level 2
       gnus-ignored-newsgroups "^to\\.\\|^[0-9. ]+\\( \\|$\\)\\|^[\"]\"[#'()]")
 
-(setq message-send-mail-function 'smtpmail-send-it
-      smtpmail-starttls-credentials '(("localhost" 25 "sacha@local.sachachua.com" nil))
-      smtpmail-auth-credentials '(("localhost" 25 "sacha@local.sachachua.com" nil))
-      smtpmail-default-smtp-server "localhost"
-      smtpmail-smtp-server "localhost"
-      smtpmail-smtp-service 25
-      smtpmail-local-domain "local.sachachua.com")
-(setq send-mail-function 'smtpmail-send-it)
-(setq smtpmail-smtp-server "127.0.0.1")
-(setq smtpmail-smtp-service 25)
-(setq user-mail-address "sacha@sachachua.com")
-
 (use-package gnus
   :config
   (require 'mm-decode)
@@ -7546,13 +7540,11 @@ I'm guessing https://server/@user/id URLs are Mastodon links."
 (setq notmuch-message-headers '("Subject" "To" "Cc" "Date" "Reply-To"))
 (use-package notmuch
   :if my-laptop-p
-  :config (setq notmuch-search-oldest-first nil)
+  :config (setq-default notmuch-search-oldest-first nil)
+  (setq notmuch-fcc-dirs nil)
   (setq notmuch-archive-tags '("-inbox" "-flagged" )))
 (use-package ol-notmuch
-  ;; https://git.sr.ht/~bzg/org-contrib
-  :ensure nil
-  :if my-laptop-p
-  :load-path "~/vendor/org-contrib/lisp")
+  :if my-laptop-p)
 (defun my-notmuch-flagged ()
   (interactive)
   (notmuch-search "tag:flagged and not tag:trash"))
@@ -7562,6 +7554,10 @@ I'm guessing https://server/@user/id URLs are Mastodon links."
 (defun my-notmuch-important-inbox ()
   (interactive)
   (notmuch-search "tag:primary and tag:inbox and not tag:trash"))
+(defun my-notmuch-search-this-author ()
+  (interactive)
+  (notmuch-search (format "from:\"%s\""
+                          (plist-get (get-text-property (point) 'notmuch-search-result) :authors))))
 
 (use-package ledger-mode
   :load-path "~/vendor/ledger-mode"
@@ -8534,12 +8530,16 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
   :hydra (hydra-emacsconf
           ()
           ("t" emacsconf-go-to-talk "talk")
+          ("f" emacsconf-cache-find-file "file")
           ("c" (find-file emacsconf-org-file) "conf.org")
           ("C" (let ((default-directory (file-name-directory emacsconf-org-file)))
                  (call-interactively #'projectile-find-file)) "org dir")
           ("w" (let ((default-directory emacsconf-directory))
                  (call-interactively #'projectile-find-file)))
-          ("o" (find-file (expand-file-name "2022/organizers-notebook/index.org" emacsconf-directory))
+          ("o"
+           (progn
+             (find-file (expand-file-name "2022/organizers-notebook/index.org" emacsconf-directory))
+             (call-interactively #'consult-org-heading))
            "org notes")
           ("a" (let ((default-directory emacsconf-ansible-directory))
                  (call-interactively #'projectile-find-file)) "ansible")

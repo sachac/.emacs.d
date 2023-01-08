@@ -37,11 +37,13 @@
 (setq load-prefer-newer t)
 
 (repeat-mode 1)
+;; don't interrupt me with native compilation warnings
+(setq native-comp-async-report-warnings-errors nil)
 
 (use-package hydra :commands defhydra)
 (use-package use-package-hydra)
 (if my-laptop-p
-        (use-package hydra-posframe :if my-laptop-p  :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe") :after hydra))
+        (use-package hydra-posframe :if my-laptop-p :after hydra))
 
 (with-eval-after-load 'hydra
   (defhydra my-window-movement ()
@@ -74,6 +76,7 @@
     ("f" my-file-shortcuts/body "File shortcut")
     ("+" text-scale-increase "Increase")
     ("-" text-scale-decrease "Decrease")
+		("G" gif-screencast-start-or-stop "GIF screencast")
     ("g" my-geeqie/body "Geeqie")
     ("r" my-record-ffmpeg-toggle-recording "Record screen")
     ("l" (my-toggle-or-create "*scratch*" (lambda () (switch-to-buffer (startup--get-buffer-create-scratch)))) "Lisp")
@@ -475,8 +478,8 @@ any directory proferred by `consult-dir'."
   (when-let ((o (cdr (assoc cand my-journal-search-cache))))
     (marginalia--fields
      ((plist-get o :Category)
-      :face 'marginalia-documentation
-      :truncate 13))))
+:face 'marginalia-documentation
+:truncate 13))))
 
 (use-package marginalia
   :after elisp-mode
@@ -514,6 +517,33 @@ any directory proferred by `consult-dir'."
               (format "<<%s>>" (org-element-property element :parameters)))))
 )
 
+(defun my-insert-file-as-org-include (file)
+	(interactive "fFile: ")
+	(set-text-properties 0 (length file) nil file)
+	(let ((mode (assoc-default file auto-mode-alist 'string-match)))
+		(insert
+		 (org-link-make-string (concat "file:" file) (concat "Download " (file-name-nondirectory file))) "\n"
+		 "#+begin_my_details " (file-name-nondirectory file) "\n"
+		 (format "#+INCLUDE: %s" (prin1-to-string file))
+		 (if mode
+				 (concat " src " (replace-regexp-in-string "-mode$" "" (symbol-name mode)))
+			 "")
+		 "\n"
+		 "#+end_my_details\n")))
+
+(defun my-transform-org-link-to-include ()
+	(interactive)
+	(let ((link (org-element-lineage (org-element-context) '(link) t))
+				(mode (assoc-default (org-element-property :path link) auto-mode-alist 'string-match)))
+		(when link
+			(delete-region (org-element-property :begin link)
+										 (org-element-property :end link))
+			(my-insert-file-as-org-include (org-element-property :path)))))
+
+
+(with-eval-after-load 'embark
+	(define-key embark-file-map "O" #'my-insert-file-as-org-include))
+
 (defun my-complete-blog-post-url ()
   (concat "https://sachachua.com/"
           (replace-regexp-in-string
@@ -540,15 +570,17 @@ any directory proferred by `consult-dir'."
 
 (defun my-insert-blog-post-link (url)
   (interactive (list (my-complete-blog-post-url)))
-  (insert (org-link-make-string url
-                                (replace-regexp-in-string
-                                 " :: Sacha Chua" ""
-                                 (with-current-buffer (url-retrieve-synchronously url)
-                                   (dom-text (car
-                                              (dom-by-tag (libxml-parse-html-region
-                                                           (point-min)
-                                                           (point-max))
-                                                          'title))))))))
+	(if (derived-mode-p 'org-mode)
+			(insert (org-link-make-string url
+																		(replace-regexp-in-string
+																		 " :: Sacha Chua" ""
+																		 (with-current-buffer (url-retrieve-synchronously url)
+																			 (dom-text (car
+																									(dom-by-tag (libxml-parse-html-region
+																															 (point-min)
+																															 (point-max))
+																															'title)))))))
+		(insert url)))
 
 (defun my-store-action-key+cmd (cmd)
   (setq keycast--this-command-keys (this-single-command-keys) keycast--this-command cmd))
@@ -612,7 +644,6 @@ any directory proferred by `consult-dir'."
   :if my-laptop-p
   :config
   (progn
-    (require 'helm-config)
     (require 'helm-for-files)
     (setq helm-candidate-number-limit 100)
     (setq helm-completing-read-handlers-alist
@@ -914,7 +945,7 @@ any directory proferred by `consult-dir'."
 
 ;(fset 'org-refile-get-location 'my-org-refile-get-location)
 
-(defvar my-screenshot-directory "~/screenshots")
+(defvar my-screenshot-directory "~/recordings")
 (defun my-org-insert-screenshot (file &optional note)
   (interactive (list
                 (if current-prefix-arg
@@ -990,7 +1021,6 @@ any directory proferred by `consult-dir'."
 
 (use-package recomplete
   :if my-laptop-p
-  :quelpa (recomplete :fetcher gitlab :repo "ideasman42/emacs-recomplete")
   :bind ("M-/" . recomplete-dabbrev))
 
 (fset 'yes-or-no-p 'y-or-n-p)
@@ -1004,17 +1034,6 @@ any directory proferred by `consult-dir'."
   (when (display-graphic-p)
     (modus-themes-load-vivendi)))
 (use-package modus-themes :config (my-setup-color-theme))
-
-(when window-system
-  (custom-set-faces
-   '(erc-input-face ((t (:foreground "antique white"))))
-   '(helm-selection ((t (:background "ForestGreen" :foreground "black"))))
-   '(org-agenda-clocking ((t (:inherit secondary-selection :foreground "black"))) t)
-   '(org-agenda-done ((t (:foreground "dim gray" :strike-through nil))))
-   '(org-done ((t (:foreground "PaleGreen" :weight normal :strike-through t))))
-   '(org-clock-overlay ((t (:background "SkyBlue4" :foreground "black"))))
-   '(org-headline-done ((((class color) (min-colors 16) (background dark)) (:foreground "LightSalmon" :strike-through t))))
-   '(outline-1 ((t (:inherit font-lock-function-name-face :foreground "cornflower blue"))))))
 
 (use-package undo-tree
   :diminish undo-tree-mode
@@ -1059,9 +1078,6 @@ any directory proferred by `consult-dir'."
   :if my-laptop-p
   :bind (("C-h b" . helm-descbinds)
          ("C-h w" . helm-descbinds)))
-
-(use-package sortie :if my-laptop-p :load-path "~/elisp")
-(use-package keysee :after sortie :if my-laptop-p :load-path "~/elisp" :commands kc-mode :init (kc-mode))
 
 (use-package which-key :init (which-key-mode 1))
 (use-package which-key-posframe :if my-laptop-p :init (which-key-posframe-mode 1))
@@ -1227,12 +1243,13 @@ any directory proferred by `consult-dir'."
     ("s" "~/proj/stream/notes.org" "Public Emacs notes")
     ("b" "~/sync/orgzly/business.org" "Business")
     ("p" "/scp:web:/mnt/prev/home/sacha/planet/en.ini" "Planet Emacsen")
-    ("P" "~/proj/static-blog/blog/2022/posts.org" "Posts")
+    ("P" "~/sync/orgzly/posts.org" "Posts")
 ;    ("B" "/ssh:web|sudo::/etc/nginx/sites-available" "Nginx sites")
     ("w" "~/Dropbox/public/sharing/index.org" "Sharing index")
     ("W" "~/Dropbox/public/sharing/blog.org" "Blog index")
     ("1" "~/proj/static-blog/" "Static blog")
-    ("r" "~/personal/reviews.org" "Reviews")
+    ("r" "~/sync/orgzly/reference.org" "Reference")
+    ("R" "~/personal/reviews.org" "Reviews")
     ("g" "~/proj/sachac.github.io/evil-plans/index.org" "Evil plans"))
   :bind
   ("C-c f" . #'my-file-shortcuts/body))
@@ -1783,6 +1800,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq subed-subtitle-spacing 1)
   (key-chord-define subed-mode-map "hu" 'my-subed/body)
   (key-chord-define subed-mode-map "ht" 'my-subed/body)
+	(setq subed-loop-seconds-before 0 subed-loop-seconds-after 0)
   :bind
   (:map subed-mode-map
         ("M-j" . avy-goto-char-timer)
@@ -1797,6 +1815,9 @@ Saves to a temp file and puts the filename in the kill ring."
    (subed-mode . (lambda () (setq-local fill-column 40)))
    (subed-mode . (lambda () (remove-hook 'before-save-hook 'subed-sort t)))))
 (use-package subed-record :load-path "~/proj/subed-record"
+  :config
+  (remove-hook 'subed-sanitize-functions 'subed-sort)
+	(setq subed-record-ffmpeg-args (split-string "-f pulse -i alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo"))
   :bind
   (:map subed-mode-map ("C-c C-c" . subed-record-compile-try-flow)))
 
@@ -2124,8 +2145,8 @@ If WORD-TIMING is non-nil, include word-level timestamps."
    :object-type 'alist))
 (defvar my-plover-main-dict
   (if (and my-laptop-p (file-exists-p "~/.config/plover/main.json"))
-      (mapcar (lambda (o) (cons (symbol-name (car o)) (cdr o)))
-	      (json-read-file "~/.config/plover/main.json"))))
+(mapcar (lambda (o) (cons (symbol-name (car o)) (cdr o)))
+	(json-read-file "~/.config/plover/main.json"))))
 (defun my-plover-search-dictionary-for-strokes (stroke-regexp)
   (interactive "MStroke regexp: ")
   (let ((results (seq-filter (lambda (o) (string-match stroke-regexp (car o))) my-plover-main-dict)))
@@ -2136,7 +2157,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 (defun my-plover-dict (&optional filename)
   (setq filename (expand-file-name (or filename "main.json") my-plover-home))
   (or (cdr (assoc-default filename my-plover-dict-cache))
-      (let ((result (mapcar (lambda (o) (cons (symbol-name (car o)) (cdr o))) (json-read-file filename))))
+(let ((result (mapcar (lambda (o) (cons (symbol-name (car o)) (cdr o))) (json-read-file filename))))
 	(push (cons filename result) my-plover-dict-cache )
 	result)))
 
@@ -2159,17 +2180,17 @@ If WORD-TIMING is non-nil, include word-level timestamps."
   `(progn
      (plover-websocket-send :translation "{PLOVER:SOLO_DICT:+commands.json,+fingerspelling.json}")
      (prog1 (progn ,@body)
-       (plover-websocket-send :translation "{PLOVER:END_SOLO_DICT}"))))
+ (plover-websocket-send :translation "{PLOVER:END_SOLO_DICT}"))))
 
 (defun my-consult-plover-read-stroke-or-translation ()
   (interactive)
   (let ((dict (mapcar (lambda (o) (cons (format "%s: %s" (car o) (cdr o)) o))
-		      (my-plover-dict))))
+		(my-plover-dict))))
     (my-with-plover-fingerspelling
      (consult--read
-      dict
-      :prompt "Strokes/translation: "
-      :category 'plover-stroke))))
+dict
+:prompt "Strokes/translation: "
+:category 'plover-stroke))))
 
 (defun my-consult-plover-and-execute-strokes (choice)
   (interactive (list (my-consult-plover-read-stroke-or-translation)))
@@ -2920,9 +2941,6 @@ H '
     ((org-in-src-block-p) (org-babel-execute-src-block))
     (t (eval-buffer))))
 
-(use-package typing-speed :if my-laptop-p :load-path "~/elisp"
-  :config (setq typing-speed-window 120))
-
 (defvar my-company-strokedict--grep-executable "grep")
 
 (defun my-company-strokedict--candidates (prefix)
@@ -2967,7 +2985,7 @@ loaded."
   (defvar my-ipad-directory "~/sync/ipad")
   (defvar my-portfolio-directory "~/sync/portfolio")
   (defvar my-camera-directory "~/sync/camera")
-  (defvar my-private-sketches-directory "~/cloud/private-sketches")
+  (defvar my-private-sketches-directory "~/sync/private-sketches")
   (defvar my-sketches-directory "~/sync/sketches")
 
   (defun my-geeqie-next ()
@@ -3008,13 +3026,13 @@ loaded."
     (if (and my-rotate-jpeg-using-exiftran
 	     (string-match "jpe?g" (file-name-extension filename)))
 	(call-process "exiftran" nil nil nil "-i" "-9" filename)
-      (call-process "mogrify" nil nil nil "-rotate" "90" filename)))
+(call-process "mogrify" nil nil nil "-rotate" "90" filename)))
 
   (defun my-rotate-image-counterclockwise (filename)
     (if (and my-rotate-jpeg-using-exiftran
 	     (string-match "jpe?g" (file-name-extension filename)))
 	(call-process "exiftran" nil nil nil "-i" "-2" filename)
-      (call-process "mogrify" nil nil nil "-rotate" "270" filename)))
+(call-process "mogrify" nil nil nil "-rotate" "270" filename)))
 
   (defun my-geeqie-rotate-clockwise ()
     (interactive)
@@ -3032,25 +3050,25 @@ loaded."
 		 (expand-file-name
 		  (concat
 		   (format-time-string "%Y-%m-%d_%H%M%S"
-				       (file-attribute-modification-time (file-attributes filename)))
+				 (file-attribute-modification-time (file-attributes filename)))
 		   "."
 		   (file-name-extension filename))
 		  (file-name-directory filename))))
 
   (defun my-geeqie-change-date (filename new-time)
     (interactive (list (my-geeqie-filename)
-		       (let ((org-read-date-prefer-future nil))
+		 (let ((org-read-date-prefer-future nil))
 			 (org-read-date nil t))))
     (let ((new-file (expand-file-name
 		     (replace-regexp-in-string
-		      "^[0-9]*"
-		      (format-time-string
-		       "%Y%m%d"
-		       new-time)
-		      (file-name-nondirectory filename))
+		"^[0-9]*"
+		(format-time-string
+		 "%Y%m%d"
+		 new-time)
+		(file-name-nondirectory filename))
 		     (file-name-directory filename))))
-      (rename-file filename new-file)
-      (my-geeqie-view new-file)))
+(rename-file filename new-file)
+(my-geeqie-view new-file)))
 
   (defun my-geeqie-rename-current (old-filename new-filename)
     (interactive
@@ -3078,8 +3096,8 @@ loaded."
   (defun my-geeqie-delete-and-next ()
     (interactive)
     (let ((file (my-geeqie-filename)))
-      (my-geeqie-next)
-      (delete-file file t)))
+(my-geeqie-next)
+(delete-file file t)))
 
   (use-package ewmctrl)
   (defun my-geeqie-setup ()
@@ -3091,40 +3109,40 @@ loaded."
   (pretty-hydra-define my-geeqie ()
     ("Open"
      (("oo" my-geeqie-setup "Setup")
-      ("op" (my-geeqie-view my-portfolio-directory) "Portfolio")
-      ("oc" (my-geeqie-view my-camera-directory) "Camera")
-      ("oi" (my-geeqie-view my-ipad-directory) "iPad")
-      ("ox" (my-geeqie-view "~/screenshots") "Screenshots")
-      ("os" my-geeqie-scans "Scans"))
+("op" (my-geeqie-view my-portfolio-directory) "Portfolio")
+("oc" (my-geeqie-view my-camera-directory) "Camera")
+("oi" (my-geeqie-view my-ipad-directory) "iPad")
+("ox" (my-geeqie-view "~/screenshots") "Screenshots")
+("os" my-geeqie-scans "Scans"))
      "Modify"
      (("[" my-geeqie-rotate-counterclockwise "CCW")
-      ("]" my-geeqie-rotate-clockwise "CW")
-      ("r" my-geeqie-rename-current "Rename")
-      ("d" my-geeqie-change-date "Change date")
-      ("c" my-geeqie-crop-to-rectangle "Crop")
-      ("k" (start-process "krita" nil "krita" (my-geeqie-filename)) "krita")
-      ("O" (shell-command (format "mogrify -auto-orient %s" (shell-quote-argument (my-geeqie-filename)))) "Rotate based on EXIF")
-      ("g" (start-process "gimp" nil "gimp" (my-geeqie-filename)) "gimp"))
+("]" my-geeqie-rotate-clockwise "CW")
+("r" my-geeqie-rename-current "Rename")
+("d" my-geeqie-change-date "Change date")
+("c" my-geeqie-crop-to-rectangle "Crop")
+("k" (start-process "krita" nil "krita" (my-geeqie-filename)) "krita")
+("O" (shell-command (format "mogrify -auto-orient %s" (shell-quote-argument (my-geeqie-filename)))) "Rotate based on EXIF")
+("g" (start-process "gimp" nil "gimp" (my-geeqie-filename)) "gimp"))
      "Navigate"
      (("n" my-geeqie-next "Next")
-      ("p" my-geeqie-previous "Previous")
-      ("x" my-geeqie-delete-and-next "Delete"))
+("p" my-geeqie-previous "Previous")
+("x" my-geeqie-delete-and-next "Delete"))
      "Save"
      (("p" (rename-file (my-geeqie-filename)
 			(expand-file-name (file-name-nondirectory (my-geeqie-filename)) my-sketches-directory))
-       "Portfolio")
-      ("s" (rename-file (my-geeqie-filename)
+ "Portfolio")
+("s" (rename-file (my-geeqie-filename)
 			(expand-file-name (file-name-nondirectory (my-geeqie-filename)) my-sketches-directory))
-       "Sketch"))
+ "Sketch"))
      "Other"
      (("<up>" (forward-line -1) :hint nil)
-      ("<down>" forward-line :hint nil)
+("<down>" forward-line :hint nil)
 
-      ("im" (insert (format "{{<photo nas=\"1\" src=\"%s\">}}" (my-geeqie-filename))))
-      ("if" (insert (my-geeqie-filename) "\n")
-       "Insert filename")
-      ("v" (my-geeqie-view (string-trim (thing-at-point 'line))) "View")
-      ("il" (insert "- " (my-geeqie-filename) "\n") "Insert filename as list item")))))
+("im" (insert (format "{{<photo nas=\"1\" src=\"%s\">}}" (my-geeqie-filename))))
+("if" (insert (my-geeqie-filename) "\n")
+ "Insert filename")
+("v" (my-geeqie-view (string-trim (thing-at-point 'line))) "View")
+("il" (insert "- " (my-geeqie-filename) "\n") "Insert filename as list item")))))
 
   (defun my-move-portfolio-files ()
     (interactive)
@@ -3134,7 +3152,7 @@ loaded."
 		    ((string-match "#private" f) my-private-sketches-directory)
 		    ((string-match "#me\\>" f) my-sketches-directory)
 		    (t my-portfolio-directory))))
-	      (when new-dir (rename-file f (expand-file-name (file-name-nondirectory f) new-dir)))))
+	(when new-dir (rename-file f (expand-file-name (file-name-nondirectory f) new-dir)))))
 	  (seq-filter
 	   'file-regular-p
 	   (directory-files my-scan-directory t "^[0-9]+.*#")))
@@ -3343,10 +3361,19 @@ loaded."
 (defvar my-org-inbox-file "~/sync/orgzly/Inbox.org")
 (defvar my-ledger-file "~/cloud/ledger/current.ledger")
 (setq org-capture-templates
-      `(("t" "Quick task" entry
+      `(("t" "Task without annotation" entry
+         (file ,my-org-inbox-file)
+         "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n"
+         :prepend t)
+        ("T" "Task with annotation" entry
          (file ,my-org-inbox-file)
          "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
-         :immediate-finish t :prepend t)
+         :prepend t)
+        ("i" "Interrupting task" entry
+         (file ,my-org-inbox-file)
+         "* STARTED %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+         :clock-in :clock-resume
+         :prepend t)
         ;; From https://takeonrules.com/2022/10/16/adding-another-function-to-my-workflow/
         ("c" "Contents to current clocked task"
 	       plain (clock)
@@ -3364,9 +3391,7 @@ loaded."
         ;;  (file+headline "~/proj/plover-notes/README.org" "For review")
         ;;  "%(let ((last (my-clippy-last))) (format \"| %s | %s |\" (car last) (cdr last)))"
         ;;  :immediate-finish t)
-        ("T" "Task" entry
-         (file ,my-org-inbox-file)
-         "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n")
+
         ("." "Today" entry
          (file ,my-org-inbox-file)
          "* TODO %^{Task}\nSCHEDULED: %t\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
@@ -3385,17 +3410,16 @@ loaded."
          :immediate-finish t)
         ("r" "Note" entry
          (file ,my-org-inbox-file)
-         "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n - %a"
+         "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n\n- %a"
          :prepend t)
         ("N" "Note" entry
          (file ,my-org-inbox-file)
          "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
          :prepend t)
-        ("i" "Interrupting task" entry
-         (file ,my-org-inbox-file)
-         "* STARTED %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
-         :clock-in :clock-resume
-         :prepend t)
+				("s" "Screenshot" entry
+				 (file ,my-org-inbox-file)
+				 "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n[[file:%(my-latest-file my-screenshot-directory)]]\n"
+				 :prepend t)
         ("b" "Business task" entry
          (file+headline "~/personal/business.org" "Tasks")
          ,my-org-basic-task-template)
@@ -3466,16 +3490,17 @@ loaded."
 (eval-after-load 'org-capture
   '(bind-key "C-c C-r" 'my-org-refile-and-jump org-capture-mode-map))
 
-(setq org-reverse-note-order nil)
+(setq org-reverse-note-order t) ; I want new notes prepended
 (setq org-refile-use-outline-path 'file)
 (setq org-outline-path-complete-in-steps nil)
 (setq org-refile-allow-creating-parent-nodes 'confirm)
-(setq org-refile-use-cache t)
+(setq org-refile-use-cache nil)
 (setq org-refile-targets '((("~/sync/orgzly/organizer.org"
                              "~/sync/orgzly/routines.org"
                              "~/sync/orgzly/business.org"
                              "~/sync/orgzly/decisions.org"
-                             "~/proj/static-blog/blog/2022/posts.org"
+                             "~/sync/emacs/Sacha.org"
+                             "~/sync/orgzly/posts.org"
                              "~/sync/orgzly/people.org"
                              "~/sync/orgzly/Inbox.org"
                              "~/proj/emacsconf/wiki/2022/organizers-notebook/index.org") . (:maxlevel . 5))))
@@ -3857,6 +3882,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
                       "~/sync/orgzly/Inbox.org"
                       "~/sync/orgzly/decisions.org"
                       "~/sync/orgzly/computer-inbox.org"
+                      "~/sync/emacs/Sacha.org"
                       "~/proj/stream/index.org"
                       "~/proj/stream/notes.org"
                       "~/proj/plover-notes/README.org"
@@ -4563,8 +4589,8 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
   (let ((today (substring (org-read-date nil nil ".") 0 10))
 	(date (org-entry-get (point) "LAST_REVIEW")))
     (while (string< date today)
-      (setq date (substring (org-read-date nil nil "++1w" nil (org-time-string-to-time date)) 0 10))
-      (unless (string< today date)
+(setq date (substring (org-read-date nil nil "++1w" nil (org-time-string-to-time date)) 0 10))
+(unless (string< today date)
 	(save-excursion
 	  (my-org-prepare-weekly-review date))
 	(org-entry-put (point) "LAST_REVIEW" date)))))
@@ -4935,13 +4961,116 @@ and indent it one level."
 
 (use-package literate-elisp :if my-laptop-p)
 
+(org-link-set-parameters
+ "my-include"
+ :follow #'my-include-open
+ :export #'my-include-export
+ :complete #'my-include-complete)
+
+(defun my-include-open (path &optional _)
+	"Narrow to the region specified in PATH."
+	(let (params start end)
+		(if (string-match "^\\(.*+?\\)::\\(.*+\\)" path)
+				(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))
+							path (match-string 1 path)))
+		(find-file path)
+		(setq start
+					(or
+					 (and
+						(plist-get params :from-regexp)
+						(progn
+							(goto-char (point-min))
+							(when (re-search-forward (url-unhex-string (plist-get params :from-regexp)))
+								(line-beginning-position))))
+					 (progn
+						 (goto-char (point-min))
+						 (point))))
+		(setq end
+					(or
+					 (and
+						(plist-get params :to-regexp)
+						(progn
+							(when (re-search-forward (url-unhex-string (plist-get params :to-regexp)))
+								(line-end-position))))
+					 (progn
+						 (goto-char (point-max))
+						 (point))))
+		(when (or (not (= start (point-min)))
+							(not (= end (point-max))))
+			(narrow-to-region start end))))
+
+(defun my-include-export (path _ format _)
+	"Export PATH to FORMAT using the specified wrap parameter."
+	(let (params body start end)
+		(when (string-match "^\\(.*+?\\)::\\(.*+\\)" path)
+			(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))))
+		(save-window-excursion
+			(my-include-open path)
+			(setq body (buffer-substring (point-min) (point-max))))
+		(with-temp-buffer
+			(when (plist-get params :wrap)
+				(let* ((wrap (plist-get params :wrap))
+							 block args)
+					(when (string-match "\\<\\(\\S-+\\)\\( +.*\\)?" wrap)
+						(setq block (match-string 1 wrap))
+						(setq args (match-string 2 wrap))
+						(setq body (format "#+BEGIN_%s%s\n%s\n#+END_%s\n"
+															 block (or args "")
+															 body
+															 block)))))
+			(insert body)
+			(org-export-as format nil nil t))))
+
+(defun my-include-complete ()
+	"Include a section of a file from one line to another, specified with regexps."
+	(interactive)
+	(require 'consult)
+	(let ((file (read-file-name "File: ")))
+		(save-window-excursion
+			(find-file file)
+			(concat "my-include:"
+							file
+							"::from-regexp="
+							(let ((curr-line (line-number-at-pos
+																(point)
+																consult-line-numbers-widen))
+										(prompt "From line: "))
+								(goto-char (point-min))
+								(consult--line
+								 (or (consult--with-increased-gc
+											(consult--line-candidates
+											 nil
+											 curr-line))
+										 (user-error "No lines"))
+								 :curr-line curr-line
+								 :prompt prompt)
+								(url-hexify-string
+								 (regexp-quote (buffer-substring (line-beginning-position) (line-end-position)))))
+							"&to-regexp="
+							(let ((curr-line (line-number-at-pos
+																(point)
+																consult-line-numbers-widen))
+										(prompt "To line: "))
+								(goto-char (point-min))
+								(consult--line
+								 (or (consult--with-increased-gc
+											(consult--line-candidates
+											 nil
+											 curr-line))
+										 (user-error "No lines"))
+								 :curr-line curr-line
+								 :prompt prompt)
+								(url-hexify-string
+								 (regexp-quote (buffer-substring (line-beginning-position) (line-end-position)))))
+							"&wrap=src " (replace-regexp-in-string "-mode$" "" (symbol-name major-mode))))))
+
 (use-package ox-epub
   :if my-laptop-p
   :config
   (setq org-epub-style-default (concat org-epub-style-default "\n  p.my-verse { white-space: pre }\n")))
 
 (defun my-org-export-filter-body-add-emacs-configuration-link (string backend info)
-  (when (and (plist-get info :input-file) (string-match "\\.emacs\\.d/Sacha\\.org" (plist-get info :input-file)))
+  (when (and (plist-get info :input-file) (string-match "\\.emacs\\.d/Sacha\\.org\\|sync/emacs/Sacha\\.org" (plist-get info :input-file)))
     (concat string
             (let ((id (org-entry-get-with-inheritance "CUSTOM_ID")))
               (format
@@ -4985,7 +5114,7 @@ and indent it one level."
       (browse-url (concat "http://localhost:8080" (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
     (let* ((json-object-type 'plist)
            (data (json-read-file (concat (file-name-base (buffer-file-name)) ".11tydata.json"))))
-      (browse-url (concat "http://localhost:8080" (plist-get data :permalink))))))
+      (browse-url (concat "http://localhost:8080" (plist-get data :permalink))) )))
 
 (defun my-org-11ty-find-file ()
   (interactive)
@@ -5004,6 +5133,31 @@ and indent it one level."
       (mastodon-toot)
       (insert message))))
 
+;; https://kitchingroup.cheme.cmu.edu/blog/2013/05/05/Getting-keyword-options-in-org-files/
+(defun my-org-keywords ()
+  "Parse the buffer and return a cons list of (property . value).
+This is extracted from lines like:
+#+PROPERTY: value"
+  (org-element-map (org-element-parse-buffer 'element) 'keyword
+    (lambda (keyword) (cons (org-element-property :key keyword)
+                            (org-element-property :value keyword)))))
+
+(defun my-11ty-copy-file-and-insert-into-org (filename caption)
+  (interactive (list (read-file-name "File: ")
+                     (read-string "Caption: ")))
+	(let ((path (expand-file-name
+							 (file-name-nondirectory filename)
+							 (expand-file-name
+								(org-entry-get-with-inheritance
+								 "EXPORT_ELEVENTY_FILE_NAME")
+								(assoc-default "ELEVENTY_BASE_DIR" (my-org-keywords)))
+							 )))
+		(copy-file filename path t)
+		(insert "#+CAPTION: " caption "\n"
+						(org-link-make-string (concat "file:" path)) "\n")))
+
+(setq org-html-doctype "html5")
+(setq org-html-html5-fancy t)
 (setq org-export-with-section-numbers nil)
 (setq org-html-include-timestamps nil)
 (setq org-export-with-sub-superscripts nil)
@@ -5012,6 +5166,7 @@ and indent it one level."
 (setq org-export-htmlize-output-type 'css)
 (setq org-export-with-broken-links t)
 (setq org-ascii-text-width 10000)
+(setq-default tab-width 2)
 
 (setq org-publish-project-alist
       '(("stream"
@@ -5061,7 +5216,8 @@ and indent it one level."
   :config
   ;; Use short names like ‘defblock’ instead of the fully qualified name
   ;; ‘org-special-block-extras--defblock’
-  (o-defblock my_details (title "Details") (title-color "Green")
+	(setcdr org-special-block-extras-mode-map nil)
+  (org-defblock my_details (title "Details") (title-color "Green")
               "Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Enclose contents in a folded up box."
               (cond
                ((eq backend '11ty)
@@ -5086,10 +5242,10 @@ and indent it one level."
                </details>"
                  title-color title contents))))
 
-  (o-defblock columns nil nil
+  (org-defblock columns nil nil
               "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
               (format "<div class=\"row\">%s</div>" contents))
-  (o-defblock column50 nil nil
+  (org-defblock column50 nil nil
               "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns."
               (format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents))
 )
@@ -5215,6 +5371,7 @@ and indent it one level."
       (package-initialize)
       (setq package-enable-at-startup nil)
       (require 'org)
+			(setq-default tab-width 2)
       (org-babel-tangle-file ,(buffer-file-name))
       )
    (lambda (&rest results) (message "Tangled.")))
@@ -5222,12 +5379,13 @@ and indent it one level."
 (defun my-org-export-and-tangle-if-saved-in-focus ()
   (when (frame-focus-state)
     (message "Scheduling export...")
-    (my-org-debounce-idle-timer 10
-                                my-export-org-config
-                                (lambda (buf)
-                                  (with-current-buffer buf
-                                    (my-org-async-export-and-tangle)))
-                                (current-buffer))))
+    (my-org-debounce-idle-timer
+		 10
+     my-export-org-config
+     (lambda (buf)
+       (with-current-buffer buf
+         (my-org-async-export-and-tangle)))
+     (current-buffer))))
 (define-minor-mode my-org-export-and-tangle-when-saved-in-focus-mode
   "Toggle a mode for exporting and tangling when saved.
 Interactively with no argument, this command toggles the mode.
@@ -5951,7 +6109,7 @@ the mode, `toggle' toggles the state."
     (setq org-confirm-babel-evaluate nil)
     (setq org-link-elisp-confirm-function
           (lambda (prompt)
-            (if (string-match "vendor" (buffer-file-name))
+            (if (and (buffer-file-name) (string-match "vendor" (buffer-file-name)))
                 (y-or-n-p prompt)
               t)))
     (require 'ob-ledger)
@@ -6332,6 +6490,70 @@ Use the region if active."
   :bind (:map org-mode-map
               ("C-c C-x p" . my-org-set-property)))
 
+(defun my-org-defun-complete ()
+	"Return function definitions."
+	(completing-read
+	 "Function: "
+	 #'help--symbol-completion-table
+	 #'fboundp
+	 'confirm
+	 nil nil
+	 (and fn (symbol-name fn))))
+
+(defun my-org-defun-export (symbol description format _)
+	"Export the function."
+	(save-window-excursion
+		(find-function (intern symbol))
+		(let ((function-body (buffer-substring (point)
+																					 (progn (forward-sexp) (point)))))
+			(pcase format
+				((or '11ty 'html)
+				 (format "<div class=\"org-src-container\">\n<details><summary>%s</summary><pre class=\"src src-emacs-lisp\">%s</pre></details></div>"
+								 symbol
+								 (org-html-do-format-code function-body "emacs-lisp" nil nil nil nil)))
+				(`ascii function-body)
+				(_ function-body)))))
+
+(defun my-org-defun-store ()
+	"Store a link to the function."
+	(when (derived-mode-p 'emacs-lisp-mode)
+		(org-link-store-props :type "defun"
+													:link (concat "defun:" (lisp-current-defun-name)))))
+
+(defun my-org-defun-open (symbol _)
+	"Jump to the function definition."
+	(find-function (intern symbol)))
+
+(org-link-set-parameters "defun" :follow #'my-org-defun-open
+												 :export #'my-org-defun-export
+												 :complete #'my-org-defun-complete
+												 :store #'my-org-defun-store)
+
+(use-package elpy
+	:config
+	(elpy-enable)
+	(setq python-shell-interpreter "ipython3"
+				python-shell-interpreter-args "-i --simple-prompt")
+	(setq python-indent-offset 4)
+	(add-hook 'python-mode-hook
+      (lambda ()
+        (setq-local tab-width 4)
+				(setq-local python-flymake-command '("flake8" "--append-config" "/home/sacha/.config/flake8" "-"))
+				(setq-local python-check-command "flake8 --append-config /home/sacha/.config/flake8"))
+			70)
+	)
+(use-package lsp-pyright
+  :ensure t
+  :hook (python-mode . (lambda ()
+                          (require 'lsp-pyright)
+                          (lsp))))
+(require 'ansi-color)
+(defun colorize-compilation-buffer ()
+  (when (eq major-mode 'compilation-mode)
+		(let ((inhibit-read-only t))
+			(ansi-color-apply-on-region compilation-filter-start (point-max)))))
+(add-hook 'compilation-filter-hook 'colorize-compilation-buffer)
+
 ;; from FAQ at http://web-mode.org/ for smartparens
 
 ;; Avoid lockfiles because they mess up React projects
@@ -6519,6 +6741,64 @@ Use the region if active."
     (pp-eval-last-sexp prefix)))
 
 (bind-key "C-x C-e" 'sanityinc/eval-last-sexp-or-region emacs-lisp-mode-map)
+
+(with-eval-after-load 'auto-insert
+	(add-to-list 'auto-insert-alist
+							 '(("\\.el\\'" . "Emacs Lisp header")
+								 "Short description: "
+								 ";;; " (file-name-nondirectory (buffer-file-name)) " --- " str
+     (make-string (max 2 (- 80 (current-column) 27)) ?\s)
+     "-*- lexical-binding: t; -*-" '(setq lexical-binding t)
+     "
+
+;; Copyright (C) " (format-time-string "%Y") "  "
+ (getenv "ORGANIZATION") | (progn user-full-name) "
+
+;; Author: " (user-full-name)
+'(if (search-backward "&" (line-beginning-position) t)
+     (replace-match (capitalize (user-login-name)) t t))
+'(end-of-line 1) " <" (progn user-mail-address) ">
+"
+;; Keywords and completing-read with a require-match don't give me a way to break out
+;; ;; Keywords: "
+;;  '(require 'finder)
+;;  ;;'(setq v1 (apply 'vector (mapcar 'car finder-known-keywords)))
+;;  '(setq v1 (mapcar (lambda (x) (list (symbol-name (car x))))
+;; 		   finder-known-keywords)
+;; 	v2 (mapconcat (lambda (x) (format "%12s:  %s" (car x) (cdr x)))
+;; 	   finder-known-keywords
+;; 	   "\n"))
+;;  ((let ((minibuffer-help-form v2))
+;;     (completing-read "Keyword, C-h: " v1 nil t))
+;;     str ", ")
+ ;; & -2
+ "
+
+\;; This program is free software; you can redistribute it and/or modify
+\;; it under the terms of the GNU General Public License as published by
+\;; the Free Software Foundation, either version 3 of the License, or
+\;; (at your option) any later version.
+
+\;; This program is distributed in the hope that it will be useful,
+\;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+\;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\;; GNU General Public License for more details.
+
+\;; You should have received a copy of the GNU General Public License
+\;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+\;;; Commentary:
+
+\;; " _ "
+
+\;;; Code:
+
+
+
+\(provide '"
+       (file-name-base (buffer-file-name))
+       ")
+\;;; " (file-name-nondirectory (buffer-file-name)) " ends here\n")))
 
 (defun my-stub-elisp-defun ()
   "Stub an elisp function from symbol at point."
@@ -7047,43 +7327,6 @@ so that it's still active even after you stage a change. Very experimental."
 
 
 
-(use-package rinari :if my-laptop-p)
-(use-package bundler :if my-laptop-p)
-(use-package robe
-  :if my-laptop-p
-  :hook
-  ((ruby-mode-hook . robe-mode)
-   (robe-mode-hook . ac-robe-setup)
-   (ruby-mode-hook . auto-complete-mode)))
-(use-package haml-mode
-  :if my-laptop-p
-  :mode "\\.haml\\'")
-
-(defun my-rspec-verify-single ()
-  "Runs the specified example at the point of the current buffer."
-  (interactive)
-  (rspec-run-single-file
-   (concat
-    (rspec-spec-file-for (buffer-file-name))
-    ":"
-    (save-restriction
-      (widen)
-      (number-to-string (line-number-at-pos))))
-   (rspec-core-options)))
-
-(use-package rspec-mode
-  :if my-laptop-p
-  :config
-  (progn
-    (setq rspec-command-options "--fail-fast --format documentation")
-    (bind-key "C-c , ," 'rspec-rerun rspec-mode-map)
-    (fset 'rspec-verify-single 'my-rspec-verify-single)))
-
-(use-package sass-mode
-  :if my-laptop-p
-  :hook (sass-mode-hook . (lambda () (setq indent-tabs-mode nil))))
-(setq-default indent-tabs-mode nil)
-
 (use-package skewer-mode
   :if my-laptop-p
   :hook
@@ -7107,6 +7350,20 @@ so that it's still active even after you stage a change. Very experimental."
 
 (use-package dockerfile-mode
   :mode ("Dockerfile\\'" . dockerfile-mode))
+
+(use-package xterm-color
+  :commands (xterm-color-filter))
+(use-package eshell
+  :after xterm-color
+  :config
+  (define-key eshell-hist-mode-map (kbd "M-r") #'consult-history)
+  (add-hook 'eshell-mode-hook
+            (lambda ()
+              (setenv "TERM" "xterm-256color")))
+  (add-hook 'eshell-before-prompt-hook (setq xterm-color-preserve-properties t))
+  (add-to-list 'eshell-preoutput-filter-functions 'xterm-color-filter)
+  (setq eshell-output-filter-functions
+        (remove 'eshell-handle-ansi-color eshell-output-filter-functions)))
 
 (use-package erc
   :if my-laptop-p
@@ -7183,40 +7440,29 @@ so that it's still active even after you stage a change. Very experimental."
                                          "@" (url-host url-parsed) "]]"))
      (t (insert url)))))
 
+(autoload 'mastodon-notifications--get-mentions "mastodon-notifications" nil t)
+
 (use-package mastodon
   :if my-laptop-p
-  :quelpa (mastodon :fetcher git :url "https://codeberg.org/martianh/mastodon.el.git" :branch "develop")
+;	  :quelpa
+;(mastodon :fetcher git :url "https://codeberg.org/martianh/mastodon.el.git" :branch "develop")
+	:load-path "~/vendor/mastodon.el/lisp"
   :bind
   (:map mastodon-mode-map
         ("g" . mastodon-tl--update)
         ;; see org-capture-templates addition
-        ("o" . (lambda () (interactive) (org-capture nil "m")))
-        ("@" . my-mastodon-mentions))
-  :commands (mastodon-http--api mastodon-http--post mastodon-mode mastodon-http--get-search-json)
+        ("o" . (lambda () (interactive) (org-capture nil "m"))))
+  :commands (mastodon-http--api mastodon-http--post mastodon-mode mastodon-http--get-search-json
+																mastodon-tl--get-local-timeline)
   :config
   (setq mastodon-instance-url "https://emacs.ch"
         mastodon-active-user "sachac"))
 
 (autoload 'mastodon-url-lookup "mastodon")
-
-(defun my-mastodon-open-at-point ()
-  "Open the URL at point, or prompt if a URL is not found."
-  (interactive)
-  (mastodon-url-lookup (or (thing-at-point 'url) (read-string "URL: "))))
-
-(defun my-mastodon-org-open-at-point ()
-  "Open things that look like Mastodon links using mastodon.el.
-I'm guessing https://server/@user/id URLs are Mastodon links."
-  (let ((context (org-element-lineage (org-element-context) '(link) t)))
-    (when (and (org-element-property :raw-link context)
-               ;; mastodon--masto-url-p might be related,
-               ;; but it matches a bit too much for me
-               (string-match "https?://[^/]+/@[^/]+/.*"
-                             (org-element-property :raw-link context)))
-      (my-mastodon-open-url (org-element-property :raw-link context)))))
-
-(with-eval-after-load "org"
-  (add-to-list 'org-open-at-point-functions #'my-mastodon-org-open-at-point))
+(add-to-list 'browse-url-handlers '("https?://[^/]+/@[^/]+/.*" . my-mastodon-browse-url))
+(defun my-mastodon-browse-url (url &rest _)
+  "Open URL."
+  (mastodon-url-lookup url))
 
 (defun my-mastodon-store-link ()
   "Store links in Mastodon buffers."
@@ -7225,7 +7471,21 @@ I'm guessing https://server/@user/id URLs are Mastodon links."
       (org-link-store-props
        :link (assoc-default 'url json)
        :content (assoc-default 'content json)
-       :text (string-trim (mastodon-tl--render-text (assoc-default 'content json)))))))
+       :text
+			 (concat
+				(string-trim (mastodon-tl--render-text (assoc-default 'content json)))
+				(if (assoc-default 'media_attachments json)
+						(concat "\n\n"
+										(mapconcat
+										 (lambda (attachment)
+											 (org-link-make-string
+												(assoc-default 'url attachment)
+												(assoc-default 'description attachment)))
+										 (assoc-default 'media_attachments json)
+										 "\n"
+										 )))
+						"")
+				))))
 
 (use-package org
   :config
@@ -7242,6 +7502,212 @@ I'm guessing https://server/@user/id URLs are Mastodon links."
 
 %a"
                  :prepend t)))
+
+(use-package org
+	:config
+	(add-to-list
+	 'org-capture-templates
+   '("w" "Emacs News" entry (file+headline "~/sync/orgzly/organizer.org" "Collect Emacs News")
+     "* %a
+
+#+begin_quote
+%:text
+#+end_quote
+
+"
+     :prepend t :immediate-finish t)))
+(defun my-mastodon-save-toot-for-emacs-news ()
+	(interactive)
+	;; boost if not already boosted
+	(unless (get-text-property
+					 (car
+						(mastodon-tl--find-property-range 'byline (point)))
+					 'boosted-p)
+		(mastodon-toot--toggle-boost-or-favourite 'boost))
+	;; store a link and capture the note
+	(org-capture nil "w"))
+
+(use-package mastodon
+	:bind (:map mastodon-mode-map ("w" . my-mastodon-save-toot-for-emacs-news)))
+
+(defun my-mastodon-follow-user (user-handle)
+	"Follow HANDLE."
+	(interactive "MHandle: ")
+	(when (string-match "https?://\\(.+?\\)/\\(@.+\\)" user-handle)
+		(setq user-handle (concat (match-string 2 user-handle) "@" (match-string 1 user-handle))))
+	(let* ((account (mastodon-profile--search-account-by-handle
+                   user-handle))
+				 (user-id (mastodon-profile--account-field account 'id))
+				 (name (if (not (string-empty-p (mastodon-profile--account-field account 'display_name)))
+                   (mastodon-profile--account-field account 'display_name)
+								 (mastodon-profile--account-field account 'username)))
+				 (url (mastodon-http--api (format "accounts/%s/%s" user-id "follow"))))
+		(if account
+				(mastodon-tl--do-user-action-function url name user-handle "follow")
+			(message "Cannot find a user with handle %S" user-handle))))
+
+(defun my-mastodon-toot-screenshot (&optional filename description)
+	"Compose a buffer and attach the latest screenshot.
+Prompt for a description and add that to the filename as well.
+When called with a prefix argument, prompt for the file.
+Use consult to provide a preview."
+	(interactive
+	 (let ((filename
+					(if current-prefix-arg
+							(expand-file-name
+							 (consult--read
+								(reverse (directory-files my-screenshot-directory nil "\\.png$"))
+								:sort nil
+								:require-match t
+								:category 'file
+								:state (lambda (candidate state)
+												 (when candidate
+													 (with-current-buffer (find-file-noselect
+																								 (expand-file-name candidate my-screenshot-directory))
+														 (display-buffer (current-buffer))))))
+							 my-screenshot-directory)
+						(my-latest-file my-screenshot-directory))))
+		 (list
+			filename
+			(when (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]-[0-9][0-9]-[0-9][0-9]$" (file-name-base filename))
+				(display-buffer (find-file-noselect filename))
+				(read-string "Description: ")))))
+	(let ((new-filename (if (string= (or description "") "")
+													nil
+												(expand-file-name
+												 (concat (file-name-base filename) " " description
+																 (file-name-extension filename))
+												 (file-name-directory filename)))))
+		(if new-filename
+				(rename-file filename new-filename))
+		(unless (string-match "new toot" (buffer-name)) ; can't match off major mode yet
+			(mastodon-toot))
+		(mastodon-toot--attach-media
+		 (or new-filename filename) "image/png"
+		 (or description
+				 (when (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]-[0-9][0-9]-[0-9][0-9] \\(.+\\)" (save-match-data (file-name-base filename)))
+					 (match-string 1 (save-match-data (file-name-base filename))))))))
+
+;; Not in the following hydra, but mentioned in "M-x describe-mode". Also, the README.org
+  ;; contains several functions that aren't in my hydra.
+  ;;
+  ;; TAB                     mastodon-tl--next-tab-item
+  ;; D                       mastodon-toot--delete-and-redraft-toot
+  ;; C-S-b                   mastodon-tl--unblock-user
+  ;; S-TAB                   mastodon-tl--previous-tab-item
+  ;; S-RET                   mastodon-tl--unmute-user
+  ;; C-S-w                   mastodon-tl--unfollow-user
+  ;; S-SPC                   scroll-down-command
+  ;; <backtab>               mastodon-tl--previous-tab-item
+  ;; C-M-i                   mastodon-tl--previous-tab-item
+  ;; M-n                     mastodon-tl--next-tab-item
+  ;; M-p                     mastodon-tl--previous-tab-item
+
+  (defhydra my-mastodon-help (:color blue :hint nil)
+    "
+Timelines^^   Toots^^^^           Own Toots^^   Profiles^^      Users/Follows^^  Misc^^
+^^-----------------^^^^--------------------^^----------^^-------------------^^------^^-----
+_H_ome        _n_ext _p_rev       _r_eply       _A_uthors       follo_W_         _X_ lists
+_L_ocal       _T_hread of toot^^  wri_t_e       user _P_rofile  _N_otifications  f_I_lter
+_F_ederated   (un) _b_oost^^      _e_dit        ^^              _R_equests       _C_opy URL
+fa_V_orites   (un) _f_avorite^^   _d_elete      _O_wn           su_G_estions     _S_earch
+_#_ tagged    (un) p_i_n^^        ^^            _U_pdate own    _M_ute user      _h_elp
+_@_ mentions  (un) boo_k_mark^^   show _E_dits  ^^              _B_lock user
+boo_K_marks   _v_ote^^
+trendin_g_
+_u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
+"
+		;; my custom stuff
+		("s" my-mastodon-toot-screenshot)
+		("w" my-mastodon-save-toot-for-emacs-news)
+		("o" (org-capture nil "m"))
+		;; more general things
+    ("H" mastodon-tl--get-home-timeline)
+    ("L" mastodon-tl--get-local-timeline)
+    ("F" mastodon-tl--get-federated-timeline)
+    ("V" mastodon-profile--view-favourites)
+    ("#" mastodon-tl--get-tag-timeline)
+    ("@" mastodon-notifications--get-mentions)
+    ("K" mastodon-profile--view-bookmarks)
+    ("g" mastodon-search--trending-tags)
+    ("u" mastodon-tl--update :exit nil)
+
+    ("n" mastodon-tl--goto-next-toot)
+    ("p" mastodon-tl--goto-prev-toot)
+    ("T" mastodon-tl--thread)
+    ("b" mastodon-toot--toggle-boost :exit nil)
+    ("f" mastodon-toot--toggle-favourite :exit nil)
+    ("i" mastodon-toot--pin-toot-toggle :exit nil)
+    ("k" mastodon-toot--bookmark-toot-toggle :exit nil)
+    ("c" mastodon-tl--toggle-spoiler-text-in-toot)
+    ("v" mastodon-tl--poll-vote)
+
+    ("A" mastodon-profile--get-toot-author)
+    ("P" mastodon-profile--show-user)
+    ("O" mastodon-profile--my-profile)
+    ("U" mastodon-profile--update-user-profile-note)
+
+    ("W" mastodon-tl--follow-user)
+    ("N" mastodon-notifications-get)
+    ("R" mastodon-profile--view-follow-requests)
+    ("G" mastodon-tl--get-follow-suggestions)
+    ("M" mastodon-tl--mute-user)
+    ("B" mastodon-tl--block-user)
+
+    ("r" mastodon-toot--reply)
+    ("t" mastodon-toot)
+    ("e" mastodon-toot--edit-toot-at-point)
+    ("d" mastodon-toot--delete-toot)
+    ("E" mastodon-toot--view-toot-edits)
+
+    ("I" mastodon-tl--view-filters)
+    ("X" mastodon-tl--view-lists)
+    ("C" mastodon-toot--copy-toot-url)
+    ("S" mastodon-search--search-query)
+    ("h" describe-mode)
+
+    ("q" nil :exit t)
+  )
+(use-package mastodon
+ :bind ("s-m" . my-mastodon-help/body))
+
+(defun my-mastodon-toot-config (&optional include-screenshot)
+	"Toot this part of my config."
+	(interactive (list current-prefix-arg))
+	(let ((link (if (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK")
+									(concat "https://sachachua.com" (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK"))
+								(concat "https://sachachua.com/dotemacs/#" (org-entry-get (point) "CUSTOM_ID"))))
+				text)
+		(save-excursion
+			(org-back-to-heading)
+			(org-end-of-meta-data)
+			(setq text (buffer-substring (point) (org-end-of-subtree))))
+		(mastodon-toot)
+		(insert text "\n\nLink: " link)))
+
+(use-package pandoc)
+(defun my-mastodon-org-feed-formatter (entry)
+	(concat "* " (pandoc-convert-stdio
+								(dom-text (dom-by-tag
+													 (with-temp-buffer
+														 (insert "<item>"
+																		 (plist-get entry :item-full-text)
+																		 "</item>")
+														 (xml-parse-region (point-min) (point-max)))
+													 'description))
+								"html" "org")
+					"\n\n[" (format-time-string (cdr org-time-stamp-formats)
+																			(date-to-time (plist-get entry :pubDate)))
+"]\n" (plist-get entry :link)))
+(setq org-feed-alist '(("Mastodon" "https://emacs.ch/@sachac/with_replies.rss"
+												"~/sync/orgzly/toots.org" "Toots"
+												:formatter my-mastodon-org-feed-formatter)))
+(defun my-org-feed-sort (pos entries)
+	(save-excursion
+    (goto-char pos)
+    (when (looking-at org-complex-heading-regexp)
+			(org-sort-entries nil ?T))))
+(advice-add #'org-feed-add-items :after #'my-org-feed-sort)
 
 (defmacro my-org-with-current-task (&rest body)
   "Execute BODY with the point at the subtree of the current task."
@@ -7407,7 +7873,7 @@ I'm guessing https://server/@user/id URLs are Mastodon links."
                     (lambda (x) (if (string-equal (substring x 0 1) ".") x))
                     ido-temp-list)))))
 
-;(setq eimp-mogrify-program "c:/Program Files/ImageMagick-6.8.3-Q16/mogrify.exe")
+(setq image-use-external-converter t)
 
 (defun my-ssh-refresh ()
   "Reset the environment variable SSH_AUTH_SOCK"
@@ -7558,6 +8024,37 @@ I'm guessing https://server/@user/id URLs are Mastodon links."
   (interactive)
   (notmuch-search (format "from:\"%s\""
                           (plist-get (get-text-property (point) 'notmuch-search-result) :authors))))
+
+(defun my-mailman-approve ()
+  "Approve this mailing list message."
+  (interactive)
+	(goto-char (point-min))
+	(when (re-search-forward "From: \\(\\(.+\\)-request@.*?\\)\nSubject: \\(confirm [0-9a-f]+\\)" nil t)
+		(let* ((id (match-string 2)))
+			(compose-mail (match-string 1) (match-string 3)
+										`(("Approved" . ,(string-trim (shell-command-to-string
+																									 (concat "pass " (match-string 2)))))))
+			(message-send-and-exit))))
+
+(defun my-mailman-discard ()
+	"Discard the current message."
+	(interactive)
+	(goto-char (point-min))
+	(when (re-search-forward "From: \\(\\(.+\\)-request@.*?\\)\nSubject: \\(confirm [0-9a-f]+\\)" nil t)
+		(compose-mail (match-string 1) (match-string 3))
+		(message-send-and-exit)))
+
+(defun my-mailman-web ()
+	"Open the web admin interface."
+	(interactive)
+	(goto-char (point-min))
+	(let ((id (if (and (derived-mode-p 'notmuch-show-mode)
+										 (re-search-forward "\\(https://.+?/mailman/admindb/\\(.+\\)\\)" nil t))
+								(match-string 2)
+							(completing-read "List: " '("emacsconf-org" "emacsconf-org-private" "emacs-tangents" "emacsconf-submit")))))
+		(browse-url (concat "https://lists.gnu.org/mailman/admindb/" id "?adminpw="
+												(url-hexify-string (string-trim (shell-command-to-string
+																												 (concat "pass " id))))))))
 
 (use-package ledger-mode
   :load-path "~/vendor/ledger-mode"
@@ -7924,7 +8421,7 @@ I'm guessing https://server/@user/id URLs are Mastodon links."
    ;; It's been a while since I turned the mic on.
    (t (my-push-to-talk-mute))))
 
-(global-set-key (kbd "<f12>") #'my-push-to-talk)
+;(global-set-key (kbd "<f12>") #'my-push-to-talk)
 
 (defun my-stream-message (text)
   (interactive "MText: ")
@@ -8090,7 +8587,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
           (goto-char (point-min))
           (subed-mpv-find-video latest)
           (pop-to-buffer (current-buffer)))
-      (mpv-play (my-latest-file my-recordings-dir "mkv")))))
+      (mpv-play (my-latest-file my-recordings-dir)))))
 (defun my-rename-last-recording ()
   (interactive)
   (let ((latest (my-latest-file my-recordings-dir "mkv")))
@@ -8412,8 +8909,22 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 
 (defun my-search-irc-logs ()
   (interactive)
-  (let ((helm-rg-default-directory "~/backups/server/home/.znc/users/sachac/moddata/log"))
-    (call-interactively 'helm-rg)))
+  (let ((default-directory "~/backups/server/home/.znc/users/sachac/moddata/log"))
+    (call-interactively 'consult-ripgrep)))
+
+(use-package gif-screencast
+	:config
+	(setq gif-screencast-output-directory my-recordings-dir))
+
+(use-package giffy
+	:quelpa (giffy :fetcher github :repo "larsmagne/giffy"))
+
+(defun my-giffy-open-gif (file)
+	(interactive (list (read-file-name "GIF: ")))
+	(let ((directory (make-temp-file (concat "giffy-" (file-name-base file)) t)))
+	;;TODO
+		)
+	)
 
 (defun widget-button-click (event)
   "Invoke the button that the mouse is pointing at."
@@ -8521,6 +9032,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
               (call-interactively command)))))
     (message "You clicked somewhere weird.")))
 
+(autoload 'emacsconf-mail-prepare "emacsconf-mail")
 (use-package emacsconf
   :after hydra
   :bind (("C-c e" . hydra-emacsconf/body)
@@ -8543,6 +9055,8 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
            "org notes")
           ("a" (let ((default-directory emacsconf-ansible-directory))
                  (call-interactively #'projectile-find-file)) "ansible")
+          ("A" emacsconf-prep-agenda "agenda")
+					("I" emacsconf-extract-irc/body "IRC extract")
           ("i" (switch-to-buffer (erc-get-buffer "#emacsconf-org")))
           ("l" (let ((default-directory "~/proj/emacsconf/lisp"))
                  (call-interactively #'projectile-find-file)))
@@ -8803,7 +9317,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 
 (defvar my-sketch-directories
   '("~/sync/sketches"
-    "~/cloud/private-sketches"
+    "~/sync/private-sketches"
     "~/Dropbox/Inbox"
     "~/Dropbox/Inbox/To blog"))
 
@@ -9836,9 +10350,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 (defun my-write-about-sketch (sketch)
   (interactive (list (and (my-update-sketch-cache) (my-complete-sketch-filename))))
   (shell-command "make-sketch-thumbnails")
-  (let ((post-dir (format-time-string "~/proj/static-blog/blog/%Y/%m/")))
-    (unless (file-directory-p post-dir) (mkdir post-dir))
-    (find-file (expand-file-name "posts.org" post-dir)))
+  (find-file "~/sync/orgzly/posts.org")
   (goto-char (point-max))
   (org-insert-heading nil nil t)
   (insert (read-string "Title: ") (format "\n\n[[sketchFull:%s][%s]]\n\n" (file-name-nondirectory sketch) (file-name-base sketch)))
@@ -9878,24 +10390,115 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
   (interactive)
   (dired my-supernote-export-dir "-tl"))
 (defun my-supernote-process-sketch (new-name)
-  (interactive "MNew name: ")
+  (interactive (list
+								(completing-read "New name: " (my-update-sketch-cache))))
   (unless (member (file-name-extension new-name) '("png" "jpg"))
     (setq new-name (concat new-name "." (file-name-extension (buffer-file-name)))))
-  (cond
-   ((string-match " #ccw" new-name)
-    (setq new-name (replace-match "" t t new-name))
-    (call-process "convert" nil nil nil (buffer-file-name) "-rotate" "270" (expand-file-name new-name "~/sync/sketches")))
-   ((string-match " #cw" new-name)
-    (setq new-name (replace-match "" t t new-name))
-    (call-process "convert" nil nil nil (buffer-file-name) "-rotate" "90" (expand-file-name new-name "~/sync/sketches"))
-    )
-   (t
-    (copy-file
-     (buffer-file-name)
-     (expand-file-name new-name "~/sync/sketches"))))
-  (when (file-exists-p (expand-file-name new-name "~/sync/sketches"))
-    (delete-file (buffer-file-name))
-    (kill-buffer)))
+	(let ((dest (if (string-match "#private" new-name)
+									"~/sync/private-sketches"
+								"~/sync/sketches")))
+		(when (string-match " #ccw" new-name)
+			(setq new-name (replace-match "" t t new-name))
+			(call-process "mogrify" nil nil nil "-rotate" "270" (buffer-file-name)))
+		(when (string-match " #cw" new-name)
+			(setq new-name (replace-match "" t t new-name))
+			(call-process "mogrify" nil nil nil "-rotate" "90" (buffer-file-name)))
+		(when (file-exists-p (expand-file-name (file-name-nondirectory new-name) dest))
+			(delete-file (expand-file-name (file-name-nondirectory new-name) dest)))
+		(rename-visited-file
+		 (expand-file-name (file-name-nondirectory new-name) dest))
+		(kill-buffer)))
+(defun my-open-latest-export ()
+  (interactive)
+  (find-file (my-latest-file "~/Dropbox/Supernote/EXPORT")))
+
+(defun my-copy-latest-export-filename ()
+  (interactive)
+  (kill-new (my-latest-file "~/Dropbox/Supernote/EXPORT")))
+
+(defun my-supernote-copy-latest-download ()
+  (interactive)
+  (call-process "sn" nil nil nil (my-latest-file "~/Downloads"))
+	(message "%s" (my-latest-file "~/Downloads")))
+
+(defvar my-supernote-inbox "~/Dropbox/Supernote/INBOX")
+(defun my-save-manpage-to-supernote (path)
+	(interactive (list (woman-file-name nil)))
+	(unless (file-exists-p path) (setq path (woman-file-name path)))
+	(let* ((base (file-name-base path))
+				 (temp-html (make-temp-file base nil ".html")))
+		(with-temp-buffer
+			(insert-file-contents path)
+			(call-process-region (point-min) (point-max) "man2html" t t)
+			(when (re-search-backward "Invalid Man Page" nil t)
+				(delete-file temp-html)
+				(error "Could not convert."))
+			(write-file temp-html))
+		(call-process "ebook-convert" nil (get-buffer-create "*temp*") nil temp-html
+									(expand-file-name (concat base ".epub") my-supernote-inbox))
+		(delete-file temp-html)))
+
+(defun my-save-info-to-supernote (path)
+	(interactive (list (read-file-name "Texi: " nil nil
+																		 (and Info-current-file
+																					(file-exists-p (concat Info-current-file ".texi"))
+																					(concat Info-current-file ".texi"))
+																		 nil
+																		 (lambda (f)
+																			 (or
+																				(string-match "\\.texi\\'" f)
+																				(file-directory-p f))))))
+	(call-process "texi2pdf" nil "*temp*" t (expand-file-name path)
+								"-o"
+								(expand-file-name (concat (file-name-base path) ".pdf")
+																															my-supernote-inbox)))
+
+(defvar my-supernote-css "~/proj/static-blog/assets/css/style.css")
+(defun my-save-to-supernote ()
+	(interactive)
+	(cond
+	 ((derived-mode-p 'Man-mode) (my-save-manpage-to-supernote Man-arguments))
+	 ((derived-mode-p 'Info-mode)
+		(my-save-info-to-supernote
+		 (or (and Info-current-file
+							(file-exists-p (concat Info-current-file ".texi"))
+							(concat Info-current-file ".texi"))
+				 (read-file-name
+					"Texi: " nil nil nil nil
+					(lambda (f)
+						(or
+						 (string-match "\\.texi\\'" f)
+						 (file-directory-p f)))))))
+	 ((derived-mode-p 'org-mode)
+		(org-latex-export-to-pdf)
+		(copy-file (concat (file-name-base (buffer-file-name)) ".pdf")
+							 (expand-file-name (concat (file-name-base (buffer-file-name)) ".pdf")
+																 my-supernote-inbox) t))
+	 ((or (derived-mode-p 'html-mode)
+				(derived-mode-p 'web-mode)
+				(derived-mode-p 'markdown-mode))
+		(call-process "pandoc" nil nil nil (buffer-file-name) "-t" "latex"
+									"-o"
+									(expand-file-name (concat (file-name-base (buffer-file-name)) ".pdf")
+																		my-supernote-inbox)))
+	 ((and (buffer-file-name) (string-match "\\.\\(pdf\\|epub\\)$" (buffer-file-name)))
+		(copy-file (buffer-file-name)
+							 (expand-file-name (file-name-nondirectory (buffer-file-name))
+																 my-supernote-inbox)
+							 t))
+	 (t
+		(let ((filename (expand-file-name
+										 (concat (file-name-base (or (buffer-file-name)
+																								 (format-time-string "%Y-%m-%d-%H-%M-%S")))
+														 ".pdf")
+										 my-supernote-inbox)))
+			(with-current-buffer (htmlize-buffer)
+				(call-process-region
+				 (point-min) (point-max) "wkhtmltopdf" nil nil nil "--no-background" "-"
+				 filename))))))
+
+(setq htmlize-css-name-prefix "org-")
+(setq htmlize-head-tags "<link rel=\"stylesheet\" href=\"https://sachachua.com/assets/css/style.css\" />")
 
 (defun my-rename-bank-statements ()
   (interactive)
@@ -9969,27 +10572,35 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
               (cons 'image (dom-attr (dom-by-tag (dom-by-id doc "imgTagWrapperId") 'img) 'src))
               (cons 'price
                     (dom-texts (dom-by-id doc "priceblock_ourprice"))))))
-     (t
-      (goto-char (point-min))
+		 (t
+			(goto-char (point-min))
       (re-search-forward "^$")
-      (let ((doc (libxml-parse-html-region (point) (point-max))))
-        (mapcar (lambda (property)
-                  (let ((node (dom-search
-                               doc
-                               (lambda (o)
-                                 (delq nil
-                                       (mapcar (lambda (p) (string= (dom-attr o 'property) p)) (cdr property)))))))
-                    (cons
-                     (car property)
-                     (dom-attr
-                      node
-                      'content))))
-                '((name "og:title")
-                  (brand "og:brand")
-                  (url "og:url")
-                  (image "og:image")
-                  (description "og:description")
-                  (price "og:price:amount" "product:price:amount"))))))))
+      (let* ((doc (libxml-parse-html-region (point) (point-max)))
+						 (result
+							`((name . ,(string-trim (dom-text (dom-by-tag doc "title"))))
+								(description . ,(string-trim (dom-text (dom-by-tag doc "title")))))
+							))
+        (mapc (lambda (property)
+                (let ((node
+											 (dom-search
+												doc
+												(lambda (o)
+													(delq nil
+																(mapcar (lambda (p)
+																					(or (string= (dom-attr o 'property) p)
+																							(string-match p (or (dom-attr o 'class) ""))))
+																				(cdr property)))))))
+									(when node (add-to-list 'result (cons (car property)
+																												(or (dom-attr node 'content)
+																														(string-trim (dom-text node))))))))
+              '((name "og:title" "pdp-product-title")
+                (brand "og:brand")
+                (url "og:url")
+                (image "og:image")
+                (description "og:description")
+                (price "og:price:amount" "product:price:amount" "pdp-price-label")))
+				result)
+			))))
 (defun my-org-insert-shopping-details ()
   (interactive)
   (org-insert-heading)
@@ -10000,7 +10611,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
   (org-end-of-subtree))
 (defun my-org-update-shopping-details ()
   (interactive)
-  (when (re-search-forward org-any-link-re (save-excursion (org-end-of-subtree)) t)
+  (when (re-search-forward org-link-any-re (save-excursion (org-end-of-subtree)) t)
     (let* ((link (org-element-property :raw-link (org-element-context)))
            data)
       (if (string-match "theshoecompany\\|dsw" link)
@@ -10018,35 +10629,308 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
             (org-entry-put (point) "NAME" .name)
             (org-entry-put (point) "URL" link)
             (org-entry-put (point) "BRAND" .brand)
-            (org-entry-put (point) "DESCRIPTION" (replace-regexp-in-string "\n" " " .description))
+            (org-entry-put (point) "DESCRIPTION" (replace-regexp-in-string "&#039;" "'" (replace-regexp-in-string "\n" " " (or .description ""))))
             (org-entry-put (point) "IMAGE" .image)
-            (if .price (org-entry-put (point) "PRICE" (if (stringp .price) .price (format "%.2f" .price))))
+						(org-entry-put (point) "PRICE" (cond ((stringp .price) .price) ((numberp .price) (format "%.2f" .price)) (t "")))
             (if .rating (org-entry-put (point) "RATING" (if (stringp .rating) .rating (format "%.1f" .rating))))
             (if .ratingCount (org-entry-put (point) "RATING_COUNT" (if (stringp .ratingCount) .ratingCount (number-to-string .ratingCount))))
             ))))))
 (defun my-org-format-shopping-subtree ()
-  (concat "<style>body { max-width: 100% !important } #content { max-width: 100% !important }</style><div style=\"display: flex; flex-wrap: wrap; align-items: flex-end\">"
-          (string-join
-           (save-excursion (org-map-entries
-                            (lambda ()
-                              (if (org-entry-get (point) "URL")
-                                  (format "<div class=item style=\"width: 200px\"><div><a href=\"%s\"><img src=\"%s\" height=100></a></div>
+	(concat
+	 "<style>body { max-width: 100% !important } #content { max-width: 100% !important } .item img { max-height: 100px; }</style><div style=\"display: flex; flex-wrap: wrap; align-items: flex-start\">"
+	 (string-join
+		(save-excursion
+			(org-map-entries
+			 (lambda ()
+				 (if (org-entry-get (point) "URL")
+						 (format
+							"<div class=item style=\"width: 200px\"><div><a href=\"%s\"><img src=\"%s\" height=100></a></div>
+<div>%s</div>
 <div><a href=\"%s\">%s</a></div>
 <div>%s</div>
-<div>%s</div>
 <div>%s</div></div>"
-                                          (org-entry-get (point) "URL")
-                                          (org-entry-get (point) "IMAGE")
-                                          (org-entry-get (point) "URL")
-                                          (url-domain (url-generic-parse-url (org-entry-get (point) "URL")))
-                                          (org-entry-get (point) "NAME")
-                                          (org-entry-get (point) "PRICE")
-                                          (or (org-entry-get (point) "NOTES") ""))
-                                "")
-                              ) nil
-                                (if (org-before-first-heading-p) nil 'tree)))
-           "")
-          "</div>"))
+							(org-entry-get (point) "URL")
+							(org-entry-get (point) "IMAGE")
+							(org-entry-get (point) "PRICE")
+							(org-entry-get (point) "URL")
+							(url-domain (url-generic-parse-url (org-entry-get (point) "URL")))
+							(org-entry-get (point) "NAME")
+							(or (org-entry-get (point) "NOTES") ""))
+					 ""))
+			 nil
+			 (if (org-before-first-heading-p) nil 'tree)))
+		"")
+	 "</div>"))
+
+;; This seems to be the only way we can hack the date in for now
+(setq calendar-date-echo-text '(apply #'format (list "%04d-%02d-%02d" year month day)))
+
+(defun my-calendar-heat-map-using-echo-text (&rest _)
+  (when my-calendar-count-scaled
+		(save-excursion
+			(goto-char (point-min))
+			(while (not (eobp))
+				(let* ((help (get-text-property (point) 'help-echo))
+							 (next-change
+								(or (next-single-property-change (point) 'help-echo)
+										(point-max)))
+							 (inhibit-read-only t)
+							 (count-scaled (and help
+																	(assoc-default
+																	 help
+																	 my-calendar-count-scaled))))
+					(when (and help
+										 (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]" help)
+										 count-scaled)
+						(put-text-property
+						 (point) (+ 2 (point))
+						 'face (intern (format "calendar-scale-%d" count-scaled))))
+					(goto-char next-change))))))
+
+(advice-add #'calendar :after #'my-calendar-heat-map-using-echo-text)
+(advice-add #'calendar-redraw :after #'my-calendar-heat-map-using-echo-text)
+(advice-add #'year-calendar :after #'my-calendar-heat-map-using-echo-text)
+
+(defface calendar-scale-1  '((((background light)) :foreground "black" :background "#eceff1")
+                             (((background dark))  :foreground "white" :background "#263238")) "")
+(defface calendar-scale-2  '((((background light)) :foreground "black" :background "#cfd8dc")
+                             (((background dark))  :foreground "white" :background "#37474f")) "")
+(defface calendar-scale-3  '((((background light)) :foreground "black" :background "#b0bec5")
+                             (((background dark))  :foreground "white" :background "#455a64")) "")
+(defface calendar-scale-4  '((((background light)) :foreground "black" :background "#90a4ae")
+                             (((background dark))  :foreground "white" :background "#546e7a")) "")
+(defface calendar-scale-5  '((((background light)) :foreground "black" :background "#78909c")
+                             (((background dark))  :foreground "white" :background "#607d8b")) "")
+(defface calendar-scale-6  '((((background light)) :foreground "white" :background "#607d8b")
+                             (((background dark))  :foreground "black" :background "#78909c")) "")
+(defface calendar-scale-7  '((((background light)) :foreground "white" :background "#546e7a")
+                             (((background dark))  :foreground "black" :background "#90a4ae")) "")
+(defface calendar-scale-8  '((((background light)) :foreground "white" :background "#455a64")
+                             (((background dark))  :foreground "black" :background "#b0bec5")) "")
+(defface calendar-scale-9  '((((background light)) :foreground "white" :background "#37474f")
+                             (((background dark))  :foreground "black" :background "#cfd8dc")) "")
+(defun my-count-calendar-entries (grouped-entries)
+  (mapcar (lambda (entry) (cons (car entry) (length (cdr entry)))) grouped-entries))
+
+(defface calendar-scale-10 '((((background light)) :foreground "white" :background "#263238")
+                             (((background dark))  :foreground "black" :background "#eceff1")) "")
+
+(defun my-scale-calendar-entries (grouped-entries &optional scale-max)
+  (let* ((count (my-count-calendar-entries grouped-entries))
+         (count-max (apply #'max (mapcar (lambda (o) (if (car o) (cdr o) 0)) count))))
+    (mapcar (lambda (entry)
+              (cons (car entry)
+                    (/ (* 1.0 (or scale-max 1.0) (cdr entry)) count-max)))
+            count)))
+
+(defun my-scale-calendar-entries-logarithmically (grouped-entries &optional scale-max)
+  (let* ((count (my-count-calendar-entries grouped-entries))
+         (count-max (apply #'max (mapcar (lambda (o) (if (car o) (cdr o) 0)) count))))
+    (mapcar (lambda (entry)
+              (cons (car entry)
+                    (/ (* 1.0 (or scale-max 1.0) (log (cdr entry))) (log count-max))))
+            count)))
+
+(defvar my-calendar-count-scaled nil "Values to display.")
+
+(defun my-calendar-visualize (values)
+  (setq my-calendar-count-scaled values)
+	(let* ((date (calendar-current-date))
+				 (month (calendar-extract-month date))
+				 (year (calendar-extract-year date)))
+		(year-calendar month (1- year))))
+
+(defun my-calendar-visualize-journal-entries ()
+  (interactive)
+  (my-calendar-visualize
+   (mapcar
+    (lambda (o)
+      (cons
+       (car o)
+       (ceiling (+ 1 (* 7.0 (cdr o))))))
+    (my-scale-calendar-entries
+     (seq-group-by #'my-journal-date
+                   (cdr (pcsv-parse-file "~/Downloads/entries.csv")))))))
+
+(defun my-calendar-visualize-sketches ()
+  (interactive)
+  (let ((my-calendar-sketches
+         (assoc-delete-all
+          nil
+          (seq-group-by
+           (lambda (o)
+             (when (string-match "^\\([0-9][0-9][0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)" o)
+               (format "%s-%s-%s"
+                       (match-string 1 o)
+                       (match-string 2 o)
+                       (match-string 3 o))))
+           (append
+            (directory-files "~/sync/sketches" nil "\\.\\(png\\|jpg\\)\\'")
+            (directory-files "~/sync/private-sketches" nil "\\.\\(png\\|jpg\\)\\'"))))))
+    (my-calendar-visualize
+     (mapcar
+      (lambda (o)
+        (cons (car o)
+              ;; many days have just 1 sketch, so I set the low end of the scale
+              ;; to make them visible, and use a logarithmic scale for the rest
+              (ceiling (+ 3 (* 7.0 (cdr o))))))
+      (my-scale-calendar-entries-logarithmically my-calendar-sketches)))))
+
+(defun my-calendar-visualize-tantrums ()
+  (interactive)
+  (my-calendar-visualize
+   (mapcar
+    (lambda (o)
+      (cons
+       (car o)
+       (ceiling (* 10.0 (cdr o)))))
+    (my-scale-calendar-entries
+     (seq-group-by #'my-journal-date
+                   (seq-filter (lambda (o) (string-match "tantrum\\|grump\\|angry\\|meltdown"
+                                                           (my-journal-note o)))
+                               (cdr (pcsv-parse-file "~/Downloads/entries.csv"))))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;                                                                            ;;;
+;;; Scroll a yearly calendar by month -- in a forwards or backwards direction. ;;;
+;;;                                                                            ;;;
+;;; To try out this example, evaluate the entire code snippet and type:        ;;;
+;;;                                                                            ;;;
+;;;     M-x year-calendar                                                      ;;;
+;;;                                                                            ;;;
+;;; To scroll forward by month, type the key:  >                               ;;;
+;;;                                                                            ;;;
+;;; To scroll backward by month, type the key:  <                              ;;;
+;;;                                                                            ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(eval-after-load "calendar" '(progn
+  (define-key calendar-mode-map "<" 'lawlist-scroll-year-calendar-backward)
+  (define-key calendar-mode-map ">" 'lawlist-scroll-year-calendar-forward) ))
+
+(defmacro lawlist-calendar-for-loop (var from init to final do &rest body)
+  "Execute a for loop.
+Evaluate BODY with VAR bound to successive integers from INIT to FINAL,
+inclusive.  The standard macro `dotimes' is preferable in most cases."
+  `(let ((,var (1- ,init)))
+    (while (>= ,final (setq ,var (1+ ,var)))
+      ,@body)))
+
+(defun year-calendar (&optional month year)
+  "Generate a one (1) year calendar that can be scrolled by month in each direction.
+This is a modification of:  http://homepage3.nifty.com/oatu/emacs/calendar.html
+See also:  http://ivan.kanis.fr/caly.el"
+	(interactive)
+  (require 'calendar)
+  (let* ((current-year (number-to-string (nth 5 (decode-time (current-time)))))
+         (month (if month month
+           (string-to-number
+             (read-string "Please enter a month number (e.g., 1):  " nil nil "1"))))
+         (year (if year year
+           (string-to-number
+             (read-string "Please enter a year (e.g., 2014):  "
+               nil nil current-year)))))
+    (switch-to-buffer (get-buffer-create calendar-buffer))
+    (when (not (eq major-mode 'calendar-mode))
+      (calendar-mode))
+    (setq displayed-month month)
+    (setq displayed-year year)
+    (setq buffer-read-only nil)
+    (erase-buffer)
+    ;; horizontal rows
+    (lawlist-calendar-for-loop j from 0 to 3 do
+      ;; vertical columns
+      (lawlist-calendar-for-loop i from 0 to 2 do
+        (calendar-generate-month
+          ;; month
+          (cond
+            ((> (+ (* j 3) i month) 12)
+              (- (+ (* j 3) i month) 12))
+            (t
+              (+ (* j 3) i month)))
+          ;; year
+          (cond
+            ((> (+ (* j 3) i month) 12)
+             (+ year 1))
+            (t
+              year))
+          ;; indentation / spacing between months
+          (+ 5 (* 25 i))))
+      (goto-char (point-max))
+      (insert (make-string (- 10 (count-lines (point-min) (point-max))) ?\n))
+      (widen)
+      (goto-char (point-max))
+      (narrow-to-region (point-max) (point-max)))
+    (widen)
+    (goto-char (point-min))
+    (setq buffer-read-only t)))
+
+(defun lawlist-scroll-year-calendar-forward (&optional arg event)
+  "Scroll the yearly calendar by month in a forward direction."
+  (interactive (list (prefix-numeric-value current-prefix-arg)
+                     last-nonmenu-event))
+  (unless arg (setq arg 1))
+  (save-selected-window
+    (if (setq event (event-start event)) (select-window (posn-window event)))
+    (unless (zerop arg)
+      (let ((month displayed-month)
+            (year displayed-year))
+        (calendar-increment-month month year arg)
+        (year-calendar month year)))
+    (goto-char (point-min))
+    (run-hooks 'calendar-move-hook)))
+
+(defun lawlist-scroll-year-calendar-backward (&optional arg event)
+  "Scroll the yearly calendar by month in a backward direction."
+  (interactive (list (prefix-numeric-value current-prefix-arg)
+                     last-nonmenu-event))
+  (lawlist-scroll-year-calendar-forward (- (or arg 1)) event))
+
+(defun my-scroll-year-calendar-forward-year (&optional arg event)
+  "Scroll the yearly calendar by year in a forward direction."
+  (interactive (list (prefix-numeric-value current-prefix-arg)
+                     last-nonmenu-event))
+  (unless arg (setq arg 1))
+  (save-selected-window
+    (if (setq event (event-start event)) (select-window (posn-window event)))
+    (unless (zerop arg)
+      (setq displayed-year (+ (or arg 1) displayed-year))
+      (year-calendar displayed-month displayed-year))
+    (goto-char (point-min))
+    (run-hooks 'calendar-move-hook)))
+
+(defun my-scroll-year-calendar-backward-year (&optional arg event)
+  "Scroll the yearly calendar by month in a backward direction."
+  (interactive (list (prefix-numeric-value current-prefix-arg)
+                     last-nonmenu-event))
+  (my-scroll-year-calendar-forward-year (- (or arg 1)) event))
+(eval-after-load "calendar" '(progn
+  (define-key calendar-mode-map "{" 'my-scroll-year-calendar-backward-year)
+  (define-key calendar-mode-map "}" 'my-scroll-year-calendar-forward-year)))
+
+(defun my-override-function (symbol)
+	(interactive (list (completing-read
+											"Function: "
+											#'help--symbol-completion-table
+											#'fboundp
+											'confirm nil nil)))
+	(let (function-body function-name)
+		(save-window-excursion
+			(find-function (intern symbol))
+			(setq function-name (lisp-current-defun-name))
+			(setq function-body (buffer-substring (point)
+																						(progn (forward-sexp) (point)))))
+		(save-excursion
+			(insert function-body (format "\n\n(advice-add '%s :around 'my-%s)\n" function-name function-name)))
+		(save-excursion
+			(forward-char 1)
+			(forward-sexp 1)
+			(skip-syntax-forward " ")
+			(insert "my-")
+			(forward-sexp 1)
+			(skip-syntax-forward " ")
+			(forward-char 1)
+			(insert "_ "))))
 
 (when (eq system-type 'windows-nt)
   (setenv "PATH" (concat "\"c:/program files/postgresql/9.3/bin;\"" (getenv "PATH"))))

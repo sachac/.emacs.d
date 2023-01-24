@@ -456,7 +456,7 @@ sentence navigation commands work for me.
 (setq sentence-end-double-space nil)
 #+END_SRC
 
-*** Trying out Marginalia, Vertico, Embark, and Consult
+*** Trying out Marginalia, Selectrum, Embark, and Consult
 
 Based on [[https://www.rousette.org.uk/archives/switching-to-selectrum-for-incremental-narrowing-in-emacs/][BSAG » Switching to Selectrum for incremental narrowing in Emacs]]
 I like marginalia for M-x, but I've gotten used to Helm for finding files.
@@ -526,7 +526,8 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
   (marginalia-mode)
   :bind (:map minibuffer-local-completion-map
               ("M-A" . marginalia-cycle)
-              ("C-i" . marginalia-cycle-annotators)))
+              ;("C-i" . marginalia-cycle-annotators)
+							))
 (defun my-sketch-insert-file-as-link (f)
   (interactive "fSketch: ")
   (insert (org-link-make-string (concat "sketch:" (file-name-nondirectory f))) "\n"))
@@ -776,7 +777,6 @@ I used to annotate functions with their arguments, but that seems to be built-in
 	:truncate 13))))
 
   (use-package marginalia
-    :after elisp-mode
     :config
     (add-to-list 'marginalia-annotator-registry '(journal my-marginalia-annotate-journal builtin none)))
 
@@ -1462,8 +1462,10 @@ it work. Some things still aren't quite right.
 (defun my-setup-color-theme ()
   (interactive)
   (when (display-graphic-p)
-    (modus-themes-load-vivendi)))
-(use-package modus-themes :config (my-setup-color-theme))
+    (load-theme (car modus-themes-to-toggle))))
+(use-package modus-themes
+	:init (setq modus-themes-to-toggle '(modus-vivendi modus-operandi))
+	:config (my-setup-color-theme))
 #+END_SRC
 
 I sometimes need to switch to a lighter background for screenshots.
@@ -1581,6 +1583,7 @@ It's hard to remember keyboard shortcuts.
 
 ** Navigation
 #+begin_src emacs-lisp
+(transient-mark-mode 1)
 (defun my-close-other-buffers ()
   (interactive)
   (mapc (lambda (buf)
@@ -3110,6 +3113,54 @@ https://github.com/sachac/plover-websocket-el
   ;;  (benchmark-run 2 (my-plover-search-dictionary-for-strokes "^THER/")))
 
 #+end_src
+*** Recent words
+
+I want to be able to quickly find hints for recent words, even ones I ended up typing on my keyboard.
+
+#+begin_src emacs-lisp
+(defvar my-steno-dict nil)
+(defun my-steno-load-dictionary ()
+	(interactive)
+	(with-temp-buffer
+		(insert-file-contents "~/vendor/steno-dictionaries/./dictionaries/dict.json")
+		(goto-char (point-min))
+		(setq my-steno-dict
+					(seq-group-by 'cdr
+												(json-parse-buffer :object-type 'alist)))))
+
+(defun my-steno-lookup (search)
+	(or (assoc search my-steno-dict)
+			(assoc (downcase search) my-steno-dict)))
+
+(defvar my-steno-hint-buffer " *steno hint*")
+
+(defun my-steno-lookup-recent ()
+	(interactive)
+	(let ((pos (point)) result hint)
+		(save-excursion
+			(dotimes (i 4)
+				(backward-word)
+				(setq result
+							(cons (my-steno-lookup (string-trim (buffer-substring-no-properties (point) pos))) result)))
+			(setq result (delq nil result)))
+		(if result
+				(progn
+					(with-current-buffer (get-buffer-create my-steno-hint-buffer)
+						(erase-buffer)
+						(insert
+						 (propertize
+							(mapconcat (lambda (entry)
+													 (concat
+														(car entry) ": "
+														(mapconcat (lambda (stroke)
+																				 (symbol-name (car stroke)))
+																			 (cdr entry) ", ")))
+												 result "\n")
+							'face 'lispy-face-hint)))
+					(posframe-show my-steno-hint-buffer :position (point)))
+			(posframe-hide my-steno-hint-buffer))))
+#+end_src
+
 *** Running Plover drills from Emacs
 
 I'm learning stenography because I deal with a lot of text, and it
@@ -3300,18 +3351,35 @@ Only checks one dictionary for now, but probably good enough
 #+begin_src emacs-lisp
 (defun my-plover-briefpedia (translation)
   (interactive "MTranslation: ")
-  (with-current-buffer (url-retrieve-synchronously (concat "http://briefpedia.com/AjaxTables.php?search=" (url-encode-url translation)))
+  (with-current-buffer (url-retrieve-synchronously (concat "http://briefpedia.com/AjaxTables3.php?search=" (url-encode-url translation)))
     (goto-char (point-min))
+    (re-search-forward "^$")
+    (while (re-search-forward "</?\\(th\\)[ >]" nil t)
+			(replace-match "td" nil nil nil 1))
+		(goto-char (point-min))
     (re-search-forward "^$")
     (save-excursion
       (insert "<div>")
       (goto-char (point-max)) (insert "</div>"))
-    (let* ((data (xml-parse-region (point) (point-max)))
+    (let* ((data (xml-parse-region (point-min) (point-max)))
            (entries (mapcar (lambda (o) (string-trim (dom-text o))) (dom-by-tag (dom-by-id data "divEnglishTable") 'a)))
            (conflicts (seq-group-by 'car
-                                     (mapcar (lambda (row) (mapcar (lambda (cell) (string-trim (dom-texts cell))) (dom-by-tag row 'td)))
-                                             (cdr (dom-by-tag (dom-by-id data "divCrossTable") 'tr))))))
-      (mapcar (lambda (entry) (cons entry (mapcar 'cadr (assoc-default entry conflicts)))) entries))))
+                                    (mapcar (lambda (row) (mapcar (lambda (cell) (string-trim (dom-texts cell))) (dom-by-tag row 'td)))
+                                            (cdr (dom-by-tag (dom-by-id data "divCrossTable") 'tr)))))
+					 (result
+						(mapcar (lambda (entry) (cons entry (mapcar 'cadr (assoc-default entry conflicts)))) entries)))
+			(when (called-interactively-p 'any)
+				(message "%s"
+								 (mapconcat (lambda (entry)
+															(concat (car entry)
+																			(if (cdr entry)
+																					(concat " ("
+																									(string-join (cdr entry) ", ")
+																									")")
+																				"")))
+														result
+														"; ")))
+			result)))
 
 (defun my-plover-read-outline-for-brief (base-prompt)
   (let* ((prompt (or base-prompt "Outline: "))
@@ -3801,6 +3869,16 @@ ATD
     :END:
 
   #+begin_src emacs-lisp
+(defun my-steno-quick-help ()
+	(interactive)
+	(with-selected-window
+			(display-buffer-at-bottom
+			 (find-file-noselect "~/proj/plover-notes/cheat-sheet.txt")'())
+    ;; ... mark it as dedicated to prevent focus from being stolen
+    (set-window-dedicated-p (selected-window) t)
+    ;; ... and shrink it immediately.
+    (fit-window-to-buffer)))
+
 (defhydra my-hydra/cheatsheet/plover ()
   "SKHW- symbols -LTZ modifiers TWR- journal phrases
 newparSKWRAURBGS bsPW-FP capKPA !space!capTK-LS cap!spaceKPA rmspcTK-FPS*
@@ -3965,7 +4043,8 @@ loaded."
     (no-cache        t)))
 
 (use-package company
-  :config
+  :hook
+	(prog-mode . company-mode)
   ;(add-to-list 'company-backends 'my-company-strokedict)
   )
 #+end_src
@@ -4378,7 +4457,7 @@ These are great for quickly acting on tasks.
 
 From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-command-to-jump-to-an-org-heading
 #+begin_src emacs-lisp
-(setq org-goto-interface 'outline
+(setq org-goto-interface 'outline-path-completion
       org-goto-max-level 10)
 (require 'imenu)
 (setq org-startup-folded nil)
@@ -4661,6 +4740,7 @@ able to clock in on them.
 (setq org-refile-targets '((("~/sync/orgzly/organizer.org"
                              "~/sync/orgzly/routines.org"
                              "~/sync/orgzly/business.org"
+                             "~/sync/orgzly/reference.org"
                              "~/sync/orgzly/decisions.org"
                              "~/sync/emacs/Sacha.org"
                              "~/sync/orgzly/posts.org"
@@ -6653,7 +6733,7 @@ my-include-complete
 (use-package ox-epub
   :if my-laptop-p
   :config
-  (setq org-epub-style-default (concat org-epub-style-default "\n  p.my-verse { white-space: pre }\n")))
+	(setq org-epub-style-default (concat org-epub-style-default "\n  p.my-verse { white-space: pre }\n")))
 
 #+end_src
 **** DONE Add a note to the bottom of blog posts exported from my config file
@@ -6783,6 +6863,106 @@ This is extracted from lines like:
 #+end_src
 
 
+***** Moving my Org post subtree to the 11ty directory :11ty:org:emacs:blogging:
+:PROPERTIES:
+:EXPORT_DATE: 2023-01-09T11:07:23-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/moving-my-org-post-subtree-to-the-11ty-directory/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/moving-my-org-post-subtree-to-the-11ty-directory/
+:END:
+
+I sometimes want to move the Org source for my blog posts to the same
+directory as the 11ty-exported HTML. This should make it easier to
+update and reexport blog posts in the future. The following code
+copies or moves the subtree to the 11ty export directory.
+
+#+begin_src emacs-lisp :results silent
+(defun my-org-11ty-copy-subtree (&optional do-cut)
+	"Copy the subtree for the current post to the 11ty export directory.
+With prefix arg, move the subtree."
+	(interactive (list current-prefix-arg))
+	(let* ((file-properties
+					(org-element-map
+							(org-element-parse-buffer)
+							'keyword
+						(lambda (el)
+							(list
+							 (org-element-property :key el)
+							 (org-element-property :value el)
+							 (buffer-substring-no-properties
+								(org-element-property :begin el)
+								(org-element-property :end el))))))
+				 (entry-properties (org-entry-properties))
+				 (filename (expand-file-name
+										"index.org"
+										(expand-file-name
+										 (assoc-default "EXPORT_ELEVENTY_FILE_NAME" entry-properties)
+										 (car (assoc-default "ELEVENTY_BASE_DIR" file-properties))))))
+		(unless (file-directory-p (file-name-directory filename))
+			(make-directory (file-name-directory filename) t))
+		;; find the heading that sets the current EXPORT_ELEVENTY_FILE_NAME
+		(goto-char
+		 (org-find-property "EXPORT_ELEVENTY_FILE_NAME" (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")))
+		(org-copy-subtree 1 (if do-cut 'cut))
+		(with-temp-file filename
+			(org-mode)
+			(insert (or
+							 (mapconcat (lambda (file-prop) (elt file-prop 2))
+													file-properties
+													"")
+							 "")
+							"\n")
+			(org-yank))
+		(find-file filename)
+		(goto-char (point-min))))
+#+end_src
+
+Then this adds a link to it:
+
+#+begin_src emacs-lisp :results silent
+(defun my-org-export-filter-body-add-index-link (string backend info)
+  (if (and
+			 (member backend '(11ty html))
+			 (plist-get info :file-name)
+			 (plist-get info :base-dir)
+			 (file-exists-p (expand-file-name
+											 "index.org"
+											 (expand-file-name
+												(plist-get info :file-name)
+												(plist-get info :base-dir)))))
+			(concat string
+							(format "<div><a href=\"%sindex.org\">View org source for this post</a></div>"
+											(plist-get info :permalink)))
+		string))
+
+(with-eval-after-load 'ox
+  (add-to-list 'org-export-filter-body-functions #'my-org-export-filter-body-add-index-link))
+#+end_src
+
+Then I want to wrap the whole thing up in an export function:
+
+#+begin_src emacs-lisp
+(defun my-org-11ty-export (&optional async subtreep visible-only body-only ext-plist)
+  (let* ((info (org-11ty--get-info subtreep visible-only))
+         (file (org-11ty--base-file-name subtreep visible-only)))
+		(unless (string= (plist-get info :input-file)
+										 (expand-file-name
+											"index.org"
+											(expand-file-name
+											 (plist-get info :file-name)
+											 (plist-get info :base-dir))))
+			(save-window-excursion
+				(my-org-11ty-copy-subtree)))
+		(org-11ty-export-to-11tydata-and-html async subtreep visible-only body-only ext-plist)
+		(my-org-11ty-find-file)))
+#+end_src
+
+Now to figure out how to override the export menu. Totally messy hack!
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'ox-11ty
+	(map-put (caddr (org-export-backend-menu (org-export-get-backend '11ty)))
+					 ?o (list "To Org, 11tydata.json, HTML" 'my-org-11ty-export)))
+#+end_src
 **** Cleaning up export
 Timestamps and section numbers make my published files look more
 complicated than they are. Let's turn them off by default, and let's use fancy HTML5.
@@ -7149,6 +7329,125 @@ the mode, `toggle' toggles the state."
 #+end_src
 
 Let's see if this makes it easier for me to tweak things.
+**** PDF
+
+https://so.nwalsh.com/2020/01/05-latex , but I use letter paper instead of A4.
+
+#+begin_src emacs-lisp
+(setq org-latex-compiler "xelatex")
+(setq org-latex-pdf-process
+      (list (concat "latexmk -"
+                    org-latex-compiler
+                    " -recorder -synctex=1 -bibtex-cond %b")))
+(setq org-latex-default-packages-alist
+      '(("" "graphicx" t)
+        ("" "grffile" t)
+        ("" "longtable" nil)
+        ("" "wrapfig" nil)
+        ("" "rotating" nil)
+        ("normalem" "ulem" t)
+        ("" "amsmath" t)
+        ("" "textcomp" t)
+        ("" "amssymb" t)
+        ("" "capt-of" nil)
+        ("" "hyperref" nil)))
+(setq org-latex-classes
+'(("article"
+"\\RequirePackage{fix-cm}
+\\PassOptionsToPackage{svgnames}{xcolor}
+\\documentclass[11pt]{article}
+\\usepackage{fontspec}
+\\setmainfont{Noto Sans}
+\\setsansfont[Scale=MatchLowercase]{Noto Sans}
+\\setmonofont[Scale=MatchLowercase]{Hack}
+\\usepackage{sectsty}
+\\allsectionsfont{\\sffamily}
+\\usepackage{enumitem}
+\\setlist[description]{style=unboxed,font=\\sffamily\\bfseries}
+\\usepackage{listings}
+\\lstset{frame=single,aboveskip=1em,
+	framesep=.5em,backgroundcolor=\\color{AliceBlue},
+	rulecolor=\\color{LightSteelBlue},framerule=1pt}
+\\usepackage{xcolor}
+\\newcommand\\basicdefault[1]{\\scriptsize\\color{Black}\\ttfamily#1}
+\\lstset{basicstyle=\\basicdefault{\\spaceskip1em}}
+\\lstset{literate=
+	    {§}{{\\S}}1
+	    {©}{{\\raisebox{.125ex}{\\copyright}\\enspace}}1
+	    {«}{{\\guillemotleft}}1
+	    {»}{{\\guillemotright}}1
+	    {Á}{{\\'A}}1
+	    {Ä}{{\\\"A}}1
+	    {É}{{\\'E}}1
+	    {Í}{{\\'I}}1
+	    {Ó}{{\\'O}}1
+	    {Ö}{{\\\"O}}1
+	    {Ú}{{\\'U}}1
+	    {Ü}{{\\\"U}}1
+	    {ß}{{\\ss}}2
+	    {à}{{\\`a}}1
+	    {á}{{\\'a}}1
+	    {ä}{{\\\"a}}1
+	    {é}{{\\'e}}1
+	    {í}{{\\'i}}1
+	    {ó}{{\\'o}}1
+	    {ö}{{\\\"o}}1
+	    {ú}{{\\'u}}1
+	    {ü}{{\\\"u}}1
+	    {¹}{{\\textsuperscript1}}1
+            {²}{{\\textsuperscript2}}1
+            {³}{{\\textsuperscript3}}1
+	    {ı}{{\\i}}1
+	    {—}{{---}}1
+	    {’}{{'}}1
+	    {…}{{\\dots}}1
+            {⮠}{{$\\hookleftarrow$}}1
+	    {␣}{{\\textvisiblespace}}1,
+	    keywordstyle=\\color{DarkGreen}\\bfseries,
+	    identifierstyle=\\color{DarkRed},
+	    commentstyle=\\color{Gray}\\upshape,
+	    stringstyle=\\color{DarkBlue}\\upshape,
+	    emphstyle=\\color{Chocolate}\\upshape,
+	    showstringspaces=false,
+	    columns=fullflexible,
+	    keepspaces=true}
+\\usepackage[margin=1in,left=1.5in]{geometry}
+\\usepackage{parskip}
+\\makeatletter
+\\renewcommand{\\maketitle}{%
+  \\begingroup\\parindent0pt
+  \\sffamily
+  \\Huge{\\bfseries\\@title}\\par\\bigskip
+  \\LARGE{\\bfseries\\@author}\\par\\medskip
+  \\normalsize\\@date\\par\\bigskip
+  \\endgroup\\@afterindentfalse\\@afterheading}
+\\makeatother
+[DEFAULT-PACKAGES]
+\\hypersetup{linkcolor=Blue,urlcolor=DarkBlue,
+  citecolor=DarkRed,colorlinks=true}
+\\AtBeginDocument{\\renewcommand{\\UrlFont}{\\ttfamily}}
+[PACKAGES]
+[EXTRA]"
+("\\section{%s}" . "\\section*{%s}")
+("\\subsection{%s}" . "\\subsection*{%s}")
+("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+("\\paragraph{%s}" . "\\paragraph*{%s}")
+("\\subparagraph{%s}" . "\\subparagraph*{%s}"))
+
+("report" "\\documentclass[11pt]{report}"
+("\\part{%s}" . "\\part*{%s}")
+("\\chapter{%s}" . "\\chapter*{%s}")
+("\\section{%s}" . "\\section*{%s}")
+("\\subsection{%s}" . "\\subsection*{%s}")
+("\\subsubsection{%s}" . "\\subsubsection*{%s}"))
+
+("book" "\\documentclass[11pt]{book}"
+("\\part{%s}" . "\\part*{%s}")
+("\\chapter{%s}" . "\\chapter*{%s}")
+("\\section{%s}" . "\\section*{%s}")
+("\\subsection{%s}" . "\\subsection*{%s}")
+("\\subsubsection{%s}" . "\\subsubsection*{%s}"))))
+#+end_src
 *** Org roam
 
     #+begin_src emacs-lisp :eval no :tangle no
@@ -8467,12 +8766,16 @@ From https://xenodium.com/emacs-dwim-do-what-i-mean/
                     clipboard-url
                     (read-string "title: "
                                  (with-current-buffer (url-retrieve-synchronously clipboard-url)
-                                   (dom-text (car
-                                              (dom-by-tag (libxml-parse-html-region
-                                                           (point-min)
-                                                           (point-max))
-                                                          'title))))))))
-          (t
+																	 (replace-regexp-in-string
+																		"^Github - " ""
+																		(or
+																		 (dom-text (car
+																							 (dom-by-tag (libxml-parse-html-region
+																														(point-min)
+																														(point-max))
+                                                           'title)))
+																		 "")))))))
+           (t
            (call-interactively 'org-insert-link)))))
 (use-package org :bind (:map org-mode-map ("C-c C-l" . ar/org-insert-link-dwim)))
 #+end_src
@@ -8755,6 +9058,72 @@ This is something I have to get the hang of too. It gradually expands the select
 (setq eval-expression-print-length nil)
 (setq print-length nil)
 (setq edebug-print-length nil)
+#+end_src
+**** Let's try this setup
+
+Copied from https://www.reddit.com/r/emacs/comments/1051bfu/comment/j38ymkn/?utm_source=reddit&utm_medium=web2x&context=3
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'elisp-mode
+	(define-key emacs-lisp-mode-map (kbd "C-c C-d C-d") 'describe-function)
+	(define-key emacs-lisp-mode-map (kbd "C-c C-d d") 'describe-function)
+	(define-key emacs-lisp-mode-map (kbd "C-c C-k") 'eval-buffer))
+
+(use-package highlight-quoted
+  :ensure t
+  :hook
+  (emacs-lisp-mode . highlight-quoted-mode))
+
+(use-package highlight-sexp
+  :quelpa
+  (highlight-sexp :repo "daimrod/highlight-sexp" :fetcher github :version original)
+  :hook
+  (clojure-mode . highlight-sexp-mode)
+  (emacs-lisp-mode . highlight-sexp-mode)
+  (lisp-mode . highlight-sexp-mode))
+
+(use-package eros
+  :ensure t
+  :hook
+  (emacs-lisp-mode . eros-mode))
+
+(use-package suggest
+  :ensure t
+  :defer t)
+
+(use-package ipretty
+  :defer t
+  :ensure t
+  :config
+  (ipretty-mode 1))
+
+;; Hide package namespaces
+(use-package nameless
+  :ensure t
+  :hook
+  (emacs-lisp-mode .  nameless-mode)
+  :custom
+  (nameless-global-aliases '())
+  (nameless-private-prefix t))
+
+(use-package erefactor
+  :ensure t
+  :defer t)
+
+(use-package flycheck-package
+  :ensure t
+  :hook
+  (emacs-lisp-mode . flycheck-package-setup))
+
+;; Emacs Lisp Static Analyzer
+(use-package elsa
+  :defer t
+  :ensure t)
+
+(use-package flycheck-elsa
+  :ensure t
+  :hook
+  (emacs-lisp-mode . flycheck-elsa-setup))
 #+end_src
 **** Testing
 #+begin_src emacs-lisp
@@ -9657,11 +10026,11 @@ with HTTPS sites.
 *** Autocomplete
 
 #+begin_src emacs-lisp
+(with-eval-after-load 'company
+	(define-key company-mode-map (kbd "<tab>") 'company-indent-or-complete-common))
 (use-package company
   :if my-laptop-p
-  :bind (:map company-mode
-              ("TAB" . #'company-indent-or-complete-common))
-  :config (add-hook 'prog-mode-hook 'company-mode))
+  :init (add-hook 'prog-mode-hook 'company-mode))
 (use-package company-posframe :if my-laptop-p :init (company-posframe-mode 1) :diminish)
 #+end_src
 
@@ -9710,6 +10079,7 @@ https://www.reddit.com/r/emacs/comments/b6n3t8/what_would_it_take_to_get_termina
 (use-package eshell
   :after xterm-color
   :config
+	(define-key eshell-mode-map (kbd "<tab>") #'company-complete)
   (define-key eshell-hist-mode-map (kbd "M-r") #'consult-history)
   (add-hook 'eshell-mode-hook
             (lambda ()
@@ -9719,6 +10089,70 @@ https://www.reddit.com/r/emacs/comments/b6n3t8/what_would_it_take_to_get_termina
   (setq eshell-output-filter-functions
         (remove 'eshell-handle-ansi-color eshell-output-filter-functions)))
 
+#+end_src
+**** Correctly complete commands in subdirectories
+
+From https://www.n16f.net/blog/eshell-key-bindings-and-completion/
+#+begin_src emacs-lisp
+(with-eval-after-load 'eshell
+	(defun eshell--complete-commands-list ()
+		"Generate list of applicable, visible commands."
+		(let ((filename (pcomplete-arg)) glob-name)
+			(if (file-name-directory filename)
+					(if eshell-force-execution
+							(pcomplete-dirs-or-entries nil #'file-readable-p)
+						(pcomplete-executables))
+				(if (and (> (length filename) 0)
+								 (eq (aref filename 0) eshell-explicit-command-char))
+						(setq filename (substring filename 1)
+									pcomplete-stub filename
+									glob-name t))
+				(let* ((paths (eshell-get-path))
+							 (cwd (file-name-as-directory
+										 (expand-file-name default-directory)))
+							 (path "") (comps-in-path ())
+							 (file "") (filepath "") (completions ()))
+					;; Go thru each path in the search path, finding completions.
+					(while paths
+						(setq path (file-name-as-directory
+												(expand-file-name (or (car paths) ".")))
+									comps-in-path
+									(and (file-accessible-directory-p path)
+											 (file-name-all-completions filename path)))
+						;; Go thru each completion found, to see whether it should
+						;; be used.
+						(while comps-in-path
+							(setq file (car comps-in-path)
+										filepath (concat path file))
+							(if (and (not (member file completions)) ;
+											 (or (string-equal path cwd)
+													 (not (file-directory-p filepath)))
+											 (if eshell-force-execution
+													 (file-readable-p filepath)
+												 (file-executable-p filepath)))
+									(setq completions (cons file completions)))
+							(setq comps-in-path (cdr comps-in-path)))
+						(setq paths (cdr paths)))
+					;; Add aliases which are currently visible, and Lisp functions.
+					(pcomplete-uniquify-list
+					 (if glob-name
+							 completions
+						 (setq completions
+									 (append (if (fboundp 'eshell-alias-completions)
+															 (eshell-alias-completions filename))
+													 (eshell-winnow-list
+														(mapcar
+														 (lambda (name)
+															 (substring name 7))
+														 (all-completions (concat "eshell/" filename)
+																							obarray #'functionp))
+														nil '(eshell-find-alias-function))
+													 completions))
+						 (append (and (or eshell-show-lisp-completions
+															(and eshell-show-lisp-alternatives
+																	 (null completions)))
+													(all-completions filename obarray #'functionp))
+										 completions))))))))
 #+end_src
 *** Documentation
 
@@ -14194,7 +14628,6 @@ And in general:
     (setq toe-starting-time-per-word 2)
     (setq toe-max-length 20)))
 #+end_src
-
 ** Speech synthesis (experimental)
 
 #+begin_src emacs-lisp
@@ -14249,6 +14682,28 @@ root.
 Here's the very rough code I use for that:
 
 #+begin_src emacs-lisp
+(defvar my-get-shopping-details-functions '(my-get-shopping-details-amazon my-get-shopping-details-uniqlo my-get-shopping-details-manually))
+
+(defun my-get-shopping-details-manually (link)
+	(when (string-match "theshoecompany\\|dsw" link)
+		(browse-url link)
+		(list
+		 (cons 'url link)
+		 (cons 'image (read-string "Image: "))
+		 (cons 'price (read-string "Price: ")))))
+
+(defun my-get-shopping-details-amazon (link)
+	(when (string-match "amazon.ca" link)
+		(with-current-buffer (url-retrieve-synchronously link)
+			(goto-char (point-min))
+			(re-search-forward "^$")
+			(let ((doc (libxml-parse-html-region (point) (point-max))))
+				(list (cons 'name (dom-text (dom-by-tag doc 'title)))
+							(cons 'description (dom-texts (dom-by-id doc "productDescription")))
+							(cons 'image (dom-attr (dom-by-tag (dom-by-id doc "imgTagWrapperId") 'img) 'src))
+							(cons 'price
+										(dom-texts (dom-by-id doc "priceblock_ourprice"))))))))
+
 (defun my-get-shopping-details ()
   (goto-char (point-min))
   (let (data)
@@ -14281,15 +14736,6 @@ Here's the very rough code I use for that:
                     (assoc-default 'price (if (arrayp .offers)
                                               (elt .offers 0)
                                             .offers))))))
-     ((re-search-forward "amazon.ca" nil t)
-      (goto-char (point-min))
-      (re-search-forward "^$")
-      (let ((doc (libxml-parse-html-region (point) (point-max))))
-        (list (cons 'name (dom-text (dom-by-tag doc 'title)))
-              (cons 'description (dom-texts (dom-by-id doc "productDescription")))
-              (cons 'image (dom-attr (dom-by-tag (dom-by-id doc "imgTagWrapperId") 'img) 'src))
-              (cons 'price
-                    (dom-texts (dom-by-id doc "priceblock_ourprice"))))))
 		 (t
 			(goto-char (point-min))
       (re-search-forward "^$")
@@ -14321,38 +14767,40 @@ Here's the very rough code I use for that:
 			))))
 (defun my-org-insert-shopping-details ()
   (interactive)
-  (org-insert-heading)
-  (save-excursion (yank))
-  (my-org-update-shopping-details)
-  (when (org-entry-get (point) "NAME")
-    (org-edit-headline (org-entry-get (point) "NAME")))
-  (org-end-of-subtree))
+	(save-excursion
+		(org-insert-heading)
+		(save-excursion (yank))
+		(my-org-update-shopping-details)
+		(when (org-entry-get (point) "NAME")
+			(org-edit-headline (org-entry-get (point) "NAME")))))
+
+
+;; (my-org-get-shopping-details-uniqlo "https://www.uniqlo.com/ca/en/products/E451023-000?colorCode=COL07&sizeCode=KSS020")
 (defun my-org-update-shopping-details ()
   (interactive)
   (when (re-search-forward org-link-any-re (save-excursion (org-end-of-subtree)) t)
     (let* ((link (org-element-property :raw-link (org-element-context)))
            data)
-      (if (string-match "theshoecompany\\|dsw" link)
-          (progn
-            (browse-url link)
-            (org-entry-put (point) "URL" link)
-            (unless (org-entry-get (point) "IMAGE")
-              (org-entry-put (point) "IMAGE" (read-string "Image: ")))
-            (unless (org-entry-get (point) "PRICE")
-              (org-entry-put (point) "PRICE" (read-string "Price: "))))
-        (setq data (with-current-buffer (url-retrieve-synchronously link)
-                     (my-get-shopping-details)))
-        (when data
-          (let-alist data
-            (org-entry-put (point) "NAME" .name)
-            (org-entry-put (point) "URL" link)
-            (org-entry-put (point) "BRAND" .brand)
-            (org-entry-put (point) "DESCRIPTION" (replace-regexp-in-string "&#039;" "'" (replace-regexp-in-string "\n" " " (or .description ""))))
-            (org-entry-put (point) "IMAGE" .image)
-						(org-entry-put (point) "PRICE" (cond ((stringp .price) .price) ((numberp .price) (format "%.2f" .price)) (t "")))
-            (if .rating (org-entry-put (point) "RATING" (if (stringp .rating) .rating (format "%.1f" .rating))))
-            (if .ratingCount (org-entry-put (point) "RATING_COUNT" (if (stringp .ratingCount) .ratingCount (number-to-string .ratingCount))))
-            ))))))
+			(setq
+			 data
+			 (or (run-hook-with-args-until-success 'my-get-shopping-details-functions link)
+					 (with-current-buffer (url-retrieve-synchronously link)
+						 (my-get-shopping-details))))
+			(when data
+				(let-alist data
+					(org-entry-put (point) "NAME" .name)
+					(org-entry-put (point) "URL" link)
+					(org-entry-put (point) "BRAND" .brand)
+					(org-entry-put (point) "DESCRIPTION" (replace-regexp-in-string "&#039;" "'" (replace-regexp-in-string "\n" " " (or .description ""))))
+					(org-entry-put (point) "IMAGE"
+												 (if (string-match "https" .image)
+														 .image
+													 (concat "https:" .image)))
+					(org-entry-put (point) "PRICE" (cond ((stringp .price) .price) ((numberp .price) (format "%.2f" .price)) (t "")))
+					(if .rating (org-entry-put (point) "RATING" (if (stringp .rating) .rating (format "%.1f" .rating))))
+					(if .ratingCount (org-entry-put (point) "RATING_COUNT" (if (stringp .ratingCount) .ratingCount (number-to-string .ratingCount))))
+					)))))
+
 (defun my-org-format-shopping-subtree ()
 	(concat
 	 "<style>body { max-width: 100% !important } #content { max-width: 100% !important } .item img { max-height: 100px; }</style><div style=\"display: flex; flex-wrap: wrap; align-items: flex-start\">"
@@ -14379,6 +14827,57 @@ Here's the very rough code I use for that:
 			 (if (org-before-first-heading-p) nil 'tree)))
 		"")
 	 "</div>"))
+
+
+(defun my-get-shopping-details-uniqlo (link)
+	(when (string-match "https://www.uniqlo.com/ca/en/products/\\([^?]+\\)\\(\\?\\(.*\\)\\)?" link)
+		(let ((code (match-string 1 link))
+					(params (org-protocol-convert-query-to-plist (match-string 3 link)))
+					item)
+			(setq item
+						(car
+						 (assoc-default
+							'items
+							(assoc-default
+							 'result
+							 (with-current-buffer
+									 (url-retrieve-synchronously
+										(concat "https://www.uniqlo.com/ca/api/commerce/v3/en/products/" code))
+								 (goto-char (point-min))
+								 (re-search-forward "^$")
+								 (json-parse-buffer :object-type 'alist :array-type 'list :null-object nil))))))
+			(list
+			 (cons 'price
+						 (or (assoc-default
+									'value
+									(or
+									 (assoc-default 'promo (assoc-default 'prices item))
+									 (assoc-default 'base (assoc-default 'prices item))))
+								 ""))
+			 (cons 'image
+						 (assoc-default
+							'url
+							(seq-find
+							 (lambda (entry)
+								 (or (null (plist-get params :colorCode))
+										 (string=
+											(concat "COL" (or (assoc-default 'colorCode entry) ""))
+											(plist-get params :colorCode))))
+							 (assoc-default 'main (assoc-default 'images item)))))
+			 (cons 'price
+						 (or (assoc-default
+									'value
+									(assoc-default
+									 'promo
+									 (assoc-default 'prices item)))
+								 (assoc-default 'base (assoc-default 'prices item))
+								 ""))
+			 (cons 'name
+						 (assoc-default 'name item))
+			 (cons 'description
+						 (concat (assoc-default 'longDescription item) " - "
+										 (assoc-default 'washingDescription item)))
+			 (cons 'url link)))))
 #+end_src
 
 #+RESULTS:
@@ -14761,6 +15260,30 @@ Hmmm, I'm having a hard time getting used to this.
       (message "emacs receives all the keys now")))
   (force-mode-line-update))
 #+end_src
+* Emacspeak
+
+#+begin_src emacs-lisp
+;(setq emacspeak-prefix "\C-E")
+  (defun my-emacspeak ()
+    (interactive)
+    (load-file "/home/sacha/vendor/emacspeak/lisp/emacspeak-setup.el")
+		(global-set-key (kbd "s-e") 'emacspeak-prefix-command)
+		(global-set-key (kbd "C-e") 'end-of-line)
+    (setq emacspeak-use-auditory-icons t)
+    (setq-default emacspeak-use-auditory-icons t)
+    (setq-default dtk-quiet nil)
+    (setq dtk-quiet nil))
+
+  (defun my-emacspeak-quiet ()
+    (interactive)
+    (setq emacspeak-use-auditory-icons nil)
+    (setq-default emacspeak-use-auditory-icons nil)
+    (setq-default dtk-quiet t)
+    (setq dtk-quiet t)
+		(dtk-interp-sync)
+		(ad-disable-regexp "emacspeak"))
+    #+end_src
+
 * Style stuff
 
 #+begin_export html
@@ -14783,7 +15306,6 @@ h6 { font-size: 100% }
 
 </style>
 #+end_export
-
 * Path
 
 #+begin_src emacs-lisp

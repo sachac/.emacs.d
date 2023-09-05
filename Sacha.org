@@ -88,6 +88,7 @@ Here's how we start:
 
 #+NAME: startup
 #+begin_src emacs-lisp
+;; -*- lexical-binding: t -*-
   ;; This sets up the load path so that we can override it
   (setq warning-suppress-log-types '((package reinitialization)))  (package-initialize)
   (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
@@ -293,7 +294,7 @@ From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
 #+END_SRC
 
 
-**** TODO Emacs Hydra: Allow completion when I can't remember the command name
+**** Emacs Hydra: Allow completion when I can't remember the command name
      :PROPERTIES:
      :CREATED:  [2021-04-25 Sun 21:45]
      :Effort:   0:30
@@ -466,178 +467,180 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
      #+begin_src emacs-lisp
 (use-package vertico :config (vertico-mode +1))
 (use-package orderless
-  :custom
-  (completion-styles '(orderless basic))
-  (completion-category-overrides '((file (styles basic partial-completion)))))
+	:custom
+	(completion-styles '(orderless basic))
+	(completion-category-overrides '((file (styles basic partial-completion)))))
+
 (use-package prescient :config (prescient-persist-mode +1))
 (use-package company-prescient :init (company-prescient-mode +1))
 (use-package consult :quelpa (consult :fetcher github :repo "minad/consult")
-  :after projectile
-  :bind (("C-x r x" . consult-register)
-         ("C-x r b" . consult-bookmark)
-         ("C-c k" . consult-kmacro)
-         ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complet-command
-         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
-         ("C-x 5 b" . consult-buffer-other-frame)
-         ("M-#" . consult-register-load)
-         ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
-         ("C-M-#" . consult-register)
-         ("M-g o" . consult-outline)
-         ("M-g h" . consult-org-heading)
-         ("M-g a" . consult-org-agenda)
-         ("M-g m" . consult-mark)
-         ("C-x b" . consult-buffer)
-         ("<help> a" . consult-apropos)            ;; orig. apropos-command
-         ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
-         ("M-g o" . consult-outline)
-         ("M-g m" . consult-mark)
-         ("M-g k" . consult-global-mark)
-         ("M-g i" . consult-imenu)
-         ("M-g I" . consult-project-imenu)
-         ("M-g e" . consult-error)
-         ;; M-s bindings (search-map)
-         ("M-s f" . consult-find)
-         ("M-s L" . consult-locate)
-         ("M-s g" . consult-grep)
-         ("M-s G" . consult-git-grep)
-         ("M-s r" . consult-ripgrep)
-         ("M-s l" . consult-line)
-         ("M-s m" . consult-multi-occur)
-         ("M-s k" . consult-keep-lines)
-         ("M-s u" . consult-focus-lines)
-         ;; Isearch integration
-         ("M-s e" . consult-isearch)
-         ("M-g l" . consult-line)
-         ("M-s m" . consult-multi-occur)
-         ("C-x c o" . consult-multi-occur)
-         ("C-x c SPC" . consult-mark)
-         :map isearch-mode-map
-         ("M-e" . consult-isearch)                 ;; orig. isearch-edit-string
-         ("M-s e" . consult-isearch)               ;; orig. isearch-edit-string
-         ("M-s l" . consult-line))
-  :init
-  (setq register-preview-delay 0
-        register-preview-function #'consult-register-format)
-  :config
-  (setq consult-project-root-function #'projectile-project-root)
-  (setq consult-narrow-key "<"))
+	:after projectile
+	:bind (("C-x r x" . consult-register)
+				 ("C-x r b" . consult-bookmark)
+				 ("C-c k" . consult-kmacro)
+				 ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complet-command
+				 ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+				 ("C-x 5 b" . consult-buffer-other-frame)
+				 ("M-#" . consult-register-load)
+				 ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+				 ("C-M-#" . consult-register)
+				 ("M-g o" . consult-outline)
+				 ("M-g h" . consult-org-heading)
+				 ("M-g a" . consult-org-agenda)
+				 ("M-g m" . consult-mark)
+				 ("C-x b" . consult-buffer)
+				 ("<help> a" . consult-apropos)            ;; orig. apropos-command
+				 ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+				 ("M-g o" . consult-outline)
+				 ("M-g m" . consult-mark)
+				 ("M-g k" . consult-global-mark)
+				 ("M-g i" . consult-imenu)
+				 ("M-g I" . consult-project-imenu)
+				 ("M-g e" . consult-error)
+				 ;; M-s bindings (search-map)
+				 ("M-s f" . consult-find)
+				 ("M-s i" . consult-info)
+				 ("M-s L" . consult-locate)
+				 ("M-s g" . consult-grep)
+				 ("M-s G" . consult-git-grep)
+				 ("M-s r" . consult-ripgrep)
+				 ("M-s l" . consult-line)
+				 ("M-s m" . consult-multi-occur)
+				 ("M-s k" . consult-keep-lines)
+				 ("M-s u" . consult-focus-lines)
+				 ;; Isearch integration
+				 ("M-s e" . consult-isearch)
+				 ("M-g l" . consult-line)
+				 ("M-s m" . consult-multi-occur)
+				 ("C-x c o" . consult-multi-occur)
+				 ("C-x c SPC" . consult-mark)
+				 :map isearch-mode-map
+				 ("M-e" . consult-isearch)                 ;; orig. isearch-edit-string
+				 ("M-s e" . consult-isearch)               ;; orig. isearch-edit-string
+				 ("M-s l" . consult-line))
+	:init
+	(setq register-preview-delay 0
+	      register-preview-function #'consult-register-format)
+	:config
+	(setq consult-project-root-function #'projectile-project-root)
+	(setq consult-narrow-key "<"))
 (use-package marginalia :quelpa (marginalia :fetcher github :repo "minad/marginalia")
-  :init
-  (marginalia-mode)
-  :bind (:map minibuffer-local-completion-map
-              ("M-A" . marginalia-cycle)
-              ;("C-i" . marginalia-cycle-annotators)
+	:init
+	(marginalia-mode)
+	:bind (:map minibuffer-local-completion-map
+							("M-A" . marginalia-cycle)
+																				;("C-i" . marginalia-cycle-annotators)
 							))
 (defun my-sketch-insert-file-as-link (f)
-  (interactive "fSketch: ")
-  (insert (org-link-make-string (concat "sketch:" (file-name-nondirectory f))) "\n"))
+	(interactive "fSketch: ")
+	(insert (org-link-make-string (concat "sketch:" (file-name-nondirectory f))) "\n"))
 (defun my-subed-set-timestamp-to-mpv-position (&optional rest)
-  (interactive)
-  (skip-chars-backward "0-9:,.")
-  (when (looking-at "\\(\\([0-9]+\\):\\)?\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)")
-    (replace-match (save-match-data (subed-msecs-to-timestamp subed-mpv-playback-position)) t t)))
+	(interactive)
+	(skip-chars-backward "0-9:,.")
+	(when (looking-at "\\(\\([0-9]+\\):\\)?\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)")
+	  (replace-match (save-match-data (subed-msecs-to-timestamp subed-mpv-playback-position)) t t)))
 (defun my-embark-subed-timestamp ()
-  (save-excursion
-    (skip-chars-backward "0-9:,.")
-    (when (looking-at "\\(\\([0-9]+\\):\\)?\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)")
-      (list 'subed-timestamp
-            (propertize
-             (match-string 0)
-             'ms (compile-media-timestamp-to-msecs (match-string 0))
-             'position (if (bolp) 'start 'stop))))))
+	(save-excursion
+	  (skip-chars-backward "0-9:,.")
+	  (when (looking-at "\\(\\([0-9]+\\):\\)?\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)")
+	    (list 'subed-timestamp
+						(propertize
+						 (match-string 0)
+						 'ms (compile-media-timestamp-to-msecs (match-string 0))
+						 'position (if (bolp) 'start 'stop))))))
 (defun my-subed-adjust-timestamp (offset)
-  (interactive (list -100))
-  (save-excursion
-    (skip-chars-backward "0-9:,.")
-    (when (looking-at subed-vtt--regexp-timestamp)
-      (let ((new-ts (+ (subed-vtt--timestamp-to-msecs (match-string 0)) offset)))
-        (replace-match (save-match-data
-                         (subed-vtt--msecs-to-timestamp new-ts)))
-        (my-waveform-subed-show-after-time)
-        new-ts))))
+	(interactive (list -100))
+	(save-excursion
+	  (skip-chars-backward "0-9:,.")
+	  (when (looking-at subed-vtt--regexp-timestamp)
+	    (let ((new-ts (+ (subed-vtt--timestamp-to-msecs (match-string 0)) offset)))
+	      (replace-match (save-match-data
+												 (subed-vtt--msecs-to-timestamp new-ts)))
+	      (my-waveform-subed-show-after-time)
+	      new-ts))))
 
 (defun my-subed-adjust-timestamp-up (offset)
-  (interactive (list 100))
-  (subed-mpv-jump (my-subed-adjust-timestamp (- offset))))
+	(interactive (list 100))
+	(subed-mpv-jump (my-subed-adjust-timestamp (- offset))))
 
 (defun my-subed-adjust-timestamp-down (offset)
-  (interactive (list -100))
-  (subed-mpv-jump (my-subed-adjust-timestamp (- offset))))
+	(interactive (list -100))
+	(subed-mpv-jump (my-subed-adjust-timestamp (- offset))))
 
 (defhydra my-subed-adjust-timestamp ()
-  ("<up>" my-subed-adjust-timestamp-up "Up" :exit nil)
-  ("<down>" my-subed-adjust-timestamp-down "Down" :exit nil))
+	("<up>" my-subed-adjust-timestamp-up "Up" :exit nil)
+	("<down>" my-subed-adjust-timestamp-down "Down" :exit nil))
 
 (defun my-subed-copy-timestamp-from-previous ()
-  (interactive)
-  (let ((ms (save-excursion (subed-backward-subtitle-time-stop) (subed-subtitle-msecs-stop))))
-    (subed-set-subtitle-time-start ms)))
+	(interactive)
+	(let ((ms (save-excursion (subed-backward-subtitle-time-stop) (subed-subtitle-msecs-stop))))
+	  (subed-set-subtitle-time-start ms)))
 (defun my-subed-copy-timestamp-to-next ()
-  (interactive)
-  (let ((ms (subed-subtitle-msecs-stop)))
-    (save-excursion
-      (subed-forward-subtitle-time-stop) (subed-set-subtitle-time-start ms))))
+	(interactive)
+	(let ((ms (subed-subtitle-msecs-stop)))
+	  (save-excursion
+	    (subed-forward-subtitle-time-stop) (subed-set-subtitle-time-start ms))))
 (defun my-subed-copy-timestamp-dwim ()
-  (interactive)
-  (save-excursion
-    (skip-chars-backward "0-9:,.")
-    (if (bolp)
-        (my-subed-copy-timestamp-from-previous)
-      (my-subed-copy-timestamp-to-next))))
+	(interactive)
+	(save-excursion
+	  (skip-chars-backward "0-9:,.")
+	  (if (bolp)
+	      (my-subed-copy-timestamp-from-previous)
+	    (my-subed-copy-timestamp-to-next))))
 
 (use-package embark
-  :quelpa (embark :fetcher github :repo "oantolin/embark")
-  :config
-  (load-library "embark-org")
-  (setq embark-prompter 'embark-keymap-prompter)
-  (add-to-list 'embark-target-finders 'my-embark-org-element)
-  (add-to-list 'embark-target-finders 'my-embark-subed-timestamp)
-  (add-to-list 'embark-target-injection-hooks '(my-journal-post embark--allow-edit))
-  (embark-define-keymap embark-subed-timestamp-actions
-    "Subed timestamp actions"
-    ("." my-subed-set-timestamp-to-mpv-position)
-    ("c" my-subed-copy-timestamp-dwim)
-    ("<up>" my-subed-adjust-timestamp/my-subed-adjust-timestamp-up)
-    ("w" my-waveform-subed-show-after-time)
-    ("<down>" my-subed-adjust-timestamp/my-subed-adjust-timestamp-down))
-  (embark-define-keymap embark-sketch-actions
-    "Org Mode sketch-related actions"
-    ("o" my-sketch-insert-file-as-link)
-    ("v" my-geeqie-view))
-  (embark-define-keymap embark-journal-actions
-    "Journal"
-    ("e" my-journal-edit))
-  (add-to-list 'embark-keymap-alist '(sketch . embark-sketch-actions))
-  (add-to-list 'embark-keymap-alist '(subed-timestamp . embark-subed-timestamp-actions))
-  (add-to-list 'embark-keymap-alist '(journal . embark-journal-actions))
-  :bind
-  (("C-." . embark-act)
-   ("C-;" . embark-act)
-   :map minibuffer-local-map
-   (("C-c e" . embark-act)
-    ("C-;" . embark-act))
-   :map embark-collect-mode-map
-   (("C-c e" . embark-act)
-    ("C-;" . embark-act))
-   :map embark-general-map
-   (("j" . my-journal-post)
-    ("m" . my-stream-message)
-    ("M-w" . (lambda (s) (interactive "MString: ") (kill-new s))))
-   :map embark-symbol-map
-   ("r" . erefactor-rename-symbol-in-buffer)
-   :map embark-variable-map
-   ("l" . edit-list)
-   :map embark-url-map
-   ("c" . my-caption-show)))
+	:quelpa (embark :fetcher github :repo "oantolin/embark")
+	:config
+	(load-library "embark-org")
+	(setq embark-prompter 'embark-keymap-prompter)
+	(add-to-list 'embark-target-finders 'my-embark-org-element)
+	(add-to-list 'embark-target-finders 'my-embark-subed-timestamp)
+	(add-to-list 'embark-target-injection-hooks '(my-journal-post embark--allow-edit))
+	(with-eval-after-load 'subed
+	  (defvar-keymap embark-subed-timestamp-actions
+	    :doc "Subed timestamp actions"
+	    :parent subed-mode-map
+	    "." #'my-subed-set-timestamp-to-mpv-position
+	    "c" #'my-subed-copy-timestamp-dwim
+	    "<up>" #'my-subed-adjust-timestamp/my-subed-adjust-timestamp-up
+	    "w" #'my-waveform-subed-show-after-time
+	    "<down>" #'my-subed-adjust-timestamp/my-subed-adjust-timestamp-down))
+	(defvar-keymap embark-sketch-actions
+	  :doc "Org Mode sketch-related actions"
+	  :parent org-mode-map
+	  "o" #'my-sketch-insert-file-as-link
+	  "v" #'my-geeqie-view)
+	(defvar-keymap embark-journal-actions
+	  :doc "Journal"
+	  "e" #'my-journal-edit)
+	(add-to-list 'embark-keymap-alist '(sketch . embark-sketch-actions))
+	(add-to-list 'embark-keymap-alist '(subed-timestamp . embark-subed-timestamp-actions))
+	(add-to-list 'embark-keymap-alist '(journal . embark-journal-actions))
+	:bind
+	(("C-." . embark-act)
+	 ("C-;" . embark-act)
+	 :map minibuffer-local-map
+	 (("C-c e" . embark-act)
+	  ("C-;" . embark-act))
+	 :map embark-collect-mode-map
+	 (("C-c e" . embark-act)
+	  ("C-;" . embark-act))
+	 :map embark-general-map
+	 (("j" . my-journal-post)
+	  ("m" . my-stream-message)
+	  ("M-w" . (lambda (s) (interactive "MString: ") (kill-new s))))
+	 :map embark-symbol-map
+	 ("r" . erefactor-rename-symbol-in-buffer)
+	 :map embark-variable-map
+	 ("l" . edit-list)
+	 :map embark-url-map
+	 ("c" . my-caption-show)))
 
 
 (use-package
-  embark-consult
-  :after (embark consult)
-  :demand t                ; only necessary if you have the hook below
-  ;; if you want to have consult previews as you move around an
-  ;; auto-updating embark collect buffer
-  :hook (embark-collect-mode . embark-consult-preview-minor-mode))
+	embark-consult
+	:after (embark consult)
+	)
      #+end_src
 **** Using projects as a source for consult-buffer
 
@@ -680,6 +683,9 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
   nil)
 
 (defvar my-sketch-preview nil "Non-nil means preview images.")
+(defun my-find-sketch (file)
+	(interactive (list (my-complete-sketch-filename)))
+	(find-file file))
 (defun my-complete-sketch-filename ()
   (interactive)
   (consult--read (or my-sketches (my-update-sketch-cache))
@@ -687,6 +693,34 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
    :state 'my-preview-image
    :prompt "Sketch: "
    :category 'sketch))
+
+(defun my-sketch-prepare-post (file)
+	(interactive (list (my-complete-sketch-filename)))
+	(insert (org-link-make-string (concat "sketchFull:" (file-name-base file))))
+	(let ((text (my-sketch-text file)))
+		(when text
+			(insert (format
+							 "\n\n#+begin_my_src \"Text from %s\"\n%s\n#"))
+			)
+
+		)
+)
+
+(defun my-sketch-text (file)
+	(setq file
+				(if (string-match ".json" file) file
+					(concat (file-name-sans-extension file) ".json")))
+	(when (file-exists-p file)
+		(with-temp-buffer
+			(insert-file-contents file)
+			(goto-char (point-min))
+			(let ((json-object-type 'alist))
+				(assoc-default 'description (elt (assoc-default 'textAnnotations (json-read)) 0))))))
+
+(defun my-sketch-insert-text-from-json (file)
+	(interactive "FJSON: ")
+	(let ((text (my-sketch-text file)))
+		(insert (or text ""))))
 
 (use-package marginalia
   :config
@@ -1464,6 +1498,7 @@ it work. Some things still aren't quite right.
   (when (display-graphic-p)
     (load-theme (car modus-themes-to-toggle))))
 (use-package modus-themes
+	:quelpa (modus-themes :fetcher github :repo "protesilaos/modus-themes")
 	:init (setq modus-themes-to-toggle '(modus-vivendi modus-operandi))
 	:config (my-setup-color-theme))
 #+END_SRC
@@ -1615,6 +1650,25 @@ I should get the hang of using =helm-org-rifle= and =ripgrep=.
   (setq consult-recoll-search-flags nil)
   :bind
   ("M-s s" . consult-recoll))
+#+end_src
+*** Ediff
+
+http://yummymelon.com/devnull/surprise-and-emacs-defaults.html
+#+begin_src emacs-lisp
+(setq ediff-split-window-function 'split-window-horizontally)
+(setq ediff-window-setup-function 'ediff-setup-windows-plain)
+(defvar my-ediff-last-windows nil)
+
+(defun my-store-pre-ediff-winconfig ()
+"Store `current-window-configuration' in variable `my-ediff-last-windows'."
+(setq my-ediff-last-windows (current-window-configuration)))
+
+(defun my-restore-pre-ediff-winconfig ()
+"Restore window configuration to stored value in `my-ediff-last-windows'."
+(set-window-configuration my-ediff-last-windows))
+
+(add-hook 'ediff-before-setup-hook #'my-store-pre-ediff-winconfig)
+(add-hook 'ediff-quit-hook #'my-restore-pre-ediff-winconfig)
 #+end_src
 *** Hideshow
 
@@ -1796,6 +1850,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
   ("C-c f" . #'my-file-shortcuts/body))
   #+end_src
 
+
 *** Key chords
 :PROPERTIES:
 :CUSTOM_ID: key-chord
@@ -1896,6 +1951,7 @@ From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el, this makes =M
 
 #+begin_src emacs-lisp
 (setq dired-listing-switches "-altr")
+(setq dired-dwim-target 'dired-dwim-target-next)
 #+end_src
 
 From http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-dired/
@@ -2148,7 +2204,10 @@ Based on https://www.reddit.com/r/emacs/comments/idz35e/emacs_27_can_take_svg_sc
   "Save a screenshot of the current frame as an SVG image.
 Saves to a temp file and puts the filename in the kill ring."
   (interactive)
-  (let* ((filename (format-time-string "~/screenshots/%Y-%m-%d-%H-%M-%S.svg"))
+  (let* ((filename
+					(expand-file-name
+					 (format-time-string "%Y-%m-%d-%H-%M-%S.svg")
+					 my-recordings-dir))
          (data (x-export-frames nil 'svg)))
     (with-temp-file filename
       (insert data))
@@ -2509,15 +2568,7 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
   (:map subed-mode-map
         ("M-j" . avy-goto-char-timer)
         ("M-j" . subed-mpv-jump-to-current-subtitle)
-        ("M-[" . subed-mpv-seek))
-  :hook
-  ((subed-mode . subed-disable-sync-point-to-player)
-   (subed-mode . subed-disable-sync-player-to-point)
-   (subed-mode . subed-disable-loop-over-current-subtitle)
-   (subed-mode . save-place-local-mode)
-   (subed-mode . turn-on-auto-fill)
-   (subed-mode . (lambda () (setq-local fill-column 40)))
-   (subed-mode . (lambda () (remove-hook 'before-save-hook 'subed-sort t)))))
+        ("M-!" . subed-mpv-seek)))
 (use-package subed-record :load-path "~/proj/subed-record"
   :config
   (remove-hook 'subed-sanitize-functions 'subed-sort)
@@ -2676,14 +2727,36 @@ falling back to the proportional method if the data is not available.
   (autoload 'subed-srt-mode "subed-srt" nil t)
   (autoload 'subed-ass-mode "subed-ass" nil t)
   (autoload 'subed-txt-mode "subed-txt" nil t)
-  (autoload 'subed-align "subed-align" nil t)
   :hook
   (subed-mode . display-fill-column-indicator-mode)
   (subed-mode . subed-avy-set-up-actions)
   :bind
   (:map subed-mode-map
         ("M-," . subed-split-subtitle)
-        ("M-." . subed-merge-dwim)))
+        ("M-." . subed-merge-dwim))
+	:config
+	;; Remember cursor position between sessions
+	(add-hook 'subed-mode-hook 'save-place-local-mode)
+	;; Some reasonable defaults
+	(add-hook 'subed-mode-hook 'subed-enable-pause-while-typing)
+	;; As the player moves, update the point to show the current subtitle
+	(add-hook 'subed-mode-hook 'subed-enable-sync-point-to-player)
+	;; As your point moves in Emacs, update the player to start at the current subtitle
+	(add-hook 'subed-mode-hook 'subed-enable-sync-player-to-point)
+	;; Replay subtitles as you adjust their start or stop time with M-[, M-], M-{, or M-}
+	(add-hook 'subed-mode-hook 'subed-enable-replay-adjusted-subtitle)
+	;; Loop over subtitles
+	(add-hook 'subed-mode-hook 'subed-enable-loop-over-current-subtitle)
+	;; Show characters per second
+	(add-hook 'subed-mode-hook 'subed-enable-show-cps)
+  (add-hook 'subed-mode-hook (lambda () (remove-hook 'before-save-hook 'subed-sort t)))
+	(with-eval-after-load 'consult
+		(advice-add 'consult-buffer :around
+								(lambda (f &rest r)
+									(let ((subed-auto-play-media nil))
+										(apply f r)))))
+
+	)
 #+end_src
 
 That way, I can use the word-level timing information for most of the
@@ -3113,52 +3186,171 @@ https://github.com/sachac/plover-websocket-el
   ;;  (benchmark-run 2 (my-plover-search-dictionary-for-strokes "^THER/")))
 
 #+end_src
-*** Recent words
 
-I want to be able to quickly find hints for recent words, even ones I ended up typing on my keyboard.
+*** Adding steno hints as I type                                :steno:emacs:
+:PROPERTIES:
+:EXPORT_DATE: 2023-01-26T14:15:20-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/adding-steno-hints-as-i-type/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/adding-steno-hints-as-i-type/
+:END:
 
-#+begin_src emacs-lisp
-(defvar my-steno-dict nil)
-(defun my-steno-load-dictionary ()
-	(interactive)
-	(with-temp-buffer
-		(insert-file-contents "~/vendor/steno-dictionaries/./dictionaries/dict.json")
-		(goto-char (point-min))
-		(setq my-steno-dict
-					(seq-group-by 'cdr
-												(json-parse-buffer :object-type 'alist)))))
+When I type with steno, I want to see little hints. I borrowed some
+code from company-posframe to display hints based on the last few
+words, even ones I ended up fingerspelling or typing on my keyboard.
+This makes it easier to learn new words if I have to spell them out.
+There's probably a better way to do it, but this is a good start.
 
-(defun my-steno-lookup (search)
-	(or (assoc search my-steno-dict)
-			(assoc (downcase search) my-steno-dict)))
+#+CAPTION: This is how the hint appears
+[[file:/home/sacha/recordings/2023-01-26_14-18-32.png]]
 
+#+begin_src emacs-lisp :summary "Steno hint code" :exports both :results silent
+(defvar my-steno-hint-dict nil)
+(defvar my-steno-hint-dictionaries
+	'("~/.config/plover/user.json"
+		"~/vendor/steno-dictionaries/dictionaries/dict.json"))
 (defvar my-steno-hint-buffer " *steno hint*")
 
-(defun my-steno-lookup-recent ()
+(defun my-steno-hint-load-dictionary ()
 	(interactive)
-	(let ((pos (point)) result hint)
-		(save-excursion
-			(dotimes (i 4)
-				(backward-word)
-				(setq result
-							(cons (my-steno-lookup (string-trim (buffer-substring-no-properties (point) pos))) result)))
-			(setq result (delq nil result)))
-		(if result
-				(progn
-					(with-current-buffer (get-buffer-create my-steno-hint-buffer)
-						(erase-buffer)
-						(insert
-						 (propertize
-							(mapconcat (lambda (entry)
-													 (concat
-														(car entry) ": "
-														(mapconcat (lambda (stroke)
-																				 (symbol-name (car stroke)))
-																			 (cdr entry) ", ")))
-												 result "\n")
-							'face 'lispy-face-hint)))
-					(posframe-show my-steno-hint-buffer :position (point)))
-			(posframe-hide my-steno-hint-buffer))))
+	(setq my-steno-hint-dict
+				(seq-mapcat
+				 (lambda (filename)
+					 (with-temp-buffer
+						 (insert-file-contents filename)
+						 (goto-char (point-min))
+						 (json-parse-buffer :object-type 'alist)))
+				 my-steno-hint-dictionaries)))
+
+(defun my-steno-hint-lookup (search)
+	(let ((search-list (list search (downcase search))))
+		(seq-group-by
+		 'cdr
+		 (seq-filter
+			(lambda (entry)
+				(member (cdr entry) search-list))
+			my-steno-hint-dict))))
+
+(defun my-steno-hint-find (&optional buffer)
+	"Return a steno hint for the last 1-4 words, if any."
+	(setq buffer (or buffer (current-buffer)))
+	(when (buffer-live-p buffer)
+		(with-current-buffer buffer
+			(let ((pos (point)) result hint)
+				(save-excursion
+					(dotimes (i 4)
+						(backward-word)
+						(setq result
+									(cons
+									 (my-steno-hint-lookup
+										(string-trim (buffer-substring-no-properties (point) pos)))
+									 result)))
+					(delq nil result))))))
+
+(defvar my-steno-hint-display-functions '(my-steno-hint-show-posframe))
+
+(defun my-steno-hint-show-posframe (result &optional command)
+	(if (and result (or (null command)
+											(member command '(self-insert-command org-self-insert-command))))
+			(progn
+				(with-current-buffer (get-buffer-create my-steno-hint-buffer)
+					(erase-buffer)
+					(insert
+					 (propertize
+						(mapconcat
+						 (lambda (entries)
+							 (mapconcat
+								(lambda (entry)
+									(concat
+									 (car entry) ": "
+									 (mapconcat (lambda (stroke)
+																(symbol-name (car stroke)))
+															(cdr entry) ", ")))
+								entries "\n"))
+						 result "\n")
+						'face 'lispy-face-hint)
+					 "\n"
+					 (mapconcat 'my-steno-hint-propertized-layout
+											 (split-string (symbol-name (car (cadar (car result)))) "/")
+											 "\n\n")))
+				(posframe-show my-steno-hint-buffer :position (point) :border-width 1))
+		(posframe-hide my-steno-hint-buffer)))
+
+(defvar my-steno-hint--timer nil)
+
+(defun my-steno-hint-recent-when-idle ()
+	(interactive)
+	(when (timerp my-steno-hint--timer)
+		(cancel-timer my-steno-hint--timer))
+	(setq my-steno-hint--timer
+				(run-with-idle-timer 0.1 nil #'my-steno-hint-recent (current-buffer) this-command)))
+
+(defun my-steno-hint-recent (buffer command)
+	(interactive)
+	(setq my-steno-hint--timer nil)
+	(run-hook-with-args 'my-steno-hint-display-functions (my-steno-hint-find buffer) command))
+
+(defun my-steno-split-keys (s)
+	"Return a list of individual steno keys for RTFCRE."
+	(when (string-match "\\([STKPWHR]*\\)\\(-\\|\\([AOEU*]+\\)\\)\\([FRPBLGTSDZ]*\\)" s)
+		(append
+		 (mapcar (lambda (ch) (format "%s-" (char-to-string ch))) (match-string 1 s))
+		 (mapcar 'char-to-string (match-string 3 s))
+		 (mapcar (lambda (ch) (format "-%s" (char-to-string ch))) (match-string 4 s)))))
+;; (my-steno-split-keys "HR-")
+;; (my-steno-split-keys "HRAEUT")
+;; (my-steno-split-keys "HR*T")
+
+(defun my-steno-hint-propertized-layout (s)
+	(let ((keys (my-steno-split-keys s))
+				(steno-layout "STPH*FPLTD\nSKWR*RBGSZ\n  AO EU")
+				after-mid)
+		(mapconcat
+		 (lambda (ch)
+			 (setq ch (char-to-string ch))
+			 (pcase ch
+				 ("\n" (setq after-mid nil) "\n")
+				 (" " "  ")
+				 (_
+					(let (found)
+						(if (string-match "[AEOU*]" ch)
+								(setq after-mid t
+											found (member ch keys))
+							(setq found
+										(member
+										 (if after-mid (concat "-" ch)
+											 (concat ch "-"))
+										 keys)))
+						(if found
+							(concat (propertize ch 'face '(:inverse-video t)) " ")
+							(concat ch " "))))))
+		 steno-layout
+		 "")))
+
+(defun my-steno-hint-window-change ()
+	(when (posframe-workable-p)
+		(unless (string= (buffer-name)
+										 my-steno-hint-buffer)
+			(when (and my-steno-hint-buffer
+								 (get-buffer my-steno-hint-buffer))
+				(posframe-hide my-steno-hint-buffer)))))
+
+(define-minor-mode my-steno-hint-minor-mode
+	"Show hints for recent words."
+	:init-value nil
+	:lighter "Hint"
+	(if my-steno-hint-minor-mode
+			(progn
+				(unless my-steno-hint-dict (my-steno-hint-load-dictionary))
+				(add-hook 'post-command-hook #'my-steno-hint-recent-when-idle nil t)
+				(add-hook 'window-configuration-change-hook #'my-steno-hint-window-change))
+
+		(remove-hook 'post-command-hook #'my-steno-hint-recent-when-idle t)
+		(remove-hook 'window-configuration-change-hook #'my-steno-hint-window-change)
+		(when (timerp my-steno-hint--timer)
+			(cancel-timer my-steno-hint--timer))
+		(when (and my-steno-hint-buffer
+							 (get-buffer my-steno-hint-buffer))
+			(posframe-delete my-steno-hint-buffer))))
 #+end_src
 
 *** Running Plover drills from Emacs
@@ -4410,7 +4602,7 @@ These are great for quickly acting on tasks.
   (interactive (list (if current-prefix-arg
                          (read-string (format "Note (%s): " (org-get-heading t t t t)))
                        (org-get-heading t t t t))
-                     (or (org-entry-get (point) "JOURNAL_CAT") (my-journal-read-category))))
+                     (or (org-entry-get (point) "JOURNAL_CAT") (my-journal-read-category (my-journal-guess-category)))))
   (my-org-with-current-task
    (org-todo "DONE")
    (org-entry-put (point) "JOURNAL_CAT" category)
@@ -4737,18 +4929,23 @@ able to clock in on them.
 (setq org-outline-path-complete-in-steps nil)
 (setq org-refile-allow-creating-parent-nodes 'confirm)
 (setq org-refile-use-cache nil)
-(setq org-refile-targets '((("~/sync/orgzly/organizer.org"
-                             "~/sync/orgzly/routines.org"
-                             "~/sync/orgzly/business.org"
-                             "~/sync/orgzly/reference.org"
-                             "~/sync/orgzly/decisions.org"
-                             "~/sync/emacs/Sacha.org"
-                             "~/sync/orgzly/posts.org"
-                             "~/sync/orgzly/people.org"
-                             "~/sync/orgzly/Inbox.org"
-                             "~/proj/emacsconf/wiki/2022/organizers-notebook/index.org") . (:maxlevel . 5))))
 (setq org-blank-before-new-entry nil)
+
+(setq org-refile-targets
+			'((("~/sync/orgzly/organizer.org"
+					"~/sync/orgzly/routines.org"
+					"~/sync/orgzly/business.org"
+					"~/sync/orgzly/reference.org"
+					"~/sync/orgzly/garden.org"
+					"~/sync/orgzly/decisions.org"
+					"~/sync/emacs/Sacha.org"
+					"~/sync/orgzly/posts.org"
+					"~/sync/orgzly/people.org"
+					"~/sync/orgzly/Inbox.org"
+					"~/proj/emacsconf/wiki/2022/organizers-notebook/index.org")
+				 . (:maxlevel . 5))))
 #+end_src
+
 
 ***** TEACH Jump to Org location by substring
 :PROPERTIES:
@@ -5277,6 +5474,7 @@ only a few of them them for faster scanning.
             (mapcar (lambda (x) (and x (file-exists-p x) x))
                     `("~/sync/orgzly/organizer.org"
                       "~/sync/orgzly/Inbox.org"
+                      "~/sync/orgzly/garden.org"
                       "~/sync/orgzly/decisions.org"
                       "~/sync/orgzly/computer-inbox.org"
                       "~/sync/emacs/Sacha.org"
@@ -5520,7 +5718,9 @@ hang of using these more!
 (defun my-org-agenda-skip-scheduled ()
   (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
 
-(use-package org-super-agenda)
+(use-package org-super-agenda
+	:init
+	(org-super-agenda-mode 1))
 (use-package org-ql)
 (defun my-org-projects ()
   (interactive)
@@ -6233,10 +6433,10 @@ Now we put it all together...
     (save-restriction
       (narrow-to-region beg end)
       (goto-char (point-min))
-      (while (re-search-forward org-any-link-re nil t)
+      (while (re-search-forward org-link-any-re nil t)
         (save-excursion
           (backward-char)
-          (org-open-at-point))))))
+					(browse-url (match-string 0)))))))
 #+end_src
 
 **** Monthly reviews
@@ -6452,14 +6652,10 @@ refile.
 (defvar my-org-last-refile-marker nil "Marker for last refile")
 (defun my-org-refile-in-file (&optional prefix)
   "Refile to a target within the current file."
-  (require 'helm-org)
   (interactive)
-  (let ((helm-org-headings-actions
-         '(("Refile to this heading" . helm-org--refile-heading-to))))
-    (save-excursion
-      (helm-org-in-buffer-headings)
-      (org-end-of-subtree t)
-      (setq my-org-last-refile-marker (point-marker)))))
+	(let ((org-refile-targets (list (cons (list (buffer-file-name)) '(:maxlevel . 5)))))
+		(call-interactively 'org-refile)
+		(setq my-org-last-refile-marker (plist-get org-bookmark-names-plist :last-refile))))
 
 (defun my-org-refile-to-previous ()
   "Refile subtree to last position from `my-org-refile-in-file'."
@@ -6540,6 +6736,20 @@ appropriate level.
         (:tangle . "no")))
 (setq org-edit-src-auto-save-idle-delay 5)
     #+end_src
+**** Format source
+
+[[https://apps.bram85.nl/git/bram/gists/src/commit/118c5a579a231862f4d1a548afe071e450af4e03/gists/format-org-mode-source-blocks.el][gists/format-org-mode-source-blocks.el at 118c5a579a231862f4d1a548afe071e450af4e03 - gists - Forgejo]]
+
+#+begin_src emacs-lisp
+(use-package format-all :if my-laptop-p)
+
+(use-package org
+  :config
+  (defun my/format-all-advice ()
+    (ignore-errors               ; in case there's no language support
+      (format-all-buffer)))
+  (advice-add #'org-edit-src-exit :before #'my/format-all-advice))
+#+end_src
 
 **** TODO Execute named babel block
 
@@ -6861,8 +7071,20 @@ This is extracted from lines like:
 
 
 #+end_src
+***** Linking to blog posts
 
+#+begin_src emacs-lisp
+(use-package org
+	(org-link-set-parameters
+	 "blog"
+	 :follow #'my-org-blog-open
+	 :export #'my-org-blog-export
+	 :complete #'my-org-blog-complete
+	 )
 
+	)
+
+#+end_src
 ***** Moving my Org post subtree to the 11ty directory :11ty:org:emacs:blogging:
 :PROPERTIES:
 :EXPORT_DATE: 2023-01-09T11:07:23-0500
@@ -7084,6 +7306,70 @@ I want to be able to export without having to say yes to code blocks all the tim
 )
 
 #+end_src
+**** Adding a custom header argument to Org Mode source blocks and using that argument during export  :org:emacs:
+:PROPERTIES:
+:EXPORT_DATE: 2023-01-27T10:11:01-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/adding-a-custom-header-argument-to-org-mode-source-blocks-and-using-that-argument-during-export/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/adding-a-custom-header-argument-to-org-mode-source-blocks-and-using-that-argument-during-export/
+:END:
+
+I sometimes want to put long source blocks in a
+~<details><summary>...</summary>...</details>~ block when I export to
+HTML, so that they're tucked away in a collapsible block. I tried
+using ~https://github.com/alhassy/org-special-block-extras~ to define
+my own ~#+begin_my_details "summary text" ... #+end_my_details~ block,
+but source blocks inside ~my_details~ doesn't get fontlocked properly
+while in the Org file. I wanted to add a ~:summary~ attribute to the
+regular src blocks, and to change the HTML export to wrap the code in
+~details~ if the summary was specified.
+
+#+begin_src emacs-lisp :summary "Code for adding a :summary argument and using it during export"
+(setq org-babel-exp-code-template "#+begin_src %lang%switches%flags :summary %summary\n%body\n#+end_src")
+(defun my-org-html-src-block (src-block _contents info)
+	(let* ((result (org-html-src-block src-block _contents info))
+				 (block-info
+					(org-with-point-at (org-element-property :begin src-block)
+						(org-babel-get-src-block-info)))
+				 (summary (assoc-default :summary (elt block-info 2))))
+		(if (member summary '("%summary" ""))
+				result
+			(format "<details><summary>%s</summary>%s</details>"
+							summary
+							result))))
+(with-eval-after-load 'ox-html
+	(map-put!
+	 (org-export-backend-transcoders (org-export-get-backend 'html))
+	 'src-block 'my-org-html-src-block))
+#+end_src
+
+So now I can use it by specifying blocks like this:
+
+#+begin_src org
+,#+begin_src emacs-lisp :summary "Code for adding a :summary argument and using it during export"
+;; code goes here
+,#+end_src
+#+end_src
+
+It took me a bit of digging around to figure this out. When I added
+the ~:summary~ attribute, ~org-babel-get-src-block-info~ found it when
+I was in the Org file, but by the time ~my-org-html-src-block~ was
+called, the block had been replaced with a copy that didn't have the
+header argument. I dug around using edebug's ~d~ command for
+displaying the backtrace, stepping through various functions. I found
+out that in the process for exporting source code blocks,
+~org-babel-exp-code~ replaces the source block with the value of
+~org-babel-exp-code-template~, substituting certain values. Adding the
+~summary~ flag to that and retrieving the summary information using
+~org-babel-get-src-block-info~ worked. I originally used ~advice-add~
+to override ~org-html-src-block~, but I think I'll try replacing the
+transcoder.
+
+Adding custom header arguments could be useful for different
+export-related tweaks (someone wanted to [[https://www.reddit.com/r/emacs/comments/fhac4x/how_can_i_create_a_custom_property_for_orgmode/][create an argument for
+highlighting certain lines]] but hadn't figured it out in that
+thread). If there's a more elegant way to do this, I'd love to find
+out!
+
 **** Stylesheet / header
 Might as well take advantage of my stylesheet:
 
@@ -7505,12 +7791,18 @@ http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS
 #+end_src
 
 *** Links
+**** IDs
+#+begin_src emacs-lisp
+(setq org-id-method 'ts)
+(setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
+#+end_src
+
 **** Quick links
 #+begin_src emacs-lisp
 (setq org-link-abbrev-alist
       '(("google" . "http://www.google.com/search?q=")
         ("gmap" . "http://maps.google.com/maps?q=%s")
-        ("blog" . "http://sachachua.com/blog/p/")))
+        ))
 #+end_src
 
 **** Custom links
@@ -7635,6 +7927,21 @@ So that I can easily add links at point. Formatted as an Org list for now.
  "elisp"
  :export 'my-org-elisp-link-export)
    #+end_src
+**** IRC
+#+begin_src emacs-lisp
+(org-link-set-parameters
+ "ircs"
+ :export
+ (lambda (link description format)
+   "Export an ircs link.
+See `org-link-parameters' for details about LINK, DESCRIPTION and
+FORMAT."
+   (let ((desc (or description link)))
+     (pcase format
+       (`html (format "<a href=\"ircs:%s\">%s</a>" link desc))
+       (`md (format "[%s](ircs:%s)" desc link))
+       (_ nil)))))
+#+end_src
 **** Dired
 :PROPERTIES:
 :CUSTOM_ID: org-dired
@@ -7833,10 +8140,18 @@ So that I can easily add links at point. Formatted as an Org list for now.
 (defun my-journal-read-category (&optional initial)
   (consult--read my-journal-categories :sort nil :prompt "Category: " :initial initial))
 
+(defun my-journal-guess-category ()
+	(save-excursion
+		(org-back-to-heading)
+		(org-end-of-meta-data)
+		(let ((text (buffer-substring-no-properties (point) (org-end-of-subtree))))
+			(if (string-match "#gardening" text)
+					"Household"))))
+
 (defun my-journal-post (note &rest plist)
   (interactive (list (read-string "Note: ")
-                           :Date (concat (org-read-date "Date: ") " 23:00")
-                     :Category (my-journal-read-category)
+                     :Date (concat (org-read-date "Date: ") " 23:00")
+                     :Category (my-journal-read-category (condition-case nil (my-journal-guess-category) (error nil)))
                      :Other (read-string "Other: ")))
   (setq plist (append `(:Note ,note) plist))
   (let ((url-request-method "POST")
@@ -8175,7 +8490,56 @@ This lets me define a custom link type.
                                                              (my-journal-get-refs-from-region beg end)
                                                              " "))))
    #+end_src
+**** Tagging journal entries
 
+#+begin_src emacs-lisp
+
+(defun my-journal-list-toggle-monthly-highlight ()
+	(interactive)
+	(let ((entry (tabulated-list-get-entry)))
+		(setf (elt entry 3) (if (string-match "#monthly-highlight" (elt entry 3))
+														(replace-regexp-in-string " ?#monthly-highlight" "" (elt entry 3))
+													(string-trim (concat (elt entry 3) " #monthly-highlight"))))
+		(my-journal-update
+		 (list :ZIDString (elt entry 0)
+					 :Other (elt entry 3)))
+		(tabulated-list-print t t)))
+
+(defun my-journal-list-echo ()
+	(interactive)
+	(message "%s -- %s" (elt (tabulated-list-get-entry) 2) (elt (tabulated-list-get-entry) 3)))
+
+(defvar-keymap my-journal-list-mode-map
+	:parent tabulated-list-mode-map
+	"t" #'my-journal-list-toggle-monthly-highlight
+	"v" #'my-journal-list-echo)
+
+(define-derived-mode my-journal-list-mode tabulated-list-mode "Journal"
+	"Major mode for journal entries."
+	(setq tabulated-list-format [("ZID" 14 t)
+															 ("Category" 10 t)
+															 ("Note" 80 nil)
+															 ("Other" 30 nil)])
+	(tabulated-list-init-header)
+	(tabulated-list-print t))
+
+(defun my-journal-list (start end filter)
+	(interactive (list (org-read-date "Start: ") (org-read-date "End: ")
+										 (read-string "Filter: ")))
+	(switch-to-buffer (get-buffer-create "*journal*"))
+	(setq tabulated-list-entries
+				(mapcar
+				 (lambda (row)
+					 (list
+						(my-journal-zidstring row)
+						(vector
+						 (my-journal-zidstring row)
+						 (my-journal-category row)
+						 (replace-regexp-in-string "\n" " " (my-journal-note row))
+						 (replace-regexp-in-string "\n" " " (my-journal-other row)))))
+				 (my-journal-get-entries start end filter)))
+	(my-journal-list-mode))
+#+end_src
 
 **** Photos
 #+begin_src emacs-lisp
@@ -8746,8 +9110,20 @@ and turn it into:
 
 **** Org links
 
-From https://xenodium.com/emacs-dwim-do-what-i-mean/
+Based on https://xenodium.com/emacs-dwim-do-what-i-mean/
 #+begin_src emacs-lisp
+(defun my-page-title (url)
+	(with-current-buffer (url-retrieve-synchronously url)
+		(replace-regexp-in-string
+		 "^Github - " ""
+		 (or
+			(dom-text (car
+								 (dom-by-tag (libxml-parse-html-region
+															(point-min)
+															(point-max))
+                             'title)))
+			""))))
+
 (defun ar/org-insert-link-dwim (use-clipboard)
   "Like `org-insert-link' but with personal dwim preferences."
   (interactive (list (equal current-prefix-arg '(4))))
@@ -8758,26 +9134,30 @@ From https://xenodium.com/emacs-dwim-do-what-i-mean/
          (region-content (when (region-active-p)
                            (buffer-substring-no-properties (region-beginning)
                                                            (region-end)))))
-    (cond ((and region-content clipboard-url (not point-in-link))
-           (delete-region (region-beginning) (region-end))
-           (insert (org-link-make-string clipboard-url region-content)))
-          ((and clipboard-url (not point-in-link))
-           (insert (org-link-make-string
-                    clipboard-url
-                    (read-string "title: "
-                                 (with-current-buffer (url-retrieve-synchronously clipboard-url)
-																	 (replace-regexp-in-string
-																		"^Github - " ""
-																		(or
-																		 (dom-text (car
-																							 (dom-by-tag (libxml-parse-html-region
-																														(point-min)
-																														(point-max))
-                                                           'title)))
-																		 "")))))))
-           (t
-           (call-interactively 'org-insert-link)))))
+    (cond
+		 ((and (derived-mode-p 'markdown-mode) region-content clipboard-url)
+			(delete-region (region-beginning) (region-end))
+      (insert (format "[%s](%s)" region-content clipboard-url)))
+		 ((and (derived-mode-p 'markdown-mode) clipboard-url)
+      (insert (format "[%s](%s)" (my-page-title clipboard-url) clipboard-url)))
+		 ((derived-mode-p 'markdown-mode)
+      (insert (format "[%s](%s)" (read-string "Text: ") (read-string "Link: "))))
+		 ((and region-content clipboard-url (not point-in-link))
+      (delete-region (region-beginning) (region-end))
+      (insert (org-link-make-string clipboard-url region-content)))
+     ((and clipboard-url (not point-in-link))
+      (insert (org-link-make-string
+               clipboard-url
+               (read-string "title: "
+														(my-page-title clipboard-url)))))
+     (t
+      (call-interactively 'org-insert-link)))))
 (use-package org :bind (:map org-mode-map ("C-c C-l" . ar/org-insert-link-dwim)))
+(with-eval-after-load 'markdown-mode
+	(define-key markdown-mode-map (kbd "C-c C-l") #'ar/org-insert-link-dwim))
+
+
+
 #+end_src
 *** Clipboard
 #+begin_src emacs-lisp
@@ -8807,6 +9187,10 @@ Use the region if active."
 :EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/linking-to-and-exporting-function-definitions-in-org-mode/
 :END:
 
+#+begin_update
+2023-09-05: fixed the completion to include =defun:=
+#+end_update
+
 I'd like to write more blog posts about little Emacs hacks, and I'd
 like to do it with less effort. Including source code is handy even
 when it's missing some context from other functions defined in the
@@ -8829,13 +9213,13 @@ blog post, navigate back to the function, and export HTML.
 #+begin_src emacs-lisp
 (defun my-org-defun-complete ()
 	"Return function definitions."
-	(completing-read
-	 "Function: "
-	 #'help--symbol-completion-table
-	 #'fboundp
-	 'confirm
-	 nil nil
-	 (and fn (symbol-name fn))))
+	(concat "defun:"
+					(completing-read
+					 "Function: "
+					 #'help--symbol-completion-table
+					 #'fboundp
+					 'confirm
+					 nil nil))) ; 	 (and fn (symbol-name fn)) ?
 
 (defun my-org-defun-export (symbol description format _)
 	"Export the function."
@@ -9058,6 +9442,10 @@ This is something I have to get the hang of too. It gradually expands the select
 (setq eval-expression-print-length nil)
 (setq print-length nil)
 (setq edebug-print-length nil)
+(defun my-set-sentence-end-double-space ()
+	(setq-local sentence-end-double-space t))
+(add-hook 'emacs-lisp-mode-hook
+					'my-set-sentence-end-double-space)
 #+end_src
 **** Let's try this setup
 
@@ -9073,14 +9461,6 @@ Copied from https://www.reddit.com/r/emacs/comments/1051bfu/comment/j38ymkn/?utm
   :ensure t
   :hook
   (emacs-lisp-mode . highlight-quoted-mode))
-
-(use-package highlight-sexp
-  :quelpa
-  (highlight-sexp :repo "daimrod/highlight-sexp" :fetcher github :version original)
-  :hook
-  (clojure-mode . highlight-sexp-mode)
-  (emacs-lisp-mode . highlight-sexp-mode)
-  (lisp-mode . highlight-sexp-mode))
 
 (use-package eros
   :ensure t
@@ -9125,15 +9505,278 @@ Copied from https://www.reddit.com/r/emacs/comments/1051bfu/comment/j38ymkn/?utm
   :hook
   (emacs-lisp-mode . flycheck-elsa-setup))
 #+end_src
+**** Making highlight-sexp follow modus-themes-toggle        :elisp:emacs:
+:PROPERTIES:
+:EXPORT_DATE: 2023-01-26T10:25:38-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/
+:END:
+
+#+begin_update
+[2023-01-27 Fri] Prot just added a [[https://github.com/protesilaos/modus-themes/commit/0ca79257ef941ff5f9ec34f5d76eed2ff35d7752][modus-themes-get-color-value]]
+function. Yay! Also, it turns out that I need to update the overlay in
+all the buffers.
+#+end_update
+
+I'm experimenting with using the ~highlight-sexp~ minor mode to
+highlight my current s-expression, since I sometimes get confused
+about what I'm modifying with smartparens. The highlight-sexp
+background colour is hardcoded in the variable
+~hl-sexp-background-color~, and will probably look terrible if you use
+a light background. I wanted it to adapt when I use
+~modus-themes-toggle~. Here's how that works:
+
+#+CAPTION: highlight-sexp demonstration
+#+begin_src emacs-lisp
+(use-package highlight-sexp
+  :quelpa
+  (highlight-sexp :repo "daimrod/highlight-sexp" :fetcher github :version original)
+  :hook
+  (emacs-lisp-mode . highlight-sexp-mode)
+	:config
+	(defun my-hl-sexp-update-overlay ()
+		(when (overlayp hl-sexp-overlay)
+			(overlay-put
+			 hl-sexp-overlay
+			 'face
+			 `(:background
+				 ,(if (fboundp 'modus-themes-get-color-value)
+							(modus-themes-get-color-value 'bg-inactive)
+						(car
+						 (assoc-default
+							'bg-inactive
+							(modus-themes--current-theme-palette))))))))
+	(defun my-hl-sexp-update-all-overlays (&rest args)
+		(dolist (buf (buffer-list))
+			(with-current-buffer buf
+				(when highlight-sexp-mode
+					(my-hl-sexp-update-overlay)))))
+	(advice-add 'hl-sexp-create-overlay :after 'my-hl-sexp-update-overlay)
+	(advice-add 'modus-themes-load-theme :after 'my-hl-sexp-update-all-overlays))
+#+end_src
+
+This is what it looks like:
+
+#+CAPTION: Animation of highlight-sexp toggling along with modus-themes-toggle
+[[file:/home/sacha/proj/static-blog/blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/highlight-sexp.gif]]
+
+
 **** Testing
 #+begin_src emacs-lisp
-(use-package buttercup)
+(use-package buttercup
+	:hook '(buttercup-minor-mode . my-buttercup-set-up-imenu))
+
 (use-package package-lint)
+#+end_src
+***** Buttercup
+#+begin_src emacs-lisp :lexical t
+(defvar my-buttercup-source-buffer nil)
+(defvar my-buttercup-tests nil)
+(defun my-buttercup-track-source ()
+	(setq my-buttercup-source-buffer (current-buffer))
+	(setq my-buttercup-tests (my-buttercup-tests-and-positions)))
+
+(defun my-buttercup-run-dwim ()
+	(interactive)
+	(let ((lexical-binding t))
+		(if buttercup-minor-mode
+				(my-buttercup-run-closest-at-point)
+			(buttercup-run))))
+
+;; (advice-remove 'buttercup-run 'my-buttercup-track-source)
+(defun my-buttercup-run-closest-at-point ()
+  "Run the buttercup suite at point."
+  (interactive)
+  (let ((lexical-binding t)
+				start)
+		(setq buttercup-suites nil)
+    (save-selected-window
+			(save-excursion
+				(save-restriction
+					;; go up until we find a describe form
+					(while (not (looking-at "([[:space:]]*describe[[:space:]]+"))
+						(backward-up-list nil t))
+					(setq start (point))
+					(forward-sexp)
+					(narrow-to-region start (point))
+					(eval-last-sexp nil)
+					(my-buttercup-track-source)))
+      (buttercup-run))
+    (message "Suite executed successfully")))
+
+(defun my-buttercup-find-test ()
+	(interactive)
+	(when (re-search-backward (make-string 40 ?=) nil t)
+		(forward-line)
+		(let ((pos (assoc-default (buffer-substring (line-beginning-position)
+																								(line-end-position))
+															my-buttercup-tests)))
+			(when pos
+				(pop-to-buffer my-buttercup-source-buffer)
+				(goto-char pos)))))
+
+(defun my-buttercup-test-name ()
+	(save-excursion
+		(let (list)
+			(condition-case err
+					(progn
+						(while (not (bobp))
+							(let ((form (save-excursion
+														(ignore-errors
+															(read (current-buffer))))))
+								(when (listp form) (and (member (car form) '(describe it)))
+											(setq list (cons (cadr form) list)))
+								(backward-up-list nil t)))
+						(string-join list " "))
+				(error
+				 (string-join list " "))))))
+
+(defun my-buttercup-tests-and-positions-lookup ()
+	"Return a list of test names and points, for easier jumping."
+	;; This is a very inefficient implementation. I wonder how to walk the tree...
+	(goto-char (point-min))
+	(cl-loop while (re-search-forward "([[:space:]]*it[[:space:]]+\"" nil t)
+					 collect (cons (my-buttercup-test-name) (point))))
+
+(defun my-buttercup-tests-as-tree ()
+	"Return the tests as nested lists ending with (description . point).
+Useful as `imenu-create-index-function'."
+	(goto-char (point-min))
+	(let (result)
+		(condition-case _
+				(progn
+					(down-list)
+					(while (not (eobp))
+						(cond
+						 ((looking-at "describe\\_>")
+							(forward-sexp)
+							(setq result (cons
+														(cons (read (current-buffer))
+																	(save-restriction
+																		(narrow-to-region
+																		 (point)
+																		 (progn
+																			 (up-list)
+																			 (1- (point))))
+																		(my-buttercup-tests-as-tree)))
+														result)))
+						 ((looking-at "it\\_>")
+							(forward-sexp)
+							(setq result (cons
+														(cons (read (current-buffer)) (point))
+														result))
+							(up-list)
+							(down-list))
+						 (t
+							;; todo, handle other things
+							(up-list)
+							(down-list)))))
+			(scan-error
+			 ;; can't go down or forward
+			 (reverse result)))))
+
+(defun my-buttercup-set-up-imenu ()
+	(setq-local imenu-generic-expression nil)
+	(setq-local imenu-create-index-function #'my-buttercup-tests-as-tree))
+
+(defun my-buttercup-tests-and-positions ()
+	"Return test names and points to jump to."
+	(save-excursion
+		(goto-char (point-min))
+		(condition-case _
+				(progn
+					(down-list)
+					(let (breadcrumbs sym result)
+						(catch 'done
+							(while (not (eobp))
+								(condition-case _
+										(cond
+										 ((looking-at "describe[[:space:]]+")
+											(forward-sexp)
+											(setq breadcrumbs (cons (read (current-buffer)) breadcrumbs))
+											;; ignore :var and :var*
+											(when (looking-at "[\n[:space:]]+:var\\*?")
+												(read (current-buffer))
+												(read (current-buffer)))
+											(down-list))
+										 ((looking-at "it[[:space:]]+")
+											(forward-sexp)
+											(setq result (cons (cons
+																					(string-join
+																					 (reverse
+																						(delq nil
+																									(cons (read (current-buffer)) breadcrumbs)))
+																					 " ")
+																					(point))
+																				 result))
+											(up-list)
+											(down-list))
+										 (t
+											;; might be something else that includes describe or it, so we explore it
+											(setq breadcrumbs (cons nil breadcrumbs))
+											(down-list)
+											))
+									(scan-error
+									 ;; At the innermost thing, time to start going forward
+									 (condition-case _
+											 (progn
+												 ;; Try to go down. If we can, continue
+												 ;; processing. If we can't, go up until we
+												 ;; can go down.
+												 (while (condition-case _
+																		(down-list)
+																	(error t))
+													 (up-list)
+													 (setq breadcrumbs (cdr breadcrumbs))))
+										 (scan-error
+											(error (throw 'done (reverse result)))))))))
+						(reverse result)))
+			(error nil))))
+
+
+(ert-deftest my-buttercup-tests-and-positions ()
+	(with-temp-buffer
+		(insert "(describe \"test\"
+	:var ((test))
+	(it \"1\")
+	(it \"2\")
+	(describe \"b\"
+		(before-each \"do this\")
+		(it \"3\")
+		(it \"4\"))
+	(describe \"c\"
+		(it \"5\")
+		(it \"6\")
+		(it \"7\")
+		(describe \"d\"
+			(it \"8\")))
+	(describe \"e\"
+		(it \"5\")
+		(it \"6\")
+		(it \"7\")
+		(describe \"f\"
+			(it \"8\")))
+	)")
+		(let ((tests (my-buttercup-tests-and-positions)))
+			(expect (assoc "test 1" tests))
+			(expect (assoc "test 2" tests))
+			(expect (assoc "test b 3" tests))
+			(expect (assoc "test b 4" tests))
+			(expect (assoc "test c 5" tests))
+			(expect (assoc "test e f 8" tests)))))
+#+end_src
+***** Undercover
+
+#+begin_src emacs-lisp
+(use-package undercover
+	:quelpa (undercover :fetcher github :repo "undercover-el/undercover.el")
+	)
+(use-package coverage)
 #+end_src
 **** Eldoc
 Eldoc provides minibuffer hints when working with Emacs Lisp.
 #+begin_src emacs-lisp
-(use-package "eldoc"
+(use-package eldoc
   :if my-laptop-p
   :diminish eldoc-mode
   :commands turn-on-eldoc-mode
@@ -9142,7 +9785,50 @@ Eldoc provides minibuffer hints when working with Emacs Lisp.
   (progn
     (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
     (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
-    (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode)))
+    (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode))
+	:config
+	(eldoc-add-command-completions "paredit-")
+	(eldoc-add-command-completions "lispy-"))
+#+end_src
+
+Related:
+- [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-documentation-sources-eldoc][Seamlessly Merge Multiple Documentation Sources with Eldoc - Mastering Emacs]]
+
+#+begin_src emacs-lisp
+(use-package flycheck
+	:if my-laptop-p
+	:preface
+(defun mp-flycheck-eldoc (callback &rest _ignored)
+   "Print flycheck messages at point by calling CALLBACK."
+   (when-let ((flycheck-errors (and flycheck-mode (flycheck-overlay-errors-at (point)))))
+     (mapc
+      (lambda (err)
+        (funcall callback
+           (format "%s: %s"
+                   (let ((level (flycheck-error-level err)))
+                     (pcase level
+                       ('info (propertize "I" 'face 'flycheck-error-list-info))
+                       ('error (propertize "E" 'face 'flycheck-error-list-error))
+                       ('warning (propertize "W" 'face 'flycheck-error-list-warning))
+                       (_ level)))
+                   (flycheck-error-message err))
+           :thing (or (flycheck-error-id err)
+                      (flycheck-error-group err))
+           :face 'font-lock-doc-face))
+      flycheck-errors)))
+  (defun mp-flycheck-prefer-eldoc ()
+    (add-hook 'eldoc-documentation-functions #'mp-flycheck-eldoc nil t)
+    (setq eldoc-documentation-strategy 'eldoc-documentation-compose-eagerly)
+    (setq flycheck-display-errors-function nil)
+    (setq flycheck-help-echo-function nil))
+  :hook ((flycheck-mode . mp-flycheck-prefer-eldoc)))
+(use-package eglot
+	:if my-laptop-p
+  :preface
+  (defun mp-eglot-eldoc ()
+    (setq eldoc-documentation-strategy
+            'eldoc-documentation-compose-eagerly))
+  :hook ((eglot-managed-mode . mp-eglot-eldoc)))
 #+end_src
 
 **** Refactoring  :drill:
@@ -9333,6 +10019,7 @@ From https://ag91.github.io/blog/2020/12/31/top-down-elisping-a-simple-snippet-t
   ([remap describe-variable] . helpful-variable)
   ([remap describe-function] . helpful-callable))
 #+end_src
+
 *** Snippets
 #+begin_src emacs-lisp
 (use-package yasnippet
@@ -9851,7 +10538,7 @@ options to add at the end of the command, but that can wait for another time (or
 
 **** TODO Make this better by adding a post command options variable
 *** Forge
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :eval no :tangle no
 (use-package forge
   :after magit)
 #+end_src
@@ -10079,6 +10766,7 @@ https://www.reddit.com/r/emacs/comments/b6n3t8/what_would_it_take_to_get_termina
 (use-package eshell
   :after xterm-color
   :config
+	(setq eshell-scroll-to-bottom-on-input t)
 	(define-key eshell-mode-map (kbd "<tab>") #'company-complete)
   (define-key eshell-hist-mode-map (kbd "M-r") #'consult-history)
   (add-hook 'eshell-mode-hook
@@ -10477,11 +11165,11 @@ Based on https://github.com/holgerschurig/emacs-doom-config/blob/master/config.e
     "
 Timelines^^   Toots^^^^           Own Toots^^   Profiles^^      Users/Follows^^  Misc^^
 ^^-----------------^^^^--------------------^^----------^^-------------------^^------^^-----
-_H_ome        _n_ext _p_rev       _r_eply       _A_uthors       follo_W_         _X_ lists
-_L_ocal       _T_hread of toot^^  wri_t_e       user _P_rofile  _N_otifications  f_I_lter
+_h_ome        _n_ext _p_rev       _r_eply       _A_uthors       follo_W_         _X_ lists
+_l_ocal       _T_hread of toot^^  wri_t_e       user _P_rofile  _N_otifications  f_I_lter
 _F_ederated   (un) _b_oost^^      _e_dit        ^^              _R_equests       _C_opy URL
 fa_V_orites   (un) _f_avorite^^   _d_elete      _O_wn           su_G_estions     _S_earch
-_#_ tagged    (un) p_i_n^^        ^^            _U_pdate own    _M_ute user      _h_elp
+_#_ tagged    (un) p_i_n^^        ^^            _U_pdate own    _M_ute user      _H_elp
 _@_ mentions  (un) boo_k_mark^^   show _E_dits  ^^              _B_lock user
 boo_K_marks   _v_ote^^
 trendin_g_
@@ -10492,12 +11180,12 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 		("w" my-mastodon-save-toot-for-emacs-news)
 		("o" (org-capture nil "m"))
 		;; more general things
-    ("H" mastodon-tl--get-home-timeline)
-    ("L" mastodon-tl--get-local-timeline)
+    ("h" mastodon-tl--get-home-timeline)
+    ("l" mastodon-tl--get-local-timeline)
     ("F" mastodon-tl--get-federated-timeline)
     ("V" mastodon-profile--view-favourites)
     ("#" mastodon-tl--get-tag-timeline)
-    ("@" mastodon-notifications--get-mentions)
+    ("@" (progn (require 'mastodon) (mastodon-notifications--get-mentions)))
     ("K" mastodon-profile--view-bookmarks)
     ("g" mastodon-search--trending-tags)
     ("u" mastodon-tl--update :exit nil)
@@ -10534,7 +11222,7 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
     ("X" mastodon-tl--view-lists)
     ("C" mastodon-toot--copy-toot-url)
     ("S" mastodon-search--search-query)
-    ("h" describe-mode)
+    ("H" describe-mode)
 
     ("q" nil :exit t)
   )
@@ -10609,6 +11297,107 @@ I can build up my notes.
 #+end_src
 
 Now I can use ~org-feed-update-all~ (~C-c C-x g~) to pull things into my toots.org file.
+** Web
+*** Using Spookfox to scroll Firefox up and down from Emacs  :web:emacs:
+:PROPERTIES:
+:EXPORT_DATE: 2023-01-30T11:02:57-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/using-spookfox-to-scroll-firefox-up-and-down-from-emacs/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/using-spookfox-to-scroll-firefox-up-and-down-from-emacs/
+:CUSTOM_ID: spookfox
+:END:
+
+I open lots of pages in the process of making Emacs News. I like to
+open the pages in Mozilla Firefox, but I want the keyboard focus to
+stay with Emacs so that I can quickly categorize the links. I also
+sometimes want to scroll the page up or down. While reading the
+[[https://bitspook.in/blog/reading-and-not-forgetting/][Reading, and not forgetting]] post, I came across [[https://github.com/bitspook/spookfox][Spookfox]], which
+bridges Emacs and Firefox using an Firefox add-on and websockets.
+After I started spookfox and connected to it by clicking on the
+extension in Firefox, I was able to interact with it from Emacs Lisp.
+I feel a little nervous about it security-wise, but at least it's only
+listening on the local port. There might be another way to do it with
+the Marionette support in Firefox, but I haven't looked into it yet.
+
+#+begin_src emacs-lisp
+(use-package spookfox
+	:quelpa (spookfox :fetcher github :repo "bitspook/spookfox"
+										:files ("lisp/*.el" "lisp/apps/*.el"))
+	:when my-laptop-p
+	:config
+	(require 'spookfox-tabs)
+	(require 'spookfox-org-tabs)
+	(require 'spookfox-js-injection)
+	(add-to-list 'spookfox-enabled-apps 'spookfox-tabs)
+	(add-to-list 'spookfox-enabled-apps 'spookfox-org-tabs)
+	(add-to-list 'spookfox-enabled-apps 'spookfox-js-injection)
+	;; (spookfox-init) ; don't automatically enable it; run (spookfox-init) to manually enable
+	)
+#+end_src
+
+Anyway, this code seems to do the job of scrolling my Firefox window:
+
+#+begin_src emacs-lisp
+(defun my-spookfox-scroll-down ()
+	(interactive)
+ 	(spookfox-eval-js-in-active-tab "window.scrollBy(0, document.documentElement.clientHeight);"))
+
+(defun my-spookfox-scroll-up ()
+	(interactive)
+ 	(spookfox-eval-js-in-active-tab "window.scrollBy(0, -document.documentElement.clientHeight);"))
+
+(global-set-key (kbd "C-s-v") 'my-spookfox-scroll-down)
+(global-set-key (kbd "C-s-S-v") 'my-spookfox-scroll-up)
+#+end_src
+
+This code opens a tab without switching keyboard focus away from Emacs:
+
+#+begin_src emacs-lisp
+(defun my-spookfox-background-tab (url &rest args)
+	"Open URL as a background tab."
+	(if spookfox--connected-clients
+			(spookfox-tabs--request (cl-first spookfox--connected-clients) "OPEN_TAB" `(:url ,url))
+		(browse-url url)))
+#+end_src
+
+My Emacs News code for processing my upvoted Reddit posts can
+automatically grab the links from Reddit link posts, but sometimes
+people post Reddit text or image posts and then include the link to
+the actual project in the post body or a comment instead.
+
+#+begin_src emacs-lisp :lexical t
+(defun my-spookfox-get-links ()
+	(seq-uniq
+ 	 (spookfox-eval-js-in-active-tab "[...(document.querySelector('[data-testid=post-container]')?.parentElement || document).querySelectorAll('a')].map(a => a.href).filter(a => a && (!window.location.host.match(/reddit/) || !a.match(/redd\.?it/)) && !a.match(window.location.host))" t)))
+;;https://emacs.stackexchange.com/questions/41801/how-to-stop-completing-read-ivy-completing-read-from-sorting
+(defun my-presorted-completion-table (completions)
+  (lambda (string pred action)
+    (if (eq action 'metadata)
+        '(metadata
+					(cycle-sort-function . identity)
+					(display-sort-function . identity))
+      (complete-with-action action completions string pred))))
+
+(defun my-spookfox-complete-link (&optional prompt)
+	(completing-read
+	 (or prompt "Link: ")
+	 (my-presorted-completion-table
+		(my-spookfox-get-links))))
+
+(defun my-spookfox-insert-link-from-page (link)
+	(interactive (list (my-spookfox-complete-link)))
+	(insert (org-link-make-string link (my-page-title link))))
+
+(defun my-spookfox-open-link-from-page (link)
+	(interactive (list (my-spookfox-complete-link)))
+	(my-spookfox-background-tab link))
+
+(defun my-spookfox-insert-link-to-tab ()
+	(interactive)
+	(let ((tab (spookfox-request-active-tab)))
+		(insert (org-link-make-string
+						 (plist-get tab :url)
+						 (plist-get tab :title)))))
+#+end_src
 
 ** Self-tracking, statistics, and other data transformations
 *** Quantified Awesome
@@ -10675,7 +11464,7 @@ Now I can use ~org-feed-update-all~ (~C-c C-x g~) to pull things into my toots.o
       ((null category)
        (setq category (read-string "Category: "))
        (org-set-property "QUANTIFIED" category))
-      ((string= category "ask")
+      ((string= category ' "ask")
        (setq category (read-string "Category: "))))
      (setq note
            (concat
@@ -10865,7 +11654,7 @@ From https://github.com/nhoffman/.emacs.d/blob/master/init.org
 
 I use Orgzly on an Android phone, synchronizing my files with
 Syncthing. (See =my-resolve-orgzly-syncthing= elsewhere in this
-cnofig.) Sometimes I use Termux, too.
+config.) Sometimes I use Termux, too.
 
 #+begin_src emacs-lisp
 (setq browse-url-browser-function 'browse-url-firefox)
@@ -11071,7 +11860,7 @@ I use Gmail for my mail because it:
   :if my-laptop-p
   :config (setq-default notmuch-search-oldest-first nil)
   (setq notmuch-fcc-dirs nil)
-  (setq notmuch-archive-tags '("-inbox" "-flagged" )))
+  (setq notmuch-archive-tags '("-inbox" "-flagged" "-unread" "-new")))
 (use-package ol-notmuch
   :if my-laptop-p)
 (defun my-notmuch-flagged ()
@@ -11268,6 +12057,14 @@ Handy when I'm in tablet mode.
 (define-key global-map [menu-bar my-menu audio] '("Process audio" . (lambda () (interactive) (shell-command "~/bin/process-audio &"))))
 (define-key global-map [menu-bar my-menu new-index-card] '("New index card" . (lambda () (interactive)
                                                                                 (my-org-sketch-edit (my-prepare-index-card-template)))))
+#+end_src
+*** Context menus
+
+#+begin_src emacs-lisp
+(add-hook 'text-mode-hook 'context-menu-mode)
+(with-eval-after-load 'dired
+	(add-hook 'dired-mode-hook 'context-menu-mode))
+(add-hook 'shell-mode-hook 'context-menu-mode)
 #+end_src
 
 ** CSVs
@@ -11899,7 +12696,8 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 (use-package impatient-mode
   :config (setq impatient-mode-delay 1))
       #+end_src
-*** TODO Try continuous streaming and the Google Speech Recognition API
+*** CANCELLED Try continuous streaming and the Google Speech Recognition API
+CLOSED: [2023-03-23 Thu 22:27]
     :PROPERTIES:
     :CUSTOM_ID: speech-to-text
     :END:
@@ -12329,7 +13127,7 @@ In termux, you also need to =pkg install diffutils=.
 (defun ibizaman/syncthing-show-conflicts-dired (directory)
   "Open dired buffer at DIRECTORY showing all syncthing conflicts."
   (interactive "D")
-  (find-name-dired directory "*.sync-conflict-*"))
+  (find-name-dired directory "*.sync-conflict-*org"))
 
 (defun ibizaman/syncthing-resolve-conflict-dired (&optional arg)
   "Resolve conflict of first marked file in dired or close to point with ARG."
@@ -12351,7 +13149,7 @@ In termux, you also need to =pkg install diffutils=.
 
 (defun ibizaman/syncthing--get-sync-conflicts (directory)
   "Return a list of all sync conflict files in a DIRECTORY."
-  (seq-filter (lambda (o) (not (string-match "\\.stversions" o))) (directory-files-recursively directory "\\.sync-conflict-")))
+  (seq-filter (lambda (o) (not (string-match "\\.stversions" o))) (directory-files-recursively directory "\\.sync-conflict-.*org$")))
 
 
 (defvar ibizaman/syncthing--conflict-history nil
@@ -12403,6 +13201,8 @@ In termux, you also need to =pkg install diffutils=.
 
 #+begin_src emacs-lisp
 (use-package gif-screencast
+	:bind
+	("s-s" . gif-screencast-start-or-stop)
 	:config
 	(setq gif-screencast-output-directory my-recordings-dir))
 
@@ -12539,10 +13339,24 @@ In termux, you also need to =pkg install diffutils=.
     (message "You clicked somewhere weird.")))
 #+end_src
 * Inactive/infrequent things
+** MineClone
+
+#+begin_src emacs-lisp
+(defun my-mineclone-ripgrep ()
+		(interactive)
+		(let ((default-directory "~/vendor/MineClone2"))
+			(call-interactively 'consult-ripgrep)))
+(global-set-key (kbd "s-M") 'my-mineclone-ripgrep)
+#+end_src
 ** EmacsConf
 
 #+begin_src emacs-lisp
 (autoload 'emacsconf-mail-prepare "emacsconf-mail")
+(defun my-emacsconf-search-mail (talk)
+	(interactive (list (emacsconf-complete-talk)))
+	(emacsconf-with-talk-heading talk
+		(notmuch-search (format "from:%s or to:%s" (org-entry-get (point) "EMAIL")
+														(org-entry-get (point) "EMAIL")))))
 (use-package emacsconf
   :after hydra
   :bind (("C-c e" . hydra-emacsconf/body)
@@ -12550,7 +13364,7 @@ In termux, you also need to =pkg install diffutils=.
   :commands
   (emacsconf-go-to-talk emacsconf-cache-find-file emacsconf-res-dired emacsconf-upload-dired)
   :hydra (hydra-emacsconf
-          ()
+          (:exit t)
           ("t" emacsconf-go-to-talk "talk")
           ("f" emacsconf-cache-find-file "file")
           ("c" (find-file emacsconf-org-file) "conf.org")
@@ -12560,7 +13374,7 @@ In termux, you also need to =pkg install diffutils=.
                  (call-interactively #'projectile-find-file)))
           ("o"
            (progn
-             (find-file (expand-file-name "2022/organizers-notebook/index.org" emacsconf-directory))
+             (find-file (expand-file-name "2023/organizers-notebook/index.org" emacsconf-directory))
              (call-interactively #'consult-org-heading))
            "org notes")
           ("a" (let ((default-directory emacsconf-ansible-directory))
@@ -12574,6 +13388,18 @@ In termux, you also need to =pkg install diffutils=.
           ("u" emacsconf-upload-dired "upload"))
   :load-path "~/proj/emacsconf/lisp")
 (global-set-key (kbd "M-g t") 'emacsconf-go-to-talk)
+#+end_src
+** ChatGPT, AI
+
+#+begin_src emacs-lisp
+(use-package chat
+	:quelpa (chat :fetcher github :repo "iwahbe/chat.el"))
+(use-package org-ai
+	:quelpa (org-ai :fetcher github :repo "rksm/org-ai"))
+(use-package khoj
+  :after org
+  :quelpa (khoj :fetcher github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
+  :bind ("C-c s" . 'khoj))
 #+end_src
 ** Evil mode
 
@@ -13130,6 +13956,23 @@ left.
                  )
                 "\n"))))
 #+end_src
+** Completion at point?
+
+#+begin_src emacs-lisp
+(use-package corfu :init (global-corfu-mode))
+(use-package cape
+	:bind (("M-/" . completion-at-point))
+	:init
+	(add-to-list 'completion-at-point-functions #'cape-dabbrev)
+	(add-to-list 'completion-at-point-functions #'cape-file)
+	(add-to-list 'completion-at-point-functions #'cape-elisp-block)
+	(add-to-list 'completion-at-point-functions #'cape-abbrev)
+	(add-to-list 'completion-at-point-functions #'cape-dict)
+	(add-to-list 'completion-at-point-functions #'cape-line)
+
+	)
+#+end_src
+
 ** Enable minibuffer completion
 [2013-03-31] Superseded by ido-hacks?
 
@@ -13175,9 +14018,7 @@ easier to discover commands.
 #+begin_src emacs-lisp
 (defvar my-sketch-directories
   '("~/sync/sketches"
-    "~/sync/private-sketches"
-    "~/Dropbox/Inbox"
-    "~/Dropbox/Inbox/To blog"))
+    "~/sync/private-sketches"))
 
 (defun my-get-sketch-filenames-between-dates (start end filter)
   "Returns index card filenames between START and END."
@@ -13197,12 +14038,14 @@ easier to discover commands.
            Return the matching filenames, if any.
            If AS-REGEXP is non-nil, treat BASE as a regular expression.
            If BASE is a function, use that to filter."
+	(when (and (stringp base) (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" base))
+		(setq base (match-string 0 base)))
   (let ((base-regexp (unless (functionp base)
                        (concat
                         "\\("
                         (if as-regexp base (regexp-quote base))
                         "\\)"
-                        ".*\\(\\.\\(png\\|psd\\|tiff\\|jpg\\|svg\\)\\)?$"))))
+                        ".*\\(\\.\\(png\\|psd\\|tiff\\|jpg\\|svg\\)\\)$"))))
     (-filter
      (lambda (o) (not (string-match "\\.xmp" o)))
      (sort (-flatten
@@ -13268,7 +14111,8 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 (defun my-org-sketch-open (id &optional arg)
   (delete-other-windows)
   (with-selected-window (split-window-right)
-    (find-file (my-get-image-filename id my-sketch-directories))))
+    (find-file (my-get-image-filename
+								id my-sketch-directories))))
 (defun my-org-image-export (link description format info)
   (let* ((path (concat "https://sketches.sachachua.com/filename/" link))
          (image (concat "https://sketches.sachachua.com/static/" link))
@@ -13302,9 +14146,24 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
           (t (format "[[%s][%s]]" link desc)))))
 
 (defun my-org-image-export-thumb (link description format info)
-  (let* ((backend (org-export-backend-name (plist-get info :back-end)))
-         (desc (or description link)))
-    (format "{%% sketchThumb \"%s\", \"%s\" %%}" (file-name-base link) desc)))
+  (let* ((path (concat "https://sketches.sachachua.com/filename/" link))
+         (image (concat "https://sketches.sachachua.com/static/" link))
+         (backend (org-export-backend-name (plist-get info :back-end)))
+         (desc (replace-regexp-in-string "%23" "#" (or description link))))
+    (cond
+     ((eq backend '11ty) (format "{%% sketchThumb \"%s\", \"%s\" %%}" (file-name-base link) desc))
+     ((or (eq format 'html) (eq format 'wp))
+      (if description
+          (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc)
+        (format "<div class=\"sketch-thumbnail\"><a target=\"_blank\" href=\"%s\"><img src=\"%s\"><br />%s</a></div>" path image desc)))
+     ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
+     ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
+     ((eq format 'md)
+      (if (file-exists-p (expand-file-name link "~/sketches"))
+          (format "{{<photo src=\"%s\">}}" image)
+        (format "{{<photo nas=\"1\" src=\"%s\">}}" link)))
+     ((eq format 'ascii) (format "%s <%s>" desc path))
+     (t path))))
 
 (defun my-org-image-export-full (link description format info)
   (let* ((path (concat "https://sketches.sachachua.com/filename/" link))
@@ -14419,13 +15278,20 @@ xdotool key Return
 :END:
 
 #+begin_src emacs-lisp
+(defun my-insert-sketch-and-text (sketch)
+	(interactive (list (and (my-update-sketch-cache) (my-complete-sketch-filename))))
+	(insert (file-name-base sketch)
+					(format "\n\n[[sketchFull:%s][%s]]\n\n" (file-name-nondirectory sketch) (file-name-base sketch)))
+	(insert "#+begin_my_details Text from sketch\n")
+	(my-sketch-insert-text-from-json sketch)
+	(insert "\n#+end_my_details"))
 (defun my-write-about-sketch (sketch)
   (interactive (list (and (my-update-sketch-cache) (my-complete-sketch-filename))))
   (shell-command "make-sketch-thumbnails")
   (find-file "~/sync/orgzly/posts.org")
   (goto-char (point-max))
   (org-insert-heading nil nil t)
-  (insert (read-string "Title: ") (format "\n\n[[sketchFull:%s][%s]]\n\n" (file-name-nondirectory sketch) (file-name-base sketch)))
+	(my-insert-sketch-and-text sketch)
   (my-org-11ty-prepare-subtree)
   (delete-other-windows)
   (save-excursion
@@ -14616,7 +15482,205 @@ And in general:
             (directory-files default-directory t "^[-_0-9]+\\.jpg"))))
 #+end_src
 
-** Games
+** Fun and games
+*** Cubing
+**** Rubik's Cube
+#+begin_src emacs-lisp
+(use-package eagle
+	:quelpa (eagle :fetcher git
+								 :url "https://codeberg.org/akib/emacs-eagle.git"))
+(use-package cube
+	:quelpa (cube :fetcher git
+								:url "https://codeberg.org/akib/emacs-cube.git"))
+#+end_src
+**** Diagrams
+
+#+begin_src emacs-lisp
+;; Start of cubing code
+(defun my-cubing-pos (size n i)
+	(list
+	 (* (/ size n) (% i n))
+	 (* (/ size n) (/ i n))))
+
+(defun my-cubing-last-layer-arrows (arrows)
+	"Draw ARROWS.
+Arrows are defined as a list of lists of the form
+((from to) (from to t) ...). Ex: '(my-cubing-last-layer-arrows '((3 1 t) (2 8 t)))
+Cells are numbered from left to right, top to bottom, with the top left box being 0.
+"
+	(let* ((size 99)
+				 (n 3)
+				 (arrow-color "#000")
+				 (svg (svg-create size size)))
+		(svg--append
+		 svg
+		 (dom-node
+			'defs
+			nil
+			(dom-node
+			 'marker
+			 '((id . "arrowhead")
+				 (markerWidth . "10")
+				 (markerHeight . "7")
+				 (refX . "0")
+				 (refY . "3.5")
+				 (orient . "auto-start-reverse"))
+			 (dom-node
+				'polygon
+				`((fill . ,arrow-color)
+					(points . "0 0, 4 3.5, 0 7")))
+			 )))
+		(dotimes (i (* n n))
+			(let ((pos (my-cubing-pos size n i)))
+				(svg-rectangle
+				 svg
+				 (car pos)
+				 (cadr pos)
+				 (/ size n)
+				 (/ size n)
+				 :fill "#fff"
+				 :stroke-width 1
+				 :stroke "#666")))
+		(dolist (arrow arrows)
+			(let ((from (car arrow))
+						(to (cadr arrow)))
+				(apply 'svg-line
+							 (append
+								(list svg)
+								(mapcar (lambda (o) (+ o (/ size (* 2 n))))
+												(my-cubing-pos size n from))
+								(mapcar (lambda (o) (+ o (/ size (* 2 n))))
+												(my-cubing-pos size n to))
+								(list
+								 :stroke-width 2
+								 :stroke arrow-color
+								 :marker-start (if (elt arrow 2) "url(#arrowhead)")
+								 :marker-end "url(#arrowhead)")))))
+		(with-temp-buffer
+			(svg-print svg)
+			(buffer-string))))
+
+(defvar my-cubing-colors '((?R  . "#ff0000")
+													 (?G  . "#00ff00")
+													 (?B  . "#0000ff")
+													 (?O  . "#ed7117")
+													 (?Y  . "#ffff00")
+													 (?W  . "#ffffff")
+													 (?\? . "#666666")))
+
+(defun my-cubing-last-layer-with-sides (sides top arrows)
+	"Draw a diagram of the top of the cube.
+The style is similar to https://www.cubeskills.com/uploads/pdf/tutorials/pll-algorithms.pdf .
+SIDES is a string specifying colors going clockwise from the back-left side.
+TOP is a string specifying colors going from left to right, top to bottom.
+Arrows are defined as a list of lists of the form ((from to) (from to t) ...).
+Cells are numbered from left to right, top to bottom, with the top left box being 0.
+Ex: (my-cubing-last-layer-with-sides \"ORRBOOGGGRBB\" \"YYYYYYYYY\" '((3 1 t) (2 8 t)))
+"
+	(let* ((size 99)
+				 (n 3)
+				 (side-size 10)
+				 (cell-size (/ (- size (* 2 side-size)) n))
+				 (arrow-color "#000")
+				 (svg (svg-create size size)))
+		(svg--append
+		 svg
+		 (dom-node
+			'defs
+			nil
+			(dom-node
+			 'marker
+			 '((id . "arrowhead")
+				 (markerWidth . "10")
+				 (markerHeight . "7")
+				 (refX . "0")
+				 (refY . "3.5")
+				 (orient . "auto-start-reverse"))
+			 (dom-node
+				'polygon
+				`((fill . ,arrow-color)
+					(points . "0 0, 4 3.5, 0 7"))))))
+		;; Draw the sides. It's a string of colors going clockwise from back left
+		(when sides
+			(dotimes (i (* n 4))
+				(apply 'svg-rectangle
+							 (append
+								(list svg)
+								(pcase (/ i n)
+									(0 (list (+ (* (% i n) cell-size) side-size)
+													 0
+													 cell-size
+													 side-size))
+									(1 (list (+ side-size (* n cell-size))
+													 (+ (* (% i n) cell-size) side-size)
+													 side-size
+													 cell-size))
+									(2 (list (+ (* (- n (% i n) 1) cell-size) side-size)
+													 (+ (* n cell-size) side-size)
+													 cell-size
+													 side-size))
+									(3 (list 0
+													 (+ (* (- n (% i n) 1) cell-size) side-size)
+													 side-size
+													 cell-size)))
+								(list
+								 :stroke-width 1
+								 :stroke "#666"
+								 :fill (assoc-default (elt sides i)
+																			my-cubing-colors
+																			'eq
+																			(assoc-default ?\? my-cubing-colors)))))))
+		;; Draw the top face specified by a string of colors going from left to right, top to bottom
+		(dotimes (i (* n n))
+			(let ((pos (my-cubing-pos (* cell-size n) n i)))
+				(svg-rectangle
+				 svg
+				 (+ side-size (car pos))
+				 (+ side-size (cadr pos))
+				 cell-size
+				 cell-size
+				 :fill (if top
+									 (assoc-default (elt top i) my-cubing-colors
+																	'eq
+																	(assoc-default ?\? my-cubing-colors))
+								 (assoc-default ?\? my-cubing-colors))
+				 :stroke-width 1
+				 :stroke "#666")))
+		;; Draw the arrows
+		(dolist (arrow arrows)
+			(let ((from (car arrow))
+						(to (cadr arrow)))
+				(apply 'svg-line
+							 (append
+								(list svg)
+								(mapcar (lambda (o) (+ side-size o (/ cell-size 2)))
+												(my-cubing-pos (* n cell-size) n from))
+								(mapcar (lambda (o) (+ side-size o (/ cell-size 2)))
+												(my-cubing-pos (* n cell-size) n to))
+								(list
+								 :stroke-width 2
+								 :stroke arrow-color
+								 :opacity 0.5
+								 :marker-start (if (elt arrow 2) "url(#arrowhead)")
+								 :marker-end "url(#arrowhead)")))))
+		(with-temp-buffer
+			(svg-print svg)
+			(buffer-string))))
+;; end of cubing code
+#+end_src
+*** Minecraft
+
+https://github.com/rasensuihei/mcf
+
+#+begin_src emacs-lisp
+(use-package mcf
+	;:quelpa (mcf :fetcher github :repo "sachac/mcf")
+	:load-path "~/vendor/mcf"
+	:mode ("\\.mcfunction\\'" . mcf-mode)
+	;; rcon settings are in my .emacs.secrets file
+	:commands (mcf-rcon mcf-mode)
+	)
+#+end_src
 *** Typing of Emacs
 #+begin_src emacs-lisp :eval no :tangle no
 (use-package typing :disabled t
@@ -14638,7 +15702,7 @@ And in general:
   (call-process my-espeak-command nil nil nil string "-s" speed))
 #+end_src
 
-** TODO Comparison-shopping with Org Mode  :emacs:org:
+** Comparison-shopping with Org Mode                             :emacs:org:
 :PROPERTIES:
 :CUSTOM_ID: shopping
 :EXPORT_DATE: 2022-12-26T11:29:34-0500
@@ -14801,9 +15865,11 @@ Here's the very rough code I use for that:
 					(if .ratingCount (org-entry-put (point) "RATING_COUNT" (if (stringp .ratingCount) .ratingCount (number-to-string .ratingCount))))
 					)))))
 
-(defun my-org-format-shopping-subtree ()
+(defun my-org-format-shopping-subtree (&optional height)
 	(concat
-	 "<style>body { max-width: 100% !important } #content { max-width: 100% !important } .item img { max-height: 100px; }</style><div style=\"display: flex; flex-wrap: wrap; align-items: flex-start\">"
+	 "<style>body { max-width: 100% !important } #content { max-width: 100% !important } .item img { max-height: "
+	 (or height "100px")
+	 " }</style><div style=\"display: flex; flex-wrap: wrap; align-items: flex-start\">"
 	 (string-join
 		(save-excursion
 			(org-map-entries
@@ -14827,7 +15893,6 @@ Here's the very rough code I use for that:
 			 (if (org-before-first-heading-p) nil 'tree)))
 		"")
 	 "</div>"))
-
 
 (defun my-get-shopping-details-uniqlo (link)
 	(when (string-match "https://www.uniqlo.com/ca/en/products/\\([^?]+\\)\\(\\?\\(.*\\)\\)?" link)

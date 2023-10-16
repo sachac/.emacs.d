@@ -1505,7 +1505,23 @@ it work. Some things still aren't quite right.
 
 I sometimes need to switch to a lighter background for screenshots.
 For that, I use =modus-themes-operandi=.
+*** Prepare for EmacsConf screenshots or recordings
 
+#+begin_src emacs-lisp
+(defun my-emacsconf-prepare-for-screenshots ()
+	(interactive)
+	(shell-command "xrandr --output LVDS-1 --mode 1280x720")
+	(modus-themes-load-theme 'modus-operandi)
+	(set-face-attribute 'default nil :height 170)
+	(keycast-mode))
+
+(defun my-emacsconf-back-to-normal ()
+	(interactive)
+	(shell-command "xrandr --output LVDS-1 --mode 1366x768")
+	(modus-themes-load-theme 'modus-vivendi)
+	(set-face-attribute 'default nil :height 115)
+	(keycast-mode -1))
+#+end_src
 
 *** Undo tree mode - visualize your undos and branches
 
@@ -2131,6 +2147,29 @@ This should make it easier to jump to a link.
   ("M-g u" . link-hint-open-link)
   ("M-g U" . link-hint-open-multiple-links))
 #+end_src
+*** Bookmarks
+http://yummymelon.com/devnull/using-bookmarks-in-emacs-like-you-do-in-web-browsers.html
+
+#+begin_src emacs-lisp
+(easy-menu-define cc/bookmarks-menu nil
+  "Keymap for CC Bookmarks Menu"
+  '("Bookmarks"
+    ["Edit Bookmarks" list-bookmarks
+     :help "Display a list of existing bookmarks."]
+    ["--" nil]
+    ["Add Bookmark…" bookmark-set-no-overwrite
+     :help "Set a bookmark named NAME at the current location."]
+    ["---" nil]
+    ["Jump to Bookmark…" bookmark-jump
+     :help "Jump to bookmark"]))
+(easy-menu-add-item global-map '(menu-bar)
+                    cc/bookmarks-menu
+                    "Tools")
+(defhydra+ my-shortcuts (:exit t)
+	("b" bookmark-jump "Jump to bookmark")
+	("B" bookmark-set-no-overwrite "Set bookmark"))
+#+end_src
+
 
 *** Dogears
 
@@ -2180,7 +2219,7 @@ From Xah Lee:
   (interactive "r")
   (let ((list (split-string (buffer-substring beg end) "[\r\n]+")))
     (delete-region beg end)
-    (insert (mapconcat 'identity (shuffle-list list) "\n"))))
+    (insert (string-join (seq-sort-by (lambda (_) (random)) #'<= list) "\n"))))
 #+end_src
 
 
@@ -5386,6 +5425,7 @@ redefine =<l= to insert a Lisp block instead.
         ("h" . "export html")
         ("l" . "src emacs-lisp")
         ("p" . "src python")
+        ("n" . "notes")
         ("q" . "quote")
         ("s" . "src")
         ("v" . "verse")))
@@ -6808,6 +6848,11 @@ Then I should be able to use =literate-elisp-load-file= and still be able to jum
 :EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/org-mode-including-portions-of-files-between-two-regular-expressions/
 :END:
 
+#+begin_update
+- 2023-10-11 Wed: Include images inline.
+- 2023-09-10: Use =consult-line= instead of =consult--line=.
+#+end_update
+
 I'd like to refer to snippets of code, but lines are too fragile to
 use as references for code and posts that I want to easily update. I'd
 like to specify a ~from-regexp~ and a ~to-regexp~ instead in order to
@@ -6824,7 +6869,7 @@ which will turn into this snippet from my stylesheet:
 
 Here's the Emacs Lisp code to do that. ~my-include-complete~ function
 reuses ~my-include-open~ to narrow to the file, and
-~my-include-complete~ uses ~consult--line~ so that we can specify the
+~my-include-complete~ uses ~consult-line~ so that we can specify the
 prompt.
 
 #+begin_src emacs-lisp
@@ -6837,7 +6882,7 @@ prompt.
 (defun my-include-open (path &optional _)
 	"Narrow to the region specified in PATH."
 	(let (params start end)
-		(if (string-match "^\\(.*+?\\)::\\(.*+\\)" path)
+		(if (string-match "^\\(.*+?\\)\\(?:::\\|\\?\\)\\(.*+\\)" path)
 				(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))
 							path (match-string 1 path)))
 		(find-file path)
@@ -6869,10 +6914,11 @@ prompt.
 (defun my-include-export (path _ format _)
 	"Export PATH to FORMAT using the specified wrap parameter."
 	(let (params body start end)
-		(when (string-match "^\\(.*+?\\)::\\(.*+\\)" path)
-			(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))))
-		(save-window-excursion
-			(my-include-open path)
+		(when (string-match "^\\(.*+?\\)\\(?:::\\|\\?\\)\\(.*+\\)" path)
+			(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))
+						path (match-string 1 path)))
+		(with-temp-buffer
+			(insert-file-contents-literally path)
 			(setq body (buffer-substring (point-min) (point-max))))
 		(with-temp-buffer
 			(when (plist-get params :wrap)
@@ -6903,14 +6949,7 @@ prompt.
 																consult-line-numbers-widen))
 										(prompt "From line: "))
 								(goto-char (point-min))
-								(consult--line
-								 (or (consult--with-increased-gc
-											(consult--line-candidates
-											 nil
-											 curr-line))
-										 (user-error "No lines"))
-								 :curr-line curr-line
-								 :prompt prompt)
+								(consult-line)
 								(url-hexify-string
 								 (regexp-quote (buffer-substring (line-beginning-position) (line-end-position)))))
 							"&to-regexp="
@@ -6919,14 +6958,8 @@ prompt.
 																consult-line-numbers-widen))
 										(prompt "To line: "))
 								(goto-char (point-min))
-								(consult--line
-								 (or (consult--with-increased-gc
-											(consult--line-candidates
-											 nil
-											 curr-line))
-										 (user-error "No lines"))
-								 :curr-line curr-line
-								 :prompt prompt)
+								(consult-line
+								 nil (point))
 								(url-hexify-string
 								 (regexp-quote (buffer-substring (line-beginning-position) (line-end-position)))))
 							"&wrap=src " (replace-regexp-in-string "-mode$" "" (symbol-name major-mode))))))
@@ -6937,6 +6970,80 @@ prompt.
 my-include-complete
 :end:
 
+This code displays the images inline.
+
+#+begin_src emacs-lisp
+(defun my-org-display-included-images (&optional include-linked refresh beg end)
+	"Display inline images for my-include types."
+	(interactive "P")
+	(when (display-graphic-p)
+		(when refresh
+      (org-remove-inline-images beg end)
+      (when (fboundp 'clear-image-cache) (clear-image-cache)))
+    (let ((end (or end (point-max))))
+      (org-with-point-at (or beg (point-min))))
+		(let* ((case-fold-search t)
+					 (file-extension-re "\\.svg")
+					 (file-types-re (format "\\[\\[my-include:")))
+			(while (re-search-forward file-types-re end t)
+				(let* ((link (org-element-lineage (save-match-data (org-element-context)) 'link t))
+							 (inner-start (match-beginning 1))
+							 (path
+								(cond
+								 ((not link) nil)
+								 ;; file link without a description
+								 ((or (not (org-element-contents-begin link)) include-linked)
+									(org-element-property :path link))
+								 ((not inner-start) nil)
+								 (t (org-with-point-at inner-start
+											(and (looking-at
+														(if (char-equal ?< (char-after inner-start))
+																org-link-angle-re
+															org-link-plain-re))
+													 ;; File name must fill the whole
+													 ;; description.
+													 (= (org-element-contents-end link)
+															(match-end 0))
+													 (progn
+                             (setq linktype (match-string 1))
+                             (match-string 2))))))))
+					(when (string-match "\\(.+\\)\\?" path)
+						(setq path (match-string 1 path)))
+					(when (and path (string-match-p file-extension-re path))
+						(let ((file (expand-file-name path)))
+              ;; Expand environment variables.
+              (when file (setq file (substitute-in-file-name file)))
+							(when (and file (file-exists-p file))
+								(let ((width (org-display-inline-image--width link))
+											(old (get-char-property-and-overlay
+														(org-element-begin link)
+														'org-image-overlay)))
+									(if (and (car-safe old) refresh)
+                      (image-flush (overlay-get (cdr old) 'display))
+										(let ((image (org--create-inline-image file width)))
+											(when image
+												(let ((ov (make-overlay
+																	 (org-element-begin link)
+																	 (progn
+																		 (goto-char
+																			(org-element-end link))
+																		 (skip-chars-backward " \t")
+																		 (point)))))
+                          ;; FIXME: See bug#59902.  We cannot rely
+                          ;; on Emacs to update image if the file
+                          ;; has changed.
+                          (image-flush image)
+													(overlay-put ov 'display image)
+													(overlay-put ov 'face 'default)
+													(overlay-put ov 'org-image-overlay t)
+													(overlay-put
+													 ov 'modification-hooks
+													 (list 'org-display-inline-remove-overlay))
+													(when (boundp 'image-map)
+														(overlay-put ov 'keymap image-map))
+													(push ov org-inline-image-overlays))))))))))))))
+
+#+end_src
 **** ox-epub
 
 #+begin_src emacs-lisp
@@ -7029,13 +7136,24 @@ my-include-complete
            (data (json-read-file (concat (file-name-base (buffer-file-name)) ".11tydata.json"))))
       (browse-url (concat "http://localhost:8080" (plist-get data :permalink))) )))
 
+(defun my-org-11ty-pathname ()
+	(if (derived-mode-p 'org-mode)
+			(file-name-directory (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME"))
+		(let ((url (thing-at-point 'url)))
+			(when url
+				(url-file-directory (url-filename (url-generic-parse-url url)))))))
+
+(defun my-org-11ty-find-post (url)
+	(interactive (list (my-org-11ty-pathname)))
+	;; check in posts.org
+	(find-file "~/sync/orgzly/posts.org")
+	(let ((pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" url)))
+		(when pos (goto-char pos))))
+
 (defun my-org-11ty-find-file ()
   (interactive)
   (find-file (expand-file-name
-              (concat (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")
-                      (if (string-match "/$" (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME"))
-                          "index" "")
-                      ".html")
+							(expand-file-name "index.html" (my-org-11ty-pathname))
               "~/proj/static-blog")))
 
 (defun my-org-11ty-post-to-mastodon (&optional post-automatically)
@@ -7074,15 +7192,34 @@ This is extracted from lines like:
 ***** Linking to blog posts
 
 #+begin_src emacs-lisp
+(defun my-org-blog-complete ()
+	(concat "blog:"
+					(completing-read
+					 "Post: "
+					 (mapcar (lambda (o) (replace-regexp-in-string "^~/proj/static-blog\\|index.html$" "" o))
+									 (directory-files-recursively "~/proj/static-blog/blog" "index\\.html" nil)
+									 ))))
+(defun my-org-blog-export (link desc format _)
+	(let ((path (concat "https://sachachua.com" link)))
+		(pcase format
+			((or 'html '11ty) (format "<a href=\"%s\">%s</a>" path desc))
+      ('latex (format "\\href{%s}{%s}" path desc))
+      ('texinfo (format "@uref{%s,%s}" path desc))
+      ('ascii (format "%s (%s)" desc path)))))
+(defun my-org-blog-open (link &rest _)
+	"Find the post if it exists, or open the HTML."
+	(find-file "~/sync/orgzly/posts.org")
+	(let ((pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" link)))
+		(if pos (goto-char pos)
+			(find-file (expand-file-name "index.html" (expand-file-name link "~/proj/static-blog"))))))
+
 (use-package org
+	:config
 	(org-link-set-parameters
 	 "blog"
 	 :follow #'my-org-blog-open
 	 :export #'my-org-blog-export
-	 :complete #'my-org-blog-complete
-	 )
-
-	)
+	 :complete #'my-org-blog-complete))
 
 #+end_src
 ***** Moving my Org post subtree to the 11ty directory :11ty:org:emacs:blogging:
@@ -7272,6 +7409,8 @@ I want to be able to export without having to say yes to code blocks all the tim
   ;; Use short names like ‘defblock’ instead of the fully qualified name
   ;; ‘org-special-block-extras--defblock’
 	(setcdr org-special-block-extras-mode-map nil)
+	;; skip adding stuff to org-html-head-extra
+	(setq org-special-block-extras nil)
   (org-defblock my_details (title "Details") (title-color "Green")
               "Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Enclose contents in a folded up box."
               (cond
@@ -7976,6 +8115,70 @@ FORMAT."
       (dired-virtual "/")
       (switch-to-buffer (current-buffer)))))
 #+end_src
+*** Org protocol: following Org links from outside Emacs        :org:emacs:
+:PROPERTIES:
+:CUSTOM_ID: org-protocol-open
+:EXPORT_DATE: 2023-09-26T09:42:45-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2023/09/org-protocol-following-org-links-from-outside-emacs/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2023/09/org-protocol-following-org-links-from-outside-emacs/
+:END:
+
+=_xor= had an interesting idea: can we use =org-protocol= to link to
+things inside Emacs, so that we can have a webpage with bookmarks into
+our Org files? Here's a quick hack that reuses =org-store-link= and
+=org-link-open=.
+
+#+begin_src emacs-lisp
+(defun org-protocol-open-link (info)
+	"Process an org-protocol://open style url with INFO."
+	(org-link-open (car (org-element-parse-secondary-string (plist-get info :link) '(link)))))
+
+(defun org-protocol-copy-open-link (arg)
+	(interactive "P")
+	(kill-new (concat "org-protocol://open?link=" (url-hexify-string (org-store-link arg)))))
+
+(with-eval-after-load 'org
+	(add-to-list 'org-protocol-protocol-alist
+							 '("org-open" :protocol "open" :function org-protocol-open-link)))
+#+end_src
+
+To make exporting and following easier, we also need a little code to
+handle =org-protocol= links inside Org.
+
+#+begin_src emacs-lisp
+(defun org-protocol-follow (path &rest _)
+	"Follow the org-protocol link for PATH."
+	(org-protocol-check-filename-for-protocol (concat "org-protocol:" path) nil nil))
+
+(defun org-protocol-export (path desc format info)
+	"Export an org-protocol link."
+	(setq path (concat "org-protocol:" path))
+	(setq desc (or desc path))
+	(pcase format
+    (`html (format "<a href=\"%s\">%s</a>" path desc))
+		(`11ty (format "<a href=\"%s\">%s</a>" path desc))
+    (`latex (org-latex-link path desc info))
+    (`ascii (org-ascii-link path desc info))
+		(`md (org-md-link path desc info))
+    (_ path)))
+
+(with-eval-after-load 'org
+	(org-link-set-parameters "org-protocol"
+													 :follow #'org-protocol-follow
+													 :export #'org-protocol-export))
+#+end_src
+
+Now I can use =org-protocol-copy-open-link= to copy a link to the
+current location, and I can put it into my Org files.
+
+Example bare link to the Org manual, which will work only if you have
+=open= in the =org-protocol-protocol-alist=:
+
+org-protocol://open?link=%5B%5Binfo%3Aorg%23Protocols%5D%5Borg%23Protocols%5D%5D
+
+With a description:
+
+[[org-protocol://open?link=%5B%5Binfo%3Aorg%23Protocols%5D%5Borg%23Protocols%5D%5D][Org manual - Protocols]]
 
 *** TODO Speed command for adding a custom ID to Org Mode posts
     :PROPERTIES:
@@ -8657,6 +8860,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
      'org-babel-load-languages
      '((dot . t)
        (ditaa . t)
+			 (mermaid . t)
        (emacs-lisp . t)
        (plantuml . t)
        (lilypond . t)
@@ -8856,7 +9060,15 @@ I don't want to get distracted by the same code in the other window, so I want o
 
 *** Presentations
 #+begin_src emacs-lisp
-(use-package ox-reveal :disabled t)
+(use-package org-re-reveal
+	:config
+	(setq org-re-reveal-revealjs-version "4")
+	(setq org-re-reveal-history t))
+(use-package oer-reveal
+	:config
+	(setq oer-reveal-plugin-4-config
+				"audioslideshow RevealAudioSlideshow plugin/audio-slideshow/plugin.js
+anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/anything/plugin.js"))
 #+end_src
 
 *** Allow dashes in tags
@@ -9172,8 +9384,13 @@ Based on https://xenodium.com/emacs-dwim-do-what-i-mean/
 (defun my-org-set-property (property value)
   "In the current entry, set PROPERTY to VALUE.
 Use the region if active."
-  (interactive (list (org-read-property-name)
-                     (when (region-active-p) (buffer-substring (point) (mark)))))
+  (interactive
+	 (list
+		(org-read-property-name)
+    (when (region-active-p)
+			(replace-regexp-in-string
+			 "[ \n\t]+" " "
+			 (buffer-substring (point) (mark))))))
   (org-set-property property value))
 (use-package org
   :bind (:map org-mode-map
@@ -9188,7 +9405,8 @@ Use the region if active."
 :END:
 
 #+begin_update
-2023-09-05: fixed the completion to include =defun:=
+- 2023-09-12: added a way to force the defun to start open with ?open=1
+- 2023-09-05: fixed the completion to include =defun:=
 #+end_update
 
 I'd like to write more blog posts about little Emacs hacks, and I'd
@@ -9220,20 +9438,42 @@ blog post, navigate back to the function, and export HTML.
 					 #'fboundp
 					 'confirm
 					 nil nil))) ; 	 (and fn (symbol-name fn)) ?
+(defun my-org-defun-link-description (link description)
+	"Add documentation string as part of the description"
+	(unless description
+		(when (string-match "defun:\\(.+\\)" link)
+			(let ((symbol (intern (match-string 1 link))))
+				(when (documentation symbol)
+					(concat (symbol-name symbol) ": "
+									(car (split-string (documentation symbol) "\n"))))))))
 
-(defun my-org-defun-export (symbol description format _)
+(defun my-org-defun-export (link description format _)
 	"Export the function."
-	(save-window-excursion
-		(find-function (intern symbol))
-		(let ((function-body (buffer-substring (point)
-																					 (progn (forward-sexp) (point)))))
-			(pcase format
-				((or '11ty 'html)
-				 (format "<div class=\"org-src-container\">\n<details><summary>%s</summary><pre class=\"src src-emacs-lisp\">%s</pre></details></div>"
-								 symbol
-								 (org-html-do-format-code function-body "emacs-lisp" nil nil nil nil)))
-				(`ascii function-body)
-				(_ function-body)))))
+	(let (symbol params path-and-query)
+		(if (string-match "\\?" link)
+				(setq path-and-query (url-path-and-query (url-generic-parse-url link))
+							symbol (car path-and-query)
+							params (url-parse-query-string (cdr path-and-query)))
+			(setq symbol link))
+		(save-window-excursion
+			(find-function (intern symbol))
+			(let ((function-body (buffer-substring (point)
+																						 (progn (forward-sexp) (point)))))
+				(pcase format
+					((or '11ty 'html)
+					 (format "<details%s><summary>%s</summary><div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div></details>"
+											 (if (assoc-default "open" params 'string=) " open"
+												 "")
+											 (or description
+													 (and (documentation (intern symbol))
+																(concat
+																 symbol
+																 ": "
+																 (car (split-string (documentation (intern symbol)) "\n"))))
+													 symbol)
+											 (org-html-do-format-code function-body "emacs-lisp" nil nil nil nil)))
+					(`ascii function-body)
+					(_ function-body))))))
 
 (defun my-org-defun-store ()
 	"Store a link to the function."
@@ -9243,11 +9483,12 @@ blog post, navigate back to the function, and export HTML.
 
 (defun my-org-defun-open (symbol _)
 	"Jump to the function definition."
-	(find-function (intern symbol)))
+	(find-function (intern (replace-regexp-in-string "\\?.*$" "" symbol))))
 
 (org-link-set-parameters "defun" :follow #'my-org-defun-open
 												 :export #'my-org-defun-export
 												 :complete #'my-org-defun-complete
+												 :insert-description #'my-org-defun-link-description
 												 :store #'my-org-defun-store)
 #+end_src
 
@@ -9263,7 +9504,80 @@ I can pull in the definition of ~emacsconf-prep-agenda~ from
 
 [[defun:emacsconf-prep-agenda]]
 #+end_comment
+*** Including variables
+#+begin_src emacs-lisp
+(defun my-org-defvar-complete ()
+	"Return variable definitions."
+	(concat "defvar:"
+					(completing-read
+					 "Variable: "
+					 #'help--symbol-completion-table
+					 #'indirect-variable
+					 'confirm
+					 nil nil))) ; 	 (and fn (symbol-name fn)) ?
+(defun my-org-defvar-link-description (link description)
+	"Add documentation string as part of the description"
+	(unless description
+		(when (string-match "\\(?:defun\\|defvar\\):\\(.+\\)" link)
+			(let* ((symbol (intern (match-string 1 link)))
+						 (doc (documentation-property symbol 'variable-documentation symbol)))
+				(when doc
+					(concat (symbol-name symbol) ": "
+									(car (split-string doc "\n"))))))))
 
+(defun my-org-def-export (link description format _)
+	"Export the variable-or-function."
+	(let (symbol params path-and-query)
+		(if (string-match "\\?" link)
+				(setq path-and-query (url-path-and-query (url-generic-parse-url link))
+							symbol (car path-and-query)
+							params (url-parse-query-string (cdr path-and-query)))
+			(setq symbol link))
+		(save-window-excursion
+			(if (functionp (intern symbol))
+					(find-function (intern symbol))
+				(find-variable (intern symbol)))
+			(let ((body (buffer-substring (point)
+																		(progn (forward-sexp) (point)))))
+				(pcase format
+					((or '11ty 'html)
+					 (format "<details%s><summary>%s</summary><div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div></details>"
+											 (if (assoc-default "open" params 'string=) " open"
+												 "")
+											 (or description
+													 (and (documentation (intern symbol))
+																(concat
+																 symbol
+																 ": "
+																 (car (split-string (documentation (intern symbol)) "\n"))))
+													 symbol)
+											 (org-html-do-format-code body "emacs-lisp" nil nil nil nil)))
+					(`ascii body)
+					(_ body))))))
+
+(defun my-org-def-store ()
+	"Store a link to the function."
+	(when (derived-mode-p 'emacs-lisp-mode)
+		(save-excursion
+      (or (eobp) (forward-char 1))
+      (beginning-of-defun)
+			(let ((data (read)))
+				(if (eq (car data) 'defun)
+						(org-link-store-props :type "defun"
+																	:link (concat "defun:" (lisp-current-defun-name)))
+					(org-link-store-props :type "defvar"
+																	:link (concat "defvar:" (cadr data))))))))
+
+(defun my-org-defvar-open (symbol _)
+	"Jump to the function definition."
+	(find-variable (intern (replace-regexp-in-string "\\?.*$" "" symbol))))
+
+(org-link-set-parameters "defvar" :follow #'my-org-defvar-open
+												 :export #'my-org-def-export
+												 :complete #'my-org-defvar-complete
+												 :insert-description #'my-org-defvar-link-description
+												 :store #'my-org-def-store)
+#+end_src
 ** Coding
 *** Python
 #+begin_src emacs-lisp
@@ -9435,6 +9749,12 @@ This is something I have to get the hang of too. It gradually expands the select
 #+end_src
 
 *** Emacs Lisp
+
+Memoize is handy for improving the performance when I use slow functions multiple times.
+#+begin_src emacs-lisp
+(use-package memoize)
+#+end_src
+
 #+begin_src emacs-lisp
 (use-package edit-list :commands edit-list)
 #+end_src
@@ -9559,8 +9879,35 @@ This is what it looks like:
 
 #+CAPTION: Animation of highlight-sexp toggling along with modus-themes-toggle
 [[file:/home/sacha/proj/static-blog/blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/highlight-sexp.gif]]
+**** Edebug
 
+From https://xenodium.com/inline-previous-result-and-why-you-should-edebug/
 
+#+begin_src emacs-lisp
+(require 'eros)
+(defun adviced:edebug-previous-result (_ &rest r)
+  "Adviced `edebug-previous-result'."
+  (eros--make-result-overlay edebug-previous-result
+    :where (point)
+    :duration eros-eval-result-duration))
+
+(advice-add #'edebug-previous-result
+            :around
+            #'adviced:edebug-previous-result)
+
+(defun adviced:edebug-compute-previous-result (_ &rest r)
+  "Adviced `edebug-compute-previous-result'."
+  (let ((previous-value (nth 0 r)))
+    (if edebug-unwrap-results
+        (setq previous-value
+              (edebug-unwrap* previous-value)))
+    (setq edebug-previous-result
+          (edebug-safe-prin1-to-string previous-value))))
+
+(advice-add #'edebug-compute-previous-result
+            :around
+            #'adviced:edebug-compute-previous-result)
+#+end_src
 **** Testing
 #+begin_src emacs-lisp
 (use-package buttercup
@@ -10034,7 +10381,7 @@ From https://ag91.github.io/blog/2020/12/31/top-down-elisping-a-simple-snippet-t
     (setq yas-expand-only-for-last-commands nil)
     (yas-global-mode 1)
     (bind-key "\t" 'hippie-expand yas-minor-mode-map)
-    (add-to-list 'yas-prompt-functions 'shk-yas/helm-prompt)))
+))
 ;;        (global-set-key (kbd "C-c y") (lambda () (interactive)
 ;;                                         (yas/load-directory "~/elisp/snippets")))
 #+end_src
@@ -10341,6 +10688,36 @@ Make files executable if the first file has a shebang (ex: =#!/bin/bash#=)
 (add-hook 'after-save-hook
           'executable-make-buffer-file-executable-if-script-p)
 #+end_src
+**** Shellcheck
+https://amitp.blogspot.com/2023/10/emacs-and-shellcheck.html
+
+#+begin_src emacs-lisp
+(use-package flymake
+  :bind (("S-e" . flymake-show-project-diagnostics)))
+
+(use-package sh-script
+  :hook (sh-mode . flymake-mode))
+
+(use-package flymake-shellcheck)
+(use-package flymake
+  :bind (("S-e" . my-consult-flymake-project))
+  :preface
+  (defun my/consult-flymake-project ()
+    (interactive)
+    (consult-flymake t))
+  :custom
+  (flymake-suppress-zero-counters t)
+  :config
+  (defface my-flymake-modeline-error-echo
+    '((t :inherit 'flymake-error-echo :background "red"))
+    "Mode line flymake errors")
+  (put 'flymake-error 'mode-line-face 'my/flymake-modeline-error-echo)
+  (defface my-flymake-modeline-warning-echo
+    '((t :inherit 'flymake-warning-echo :background "orange"))
+    "Mode line flymake warnings")
+  (put 'flymake-warning 'mode-line-face 'my-flymake-modeline-warning-echo))
+#+end_src
+
 **** dwim-shell-command
 :PROPERTIES:
 :CUSTOM_ID: dwim-shell-command
@@ -11398,7 +11775,6 @@ the actual project in the post body or a comment instead.
 						 (plist-get tab :url)
 						 (plist-get tab :title)))))
 #+end_src
-
 ** Self-tracking, statistics, and other data transformations
 *** Quantified Awesome
 :PROPERTIES:
@@ -11730,7 +12106,46 @@ On my phone:
    ("g" engine/search-google "google")
    ("e" engine/search-emacswiki "emacswiki")))
 #+end_src
-** Mail
+** Mail and news
+*** Notmuch
+
+I use Notmuch with [[https://github.com/gauteh/lieer][Lieer]] to fetch my mail from Gmail.
+
+#+begin_src emacs-lisp
+(setq notmuch-message-headers '("Subject" "To" "Cc" "Date" "Reply-To"))
+(use-package notmuch
+  :if my-laptop-p
+  :config (setq-default notmuch-search-oldest-first nil)
+  (setq notmuch-fcc-dirs nil)
+  (setq notmuch-archive-tags '("-inbox" "-flagged" "-unread" "-new")))
+(use-package ol-notmuch
+  :if my-laptop-p)
+(defun my-notmuch-flagged ()
+  (interactive)
+  (notmuch-search "tag:flagged and not tag:trash"))
+(defun my-notmuch-inbox ()
+  (interactive)
+  (notmuch-search "tag:inbox and not tag:trash"))
+(defun my-notmuch-important-inbox ()
+  (interactive)
+  (notmuch-search "tag:primary and tag:inbox and not tag:trash"))
+(defun my-notmuch-search-this-author ()
+  (interactive)
+  (notmuch-search (format "from:\"%s\""
+                          (plist-get (get-text-property (point) 'notmuch-search-result) :authors))))
+#+end_src
+**** Act on current message with Embark
+
+#+begin_src emacs-lisp
+(defun mail-embark-finder ()
+	"Identify when we're in a notmuch message."
+	(cond ((derived-mode-p 'notmuch-show-mode)
+				 `(mail . ,(plist-get (plist-get (notmuch-show-get-message-properties) :headers) :From)))))
+(with-eval-after-load 'embark
+	(add-to-list 'embark-target-finders 'mail-embark-finder)
+	)
+
+#+end_src
 *** Gnus
 :PROPERTIES:
 :ID:       o2b:c696259a-146e-4f47-8828-e7ca45cc2215
@@ -11739,19 +12154,11 @@ On my phone:
 :BLOG:     sacha
 :END:
 
-I use Gmail for my mail because it:
-  - synchronizes with my phone, which is handy for notifications and quick replies
-  - filters most of the spam for me
-  - works with a few interesting extensions such as Boomerang for Gmail
 
-    However, I like the way the Gnus mail/news client in Emacs gives me a
-    much more keyboard-friendly way to manage lots of mail, and I can even
-    write code to partially automate some of my common operations.
+I still use Gnus so that I can use [[http://gmane.org][Gmane]] to read mailing lists.
 
     I used to have my config in in =~/.gnus=, but people might find it
     handy, so I've added it to my public [[http://sachacuha.com/dotemacs][Emacs configuration]].
-
-    I like using [[http://gmane.org][Gmane]] to read mailing lists, and I use IMAP to read my Gmail.
 
     #+begin_src emacs-lisp :tangle yes
 (setq gnus-select-method '(nnnil ""))
@@ -11801,31 +12208,7 @@ I use Gmail for my mail because it:
     If you don't have GPG set up and you don't mind saving your passwords
     in the clear, you can set up an =~/.authinfo= file instead.
 
-    Sending e-mail on Windows was a bit of a pain. Fortunately, I
-    eventually found something that works. I've configured [[http://emailrelay.sourceforge.net/][emailrelay]] to
-    accept the mail and forward it to Gmail. The server starts with this
-    batch file:
-
-    #+begin_example
-      start "emailrelay" "C:\Program Files (x86)\emailrelay\emailrelay.exe" --as-proxy smtp.gmail.com:25 --client-auth "C:/sacha/.emailrelay" --client-tls --log --pid-file "C:\Program Files (x86)\emailrelay\emailrelay.pid" --spool-dir C:\sacha\tmp\emailrelay
-    #+end_example
-
-    Sending queued mail works with this batch file:
-
-    #+begin_example
-      "c:\Program Files (x86)\emailrelay\emailrelay.exe" --as-client smtp.gmail.com:587 --client-auth c:\sacha\.emailrelay --client-tls --spool-dir c:\sacha\tmp\emailrelay
-    #+end_example
-
-    I should probably get around to using =--as-proxy= properly, since it still seems to hold mail until I explicitly send it.
-
-    On Linux, it's simply a matter of setting up a mail server such as
-    [[https://easyengine.io/tutorials/linux/ubuntu-postfix-gmail-smtp/][Postfix]].
-
-    Hide HTML mail. I need to fiddle with this some more, since Gnus still
-    tries to display them. Sometimes my Gnus crashes when it tries to
-    display HTML mail.
-
-    #+begin_src emacs-lisp
+        #+begin_src emacs-lisp
 (use-package gnus
   :config
   (require 'mm-decode)
@@ -11851,32 +12234,50 @@ I use Gmail for my mail because it:
         (gnus-killed-mark (subject -5))
         (gnus-catchup-mark (subject -1))))
     #+end_src
+**** NNreddit?
 
-*** Notmuch
+Experimenting with this.
 
 #+begin_src emacs-lisp
-(setq notmuch-message-headers '("Subject" "To" "Cc" "Date" "Reply-To"))
-(use-package notmuch
-  :if my-laptop-p
-  :config (setq-default notmuch-search-oldest-first nil)
-  (setq notmuch-fcc-dirs nil)
-  (setq notmuch-archive-tags '("-inbox" "-flagged" "-unread" "-new")))
-(use-package ol-notmuch
-  :if my-laptop-p)
-(defun my-notmuch-flagged ()
-  (interactive)
-  (notmuch-search "tag:flagged and not tag:trash"))
-(defun my-notmuch-inbox ()
-  (interactive)
-  (notmuch-search "tag:inbox and not tag:trash"))
-(defun my-notmuch-important-inbox ()
-  (interactive)
-  (notmuch-search "tag:primary and tag:inbox and not tag:trash"))
-(defun my-notmuch-search-this-author ()
-  (interactive)
-  (notmuch-search (format "from:\"%s\""
-                          (plist-get (get-text-property (point) 'notmuch-search-result) :authors))))
+(use-package nnreddit
+	:init (setq nnreddit-python-command "python3")
+	:quelpa (nnreddit :fetcher git :url "https://live.gitawonk.com/dickmao/nnreddit.git"
+										:files '("*.el" "requirements.txt"))
+	:config (with-eval-after-load 'gnus
+						(add-to-list 'gnus-secondary-select-methods '(nnreddit ""))))
 #+end_src
+
+**** Windows
+
+#+begin_update
+I don't use Windows much any more, but this is here in case it's helpful for people who still do.
+#+end_update
+
+    Sending e-mail on Windows was a bit of a pain. Fortunately, I
+    eventually found something that works. I've configured [[http://emailrelay.sourceforge.net/][emailrelay]] to
+    accept the mail and forward it to Gmail. The server starts with this
+    batch file:
+
+    #+begin_example
+      start "emailrelay" "C:\Program Files (x86)\emailrelay\emailrelay.exe" --as-proxy smtp.gmail.com:25 --client-auth "C:/sacha/.emailrelay" --client-tls --log --pid-file "C:\Program Files (x86)\emailrelay\emailrelay.pid" --spool-dir C:\sacha\tmp\emailrelay
+    #+end_example
+
+    Sending queued mail works with this batch file:
+
+    #+begin_example
+      "c:\Program Files (x86)\emailrelay\emailrelay.exe" --as-client smtp.gmail.com:587 --client-auth c:\sacha\.emailrelay --client-tls --spool-dir c:\sacha\tmp\emailrelay
+    #+end_example
+
+    I should probably get around to using =--as-proxy= properly, since it still seems to hold mail until I explicitly send it.
+
+    On Linux, it's simply a matter of setting up a mail server such as
+    [[https://easyengine.io/tutorials/linux/ubuntu-postfix-gmail-smtp/][Postfix]].
+
+    Hide HTML mail. I need to fiddle with this some more, since Gnus still
+    tries to display them. Sometimes my Gnus crashes when it tries to
+    display HTML mail.
+
+
 *** Approve or discard Mailman messages
 
 The mailing lists for [[https://lists.gnu.org/mailman/listinfo/emacsconf-org][emacsconf-org]], [[https://lists.gnu.org/mailman/listinfo/emacsconf-org-private][emacsconf-org-private]],
@@ -13361,11 +13762,14 @@ In termux, you also need to =pkg install diffutils=.
   :after hydra
   :bind (("C-c e" . hydra-emacsconf/body)
          ("M-g t" . emacsconf-go-to-talk))
-  :commands
-  (emacsconf-go-to-talk emacsconf-cache-find-file emacsconf-res-dired emacsconf-upload-dired)
+	:init
+	(require 'emacsconf-autoloads)
+	:hook
+	(message-send . emacsconf-mail-check-for-zzz-before-sending)
   :hydra (hydra-emacsconf
           (:exit t)
           ("t" emacsconf-go-to-talk "talk")
+					("n" emacsconf-mail-notmuch-search-for-talk "notmuch search")
           ("f" emacsconf-cache-find-file "file")
           ("c" (find-file emacsconf-org-file) "conf.org")
           ("C" (let ((default-directory (file-name-directory emacsconf-org-file)))
@@ -13398,6 +13802,7 @@ In termux, you also need to =pkg install diffutils=.
 	:quelpa (org-ai :fetcher github :repo "rksm/org-ai"))
 (use-package khoj
   :after org
+	:disabled t
   :quelpa (khoj :fetcher github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
   :bind ("C-c s" . 'khoj))
 #+end_src

@@ -1072,6 +1072,20 @@ any directory proferred by `consult-dir'."
 	:init (setq modus-themes-to-toggle '(modus-vivendi modus-operandi))
 	:config (my-setup-color-theme))
 
+(defun my-emacsconf-prepare-for-screenshots ()
+	(interactive)
+	(shell-command "xrandr --output LVDS-1 --mode 1280x720")
+	(modus-themes-load-theme 'modus-operandi)
+	(set-face-attribute 'default nil :height 170)
+	(keycast-mode))
+
+(defun my-emacsconf-back-to-normal ()
+	(interactive)
+	(shell-command "xrandr --output LVDS-1 --mode 1366x768")
+	(modus-themes-load-theme 'modus-vivendi)
+	(set-face-attribute 'default nil :height 115)
+	(keycast-mode -1))
+
 (use-package undo-tree
   :diminish undo-tree-mode
   :config
@@ -1502,6 +1516,24 @@ any directory proferred by `consult-dir'."
   ("M-g u" . link-hint-open-link)
   ("M-g U" . link-hint-open-multiple-links))
 
+(easy-menu-define cc/bookmarks-menu nil
+  "Keymap for CC Bookmarks Menu"
+  '("Bookmarks"
+    ["Edit Bookmarks" list-bookmarks
+     :help "Display a list of existing bookmarks."]
+    ["--" nil]
+    ["Add Bookmark…" bookmark-set-no-overwrite
+     :help "Set a bookmark named NAME at the current location."]
+    ["---" nil]
+    ["Jump to Bookmark…" bookmark-jump
+     :help "Jump to bookmark"]))
+(easy-menu-add-item global-map '(menu-bar)
+                    cc/bookmarks-menu
+                    "Tools")
+(defhydra+ my-shortcuts (:exit t)
+	("b" bookmark-jump "Jump to bookmark")
+	("B" bookmark-set-no-overwrite "Set bookmark"))
+
 ;; Install and load `quelpa-use-package'.
 (use-package dogears
   ;; :quelpa (dogears :fetcher github :repo "alphapapa/dogears.el")
@@ -1534,7 +1566,7 @@ any directory proferred by `consult-dir'."
   (interactive "r")
   (let ((list (split-string (buffer-substring beg end) "[\r\n]+")))
     (delete-region beg end)
-    (insert (mapconcat 'identity (shuffle-list list) "\n"))))
+    (insert (string-join (seq-sort-by (lambda (_) (random)) #'<= list) "\n"))))
 
 (global-set-key (kbd "M-c") #'capitalize-dwim)
 
@@ -4062,6 +4094,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
         ("h" . "export html")
         ("l" . "src emacs-lisp")
         ("p" . "src python")
+        ("n" . "notes")
         ("q" . "quote")
         ("s" . "src")
         ("v" . "verse")))
@@ -5230,7 +5263,7 @@ and indent it one level."
 (defun my-include-open (path &optional _)
 	"Narrow to the region specified in PATH."
 	(let (params start end)
-		(if (string-match "^\\(.*+?\\)::\\(.*+\\)" path)
+		(if (string-match "^\\(.*+?\\)\\(?:::\\|\\?\\)\\(.*+\\)" path)
 				(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))
 							path (match-string 1 path)))
 		(find-file path)
@@ -5262,10 +5295,11 @@ and indent it one level."
 (defun my-include-export (path _ format _)
 	"Export PATH to FORMAT using the specified wrap parameter."
 	(let (params body start end)
-		(when (string-match "^\\(.*+?\\)::\\(.*+\\)" path)
-			(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))))
-		(save-window-excursion
-			(my-include-open path)
+		(when (string-match "^\\(.*+?\\)\\(?:::\\|\\?\\)\\(.*+\\)" path)
+			(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))
+						path (match-string 1 path)))
+		(with-temp-buffer
+			(insert-file-contents-literally path)
 			(setq body (buffer-substring (point-min) (point-max))))
 		(with-temp-buffer
 			(when (plist-get params :wrap)
@@ -5296,14 +5330,7 @@ and indent it one level."
 																consult-line-numbers-widen))
 										(prompt "From line: "))
 								(goto-char (point-min))
-								(consult--line
-								 (or (consult--with-increased-gc
-											(consult--line-candidates
-											 nil
-											 curr-line))
-										 (user-error "No lines"))
-								 :curr-line curr-line
-								 :prompt prompt)
+								(consult-line)
 								(url-hexify-string
 								 (regexp-quote (buffer-substring (line-beginning-position) (line-end-position)))))
 							"&to-regexp="
@@ -5312,17 +5339,81 @@ and indent it one level."
 																consult-line-numbers-widen))
 										(prompt "To line: "))
 								(goto-char (point-min))
-								(consult--line
-								 (or (consult--with-increased-gc
-											(consult--line-candidates
-											 nil
-											 curr-line))
-										 (user-error "No lines"))
-								 :curr-line curr-line
-								 :prompt prompt)
+								(consult-line
+								 nil (point))
 								(url-hexify-string
 								 (regexp-quote (buffer-substring (line-beginning-position) (line-end-position)))))
 							"&wrap=src " (replace-regexp-in-string "-mode$" "" (symbol-name major-mode))))))
+
+(defun my-org-display-included-images (&optional include-linked refresh beg end)
+	"Display inline images for my-include types."
+	(interactive "P")
+	(when (display-graphic-p)
+		(when refresh
+      (org-remove-inline-images beg end)
+      (when (fboundp 'clear-image-cache) (clear-image-cache)))
+    (let ((end (or end (point-max))))
+      (org-with-point-at (or beg (point-min))))
+		(let* ((case-fold-search t)
+					 (file-extension-re "\\.svg")
+					 (file-types-re (format "\\[\\[my-include:")))
+			(while (re-search-forward file-types-re end t)
+				(let* ((link (org-element-lineage (save-match-data (org-element-context)) 'link t))
+							 (inner-start (match-beginning 1))
+							 (path
+								(cond
+								 ((not link) nil)
+								 ;; file link without a description
+								 ((or (not (org-element-contents-begin link)) include-linked)
+									(org-element-property :path link))
+								 ((not inner-start) nil)
+								 (t (org-with-point-at inner-start
+											(and (looking-at
+														(if (char-equal ?< (char-after inner-start))
+																org-link-angle-re
+															org-link-plain-re))
+													 ;; File name must fill the whole
+													 ;; description.
+													 (= (org-element-contents-end link)
+															(match-end 0))
+													 (progn
+                             (setq linktype (match-string 1))
+                             (match-string 2))))))))
+					(when (string-match "\\(.+\\)\\?" path)
+						(setq path (match-string 1 path)))
+					(when (and path (string-match-p file-extension-re path))
+						(let ((file (expand-file-name path)))
+              ;; Expand environment variables.
+              (when file (setq file (substitute-in-file-name file)))
+							(when (and file (file-exists-p file))
+								(let ((width (org-display-inline-image--width link))
+											(old (get-char-property-and-overlay
+														(org-element-begin link)
+														'org-image-overlay)))
+									(if (and (car-safe old) refresh)
+                      (image-flush (overlay-get (cdr old) 'display))
+										(let ((image (org--create-inline-image file width)))
+											(when image
+												(let ((ov (make-overlay
+																	 (org-element-begin link)
+																	 (progn
+																		 (goto-char
+																			(org-element-end link))
+																		 (skip-chars-backward " \t")
+																		 (point)))))
+                          ;; FIXME: See bug#59902.  We cannot rely
+                          ;; on Emacs to update image if the file
+                          ;; has changed.
+                          (image-flush image)
+													(overlay-put ov 'display image)
+													(overlay-put ov 'face 'default)
+													(overlay-put ov 'org-image-overlay t)
+													(overlay-put
+													 ov 'modification-hooks
+													 (list 'org-display-inline-remove-overlay))
+													(when (boundp 'image-map)
+														(overlay-put ov 'keymap image-map))
+													(push ov org-inline-image-overlays))))))))))))))
 
 (use-package ox-epub
   :if my-laptop-p
@@ -5376,13 +5467,24 @@ and indent it one level."
            (data (json-read-file (concat (file-name-base (buffer-file-name)) ".11tydata.json"))))
       (browse-url (concat "http://localhost:8080" (plist-get data :permalink))) )))
 
+(defun my-org-11ty-pathname ()
+	(if (derived-mode-p 'org-mode)
+			(file-name-directory (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME"))
+		(let ((url (thing-at-point 'url)))
+			(when url
+				(url-file-directory (url-filename (url-generic-parse-url url)))))))
+
+(defun my-org-11ty-find-post (url)
+	(interactive (list (my-org-11ty-pathname)))
+	;; check in posts.org
+	(find-file "~/sync/orgzly/posts.org")
+	(let ((pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" url)))
+		(when pos (goto-char pos))))
+
 (defun my-org-11ty-find-file ()
   (interactive)
   (find-file (expand-file-name
-              (concat (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")
-                      (if (string-match "/$" (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME"))
-                          "index" "")
-                      ".html")
+							(expand-file-name "index.html" (my-org-11ty-pathname))
               "~/proj/static-blog")))
 
 (defun my-org-11ty-post-to-mastodon (&optional post-automatically)
@@ -5416,15 +5518,34 @@ This is extracted from lines like:
 		(insert "#+CAPTION: " caption "\n"
 						(org-link-make-string (concat "file:" path)) "\n")))
 
+(defun my-org-blog-complete ()
+	(concat "blog:"
+					(completing-read
+					 "Post: "
+					 (mapcar (lambda (o) (replace-regexp-in-string "^~/proj/static-blog\\|index.html$" "" o))
+									 (directory-files-recursively "~/proj/static-blog/blog" "index\\.html" nil)
+									 ))))
+(defun my-org-blog-export (link desc format _)
+	(let ((path (concat "https://sachachua.com" link)))
+		(pcase format
+			((or 'html '11ty) (format "<a href=\"%s\">%s</a>" path desc))
+      ('latex (format "\\href{%s}{%s}" path desc))
+      ('texinfo (format "@uref{%s,%s}" path desc))
+      ('ascii (format "%s (%s)" desc path)))))
+(defun my-org-blog-open (link &rest _)
+	"Find the post if it exists, or open the HTML."
+	(find-file "~/sync/orgzly/posts.org")
+	(let ((pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" link)))
+		(if pos (goto-char pos)
+			(find-file (expand-file-name "index.html" (expand-file-name link "~/proj/static-blog"))))))
+
 (use-package org
+	:config
 	(org-link-set-parameters
 	 "blog"
 	 :follow #'my-org-blog-open
 	 :export #'my-org-blog-export
-	 :complete #'my-org-blog-complete
-	 )
-
-	)
+	 :complete #'my-org-blog-complete))
 
 (defun my-org-11ty-copy-subtree (&optional do-cut)
 	"Copy the subtree for the current post to the 11ty export directory.
@@ -5562,6 +5683,8 @@ With prefix arg, move the subtree."
   ;; Use short names like ‘defblock’ instead of the fully qualified name
   ;; ‘org-special-block-extras--defblock’
 	(setcdr org-special-block-extras-mode-map nil)
+	;; skip adding stuff to org-html-head-extra
+	(setq org-special-block-extras nil)
   (org-defblock my_details (title "Details") (title-color "Green")
               "Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Enclose contents in a folded up box."
               (cond
@@ -6053,6 +6176,39 @@ FORMAT."
         (apply 'call-process "ls" nil t nil "-lR" files))
       (dired-virtual "/")
       (switch-to-buffer (current-buffer)))))
+
+(defun org-protocol-open-link (info)
+	"Process an org-protocol://open style url with INFO."
+	(org-link-open (car (org-element-parse-secondary-string (plist-get info :link) '(link)))))
+
+(defun org-protocol-copy-open-link (arg)
+	(interactive "P")
+	(kill-new (concat "org-protocol://open?link=" (url-hexify-string (org-store-link arg)))))
+
+(with-eval-after-load 'org
+	(add-to-list 'org-protocol-protocol-alist
+							 '("org-open" :protocol "open" :function org-protocol-open-link)))
+
+(defun org-protocol-follow (path &rest _)
+	"Follow the org-protocol link for PATH."
+	(org-protocol-check-filename-for-protocol (concat "org-protocol:" path) nil nil))
+
+(defun org-protocol-export (path desc format info)
+	"Export an org-protocol link."
+	(setq path (concat "org-protocol:" path))
+	(setq desc (or desc path))
+	(pcase format
+    (`html (format "<a href=\"%s\">%s</a>" path desc))
+		(`11ty (format "<a href=\"%s\">%s</a>" path desc))
+    (`latex (org-latex-link path desc info))
+    (`ascii (org-ascii-link path desc info))
+		(`md (org-md-link path desc info))
+    (_ path)))
+
+(with-eval-after-load 'org
+	(org-link-set-parameters "org-protocol"
+													 :follow #'org-protocol-follow
+													 :export #'org-protocol-export))
 
 (defun my-make-slug (s)
   (thread-last s
@@ -6663,6 +6819,7 @@ FORMAT."
      'org-babel-load-languages
      '((dot . t)
        (ditaa . t)
+			 (mermaid . t)
        (emacs-lisp . t)
        (plantuml . t)
        (lilypond . t)
@@ -6832,7 +6989,15 @@ FORMAT."
   (should (equal (my-org-get-invoice-range-based-on-date "2015-12-05")
                  '("2015-11-01 00:00" "2015-12-01 00:00"))))
 
-(use-package ox-reveal :disabled t)
+(use-package org-re-reveal
+	:config
+	(setq org-re-reveal-revealjs-version "4")
+	(setq org-re-reveal-history t))
+(use-package oer-reveal
+	:config
+	(setq oer-reveal-plugin-4-config
+				"audioslideshow RevealAudioSlideshow plugin/audio-slideshow/plugin.js
+anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/anything/plugin.js"))
 
 (defun my-org-add-dashes-to-tag-regexps ()
   (setq org-complex-heading-regexp
@@ -7046,8 +7211,13 @@ FORMAT."
 (defun my-org-set-property (property value)
   "In the current entry, set PROPERTY to VALUE.
 Use the region if active."
-  (interactive (list (org-read-property-name)
-                     (when (region-active-p) (buffer-substring (point) (mark)))))
+  (interactive
+	 (list
+		(org-read-property-name)
+    (when (region-active-p)
+			(replace-regexp-in-string
+			 "[ \n\t]+" " "
+			 (buffer-substring (point) (mark))))))
   (org-set-property property value))
 (use-package org
   :bind (:map org-mode-map
@@ -7062,20 +7232,42 @@ Use the region if active."
 					 #'fboundp
 					 'confirm
 					 nil nil))) ; 	 (and fn (symbol-name fn)) ?
+(defun my-org-defun-link-description (link description)
+	"Add documentation string as part of the description"
+	(unless description
+		(when (string-match "defun:\\(.+\\)" link)
+			(let ((symbol (intern (match-string 1 link))))
+				(when (documentation symbol)
+					(concat (symbol-name symbol) ": "
+									(car (split-string (documentation symbol) "\n"))))))))
 
-(defun my-org-defun-export (symbol description format _)
+(defun my-org-defun-export (link description format _)
 	"Export the function."
-	(save-window-excursion
-		(find-function (intern symbol))
-		(let ((function-body (buffer-substring (point)
-																					 (progn (forward-sexp) (point)))))
-			(pcase format
-				((or '11ty 'html)
-				 (format "<div class=\"org-src-container\">\n<details><summary>%s</summary><pre class=\"src src-emacs-lisp\">%s</pre></details></div>"
-								 symbol
-								 (org-html-do-format-code function-body "emacs-lisp" nil nil nil nil)))
-				(`ascii function-body)
-				(_ function-body)))))
+	(let (symbol params path-and-query)
+		(if (string-match "\\?" link)
+				(setq path-and-query (url-path-and-query (url-generic-parse-url link))
+							symbol (car path-and-query)
+							params (url-parse-query-string (cdr path-and-query)))
+			(setq symbol link))
+		(save-window-excursion
+			(find-function (intern symbol))
+			(let ((function-body (buffer-substring (point)
+																						 (progn (forward-sexp) (point)))))
+				(pcase format
+					((or '11ty 'html)
+					 (format "<details%s><summary>%s</summary><div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div></details>"
+											 (if (assoc-default "open" params 'string=) " open"
+												 "")
+											 (or description
+													 (and (documentation (intern symbol))
+																(concat
+																 symbol
+																 ": "
+																 (car (split-string (documentation (intern symbol)) "\n"))))
+													 symbol)
+											 (org-html-do-format-code function-body "emacs-lisp" nil nil nil nil)))
+					(`ascii function-body)
+					(_ function-body))))))
 
 (defun my-org-defun-store ()
 	"Store a link to the function."
@@ -7085,12 +7277,85 @@ Use the region if active."
 
 (defun my-org-defun-open (symbol _)
 	"Jump to the function definition."
-	(find-function (intern symbol)))
+	(find-function (intern (replace-regexp-in-string "\\?.*$" "" symbol))))
 
 (org-link-set-parameters "defun" :follow #'my-org-defun-open
 												 :export #'my-org-defun-export
 												 :complete #'my-org-defun-complete
+												 :insert-description #'my-org-defun-link-description
 												 :store #'my-org-defun-store)
+
+(defun my-org-defvar-complete ()
+	"Return variable definitions."
+	(concat "defvar:"
+					(completing-read
+					 "Variable: "
+					 #'help--symbol-completion-table
+					 #'indirect-variable
+					 'confirm
+					 nil nil))) ; 	 (and fn (symbol-name fn)) ?
+(defun my-org-defvar-link-description (link description)
+	"Add documentation string as part of the description"
+	(unless description
+		(when (string-match "\\(?:defun\\|defvar\\):\\(.+\\)" link)
+			(let* ((symbol (intern (match-string 1 link)))
+						 (doc (documentation-property symbol 'variable-documentation symbol)))
+				(when doc
+					(concat (symbol-name symbol) ": "
+									(car (split-string doc "\n"))))))))
+
+(defun my-org-def-export (link description format _)
+	"Export the variable-or-function."
+	(let (symbol params path-and-query)
+		(if (string-match "\\?" link)
+				(setq path-and-query (url-path-and-query (url-generic-parse-url link))
+							symbol (car path-and-query)
+							params (url-parse-query-string (cdr path-and-query)))
+			(setq symbol link))
+		(save-window-excursion
+			(if (functionp (intern symbol))
+					(find-function (intern symbol))
+				(find-variable (intern symbol)))
+			(let ((body (buffer-substring (point)
+																		(progn (forward-sexp) (point)))))
+				(pcase format
+					((or '11ty 'html)
+					 (format "<details%s><summary>%s</summary><div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div></details>"
+											 (if (assoc-default "open" params 'string=) " open"
+												 "")
+											 (or description
+													 (and (documentation (intern symbol))
+																(concat
+																 symbol
+																 ": "
+																 (car (split-string (documentation (intern symbol)) "\n"))))
+													 symbol)
+											 (org-html-do-format-code body "emacs-lisp" nil nil nil nil)))
+					(`ascii body)
+					(_ body))))))
+
+(defun my-org-def-store ()
+	"Store a link to the function."
+	(when (derived-mode-p 'emacs-lisp-mode)
+		(save-excursion
+      (or (eobp) (forward-char 1))
+      (beginning-of-defun)
+			(let ((data (read)))
+				(if (eq (car data) 'defun)
+						(org-link-store-props :type "defun"
+																	:link (concat "defun:" (lisp-current-defun-name)))
+					(org-link-store-props :type "defvar"
+																	:link (concat "defvar:" (cadr data))))))))
+
+(defun my-org-defvar-open (symbol _)
+	"Jump to the function definition."
+	(find-variable (intern (replace-regexp-in-string "\\?.*$" "" symbol))))
+
+(org-link-set-parameters "defvar" :follow #'my-org-defvar-open
+												 :export #'my-org-def-export
+												 :complete #'my-org-defvar-complete
+												 :insert-description #'my-org-defvar-link-description
+												 :store #'my-org-def-store)
 
 (use-package elpy
 	:config
@@ -7222,6 +7487,8 @@ Use the region if active."
 (eval-after-load 'python-mode
   '(bind-key "C-c C-c" 'compile python-mode-map))
 
+(use-package memoize)
+
 (use-package edit-list :commands edit-list)
 
 (setq eval-expression-print-length nil)
@@ -7310,6 +7577,30 @@ Use the region if active."
 					(my-hl-sexp-update-overlay)))))
 	(advice-add 'hl-sexp-create-overlay :after 'my-hl-sexp-update-overlay)
 	(advice-add 'modus-themes-load-theme :after 'my-hl-sexp-update-all-overlays))
+
+(require 'eros)
+(defun adviced:edebug-previous-result (_ &rest r)
+  "Adviced `edebug-previous-result'."
+  (eros--make-result-overlay edebug-previous-result
+    :where (point)
+    :duration eros-eval-result-duration))
+
+(advice-add #'edebug-previous-result
+            :around
+            #'adviced:edebug-previous-result)
+
+(defun adviced:edebug-compute-previous-result (_ &rest r)
+  "Adviced `edebug-compute-previous-result'."
+  (let ((previous-value (nth 0 r)))
+    (if edebug-unwrap-results
+        (setq previous-value
+              (edebug-unwrap* previous-value)))
+    (setq edebug-previous-result
+          (edebug-safe-prin1-to-string previous-value))))
+
+(advice-add #'edebug-compute-previous-result
+            :around
+            #'adviced:edebug-compute-previous-result)
 
 (use-package buttercup
 	:hook '(buttercup-minor-mode . my-buttercup-set-up-imenu))
@@ -7725,7 +8016,7 @@ Useful as `imenu-create-index-function'."
     (setq yas-expand-only-for-last-commands nil)
     (yas-global-mode 1)
     (bind-key "\t" 'hippie-expand yas-minor-mode-map)
-    (add-to-list 'yas-prompt-functions 'shk-yas/helm-prompt)))
+))
 ;;        (global-set-key (kbd "C-c y") (lambda () (interactive)
 ;;                                         (yas/load-directory "~/elisp/snippets")))
 
@@ -7960,6 +8251,31 @@ Useful as `imenu-create-index-function'."
 
 (add-hook 'after-save-hook
           'executable-make-buffer-file-executable-if-script-p)
+
+(use-package flymake
+  :bind (("S-e" . flymake-show-project-diagnostics)))
+
+(use-package sh-script
+  :hook (sh-mode . flymake-mode))
+
+(use-package flymake-shellcheck)
+(use-package flymake
+  :bind (("S-e" . my-consult-flymake-project))
+  :preface
+  (defun my/consult-flymake-project ()
+    (interactive)
+    (consult-flymake t))
+  :custom
+  (flymake-suppress-zero-counters t)
+  :config
+  (defface my-flymake-modeline-error-echo
+    '((t :inherit 'flymake-error-echo :background "red"))
+    "Mode line flymake errors")
+  (put 'flymake-error 'mode-line-face 'my/flymake-modeline-error-echo)
+  (defface my-flymake-modeline-warning-echo
+    '((t :inherit 'flymake-warning-echo :background "orange"))
+    "Mode line flymake warnings")
+  (put 'flymake-warning 'mode-line-face 'my-flymake-modeline-warning-echo))
 
 (defun my-dwim-shell-command (prefix)
   "Execute DWIM shell command asynchronously using noweb templates.
@@ -8967,6 +9283,36 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
    ("g" engine/search-google "google")
    ("e" engine/search-emacswiki "emacswiki")))
 
+(setq notmuch-message-headers '("Subject" "To" "Cc" "Date" "Reply-To"))
+(use-package notmuch
+  :if my-laptop-p
+  :config (setq-default notmuch-search-oldest-first nil)
+  (setq notmuch-fcc-dirs nil)
+  (setq notmuch-archive-tags '("-inbox" "-flagged" "-unread" "-new")))
+(use-package ol-notmuch
+  :if my-laptop-p)
+(defun my-notmuch-flagged ()
+  (interactive)
+  (notmuch-search "tag:flagged and not tag:trash"))
+(defun my-notmuch-inbox ()
+  (interactive)
+  (notmuch-search "tag:inbox and not tag:trash"))
+(defun my-notmuch-important-inbox ()
+  (interactive)
+  (notmuch-search "tag:primary and tag:inbox and not tag:trash"))
+(defun my-notmuch-search-this-author ()
+  (interactive)
+  (notmuch-search (format "from:\"%s\""
+                          (plist-get (get-text-property (point) 'notmuch-search-result) :authors))))
+
+(defun mail-embark-finder ()
+	"Identify when we're in a notmuch message."
+	(cond ((derived-mode-p 'notmuch-show-mode)
+				 `(mail . ,(plist-get (plist-get (notmuch-show-get-message-properties) :headers) :From)))))
+(with-eval-after-load 'embark
+	(add-to-list 'embark-target-finders 'mail-embark-finder)
+	)
+
 (setq gnus-select-method '(nnnil ""))
 (setq gnus-secondary-select-methods
       '((nntp "news.gmane.io")
@@ -9012,27 +9358,12 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
         (gnus-killed-mark (subject -5))
         (gnus-catchup-mark (subject -1))))
 
-(setq notmuch-message-headers '("Subject" "To" "Cc" "Date" "Reply-To"))
-(use-package notmuch
-  :if my-laptop-p
-  :config (setq-default notmuch-search-oldest-first nil)
-  (setq notmuch-fcc-dirs nil)
-  (setq notmuch-archive-tags '("-inbox" "-flagged" "-unread" "-new")))
-(use-package ol-notmuch
-  :if my-laptop-p)
-(defun my-notmuch-flagged ()
-  (interactive)
-  (notmuch-search "tag:flagged and not tag:trash"))
-(defun my-notmuch-inbox ()
-  (interactive)
-  (notmuch-search "tag:inbox and not tag:trash"))
-(defun my-notmuch-important-inbox ()
-  (interactive)
-  (notmuch-search "tag:primary and tag:inbox and not tag:trash"))
-(defun my-notmuch-search-this-author ()
-  (interactive)
-  (notmuch-search (format "from:\"%s\""
-                          (plist-get (get-text-property (point) 'notmuch-search-result) :authors))))
+(use-package nnreddit
+	:init (setq nnreddit-python-command "python3")
+	:quelpa (nnreddit :fetcher git :url "https://live.gitawonk.com/dickmao/nnreddit.git"
+										:files '("*.el" "requirements.txt"))
+	:config (with-eval-after-load 'gnus
+						(add-to-list 'gnus-secondary-select-methods '(nnreddit ""))))
 
 (defun my-mailman-approve ()
   "Approve this mailing list message."
@@ -10064,11 +10395,14 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
   :after hydra
   :bind (("C-c e" . hydra-emacsconf/body)
          ("M-g t" . emacsconf-go-to-talk))
-  :commands
-  (emacsconf-go-to-talk emacsconf-cache-find-file emacsconf-res-dired emacsconf-upload-dired)
+	:init
+	(require 'emacsconf-autoloads)
+	:hook
+	(message-send . emacsconf-mail-check-for-zzz-before-sending)
   :hydra (hydra-emacsconf
           (:exit t)
           ("t" emacsconf-go-to-talk "talk")
+					("n" emacsconf-mail-notmuch-search-for-talk "notmuch search")
           ("f" emacsconf-cache-find-file "file")
           ("c" (find-file emacsconf-org-file) "conf.org")
           ("C" (let ((default-directory (file-name-directory emacsconf-org-file)))
@@ -10098,6 +10432,7 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 	:quelpa (org-ai :fetcher github :repo "rksm/org-ai"))
 (use-package khoj
   :after org
+	:disabled t
   :quelpa (khoj :fetcher github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
   :bind ("C-c s" . 'khoj))
 

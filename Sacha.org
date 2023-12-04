@@ -15,6 +15,9 @@ Last exported:  {{{modification-time(%Y-%m-%d %H:%M)}}}
 #+TOC: headlines 4
 
 * Configuration   :emacs:
+:PROPERTIES:
+:CUSTOM_ID: configuration
+:END:
 ** About this file
 :PROPERTIES:
 :CUSTOM_ID: babel-init
@@ -83,6 +86,9 @@ happens in an external Emacs process. Since I create =Sacha.el= via
 loading Org first.
 
 ** Starting up
+:PROPERTIES:
+:CUSTOM_ID: starting-up
+:END:
 
 Here's how we start:
 
@@ -100,6 +106,9 @@ Here's how we start:
 #+END_SRC
 
 ** System information
+:PROPERTIES:
+:CUSTOM_ID: system-information
+:END:
 
 #+NAME: system-info
 #+begin_src emacs-lisp
@@ -112,12 +121,18 @@ Here's how we start:
 #+end_src
 
 ** Personal information
+:PROPERTIES:
+:CUSTOM_ID: personal-information
+:END:
 
 #+BEGIN_SRC emacs-lisp
 (setq user-full-name "Sacha Chua"
       user-mail-address "sacha@sachachua.com")
 #+END_SRC
 ** Remembering to set custom IDs for this file
+:PROPERTIES:
+:CUSTOM_ID: remembering-to-set-custom-ids-for-this-file
+:END:
 
 #+begin_src emacs-lisp
 (defun my-assign-custom-ids ()
@@ -137,7 +152,13 @@ Here's how we start:
 		 "-CUSTOM_ID={.}")))
 #+end_src
 ** Emacs initialization
+:PROPERTIES:
+:CUSTOM_ID: emacs-initialization
+:END:
 *** Add package sources
+:PROPERTIES:
+:CUSTOM_ID: add-package-sources
+:END:
 
 #+BEGIN_SRC emacs-lisp
 (unless (assoc-default "melpa" package-archives)
@@ -150,6 +171,9 @@ Use =M-x package-refresh-contents= to reload the list of packages
 after adding these for the first time.
 
 *** Add my elisp directory and other files
+:PROPERTIES:
+:CUSTOM_ID: add-my-elisp-directory-and-other-files
+:END:
 
 Sometimes I load files outside the package system. As long as they're
 in a directory in my =load-path=, Emacs can find them.
@@ -172,12 +196,18 @@ in a directory in my =load-path=, Emacs can find them.
 #+END_SRC
 
 ** General configuration
+:PROPERTIES:
+:CUSTOM_ID: general-configuration
+:END:
 #+begin_src emacs-lisp
 (repeat-mode 1)
 ;; don't interrupt me with native compilation warnings
 (setq native-comp-async-report-warnings-errors nil)
 #+end_src
 *** Hydras
+:PROPERTIES:
+:CUSTOM_ID: hydras
+:END:
 
     #+BEGIN_SRC emacs-lisp
 (use-package hydra :commands defhydra)
@@ -381,6 +411,9 @@ From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
    Proooobably works? Very rough. Might be useful for those fuzzy-brain days.
 
 *** Reload
+:PROPERTIES:
+:CUSTOM_ID: reload
+:END:
 
 #+begin_src emacs-lisp
 (defun my-reload-emacs-configuration ()
@@ -389,6 +422,9 @@ From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
 #+end_src
 
 *** Libraries
+:PROPERTIES:
+:CUSTOM_ID: libraries
+:END:
 
 #+begin_src emacs-lisp
 (use-package dash :ensure t)
@@ -396,6 +432,9 @@ From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
 #+end_src
 
 *** Backups
+:PROPERTIES:
+:CUSTOM_ID: backups
+:END:
 
 This is one of the things people usually want to change right away. By default, Emacs saves backup files in the current directory. These are the files ending in =~= that are cluttering up your directory lists. The following code stashes them all in =~/.config/emacs/backups=, where I can find them with =C-x C-f= (=find-file=) if I really need to.
 
@@ -416,6 +455,9 @@ Disk space is cheap. Save lots.
 #+END_SRC
 
 *** History
+:PROPERTIES:
+:CUSTOM_ID: history
+:END:
 
 From http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html:
 #+BEGIN_SRC emacs-lisp
@@ -441,6 +483,7 @@ From http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html:
 :DRILL_EASE: 2.36
 :DRILL_LAST_QUALITY: 3
 :DRILL_LAST_REVIEWED: [2013-02-27 Wed 23:14]
+:CUSTOM_ID: windows-configuration
 :END:
 
 When you're starting out, the tool bar can be very helpful. [[http://sachachua.com/blog/2014/03/emacs-basics-using-mouse/][(Emacs Basics: Using the Mouse]]). Eventually, you may want to reclaim that extra little bit of screenspace. The following code turns that thing off. (Although I changed my mind about the menu - I want that again.)
@@ -450,6 +493,9 @@ When you're starting out, the tool bar can be very helpful. [[http://sachachua.c
 #+END_SRC
 
 *** Time in the modeline
+:PROPERTIES:
+:CUSTOM_ID: time-in-the-modeline
+:END:
 
 I like having the clock.
 
@@ -458,6 +504,9 @@ I like having the clock.
 #+end_src
 
 *** Winner mode - undo and redo window configuration
+:PROPERTIES:
+:CUSTOM_ID: winner-mode-undo-and-redo-window-configuration
+:END:
 
 =winner-mode= lets you use =C-c <left>= and =C-c <right>= to switch between window configurations. This is handy when something has popped up a buffer that you want to look at briefly before returning to whatever you were working on. When you're done, press =C-c <left>=.
 
@@ -467,6 +516,9 @@ I like having the clock.
 #+END_SRC
 
 *** Sentences end with a single space
+:PROPERTIES:
+:CUSTOM_ID: sentences-end-with-a-single-space
+:END:
 
 In my world, sentences end with a single space. This makes
 sentence navigation commands work for me.
@@ -476,11 +528,17 @@ sentence navigation commands work for me.
 #+END_SRC
 
 *** Trying out Marginalia, Selectrum, Embark, and Consult
+:PROPERTIES:
+:CUSTOM_ID: trying-out-marginalia-selectrum-embark-and-consult
+:END:
 
 Based on [[https://www.rousette.org.uk/archives/switching-to-selectrum-for-incremental-narrowing-in-emacs/][BSAG » Switching to Selectrum for incremental narrowing in Emacs]]
 I like marginalia for M-x, but I've gotten used to Helm for finding files.
 
 **** Basic configuration
+:PROPERTIES:
+:CUSTOM_ID: basic-configuration
+:END:
 
      #+begin_src emacs-lisp
 (use-package vertico :config (vertico-mode +1))
@@ -661,6 +719,9 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
 	)
      #+end_src
 **** Using projects as a source for consult-buffer
+:PROPERTIES:
+:CUSTOM_ID: using-projects-as-a-source-for-consult-buffer
+:END:
 
 #+begin_src emacs-lisp
 (use-package consult
@@ -677,6 +738,9 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
   (add-to-list 'consult-buffer-sources my-consult-source-projectile-projects 'append))
     #+end_src
 **** Completing sketches
+:PROPERTIES:
+:CUSTOM_ID: completing-sketches
+:END:
 
      #+begin_src emacs-lisp
 (defun my-date-from-filename (filename)
@@ -745,6 +809,9 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
   (add-to-list 'marginalia-prompt-categories '("sketch" . sketch)))
      #+end_src
 **** Consult directory navigation
+:PROPERTIES:
+:CUSTOM_ID: consult-directory-navigation
+:END:
 
      #+begin_src emacs-lisp
 (use-package consult-dir
@@ -781,6 +848,7 @@ any directory proferred by `consult-dir'."
      :POST_DATE: [2021-02-05 Fri 01:15]
      :BLOG:     sacha
      :POSTID:   29667
+     :CUSTOM_ID: marginalia-and-hiding-the-value-of-password-ish-variables
      :END:
 
 #+begin_update
@@ -817,6 +885,9 @@ This is the annotator function I used to have:
 
 
 **** Marginalia and annotating journal entries
+:PROPERTIES:
+:CUSTOM_ID: marginalia-and-annotating-journal-entries
+:END:
 
 I used to annotate functions with their arguments, but that seems to be built-in now. The following code annotates journal entries with their categories.
 
@@ -835,6 +906,9 @@ I used to annotate functions with their arguments, but that seems to be built-in
 #+end_src
 
 **** Using Embark to offer context-sensitive actions for Org elements
+:PROPERTIES:
+:CUSTOM_ID: using-embark-to-offer-context-sensitive-actions-for-org-elements
+:END:
 
 #+NAME: embark
 #+begin_src emacs-lisp :var foo="bar"
@@ -868,6 +942,9 @@ I used to annotate functions with their arguments, but that seems to be built-in
               (format "<<%s>>" (org-element-property element :parameters)))))
 #+end_src
 **** Using Embark to insert files as Org INCLUDEs
+:PROPERTIES:
+:CUSTOM_ID: using-embark-to-insert-files-as-org-includes
+:END:
 
 #+begin_src emacs-lisp
 (defun my-insert-file-as-org-include (file)
@@ -899,6 +976,9 @@ I used to annotate functions with their arguments, but that seems to be built-in
 #+end_src
 
 **** Completing blog posts
+:PROPERTIES:
+:CUSTOM_ID: completing-blog-posts
+:END:
 
 #+begin_src emacs-lisp
 (defun my-complete-blog-post-url ()
@@ -940,6 +1020,9 @@ I used to annotate functions with their arguments, but that seems to be built-in
 		(insert url)))
 #+end_src
 **** Cargo-culted stuff
+:PROPERTIES:
+:CUSTOM_ID: cargo-culted-stuff
+:END:
 
 #+begin_src emacs-lisp
 (defun my-store-action-key+cmd (cmd)
@@ -961,6 +1044,9 @@ I used to annotate functions with their arguments, but that seems to be built-in
   (add-to-list 'embark-target-injection-hooks '(my-stream-message embark--allow-edit)))
     #+end_src
 *** Contextual actions with cmap
+:PROPERTIES:
+:CUSTOM_ID: contextual-actions-with-cmap
+:END:
 
     It doesn't look like Embark allows me to consider different
     targets at the same time, since =embark--target= stops at the
@@ -1009,6 +1095,9 @@ I used to annotate functions with their arguments, but that seems to be built-in
 #+end_src
 
 *** Helm - interactive completion
+:PROPERTIES:
+:CUSTOM_ID: helm-interactive-completion
+:END:
 
 Helm makes it easy to complete various things. I find it to be easier
 to configure than ido in order to get completion in as many places as
@@ -1075,6 +1164,7 @@ CLOSED: [2015-02-02 Mon 08:40]
 :ID:       o2b:68856129-3324-4a07-87f3-066a228c5847
 :POSTID:   27940
 :BLOG:     sacha
+:CUSTOM_ID: getting-helm-and-org-refile-to-clock-in-or-create-tasks
 :END:
 :LOGBOOK:
 - State "DONE"       from "STARTED"    [2015-02-02 Mon 08:40]
@@ -1381,6 +1471,7 @@ I think I'm getting the hang of tweaking Helm. Yay!
 :POST_DATE: [2020-12-12 Sat 23:58]
 :BLOG:     sacha
 :POSTID:   29649
+:CUSTOM_ID: org-mode-create-a-quick-timestamped-note-and-capture-a-screenshot
 :END:
 
 I wanted to be able to quickly create timestamped notes and possibly
@@ -1476,6 +1567,9 @@ position itself.
 #+end_src
 
 *** Recomplete
+:PROPERTIES:
+:CUSTOM_ID: recomplete
+:END:
 
 https://gitlab.com/ideasman42/emacs-recomplete
 
@@ -1488,6 +1582,9 @@ https://gitlab.com/ideasman42/emacs-recomplete
 I like this because it lets me see the completions coming up.
 
 *** Change "yes or no" to "y or n"
+:PROPERTIES:
+:CUSTOM_ID: change-yes-or-no-to-y-or-n
+:END:
 
 Lazy people like me never want to type "yes" when "y" will suffice.
 
@@ -1496,6 +1593,9 @@ Lazy people like me never want to type "yes" when "y" will suffice.
 #+END_SRC
 
 *** Minibuffer editing - more space!
+:PROPERTIES:
+:CUSTOM_ID: minibuffer-editing-more-space
+:END:
 
 Sometimes you want to be able to do fancy things with the text
 that you're entering into the minibuffer. Sometimes you just want
@@ -1510,6 +1610,9 @@ contents of the minibuffer before submitting it.
 #+END_SRC
 
 *** Set up a light-on-dark color scheme
+:PROPERTIES:
+:CUSTOM_ID: set-up-a-light-on-dark-color-scheme
+:END:
 
 I like light on dark because I find it to be more restful. The
 color-theme in ELPA was a little odd, though, so we define some advice to make
@@ -1529,6 +1632,9 @@ it work. Some things still aren't quite right.
 I sometimes need to switch to a lighter background for screenshots.
 For that, I use =modus-themes-operandi=.
 *** Prepare for EmacsConf screenshots or recordings
+:PROPERTIES:
+:CUSTOM_ID: prepare-for-emacsconf-screenshots-or-recordings
+:END:
 
 #+begin_src emacs-lisp
 (defun my-emacsconf-prepare-for-screenshots ()
@@ -1549,6 +1655,9 @@ For that, I use =modus-themes-operandi=.
 #+end_src
 
 *** Undo tree mode - visualize your undos and branches
+:PROPERTIES:
+:CUSTOM_ID: undo-tree-mode-visualize-your-undos-and-branches
+:END:
 
 People often struggle with the Emacs undo model, where there's really no concept of "redo" - you simply undo the undo.
 #
@@ -1566,6 +1675,9 @@ This lets you use =C-x u= (=undo-tree-visualize=) to visually walk through the c
 #+END_SRC
 
 *** UTF-8
+:PROPERTIES:
+:CUSTOM_ID: utf-8
+:END:
 
 From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.html
 
@@ -1576,6 +1688,9 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
 #+END_SRC
 
 *** Killing text
+:PROPERTIES:
+:CUSTOM_ID: killing-text
+:END:
 
     #+begin_src emacs-lisp
     (setq kill-ring-max 1000)
@@ -1593,6 +1708,9 @@ From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
 #+END_SRC
 
 *** Repeatable commands
+:PROPERTIES:
+:CUSTOM_ID: repeatable-commands
+:END:
 
 Based on http://oremacs.com/2015/01/14/repeatable-commands/ . Modified to
 accept =nil= as the first value if you don't want the keymap to run a
@@ -1617,8 +1735,17 @@ command by default, and to use =kbd= for the keybinding definitions.
 #+END_SRC
 
 **** TODO Look for opportunities to use this
+:PROPERTIES:
+:CUSTOM_ID: look-for-opportunities-to-use-this
+:END:
 ** Discovering things
+:PROPERTIES:
+:CUSTOM_ID: discovering-things
+:END:
 *** Helm-descbinds
+:PROPERTIES:
+:CUSTOM_ID: helm-descbinds
+:END:
     Great for describing bindings. I'll replace the binding for =where-is= too.
 
  #+BEGIN_SRC emacs-lisp
@@ -1632,6 +1759,7 @@ command by default, and to use =kbd= for the keybinding definitions.
 *** Try out keysee.el
 :PROPERTIES:
 :CREATED:  [2021-07-28 Wed 20:53]
+:CUSTOM_ID: try-out-keysee-el
 :END:
 
 From https://www.reddit.com/r/emacs/comments/otjn19/is_there_a_way_to_add_search_to_whichkey_instead/
@@ -1649,6 +1777,9 @@ nil
 :end:
 
 *** which-key and which-key-posframe
+:PROPERTIES:
+:CUSTOM_ID: which-key-and-which-key-posframe
+:END:
 
 It's hard to remember keyboard shortcuts.
 
@@ -1658,6 +1789,9 @@ It's hard to remember keyboard shortcuts.
 #+END_SRC
 
 ** Navigation
+:PROPERTIES:
+:CUSTOM_ID: navigation
+:END:
 #+begin_src emacs-lisp
 (transient-mark-mode 1)
 (defun my-close-other-buffers ()
@@ -1669,6 +1803,9 @@ It's hard to remember keyboard shortcuts.
                 (buffer-list))))
 #+end_src
 *** Searching
+:PROPERTIES:
+:CUSTOM_ID: searching
+:END:
 
 I should get the hang of using =helm-org-rifle= and =ripgrep=.
 
@@ -1693,6 +1830,9 @@ I should get the hang of using =helm-org-rifle= and =ripgrep=.
   ("M-s s" . consult-recoll))
 #+end_src
 *** Ediff
+:PROPERTIES:
+:CUSTOM_ID: ediff
+:END:
 
 http://yummymelon.com/devnull/surprise-and-emacs-defaults.html
 #+begin_src emacs-lisp
@@ -1712,6 +1852,9 @@ http://yummymelon.com/devnull/surprise-and-emacs-defaults.html
 (add-hook 'ediff-quit-hook #'my-restore-pre-ediff-winconfig)
 #+end_src
 *** Hideshow
+:PROPERTIES:
+:CUSTOM_ID: hideshow
+:END:
 
 From https://karthinks.com/software/simple-folding-with-hideshow/ :
 
@@ -1758,6 +1901,9 @@ From https://karthinks.com/software/simple-folding-with-hideshow/ :
       (_ (hs-hide-all))))
 #+end_src
 *** Pop to mark
+:PROPERTIES:
+:CUSTOM_ID: pop-to-mark
+:END:
 
 Handy way of getting back to previous places.
 
@@ -1767,6 +1913,9 @@ Handy way of getting back to previous places.
 #+END_SRC
 
 *** Helm-swoop - quickly finding lines
+:PROPERTIES:
+:CUSTOM_ID: helm-swoop-quickly-finding-lines
+:END:
 
 This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= to see if I can get used to that...
 
@@ -1789,11 +1938,17 @@ This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= t
 #+END_SRC
 
 *** Highlight Line Mode
+:PROPERTIES:
+:CUSTOM_ID: highlight-line-mode
+:END:
 
     #+begin_src emacs-lisp
 (global-hl-line-mode 1)
     #+end_src
 *** Windmove - switching between windows
+:PROPERTIES:
+:CUSTOM_ID: windmove-switching-between-windows
+:END:
 
 Windmove lets you move between windows with something more natural than cycling through =C-x o= (=other-window=).
 Windmove doesn't behave well with Org, so we need to use different keybindings.
@@ -1809,6 +1964,9 @@ Windmove doesn't behave well with Org, so we need to use different keybindings.
 #+END_SRC
 
 *** Frequently-accessed files
+:PROPERTIES:
+:CUSTOM_ID: frequently-accessed-files
+:END:
 Registers allow you to jump to a file or other location quickly. To
 jump to a register, use =C-x r j= followed by the letter of the
 register. Using registers for all these file shortcuts is probably a bit of a waste since I can easily define my own keymap, but since I rarely go beyond register A anyway. Also, I might as well add shortcuts for refiling.
@@ -1979,6 +2137,9 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
 #+end_src
 
 *** Smartscan
+:PROPERTIES:
+:CUSTOM_ID: smartscan
+:END:
 
 From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el, this makes =M-n= and =M-p= look for the symbol at point.
 #+BEGIN_SRC emacs-lisp
@@ -1989,6 +2150,9 @@ From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el, this makes =M
 #+END_SRC
 
 *** Dired
+:PROPERTIES:
+:CUSTOM_ID: dired
+:END:
 
 #+begin_src emacs-lisp
 (setq dired-listing-switches "-altr")
@@ -2003,6 +2167,9 @@ From http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-di
 #+END_SRC
 
 **** peep-dired
+:PROPERTIES:
+:CUSTOM_ID: peep-dired
+:END:
 
 Allow my use of =C-x C-q= while in peep-dired mode.
 
@@ -2015,6 +2182,9 @@ Allow my use of =C-x C-q= while in peep-dired mode.
 #+end_src
 
 **** Saving photos
+:PROPERTIES:
+:CUSTOM_ID: saving-photos
+:END:
 
 #+begin_src emacs-lisp
 (defun my-save-photo (name)
@@ -2064,6 +2234,9 @@ Allow my use of =C-x C-q= while in peep-dired mode.
 #+end_src
 
 *** Move to beginning of line
+:PROPERTIES:
+:CUSTOM_ID: move-to-beginning-of-line
+:END:
 Copied from http://emacsredux.com/blog/2013/05/22/smarter-navigation-to-the-beginning-of-a-line/
 
 #+BEGIN_SRC emacs-lisp
@@ -2096,6 +2269,9 @@ Copied from http://emacsredux.com/blog/2013/05/22/smarter-navigation-to-the-begi
 #+END_SRC
 
 *** Recent files
+:PROPERTIES:
+:CUSTOM_ID: recent-files
+:END:
 
 #+BEGIN_SRC emacs-lisp
 (require 'recentf)
@@ -2105,6 +2281,9 @@ Copied from http://emacsredux.com/blog/2013/05/22/smarter-navigation-to-the-begi
 #+END_SRC
 
 *** Copy filename to clipboard
+:PROPERTIES:
+:CUSTOM_ID: copy-filename-to-clipboard
+:END:
 
 http://emacsredux.com/blog/2013/03/27/copy-filename-to-the-clipboard/
 https://github.com/bbatsov/prelude
@@ -2122,6 +2301,9 @@ https://github.com/bbatsov/prelude
 #+END_SRC
 
 *** Open files externally
+:PROPERTIES:
+:CUSTOM_ID: open-files-externally
+:END:
 
 Copied from Prelude: http://emacsredux.com/blog/2013/03/27/open-file-in-external-program/
 
@@ -2146,6 +2328,9 @@ Don't use docview for PDFs.
 (add-to-list 'org-file-apps '("pdf" . "evince %s"))
 
 *** Toggle
+:PROPERTIES:
+:CUSTOM_ID: toggle
+:END:
 
     Based on https://www.reddit.com/r/emacs/comments/l4v1ux/one_of_the_most_useful_small_lisp_functions_in_my-
 
@@ -2163,6 +2348,9 @@ Don't use docview for PDFs.
         (if switch-cont (funcall switch-cont))))))
        #+end_src
 *** link-hint
+:PROPERTIES:
+:CUSTOM_ID: link-hint
+:END:
 
 This should make it easier to jump to a link.
 
@@ -2173,6 +2361,9 @@ This should make it easier to jump to a link.
   ("M-g U" . link-hint-open-multiple-links))
 #+end_src
 *** Bookmarks
+:PROPERTIES:
+:CUSTOM_ID: bookmarks
+:END:
 http://yummymelon.com/devnull/using-bookmarks-in-emacs-like-you-do-in-web-browsers.html
 
 #+begin_src emacs-lisp
@@ -2197,6 +2388,9 @@ http://yummymelon.com/devnull/using-bookmarks-in-emacs-like-you-do-in-web-browse
 
 
 *** Dogears
+:PROPERTIES:
+:CUSTOM_ID: dogears
+:END:
 
     https://github.com/alphapapa/dogears.el
 
@@ -2214,6 +2408,9 @@ http://yummymelon.com/devnull/using-bookmarks-in-emacs-like-you-do-in-web-browse
               ("M-g M-D" . dogears-sidebar)))
               #+end_src
 ** Reading
+:PROPERTIES:
+:CUSTOM_ID: reading
+:END:
 
 https://github.com/xahlee/xah_emacs_init/blob/master/xah_emacs_font.el
 From Xah Lee:
@@ -2238,6 +2435,9 @@ From Xah Lee:
   )
 #+end_src
 ** Shuffling lines
+:PROPERTIES:
+:CUSTOM_ID: shuffling-lines
+:END:
 
 #+begin_src emacs-lisp
 (defun my-shuffle-lines-in-region (beg end)
@@ -2249,18 +2449,27 @@ From Xah Lee:
 
 
 ** Writing and editing
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing
+:END:
 #+begin_src emacs-lisp
 (global-set-key (kbd "M-c") #'capitalize-dwim)
 #+end_src
 
 
 *** Markdown
+:PROPERTIES:
+:CUSTOM_ID: markdown
+:END:
 #+begin_src emacs-lisp
 (use-package markdown-mode
   :if my-laptop-p
   :mode ("\\.\\(njk\\|md\\)\\'" . markdown-mode))
 #+end_src
 *** Screenshot
+:PROPERTIES:
+:CUSTOM_ID: screenshot
+:END:
 
 Based on https://www.reddit.com/r/emacs/comments/idz35e/emacs_27_can_take_svg_screenshots_of_itself/
 #+begin_src emacs-lisp
@@ -2281,6 +2490,9 @@ Saves to a temp file and puts the filename in the kill ring."
 #+end_src
 
 *** Avoiding weasel words
+:PROPERTIES:
+:CUSTOM_ID: avoiding-weasel-words
+:END:
 #+BEGIN_SRC emacs-lisp
 (use-package artbollocks-mode
   :if my-laptop-p
@@ -2310,6 +2522,9 @@ Saves to a temp file and puts the filename in the kill ring."
     (setq artbollocks-jargon nil)))
 #+END_SRC
 *** Unfill paragraph
+:PROPERTIES:
+:CUSTOM_ID: unfill-paragraph
+:END:
 
 I unfill paragraphs a lot because Wordpress likes adding extra =<br>= tags if I don't. (I should probably just tweak my Wordpress installation.)
 
@@ -2348,6 +2563,9 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 #+END_SRC
 
 *** Unicode
+:PROPERTIES:
+:CUSTOM_ID: unicode
+:END:
 
 #+BEGIN_SRC emacs-lisp
 (defmacro my-insert-unicode (unicode-name)
@@ -2358,12 +2576,18 @@ Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't act
 #+END_SRC
 
 *** Clean up spaces
+:PROPERTIES:
+:CUSTOM_ID: clean-up-spaces
+:END:
 
 #+BEGIN_SRC emacs-lisp
 (bind-key "M-SPC" 'cycle-spacing)
 #+END_SRC
 
 *** Expand
+:PROPERTIES:
+:CUSTOM_ID: expand
+:END:
 
 #+BEGIN_SRC emacs-lisp
 (setq save-abbrevs 'silently)
@@ -2397,6 +2621,9 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
     :END:
 
 **** TODO Adjust subtitles
+:PROPERTIES:
+:CUSTOM_ID: adjust-subtitles
+:END:
 
 #+begin_src emacs-lisp
 (defun my-subed-move-succeeding-subtitles-based-on-mpv ()
@@ -2419,6 +2646,9 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
 #+end_src
 
 **** Extract part of a video
+:PROPERTIES:
+:CUSTOM_ID: extract-part-of-a-video
+:END:
 
 #+begin_src emacs-lisp
 (defun my-subed-get-region-start-stop (beg end)
@@ -2531,6 +2761,9 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
 
 #+end_src
 **** Hide IDs and times
+:PROPERTIES:
+:CUSTOM_ID: hide-ids-and-times
+:END:
 #+begin_src emacs-lisp
 (define-minor-mode my-subed-hide-nontext-minor-mode
   "Minor mode for hiding non-text stuff.")
@@ -2579,6 +2812,9 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
 (advice-add 'subed-kill-subtitle :around #'my-ignore-read-only)
 #+end_src
 **** Other subtitle code
+:PROPERTIES:
+:CUSTOM_ID: other-subtitle-code
+:END:
 #+begin_src emacs-lisp
 (defun my-subed-forward-word (&optional arg)
   "Skip timestamps."
@@ -2669,6 +2905,7 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
 :POST_DATE: [2021-01-10 Sun 00:59]
 :BLOG:     sacha
 :POSTID:   29659
+:CUSTOM_ID: using-emacs-to-fix-automatically-generated-subtitle-timestamps
 :END:
 
 I like how people are making more and more Emacs-related videos. I
@@ -2912,6 +3149,9 @@ If WORD-TIMING is non-nil, include word-level timestamps."
              ""))))
 #+end_src
 **** Showing captions
+:PROPERTIES:
+:CUSTOM_ID: showing-captions
+:END:
 This tidbit displays a buffer with the text of the subtitles so that I can quickly skim it.
 
 #+begin_src emacs-lisp
@@ -2936,6 +3176,9 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
       (my-org-insert-youtube-video-with-transcript url))))
 #+end_src
 **** Edit text
+:PROPERTIES:
+:CUSTOM_ID: edit-text
+:END:
 #+begin_src emacs-lisp
 (defvar my-subed-common-edits '("I"
                                 "I've"
@@ -3027,6 +3270,9 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
 #+end_src
 
 **** Working with media
+:PROPERTIES:
+:CUSTOM_ID: working-with-media
+:END:
 
 You can get these from https://github.com/sachac
 #+begin_src emacs-lisp
@@ -3035,6 +3281,9 @@ You can get these from https://github.com/sachac
 #+end_src
 
 * TODO Split up oops better
+:PROPERTIES:
+:CUSTOM_ID: split-up-oops-better
+:END:
 
 #+begin_src emacs-lisp
 (defun my-split-oops ()
@@ -3261,6 +3510,9 @@ my-subed-record-wpm
    # /home/sacha/screenshots/Screenshot_20210401_234956.png
 
 *** Transcripts from my phone
+:PROPERTIES:
+:CUSTOM_ID: transcripts-from-my-phone
+:END:
 
 #+begin_src emacs-lisp
 (defvar my-transcript-dir "~/sync/Phone")
@@ -3274,6 +3526,9 @@ my-subed-record-wpm
   (insert-file-contents (my-latest-file my-transcript-dir "\\.txt")))
 #+end_src
 ** Multimedia
+:PROPERTIES:
+:CUSTOM_ID: multimedia
+:END:
 
 #+begin_src emacs-lisp
 (use-package elfeed-tube
@@ -3327,6 +3582,9 @@ https://github.com/sachac/plover-websocket-el
 
 #+end_src
 *** Looking things up
+:PROPERTIES:
+:CUSTOM_ID: looking-things-up
+:END:
 
 #+begin_src emacs-lisp
   (defun my-plover-search-dictionary-for-strokes-jq (stroke-regexp)
@@ -3411,6 +3669,7 @@ https://github.com/sachac/plover-websocket-el
 :EXPORT_DATE: 2023-01-26T14:15:20-0500
 :EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/adding-steno-hints-as-i-type/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/adding-steno-hints-as-i-type/
+:CUSTOM_ID: adding-steno-hints-as-i-type
 :END:
 
 When I type with steno, I want to see little hints. I borrowed some
@@ -3573,6 +3832,9 @@ There's probably a better way to do it, but this is a good start.
 #+end_src
 
 *** Running Plover drills from Emacs
+:PROPERTIES:
+:CUSTOM_ID: running-plover-drills-from-emacs
+:END:
 
 I'm learning stenography because I deal with a lot of text, and it
 seems interesting. I'd like to someday be able to live-caption
@@ -3667,6 +3929,9 @@ Restore main dictionary and turn off Plover when done."
                                           :default (car my-plover-drill-history)))))
   #+end_src
 *** Making it easier to execute commands
+:PROPERTIES:
+:CUSTOM_ID: making-it-easier-to-execute-commands
+:END:
 
 #+begin_src emacs-lisp :lexical t
 (setq enable-recursive-minibuffers t)
@@ -3756,6 +4021,9 @@ Restore main dictionary and turn off Plover when done."
 
 #+end_src
 *** Suggesting briefs
+:PROPERTIES:
+:CUSTOM_ID: suggesting-briefs
+:END:
 
 Only checks one dictionary for now, but probably good enough
 
@@ -3856,6 +4124,9 @@ Only checks one dictionary for now, but probably good enough
     (if translation (cons translation (mapcar 'car alternatives)))))
 #+end_src
 *** Practising within Emacs
+:PROPERTIES:
+:CUSTOM_ID: practising-within-emacs
+:END:
    Main function: =M-x my-practise-steno=, called in an Org table of =| translation | outline |=
 
  #+begin_src emacs-lisp :lexical t
@@ -4033,6 +4304,9 @@ ITEMS should be a list like ((word) (word) (word))."
  :end:
 
 *** Editing subtitles
+:PROPERTIES:
+:CUSTOM_ID: editing-subtitles
+:END:
 
 #+begin_src emacs-lisp
 (defun my-subed-subtitle-set-text (text)
@@ -4218,6 +4492,9 @@ ATD
 #+end_src
 
 *** Stenoing interface
+:PROPERTIES:
+:CUSTOM_ID: stenoing-interface
+:END:
 
 #+begin_src emacs-lisp
 
@@ -4277,6 +4554,7 @@ ATD
 *** Cheat sheets
     :PROPERTIES:
     :CREATED:  [2021-05-26 Wed 15:38]
+    :CUSTOM_ID: cheat-sheets
     :END:
 
   #+begin_src emacs-lisp
@@ -4354,6 +4632,9 @@ H '
   :end:
 
 *** Coding with Plover
+:PROPERTIES:
+:CUSTOM_ID: coding-with-plover
+:END:
 
 #+begin_src emacs-lisp
 (defun my-plover-insert-defun ()
@@ -4408,6 +4689,9 @@ H '
 #+end_src
 
 *** Measuring WPM
+:PROPERTIES:
+:CUSTOM_ID: measuring-wpm
+:END:
 
 #+begin_src emacs-lisp :eval no :tangle no
 (use-package typing-speed :if my-laptop-p :load-path "~/elisp"
@@ -4415,7 +4699,13 @@ H '
 #+end_src
 
 **** TODO measure strokes per second, strokes per word
+:PROPERTIES:
+:CUSTOM_ID: measure-strokes-per-second-strokes-per-word
+:END:
 *** Displaying frequency-sorted completions with stroke hints
+:PROPERTIES:
+:CUSTOM_ID: displaying-frequency-sorted-completions-with-stroke-hints
+:END:
 
 #+begin_src emacs-lisp
 (defvar my-company-strokedict--grep-executable "grep")
@@ -4491,6 +4781,9 @@ with open("/home/sacha/.config/plover/annotated.txt", "w") as f:
 
 
 ** TOBLOG Manage photos with geeqie
+:PROPERTIES:
+:CUSTOM_ID: manage-photos-with-geeqie
+:END:
 
 Opening images directly in Emacs seems a little slow. Geeqie is pretty
 fast (after generating thumbnails) and can be remotely controlled via
@@ -4678,6 +4971,9 @@ references.
 #+end_src
 
 ** Org  :org:
+:PROPERTIES:
+:CUSTOM_ID: org
+:END:
 
 I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of
 stuff.
@@ -4734,6 +5030,9 @@ Here are the Org files I use. I should probably organize them better. =)
 - [[http://stackoverflow.com/questions/8146313/emacs-auto-save-for-org-mode-only][emacs auto save for org-mode only - Stack Overflow]]
 
 *** Modules
+:PROPERTIES:
+:CUSTOM_ID: modules
+:END:
 Org has a whole bunch of optional modules. These are the ones I'm
 currently experimenting with.
 #+BEGIN_SRC emacs-lisp
@@ -4755,6 +5054,9 @@ currently experimenting with.
 #+END_SRC
 
 *** Keyboard shortcuts
+:PROPERTIES:
+:CUSTOM_ID: keyboard-shortcuts
+:END:
 
 #+BEGIN_SRC emacs-lisp
 (bind-key "C-c r" 'org-capture)
@@ -4791,6 +5093,9 @@ I don't use the diary, but I do use the clock a lot.
 #+end_src
 
 **** Speed commands
+:PROPERTIES:
+:CUSTOM_ID: speed-commands
+:END:
 
 These are great for quickly acting on tasks.
 
@@ -4865,6 +5170,9 @@ These are great for quickly acting on tasks.
 #+end_src
 
 *** Org navigation
+:PROPERTIES:
+:CUSTOM_ID: org-navigation
+:END:
 
 From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-command-to-jump-to-an-org-heading
 #+begin_src emacs-lisp
@@ -4879,6 +5187,9 @@ From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-comm
 #+end_src
 
 **** Link Org subtrees and navigate between them
+:PROPERTIES:
+:CUSTOM_ID: link-org-subtrees-and-navigate-between-them
+:END:
 The following code makes it easier for me to link trees with entries, as in http://sachachua.com/evil-plans
 
 #+begin_src emacs-lisp
@@ -4903,6 +5214,9 @@ The following code makes it easier for me to link trees with entries, as in http
 #+end_src
 
 **** Viewing, navigating, and editing the Org tree
+:PROPERTIES:
+:CUSTOM_ID: viewing-navigating-and-editing-the-org-tree
+:END:
 
 I often cut and paste subtrees. This makes it easier to cut
 something and paste it elsewhere in the hierarchy.
@@ -4913,6 +5227,9 @@ something and paste it elsewhere in the hierarchy.
 #+end_src
 
 **** Finding my place on a small mobile screen with org-back-to-heading
+:PROPERTIES:
+:CUSTOM_ID: finding-my-place-on-a-small-mobile-screen-with-org-back-to-heading
+:END:
 
 There's probably a better way to do this. I'm surprised
 org-back-to-heading isn't interactive yet. It's useful.
@@ -4929,6 +5246,9 @@ org-back-to-heading isn't interactive yet. It's useful.
 #+end_src
 
 **** Dealing with big tables
+:PROPERTIES:
+:CUSTOM_ID: dealing-with-big-tables
+:END:
 
 Sometimes I forget where I am in a big table. This would be nice to turn into a minor mode someday.
 
@@ -4944,6 +5264,9 @@ Sometimes I forget where I am in a big table. This would be nice to turn into a 
 #+end_src
 
 *** Taking notes
+:PROPERTIES:
+:CUSTOM_ID: taking-notes
+:END:
 
 #+begin_src emacs-lisp
 (setq org-directory "~/sync/orgzly/")
@@ -4951,6 +5274,9 @@ Sometimes I forget where I am in a big table. This would be nice to turn into a 
 #+end_src
 
 **** Date trees
+:PROPERTIES:
+:CUSTOM_ID: date-trees
+:END:
 
 This quickly adds a same-level heading for the succeeding day.
 #+begin_src emacs-lisp
@@ -4968,6 +5294,7 @@ This quickly adds a same-level heading for the succeeding day.
 
 **** Templates
 :PROPERTIES:
+:CUSTOM_ID: templates
 :END:
 
 I use =org-capture= templates to quickly jot down tasks, ledger
@@ -5119,6 +5446,9 @@ entries, notes, and other semi-structured pieces of information.
 #+end_src
 
 ***** Allow refiling in the middle(ish) of a capture
+:PROPERTIES:
+:CUSTOM_ID: allow-refiling-in-the-middle-ish-of-a-capture
+:END:
 
 This lets me use =C-c C-r= to refile a capture and then jump to the
 new location. I wanted to be able to file tasks under projects so that
@@ -5139,6 +5469,9 @@ able to clock in on them.
 #+end_src
 
 **** Refiling
+:PROPERTIES:
+:CUSTOM_ID: refiling
+:END:
 
 =org-refile= lets you organize notes by typing in the headline to file them under.
 
@@ -5170,6 +5503,7 @@ able to clock in on them.
 :PROPERTIES:
 :Effort:   1:00
 :QUANTIFIED: Emacs
+:CUSTOM_ID: jump-to-org-location-by-substring
 :END:
 :LOGBOOK:
 CLOCK: [2015-02-05 Thu 19:48]--[2015-02-05 Thu 20:03] =>  0:15
@@ -5237,6 +5571,9 @@ CLOCK: [2015-02-05 Thu 19:48]--[2015-02-05 Thu 20:03] =>  0:15
 #+end_src
 
 ***** Quick way to jump
+:PROPERTIES:
+:CUSTOM_ID: quick-way-to-jump
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-jump ()
@@ -5245,6 +5582,9 @@ CLOCK: [2015-02-05 Thu 19:48]--[2015-02-05 Thu 20:03] =>  0:15
     (call-interactively 'org-refile)))
 #+end_src
 **** Try out this capture command
+:PROPERTIES:
+:CUSTOM_ID: try-out-this-capture-command
+:END:
 
 From https://takeonrules.com/2022/10/16/adding-another-function-to-my-workflow/
 
@@ -5300,6 +5640,9 @@ With PARG kill the content instead."
 		type)))
     #+end_src
 **** TODO Bounce to another file                          :computer:phone:
+:PROPERTIES:
+:CUSTOM_ID: bounce-to-another-file
+:END:
 
 On my phone, Emacs in Termux is nice for scripting, and Orgzly is nice
 for editing long text. Let's see if this function lets me quickly
@@ -5338,6 +5681,9 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
 #+end_src
 
 **** Estimating WPM
+:PROPERTIES:
+:CUSTOM_ID: estimating-wpm
+:END:
 
 I'm curious about how fast I type some things.
 #+begin_src emacs-lisp
@@ -5355,6 +5701,9 @@ I'm curious about how fast I type some things.
         (kill-new (number-to-string wpm))))))
 #+end_src
 *** Logbook
+:PROPERTIES:
+:CUSTOM_ID: logbook
+:END:
 #+begin_src emacs-lisp
 
 (defun my-org-log-note (note)
@@ -5369,7 +5718,13 @@ I'm curious about how fast I type some things.
     (org-store-log-note)))
 #+end_src
 *** Tasks
+:PROPERTIES:
+:CUSTOM_ID: tasks
+:END:
 **** Managing tasks
+:PROPERTIES:
+:CUSTOM_ID: managing-tasks
+:END:
 ***** Track TODO state
 :PROPERTIES:
 :CUSTOM_ID: todo-keywords
@@ -5408,6 +5763,9 @@ and =!= automatically logs the timestamp of the state change.
 #+end_src
 
 ***** Projects
+:PROPERTIES:
+:CUSTOM_ID: projects
+:END:
 
 Projects are headings with the =:project:= tag, so we generally don't
 want that tag inherited, except when we display unscheduled tasks that
@@ -5449,6 +5807,9 @@ And sorting:
 #+end_src
 
 ***** Tag tasks with GTD-ish contexts
+:PROPERTIES:
+:CUSTOM_ID: tag-tasks-with-gtd-ish-contexts
+:END:
 
 This defines keyboard shortcuts for those, too.
 
@@ -5471,6 +5832,9 @@ This defines keyboard shortcuts for those, too.
 #+end_src
 
 ***** Enable filtering by effort estimates
+:PROPERTIES:
+:CUSTOM_ID: enable-filtering-by-effort-estimates
+:END:
 
 That way, it's easy to see short tasks that I can finish.
 
@@ -5480,6 +5844,9 @@ That way, it's easy to see short tasks that I can finish.
 #+end_src
 
 ***** Track time
+:PROPERTIES:
+:CUSTOM_ID: track-time
+:END:
 
 #+begin_src emacs-lisp
 (use-package org
@@ -5507,6 +5874,9 @@ Too many clock entries clutter up a heading.
 #+end_src
 
 ***** Habits
+:PROPERTIES:
+:CUSTOM_ID: habits
+:END:
 
 I like using org-habits to track consistency. My task names tend
 to be a bit long, though, so I've configured the graph column to
@@ -5544,6 +5914,9 @@ From "Add an effort estimate on the fly when clocking in" on the
 
 # <<subset>>
 **** Flexible scheduling of tasks
+:PROPERTIES:
+:CUSTOM_ID: flexible-scheduling-of-tasks
+:END:
 
 I (theoretically) want to be able to schedule tasks for dates like the first Saturday
 of every month. Fortunately, [[http://stackoverflow.com/questions/13555385/org-mode-how-to-schedule-repeating-tasks-for-the-first-saturday-of-every-month][someone else has figured that out!]]
@@ -5554,6 +5927,9 @@ of every month. Fortunately, [[http://stackoverflow.com/questions/13555385/org-m
 #+end_src
 
 **** Task dependencies
+:PROPERTIES:
+:CUSTOM_ID: task-dependencies
+:END:
 
 #+begin_src emacs-lisp
 (setq org-enforce-todo-dependencies t)
@@ -5562,6 +5938,9 @@ of every month. Fortunately, [[http://stackoverflow.com/questions/13555385/org-m
 #+end_src
 
 **** Quick way to archive all DONE from inbox                :emacs:computer:
+:PROPERTIES:
+:CUSTOM_ID: quick-way-to-archive-all-done-from-inbox
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-clean-up-inbox ()
@@ -5588,7 +5967,13 @@ of every month. Fortunately, [[http://stackoverflow.com/questions/13555385/org-m
 #+end_src
 
 *** Templates
+:PROPERTIES:
+:CUSTOM_ID: templates
+:END:
 **** Structure templates
+:PROPERTIES:
+:CUSTOM_ID: structure-templates
+:END:
 
 Org makes it easy to insert blocks by typing =<s[TAB]=, etc.
 I hardly ever use LaTeX, but I insert a lot of Emacs Lisp blocks, so I
@@ -5626,6 +6011,9 @@ This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exportin
 #+end_src
 
 **** Emacs chats, Emacs hangouts
+:PROPERTIES:
+:CUSTOM_ID: emacs-chats-emacs-hangouts
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-link-youtube-time (url beg end)
@@ -5680,6 +6068,9 @@ This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exportin
 #+end_src
 
 *** Org agenda
+:PROPERTIES:
+:CUSTOM_ID: org-agenda
+:END:
 **** Basic configuration
 :PROPERTIES:
 :CUSTOM_ID: project_subtasks
@@ -5750,6 +6141,9 @@ Some other keyboard shortcuts:
 
 # <<project_subtasks>>
 **** Starting my weeks on Saturday
+:PROPERTIES:
+:CUSTOM_ID: starting-my-weeks-on-saturday
+:END:
 
 I like looking at weekends as [[http://sachachua.com/blog/2010/11/week-beginnings/][week beginnings]] instead, so I want the
 Org agenda to start on Saturdays.
@@ -5899,6 +6293,9 @@ them. Here's a sample of the output:
 # <<agenda_commands>>
 
 **** Org agenda custom commands
+:PROPERTIES:
+:CUSTOM_ID: org-agenda-custom-commands
+:END:
 
 There are quite a few custom commands here, and I often forget to use
 them. =) But it's good to define them, and over time, I'll get the
@@ -6119,6 +6516,9 @@ hang of using these more!
 
 #+end_src
 **** Making it easier to tag inbox items
+:PROPERTIES:
+:CUSTOM_ID: making-it-easier-to-tag-inbox-items
+:END:
 
 #+begin_src emacs-lisp
 (setq org-complete-tags-always-offer-all-agenda-tags t)
@@ -6126,6 +6526,9 @@ hang of using these more!
 #+end_src
 
 **** Make it easy to mark a task as done
+:PROPERTIES:
+:CUSTOM_ID: make-it-easy-to-mark-a-task-as-done
+:END:
 
 Great for quickly going through the to-do list. Gets rid of one
 extra keystroke. ;)
@@ -6142,6 +6545,9 @@ extra keystroke. ;)
 #+end_src
 
 **** Make it easy to mark a task as done and create a follow-up task
+:PROPERTIES:
+:CUSTOM_ID: make-it-easy-to-mark-a-task-as-done-and-create-a-follow-up-task
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-agenda-mark-done-and-add-followup ()
@@ -6157,6 +6563,9 @@ extra keystroke. ;)
 #+end_src
 
 **** Capture something based on the agenda
+:PROPERTIES:
+:CUSTOM_ID: capture-something-based-on-the-agenda
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-agenda-new ()
@@ -6171,6 +6580,9 @@ extra keystroke. ;)
 #+end_src
 
 **** Sorting by date and priority
+:PROPERTIES:
+:CUSTOM_ID: sorting-by-date-and-priority
+:END:
 
 #+begin_src emacs-lisp
 (setq org-agenda-sorting-strategy
@@ -6247,6 +6659,9 @@ extra keystroke. ;)
 #+end_src
 
 **** Preventing things from falling through the cracks
+:PROPERTIES:
+:CUSTOM_ID: preventing-things-from-falling-through-the-cracks
+:END:
 This helps me keep track of unscheduled tasks, because I sometimes
 forget to assign tasks a date. I also want to keep track of stuck projects.
 #+begin_src emacs-lisp
@@ -6263,6 +6678,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 #+end_src
 
 **** Synchronizing with Google Calendar
+:PROPERTIES:
+:CUSTOM_ID: synchronizing-with-google-calendar
+:END:
 
 #+begin_src emacs-lisp :tangle no :eval no
 (defun my-org-gcal-notify (title mes)
@@ -6273,6 +6691,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
   :init (fset 'org-gcal-notify 'my-org-gcal-notify))
 #+end_src
 **** Projects
+:PROPERTIES:
+:CUSTOM_ID: projects
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-show-active-projects ()
@@ -6282,6 +6703,9 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 #+end_src
 
 *** Reviews
+:PROPERTIES:
+:CUSTOM_ID: reviews
+:END:
 **** Weekly review
 :PROPERTIES:
 :CUSTOM_ID: weekly-review
@@ -6559,6 +6983,9 @@ Now we put it all together...
 #+end_src
 
 ***** Flickr extract
+:PROPERTIES:
+:CUSTOM_ID: flickr-extract
+:END:
 
 #+begin_src emacs-lisp
 (defun _my-clean-up-flickr-list (list)
@@ -6623,6 +7050,9 @@ Now we put it all together...
 #+end_src
 
 ***** Link-related convenience functions
+:PROPERTIES:
+:CUSTOM_ID: link-related-convenience-functions
+:END:
 
 #+begin_src emacs-lisp
 (defun kensanata/resolve-redirect (url)
@@ -6774,6 +7204,9 @@ Here's a function like =my-org-prepare-weekly-review=:
 #+end_src
 
 *** Filing
+:PROPERTIES:
+:CUSTOM_ID: filing
+:END:
 **** Moving lines around
 :PROPERTIES:
 :CUSTOM_ID: destination
@@ -6820,6 +7253,9 @@ and indent it one level."
 #+end_src
 
 **** Organizing my blog index
+:PROPERTIES:
+:CUSTOM_ID: organizing-my-blog-index
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-file-blog-index-entries ()
@@ -6863,6 +7299,9 @@ and indent it one level."
 #+end_src
 
 **** Quickly refiling Org Mode notes to headings in the same file
+:PROPERTIES:
+:CUSTOM_ID: quickly-refiling-org-mode-notes-to-headings-in-the-same-file
+:END:
 
 I wanted a quick way to organize random notes from my inbox into an
 outline, organizing from the bottom up instead of starting with a
@@ -6913,6 +7352,9 @@ cuts the subtree, goes to the marker, and pastes it in at the
 appropriate level.
 
 *** Inserting code
+:PROPERTIES:
+:CUSTOM_ID: inserting-code
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-insert-defun (function)
@@ -6947,6 +7389,9 @@ appropriate level.
   (setq org-src-preserve-indentation t))
 #+end_src
 *** Org Babel
+:PROPERTIES:
+:CUSTOM_ID: org-babel
+:END:
 
 #+NAME: org-babel-default-header-args
     #+begin_src emacs-lisp
@@ -6961,6 +7406,9 @@ appropriate level.
 (setq org-edit-src-auto-save-idle-delay 5)
     #+end_src
 **** Format source
+:PROPERTIES:
+:CUSTOM_ID: format-source
+:END:
 
 [[https://apps.bram85.nl/git/bram/gists/src/commit/118c5a579a231862f4d1a548afe071e450af4e03/gists/format-org-mode-source-blocks.el][gists/format-org-mode-source-blocks.el at 118c5a579a231862f4d1a548afe071e450af4e03 - gists - Forgejo]]
 
@@ -6976,6 +7424,9 @@ appropriate level.
 #+end_src
 
 **** TODO Execute named babel block
+:PROPERTIES:
+:CUSTOM_ID: execute-named-babel-block
+:END:
 
   #+NAME: test
   #+begin_src emacs-lisp
@@ -6992,6 +7443,9 @@ appropriate level.
   my-org-execute-src-block-by-name
   :end:
 **** JSON
+:PROPERTIES:
+:CUSTOM_ID: json
+:END:
 
 From https://isamert.net/2022/01/04/dealing-with-apis-jsons-and-databases-in-org-mode.html
 
@@ -7017,6 +7471,9 @@ From https://isamert.net/2022/01/04/dealing-with-apis-jsons-and-databases-in-org
         (buffer-string))))))
 #+end_src
 **** Let's try literate-elisp
+:PROPERTIES:
+:CUSTOM_ID: let-s-try-literate-elisp
+:END:
 
 #+begin_src emacs-lisp
 (use-package literate-elisp :if my-laptop-p)
@@ -7025,11 +7482,15 @@ From https://isamert.net/2022/01/04/dealing-with-apis-jsons-and-databases-in-org
 Then I should be able to use =literate-elisp-load-file= and still be able to jump to functions by definition.
 
 *** Publishing
+:PROPERTIES:
+:CUSTOM_ID: publishing
+:END:
 **** Org Mode: Including portions of files between two regular expressions  :org:emacs:
 :PROPERTIES:
 :EXPORT_DATE: 2023-01-08T08:29:01-0500
 :EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/org-mode-including-portions-of-files-between-two-regular-expressions/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/org-mode-including-portions-of-files-between-two-regular-expressions/
+:CUSTOM_ID: org-mode-including-portions-of-files-between-two-regular-expressions
 :END:
 
 #+begin_update
@@ -7229,6 +7690,9 @@ This code displays the images inline.
 
 #+end_src
 **** ox-epub
+:PROPERTIES:
+:CUSTOM_ID: ox-epub
+:END:
 
 #+begin_src emacs-lisp
 (use-package ox-epub
@@ -7282,6 +7746,9 @@ This code displays the images inline.
     (add-to-list 'org-export-filter-body-functions #'my-org-export-filter-body-add-emacs-configuration-link)))
      #+END_SRC
 **** Copy linked file and change link
+:PROPERTIES:
+:CUSTOM_ID: copy-linked-file-and-change-link
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-copy-linked-file-and-change-link (destination)
@@ -7296,6 +7763,9 @@ This code displays the images inline.
 																	description))))
 #+end_src
 **** 11ty
+:PROPERTIES:
+:CUSTOM_ID: 11ty
+:END:
 
 #+begin_src emacs-lisp
 (use-package ox-11ty
@@ -7389,6 +7859,9 @@ This is extracted from lines like:
 
 #+end_src
 ***** Linking to blog posts
+:PROPERTIES:
+:CUSTOM_ID: linking-to-blog-posts
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-blog-complete ()
@@ -7426,6 +7899,7 @@ This is extracted from lines like:
 :EXPORT_DATE: 2023-01-09T11:07:23-0500
 :EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/moving-my-org-post-subtree-to-the-11ty-directory/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/moving-my-org-post-subtree-to-the-11ty-directory/
+:CUSTOM_ID: moving-my-org-post-subtree-to-the-11ty-directory
 :END:
 
 I sometimes want to move the Org source for my blog posts to the same
@@ -7522,6 +7996,9 @@ Now to figure out how to override the export menu. Totally messy hack!
 					 ?o (list "To Org, 11tydata.json, HTML" 'my-org-11ty-export)))
 #+end_src
 **** Cleaning up export
+:PROPERTIES:
+:CUSTOM_ID: cleaning-up-export
+:END:
 Timestamps and section numbers make my published files look more
 complicated than they are. Let's turn them off by default, and let's use fancy HTML5.
 
@@ -7585,6 +8062,9 @@ Make it easy to publish and browse a file.
 (bind-key "<apps> b" 'my-org-publish-and-browse)
 #+end_src
 **** Publish without prompting
+:PROPERTIES:
+:CUSTOM_ID: publish-without-prompting
+:END:
 
 I want to be able to export without having to say yes to code blocks all the time.
 
@@ -7599,6 +8079,9 @@ I want to be able to export without having to say yes to code blocks all the tim
     (org-html-publish-to-html plist filename pub-dir)))
 #+end_src
 **** Special blocks
+:PROPERTIES:
+:CUSTOM_ID: special-blocks
+:END:
 #+NAME: org-special-blocks
      #+begin_src emacs-lisp :lexical t
 (use-package org-special-block-extras
@@ -7648,6 +8131,7 @@ I want to be able to export without having to say yes to code blocks all the tim
 :EXPORT_DATE: 2023-01-27T10:11:01-0500
 :EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/adding-a-custom-header-argument-to-org-mode-source-blocks-and-using-that-argument-during-export/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/adding-a-custom-header-argument-to-org-mode-source-blocks-and-using-that-argument-during-export/
+:CUSTOM_ID: adding-a-custom-header-argument-to-org-mode-source-blocks-and-using-that-argument-during-export
 :END:
 
 I sometimes want to put long source blocks in a
@@ -7708,6 +8192,9 @@ thread). If there's a more elegant way to do this, I'd love to find
 out!
 
 **** Stylesheet / header
+:PROPERTIES:
+:CUSTOM_ID: stylesheet-header
+:END:
 Might as well take advantage of my stylesheet:
 
 #+NAME: org-styles
@@ -7722,6 +8209,9 @@ Might as well take advantage of my stylesheet:
 #+end_src
 
 **** Footer
+:PROPERTIES:
+:CUSTOM_ID: footer
+:END:
 
 Make it easy to scroll to the top:
 
@@ -7764,6 +8254,9 @@ Make it easy to scroll to the top:
 #+end_src
 
 **** Copy region
+:PROPERTIES:
+:CUSTOM_ID: copy-region
+:END:
 Sometimes I want a region's HTML in my kill-ring/clipboard without any of the extra fluff:
 
 #+begin_src emacs-lisp
@@ -7787,6 +8280,9 @@ Sometimes I want a subtree:
 #+end_src
 
 **** UTF-8 checkboxes
+:PROPERTIES:
+:CUSTOM_ID: utf-8-checkboxes
+:END:
 
 This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone.
 #+begin_src emacs-lisp
@@ -7798,6 +8294,9 @@ This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone
 #+end_src
 
 **** Share my Emacs configuration
+:PROPERTIES:
+:CUSTOM_ID: share-my-emacs-configuration
+:END:
 
 This code gets around the fact that my config is called Sacha.org, but
 I want it to export as sacha-emacs.org in my Dropbox's public
@@ -7826,6 +8325,9 @@ don't need this any more...
 #+end_src
 
 **** Beamer
+:PROPERTIES:
+:CUSTOM_ID: beamer
+:END:
 #+begin_src emacs-lisp
 (with-eval-after-load 'org
   (require 'ox-latex)
@@ -7843,12 +8345,18 @@ don't need this any more...
                  ("\\subsubsection\{%s\}" . "\\subsubsection*\{%s\}"))))
 #+end_src
 **** PlantUML
+:PROPERTIES:
+:CUSTOM_ID: plantuml
+:END:
 
      #+begin_src emacs-lisp
      (setq org-plantuml-jar-path (expand-file-name "/usr/share/plantuml/plantuml.jar"))
 (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
 #+end_src
 **** ox-hugo
+:PROPERTIES:
+:CUSTOM_ID: ox-hugo
+:END:
 
  #+begin_src emacs-lisp
 (use-package ox-hugo
@@ -7953,6 +8461,9 @@ the mode, `toggle' toggles the state."
 
 Let's see if this makes it easier for me to tweak things.
 **** PDF
+:PROPERTIES:
+:CUSTOM_ID: pdf
+:END:
 
 https://so.nwalsh.com/2020/01/05-latex , but I use letter paper instead of A4.
 
@@ -8072,6 +8583,9 @@ https://so.nwalsh.com/2020/01/05-latex , but I use letter paper instead of A4.
 ("\\subsubsection{%s}" . "\\subsubsection*{%s}"))))
 #+end_src
 *** Org roam
+:PROPERTIES:
+:CUSTOM_ID: org-roam
+:END:
 
     #+begin_src emacs-lisp :eval no :tangle no
     (use-package org-roam
@@ -8090,6 +8604,9 @@ https://so.nwalsh.com/2020/01/05-latex , but I use letter paper instead of A4.
               (("C-c n I" . org-roam-insert-immediate))))
               #+end_src
 *** Fix incompatible changes from Org 8 to Org 9
+:PROPERTIES:
+:CUSTOM_ID: fix-incompatible-changes-from-org-8-to-org-9
+:END:
 
 http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS
 
@@ -8128,13 +8645,22 @@ http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS
 #+end_src
 
 *** Links
+:PROPERTIES:
+:CUSTOM_ID: org-links
+:END:
 **** IDs
+:PROPERTIES:
+:CUSTOM_ID: ids
+:END:
 #+begin_src emacs-lisp
 (setq org-id-method 'ts)
 (setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
 #+end_src
 
 **** Quick links
+:PROPERTIES:
+:CUSTOM_ID: quick-links
+:END:
 #+begin_src emacs-lisp
 (setq org-link-abbrev-alist
       '(("google" . "http://www.google.com/search?q=")
@@ -8143,6 +8669,9 @@ http://orgmode.org/cgit.cgi/org-mode.git/plain/etc/ORG-NEWS
 #+end_src
 
 **** Custom links
+:PROPERTIES:
+:CUSTOM_ID: custom-links
+:END:
 
 From http://endlessparentheses.com/use-org-mode-links-for-absolutely-anything.html?source=rss
 
@@ -8180,6 +8709,9 @@ https://endlessparentheses.com/embedding-youtube-videos-with-org-mode-links.html
                     path (or desc "video"))))))
 #+end_src
 **** Links from org-protocol
+:PROPERTIES:
+:CUSTOM_ID: links-from-org-protocol
+:END:
 
 So that I can easily add links at point. Formatted as an Org list for now.
 
@@ -8253,6 +8785,9 @@ So that I can easily add links at point. Formatted as an Org list for now.
 #+end_src
 
 **** Videos
+:PROPERTIES:
+:CUSTOM_ID: videos
+:END:
 
 #+begin_src emacs-lisp
 (org-link-set-parameters
@@ -8289,6 +8824,9 @@ So that I can easily add links at point. Formatted as an Org list for now.
 #+end_src
 
 **** Fix elisp links
+:PROPERTIES:
+:CUSTOM_ID: fix-elisp-links
+:END:
 
      #+begin_src emacs-lisp
 (defun my-org-elisp-link-export (link description format &optional arg)
@@ -8301,6 +8839,9 @@ So that I can easily add links at point. Formatted as an Org list for now.
  :export 'my-org-elisp-link-export)
    #+end_src
 **** IRC
+:PROPERTIES:
+:CUSTOM_ID: irc
+:END:
 #+begin_src emacs-lisp
 (org-link-set-parameters
  "ircs"
@@ -8498,6 +9039,9 @@ With a description:
   (global-set-key (kbd "<f14>") 'my-hydra/dwim))
   #+end_src
 *** Journal
+:PROPERTIES:
+:CUSTOM_ID: journal
+:END:
 
 #+begin_src emacs-lisp
 (defvar my-journal-category-map
@@ -8871,6 +9415,9 @@ This lets me define a custom link type.
 #+end_src
 
 **** Working with journal entries
+:PROPERTIES:
+:CUSTOM_ID: working-with-journal-entries
+:END:
 
   #+begin_src emacs-lisp
 (defun my-journal-insert-matching-entries (from to match)
@@ -8928,6 +9475,9 @@ This lets me define a custom link type.
                                                              " "))))
    #+end_src
 **** Tagging journal entries
+:PROPERTIES:
+:CUSTOM_ID: tagging-journal-entries
+:END:
 
 #+begin_src emacs-lisp
 
@@ -8979,6 +9529,9 @@ This lets me define a custom link type.
 #+end_src
 
 **** Photos
+:PROPERTIES:
+:CUSTOM_ID: photos
+:END:
 #+begin_src emacs-lisp
 (defun my-get-image-caption (file)
   (let ((caption (shell-command-to-string (format "exiftool -s -s -s -ImageDescription %s" (shell-quote-argument file)))))
@@ -9041,6 +9594,9 @@ This lets me define a custom link type.
 #+end_src
 
 *** Attachments
+:PROPERTIES:
+:CUSTOM_ID: attachments
+:END:
 
 Org lets you attach files to an Org file. Haven't gotten the hang of this yet, but looks interesting.
 
@@ -9054,12 +9610,18 @@ Org lets you attach files to an Org file. Haven't gotten the hang of this yet, b
 #+end_src
 
 *** HTTP
+:PROPERTIES:
+:CUSTOM_ID: http
+:END:
 
 #+begin_src emacs-lisp
 (use-package ob-http)
 #+end_src
 
 *** Lilypond
+:PROPERTIES:
+:CUSTOM_ID: lilypond
+:END:
 #+begin_src emacs-lisp
 (use-package lilypond-init
   :if my-laptop-p
@@ -9072,6 +9634,9 @@ Org lets you attach files to an Org file. Haven't gotten the hang of this yet, b
   :mode ("\\.ly\\'" . LilyPond-mode))
 #+end_src
 *** Diagrams and graphics
+:PROPERTIES:
+:CUSTOM_ID: diagrams-and-graphics
+:END:
 
 Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[http://sachachua.com/evil-plans]] for examples and source.
 
@@ -9114,6 +9679,9 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
 #+end_src
 
 *** Counting
+:PROPERTIES:
+:CUSTOM_ID: counting
+:END:
 
 Good way to remind myself that I have lots of STARTED tasks.
 
@@ -9136,6 +9704,9 @@ Good way to remind myself that I have lots of STARTED tasks.
 #+end_src
 
 *** Spreadsheets
+:PROPERTIES:
+:CUSTOM_ID: spreadsheets
+:END:
 #+begin_src emacs-lisp
 (defun my-org-days-between (start end)
   "Number of days between START and END (exclusive).
@@ -9145,7 +9716,13 @@ Good way to remind myself that I have lots of STARTED tasks.
 #+end_src
 
 *** Literate programming
+:PROPERTIES:
+:CUSTOM_ID: literate-programming
+:END:
 **** Editing source code
+:PROPERTIES:
+:CUSTOM_ID: editing-source-code
+:END:
 I don't want to get distracted by the same code in the other window, so I want org src to use the current window.
 
 #+begin_src emacs-lisp
@@ -9153,6 +9730,9 @@ I don't want to get distracted by the same code in the other window, so I want o
 #+end_src
 
 **** Copying and sharing code
+:PROPERTIES:
+:CUSTOM_ID: copying-and-sharing-code
+:END:
 
      #+begin_src emacs-lisp
 (defun my-copy-code-as-org-block-and-gist (beg end)
@@ -9169,6 +9749,9 @@ I don't want to get distracted by the same code in the other window, so I want o
              contents))))
      #+end_src
 **** Tables
+:PROPERTIES:
+:CUSTOM_ID: tables
+:END:
 
      Requires dash.
 
@@ -9179,6 +9762,9 @@ I don't want to get distracted by the same code in the other window, so I want o
     (cl-loop for x in (cdr table) collect (-zip headers x))))
      #+end_src
 *** Invoices
+:PROPERTIES:
+:CUSTOM_ID: invoices
+:END:
 
 #+begin_src emacs-lisp
 (setq calendar-week-start-day 6) ;; My weeks start on Saturday
@@ -9294,6 +9880,9 @@ I don't want to get distracted by the same code in the other window, so I want o
 #+end_src
 
 *** Presentations
+:PROPERTIES:
+:CUSTOM_ID: presentations
+:END:
 
 #+begin_src emacs-lisp
 (use-package org-re-reveal
@@ -9307,6 +9896,9 @@ I don't want to get distracted by the same code in the other window, so I want o
 anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/anything/plugin.js"))
 #+end_src
 **** Counting words
+:PROPERTIES:
+:CUSTOM_ID: counting-words
+:END:
 
 #+NAME: counting-words-in-notes
 #+begin_src emacs-lisp
@@ -9351,6 +9943,9 @@ If BLOCK-NAME is specified, use that block type instead."
 			(switch-to-buffer (current-buffer)))))
 #+end_src
 *** Allow dashes in tags
+:PROPERTIES:
+:CUSTOM_ID: allow-dashes-in-tags
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-add-dashes-to-tag-regexps ()
@@ -9384,6 +9979,9 @@ If BLOCK-NAME is specified, use that block type instead."
 
 
 *** Copying information from my phone
+:PROPERTIES:
+:CUSTOM_ID: copying-information-from-my-phone
+:END:
 
 I have a tiny Tasker script that makes it easy to log timestamped
 entries as files in a directory that I synchronize with Dropbox. This
@@ -9431,6 +10029,9 @@ code pulls that information into my ~/Dropbox/tasker/
 :END:
 
 **** Package links
+:PROPERTIES:
+:CUSTOM_ID: package-links
+:END:
 #+begin_src emacs-lisp
 (defun my-org-package-open (package-name)
   (interactive "MPackage name: ")
@@ -9473,6 +10074,9 @@ code pulls that information into my ~/Dropbox/tasker/
 #+end_src
 
 **** ASCII export
+:PROPERTIES:
+:CUSTOM_ID: ascii-export
+:END:
 
 This setting puts Org ASCII export links right after the text instead of in a separate section:
 
@@ -9481,6 +10085,9 @@ This setting puts Org ASCII export links right after the text instead of in a se
 #+end_src
 
 **** Reddit
+:PROPERTIES:
+:CUSTOM_ID: reddit
+:END:
 
 This one exports links from my secret =my-reddit-upvoted-json=. You
 can get your Reddit upvoted JSON URL at
@@ -9531,6 +10138,7 @@ https://www.reddit.com/prefs/feeds/ .
 :POST_DATE: [2017-12-21 Thu 12:08]
 :POSTID:   29132
 :BLOG:     sacha
+:CUSTOM_ID: sorting-org-mode-lists-using-a-sequence-of-regular-expressions
 :END:
 
 I manually categorize Emacs News links into an Org unordered list, and
@@ -9587,6 +10195,9 @@ and turn it into:
 #+end_src
 
 *** Save when Emacs loses focus
+:PROPERTIES:
+:CUSTOM_ID: save-when-emacs-loses-focus
+:END:
 
 #+begin_src emacs-lisp
 
@@ -9603,6 +10214,9 @@ and turn it into:
 #+end_src
 
 **** Org links
+:PROPERTIES:
+:CUSTOM_ID: org-links
+:END:
 
 Based on https://xenodium.com/emacs-dwim-do-what-i-mean/
 #+begin_src emacs-lisp
@@ -9657,6 +10271,9 @@ Based on https://xenodium.com/emacs-dwim-do-what-i-mean/
 
 #+end_src
 *** Clipboard
+:PROPERTIES:
+:CUSTOM_ID: clipboard
+:END:
 #+begin_src emacs-lisp
 (defun my-org-insert-clipboard ()
   "Convert clipboard contents from HTML to Org and then paste (yank)."
@@ -9664,6 +10281,9 @@ Based on https://xenodium.com/emacs-dwim-do-what-i-mean/
   (insert (shell-command-to-string "xclip -o -selection clipboard -t text/html | pandoc -f html -t json | pandoc -f json -t org")))
 #+end_src
 *** Setting properties
+:PROPERTIES:
+:CUSTOM_ID: setting-properties
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-set-property (property value)
@@ -9687,6 +10307,7 @@ Use the region if active."
 :EXPORT_DATE: 2023-01-02T21:34:25-0500
 :EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/linking-to-and-exporting-function-definitions-in-org-mode/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/linking-to-and-exporting-function-definitions-in-org-mode/
+:CUSTOM_ID: linking-to-and-exporting-function-definitions-in-org-mode
 :END:
 
 #+begin_update
@@ -9813,6 +10434,9 @@ I can pull in the definition of ~emacsconf-prep-agenda~ from
 [[defun:emacsconf-prep-agenda]]
 #+end_comment
 *** Including variables
+:PROPERTIES:
+:CUSTOM_ID: including-variables
+:END:
 #+begin_src emacs-lisp
 (defun my-org-defvar-complete ()
 	"Return variable definitions."
@@ -9892,7 +10516,13 @@ I can pull in the definition of ~emacsconf-prep-agenda~ from
 												 :store #'my-org-def-store)
 #+end_src
 ** Coding
+:PROPERTIES:
+:CUSTOM_ID: coding
+:END:
 *** Whitespace
+:PROPERTIES:
+:CUSTOM_ID: whitespace
+:END:
 
 #+begin_src emacs-lisp
 (use-package ws-butler
@@ -9900,6 +10530,9 @@ I can pull in the definition of ~emacsconf-prep-agenda~ from
 #+end_src
 
 *** Python
+:PROPERTIES:
+:CUSTOM_ID: python
+:END:
 #+begin_src emacs-lisp
 (use-package elpy
 	:config
@@ -9927,6 +10560,9 @@ I can pull in the definition of ~emacsconf-prep-agenda~ from
 (add-hook 'compilation-filter-hook 'colorize-compilation-buffer)
 #+end_src
 *** Web development
+:PROPERTIES:
+:CUSTOM_ID: web-development
+:END:
 #+begin_src emacs-lisp
 ;; from FAQ at http://web-mode.org/ for smartparens
 
@@ -9958,6 +10594,9 @@ I can pull in the definition of ~emacsconf-prep-agenda~ from
 
 #+end_src
 *** LSP
+:PROPERTIES:
+:CUSTOM_ID: lsp
+:END:
 https://emacs-lsp.github.io/lsp-mode/tutorials/reactjs-tutorial/
 https://www.mattduck.com/lsp-python-getting-started.html
 
@@ -9989,6 +10628,9 @@ https://www.mattduck.com/lsp-python-getting-started.html
   :after lsp-mode)
 #+end_src
 *** Turbo log
+:PROPERTIES:
+:CUSTOM_ID: turbo-log
+:END:
 
 #+begin_src emacs-lisp
 (use-package tree-sitter-langs
@@ -10016,11 +10658,17 @@ https://www.mattduck.com/lsp-python-getting-started.html
   #+end_src
 
 *** Tab width of 2 is compact and readable
+:PROPERTIES:
+:CUSTOM_ID: tab-width-of-2-is-compact-and-readable
+:END:
 #+begin_src emacs-lisp
 (setq-default tab-width 2)
 #+end_src
 
 *** More indentation things
+:PROPERTIES:
+:CUSTOM_ID: more-indentation-things
+:END:
 
 From https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-utils.el
 
@@ -10034,6 +10682,9 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-utils.el
 (bind-key "C-M-<backspace>" 'sanityinc/kill-back-to-indentation)
 #+end_src
 *** Alignment
+:PROPERTIES:
+:CUSTOM_ID: alignment
+:END:
     From https://blog.lambda.cx/posts/emacs-align-columns/
     #+begin_src emacs-lisp
 (defun my-align-non-space (BEG END)
@@ -10042,6 +10693,9 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-utils.el
   (align-regexp BEG END "\\(\\s-*\\)\\S-+" 1 1 t))
 #+end_src
 *** YAML
+:PROPERTIES:
+:CUSTOM_ID: yaml
+:END:
 
 #+begin_src emacs-lisp
 (use-package yaml-mode
@@ -10050,6 +10704,9 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-utils.el
 #+end_src
 
 *** Expand region
+:PROPERTIES:
+:CUSTOM_ID: expand-region
+:END:
 
 This is something I have to get the hang of too. It gradually expands the selection. Handy for Emacs Lisp.
 
@@ -10062,6 +10719,9 @@ This is something I have to get the hang of too. It gradually expands the select
 #+end_src
 
 *** Compilation
+:PROPERTIES:
+:CUSTOM_ID: compilation
+:END:
 
 #+begin_src emacs-lisp
 (eval-after-load 'python-mode
@@ -10069,6 +10729,9 @@ This is something I have to get the hang of too. It gradually expands the select
 #+end_src
 
 *** Emacs Lisp
+:PROPERTIES:
+:CUSTOM_ID: emacs-lisp
+:END:
 
 Memoize is handy for improving the performance when I use slow functions multiple times.
 #+begin_src emacs-lisp
@@ -10088,6 +10751,9 @@ Memoize is handy for improving the performance when I use slow functions multipl
 					'my-set-sentence-end-double-space)
 #+end_src
 **** Let's try this setup
+:PROPERTIES:
+:CUSTOM_ID: let-s-try-this-setup
+:END:
 
 Copied from https://www.reddit.com/r/emacs/comments/1051bfu/comment/j38ymkn/?utm_source=reddit&utm_medium=web2x&context=3
 
@@ -10150,6 +10816,7 @@ Copied from https://www.reddit.com/r/emacs/comments/1051bfu/comment/j38ymkn/?utm
 :EXPORT_DATE: 2023-01-26T10:25:38-0500
 :EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/
+:CUSTOM_ID: making-highlight-sexp-follow-modus-themes-toggle
 :END:
 
 #+begin_update
@@ -10200,6 +10867,9 @@ This is what it looks like:
 #+CAPTION: Animation of highlight-sexp toggling along with modus-themes-toggle
 [[file:/home/sacha/proj/static-blog/blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/highlight-sexp.gif]]
 **** Edebug
+:PROPERTIES:
+:CUSTOM_ID: edebug
+:END:
 
 From https://xenodium.com/inline-previous-result-and-why-you-should-edebug/
 
@@ -10229,6 +10899,9 @@ From https://xenodium.com/inline-previous-result-and-why-you-should-edebug/
             #'adviced:edebug-compute-previous-result)
 #+end_src
 **** Testing
+:PROPERTIES:
+:CUSTOM_ID: testing
+:END:
 #+begin_src emacs-lisp
 (use-package buttercup
 	:hook '(buttercup-minor-mode . my-buttercup-set-up-imenu))
@@ -10236,6 +10909,9 @@ From https://xenodium.com/inline-previous-result-and-why-you-should-edebug/
 (use-package package-lint)
 #+end_src
 ***** Buttercup
+:PROPERTIES:
+:CUSTOM_ID: buttercup
+:END:
 #+begin_src emacs-lisp :lexical t
 (defvar my-buttercup-source-buffer nil)
 (defvar my-buttercup-tests nil)
@@ -10439,6 +11115,9 @@ Useful as `imenu-create-index-function'."
 			(expect (assoc "test e f 8" tests)))))
 #+end_src
 ***** Undercover
+:PROPERTIES:
+:CUSTOM_ID: undercover
+:END:
 
 #+begin_src emacs-lisp
 (use-package undercover
@@ -10447,6 +11126,9 @@ Useful as `imenu-create-index-function'."
 (use-package coverage)
 #+end_src
 **** Eldoc
+:PROPERTIES:
+:CUSTOM_ID: eldoc
+:END:
 Eldoc provides minibuffer hints when working with Emacs Lisp.
 #+begin_src emacs-lisp
 (use-package eldoc
@@ -10515,6 +11197,7 @@ Related:
 :DRILL_EASE: 2.36
 :DRILL_LAST_QUALITY: 3
 :DRILL_LAST_REVIEWED: [2013-02-27 Wed 21:18]
+:CUSTOM_ID: refactoring
 :END:
 
 More things that I need to get used to...
@@ -10547,12 +11230,18 @@ More things that I need to get used to...
 #+end_src
 
 **** Jumping to code
+:PROPERTIES:
+:CUSTOM_ID: jumping-to-code
+:END:
 
 #+begin_src emacs-lisp
 (define-key emacs-lisp-mode-map (kbd "C-c .") 'find-function-at-point)
 #+end_src
 
 **** Sorting
+:PROPERTIES:
+:CUSTOM_ID: sorting
+:END:
 
 #+begin_src emacs-lisp
 (defun my-sort-sexps-in-region (beg end)
@@ -10583,6 +11272,9 @@ More things that I need to get used to...
 #+end_src
 
 **** Evaluation
+:PROPERTIES:
+:CUSTOM_ID: evaluation
+:END:
 
 Borrowed from Steve Purcell's config. This pretty-prints the results.
 
@@ -10599,6 +11291,9 @@ Borrowed from Steve Purcell's config. This pretty-prints the results.
 (bind-key "C-x C-e" 'sanityinc/eval-last-sexp-or-region emacs-lisp-mode-map)
 #+end_src
 **** Auto insert
+:PROPERTIES:
+:CUSTOM_ID: auto-insert
+:END:
 #+begin_src emacs-lisp
 (with-eval-after-load 'auto-insert
 	(add-to-list 'auto-insert-alist
@@ -10659,6 +11354,9 @@ Borrowed from Steve Purcell's config. This pretty-prints the results.
 \;;; " (file-name-nondirectory (buffer-file-name)) " ends here\n")))
 #+end_src
 **** Stubbing
+:PROPERTIES:
+:CUSTOM_ID: stubbing
+:END:
 
 From https://ag91.github.io/blog/2020/12/31/top-down-elisping-a-simple-snippet-to-stub-a-function-while-your-are-designing-your-code/
 
@@ -10684,6 +11382,9 @@ From https://ag91.github.io/blog/2020/12/31/top-down-elisping-a-simple-snippet-t
 (bind-key "C-:" #'my-stub-elisp-defun emacs-lisp-mode-map)
 #+end_src
 **** Helpful
+:PROPERTIES:
+:CUSTOM_ID: helpful
+:END:
 #+begin_src emacs-lisp
 (use-package helpful
   :bind
@@ -10694,6 +11395,9 @@ From https://ag91.github.io/blog/2020/12/31/top-down-elisping-a-simple-snippet-t
 #+end_src
 
 *** Snippets
+:PROPERTIES:
+:CUSTOM_ID: snippets
+:END:
 #+begin_src emacs-lisp
 (use-package yasnippet
   :diminish yas-minor-mode
@@ -10830,6 +11534,9 @@ because
 Because
 
 *** Show column number
+:PROPERTIES:
+:CUSTOM_ID: show-column-number
+:END:
 
 I sometimes need to know where I am in a line.
 #+begin_src emacs-lisp
@@ -10837,12 +11544,18 @@ I sometimes need to know where I am in a line.
 #+end_src
 
 *** Don't show whitespace in diff, but show context
+:PROPERTIES:
+:CUSTOM_ID: don-t-show-whitespace-in-diff-but-show-context
+:END:
 #+begin_src emacs-lisp
 (setq vc-diff-switches '("-b" "-B" "-u"))
 (setq vc-git-diff-switches nil)
 #+end_src
 
 *** Javascript
+:PROPERTIES:
+:CUSTOM_ID: javascript
+:END:
 
 I like js2-mode.
 
@@ -10952,12 +11665,18 @@ And the rest of the js2 config:
   :config (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
 #+end_src
 **** Indium
+:PROPERTIES:
+:CUSTOM_ID: indium
+:END:
 
      #+begin_src emacs-lisp
 (use-package indium
 :hook ((js2-mode . indium-interaction-mode)))
      #+end_src
 **** React
+:PROPERTIES:
+:CUSTOM_ID: react
+:END:
 
 #+begin_src emacs-lisp
 (use-package rjsx-mode
@@ -10965,6 +11684,9 @@ And the rest of the js2 config:
 #+end_src
 
 *** HTML
+:PROPERTIES:
+:CUSTOM_ID: html
+:END:
 
 Convenience function for getting rid of annoying spans
 offby1 says there's (setq nxml-sexp-element-flag t)
@@ -11008,6 +11730,9 @@ offby1 says there's (setq nxml-sexp-element-flag t)
 ;; (ert "my-clean-up-spans-in-string")
 #+end_src
 *** Shell
+:PROPERTIES:
+:CUSTOM_ID: shell
+:END:
 
 Make files executable if the first file has a shebang (ex: =#!/bin/bash#=)
 #+begin_src emacs-lisp
@@ -11015,6 +11740,9 @@ Make files executable if the first file has a shebang (ex: =#!/bin/bash#=)
           'executable-make-buffer-file-executable-if-script-p)
 #+end_src
 **** Shellcheck
+:PROPERTIES:
+:CUSTOM_ID: shellcheck
+:END:
 https://amitp.blogspot.com/2023/10/emacs-and-shellcheck.html
 
 #+begin_src emacs-lisp
@@ -11240,12 +11968,21 @@ definition of magit-git-insert-section so that it takes a list of
 options to add at the end of the command, but that can wait for another time (or braver souls).
 
 **** TODO Make this better by adding a post command options variable
+:PROPERTIES:
+:CUSTOM_ID: make-this-better-by-adding-a-post-command-options-variable
+:END:
 *** Forge
+:PROPERTIES:
+:CUSTOM_ID: forge
+:END:
 #+begin_src emacs-lisp :eval no :tangle no
 (use-package forge
   :after magit)
 #+end_src
 *** Checking things out
+:PROPERTIES:
+:CUSTOM_ID: checking-things-out
+:END:
 
 Based on http://xenodium.com/emacs-clone-git-repo-from-clipboard/ :
 
@@ -11288,6 +12025,9 @@ Based on http://xenodium.com/emacs-clone-git-repo-from-clipboard/ :
 #+end_src
 
 *** git-messenger - shows commit message
+:PROPERTIES:
+:CUSTOM_ID: git-messenger-shows-commit-message
+:END:
 
 #+begin_src emacs-lisp
 (use-package git-messenger
@@ -11295,6 +12035,9 @@ Based on http://xenodium.com/emacs-clone-git-repo-from-clipboard/ :
 #+end_src
 
 *** Tag files
+:PROPERTIES:
+:CUSTOM_ID: tag-files
+:END:
 
 I don't often use a TAGS file, but when I do, I don't want to have
 to set my tags file per project. I search for it in the directory
@@ -11321,6 +12064,9 @@ tree instead.
 #+end_src
 
 *** Projects and projectile
+:PROPERTIES:
+:CUSTOM_ID: projects-and-projectile
+:END:
 
 #+begin_src emacs-lisp
 (use-package projectile
@@ -11344,12 +12090,18 @@ tree instead.
 #+end_src
 
 *** Exploring MELPA recipes
+:PROPERTIES:
+:CUSTOM_ID: exploring-melpa-recipes
+:END:
 
 #+begin_src emacs-lisp
 
 #+end_src
 
 *** Ruby
+:PROPERTIES:
+:CUSTOM_ID: ruby
+:END:
 
 #+begin_src emacs-lisp  :eval no :tangle no
 (use-package rinari :if my-laptop-p)
@@ -11398,6 +12150,9 @@ SASS
 #+end_src
 
 *** Skewer
+:PROPERTIES:
+:CUSTOM_ID: skewer
+:END:
 
 This lets you send HTML, CSS, and Javascript fragments to Google
 Chrome. You may need to start Chrome with =chrome
@@ -11414,6 +12169,9 @@ with HTTPS sites.
 #+end_src
 
 *** Autocomplete
+:PROPERTIES:
+:CUSTOM_ID: autocomplete
+:END:
 
 #+begin_src emacs-lisp
 (with-eval-after-load 'company
@@ -11425,6 +12183,9 @@ with HTTPS sites.
 #+end_src
 
 *** Tern - for Javascript
+:PROPERTIES:
+:CUSTOM_ID: tern-for-javascript
+:END:
 
 #+begin_src emacs-lisp
 (use-package tern
@@ -11436,6 +12197,9 @@ with HTTPS sites.
 #+end_src
 
 *** Docker
+:PROPERTIES:
+:CUSTOM_ID: docker
+:END:
 
 #+begin_src emacs-lisp
 (use-package dockerfile-mode
@@ -11445,10 +12209,14 @@ with HTTPS sites.
 *** SOMEDAY Google Spreadsheets and Python - automate spreadsheet stuff?
     :PROPERTIES:
     :CREATED:  [2021-06-26 Sat 22:10]
+    :CUSTOM_ID: google-spreadsheets-and-python-automate-spreadsheet-stuff
     :END:
 
   https://www.twilio.com/blog/2017/02/an-easy-way-to-read-and-write-to-a-google-spreadsheet-in-python.html
 *** Automation
+:PROPERTIES:
+:CUSTOM_ID: automation
+:END:
 
 #+begin_src elisp
 (defun my-insert-xdotool-click-as-shell-command ()
@@ -11462,6 +12230,9 @@ with HTTPS sites.
 my-insert-xdotool-click-as-shell-command
 :end:
 *** Eshell
+:PROPERTIES:
+:CUSTOM_ID: eshell
+:END:
 https://www.reddit.com/r/emacs/comments/b6n3t8/what_would_it_take_to_get_terminal_colors_in/
 #+begin_src emacs-lisp
 (use-package xterm-color
@@ -11482,6 +12253,9 @@ https://www.reddit.com/r/emacs/comments/b6n3t8/what_would_it_take_to_get_termina
 
 #+end_src
 **** Correctly complete commands in subdirectories
+:PROPERTIES:
+:CUSTOM_ID: correctly-complete-commands-in-subdirectories
+:END:
 
 From https://www.n16f.net/blog/eshell-key-bindings-and-completion/
 #+begin_src emacs-lisp
@@ -11546,6 +12320,9 @@ From https://www.n16f.net/blog/eshell-key-bindings-and-completion/
 										 completions))))))))
 #+end_src
 *** Documentation
+:PROPERTIES:
+:CUSTOM_ID: documentation
+:END:
 
 Hmm, disable this for now
 #+begin_src emacs-lisp :eval no :tangle no
@@ -11569,6 +12346,9 @@ Hmm, disable this for now
 dash-docs-search
 
 ** Internet Relay Chat
+:PROPERTIES:
+:CUSTOM_ID: internet-relay-chat
+:END:
 
 IRC is a great way to hang out with other Emacs geeks.
 #+begin_src emacs-lisp
@@ -11689,6 +12469,9 @@ to things that look like Mastodon URLs by using mastodon.el.
 
 (thanks, [[https://mas.to/@ParetoOptimalDev/109378647927115065][@ParetoOptimalDev]]!)
 *** Storing Mastodon links in Org mode
+:PROPERTIES:
+:CUSTOM_ID: storing-mastodon-links-in-org-mode
+:END:
 
 This snippet makes it easier to store links to posts with
 ~org-store-link~ and to use them as automatic annotations in
@@ -11776,6 +12559,9 @@ defined elsewhere in [[https://sachachua.com/dotemacs/#mastodon][my config]].
 	:bind (:map mastodon-mode-map ("w" . my-mastodon-save-toot-for-emacs-news)))
 #+end_src
 *** Following people
+:PROPERTIES:
+:CUSTOM_ID: following-people
+:END:
 I want to be able to follow people if I specify their ID.
 
 #+begin_src emacs-lisp
@@ -11797,6 +12583,9 @@ I want to be able to follow people if I specify their ID.
 #+end_src
 
 *** Posting the latest screenshot with mastodon.el
+:PROPERTIES:
+:CUSTOM_ID: posting-the-latest-screenshot-with-mastodon-el
+:END:
 
 I want to make it easier to microblog the latest screenshot, or a
 recent screenshot if I need to pick a different one. It might also be
@@ -11847,6 +12636,9 @@ Use consult to provide a preview."
 					 (match-string 1 (save-match-data (file-name-base filename))))))))
 #+end_src
 *** Mastodon keyboard shortcuts via Hydra
+:PROPERTIES:
+:CUSTOM_ID: mastodon-keyboard-shortcuts-via-hydra
+:END:
 
 Based on https://github.com/holgerschurig/emacs-doom-config/blob/master/config.el#L2397
 
@@ -12003,6 +12795,9 @@ I can build up my notes.
 
 Now I can use ~org-feed-update-all~ (~C-c C-x g~) to pull things into my toots.org file.
 ** Web
+:PROPERTIES:
+:CUSTOM_ID: web
+:END:
 *** Using Spookfox to scroll Firefox up and down from Emacs  :web:emacs:
 :PROPERTIES:
 :EXPORT_DATE: 2023-01-30T11:02:57-0500
@@ -12104,6 +12899,9 @@ the actual project in the post body or a comment instead.
 						 (plist-get tab :title)))))
 #+end_src
 ** Self-tracking, statistics, and other data transformations
+:PROPERTIES:
+:CUSTOM_ID: self-tracking-statistics-and-other-data-transformations
+:END:
 *** Quantified Awesome
 :PROPERTIES:
 :CUSTOM_ID: clock-in
@@ -12217,6 +13015,9 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 #+end_example
 
 *** Workrave
+:PROPERTIES:
+:CUSTOM_ID: workrave
+:END:
 #+begin_src emacs-lisp
 (defvar my-workrave-file (expand-file-name ".\\Workrave\\historystats" (getenv "AppData")))
 
@@ -12248,6 +13049,9 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
         result))))
 #+end_src
 *** Blog
+:PROPERTIES:
+:CUSTOM_ID: blog
+:END:
 #+begin_src emacs-lisp
 (defun my-strip-blog-share ()
   (interactive)
@@ -12259,6 +13063,9 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
         (replace-match "")))))
 #+end_src
 *** Artrage
+:PROPERTIES:
+:CUSTOM_ID: artrage
+:END:
 
 #+begin_src emacs-lisp
 (defun my-artrage-export-png (directory &optional prefix)
@@ -12280,7 +13087,13 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 
 #+end_src
 ** Workarounds
+:PROPERTIES:
+:CUSTOM_ID: workarounds
+:END:
 *** GnuTLS on Windows
+:PROPERTIES:
+:CUSTOM_ID: gnutls-on-windows
+:END:
 
 http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en.html has lots of tips.
 
@@ -12289,6 +13102,9 @@ http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en
 #+end_src
 
 *** color-theme sometimes comes across lists. Odd!
+:PROPERTIES:
+:CUSTOM_ID: color-theme-sometimes-comes-across-lists-odd
+:END:
 
 #+begin_src emacs-lisp
 (defadvice face-attribute (around sacha activate)
@@ -12297,6 +13113,9 @@ http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en
 #+end_src
 
 *** ido-sort-mtime stopped working when I upgraded to Windows 8
+:PROPERTIES:
+:CUSTOM_ID: ido-sort-mtime-stopped-working-when-i-upgraded-to-windows-8
+:END:
 
 #+begin_src emacs-lisp
 (defadvice ido-sort-mtime (around sacha activate)
@@ -12316,6 +13135,9 @@ http://xn--9dbdkw.se/diary/how_to_enable_GnuTLS_for_Emacs_24_on_Windows/index.en
 
 #+end_src
 *** Imagemagick
+:PROPERTIES:
+:CUSTOM_ID: imagemagick
+:END:
 
 https://xenodium.com/emacs-viewing-webp-images/
 #+begin_src emacs-lisp
@@ -12323,6 +13145,9 @@ https://xenodium.com/emacs-viewing-webp-images/
 #+end_src
 
 *** SSH and --daemon
+:PROPERTIES:
+:CUSTOM_ID: ssh-and-daemon
+:END:
 
 From https://github.com/nhoffman/.emacs.d/blob/master/init.org
 
@@ -12342,6 +13167,9 @@ From https://github.com/nhoffman/.emacs.d/blob/master/init.org
 #+end_src
 
 ** Display
+:PROPERTIES:
+:CUSTOM_ID: display
+:END:
 
 #+begin_src emacs-lisp
 (defun sanityinc/adjust-opacity (frame incr)
@@ -12355,6 +13183,9 @@ From https://github.com/nhoffman/.emacs.d/blob/master/init.org
 #+end_src
 
 ** On my phone
+:PROPERTIES:
+:CUSTOM_ID: on-my-phone
+:END:
 
 I use Orgzly on an Android phone, synchronizing my files with
 Syncthing. (See =my-resolve-orgzly-syncthing= elsewhere in this
@@ -12403,6 +13234,9 @@ config.) Sometimes I use Termux, too.
 #+end_src
 
 ** Clipboard
+:PROPERTIES:
+:CUSTOM_ID: clipboard
+:END:
 
 #+begin_src emacs-lisp
 (use-package clipmon
@@ -12416,6 +13250,9 @@ On my phone:
 (use-package xclip :if my-phone-p) ; Turn on with xclip-mode
 #+end_src
 ** Search
+:PROPERTIES:
+:CUSTOM_ID: search
+:END:
 
 #+begin_src emacs-lisp
 (use-package engine-mode
@@ -12435,7 +13272,13 @@ On my phone:
    ("e" engine/search-emacswiki "emacswiki")))
 #+end_src
 ** Mail and news
+:PROPERTIES:
+:CUSTOM_ID: mail-and-news
+:END:
 *** Notmuch
+:PROPERTIES:
+:CUSTOM_ID: notmuch
+:END:
 
 I use Notmuch with [[https://github.com/gauteh/lieer][Lieer]] to fetch my mail from Gmail.
 
@@ -12463,6 +13306,9 @@ I use Notmuch with [[https://github.com/gauteh/lieer][Lieer]] to fetch my mail f
                           (plist-get (get-text-property (point) 'notmuch-search-result) :authors))))
 #+end_src
 **** Act on current message with Embark
+:PROPERTIES:
+:CUSTOM_ID: act-on-current-message-with-embark
+:END:
 
 #+begin_src emacs-lisp
 (defun mail-embark-finder ()
@@ -12480,6 +13326,7 @@ I use Notmuch with [[https://github.com/gauteh/lieer][Lieer]] to fetch my mail f
 :POST_DATE: [2015-11-20 Fri 12:36]
 :POSTID:   28485
 :BLOG:     sacha
+:CUSTOM_ID: gnus
 :END:
 
 
@@ -12563,6 +13410,9 @@ I still use Gnus so that I can use [[http://gmane.org][Gmane]] to read mailing l
         (gnus-catchup-mark (subject -1))))
     #+end_src
 **** NNreddit?
+:PROPERTIES:
+:CUSTOM_ID: nnreddit
+:END:
 
 Experimenting with this.
 
@@ -12576,6 +13426,9 @@ Experimenting with this.
 #+end_src
 
 **** Windows
+:PROPERTIES:
+:CUSTOM_ID: windows
+:END:
 
 #+begin_update
 I don't use Windows much any more, but this is here in case it's helpful for people who still do.
@@ -12607,6 +13460,9 @@ I don't use Windows much any more, but this is here in case it's helpful for peo
 
 
 *** Approve or discard Mailman messages
+:PROPERTIES:
+:CUSTOM_ID: approve-or-discard-mailman-messages
+:END:
 
 The mailing lists for [[https://lists.gnu.org/mailman/listinfo/emacsconf-org][emacsconf-org]], [[https://lists.gnu.org/mailman/listinfo/emacsconf-org-private][emacsconf-org-private]],
 [[https://lists.gnu.org/mailman/listinfo/emacsconf-submit][emacsconf-submit]], and [[https://lists.gnu.org/mailman/listinfo/emacs-tangents][emacs-tangents]] are all handled by the Mailman
@@ -12645,6 +13501,9 @@ program. We usually set mailing lists to moderated so that
 																												 (concat "pass " id))))))))
       #+end_src
 ** Ledger (personal finance) in my config
+:PROPERTIES:
+:CUSTOM_ID: ledger-personal-finance-in-my-config
+:END:
 
 Make it easier to review my credit card transactions
 
@@ -12751,6 +13610,9 @@ Make it easier to review my credit card transactions
 #+end_src
 
 ** Emacs server
+:PROPERTIES:
+:CUSTOM_ID: emacs-server
+:END:
 
 =(server-start)= permits the use of =emacsclient=, =emacsclientw=, and
 =org-protocol=. I used to start a server as part of my config. Now I'm
@@ -12766,6 +13628,9 @@ don't get the theme applied. This fixes that:
             (my-setup-color-theme)))
 #+end_src
 ** Collaboration
+:PROPERTIES:
+:CUSTOM_ID: collaboration
+:END:
 
    #+begin_src emacs-lisp
 (use-package crdt
@@ -12776,6 +13641,9 @@ don't get the theme applied. This fixes that:
 
    #+end_src
 ** Menus
+:PROPERTIES:
+:CUSTOM_ID: menus
+:END:
 
 Handy when I'm in tablet mode.
 
@@ -12788,6 +13656,9 @@ Handy when I'm in tablet mode.
                                                                                 (my-org-sketch-edit (my-prepare-index-card-template)))))
 #+end_src
 *** Context menus
+:PROPERTIES:
+:CUSTOM_ID: context-menus
+:END:
 
 #+begin_src emacs-lisp
 (add-hook 'text-mode-hook 'context-menu-mode)
@@ -12797,12 +13668,21 @@ Handy when I'm in tablet mode.
 #+end_src
 
 ** CSVs
+:PROPERTIES:
+:CUSTOM_ID: csvs
+:END:
 
 #+begin_src emacs-lisp
 (use-package pcsv)
 #+end_src
 ** Advanced stuff / things I tend to forget about
+:PROPERTIES:
+:CUSTOM_ID: advanced-stuff-things-i-tend-to-forget-about
+:END:
 *** Editing multiple things
+:PROPERTIES:
+:CUSTOM_ID: editing-multiple-things
+:END:
 
 **** Multiple cursors mode					      :drill:
 :PROPERTIES:
@@ -12815,6 +13695,7 @@ Handy when I'm in tablet mode.
 :DRILL_EASE: 2.36
 :DRILL_LAST_QUALITY: 3
 :DRILL_LAST_REVIEWED: [2013-02-27 Wed 21:18]
+:CUSTOM_ID: multiple-cursors-mode
 :END:
 
 I often define keyboard macros to process multiple lines in a region.
@@ -12851,6 +13732,7 @@ Thanks to [[http://irreal.org/blog/?p=1733][Irreal]] and [[http://planet.emacsen
 :DRILL_EASE: 2.36
 :DRILL_LAST_QUALITY: 3
 :DRILL_LAST_REVIEWED: [2013-02-27 Wed 21:18]
+:CUSTOM_ID: edit-list
 :END:
 
 M-x edit-list makes it easier to edit an Emacs Lisp list.
@@ -12870,6 +13752,7 @@ M-x edit-list makes it easier to edit an Emacs Lisp list.
 :DRILL_EASE: 2.36
 :DRILL_LAST_QUALITY: 0
 :DRILL_LAST_REVIEWED: [2013-03-13 Wed 09:50]
+:CUSTOM_ID: quickly-jump-to-positions
 :END:
 
 Quickly jump to a position in the current view.
@@ -12911,6 +13794,9 @@ Quickly jump to a position in the current view.
 #+end_src
 
 *** Deleting things
+:PROPERTIES:
+:CUSTOM_ID: deleting-things
+:END:
 
 From Steve Purcell, who linked to http://www.emacswiki.org/emacs/ZapToISearch
 #+begin_src emacs-lisp
@@ -12944,7 +13830,13 @@ From Steve Purcell, who linked to http://www.emacswiki.org/emacs/ZapToISearch
 (define-key isearch-mode-map [(meta z)] 'zap-to-isearch)
 #+end_src
 **** TODO Get zap-to-isearch to work with helm-swoop
+:PROPERTIES:
+:CUSTOM_ID: get-zap-to-isearch-to-work-with-helm-swoop
+:END:
 *** Network: TRAMP and editing files over SSH
+:PROPERTIES:
+:CUSTOM_ID: network-tramp-and-editing-files-over-ssh
+:END:
 Emacs lets you edit files on remote servers, which is pretty darn
 cool. On Windows, these things help a little.
 
@@ -12954,6 +13846,9 @@ cool. On Windows, these things help a little.
   (setq tramp-auto-save-directory "c:\\sacha\\tmp"))
 #+end_src
 *** Checking URLs
+:PROPERTIES:
+:CUSTOM_ID: checking-urls
+:END:
 
 #+begin_src emacs-lisp
 (defun my-test-urls (urls)
@@ -12973,6 +13868,9 @@ cool. On Windows, these things help a little.
    :END:
 
 *** Setting up
+:PROPERTIES:
+:CUSTOM_ID: setting-up
+:END:
 
     #+begin_src emacs-lisp
 ;; https://emacs.stackexchange.com/questions/19035/finding-frames-by-name
@@ -13054,6 +13952,7 @@ ffmpeg -v quiet -f flv -listen 1 -i rtmp://127.0.0.1:5555 -c copy -f flv $YOUTUB
 :POST_DATE: [2021-02-07 Sun 00:06]
 :BLOG:     sacha
 :POSTID:   29670
+:CUSTOM_ID: controlling-my-stream-audio-from-emacs-background-music-typing-sounds-and-push-to-talk
 :END:
 
 Update: 2021-02-11: Parsed =pacmd list-sources= so that I can mute/unmute devices by regular expression.
@@ -13191,6 +14090,9 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
 #+end_src
 
 *** Messages
+:PROPERTIES:
+:CUSTOM_ID: messages
+:END:
 
 #+begin_src emacs-lisp
 (defun my-stream-message (text)
@@ -13305,6 +14207,9 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 #+end_src
 
 *** Show Emacs-related tasks
+:PROPERTIES:
+:CUSTOM_ID: show-emacs-related-tasks
+:END:
 
 #+begin_src emacs-lisp
 (defun my-show-emacs-tasks ()
@@ -13318,6 +14223,9 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 #+end_src
 
 *** General streaming configuration
+:PROPERTIES:
+:CUSTOM_ID: general-streaming-configuration
+:END:
 #+begin_src emacs-lisp
 
 (defvar my-stream-captions-insert nil "Non-nil means insert into the current buffer.")
@@ -13365,6 +14273,9 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
 #+end_src
 
 *** Playing recordings
+:PROPERTIES:
+:CUSTOM_ID: playing-recordings
+:END:
 
     #+begin_src emacs-lisp
 (use-package mpv :if my-laptop-p)
@@ -13406,8 +14317,14 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
                  (format "--client-secrets=%s" google-video-credentials)))
     #+end_src
 *** Live captions
+:PROPERTIES:
+:CUSTOM_ID: live-captions
+:END:
 
 *** Stream notes
+:PROPERTIES:
+:CUSTOM_ID: stream-notes
+:END:
 
         #+begin_src emacs-lisp
  (setq imp-default-user-filters '((org-mode . my-imp-htmlize-filter)
@@ -13506,7 +14423,13 @@ With data logging $0.004 USD / 15 seconds
 #+end_src
 
 ** Other nifty Emacs things I want to learn
+:PROPERTIES:
+:CUSTOM_ID: other-nifty-emacs-things-i-want-to-learn
+:END:
 *** Smartparens mode						      :drill:
+:PROPERTIES:
+:CUSTOM_ID: smartparens-mode
+:END:
 
 #+begin_src emacs-lisp
 (use-package smartparens
@@ -13595,6 +14518,9 @@ With data logging $0.004 USD / 15 seconds
       (sp-local-pair "(" nil :bind "C-("))))
 #+end_src
 *** Lispy
+:PROPERTIES:
+:CUSTOM_ID: lispy
+:END:
     #+begin_src emacs-lisp
 (use-package lispy :hook (emacs-lisp-mode . lispy-mode))
     #+end_src
@@ -13602,6 +14528,9 @@ With data logging $0.004 USD / 15 seconds
 Might need to tweak it because I use the Dvorak layout, so hjkl doesn't make as much sense for me.
 
 **** SOMEDAY Keep track of the number of times specified commands have been called
+:PROPERTIES:
+:CUSTOM_ID: keep-track-of-the-number-of-times-specified-commands-have-been-called
+:END:
 
 Skip this for now
      #+begin_src emacs-lisp :eval no :tangle no
@@ -13773,6 +14702,9 @@ qdbus org.kde.KWin /KWin reconfigure
    Looking forward to getting the hang of this!
    # /home/sacha/screenshots/Screenshot_20210413_002503.png https://sachachua.com/blog/wp-content/uploads/2021/04/Screenshot_20210413_002503.png
 ** Encryption
+:PROPERTIES:
+:CUSTOM_ID: encryption
+:END:
 
 #+begin_src emacs-lisp
 (setq epa-file-encrypt-to '("sacha@sachachua.com"))
@@ -13787,6 +14719,7 @@ CLOSED: [2015-12-14 Mon 21:24]
 :POST_DATE: [2015-12-14 Mon 21:22]
 :POSTID:   28517
 :BLOG:     sacha
+:CUSTOM_ID: scan-bin-and-turn-the-scripts-into-interactive-commands
 :END:
 :LOGBOOK:
 - State "DONE"       from              [2015-12-14 Mon 21:24]
@@ -13839,6 +14772,9 @@ creates interactive functions, and some code that calls it for my [[https://gith
 Let's see how that goes!
 
 ** Syncthing
+:PROPERTIES:
+:CUSTOM_ID: syncthing
+:END:
 
 From https://www.reddit.com/r/emacs/comments/bqqqra/quickly_find_syncthing_conflicts_and_resolve_them/
 In termux, you also need to =pkg install diffutils=.
@@ -13926,6 +14862,9 @@ In termux, you also need to =pkg install diffutils=.
 #+end_src
 
 ** Search logs
+:PROPERTIES:
+:CUSTOM_ID: search-logs
+:END:
 
 #+begin_src emacs-lisp
 (defun my-search-irc-logs ()
@@ -13934,6 +14873,9 @@ In termux, you also need to =pkg install diffutils=.
     (call-interactively 'consult-ripgrep)))
 #+end_src
 ** gif-screencast
+:PROPERTIES:
+:CUSTOM_ID: gif-screencast
+:END:
 
 #+begin_src emacs-lisp
 (use-package gif-screencast
@@ -13965,7 +14907,13 @@ In termux, you also need to =pkg install diffutils=.
 - [[https://github.com/jwiegley/dot-emacs][John Wiegley]]: Also see his [[http://www.youtube.com/watch?v=RvPFZL6NJNQ][Emacs Lisp Development talk]] (sorry, sucky video) and [[http://www.youtube.com/watch?v=ytNsHmRLZGM][Emacs Chat video]]
 
 * Temporary workarounds
+:PROPERTIES:
+:CUSTOM_ID: temporary-workarounds
+:END:
 ** Tablet clicks count as drags
+:PROPERTIES:
+:CUSTOM_ID: tablet-clicks-count-as-drags
+:END:
 
 #+begin_src emacs-lisp
 (defun widget-button-click (event)
@@ -14075,7 +15023,13 @@ In termux, you also need to =pkg install diffutils=.
     (message "You clicked somewhere weird.")))
 #+end_src
 * Inactive/infrequent things
+:PROPERTIES:
+:CUSTOM_ID: inactive-infrequent-things
+:END:
 ** MineClone
+:PROPERTIES:
+:CUSTOM_ID: mineclone
+:END:
 
 #+begin_src emacs-lisp
 (defun my-mineclone-ripgrep ()
@@ -14085,6 +15039,9 @@ In termux, you also need to =pkg install diffutils=.
 (global-set-key (kbd "s-M") 'my-mineclone-ripgrep)
 #+end_src
 ** EmacsConf
+:PROPERTIES:
+:CUSTOM_ID: emacsconf
+:END:
 
 #+begin_src emacs-lisp
 (autoload 'emacsconf-mail-prepare "emacsconf-mail")
@@ -14135,6 +15092,9 @@ In termux, you also need to =pkg install diffutils=.
 (global-set-key (kbd "M-g t") 'emacsconf-go-to-talk)
 #+end_src
 ** ChatGPT, AI
+:PROPERTIES:
+:CUSTOM_ID: chatgpt-ai
+:END:
 
 #+begin_src emacs-lisp
 (use-package chat
@@ -14148,6 +15108,9 @@ In termux, you also need to =pkg install diffutils=.
   :bind ("C-c s" . 'khoj))
 #+end_src
 ** Evil mode
+:PROPERTIES:
+:CUSTOM_ID: evil-mode
+:END:
 
    I should probably get the hang of evil-mode in preparation for
    learning stenography, since control-key shortcuts are harder to
@@ -14208,7 +15171,13 @@ In termux, you also need to =pkg install diffutils=.
    #+end_src
 
 *** TODO Learn how to use evil mode
+:PROPERTIES:
+:CUSTOM_ID: learn-how-to-use-evil-mode
+:END:
 ** Chronos
+:PROPERTIES:
+:CUSTOM_ID: chronos
+:END:
 
 Tip from zaeph. Might not use this much yet, as I don't spend that much time in front of my computer. Could be handy someday, though.
 
@@ -14219,6 +15188,9 @@ Tip from zaeph. Might not use this much yet, as I don't spend that much time in 
  (add-hook 'chronos-expiry-functions #'chronos-buffer-notify))
 #+end_src
 ** Paint
+:PROPERTIES:
+:CUSTOM_ID: paint
+:END:
 
 #+begin_src emacs-lisp
 (use-package paint
@@ -14232,6 +15204,9 @@ Tip from zaeph. Might not use this much yet, as I don't spend that much time in 
 #+end_src
 
 ** Oddmuse
+:PROPERTIES:
+:CUSTOM_ID: oddmuse
+:END:
 
 #+begin_src emacs-lisp
 (use-package oddmuse
@@ -14253,6 +15228,7 @@ Tip from zaeph. Might not use this much yet, as I don't spend that much time in 
 :POST_DATE: [2016-02-19 Fri 17:11]
 :POSTID:   28623
 :BLOG:     sacha
+:CUSTOM_ID: building-a-today-i-learned-habit-and-displaying-the-documentation-for-random-emacs-commands
 :END:
 
 I'd like to build a habit of regularly learning one small thing each
@@ -14303,6 +15279,9 @@ not interactive functions, but they were handy for building this
 little bit of code. We'll see how it goes! =)
 
 ** Org - mapping blog posts and image URLs from bulk exports
+:PROPERTIES:
+:CUSTOM_ID: org-mapping-blog-posts-and-image-urls-from-bulk-exports
+:END:
 #+begin_src emacs-lisp  :tangle no
 (defun my-org-map-blog-and-image-urls ()
   "Extract and map blog post / image URLs."
@@ -14327,6 +15306,9 @@ little bit of code. We'll see how it goes! =)
     (kill-new (mapconcat 'identity result "\n"))))
 #+end_src
 ** Transcript editing
+:PROPERTIES:
+:CUSTOM_ID: transcript-editing
+:END:
 
 #+begin_src emacs-lisp
 (defun my-split-sentence-and-capitalize ()
@@ -14397,6 +15379,9 @@ And this loads the beeminder code:
 #+end_src
 
 ** Strike through DONE headlines
+:PROPERTIES:
+:CUSTOM_ID: strike-through-done-headlines
+:END:
 
 I wanted a quick way to visually distinguish DONE tasks from tasks I
 still need to do. This [[http://lists.gnu.org/archive/html/emacs-orgmode/2007-03/msg00179.html][handy snippet from the Emacs Org-mode mailing list]] does the trick by striking through the headlines for DONE tasks.
@@ -14413,6 +15398,9 @@ still need to do. This [[http://lists.gnu.org/archive/html/emacs-orgmode/2007-03
 #+end_src
 
 ** Rainbow delimiters
+:PROPERTIES:
+:CUSTOM_ID: rainbow-delimiters
+:END:
 
 I don't automatically turn this on because I think it slows things down a little.
 
@@ -14421,6 +15409,9 @@ I don't automatically turn this on because I think it slows things down a little
 #+end_src
 
 ** Org - send things to the bottom of the list
+:PROPERTIES:
+:CUSTOM_ID: org-send-things-to-the-bottom-of-the-list
+:END:
 Handy for collecting items together.
 #+begin_src emacs-lisp :eval no :tangle no
 (defun my-org-send-to-bottom-of-list ()
@@ -14434,6 +15425,9 @@ Handy for collecting items together.
       (yank))))
 #+end_src
 ** Time tracking, previous weekly review
+:PROPERTIES:
+:CUSTOM_ID: time-tracking-previous-weekly-review
+:END:
 #+begin_src emacs-lisp
 (defvar my-org-quantified-categories
   '(("Business"
@@ -14493,6 +15487,9 @@ Handy for collecting items together.
 #+end_src
 
 *** List upcoming tasks so that I can see if I'm overloaded
+:PROPERTIES:
+:CUSTOM_ID: list-upcoming-tasks-so-that-i-can-see-if-i-m-overloaded
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-summarize-upcoming-week ()
@@ -14568,6 +15565,9 @@ to see which items I'd planned ahead, and which ones were new tasks.
 #+end_src
 
 *** Compare time use
+:PROPERTIES:
+:CUSTOM_ID: compare-time-use
+:END:
 #+begin_src emacs-lisp
 (defun my-quantified-compare (start1 end1 start2 end2 &optional categories label1 label2)
   "Return a table comparing the times for START1 - END1 and START2 - END2."
@@ -14604,6 +15604,9 @@ to see which items I'd planned ahead, and which ones were new tasks.
          (string-to-number (car (last a)))))))))
 #+end_src
 ** Animation for Emacs chats
+:PROPERTIES:
+:CUSTOM_ID: animation-for-emacs-chats
+:END:
 
 #+begin_src emacs-lisp
 (defun my-animate-emacs-chat ()
@@ -14630,6 +15633,9 @@ to see which items I'd planned ahead, and which ones were new tasks.
 #+end_src
 
 ** Idle timer
+:PROPERTIES:
+:CUSTOM_ID: idle-timer
+:END:
 
 This snippet is from John Wiegley -
 http://lists.gnu.org/archive/html/emacs-orgmode/2010-03/msg00367.html.
@@ -14665,6 +15671,9 @@ left.
 
 #+end_src
 ** Old Flickr/Evernote export
+:PROPERTIES:
+:CUSTOM_ID: old-flickr-evernote-export
+:END:
 
 #+begin_src emacs-lisp :eval no :tangle no
 ;; I don't use these as much now that I have the functions above.
@@ -14703,6 +15712,9 @@ left.
                 "\n"))))
 #+end_src
 ** Completion at point?
+:PROPERTIES:
+:CUSTOM_ID: completion-at-point
+:END:
 
 #+begin_src emacs-lisp
 (use-package corfu :init (global-corfu-mode))
@@ -14720,6 +15732,9 @@ left.
 #+end_src
 
 ** Enable minibuffer completion
+:PROPERTIES:
+:CUSTOM_ID: enable-minibuffer-completion
+:END:
 [2013-03-31] Superseded by ido-hacks?
 
 It can be difficult to remember the full names of Emacs commands, so I
@@ -14731,6 +15746,9 @@ easier to discover commands.
 #+end_src
 
 ** Encryption
+:PROPERTIES:
+:CUSTOM_ID: encryption
+:END:
 
 #+begin_src emacs-lisp :tangle no :eval no
 (require 'org-crypt)
@@ -14754,12 +15772,21 @@ easier to discover commands.
 #+end_src
 
 ** Drawing
+:PROPERTIES:
+:CUSTOM_ID: drawing
+:END:
 <<drawing>>
 *** SVG
+:PROPERTIES:
+:CUSTOM_ID: svg
+:END:
     #+begin_src emacs-lisp
 (auto-image-file-mode -1)
     #+end_src
 *** Finding sketches
+:PROPERTIES:
+:CUSTOM_ID: finding-sketches
+:END:
 
 #+begin_src emacs-lisp
 (defvar my-sketch-directories
@@ -14831,6 +15858,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 #+end_src
 
 *** Org Mode sketch: links
+:PROPERTIES:
+:CUSTOM_ID: org-mode-sketch-links
+:END:
 #+begin_src emacs-lisp
 (defun my-open-images-in-krita (files)
   (apply 'call-process "krita" nil 0 nil "--nosplash" files))
@@ -15014,6 +16044,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 
 #+end_src
 *** Copy
+:PROPERTIES:
+:CUSTOM_ID: copy
+:END:
 
     #+begin_src emacs-lisp
 (use-package org
@@ -15026,6 +16059,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
     #+end_src
 
 *** Config
+:PROPERTIES:
+:CUSTOM_ID: config
+:END:
 
     #+begin_src emacs-lisp
 (use-package org
@@ -15038,6 +16074,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 
     #+end_src
 *** Helm completion with my-helm-org-sketches
+:PROPERTIES:
+:CUSTOM_ID: helm-completion-with-my-helm-org-sketches
+:END:
 
 #+begin_src emacs-lisp
 (defun my-helm-source-org-sketch-list ()
@@ -15074,6 +16113,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 #+end_src
 
 *** Button-based interface
+:PROPERTIES:
+:CUSTOM_ID: button-based-interface
+:END:
 
 This makes a buffer with big buttons so that I can easily tap them with my stylus.
 
@@ -15174,6 +16216,9 @@ This makes a buffer with big buttons so that I can easily tap them with my stylu
 #+end_src
 
 *** Templates
+:PROPERTIES:
+:CUSTOM_ID: templates
+:END:
 #+begin_src emacs-lisp
 
 (defun my-prepare-drawing-template (&optional name date template)
@@ -15251,6 +16296,7 @@ CLOSED: [2015-07-19 Sun 11:53]
 :PROPERTIES:
 :Effort:   0:30
 :QUANTIFIED: Emacs
+:CUSTOM_ID: easily-backfill-my-journal
 :END:
 :LOGBOOK:
 - State "DONE"       from "STARTED"    [2015-07-19 Sun 11:53]
@@ -15317,6 +16363,9 @@ CLOSED: [2015-07-19 Sun 11:53]
 #+end_src
 
 *** Rename scanned index cards
+:PROPERTIES:
+:CUSTOM_ID: rename-scanned-index-cards
+:END:
 
 #+begin_src emacs-lisp
 (use-package s)
@@ -15436,6 +16485,9 @@ directory, and copy Org-formatted text that I can paste into my
 learning outline.
 
 *** Automatically resize images
+:PROPERTIES:
+:CUSTOM_ID: automatically-resize-images
+:END:
 
 The =image+= package is handy for displaying the images so
 that they're scaled to the window size.
@@ -15449,6 +16501,9 @@ that they're scaled to the window size.
 #+end_src
 
 *** Get information for sketched books
+:PROPERTIES:
+:CUSTOM_ID: get-information-for-sketched-books
+:END:
 
 For sketchnotes of books, I set up the filename based on properties in
 my Org Mode tree for that book.
@@ -15469,6 +16524,9 @@ Do you work with external applications? Where does it make sense to
 use Emacs Lisp to make setup or processing easier?
 
 *** Make it easy to follow up on a sketch
+:PROPERTIES:
+:CUSTOM_ID: make-it-easy-to-follow-up-on-a-sketch
+:END:
 
 #+begin_src emacs-lisp
 (defun my-follow-up-on-sketch (filename)
@@ -15507,6 +16565,7 @@ CLOSED: [2015-02-01 Sun 18:26]
 :ARCHIVE_OLPATH: Inactive/infrequent things/Drawing
 :ARCHIVE_CATEGORY: Sacha
 :ARCHIVE_TODO: DONE
+:CUSTOM_ID: digital-index-piles-with-emacs
 :END:
 :LOGBOOK:
 - State "DONE"       from "STARTED"    [2015-02-01 Sun 18:26]
@@ -15757,6 +16816,9 @@ I wanted to write a function that could take a list structured like this:
     #+end_src
 
 *** Xournalpp and Krita
+:PROPERTIES:
+:CUSTOM_ID: xournalpp-and-krita
+:END:
 
 Let's try xournal++.
 
@@ -15844,6 +16906,9 @@ Convenience functions to make my life easier when sketchnoting books.
 #+end_src
 
 *** Other sketches
+:PROPERTIES:
+:CUSTOM_ID: other-sketches
+:END:
 
 Based on [[http://williamedwardscoder.tumblr.com/post/84505278488/making-image-mosaics]]
 Aspect ratio is width / height
@@ -15961,6 +17026,9 @@ xdotool key Return
 #+RESULTS:
 
 *** Other sketch-related functions
+:PROPERTIES:
+:CUSTOM_ID: other-sketch-related-functions
+:END:
 #+begin_src emacs-lisp
 (defun my-show-sketches-as-slideshow (list &optional shuffle)
   "Display a quick slideshow of sketches in LIST.
@@ -16021,6 +17089,7 @@ xdotool key Return
 *** SOMEDAY Write about half-page scans
 :PROPERTIES:
 :CREATED:  [2021-12-19 Sun 21:16]
+:CUSTOM_ID: write-about-half-page-scans
 :END:
 
 #+begin_src emacs-lisp
@@ -16066,6 +17135,9 @@ xdotool key Return
     (my-write-about-sketch new-name)))
 #+end_src
 *** Supernote
+:PROPERTIES:
+:CUSTOM_ID: supernote
+:END:
 #+begin_src emacs-lisp
 (defvar my-supernote-export-dir "~/Dropbox/Supernote/EXPORT")
 (defun my-supernote-process-latest ()
@@ -16200,6 +17272,9 @@ And in general:
 
 
 ** Tools for organizing
+:PROPERTIES:
+:CUSTOM_ID: tools-for-organizing
+:END:
 
 #+begin_src emacs-lisp
 (defun my-rename-bank-statements ()
@@ -16229,8 +17304,17 @@ And in general:
 #+end_src
 
 ** Fun and games
+:PROPERTIES:
+:CUSTOM_ID: fun-and-games
+:END:
 *** Cubing
+:PROPERTIES:
+:CUSTOM_ID: cubing
+:END:
 **** Rubik's Cube
+:PROPERTIES:
+:CUSTOM_ID: rubik-s-cube
+:END:
 #+begin_src emacs-lisp
 (use-package eagle
 	:quelpa (eagle :fetcher git
@@ -16240,6 +17324,9 @@ And in general:
 								:url "https://codeberg.org/akib/emacs-cube.git"))
 #+end_src
 **** Diagrams
+:PROPERTIES:
+:CUSTOM_ID: diagrams
+:END:
 
 #+begin_src emacs-lisp
 ;; Start of cubing code
@@ -16415,6 +17502,9 @@ Ex: (my-cubing-last-layer-with-sides \"ORRBOOGGGRBB\" \"YYYYYYYYY\" '((3 1 t) (2
 ;; end of cubing code
 #+end_src
 *** Minecraft
+:PROPERTIES:
+:CUSTOM_ID: minecraft
+:END:
 
 https://github.com/rasensuihei/mcf
 
@@ -16428,6 +17518,9 @@ https://github.com/rasensuihei/mcf
 	)
 #+end_src
 *** Typing of Emacs
+:PROPERTIES:
+:CUSTOM_ID: typing-of-emacs
+:END:
 #+begin_src emacs-lisp :eval no :tangle no
 (use-package typing :disabled t
   :init
@@ -16439,6 +17532,9 @@ https://github.com/rasensuihei/mcf
     (setq toe-max-length 20)))
 #+end_src
 ** Speech synthesis (experimental)
+:PROPERTIES:
+:CUSTOM_ID: speech-synthesis-experimental
+:END:
 
 #+begin_src emacs-lisp
 (defvar my-espeak-command "c:/program files (x86)/espeak/command_line/espeak.exe")
@@ -16703,12 +17799,16 @@ good model.) In the meantime, this makes it a little less stressful to
 look for stuff.
 
 * Calendar
+:PROPERTIES:
+:CUSTOM_ID: calendar
+:END:
 
 ** Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs :emacs:
 :PROPERTIES:
 :EXPORT_DATE: 2023-01-06T10:37:58-0500
 :EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs/
+:CUSTOM_ID: using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs
 :END:
 
 #+CAPTION: Sketch heatmap from 2008-2023
@@ -16997,6 +18097,9 @@ It might be fun to scroll by year:
 
 I used ~M-x gif-screencast~ to make the animated GIF. Yay Emacs!
 * Easily override existing functions
+:PROPERTIES:
+:CUSTOM_ID: easily-override-existing-functions
+:END:
 
 #+begin_src emacs-lisp
 (defun my-override-function (symbol)
@@ -17026,6 +18129,9 @@ I used ~M-x gif-screencast~ to make the animated GIF. Yay Emacs!
 #+end_src
 
 * Exwm
+:PROPERTIES:
+:CUSTOM_ID: exwm
+:END:
 
 Hmmm, I'm having a hard time getting used to this.
 
@@ -17072,6 +18178,9 @@ Hmmm, I'm having a hard time getting used to this.
   (force-mode-line-update))
 #+end_src
 * Emacspeak
+:PROPERTIES:
+:CUSTOM_ID: emacspeak
+:END:
 
 #+begin_src emacs-lisp
 ;(setq emacspeak-prefix "\C-E")
@@ -17096,6 +18205,9 @@ Hmmm, I'm having a hard time getting used to this.
     #+end_src
 
 * Style stuff
+:PROPERTIES:
+:CUSTOM_ID: style-stuff
+:END:
 
 #+begin_export html
 <style>
@@ -17118,6 +18230,9 @@ h6 { font-size: 100% }
 </style>
 #+end_export
 * Path
+:PROPERTIES:
+:CUSTOM_ID: path
+:END:
 
 #+begin_src emacs-lisp
 (when (eq system-type 'windows-nt)

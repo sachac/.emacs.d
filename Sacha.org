@@ -117,7 +117,25 @@ Here's how we start:
 (setq user-full-name "Sacha Chua"
       user-mail-address "sacha@sachachua.com")
 #+END_SRC
+** Remembering to set custom IDs for this file
 
+#+begin_src emacs-lisp
+(defun my-assign-custom-ids ()
+	(interactive)
+	(let ((custom-ids
+				 (org-map-entries (lambda () (org-entry-get (point) "CUSTOM_ID")) "CUSTOM_ID={.}")))
+		(org-map-entries
+		 (lambda ()
+			 (let ((slug
+							(replace-regexp-in-string
+							 "^-\\|-$" ""
+							 (replace-regexp-in-string "[^A-Za-z0-9]+" "-"
+																				 (downcase (org-entry-get (point) "ITEM"))))))
+				 (while (member slug custom-ids)
+					 (setq slug (read-string "Manually set custom ID: ")))
+				 (org-entry-put (point) "CUSTOM_ID" slug)))
+		 "-CUSTOM_ID={.}")))
+#+end_src
 ** Emacs initialization
 *** Add package sources
 
@@ -1390,10 +1408,15 @@ position itself.
                                    (display-buffer (current-buffer))))))
                      my-screenshot-directory)
                   (my-latest-file my-screenshot-directory))))
-  (save-window-excursion
-    (with-current-buffer (find-file-noselect file) (display-buffer (current-buffer)))
-    (insert "#+CAPTION: " (or note (read-string "Caption: "))))
-  (save-excursion (insert "\n" (org-link-make-string (concat "file:" file)) "\n")))
+	(if (derived-mode-p 'mastodon-toot-mode)
+			(mastodon-toot--attach-media file (or note (read-string "Caption: ")))
+		(save-window-excursion
+			(with-current-buffer (find-file-noselect file) (display-buffer (current-buffer)))
+			(insert "#+CAPTION: " (or note (read-string "Caption: ")) "\n"
+							(org-link-make-string (concat "file:" file))
+							)
+
+			)))
 (defun my-copy-last-screenshot-to-file (new-filename)
   (interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (my-latest-file my-screenshot-directory))))))
   (copy-file (my-latest-file my-screenshot-directory) new-filename))
@@ -1512,6 +1535,7 @@ For that, I use =modus-themes-operandi=.
 	(interactive)
 	(shell-command "xrandr --output LVDS-1 --mode 1280x720")
 	(modus-themes-load-theme 'modus-operandi)
+	(my-hl-sexp-update-overlay)
 	(set-face-attribute 'default nil :height 170)
 	(keycast-mode))
 
@@ -1519,6 +1543,7 @@ For that, I use =modus-themes-operandi=.
 	(interactive)
 	(shell-command "xrandr --output LVDS-1 --mode 1366x768")
 	(modus-themes-load-theme 'modus-vivendi)
+	(my-hl-sexp-update-overlay)
 	(set-face-attribute 'default nil :height 115)
 	(keycast-mode -1))
 #+end_src
@@ -2366,10 +2391,32 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
         try-complete-lisp-symbol-partially
         try-complete-lisp-symbol))
 #+END_SRC
-*** Subtitles
+*** Subtitles with Subed
     :PROPERTIES:
     :CUSTOM_ID: subed
     :END:
+
+**** TODO Adjust subtitles
+
+#+begin_src emacs-lisp
+(defun my-subed-move-succeeding-subtitles-based-on-mpv ()
+  "Move current and succeeding subtitles so that current starts at MPV playing position."
+	(interactive)
+	(if subed-mpv-playback-position
+			(subed-move-subtitles
+			 (- subed-mpv-playback-position (subed-subtitle-msecs-start))
+			 (point) (point-max))
+		(error "Need playback position.")))
+
+(defun my-subed-check-random ()
+	(interactive)
+	(let* ((list (subed-subtitle-list))
+				 (pos (random (length list))))
+		(subed-jump-to-subtitle-id
+		 (subed-msecs-to-timestamp (elt (elt list pos) 1)))
+		(subed-mpv-jump-to-current-subtitle)
+		(subed-mpv-unpause)))
+#+end_src
 
 **** Extract part of a video
 
@@ -2611,7 +2658,7 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
 (use-package subed-record :load-path "~/proj/subed-record"
   :config
   (remove-hook 'subed-sanitize-functions 'subed-sort)
-	(setq subed-record-ffmpeg-args (split-string "-f pulse -i alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo"))
+	(setq subed-record-ffmpeg-args (split-string "-y -f pulse -i alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo"))
   :bind
   (:map subed-mode-map ("C-c C-c" . subed-record-compile-try-flow)))
 #+end_src
@@ -2766,6 +2813,7 @@ falling back to the proportional method if the data is not available.
   (autoload 'subed-srt-mode "subed-srt" nil t)
   (autoload 'subed-ass-mode "subed-ass" nil t)
   (autoload 'subed-txt-mode "subed-txt" nil t)
+	(require 'subed-autoloads)
   :hook
   (subed-mode . display-fill-column-indicator-mode)
   (subed-mode . subed-avy-set-up-actions)
@@ -2777,11 +2825,6 @@ falling back to the proportional method if the data is not available.
 	;; Remember cursor position between sessions
 	(add-hook 'subed-mode-hook 'save-place-local-mode)
 	;; Some reasonable defaults
-	(add-hook 'subed-mode-hook 'subed-enable-pause-while-typing)
-	;; As the player moves, update the point to show the current subtitle
-	(add-hook 'subed-mode-hook 'subed-enable-sync-point-to-player)
-	;; As your point moves in Emacs, update the player to start at the current subtitle
-	(add-hook 'subed-mode-hook 'subed-enable-sync-player-to-point)
 	;; Replay subtitles as you adjust their start or stop time with M-[, M-], M-{, or M-}
 	(add-hook 'subed-mode-hook 'subed-enable-replay-adjusted-subtitle)
 	;; Loop over subtitles
@@ -2988,9 +3031,146 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
 You can get these from https://github.com/sachac
 #+begin_src emacs-lisp
 (use-package waveform :load-path "~/proj/waveform-el")
-(use-package subed-waveform :load-path "~/proj/subed-waveform")
 (use-package compile-media :load-path "~/proj/compile-media")
 #+end_src
+
+* TODO Split up oops better
+
+#+begin_src emacs-lisp
+(defun my-split-oops ()
+	"Look for oops and make it easier to split."
+	(interactive)
+	(let ((scan-window 300))
+		(while (re-search-forward "oops[,\.]?[ \n]+" nil t)
+			(let ((start (min (line-beginning-position) (- (point) scan-window)))
+						start-search
+						found
+						search-for)
+				(if (bolp)
+						(progn
+							(backward-char)
+							(setq start (min (line-beginning-position) (- (point) scan-window))))
+					(insert "\n"))
+				(save-excursion
+					(setq start-search (point))
+					;; look for 1..3 words back
+					(goto-char
+					 (or
+						(cl-loop
+						 for n downfrom 4 downto 1
+						 do
+						 (save-excursion
+							 (dotimes (_ n) (forward-word))
+							 (setq search-for (downcase (string-trim (buffer-substring start-search (point)))))
+							 (goto-char start-search)
+							 (when (re-search-backward (regexp-quote search-for) start t)
+								 (goto-char (match-beginning 0))
+								 (cl-return (point)))))
+						(and (call-interactively 'isearch-backward) (point))))
+					(insert "\n"))))))
+#+end_src
+
+#+RESULTS:
+:results:
+my-split-oops
+:end:
+
+#+begin_src emacs-lisp
+(setq subed-align-options "task_adjust_boundary_offset_percent=0.5")
+#+end_src
+
+#+begin_src emacs-lisp
+(defun my-subed-delete-oops ()
+	(interactive)
+	(atomic-change-group
+		(if (not (point-min))
+				(save-excursion
+					(subed-jump-to-subtitle-id)
+					(when (string-match "oops" (subed-subtitle-text))
+						(subed-kill-subtitle)))
+			(let ((begm (make-marker)) (endm (make-marker)))
+				(set-marker begm (point-min))
+				(set-marker endm (or (point-max) (point-max)))
+				(if t
+						(save-excursion
+							(goto-char endm)
+							(unless (subed-jump-to-subtitle-id)
+								(subed-backward-subtitle-id))
+							(catch 'first-subtitle-reached
+								(while t
+									(let
+											((sub-end
+												(save-excursion (subed-jump-to-subtitle-end))))
+										(when (< sub-end begm)
+											(throw 'first-subtitle-reached t)))
+									(progn
+										(when (string-match "oops" (subed-subtitle-text))
+											(subed-kill-subtitle)))
+									(unless (subed-backward-subtitle-id)
+										(throw 'first-subtitle-reached t)))))
+					(save-excursion
+						(goto-char begm)
+						(unless (subed-jump-to-subtitle-id)
+							(subed-forward-subtitle-id))
+						(catch 'last-subtitle-reached
+							(while t
+								(when (> (point) endm) (throw 'last-subtitle-reached t))
+								(progn
+									(when (string-match "oops" (subed-subtitle-text))
+										(subed-kill-subtitle)))
+								(unless (subed-forward-subtitle-id)
+									(throw 'last-subtitle-reached t))))))))))
+
+(defun my-subed-skip-oops ()
+	(interactive)
+	(subed-for-each-subtitle (point-min) (point-max) nil (when (string-match "oops" (subed-subtitle-text)) (subed-set-subtitle-comment "#+SKIP"))))
+
+(defun my-subed-record-wpm ()
+	(interactive)
+	(message
+	 "%d"
+	 (subed-wpm (seq-remove (lambda (o) (string-match "skip" (elt o 4))) (subed-subtitle-list)))))
+
+(defun my-subed-prepare-for-cleaning ()
+	(interactive)
+	(my-subed-delete-oops)
+	(goto-char (point-min))
+	(subed-forward-subtitle-id)
+	(subed-set-subtitle-comment (concat "#+OUTPUT: " (file-name-sans-extension (buffer-file-name)) "-cleaned.opus")))
+
+(defvar my-phone-recording-dir "~/sync/Phone")
+(defun my-subed-copy-latest-phone-recording (destination)
+	"Copy the latest recording transcript and audio to DESTINATION."
+	(interactive
+	 (list
+		(file-name-directory
+		 (read-file-name (format "Move %s to: "
+														 (file-name-base (my-latest-file my-phone-recording-dir ".txt")))
+										 nil nil nil nil #'file-directory-p))))
+	(let ((base (file-name-base (my-latest-file my-phone-recording-dir ".txt"))))
+		(rename-file (expand-file-name (concat base ".txt") my-phone-recording-dir)
+								 destination)
+		(rename-file (expand-file-name (concat base ".m4a") my-phone-recording-dir)
+								 destination)
+		(find-file (expand-file-name (concat base ".txt") destination))
+		(save-excursion (my-split-oops))
+		(goto-char (point-min))
+		(flush-lines "^$")
+		(goto-char (point-min))
+		(subed-forward-subtitle-id)
+		(subed-set-subtitle-comment
+		 (concat "#+OUTPUT: "
+						 (file-name-base (buffer-file-name))
+						 "-cleaned.opus"))))
+
+
+
+#+end_src
+
+#+RESULTS:
+:results:
+my-subed-record-wpm
+:end:
 
 **** TODO Org Mode: Insert YouTube video with separate captions       :emacs:
      :PROPERTIES:
@@ -3240,7 +3420,7 @@ This makes it easier to learn new words if I have to spell them out.
 There's probably a better way to do it, but this is a good start.
 
 #+CAPTION: This is how the hint appears
-[[file:/home/sacha/recordings/2023-01-26_14-18-32.png]]
+[[file:images/steno.png]]
 
 #+begin_src emacs-lisp :summary "Steno hint code" :exports both :results silent
 (defvar my-steno-hint-dict nil)
@@ -4000,7 +4180,7 @@ ATD
                            (and (boundp vv) (not (keywordp vv))))))))))
   (insert symbol-name))
 
-(defun my-insert-variable (symbol-name)
+(defun my-insert-variable-value (symbol-name)
   (interactive (list
                 (let ((orig-buffer (current-buffer)))
                   (completing-read
@@ -4013,7 +4193,7 @@ ATD
                      (with-current-buffer orig-buffer
                        (or (get vv 'variable-documentation)
                            (and (boundp vv) (not (keywordp vv))))))))))
-  (insert symbol-name))
+  (insert (symbol-value (intern symbol-name))))
 
 (defun my-insert-function (symbol-name)
   (interactive (list
@@ -4981,7 +5161,7 @@ able to clock in on them.
 					"~/sync/orgzly/posts.org"
 					"~/sync/orgzly/people.org"
 					"~/sync/orgzly/Inbox.org"
-					"~/proj/emacsconf/wiki/2022/organizers-notebook/index.org")
+					"~/proj/emacsconf/wiki/2023/organizers-notebook/index.org")
 				 . (:maxlevel . 5))))
 #+end_src
 
@@ -5777,8 +5957,8 @@ hang of using these more!
             (org-super-agenda-groups
              '((:name "Inbox, unscheduled"
                       :and (:scheduled nil
-                                  :file-path "Inbox.org"
-                                  )
+																			 :file-path "Inbox.org"
+																			 )
                       :order 1)
                (:name "Important, unscheduled"
                       :and (:priority "A"
@@ -5808,6 +5988,10 @@ hang of using these more!
           ;;             (org-agenda-sorting-strategy '(priority-down effort-up tag-up category-keep))))
           ))
         ("e" "Emacs" (tags "emacs"))
+				("n" "Emacs News" tags "news")
+        ("E" "Emacsconf" tags-todo "emacsconf"
+				 ((org-agenda-sorting-strategy '(priority-down effort-up category-keep)))
+				 )
         ("i" "Inbox" alltodo ""
          ((org-agenda-files '("~/sync/orgzly/Inbox.org" "~/sync/orgzly/computer-inbox.org"))))
         ("t" tags-todo "-cooking"
@@ -5818,7 +6002,7 @@ hang of using these more!
          ((org-agenda-files '("~/sync/orgzly/business.org"))))
         ("B" todo ""
          ((org-agenda-files '("~/Dropbox/books"))))
-        ("x" "Column view" todo ""  ; Column view
+        ("x" "Column view" todo ""			; Column view
          ((org-agenda-prefix-format "")
           (org-agenda-cmp-user-defined 'my-org-sort-agenda-items-todo)
           (org-agenda-view-columns-initially t)
@@ -7097,8 +7281,20 @@ This code displays the images inline.
   (with-eval-after-load 'ox
     (add-to-list 'org-export-filter-body-functions #'my-org-export-filter-body-add-emacs-configuration-link)))
      #+END_SRC
+**** Copy linked file and change link
 
-
+#+begin_src emacs-lisp
+(defun my-org-copy-linked-file-and-change-link (destination)
+	(interactive (list (read-file-name (format "Copy %s to: "
+																						 (file-name-nondirectory (org-element-property :path (org-element-context)))))))
+	(let* ((elem (org-element-context))
+				 (path (org-element-property :path elem))
+				 (description (org-element-property :description elem)))
+		(copy-file path destination t)
+		(delete-region (org-element-begin elem) (org-element-end elem))
+		(insert (org-link-make-string (concat "file:" (file-relative-name destination))
+																	description))))
+#+end_src
 **** 11ty
 
 #+begin_src emacs-lisp
@@ -7152,9 +7348,12 @@ This code displays the images inline.
 
 (defun my-org-11ty-find-file ()
   (interactive)
-  (find-file (expand-file-name
-							(expand-file-name "index.html" (my-org-11ty-pathname))
-              "~/proj/static-blog")))
+  (find-file
+	 (expand-file-name
+		"index.html"
+		(expand-file-name
+		 (my-org-11ty-pathname)
+		 "~/proj/static-blog"))))
 
 (defun my-org-11ty-post-to-mastodon (&optional post-automatically)
   (interactive (list current-prefix-arg))
@@ -7405,13 +7604,12 @@ I want to be able to export without having to say yes to code blocks all the tim
 (use-package org-special-block-extras
   :if my-laptop-p
   :hook (org-mode . org-special-block-extras-mode)
+	:init (setq org-special-block-add-html-extra nil)
   :config
   ;; Use short names like ‘defblock’ instead of the fully qualified name
   ;; ‘org-special-block-extras--defblock’
 	(setcdr org-special-block-extras-mode-map nil)
-	;; skip adding stuff to org-html-head-extra
-	(setq org-special-block-extras nil)
-  (org-defblock my_details (title "Details") (title-color "Green")
+  (org-defblock my_details (title "Details" title-color "Green")
               "Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Enclose contents in a folded up box."
               (cond
                ((eq backend '11ty)
@@ -8051,6 +8249,42 @@ So that I can easily add links at point. Formatted as an Org list for now.
 (eval-after-load 'org-protocol
   '(add-to-list 'org-protocol-protocol-alist
                 '("copy-thumbnail" :protocol "copy-thumbnail" :function my-org-protocol-copy-thumbnail)))
+
+#+end_src
+
+**** Videos
+
+#+begin_src emacs-lisp
+(org-link-set-parameters
+ "video"
+ :export #'my-org-video-export
+ :complete #'my-org-video-complete)
+
+(defun my-org-video-export (link desc format _)
+	"Export PATH to FORMAT using the specified wrap parameter."
+	(if desc
+			(org-export-string-as (org-link-make-string link desc) format)
+		(pcase format
+			((or 'html '11ty 'md)
+			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
+							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query)))))
+				 (format
+				"<video%s%s><source src=\"%s\" type=\"%s\"><a href=\"%s\">Download the video</a></video>"
+				(if (string= (car (assoc-default "controls" params 'string= "1")) "0")
+						""
+					" controls")
+				(if (string= (car (assoc-default "autoplay" params 'string= "1")) "0")
+						""
+					" autoplay")
+				(car path-and-query)
+				(mailcap-file-name-to-mime-type (car path-and-query))
+				(car path-and-query))))
+			(_ path))))
+
+(defun my-org-video-complete ()
+	"Complete video reference."
+	(interactive)
+	(concat "video:" (read-file-name "File: ")))
 
 #+end_src
 
@@ -8860,6 +9094,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
      'org-babel-load-languages
      '((dot . t)
        (ditaa . t)
+			 (gnuplot . t)
 			 (mermaid . t)
        (emacs-lisp . t)
        (plantuml . t)
@@ -9059,6 +9294,7 @@ I don't want to get distracted by the same code in the other window, so I want o
 #+end_src
 
 *** Presentations
+
 #+begin_src emacs-lisp
 (use-package org-re-reveal
 	:config
@@ -9070,7 +9306,50 @@ I don't want to get distracted by the same code in the other window, so I want o
 				"audioslideshow RevealAudioSlideshow plugin/audio-slideshow/plugin.js
 anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/anything/plugin.js"))
 #+end_src
+**** Counting words
 
+#+NAME: counting-words-in-notes
+#+begin_src emacs-lisp
+(defvar my-org-note-words-target (* 140 20))
+(defun my-org-collect-notes (&optional block-name)
+	(let (results)
+		(org-block-map
+		 (lambda ()
+			 (unless (org-in-commented-heading-p)
+				 (let ((elem (org-element-at-point)))
+					 (when (string= (downcase (org-element-property :type elem))
+													(or block-name "notes"))
+						 (push (string-trim
+													(buffer-substring-no-properties
+													 (org-element-property :contents-begin elem)
+													 (org-element-property :contents-end elem)))
+									 results))))))
+		(reverse results)))
+
+(defun my-org-count-words-in-notes (&optional target block-name)
+	"Count words in #+begin_notes blocks.
+If TARGET or `my-org-note-words-target' is specified, calculate percentage and words left.
+If BLOCK-NAME is specified, use that block type instead."
+	(interactive)
+	(let ((notes (my-org-collect-notes)))
+		(with-temp-buffer
+			(insert (string-join notes "\n"))
+			(let ((num (count-words-region (point-min) (point-max))))
+				(if (or target my-org-note-words-target)
+						(message "%d words (%.f%% of %d, %d to go)"
+										 num
+										 (/ (* 100.0 num) my-org-note-words-target)
+										 my-org-note-words-target
+										 (- my-org-note-words-target num))
+					(message "%d words" num))))))
+
+(defun my-org-create-notes-buffer ()
+	(interactive)
+	(let ((notes (my-org-collect-notes)))
+		(with-current-buffer (get-buffer-create "*Notes*")
+			(insert (string-join notes "\n\n"))
+			(switch-to-buffer (current-buffer)))))
+#+end_src
 *** Allow dashes in tags
 
 #+begin_src emacs-lisp
@@ -9170,23 +9449,26 @@ code pulls that information into my ~/Dropbox/tasker/
     )))
 (defun my-org-package-export (link description format &optional arg)
   (let* ((package-info (car (assoc-default (intern link) package-archive-contents)))
-         (package-source (package-desc-archive package-info))
+         (package-source (and package-info (package-desc-archive package-info)))
          (path (format
                 (cond
+								 ((null package-source) link)
                  ((string= package-source "gnu") "https://elpa.gnu.org/packages/%s.html")
                  ((string= package-source "melpa") "http://melpa.org/#/%s")
-                 (t (throw 'unknown-source)))
+                 ((string= package-source "nongnu") "https://elpa.nongnu.org/nongnu/%s.html")
+                 (t (error 'unknown-source)))
                 link))
          (desc (or description link)))
-    (cond
-     ((eq format '11ty) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
-     ((eq format 'html) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
-     ((eq format 'wp) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
-     ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
-     ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
-     ((eq format 'ascii) (format "%s <%s>" desc path))
-     (t path))))
-
+		(if package-source
+				(cond
+				 ((eq format '11ty) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
+				 ((eq format 'html) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
+				 ((eq format 'wp) (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc))
+				 ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
+				 ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
+				 ((eq format 'ascii) (format "%s <%s>" desc path))
+				 (t path))
+			desc)))
 (org-link-set-parameters "package" :follow 'my-org-package-open :export 'my-org-package-export)
 #+end_src
 
@@ -9326,15 +9608,18 @@ Based on https://xenodium.com/emacs-dwim-do-what-i-mean/
 #+begin_src emacs-lisp
 (defun my-page-title (url)
 	(with-current-buffer (url-retrieve-synchronously url)
-		(replace-regexp-in-string
-		 "^Github - " ""
-		 (or
-			(dom-text (car
-								 (dom-by-tag (libxml-parse-html-region
-															(point-min)
-															(point-max))
-                             'title)))
-			""))))
+		(string-trim
+		 (replace-regexp-in-string
+			"[ \n]+" " "
+			(replace-regexp-in-string
+			 "^Github - " ""
+			 (or
+				(dom-text (car
+									 (dom-by-tag (libxml-parse-html-region
+																(point-min)
+																(point-max))
+															 'title)))
+				""))))))
 
 (defun ar/org-insert-link-dwim (use-clipboard)
   "Like `org-insert-link' but with personal dwim preferences."
@@ -9438,6 +9723,7 @@ blog post, navigate back to the function, and export HTML.
 					 #'fboundp
 					 'confirm
 					 nil nil))) ; 	 (and fn (symbol-name fn)) ?
+
 (defun my-org-defun-link-description (link description)
 	"Add documentation string as part of the description"
 	(unless description
@@ -9446,6 +9732,19 @@ blog post, navigate back to the function, and export HTML.
 				(when (documentation symbol)
 					(concat (symbol-name symbol) ": "
 									(car (split-string (documentation symbol) "\n"))))))))
+
+(defun my-org-defun-open-complete ()
+	"Return function definitions."
+	(concat "defun-open:"
+					(completing-read
+					 "Function: "
+					 #'help--symbol-completion-table
+					 #'fboundp
+					 'confirm
+					 nil nil)))
+
+(defun my-org-defun-open-export (link description format _)
+	(my-org-defun-export (concat link (if (string-match "\\?" link) "&open=1" "?open=1")) description format _))
 
 (defun my-org-defun-export (link description format _)
 	"Export the function."
@@ -9461,17 +9760,20 @@ blog post, navigate back to the function, and export HTML.
 																						 (progn (forward-sexp) (point)))))
 				(pcase format
 					((or '11ty 'html)
-					 (format "<details%s><summary>%s</summary><div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div></details>"
-											 (if (assoc-default "open" params 'string=) " open"
-												 "")
-											 (or description
-													 (and (documentation (intern symbol))
-																(concat
-																 symbol
-																 ": "
-																 (car (split-string (documentation (intern symbol)) "\n"))))
-													 symbol)
-											 (org-html-do-format-code function-body "emacs-lisp" nil nil nil nil)))
+					 (if (assoc-default "bare" params 'string=)
+							 (format "<div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div>"
+											 (org-html-do-format-code function-body "emacs-lisp" nil nil nil nil))
+						 (format "<details%s><summary>%s</summary><div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div></details>"
+										 (if (assoc-default "open" params 'string=) " open"
+											 "")
+										 (or description
+												 (and (documentation (intern symbol))
+															(concat
+															 symbol
+															 ": "
+															 (car (split-string (documentation (intern symbol)) "\n"))))
+												 symbol)
+										 (org-html-do-format-code function-body "emacs-lisp" nil nil nil nil))))
 					(`ascii function-body)
 					(_ function-body))))))
 
@@ -9489,7 +9791,13 @@ blog post, navigate back to the function, and export HTML.
 												 :export #'my-org-defun-export
 												 :complete #'my-org-defun-complete
 												 :insert-description #'my-org-defun-link-description
-												 :store #'my-org-defun-store)
+												 :store #'my-org-def-store)
+
+(org-link-set-parameters "defun-open" :follow #'my-org-defun-open
+												 :export #'my-org-defun-open-export
+												 :complete #'my-org-defun-open-complete
+												 :insert-description #'my-org-defun-link-description
+												 :store #'my-org-def-store)
 #+end_src
 
 #+begin_comment
@@ -9541,17 +9849,22 @@ I can pull in the definition of ~emacsconf-prep-agenda~ from
 																		(progn (forward-sexp) (point)))))
 				(pcase format
 					((or '11ty 'html)
-					 (format "<details%s><summary>%s</summary><div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div></details>"
-											 (if (assoc-default "open" params 'string=) " open"
-												 "")
-											 (or description
-													 (and (documentation (intern symbol))
-																(concat
-																 symbol
-																 ": "
-																 (car (split-string (documentation (intern symbol)) "\n"))))
-													 symbol)
-											 (org-html-do-format-code body "emacs-lisp" nil nil nil nil)))
+					 (if (assoc-default "bare" params 'string= "")
+							 (format "<div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div>"
+											 (org-html-do-format-code body "emacs-lisp" nil nil nil nil))
+
+						 (format "<details%s><summary>%s</summary><div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div></details>"
+										 (if (assoc-default "open" params 'string=) " open"
+											 "")
+										 (or description
+												 (and (documentation (intern symbol))
+															(concat
+															 symbol
+															 ": "
+															 (car (split-string (documentation (intern symbol)) "\n"))))
+												 symbol)
+										 (org-html-do-format-code body "emacs-lisp" nil nil nil nil))
+						 ))
 					(`ascii body)
 					(_ body))))))
 
@@ -9561,12 +9874,12 @@ I can pull in the definition of ~emacsconf-prep-agenda~ from
 		(save-excursion
       (or (eobp) (forward-char 1))
       (beginning-of-defun)
-			(let ((data (read)))
+			(let ((data (read (current-buffer))))
 				(if (eq (car data) 'defun)
 						(org-link-store-props :type "defun"
 																	:link (concat "defun:" (lisp-current-defun-name)))
 					(org-link-store-props :type "defvar"
-																	:link (concat "defvar:" (cadr data))))))))
+																:link (concat "defvar:" (cadr data))))))))
 
 (defun my-org-defvar-open (symbol _)
 	"Jump to the function definition."
@@ -9579,6 +9892,13 @@ I can pull in the definition of ~emacsconf-prep-agenda~ from
 												 :store #'my-org-def-store)
 #+end_src
 ** Coding
+*** Whitespace
+
+#+begin_src emacs-lisp
+(use-package ws-butler
+	:config (ws-butler-global-mode))
+#+end_src
+
 *** Python
 #+begin_src emacs-lisp
 (use-package elpy
@@ -9920,6 +10240,7 @@ From https://xenodium.com/inline-previous-result-and-why-you-should-edebug/
 (defvar my-buttercup-source-buffer nil)
 (defvar my-buttercup-tests nil)
 (defun my-buttercup-track-source ()
+	(interactive)
 	(setq my-buttercup-source-buffer (current-buffer))
 	(setq my-buttercup-tests (my-buttercup-tests-and-positions)))
 
@@ -9953,14 +10274,17 @@ From https://xenodium.com/inline-previous-result-and-why-you-should-edebug/
 
 (defun my-buttercup-find-test ()
 	(interactive)
-	(when (re-search-backward (make-string 40 ?=) nil t)
-		(forward-line)
-		(let ((pos (assoc-default (buffer-substring (line-beginning-position)
-																								(line-end-position))
-															my-buttercup-tests)))
-			(when pos
-				(pop-to-buffer my-buttercup-source-buffer)
-				(goto-char pos)))))
+	(if (re-search-backward (make-string 40 ?=) nil t)
+			(progn
+				(forward-line)
+				(let ((pos (assoc-default (buffer-substring (line-beginning-position)
+																										(line-end-position))
+																	my-buttercup-tests)))
+					(when pos
+						(pop-to-buffer my-buttercup-source-buffer)
+						(goto-char pos))))
+		(let ((tests (my-buttercup-tests-and-positions)))
+			(goto-char (assoc-default (completing-read "Test: " tests) tests)))))
 
 (defun my-buttercup-test-name ()
 	(save-excursion
@@ -10079,6 +10403,8 @@ Useful as `imenu-create-index-function'."
 											(error (throw 'done (reverse result)))))))))
 						(reverse result)))
 			(error nil))))
+
+
 
 
 (ert-deftest my-buttercup-tests-and-positions ()
@@ -11356,7 +11682,9 @@ to things that look like Mastodon URLs by using mastodon.el.
 (add-to-list 'browse-url-handlers '("https?://[^/]+/@[^/]+/.*" . my-mastodon-browse-url))
 (defun my-mastodon-browse-url (url &rest _)
   "Open URL."
-  (mastodon-url-lookup url))
+	(if (string-match "medium\\.com" url)
+			(funcall browse-url-browser-function url)
+		(mastodon-url-lookup url)))
 #+end_src
 
 (thanks, [[https://mas.to/@ParetoOptimalDev/109378647927115065][@ParetoOptimalDev]]!)
@@ -13041,6 +13369,9 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
     #+begin_src emacs-lisp
 (use-package mpv :if my-laptop-p)
 (defvar my-recordings-dir "~/recordings/")
+(defun my-open-latest-recording ()
+	(interactive)
+	(find-file (my-latest-file my-recordings-dir)))
 (defun my-play-latest-recording (&optional arg)
   (interactive "P")
   (let ((latest (my-latest-file my-recordings-dir)))
@@ -13052,10 +13383,14 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
       (mpv-play (my-latest-file my-recordings-dir)))))
 (defun my-rename-last-recording ()
   (interactive)
-  (let ((latest (my-latest-file my-recordings-dir "mkv")))
+  (let ((latest (my-latest-file my-recordings-dir))
+				(new-name (read-string "New name: " (format-time-string "%Y-%m-%d-"))))
     (rename-file latest
                  (expand-file-name
-                  (concat (read-string "New name: " (format-time-string "%Y-%m-%d ")) "." (file-name-extension latest))
+                  (concat new-name
+													(if (and (file-name-extension latest) (null (file-name-extension new-name)))
+															(concat "." (file-name-extension latest))
+														""))
                   my-recordings-dir))))
 
 (defun my-upload-recording (recording tags)
@@ -13178,9 +13513,9 @@ With data logging $0.004 USD / 15 seconds
   :if my-laptop-p
   :config
   (progn
-    (require 'smartparens-config)
-    (add-hook 'emacs-lisp-mode-hook 'smartparens-mode)
-    (add-hook 'emacs-lisp-mode-hook 'show-smartparens-mode)
+    ;(require 'smartparens-config)
+    ;(add-hook 'emacs-lisp-mode-hook 'smartparens-mode)
+    ;(add-hook 'emacs-lisp-mode-hook 'show-smartparens-mode)
 
       ;;;;;;;;;;;;;;;;;;;;;;;;
     ;; keybinding management
@@ -13760,36 +14095,42 @@ In termux, you also need to =pkg install diffutils=.
 														(org-entry-get (point) "EMAIL")))))
 (use-package emacsconf
   :after hydra
-  :bind (("C-c e" . hydra-emacsconf/body)
+  :bind (("C-c e" . emacsconf/body)
          ("M-g t" . emacsconf-go-to-talk))
 	:init
 	(require 'emacsconf-autoloads)
 	:hook
 	(message-send . emacsconf-mail-check-for-zzz-before-sending)
-  :hydra (hydra-emacsconf
-          (:exit t)
-          ("t" emacsconf-go-to-talk "talk")
-					("n" emacsconf-mail-notmuch-search-for-talk "notmuch search")
-          ("f" emacsconf-cache-find-file "file")
-          ("c" (find-file emacsconf-org-file) "conf.org")
-          ("C" (let ((default-directory (file-name-directory emacsconf-org-file)))
-                 (call-interactively #'projectile-find-file)) "org dir")
-          ("w" (let ((default-directory emacsconf-directory))
-                 (call-interactively #'projectile-find-file)))
-          ("o"
-           (progn
-             (find-file (expand-file-name "2023/organizers-notebook/index.org" emacsconf-directory))
-             (call-interactively #'consult-org-heading))
-           "org notes")
-          ("a" (let ((default-directory emacsconf-ansible-directory))
-                 (call-interactively #'projectile-find-file)) "ansible")
-          ("A" emacsconf-prep-agenda "agenda")
-					("I" emacsconf-extract-irc/body "IRC extract")
-          ("i" (switch-to-buffer (erc-get-buffer "#emacsconf-org")))
-          ("l" (let ((default-directory "~/proj/emacsconf/lisp"))
-                 (call-interactively #'projectile-find-file)))
-          ("b" emacsconf-backstage-dired "backstage")
-          ("u" emacsconf-upload-dired "upload"))
+	:config
+	(defhydra emacsconf
+		(:exit t)
+		("t" emacsconf-go-to-talk "talk")
+		("n" emacsconf-mail-notmuch-search-for-talk "notmuch search")
+		("f" emacsconf-cache-find-file "file")
+		("c" (find-file emacsconf-org-file) "conf.org")
+
+		("C" (let ((default-directory (file-name-directory emacsconf-org-file)))
+					 (call-interactively #'projectile-find-file)) "org dir")
+		("w" (let ((default-directory emacsconf-directory))
+					 (call-interactively #'projectile-find-file)))
+		("o"
+		 (progn
+			 (find-file (expand-file-name "2023/organizers-notebook/index.org" emacsconf-directory))
+			 (call-interactively #'consult-org-heading))
+		 "org notes")
+		("a" (let ((default-directory emacsconf-ansible-directory))
+					 (call-interactively #'projectile-find-file)) "ansible")
+		("A" emacsconf-prep-agenda "agenda")
+		("I" emacsconf-extract-irc/body "IRC extract")
+		("ie" emacsconf-insert-talk-email "email")
+		("it" emacsconf-insert-talk-title "title")
+		("O" (switch-to-buffer (erc-get-buffer "#emacsconf-org")))
+		("l" (let ((default-directory "~/proj/emacsconf/lisp"))
+					 (call-interactively #'projectile-find-file)))
+		("b" emacsconf-backstage-dired "backstage")
+		("u" emacsconf-upload-dired "upload")
+		("vie" emacsconf-volunteer-insert-email "volunteer email")
+		("U" emacsconf-res-upload-dired "upload"))
   :load-path "~/proj/emacsconf/lisp")
 (global-set-key (kbd "M-g t") 'emacsconf-go-to-talk)
 #+end_src
@@ -16133,7 +16474,7 @@ subheadings with the ~NAME~, ~PRICE~, ~IMAGE~, and ~URL~ properties, I
 can make a table that looks like this:
 
 #+CAPTION: Comparison-shopping
-[[file:/home/sacha/recordings/2022-12-26_11-26-35.png]]
+[[file:images/comparison-shopping.png]]
 
 using code that looks like this:
 

@@ -968,7 +968,7 @@ I used to annotate functions with their arguments, but that seems to be built-in
 		(when link
 			(delete-region (org-element-property :begin link)
 										 (org-element-property :end link))
-			(my-insert-file-as-org-include (org-element-property :path)))))
+			(my-insert-file-as-org-include (org-element-property :path link)))))
 
 
 (with-eval-after-load 'embark
@@ -1732,12 +1732,146 @@ command by default, and to use =kbd= for the keybinding definitions.
       (when func
         (funcall func arg))
       (set-transient-map keymap t))))
-#+END_SRC
+#+end_src
 
 **** TODO Look for opportunities to use this
 :PROPERTIES:
 :CUSTOM_ID: look-for-opportunities-to-use-this
 :END:
+** Appearance
+*** Making highlight-sexp follow modus-themes-toggle            :elisp:emacs:
+:PROPERTIES:
+:EXPORT_DATE: 2023-01-26T10:25:38-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/
+:CUSTOM_ID: making-highlight-sexp-follow-modus-themes-toggle
+:END:
+
+#+begin_update
+[2023-01-27 Fri] Prot just added a [[https://github.com/protesilaos/modus-themes/commit/0ca79257ef941ff5f9ec34f5d76eed2ff35d7752][modus-themes-get-color-value]]
+function. Yay! Also, it turns out that I need to update the overlay in
+all the buffers.
+#+end_update
+
+I'm experimenting with using the ~highlight-sexp~ minor mode to
+highlight my current s-expression, since I sometimes get confused
+about what I'm modifying with smartparens. The highlight-sexp
+background colour is hardcoded in the variable
+~hl-sexp-background-color~, and will probably look terrible if you use
+a light background. I wanted it to adapt when I use
+~modus-themes-toggle~. Here's how that works:
+
+#+CAPTION: highlight-sexp demonstration
+#+begin_src emacs-lisp
+(use-package highlight-sexp
+  :quelpa
+  (highlight-sexp :repo "daimrod/highlight-sexp" :fetcher github :version original)
+	:after modus-themes
+  :hook
+  ((emacs-lisp-mode . highlight-sexp-mode)
+	 (modus-themes-after-load-theme . my-hl-sexp-update-all-overlays))
+	:config
+	(defun my-hl-sexp-update-overlay ()
+		(when (overlayp hl-sexp-overlay)
+			(overlay-put
+			 hl-sexp-overlay
+			 'face
+			 `(:background
+				 ,(modus-themes-get-color-value 'bg-inactive)))))
+	(defun my-hl-sexp-update-all-overlays (&rest args)
+		(dolist (buf (buffer-list))
+			(with-current-buffer buf
+				(when highlight-sexp-mode
+					(my-hl-sexp-update-overlay)))))
+	(advice-add 'hl-sexp-create-overlay :after 'my-hl-sexp-update-overlay))
+#+end_src
+
+This is what it looks like:
+
+#+CAPTION: Animation of highlight-sexp toggling along with modus-themes-toggle
+[[file:/home/sacha/proj/static-blog/blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/highlight-sexp.gif]]
+*** Prepare for EmacsConf screenshots or recordings
+:PROPERTIES:
+:CUSTOM_ID: prepare-for-emacsconf-screenshots-or-recordings
+:END:
+
+#+begin_src emacs-lisp
+(defun my-emacsconf-prepare-for-screenshots ()
+  "Set the resolution, change to a light theme, and make the text bigger."
+	(interactive)
+	(shell-command "xrandr --output LVDS-1 --mode 1280x720")
+	(modus-themes-load-theme 'modus-operandi)
+	(my-hl-sexp-update-overlay)
+	(set-face-attribute 'default nil :height 170)
+	(keycast-mode))
+
+(defun my-emacsconf-back-to-normal ()
+  "Go back to a more regular setup."
+	(interactive)
+	(shell-command "xrandr --output LVDS-1 --mode 1366x768")
+	(modus-themes-load-theme 'modus-vivendi)
+	(my-hl-sexp-update-overlay)
+	(set-face-attribute 'default nil :height 115)
+	(keycast-mode -1))
+#+end_src
+
+*** Set up a light-on-dark color scheme
+:PROPERTIES:
+:CUSTOM_ID: set-up-a-light-on-dark-color-scheme
+:END:
+
+I like light on dark because I find it to be more restful. The
+color-theme in ELPA was a little odd, though, so we define some advice to make
+it work. Some things still aren't quite right.
+
+#+begin_src emacs-lisp
+(defun my-setup-color-theme ()
+  (interactive)
+  (when (display-graphic-p)
+    (load-theme (car modus-themes-to-toggle))))
+(use-package modus-themes
+	:quelpa (modus-themes :fetcher github :repo "protesilaos/modus-themes")
+	:init (setq modus-themes-to-toggle '(modus-vivendi modus-operandi))
+	:config (my-setup-color-theme))
+#+end_src
+
+I sometimes need to switch to a lighter background for screenshots.
+For that, I use =modus-themes-operandi=.
+*** Highlight the active modeline using colours from modus-themes     :emacs:
+:PROPERTIES:
+:EXPORT_DATE: 2024-01-01T08:15:01-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/01/highlight-the-active-modeline-using-colours-from-modus-themes/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/01/highlight-the-active-modeline-using-colours-from-modus-themes/
+:END:
+
+I wanted to experiment with [[ https://irreal.org/blog/?p=11867#comment-6354017310][Ignacio Paz Posse's snippet]] for colouring the mode line of the active window ever so slightly different to make it easier to see where the active window is. I usually have ~global-hl-line-mode~ turned on, so that highlight is another indicator, but let's see how this tweak feels. I modified the code so that it uses the theme colours from the currently-selected Modus themes, since I trust Prot's colour choices more than I trust mine. Thanks to Irreal for sharing Ignacio's comment!
+
+#+begin_src emacs-lisp
+(defun my-update-active-mode-line-colors ()
+	(set-face-attribute
+	 'mode-line nil
+	 :foreground (modus-themes-get-color-value 'fg-mode-line-active)
+	 :background (modus-themes-get-color-value 'bg-blue-subtle)
+	 :box '(:line-width
+					1
+					:color
+					(modus-themes-get-color-value 'border-mode-line-active))))
+(use-package modus-themes
+	:hook
+	(modus-themes-after-load-theme . my-update-active-mode-line-colors))
+#+end_src
+
+#+begin_columns
+#+begin_column50
+#+CAPTION: with dark mode
+[[file:images/dark-mode-line.svg][file:images/dark-mode-line.svg]]
+#+end_column50
+#+begin_column50
+#+CAPTION: with light mode
+[[file:images/light-mode-line.svg][file:images/light-mode-line.svg]]
+#+end_column50
+#+end_columns
+
 ** Discovering things
 :PROPERTIES:
 :CUSTOM_ID: discovering-things
@@ -2456,17 +2590,346 @@ From Xah Lee:
 (global-set-key (kbd "M-c") #'capitalize-dwim)
 #+end_src
 
-
-*** TOBLOG Making TODOs from a transcript
+*** Try redacting                                              :emacs:config:
 
 #+begin_src emacs-lisp
-(defvar my-transcript-keywords '("summary" "chapter" "topic"
+(defun my-redact (s)
+	"Replace S with x characters."
+	(make-string (length s) ?x))
+
+(defun my-redact-region (beg end &optional func)
+	"Redact from BEG to END."
+	(interactive "r")
+	(let ((overlay (make-overlay beg end)))
+		(overlay-put overlay 'redact t)
+		(overlay-put overlay 'display
+								 (cond
+									((functionp func)
+									 (funcall func))
+									((stringp func)
+									 func)
+									(t (make-string (- end beg) ?x))))))
+
+(defun my-redact-regexp-replacement (regexp replacement &optional beg end)
+  "Redact buffer content matching regexp."
+  (interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
+										 (read-string "Replacement (ex: \\1 \\,(my-redact \\2)): ")))
+	(setq beg (or beg (point-min)))
+	(setq end (or end (point-max)))
+	(when (stringp replacement)
+		(setq replacement (query-replace-compile-replacement replacement t)))
+	(save-excursion
+    (goto-char beg)
+    (while (re-search-forward regexp end t)
+			(my-redact-region
+			 (match-beginning 0) (match-end 0)
+			 (with-temp-buffer
+				 (insert (match-string 0))
+				 (goto-char (point-min))
+
+				 )
+			 (replace-regexp-in-string regexp replacement (match-string 0))))))
+
+(defun my-redact-regexp (regexp &optional beg end func)
+  "Redact buffer content matching regexp."
+  (interactive (list (string-trim (read-regexp "Redact regexp: " 'regexp-history-last))))
+	(save-excursion
+    (goto-char (or beg (point-min)))
+    (while (re-search-forward regexp (or end (point-max)) t)
+			(my-redact-region (match-beginning 0) (match-end 0) func))))
+
+(defun my-unredact ()
+	(interactive)
+	(mapc 'delete-overlay
+				(seq-filter (lambda (overlay) (overlay-get overlay 'redact))
+										(overlays-in (point-min) (point-max)))))
+
+(defun my-redact-email-string (s)
+	(replace-regexp-in-string
+	 "\\([-+_~a-zA-Z0-9][-+_.~:a-zA-Z0-9]*\\)@\\([-a-zA-Z0-9]+[-.a-zA-Z0-9]*\\)"
+	 (lambda (sub)
+		 (concat
+			(make-string (length (match-string 1 sub)) ?x)
+			"@"
+			(make-string (length (match-string 2 sub)) ?x)))
+	 s))
+
+(defun my-redact-emails ()
+	(interactive)
+	(my-redact-regexp
+	 "\\([-+_~a-zA-Z0-9][-+_.~:a-zA-Z0-9]*\\)@\\([-a-zA-Z0-9]+[-.a-zA-Z0-9]*\\)"
+	 nil nil
+	 (lambda () (my-redact-email-string (match-string 0)))))
+
+(defun my-redact-emacsconf-org ()
+	(interactive)
+	(my-redact-regexp-replacement
+	 "\\(^:EMAIL:[ \t]+\\)\\(.+\\)"
+	 "\\1 \\,(my-redact \\2)"
+	 ))
+(defun my-redact-tabulated-list-in-rectangle (regexp beg end)
+	;; tabulated columns use substrings with display properties
+	;; so we should skip any characters that have text-property-any 'display
+	(interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
+										 (min (point) (mark))
+										 (max (point) (mark))))
+	(apply-on-rectangle
+	 (lambda (start-col end-col)
+		 (let ((start-pos (and (move-to-column start-col) (point)))
+					 (end-pos (and (move-to-column end-col) (point)))
+					 display-prop)
+			 (save-restriction
+				 (narrow-to-region start-pos end-pos)
+				 (goto-char start-pos)
+				 (setq display-prop (text-property-search-forward 'display))
+				 (if display-prop
+						 (while display-prop
+							 (my-redact-regexp regexp start-pos (prop-match-beginning display-prop))
+							 (setq start-pos (prop-match-end display-prop))
+							 (setq display-prop (text-property-search-forward 'display)))
+					 (my-redact-regexp regexp start-pos end-pos)))))
+	 beg end))
+
+(defun my-redact-regexp-in-rectangle (regexp beg end)
+  (interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
+										 (min (point) (mark))
+										 (max (point) (mark))))
+	(apply-on-rectangle (lambda (start-col end-col)
+												(my-redact-regexp regexp
+																					(and (move-to-column start-col) (point))
+																					(and (move-to-column end-col) (point))))
+											beg end))
+
+(advice-add
+ #'notmuch-show
+ :after #'my-redact-emails)
+#+end_src
+
+*** DONE Audio braindump workflow tweaks: Adding Org Mode hyperlinks to recordings based on keywords
+CLOSED: [2023-12-22 Fri 17:15]
+:PROPERTIES:
+:CUSTOM_ID: transcript-keywords
+:EXPORT_DATE: 2023-12-22T16:47:57-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2023/12/audio-braindump-workflow-tweaks-adding-org-mode-hyperlinks-to-recordings-based-on-keywords/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2023/12/audio-braindump-workflow-tweaks-adding-org-mode-hyperlinks-to-recordings-based-on-keywords/
+:END:
+:LOGBOOK:
+- State "DONE"       from "TOBLOG"     [2023-12-22 Fri 17:15]
+:END:
+
+#+begin_update
+[2023-12-24 Sun] Added a quick video!
+#+end_update
+
+[[video:https://sachachua.com/blog/2023/12/audio-braindump-workflow-tweaks-adding-org-mode-hyperlinks-to-recordings-based-on-keywords/2023-12-22-audio-workflow.webm]]
+
+#+begin_my_details Summary sketch
+[[sketchFull:2023-12-15-01 Audio braindump workflow tweaks #emacs #orgmode #subed.png]]
+#+end_my_details
+
+Audio recording is handy for capturing thoughts as I wait, walk around, or do chores. But my wireless earbuds don't have a good mic, I rarely got back to reviewing the wall of text, and I don't trust speech recognition to catch all my words.
+
+Here's a new brain-dumping workflow that I've been experimenting with, though. I use a lapel mic to record in my phone. Google Recorder gives me an audio file as well as a rough transcript right away.
+
+#+begin_my_details Animated GIF showing Google Recorder's real-time transcript
+#+ATTR_HTML: :style max-height:80vh
+[[file:images/braindump-recording.gif]]
+#+end_my_details
+
+I copy those with Syncthing.
+
+#+begin_comment
+[[file:~/sync/Phone/Screenshot_20231214-181616.png]]
+#+end_comment
+
+If I use keywords like "start" or "stop" along with things like "topic", "reminder", or "summary", then I can put those on separate lines automatically (~my-transcript-prepare-alignment-breaks~).
+
+#+begin_example
+...
+News. Miscellaneous little tasks that he doing. I do want to
+finish that blog post about the playlist Just so that it's out.
+Something else that people can, you know, refer to or that I can refer
+to. Uh, And at some point I want to think about, This second brain
+stuff.
+So, right now, What's my current state? Uh,
+START CHAPTER second brain STOP CHAPTER
+Right now, I dumped everything into originally. In my inbox, if I come
+across an interesting website. As usually in my phone. So then I share
+it. As. Something links at those or four none. Uh, into my inbox.
+...
+#+end_example
+
+#+begin_comment
+#+CAPTION: Keywords
+[[file:/home/sacha/recordings/2023-12-16-09-45-42.svg]]
+#+end_comment
+
+I use ~subed-align~ to get the timestamps, and add the headings.
+
+#+begin_src subed-vtt :eval no
+00:20:18.680 --> 00:20:24.679
+So, right now, What's my current state? Uh,
+
+NOTE CHAPTER: second brain
+
+00:20:24.680 --> 00:20:30.719
+START CHAPTER second brain STOP CHAPTER
+#+end_src
+
+#+begin_comment Timestamps after alignment
+#+CAPTION:
+[[file:/home/sacha/recordings/2023-12-16-09-46-07.svg]]
+#+end_comment
+
+I can then create an Org Mode TODO item with a quick hyperlinked summary as well as my transcript.
+
+#+CAPTION: Summary with headings and links
+#+ATTR_HTML: :style max-height:80vh
+[[file:images/braindump-summary.svg]]
+
+I can jump to the audio if there are misrecognized words.
+
+#+begin_my_details Screenshot of jumping to the audio
+#+CAPTION: Following the link to the chapter in the VTT file
+#+ATTR_HTML: :style max-height:80vh
+[[file:images/braindump-vtt.png]]
+#+end_my_details
+
+I can use subed-waveform to tweak the start and end times. (~subed-waveform-show-current~, then left-clicking to set the start or right-clicking to set the end, or using keybindings to adjust the start/stop).
+
+Someday I'll write code to send sections to a better speech
+recognition engine or to AI. In the meantime, this is pretty good.
+
+Here's how the code works:
+
+**** Recognizing keyword phrases
+:PROPERTIES:
+:CUSTOM_ID: recognizing-keyword-phrases
+:END:
+
+There are several things I want to do while dictating.
+
+- I want to mark different topics so that it's easy to find the section where I was talking about something.
+- I might want to set tags or priorities, or even schedule something (today, tomorrow, next week, next month).
+- I can also use commands to trigger different things, like sending the section to a better speech recognition engine.
+
+By analyzing the text, I might be able to make my own command system.
+
+So far, for starting keywords, I can use "start", "begin", or "open".
+I pair that with one of these part keywords:
+
+- "section", "chapter", "topic", "summary": I use these pretty interchangeably at the moment. I want them to make a new Org heading.
+- "next steps": could be handy for being able to quickly see what to do next
+- "reminder":
+- "interruption": don't know what I'll use this for yet, but it might be useful to note this.
+- "tag", "keyword": maybe use this to add tags to the current section?
+
+Then the code can extract the text until the matching "stop/close/end
+<part>", assuming it happens within 50 words or so.
+(~my-transcript-close-keyword-distance-words~)
+
+Sometimes keywords get misrecognized. "Begin summary" sometimes
+becomes "again summary" or "the game summary". I could try "open" and
+"close". Commercial dictation programs like Dragon NaturallySpeaking
+use "open" and "close" for punctuation, so that would probably work
+fine. "Start" works well, but "end" doesn't because it can confused
+with "and".
+
+Sometimes an extra word sneaks in, either because I say it or because
+the speech recognition tries too hard to guess. "Begin reminder" ends
+up as "Begin a reminder." I changed from using regular expressions
+that searched for just start-keyword + part-keyword to one that looked
+for the start of the keyword phrase and then looked for the next
+keyword within the next X words. (~my-transcript-scan-for-part-keyword~)
+
+#+begin_src emacs-lisp :summary "Recognizing phrases"
+(defvar my-transcript-open-keywords '("start" "begin" "open"))
+(defvar my-transcript-close-keywords '("stop" "end" "close"))
+(defvar my-transcript-part-keywords '("summary" "chapter" "topic"
+																			"section"
 																 "action" "idea" "journal" "reminder"
-																 "command" "interruption" "note"))
+																 "command" "interruption" "note"
+																 "next step" "next steps" "tags" "tag" "keywords" "keyword"))
 
-(defvar my-transcript-keyword-distance 200)
-;; number of characters to scan for stop keyword
+(defvar my-transcript-part-keyword-distance-words 2 "Number of words to scan for part keyword.")
+(defvar my-transcript-close-keyword-distance-words 50 "number of words to scan for stop keyword.
+Put the keywords on the same line if found.")
+(defun my-transcript-scan-for-part-keyword (before-part &optional part-keywords within-distance before-distance)
+	"Look for BEFORE-PART followed by PART-KEYWORDS.
+There might be WITHIN-DISTANCE words between BEFORE-PART and PART-KEYWORDS,
+and the pair might be within BEFORE-DISTANCE from point.
+Distances are in words.
+Return (start end before-part part) if found, nil otherwise."
+	(setq before-part (pcase before-part
+											('start my-transcript-open-keywords)
+											('stop my-transcript-close-keywords)
+											('nil (append my-transcript-open-keywords my-transcript-close-keywords))
+											(_ before-part)))
+	(setq part-keywords (or part-keywords my-transcript-part-keywords))
+	(when (stringp part-keywords) (setq part-keywords (list part-keywords)))
+	(setq within-distance (or within-distance my-transcript-part-keyword-distance-words))
+	(setq before-distance (if (eq before-distance t)
+														(point-max)
+													(or before-distance my-transcript-close-keyword-distance-words)))
+	(let (result
+				start end
+				(before-point (save-excursion (forward-word before-distance) (point)))
+				before-word
+				part-word)
+		(save-excursion
+			(when (looking-at (regexp-opt before-part))
+				(setq before-word (match-string 0) start (match-beginning 0))
+				(when (re-search-forward (regexp-opt part-keywords) (save-excursion (forward-word within-distance) (point)) t)
+					(setq result (list start (match-end 0) before-word (match-string 0)))))
+			(while (and (not result)
+									(re-search-forward (regexp-opt before-part) before-point t))
+				(setq before-word (match-string 0) start (match-beginning 0))
+				(when (re-search-forward (regexp-opt part-keywords) (save-excursion (forward-word within-distance) (point)) t)
+					(setq result (list start (match-end 0) before-word (match-string 0)))))
+			(when result (goto-char (elt result 1)))
+			result)))
 
+(ert-deftest my-transcript-scan-for-part-keyword ()
+	(with-temp-buffer
+		(insert "some text start a reminder hello world stop there and do something stop reminder more text")
+		(goto-char (point-min))
+		(let ((result (my-transcript-scan-for-part-keyword 'start nil)))
+			(expect (elt result 2) :to-equal "start")
+			(expect (elt result 3) :to-equal "reminder"))
+		(let ((result (my-transcript-scan-for-part-keyword 'stop "reminder")))
+			(expect (elt result 2) :to-equal "stop")
+			(expect (elt result 3) :to-equal "reminder"))))
+#+end_src
+
+**** Splitting the lines based on keywords and oopses
+:PROPERTIES:
+:CUSTOM_ID: splitting-the-lines-based-on-keywords-and-oopses
+:END:
+
+Now I can use that to scan through the text. I want to put commands on
+their own lines so that ~subed-align~ will get the timestamp for that
+segment and so that the commands are easier to parse.
+
+I also want to detect "oops" and split things up so that the start of
+that line matches my correction after the "oops". I use
+[[https://sachachua.com/dotemacs/index.html#split-up-oops-better][my-subed-split-oops]] for that, which I should write about in another
+post. By putting the oops fragment on its own line, I can use
+~subed-align~ to get a timestamp for just that segment. Then I can
+either use ~flush-lines~ to get rid of anything with "oops" in it. I
+can even remove the subtitle and use ~subed-record-compile-media~ to
+compile audio/video without that segment, if I want to use the audio
+without rerecording it.
+
+#+begin_example
+And the way I can help is by jotting words down in a mind map,
+typing her sentences. Oops
+typing, her sentences And generating, follow-up questions.
+#+end_example
+
+I also all-caps the keyword phrases so that they're easier to see when
+skimming the text file.
+
+#+begin_src emacs-lisp :summary "Alignment breaks"
 (defun my-transcript-prepare-alignment-breaks ()
 	"Split lines in preparation for forced alignment with aeneas.
 
@@ -2475,101 +2938,178 @@ previous line starts with roughly the same words as the next
 line, for easier removal.
 
 Add a linebreak before \"begin/start\" followed by
-`my-transcript-keywords'.
+`my-transcript-part-keywords'.
 
 Add a linebreak after \"stop\" followed by
-`my-transcript-keywords'.
+`my-transcript-part-keywords'.
 
 Look for begin keyword ... stop keyword with at most
-`my-transcript-keyword-distance' between them and put them on one
+`my-transcript-part-keyword-distance-words' between them and put them on one
 line."
 	(interactive)
-	(let ((case-fold-search t))
+	(let ((case-fold-search t) result close-result)
 		(my-split-oops)
+		;; break "begin/start keyword"
+		(goto-char (point-min))
+		(while (setq result (my-transcript-scan-for-part-keyword 'start nil nil t))
+			(goto-char (car result))
+			(delete-region (car result) (elt result 1))
+			(insert "\n" (upcase (concat (elt result 2) " " (elt result 3))) "\n"))
+		;; break stop
+		(goto-char (point-min))
+		(while (setq result (my-transcript-scan-for-part-keyword 'stop nil nil t))
+			(goto-char (car result))
+			(delete-region (car result) (elt result 1))
+			(insert (upcase (concat (elt result 2) " " (elt result 3))) "\n"))
+		;; try to get start and end sections on one line
+		(goto-char (point-min))
+		(while (setq result (my-transcript-scan-for-part-keyword 'start nil nil t))
+			(goto-char (elt result 1))
+			(setq stop-result (my-transcript-scan-for-part-keyword 'stop (elt result 3)))
+			(if stop-result
+					(progn
+						(goto-char (car stop-result))
+						(while (re-search-backward " *\n+ *" (car result) t)
+							(replace-match " ")))
+				;; no stop keyword; are we on an empty line? If so, just merge it with the next one
+				(when (looking-at "\n+ *")
+					(replace-match " "))))
 		;; remove empty lines
 		(goto-char (point-min))
 		(when (looking-at "\n+") (replace-match ""))
 		(while (re-search-forward "\n\n+" nil t)
 			(replace-match "\n"))
-		;; break "begin/start keyword"
 		(goto-char (point-min))
-		(while (re-search-forward
-						(concat "[,\\.]? *\\(start\\|begin\\)[,\\.]? \\(" (regexp-opt my-transcript-keywords) "\\)[,\\.]? +") nil t)
-			(save-excursion
-				(goto-char (match-beginning 0))
-				(replace-match (concat (if (bolp) "" "\n")
-															 (upcase (match-string 1)) " " (match-string 2) " "))))
-		(goto-char (point-min))
-		(while (re-search-forward
-						(concat "[,\\.]? *stop[,\\.]? \\(" (regexp-opt my-transcript-keywords) "\\)[,\\.]? *") nil t)
-			(goto-char (match-end 0))
-			(replace-match (concat " STOP " (match-string 1)))
-			(unless (eolp)
-				(insert "\n")))
-		;; try to get start and end sections on one line
-		(goto-char (point-min))
-		(while (re-search-forward
-						(concat "[,\\.]? *\\(start\\|begin\\)[,\\.]? \\(" (regexp-opt my-transcript-keywords) "\\)[,\\.]? +") nil t)
-			(let ((pos (match-beginning 0))
-						end)
-				(when (re-search-forward (concat "stop[,\\.]? " (match-string 2))
-																 (+ pos my-transcript-keyword-distance) t)
-					(setq end (match-beginning 0))
-					(goto-char pos)
-					(while (re-search-forward " *\n+ *" end t)
-						(replace-match " "))
-					(goto-char end))))
-		(save-buffer)))
+		(while (re-search-forward " *\n *" nil t)
+			(replace-match "\n"))))
 
+(ert-deftest my-transcript-prepare-alignment-breaks ()
+	(with-temp-buffer
+		(insert "some text start a reminder hello world stop there and do something stop reminder more text")
+		(goto-char (point-min))
+		(my-transcript-prepare-alignment-breaks)
+		(expect (buffer-string) :to-equal
+						"some text
+START REMINDER hello world stop there and do something STOP REMINDER
+more text")))
+#+end_src
+
+**** Preparing the VTT subtitles
+:PROPERTIES:
+:CUSTOM_ID: preparing-the-vtt-subtitles
+:END:
+
+~subed-align~ gives me a VTT subtitle file with timestamps and text. I
+add NOTE comments with the keywords and make ~subed:~ links to the
+timestamps using the ~ol-subed.el~ that I just added.
+
+#+begin_src emacs-lisp :summary "Putting keyword phrases in comments"
 (defun my-transcript-get-subtitle-note-based-on-keywords (sub-text)
 	(let ((case-fold-search t))
-		(when (string-match (concat "^\\(?:start\\|begin\\) \\(" (regexp-opt my-transcript-keywords) "\\) \\(.+?\\)\\( stop " (regexp-opt my-transcript-keywords) "\\)?$")
+		(when (string-match (concat "^"
+																(regexp-opt my-transcript-open-keywords)
+																" \\(" (regexp-opt my-transcript-part-keywords) "\\) \\(.+?\\)\\( "
+																(regexp-opt my-transcript-close-keywords) " "
+																(regexp-opt my-transcript-part-keywords) "\\)?$")
 												sub-text)
 			(concat (match-string 1 sub-text) ": " (match-string 2 sub-text)))))
+(ert-deftest my-transcript-get-subtitle-note-based-on-keywords ()
+	(expect (my-transcript-get-subtitle-note-based-on-keywords "BEGIN NEXT STEPS . Think about how dictation helps me practice slower speed. CLOSE NEXT STEPS")
+					:to-equal "NEXT STEPS: . Think about how dictation helps me practice slower speed.")
+	(expect (my-transcript-get-subtitle-note-based-on-keywords "START SUMMARY hello world STOP SUMMARY")
+					:to-equal "SUMMARY: hello world")
+	(expect (my-transcript-get-subtitle-note-based-on-keywords "START CHAPTER hello world again")
+					:to-equal "CHAPTER: hello world again")
+	)
+#+end_src
 
-(defun my-transcript-add-subtitle-notes-based-on-keywords ()
-	(interactive)
-	(subed-for-each-subtitle (point-min) (point-max) t
-		(let ((text (subed-subtitle-text))
-					(case-fold-search t)
-					(comment (my-transcript-get-subtitle-note-based-on-keywords (subed-subtitle-text))))
-			(when comment
-				(subed-set-subtitle-comment comment)))))
+**** Formatting the subtitles into Org Mode subtrees
+:PROPERTIES:
+:CUSTOM_ID: formatting-the-subtitles-into-org-mode-subtrees
+:END:
 
-(defcustom my-transcript-last-processed-time nil
-	"The timestamp of the last processed transcript."
-	:group 'sacha
-	:type '(repeat integer))
+The last step is to take the list of subtitles and format it into the subtree.
 
-(defun my-transcript-process-since-last ()
-	(interactive)
-	(let ((files
-				 (seq-filter
-					(lambda (f)
-						(or (null my-transcript-last-processed-time)
-								(time-less-p my-transcript-last-processed-time
-														 (my-transcript-get-file-start-time f))))
-					(directory-files my-phone-recording-dir 'full " at [0-9][0-9]-[0-9][0-9]\\.txt\\|^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]\\.[0-9][0-9]\\.txt"))))
-		(mapc (lambda (f)
-						(my-transcript-make-todo f)
-						(let ((start (my-transcript-get-file-start-time f)))
-							(if (time-less-p my-transcript-last-processed-time start)
-									(setq my-transcript-last-processed-time start))))
-					files))
-	(customize-save-variable 'my-transcript-last-processed-time my-transcript-last-processed-time))
-
-(defun my-transcript-process (files &optional force)
-	(interactive (list (cond
-											((and (derived-mode-p 'dired-mode)
-											 			(dired-get-marked-files))
-											 (dired-get-marked-files))
-											((derived-mode-p 'dired-mode)
-											 (list (dired-get-filename)))
-											((string-match "\\.txt$" (buffer-file-name))
-											 (list (buffer-file-name)))
-											(t (read-file-name "Transcript: ")))
-										 current-prefix-arg))
-	(mapc (lambda (f) (my-transcript-make-todo f force)) files))
+#+begin_src emacs-lisp :summary "Formatting the subtree"
+;; todo: sort the completion? https://emacs.stackexchange.com/questions/55502/list-files-in-directory-in-reverse-order-of-date
+;;
+(defun my-transcript-insert-subtitles-as-org-tree (vtt-filename)
+	(interactive (list (read-file-name "VTT: " (expand-file-name "./" my-phone-recording-dir) nil t nil
+																		 (lambda (s) (string-match "\\.vtt$" s)))))
+	(let* ((subtitles
+					(mapcar (lambda (sub)
+										(unless (elt sub 4)
+											(setf (elt sub 4)
+														(my-transcript-get-subtitle-note-based-on-keywords (elt sub 3))))
+										sub)
+									(subed-parse-file vtt-filename)))
+				 (start-date (my-transcript-get-file-start-time vtt-filename))
+				 chapters tags
+				 start-of-entry)
+		(setq start-of-entry (point))
+		(insert (format "* TODO Review braindump from %s  :braindump:\n\n" (file-name-base vtt-filename)))
+		(org-entry-put (point) "CREATED"
+									 (concat "[" (org-format-timestamp (my-transcript-get-file-start-time (file-name-base vtt-filename))
+																										 (cdr org-timestamp-formats)) "]"))
+		(insert
+		 (format "%s - %s - %s\n"
+						 (org-link-make-string (concat "file:" (file-name-sans-extension vtt-filename) ".vtt")
+																	 "VTT")
+						 (org-link-make-string (concat "file:" (file-name-sans-extension vtt-filename) ".txt")
+																	 "Text")
+						 (org-link-make-string (concat "file:" (file-name-sans-extension vtt-filename) ".m4a")
+																	 "Audio")))
+		(save-excursion
+			(insert "** Transcript\n")
+			;; add each subtitle; add an ID in case we change the title
+			(mapc
+			 (lambda (sub)
+				 (when (elt sub 4)
+					 (let ((note (my-transcript-get-subtitle-note-based-on-keywords (elt sub 3))))
+						 (insert (concat "*** "
+														 note " "
+														 (org-link-make-string
+															(format "subed:%s::%s"
+																			vtt-filename
+																			(my-msecs-to-timestamp (elt sub 1)))
+															"VTT")
+														 "\n\n"))
+						 (org-entry-put (point) "START" (my-msecs-to-timestamp (elt sub 2)))
+						 (when (elt sub 4)
+							 (when (string-match "command: .*recognize" (elt sub 4))
+								 (save-excursion
+									 ;; TODO: scope this to just the section someday
+									 (goto-char start-of-entry)
+									 (org-set-tags (append (list "recognize") (org-get-tags)))))
+							 (when (string-match "command: .*outline" (elt sub 4))
+								 (save-excursion
+									 (goto-char start-of-entry)
+									 (org-set-tags (append (list "outline") (org-get-tags)))))
+							 (when (string-match "^time" (elt sub 4))
+								 (insert "[" (org-format-time-string (cdr org-timestamp-formats)
+																										 (time-add start-date (seconds-to-time (/ (elt sub 1) 1000))))
+												 "]\n"))
+							 (when (string-match "command: .+\\(high\\|low\\)" (elt sub 4))
+								 (save-excursion
+									 (goto-char start-of-entry)
+									 (org-priority (if (string= (downcase (match-string 1)) "high") ?A ?C))))
+							 (when (string-match "\\(?:tags?\\|keywords?\\): \\(.+\\)" (elt sub 4))
+								 (save-excursion
+									 (goto-char start-of-entry)
+									 (org-set-tags (append (split-string (match-string 1) " ") (org-get-tags))))))
+						 (add-to-list 'chapters
+													(format "- %s (%s)"
+																	(org-link-make-string (concat "id:" (org-id-get-create))
+																												note)
+																	(org-link-make-string
+																	 (format "subed:%s::%s"
+																					 vtt-filename
+																					 (my-msecs-to-timestamp (elt sub 1)))
+																	 "VTT")))))
+				 (insert (elt sub 3) "\n"))
+			 subtitles))
+		(when chapters
+			(insert (string-join (nreverse chapters) "\n") "\n"))))
 
 (defun my-transcript-get-file-start-time (filename)
 	(setq filename (file-name-base filename))
@@ -2593,27 +3133,110 @@ line."
 												(seq-drop decoded-time 3)))
 				;; synchronized maybe within the week after
 				(org-read-date t t (concat "-" day " " hour ":" min)))))))
+#+end_src
+**** Process a single transcript from the raw text file
+:PROPERTIES:
+:CUSTOM_ID: process-a-single-transcript-from-the-raw-text-file
+:END:
 
-(defun my-transcript-prepare-vtt (vtt-filename)
-	"Return a list of subtitles."
-	(interactive (list (buffer-file-name)))
-	(with-current-buffer (find-file-noselect vtt-filename)
-		(my-transcript-add-subtitle-notes-based-on-keywords)
-		(goto-char (point-min))							; add start time to VTT
-		(let ((start (my-transcript-get-file-start-time vtt-filename)))
-			(when (looking-at "WEBVTT")
-				(goto-char (line-end-position))
-				(insert " " (format-time-string "%Y-%m-%dT%H:%M:%S%z" start))
-				(save-buffer))
-			(mapcar
-			 (lambda (sub)
-				 (when (elt sub 4)
-					 (setf
-						(elt sub 4)
-						(org-link-make-string
-						 (concat "subed:" (buffer-file-name) "::" (subed-msecs-to-timestamp (elt sub 1)))
-						 (elt sub 4)))))
-			 (subed-subtitle-list)))))
+So now we put that all together: rename the file using the calculated
+start time, prepare the alignment breaks, align the file to get the
+timestamps, and add the subtree to an Org file.
+
+#+begin_src emacs-lisp :summary "Making the TODO"
+(defvar my-transcript-braindump-file "~/sync/orgzly/braindump.org")
+
+(defun my-transcript-make-todo (text-file &optional force)
+	"Add TEXT-FILE as a TODO."
+	(interactive (list (buffer-file-name) current-prefix-arg))
+	;; rename the files to use the timestamps
+	(unless (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
+												(file-name-base text-file))
+		(setq text-file (my-transcript-rename-files-based-on-time text-file)))
+	(let* ((recording (concat (file-name-sans-extension text-file) ".m4a"))
+				 (start (my-transcript-get-file-start-time text-file))
+				 (vtt (concat (file-name-sans-extension text-file) ".vtt"))
+				 chapters
+				 (title (concat "Review braindump " text-file))
+				 existing)
+		;; check if already exists
+		(with-current-buffer (find-file-noselect my-transcript-braindump-file)
+			(save-excursion
+				(goto-char (point-min))
+				(setq existing (org-find-exact-headline-in-buffer title))))
+		(if (and existing (not force))
+				(progn
+					(message "Going to existing heading")
+					(org-goto-marker-or-bmk existing))
+			(if (or (null my-transcript-last-processed-time)
+							(time-less-p my-transcript-last-processed-time start))
+					(customize-save-variable 'my-transcript-last-processed-time start))
+			(find-file text-file)
+			(my-transcript-prepare-alignment-breaks)
+			(save-buffer)
+	 		(when (file-exists-p vtt) (delete-file vtt))
+			(when (get-file-buffer vtt) (kill-buffer (get-file-buffer vtt)))
+			(subed-align recording text-file "VTT")
+			(when (get-file-buffer vtt) (kill-buffer (get-file-buffer vtt)))
+			(find-file my-transcript-braindump-file)
+			(goto-char (point-min))
+			(if existing
+					(progn
+						(org-goto-marker-or-bmk existing)
+						(delete-region (point) (org-end-of-subtree)))
+				(org-next-visible-heading 1))
+			(my-transcript-insert-subtitles-as-org-tree vtt))))
+#+end_src
+**** Process multiple files
+:PROPERTIES:
+:CUSTOM_ID: process-multiple-files
+:END:
+
+I want to process multiple files in one batch.
+
+#+begin_src emacs-lisp
+(defun my-transcript-process (files &optional force)
+	(interactive (list (cond
+											((and (derived-mode-p 'dired-mode)
+											 			(dired-get-marked-files))
+											 (dired-get-marked-files))
+											((derived-mode-p 'dired-mode)
+											 (list (dired-get-filename)))
+											((string-match "\\.txt$" (buffer-file-name))
+											 (list (buffer-file-name)))
+											(t (read-file-name "Transcript: ")))
+										 current-prefix-arg))
+	(mapc (lambda (f)
+					(when (string-match "txt" f)
+						(my-transcript-make-todo f force))) files))
+#+end_src
+
+It would be nice to have it automatically keep track of the latest one
+that's been processed, maybe via ~customize-save-variable~. This still
+needs some tinkering with.
+
+#+begin_src emacs-lisp :summary "Processing new files"
+(defcustom my-transcript-last-processed-time nil
+	"The timestamp of the last processed transcript."
+	:group 'sacha
+	:type '(repeat integer))
+
+(defun my-transcript-process-since-last ()
+	(interactive)
+	(let ((files
+				 (seq-filter
+					(lambda (f)
+						(or (null my-transcript-last-processed-time)
+								(time-less-p my-transcript-last-processed-time
+														 (my-transcript-get-file-start-time f))))
+					(directory-files my-phone-recording-dir 'full " at [0-9][0-9]-[0-9][0-9]\\.txt\\|^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]\\.[0-9][0-9]\\.txt"))))
+		(mapc (lambda (f)
+						(my-transcript-make-todo f)
+						(let ((start (my-transcript-get-file-start-time f)))
+							(if (time-less-p my-transcript-last-processed-time start)
+									(setq my-transcript-last-processed-time start))))
+					files))
+	(customize-save-variable 'my-transcript-last-processed-time my-transcript-last-processed-time))
 
 (defun my-transcript-rename-files-based-on-time (text-file)
 	"Rename TEXT-FILE based on date. Return the new text file."
@@ -2633,102 +3256,16 @@ line."
 																						 (file-name-directory text-file)))))
 				(expand-file-name (concat new-base ".txt")
 													(file-name-directory text-file))))))
-
-;; todo: sort the completion? https://emacs.stackexchange.com/questions/55502/list-files-in-directory-in-reverse-order-of-date
-(defun my-transcript-insert-subtitles-as-org-tree (vtt-filename)
-	(interactive (list (read-file-name "VTT: " (expand-file-name "./" my-phone-recording-dir) nil t nil
-																		 (lambda (s) (string-match "\\.vtt$" s)))))
-	(let* ((subtitles (subed-parse-file vtt-filename))
-				 chapters)
-		(org-insert-heading)
-		(insert (format "TODO Review braindump from %s  :braindump:\n\n" (file-name-base vtt-filename)))
-		(org-entry-put (point) "CREATED"
-									 (concat "[" (org-format-timestamp (my-transcript-get-file-start-time (file-name-base vtt-filename))
-																										 (cdr org-timestamp-formats)) "]"))
-		(insert
-		 (format "%s - %s - %s\n"
-						 (org-link-make-string (concat "file:" (file-name-sans-extension vtt-filename) ".vtt")
-																	 "VTT")
-						 (org-link-make-string (concat "file:" (file-name-sans-extension vtt-filename) ".txt")
-																	 "Text")
-						 (org-link-make-string (concat "file:" (file-name-sans-extension vtt-filename) ".m4a")
-																	 "Audio")))
-		(save-excursion
-			(insert "** Transcript\n")
-			;; add each subtitle; add an ID in case we change the title
-			(mapc
-			 (lambda (sub)
-				 (when (elt sub 4)
-					 (let ((note (my-transcript-get-subtitle-note-based-on-keywords (elt sub 3))))
-						 (insert (concat "*** "
-														 (org-link-make-string
-																	 (format "subed:%s::%s"
-																					 vtt-filename
-																					 (my-msecs-to-timestamp (elt sub 1)))
-																	 note)
-														 "\n\n"))
-						 (org-entry-put (point) "START" (my-msecs-to-timestamp (elt sub 2)))
-						 (add-to-list 'chapters
-													(format "- %s (%s)"
-																	(org-link-make-string (concat "id:" (org-id-get-create))
-																												note)
-																	(org-link-make-string
-																	 (format "subed:%s::%s"
-																					 vtt-filename
-																					 (my-msecs-to-timestamp (elt sub 1)))
-																	 "VTT")))))
-				 (insert (elt sub 3) "\n"))
-			 subtitles))
-		(when chapters
-			(insert (string-join (nreverse chapters) "\n") "\n"))))
-
-(defun my-transcript-make-todo (text-file &optional force)
-	"Add TEXT-FILE as a TODO."
-	(interactive (list (buffer-file-name) current-prefix-arg))
-	;; rename the files to use the timestamps
-	(unless (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
-												(file-name-base text-file))
-		(setq text-file (my-transcript-rename-files-based-on-time text-file)))
-	(let* ((recording (concat (file-name-sans-extension text-file) ".m4a"))
-				 (start (my-transcript-get-file-start-time text-file))
-				 (vtt (concat (file-name-sans-extension text-file) ".vtt"))
-				 chapters
-				 (title (concat "Review braindump " text-file))
-				 existing)
-		;; check if already exists
-		(with-current-buffer (find-file-noselect my-org-inbox-file)
-			(save-excursion
-				(goto-char (point-min))
-				(setq existing (org-find-exact-headline-in-buffer title))))
-		(if (and existing (not force))
-				(progn
-					(message "Going to existing heading")
-					(org-goto-marker-or-bmk existing))
-			(if (or (null my-transcript-last-processed-time)
-							(time-less-p my-transcript-last-processed-time start))
-					(customize-save-variable 'my-transcript-last-processed-time start))
-			(find-file text-file)
-			(my-transcript-prepare-alignment-breaks)
-	 		(when (file-exists-p vtt) (delete-file vtt))
-			(when (get-file-buffer vtt) (kill-buffer (get-file-buffer vtt)))
-			(subed-align recording text-file "VTT")
-			(when (get-file-buffer vtt) (kill-buffer (get-file-buffer vtt)))
-			(my-transcript-prepare-vtt vtt)
-			(when (get-file-buffer vtt) (kill-buffer (get-file-buffer vtt)))
-			(find-file my-org-inbox-file)
-			(goto-char (point-min))
-			(if existing
-					(progn
-						(org-goto-marker-or-bmk existing)
-						(delete-region (point) (org-end-of-subtree)))
-				(org-next-visible-heading 1))
-			(my-transcript-insert-subtitles-as-org-tree vtt))))
 #+end_src
+**** Ideas for next steps
+:PROPERTIES:
+:CUSTOM_ID: ideas-for-next-steps
+:END:
 
-#+RESULTS:
-:results:
-my-transcript-make-todo
-:end:
+- Make the commands process things even more automatically.
+- Experiment with just sending everything to OpenAI Whisper instead of conditionally sending it based on the keywords (which might not be recognized).
+- See if I want to reuse more sentences or move them around.
+- Find out where people who have thought about dictation keywords have their notes; probably don't have to reinvent the wheel here
 
 *** Markdown
 :PROPERTIES:
@@ -2887,7 +3424,37 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
         try-expand-line
         try-complete-lisp-symbol-partially
         try-complete-lisp-symbol))
-#+END_SRC
+#+end_src
+*** Write about keybindings
+:PROPERTIES:
+:CUSTOM_ID: write-about-keybindings
+:END:
+
+#+begin_src emacs-lisp
+;; hmm, doesn't quite work for looking things up yet. I basically want a programmatic where-is for a specific keymap
+(defvar my-keybinding-maps '(subed-mode-map subed-waveform-minor-mode-map subed-waveform-svg-map))
+(defun my-copy-keybinding (symbol)
+	(interactive (list (find-function-read)))
+	(when (listp symbol)
+		(setq symbol (car symbol)))
+	(let (result keys)
+		(map-keymap
+		 (lambda (event def)
+			 (cond ((and (symbolp def))
+							(push (list def event) result))
+						 ((and (listp def) (eq 'keymap (car def)))
+							(apply 'append
+										 (map-keymap
+											(lambda (event def)
+												(when (and (symbolp def))
+													(push (list def event) result)))
+											def)))))
+		 subed-mode-map)
+		(setq keys (assoc-default symbol result))
+		(when keys
+			(kill-new (key-description keys))
+			(message "%s" (key-description keys)))))
+#+end_src
 *** Subtitles with Subed
     :PROPERTIES:
     :CUSTOM_ID: subed
@@ -3575,11 +4142,11 @@ You can get these from https://github.com/sachac
 					(insert "\n"))
 				(save-excursion
 					(setq start-search (point))
-					;; look for 1..3 words back
+					;; look for 1..5 words back
 					(goto-char
 					 (or
 						(cl-loop
-						 for n downfrom 4 downto 1
+						 for n downfrom 5 downto 1
 						 do
 						 (save-excursion
 							 (dotimes (_ n) (forward-word))
@@ -3592,66 +4159,53 @@ You can get these from https://github.com/sachac
 					(insert "\n"))))))
 #+end_src
 
-#+RESULTS:
-:results:
-my-split-oops
-:end:
-
 #+begin_src emacs-lisp
 (setq subed-align-options "task_adjust_boundary_offset_percent=0.5")
 #+end_src
 
 #+begin_src emacs-lisp
-(defun my-subed-delete-oops ()
-	(interactive)
+(defun my-subed-delete-oops (&optional skip-only)
+	(interactive (list current-prefix-arg))
 	(atomic-change-group
-		(if (not (point-min))
-				(save-excursion
-					(subed-jump-to-subtitle-id)
-					(when (string-match "oops" (subed-subtitle-text))
-						(subed-kill-subtitle)))
-			(let ((begm (make-marker)) (endm (make-marker)))
-				(set-marker begm (point-min))
-				(set-marker endm (or (point-max) (point-max)))
-				(if t
-						(save-excursion
-							(goto-char endm)
-							(unless (subed-jump-to-subtitle-id)
-								(subed-backward-subtitle-id))
-							(catch 'first-subtitle-reached
-								(while t
-									(let
-											((sub-end
-												(save-excursion (subed-jump-to-subtitle-end))))
-										(when (< sub-end begm)
-											(throw 'first-subtitle-reached t)))
-									(progn
-										(when (string-match "oops" (subed-subtitle-text))
-											(subed-kill-subtitle)))
-									(unless (subed-backward-subtitle-id)
-										(throw 'first-subtitle-reached t)))))
-					(save-excursion
-						(goto-char begm)
-						(unless (subed-jump-to-subtitle-id)
-							(subed-forward-subtitle-id))
-						(catch 'last-subtitle-reached
-							(while t
-								(when (> (point) endm) (throw 'last-subtitle-reached t))
-								(progn
-									(when (string-match "oops" (subed-subtitle-text))
-										(subed-kill-subtitle)))
-								(unless (subed-forward-subtitle-id)
-									(throw 'last-subtitle-reached t))))))))))
+		(subed-for-each-subtitle (point-min) (point-max) t
+			(when (string-match "\\boops\\b" (subed-subtitle-text))
+				(if skip-only
+						(subed-set-subtitle-comment "#+SKIP")
+					(subed-kill-subtitle))))))
+
+(ert-deftest my-subed-delete-oops ()
+	(let ((test '((nil 0 99 "Hello")
+								(nil 100 199 "Hello oops")
+								(nil 200 299 "Hello world")
+								(nil 299 300 "Hello again oops"))))
+		(should
+		 (equal
+			(with-temp-buffer
+				(subed-vtt-mode)
+				(subed-append-subtitle-list test)
+				(my-subed-delete-oops)
+				(subed-subtitle-list-text (subed-subtitle-list) t))
+			"Hello\nHello world\n"))
+		(should
+		 (equal
+			(with-temp-buffer
+				(subed-vtt-mode)
+				(subed-append-subtitle-list test)
+				(my-subed-delete-oops t)
+				(subed-subtitle-list-text (subed-subtitle-list) t))
+			"Hello\n\n#+SKIP\n\nHello oops\nHello world\n\n#+SKIP\n\nHello again oops\n"))))
 
 (defun my-subed-skip-oops ()
 	(interactive)
-	(subed-for-each-subtitle (point-min) (point-max) nil (when (string-match "oops" (subed-subtitle-text)) (subed-set-subtitle-comment "#+SKIP"))))
+	(my-subed-delete-oops t))
 
 (defun my-subed-record-wpm ()
 	(interactive)
-	(message
-	 "%d"
-	 (subed-wpm (seq-remove (lambda (o) (string-match "skip" (elt o 4))) (subed-subtitle-list)))))
+	(let ((wpm (subed-wpm
+							(seq-remove (lambda (o) (and (elt o 4) (string-match "skip" (elt o 4))))
+													(subed-subtitle-list)))))
+		(apply 'message
+					  "%d wpm (%d words / %.1f minutes)" wpm)))
 
 (defun my-subed-prepare-for-cleaning ()
 	(interactive)
@@ -3661,6 +4215,22 @@ my-split-oops
 	(subed-set-subtitle-comment (concat "#+OUTPUT: " (file-name-sans-extension (buffer-file-name)) "-cleaned.opus")))
 
 (defvar my-phone-recording-dir "~/sync/Phone")
+(defun my-subed-copy-recording (filename destination)
+	(interactive
+	 (list
+		(buffer-file-name)
+		(file-name-directory
+		 (read-file-name (format "Copy %s to: "
+														 (file-name-base (buffer-file-name)))
+										 nil nil nil nil #'file-directory-p))))
+	(dolist (ext '("m4a" "txt" "json" "vtt"))
+		(when (file-exists-p (concat (file-name-sans-extension filename) "." ext))
+			(copy-file (concat (file-name-sans-extension filename) "." ext)
+								 destination t)))
+	(when (get-file-buffer filename)
+		(kill-buffer (get-file-buffer filename))
+		(dired destination)))
+
 (defun my-subed-copy-latest-phone-recording (destination)
 	"Copy the latest recording transcript and audio to DESTINATION."
 	(interactive
@@ -3802,81 +4372,331 @@ my-subed-record-wpm
 (defalias 'my-phone-dired #'my-transcripts-dired)
 #+end_src
 *** Speech recognition
-**** TODO Deepgram live
+:PROPERTIES:
+:CUSTOM_ID: speech-recognition
+:END:
+**** TOBLOG Using Emacs Lisp to send audio files to Deepgram and format VTTs :emacs:speech:
+:PROPERTIES:
+:CUSTOM_ID: using-emacs-lisp-to-send-audio-files-to-deepgram-and-format-vtts
+:END:
 
+I've been experimenting with Deepgram's API for speech recognition because it can handle larger files than OpenAI Whisper's API, so I don't have to worry about chunking my files into 15-minute segments. It also supports diarization, which means identifying different speakers. That's handy for things like the EmacsConf Q&A sessions, which involve multiple people.
+
+I think the built-in VTT formatter doesn't handle speaker
+identification, so I wrote some Emacs Lisp to send an audio file for
+recognition, save the JSON, and format the results as a VTT subtitle
+file. I also split the captions a little closer to the way I like to
+do them, starting a new subtitle if the line exceeds
+~my-deepgram-length-threshold~ or ~my-deepgram-time-threshold~, or if
+we're after a punctuated word and the current subtitle is more than
+halfway to the length threshold. Someday I'll figure out how to get it
+to split on prepositions.
+
+#+begin_src emacs-lisp
+(defvar my-deepgram-length-threshold 45 "Number of characters.")
+(defvar my-deepgram-time-threshold 10 "Number of seconds since the first word.")
+
+(defun my-deepgram-recognize-audio (audio-file &optional diarize)
+	"Send AUDIO-FILE to Deepgram, save the JSON, and create a VTT.
+If DIARIZE is non-nil, identify speakers."
+	(interactive (list (if (getenv "DEEPGRAM_API_KEY")
+												 (read-file-name "Audio file: ")
+											 (error "Please specify DEEPGRAM_API_KEY."))))
+	(with-current-buffer (get-buffer-create "*Deepgram*")
+		(erase-buffer)
+		(call-process
+		 "curl" nil t t "--request" "POST" "--header"
+		 (concat "Authorization: Token " (getenv "DEEPGRAM_API_KEY"))
+		 "--header" (concat "Content-Type: " (mailcap-file-name-to-mime-type audio-file))
+		 "--data-binary" (concat "@" (expand-file-name audio-file))
+		 "--url"
+		 (concat
+			"https://api.deepgram.com/v1/listen?punctuate=true&model=whisper-large&smart_format=true&utterances=true"
+			(if diarize
+					"&diarize=true"
+				""))
+		 "-o"
+		 (expand-file-name (concat (file-name-sans-extension audio-file) ".json")))
+		(my-deepgram-convert-json-to-vtt (concat (file-name-sans-extension audio-file) ".json")))
+	(find-file (concat (file-name-sans-extension audio-file) ".vtt")))
+
+(defun my-emacsconf-extract-deepgram-recognize-qa-for-talk (talk)
+	"Send the QA (or main) Opus file for TALK to Deepgram.
+Save the results as JSON and VTT."
+	(interactive (list (emacsconf-complete-talk-info)))
+	(setq talk (emacsconf-resolve-talk talk))
+	(if (or (emacsconf-talk-file talk "--answers--original.json")
+					(emacsconf-talk-file talk "--original.json"))
+			(message "Files already exist for %s" (plist-get talk :slug))
+			(if-let ((file
+								(or (emacsconf-talk-file talk "--answers--original.opus")
+										(emacsconf-talk-file talk "--original.opus"))))
+					(my-deepgram-recognize-audio file)
+				(error "No file to recognize for %s" (plist-get talk :slug)))))
+
+(defun my-deepgram-parse (json-file)
+	"Convert JSON-FILE into a list of subtitles."
+	(let* ((json-object-type 'alist)
+				 (json (json-read-file json-file))
+				 (words
+					(assoc-default
+					 'words
+					 (aref (assoc-default 'alternatives (aref (let-alist json .results.channels) 0)) 0)))
+				 (halfway-length (/ my-deepgram-length-threshold 2))
+				 subtitles
+				 current
+				 current-length
+				 last-speaker
+				 last-text
+				 current-text)
+		(dolist (speaker (seq-group-by (lambda (o) (assoc-default 'speaker o)) words))
+			(setq current-length 0 current nil)
+			(dolist (word (cdr speaker))
+				(let-alist word
+					;; determine whether we are adding to the existing one.
+					;; start a new one if length > length-threshold
+					;; or time > time-threshold
+					(when (or (> (+ (length .punctuated_word)
+													current-length)
+											 my-deepgram-length-threshold)
+										(and (car current)
+												 (> .start (+ (assoc-default 'start (car current))
+																			my-deepgram-time-threshold))))
+						;; copy the previous subtitle
+						(push current subtitles)
+						(setq current nil current-length 0))
+					(push word current)
+					(setq current-length (+ (length .punctuated_word) current-length 1))
+					(when (and (string-match "[,\\.?]" .punctuated_word)
+										 (> current-length halfway-length))
+						(push current subtitles)
+						(setq current nil current-length 0))))
+			(when current (push current subtitles)))
+		(seq-keep
+		 (lambda (entry)
+			 (setq current-text
+						 (mapconcat (lambda (w) (assoc-default 'punctuated_word w))
+												(nreverse entry) " "))
+			 (when (not (string= (downcase current-text) (or last-text "")))
+				 (setq last-text (downcase current-text))
+				 (list nil
+							 (* (assoc-default 'start (car entry) nil 0) 1000)
+							 (* (assoc-default 'end (car (last entry)) nil 0) 1000)
+							 ;; add speaker tag?
+							 (concat
+								(if (and (assoc-default 'speaker (car entry))
+												 (or (null last-speaker)
+														 (not (eq last-speaker (assoc-default 'speaker (car entry))))))
+										(progn
+											(setq last-speaker (assoc-default 'speaker (car entry)))
+											(format "[Speaker %d]: " (assoc-default 'speaker (car entry))))
+									"")
+								current-text
+								))))
+		 (sort subtitles
+					 (lambda (a b)
+						 ;; sort by time
+						 (< (assoc-default 'start (car a) nil 0)
+								(assoc-default 'start (car b) nil 0)))))))
+
+(defun my-deepgram-convert-json-to-vtt (json-file)
+	(interactive (list (read-file-name "JSON: ")))
+	"Convert JSON-FILE into a VTT."
+	(subed-create-file
+	 (concat (file-name-sans-extension json-file) ".vtt")
+	 (my-deepgram-parse json-file)))
+
+(defun my-gladia-parse (json-file)
+	"Convert JSON-FILE into a list of subtitles."
+	(let* ((json-object-type 'alist)
+				 (json (json-read-file json-file))
+				 (words
+					(seq-mapcat (lambda (pred) (seq-map (lambda (w)
+																								(append
+																								 (list
+																									(cons 'speaker (when (not (string= "speaker_not_activated" (assoc-default 'speaker pred)))
+																																	 (assoc-default 'speaker pred)))
+																									(cons 'start (assoc-default 'time_begin pred))
+																									(cons 'end (assoc-default 'time_end pred))
+																									(cons 'punctuated_word (string-trim (assoc-default 'word w))))
+																								 w))
+																							(assoc-default 'words pred)))
+											(assoc-default 'prediction json)))
+				 (halfway-length (/ my-deepgram-length-threshold 2))
+				 subtitles
+				 current
+				 current-length
+				 last-speaker
+				 last-text
+				 current-text)
+		(dolist (speaker (seq-group-by (lambda (o) (assoc-default 'speaker o)) words))
+			(setq current-length 0 current nil)
+			(dolist (word (cdr speaker))
+				(let-alist word
+					;; determine whether we are adding to the existing one.
+					;; start a new one if length > length-threshold
+					;; or time > time-threshold
+					(when (or (> (+ (length .punctuated_word)
+													current-length)
+											 my-deepgram-length-threshold)
+										(and (car current)
+												 (> .start (+ (assoc-default 'start (car current))
+																			my-deepgram-time-threshold))))
+						;; copy the previous subtitle
+						(push current subtitles)
+						(setq current nil current-length 0))
+					(push word current)
+					(setq current-length (+ (length .punctuated_word) current-length 1))
+					(when (and (string-match "[,\\.?]" .punctuated_word)
+										 (> current-length halfway-length))
+						(push current subtitles)
+						(setq current nil current-length 0))))
+			(when current (push current subtitles)))
+		(seq-keep
+		 (lambda (entry)
+			 (setq current-text
+						 (mapconcat (lambda (w) (assoc-default 'punctuated_word w))
+												(nreverse entry) " "))
+			 (when (not (string= (downcase current-text) (or last-text "")))
+				 (setq last-text (downcase current-text))
+				 (list nil
+							 (* (assoc-default 'start (car entry) nil 0) 1000)
+							 (* (assoc-default 'end (car (last entry)) nil 0) 1000)
+							 ;; add speaker tag?
+							 (concat
+								(if (and (assoc-default 'speaker (car entry))
+												 (or (null last-speaker)
+														 (not (eq last-speaker (assoc-default 'speaker (car entry))))))
+										(progn
+											(setq last-speaker (assoc-default 'speaker (car entry)))
+											(format "[Speaker %s]: " (assoc-default 'speaker (car entry))))
+									"")
+								current-text
+								))))
+		 (sort subtitles
+					 (lambda (a b)
+						 ;; sort by time
+						 (< (assoc-default 'start (car a) nil 0)
+								(assoc-default 'start (car b) nil 0)))))))
+
+(defun my-gladia-recognize-audio (audio-file &optional diarize other-options)
+	"Send AUDIO-FILE to Gladia, save the JSON, and create a VTT.
+If DIARIZE is non-nil, identify speakers."
+	(interactive (list (if (getenv "GLADIA_API_KEY")
+												 (read-file-name "Audio file: ")
+											 (error "Please specify GLADIA_API_KEY."))))
+	(with-current-buffer (get-buffer-create "*recognition*")
+		(erase-buffer)
+		(call-process
+		 "curl" nil t t "--request" "POST" "--header"
+		 (concat "x-gladia-key: " (getenv "GLADIA_API_KEY"))
+		 "--header" (concat "Content-Type: multipart/form-data" )
+		 "--header" (concat "Accept: application/json")
+		 "-F" (concat "audio=@" (expand-file-name audio-file) ";type=" (mailcap-file-name-to-mime-type audio-file))
+		 "-F" (concat "toggle_noise_reduction=true&output_format=json" (or other-options "") (if diarize "&toggle_diarization=true" ""))
+		 "--url" "https://api.gladia.io/audio/text/audio-transcription?toggle_noise_reduction=true&output_format=json"
+		 "-o"
+		 (expand-file-name (concat (file-name-sans-extension audio-file) ".json")))
+		(subed-create-file
+		 (concat (file-name-sans-extension audio-file) ".vtt")
+		 (my-gladia-parse (concat (file-name-sans-extension audio-file) ".json"))))
+	(find-file (concat (file-name-sans-extension audio-file) ".vtt")))
+#+end_src
+
+
+**** DONE Getting live speech into Emacs with Deepgram's streaming API :emacs:speech:
+CLOSED: [2023-12-19 Tue 11:09]
+:PROPERTIES:
+:EXPORT_DATE: 2023-12-19T10:11:56-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2023/12/live-speech-with-deepgram/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2023/12/live-speech-with-deepgram/
+:CUSTOM_ID: live-speech
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2023-12-19 Tue 11:09]
+:END:
+
+#+begin_update
+- [2023-12-26 Tue]: Reorganized code to call a list of functions and pass the recognition results. Added Etherpad. Took out the mode; will just use the functions. Related: [[blog:/blog/2023/12/yay-i-can-get-live-speech-recognition-results-from-emacs-to-etherpad/][getting live speech from Emacs into Etherpad]]
+#+end_update
+
+This is a quick demonstration of using [[https://developers.deepgram.com/reference/streaming][Deepgram's streaming API]] to do
+speech recognition live. It isn't as accurate as OpenAI Whisper but
+since Whisper doesn't have a streaming API, it'll do for now. I can
+correct misrecognized words manually. I tend to talk really quickly,
+so it displays the words per minute in my modeline. I put the words
+into an Org Mode buffer so I can toggle headings with avy and cycle
+visibility. When I'm done, it saves the text, JSON, and WAV for
+further processing. I think it'll be handy to have a quick way to take
+live notes during interviews or when I'm thinking out loud. Could be
+fun!
+
+#+CAPTION: Quick demonstration of live speech with Deepgram
+[[video:https://sachachua.com/blog/2023/12/live-speech-with-deepgram/2023-12-19-live-speech.webm]]
+
+I'm still getting some weirdness when the mode turns on when I don't
+expect it, so that's something to look into. Maybe I won't use it as a
+mode for now. I'll just use ~my-live-speech-start~ and
+~my-live-speech-stop~.
+
+***** General code
 #+begin_src emacs-lisp
 (defvar my-live-speech-buffer "*Speech*")
 (defvar my-live-speech-process nil)
 (defvar my-live-speech-output-buffer "*Speech JSON*")
-(defvar my-live-speech-wpm-window-seconds 15 "How many seconds to calculate WPM for.")
-(defvar my-live-speech-recent-words nil "Words spoken in `my-live-speech-wpm-window-minutes")
-(defvar my-live-speech-wpm nil "Current WPM.")
-(defvar my-live-speech-wpm-colors '((180 :foreground "red")
-																			(170 :foreground "yellow")
-																			(160 :foreground "green")))
-(defvar my-live-speech-wpm-string nil)
-(defun my-live-speech-wpm-string ()
-	(propertize
-	 (format "%d WPM" my-live-speech-wpm)
-	 'face
-	 (cdr (seq-find (lambda (row) (> my-live-speech-wpm (car row))) my-live-speech-wpm-colors))))
 
-(define-minor-mode my-live-speech-mode
-	"Show live speech and display WPM."
-	:global t :group 'sachac
-	(if my-live-speech-mode
-			(progn
-				(my-live-speech-setup)
-				(or global-mode-string (setq global-mode-string '("")))
-				(or (memq 'my-live-speech-wpm-string global-mode-string)
-						(setq global-mode-string
-									(append global-mode-string '(my-live-speech-wpm-string)))))
-		(my-live-speech-stop)
-		(setq my-live-speech-wpm-string nil)
-		(setq global-mode-string
-					(delq 'my-live-speech-wpm-string global-mode-string))))
+(defvar my-live-speech-functions
+	'(my-live-speech-display-in-speech-buffer
+		my-live-speech-display-wpm
+		my-live-speech-append-to-etherpad)
+	"Functions to call with one argument, the recognition results.")
+
+(defun my-live-speech-start ()
+	"Turn on live captions."
+	(interactive)
+	(with-current-buffer (get-buffer-create my-live-speech-buffer)
+		(unless (process-live-p my-live-speech-process)
+			(let ((default-directory "~/proj/deepgram-live"))
+				(message "%s" default-directory)
+				(with-current-buffer (get-buffer-create my-live-speech-output-buffer)
+					(erase-buffer))
+				(setq my-live-speech-recent-words nil
+							my-live-speech-wpm-string "READY ")
+				(setq my-deepgram-process
+							(make-process
+							 :command '("bash" "run.sh")
+							 :name "speech"
+							 :filter 'my-live-speech-json-filter
+							 :sentinel #'my-live-speech-process-sentinel
+							 :buffer my-live-speech-output-buffer)))
+			(org-mode))
+    (display-buffer (current-buffer))))
+
+(defun my-live-speech-stop ()
+	(interactive)
+	(if (process-live-p my-live-speech-process)
+			(kill-process my-live-speech-process))
+	(setq my-live-speech-wpm-string nil))
+
+;; (define-minor-mode my-live-speech-mode
+;; 	"Show live speech and display WPM.
+;; Need to check how to reliably turn this on and off."
+;; 	:global t :group 'sachac
+;; 	(if my-live-speech-mode
+;; 			(my-live-speech-start)
+;; 		(my-live-speech-stop)
+;; 		(setq my-live-speech-wpm-string nil)))
 
 ;; based on subed-mpv::client-filter
-(defun my-live-speech-handle-json (line)
+(defun my-live-speech-handle-json (line-object)
 	"Process the JSON object in LINE."
-	(let-alist (json-parse-string line :object-type 'alist)
-		(let* ((pos (point))
-					 (at-end (eobp)))
-			(goto-char (point-max))
-			(unless (eolp) (insert "\n"))
-			(when .msg
-				(insert .msg "\n"))
-			(when .transcript
-				(insert .transcript "\n"))
-			;; scroll to the bottom if being displayed
-			(if at-end
-					(when (get-buffer-window (current-buffer))
-						(set-window-point (get-buffer-window (current-buffer)) (point)))
-				(goto-char point)))
-		(when .words
-			;; calculate WPM
-			(setq my-live-speech-recent-words
-						(append my-live-speech-recent-words .words nil))
-			(let ((threshold (- (assoc-default 'end (aref .words (1- (length .words))))
-													my-live-speech-wpm-window-seconds)))
-				(setq my-live-speech-recent-words
-							(seq-filter
-							 (lambda (o)
-								 (>= (assoc-default 'start o)
-										 threshold))
-							 my-live-speech-recent-words))
-				(setq my-live-speech-wpm
-							(/
-							 (length my-live-speech-recent-words)
-							 (/ (- (assoc-default 'end (aref .words (1- (length .words))))
-										 (assoc-default 'start (car my-live-speech-recent-words)))
-									60.0)))
-				(setq my-live-speech-wpm-string (my-live-speech-wpm-string))))))
+	(run-hook-with-args 'my-live-speech-functions (json-parse-string line :object-type 'alist)))
 
 (defun my-live-speech-process-sentinel (proc event)
-	(message "proc %s" event)
 	(when (string-match "finished" event)
-		(my-live-speech-mode -1)))
+		(my-live-speech-stop)
+		;(my-live-speech-mode -1)
+		))
 
 (defun my-live-speech-json-filter (proc string)
 	(when (buffer-live-p (process-buffer proc))
@@ -3899,30 +4719,54 @@ my-subed-record-wpm
 							(delete-region pos (+ end 1))
 							(with-current-buffer (get-buffer my-live-speech-buffer)
 								(my-live-speech-handle-json line)))))))))
+#+end_src
 
-(defun my-live-speech-setup ()
-	"Turn on live captions."
-	(interactive)
+Python code based on [[https://developers.deepgram.com/docs/getting-started-with-the-streaming-test-suite][the Deepgram streaming test suite]]:
+
+#+begin_my_details Very rough app.py
+#+INCLUDE: ~/proj/deepgram-live/app.py src python
+#+end_my_details
+
+The Python script sends the microphone stream to Deepgram and prints
+out the JSON output. The Emacs Lisp code starts an asynchronous
+process and reads the JSON output, displaying the transcript and
+calculating the WPM based on the words. run.sh just loads the venv for
+this project (requirements.txt based on the streaming text suite) and
+then runs app.py, since some of the Python library versions conflict
+with other things I want to experiment with.
+
+I also added
+=my-live-speech-wpm-string= to my =mode-line-format= manually using
+Customize, since I wanted it displayed on the left side instead of
+getting lost when I turn =keycast-mode= on.
+
+I'm still a little anxious about accidentally leaving a process
+running, so I check with =ps aux | grep python3=. Eventually I'll
+figure out how to make sure everything gets properly stopped when I'm
+done.
+
+Anyway, there it is!
+
+***** Display in speech buffer
+
+#+begin_src emacs-lisp
+(defun my-live-speech-display-in-speech-buffer (recognition-results)
 	(with-current-buffer (get-buffer-create my-live-speech-buffer)
-		(if (process-live-p my-live-speech-process) (kill-process my-live-speech-process))
-		(let ((default-directory "~/proj/deepgram-live"))
-			(message "%s" default-directory)
-			(with-current-buffer (get-buffer-create my-live-speech-output-buffer)
-				(erase-buffer))
-			(setq my-live-speech-recent-words nil)
-			(setq my-deepgram-process
-						(make-process
-						 :command '("bash" "run.sh")
-						 :name "speech"
-						 :filter 'my-live-speech-json-filter
-						 :sentinel #'my-live-speech-process-sentinel
-						 :buffer my-live-speech-output-buffer)))
-    (org-mode)
-    (display-buffer (current-buffer))))
+		(let-alist recognition-results
+			(let* ((pos (point))
+						 (at-end (eobp)))
+				(goto-char (point-max))
+				(unless (eolp) (insert "\n"))
+				(when .msg
+					(insert .msg "\n"))
+				(when .transcript
+					(insert .transcript "\n"))
+				;; scroll to the bottom if being displayed
+				(if at-end
+						(when (get-buffer-window (current-buffer))
+							(set-window-point (get-buffer-window (current-buffer)) (point)))
+					(goto-char pos))))))
 
-(defun my-live-speech-stop ()
-	(interactive)
-	(if (process-live-p my-live-speech-process) (kill-process my-live-speech-process)))
 (defun my-live-speech-toggle-heading ()
 	"Toggle a line as a heading."
 	(interactive)
@@ -3949,6 +4793,53 @@ my-subed-record-wpm
 			(run-hook-with-args 'org-cycle-hook 'contents))))
 #+end_src
 
+***** Display words per minute
+#+begin_src emacs-lisp
+(defvar my-live-speech-wpm-window-seconds 15 "How many seconds to calculate WPM for.")
+(defvar my-live-speech-recent-words nil "Words spoken in `my-live-speech-wpm-window-minutes'.")
+(defvar my-live-speech-wpm nil "Current WPM.")
+(defvar my-live-speech-wpm-colors  ; haven't figured out how to make these work yet
+	'((180 :foreground "red")
+		(170 :foreground "yellow")
+		(160 :foreground "green")))
+(defvar my-live-speech-wpm-string nil "Add this somewhere in `mode-line-format'.")
+(defun my-live-speech-wpm-string ()
+	(propertize
+	 (format "%d WPM " my-live-speech-wpm)
+	 'face
+	 (cdr (seq-find (lambda (row) (> my-live-speech-wpm (car row))) my-live-speech-wpm-colors))))
+
+(defun my-live-speech-display-wpm (recognition-results)
+	(let-alist recognition-results
+		(when .words
+			;; calculate WPM
+			(setq my-live-speech-recent-words
+						(append my-live-speech-recent-words .words nil))
+			(let ((threshold (- (assoc-default 'end (aref .words (1- (length .words))))
+													my-live-speech-wpm-window-seconds)))
+				(setq my-live-speech-recent-words
+							(seq-filter
+							 (lambda (o)
+								 (>= (assoc-default 'start o)
+										 threshold))
+							 my-live-speech-recent-words))
+				(setq my-live-speech-wpm
+							(/
+							 (length my-live-speech-recent-words)
+							 (/ (- (assoc-default 'end (aref .words (1- (length .words))))
+										 (assoc-default 'start (car my-live-speech-recent-words)))
+									60.0)))
+				(setq my-live-speech-wpm-string (my-live-speech-wpm-string))))))
+#+end_src
+
+***** Append to EmacsConf Etherpad
+
+#+begin_src emacs-lisp
+(defvar my-live-speech-etherpad-id nil)
+(defun my-live-speech-append-to-etherpad (recognition-results)
+	(when my-live-speech-etherpad-id
+		(emacsconf-pad-append-text my-live-speech-etherpad-id (concat " " (assoc-default 'transcript recognition-results)))))
+#+end_src
 ** Multimedia
 :PROPERTIES:
 :CUSTOM_ID: multimedia
@@ -3978,6 +4869,17 @@ my-subed-record-wpm
               ("C-c C-w" . elfeed-tube-mpv-where)))
 #+end_src
 
+#+begin_src emacs-lisp
+(use-package emms
+	:config
+	(require 'emms-player-simple)
+  (require 'emms-source-file)
+  (require 'emms-source-playlist)
+	(require 'emms-player-mpv)
+  (setq emms-player-list '(emms-player-mpv))
+
+	)
+#+end_src
 ** Plover
    :PROPERTIES:
    :CUSTOM_ID: plover
@@ -5422,6 +6324,74 @@ Filling in for obsolete functions
   )
 #+end_src
 
+*** Demarcate, but for begin_notes?                            :emacs:config:
+
+https://scripter.co/splitting-an-org-block-into-two/
+
+#+begin_src emacs-lisp
+(defun modi/org-in-any-block-p ()
+  "Return non-nil if the point is in any Org block.
+
+The Org block can be *any*: src, example, verse, etc., even any
+Org Special block.
+
+This function is heavily adapted from `org-between-regexps-p'."
+  (save-match-data
+    (let ((pos (point))
+          (case-fold-search t)
+          (block-begin-re "^[[:blank:]]*#\\+begin_\\(?1:.+?\\)\\(?: .*\\)*$")
+          (limit-up (save-excursion (outline-previous-heading)))
+          (limit-down (save-excursion (outline-next-heading)))
+          beg end)
+      (save-excursion
+        ;; Point is on a block when on BLOCK-BEGIN-RE or if
+        ;; BLOCK-BEGIN-RE can be found before it...
+        (and (or (org-in-regexp block-begin-re)
+                 (re-search-backward block-begin-re limit-up :noerror))
+             (setq beg (match-beginning 0))
+             ;; ... and BLOCK-END-RE after it...
+             (let ((block-end-re (concat "^[[:blank:]]*#\\+end_"
+                                         (match-string-no-properties 1)
+                                         "\\( .*\\)*$")))
+               (goto-char (match-end 0))
+               (re-search-forward block-end-re limit-down :noerror))
+             (> (setq end (match-end 0)) pos)
+             ;; ... without another BLOCK-BEGIN-RE in-between.
+             (goto-char (match-beginning 0))
+             (not (re-search-backward block-begin-re (1+ beg) :noerror))
+             ;; Return value.
+             (cons beg end))))))
+
+(defun modi/org-split-block ()
+  "Sensibly split the current Org block at point."
+  (interactive)
+  (if (modi/org-in-any-block-p)
+      (save-match-data
+        (save-restriction
+          (widen)
+          (let ((case-fold-search t)
+                (at-bol (bolp))
+                block-start
+                block-end)
+            (save-excursion
+              (re-search-backward "^\\(?1:[[:blank:]]*#\\+begin_.+?\\)\\(?: .*\\)*$" nil nil 1)
+              (setq block-start (match-string-no-properties 0))
+              (setq block-end (replace-regexp-in-string
+                               "begin_" "end_" ;Replaces "begin_" with "end_", "BEGIN_" with "END_"
+                               (match-string-no-properties 1))))
+            ;; Go to the end of current line, if not at the BOL
+            (unless at-bol
+              (end-of-line 1))
+            (insert (concat (if at-bol "" "\n")
+                            block-end
+                            "\n\n"
+                            block-start
+                            (if at-bol "\n" "")))
+            ;; Go to the line before the inserted "#+begin_ .." line
+            (beginning-of-line (if at-bol -1 0)))))
+    (message "Point is not in an Org block")))
+#+end_src
+
 *** My files
 :PROPERTIES:
 :CUSTOM_ID: org-files
@@ -6408,6 +7378,7 @@ redefine =<l= to insert a Lisp block instead.
       '(("a" . "export ascii")
         ("c" . "center")
         ("C" . "comment")
+				("d" . "my_details")
         ("e" . "example")
         ("E" . "export")
         ("m" . "export md")
@@ -7631,6 +8602,117 @@ Here's a function like =my-org-prepare-weekly-review=:
 :PROPERTIES:
 :CUSTOM_ID: filing
 :END:
+**** DONE Automatically refiling Org Mode headings based on tags  :org:emacs:
+CLOSED: [2023-12-28 Thu 15:57]
+:PROPERTIES:
+:CREATED:  [2023-12-11 Mon 21:29]
+:CUSTOM_ID: refile-tags
+:EXPORT_DATE: 2023-12-28T15:53:13-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2023/12/automatically-refiling-org-mode-headings-based-on-tags/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2023/12/automatically-refiling-org-mode-headings-based-on-tags/
+:END:
+:LOGBOOK:
+- State "DONE"       from "TOBLOG"     [2023-12-28 Thu 15:57]
+- State "TODO"       from "BLOCKED"    [2023-12-25 Mon 21:18]
+:END:
+
+I have lots of different things in my Org Mode inbox. Following the [[https://fortelabs.com/blog/para/][PARA]] method, I want to file them under projects, areas, resources, or archive so that I can find related things later. Actually, no, I don't /want/ to refile them. I do want to be able to:
+
+- find all the pieces related to something when I'm ready to start working on a task
+- find useful links again, especially if I can use my own words
+
+Refiling is annoying on my phone, so I tend to wait until I'm back at
+my computer. But even with ~org-refile-use-outline-path~ set to ~file~
+and the ability to specify substrings, there's still a bit of
+friction.
+
+Tagging is a little easier to do on my phone. I can add a few tags
+when I share a webpage or create a task.
+
+I thought it would be nice to have something that automatically
+refiles my inbox headings tagged with various tags to other subtrees
+where I've set a ~:TAG_TARGET:~ property or something like that. For
+example, I can set the ~TAG_TARGET~ property to ~emacsconf~ to mean
+that anything tagged with ~:emacsconf:~ should get filed under there.
+
+https://emacs.stackexchange.com/questions/36360/recursively-refiling-all-subtrees-with-tag-to-a-destination-org-mode ...
+
+#+begin_src emacs-lisp
+(defcustom my-org-refile-to-ids nil
+	"Searches and IDs."
+	:group 'sacha
+	:type '(repeat (cons string string)))
+
+(defun my-org-update-tag-targets ()
+	(interactive)
+	(setq my-org-refile-to-ids
+				(let (list)
+					(org-map-entries
+					 (lambda ()
+						 (cons (concat "+" (org-entry-get (point) "TAG_TARGET"))
+									 (org-id-get-create)))
+					 "TAG_TARGET={.}" 'agenda)))
+	(customize-save-variable 'my-org-refile-to-ids my-org-refile-to-ids))
+
+(defun my-org-add-tag-target (tag)
+	(interactive "MTag: ")
+	(org-entry-put (point) "TAG_TARGET" tag)
+	(push (cons (concat "+" tag) (org-id-get-create)) my-org-refile-to-ids)
+	(customize-save-variable 'my-org-refile-to-ids my-org-refile-to-ids))
+
+;; Based on https://emacs.stackexchange.com/questions/36360/recursively-refiling-all-subtrees-with-tag-to-a-destination-org-mode
+(defun my-org-refile-matches-to-heading (match target-heading-id &optional scope copy)
+  "Refile all headings within SCOPE (per `org-map-entries') to TARGET-HEADING-ID."
+  (if-let (target-marker (org-id-find target-heading-id t))
+      (let* ((target-rfloc (with-current-buffer (marker-buffer target-marker)
+                             (goto-char target-marker)
+                             (list (org-get-heading)
+                                   (buffer-file-name (marker-buffer target-marker))
+                                   nil
+                                   target-marker)))
+             (headings-to-copy (org-map-entries (lambda () (point-marker)) match scope)))
+        (mapc
+         (lambda (heading-marker)
+           (with-current-buffer (marker-buffer heading-marker)
+             (goto-char heading-marker)
+             (org-refile nil nil target-rfloc (when copy "Copy"))))
+         (nreverse headings-to-copy))
+        (message "%s %d headings!"
+                 (if copy "Copied" "Refiled")
+                 (length headings-to-copy)))
+    (warn "Could not find target heading %S" target-heading-id)))
+
+(defun my-org-refile-to-tag-targets ()
+	(interactive)
+	(dolist (rule my-org-refile-to-ids)
+		(my-org-refile-matches-to-heading (car rule) (cdr rule))))
+
+(defun my-org-refile-inbox-to-tag-targets ()
+	(interactive)
+	(with-current-buffer (find-file-noselect my-org-inbox-file)
+		(dolist (rule my-org-refile-to-ids)
+			(my-org-refile-matches-to-heading (car rule) (cdr rule) 'file))))
+
+#+end_src
+
+So when I'm ready, I can call ~my-org-refile-to-tag-targets~ and have
+lots of things disappear from my inbox.
+
+Next step might be to write a function that will refile just the
+current subtree (either going straight to the tag target or prompting
+me for a destination if there isn't a matching one), so I can look at
+stuff, decide if it needs to be scheduled first or something like
+that, and then send it somewhere. There must be something I can pass a
+property match to and it'll tell me if it matches the current
+subtree - probably something along the lines of
+~org-make-tags-matcher~...
+
+Anyway, just wanted to share this!
+
+#+begin_comment
+[[https://emacs.ch/@sachac/111565087453778459][My Mastodon toot]]
+#+end_comment
+
 **** Moving lines around
 :PROPERTIES:
 :CUSTOM_ID: destination
@@ -7893,6 +8975,15 @@ From https://isamert.net/2022/01/04/dealing-with-apis-jsons-and-databases-in-org
         (insert node)
         (shell-command-on-region (point-min) (point-max) "node -p" nil 't)
         (buffer-string))))))
+#+end_src
+***** JQ
+
+#+begin_src emacs-lisp
+(use-package jq-mode
+	:load-path "~/vendor/jq-mode"
+	:config
+	(org-babel-do-load-languages 'org-babel-load-languages
+															 '((jq . t))))
 #+end_src
 **** Let's try literate-elisp
 :PROPERTIES:
@@ -8350,12 +9441,13 @@ With prefix arg, move the subtree."
 							(org-element-parse-buffer)
 							'keyword
 						(lambda (el)
-							(list
-							 (org-element-property :key el)
-							 (org-element-property :value el)
-							 (buffer-substring-no-properties
-								(org-element-property :begin el)
-								(org-element-property :end el))))))
+							(when (string-match "ELEVENTY" (org-element-property :key el))
+								(list
+								 (org-element-property :key el)
+								 (org-element-property :value el)
+								 (buffer-substring-no-properties
+									(org-element-property :begin el)
+									(org-element-property :end el)))))))
 				 (entry-properties (org-entry-properties))
 				 (filename (expand-file-name
 										"index.org"
@@ -8590,10 +9682,27 @@ regular src blocks, and to change the HTML export to wrap the code in
 			(format "<details><summary>%s</summary>%s</details>"
 							summary
 							result))))
+
+(defun my-org-11ty-src-block (src-block _contents info)
+	(let* ((result (org-11ty-src-block src-block _contents info))
+				 (block-info
+					(org-with-point-at (org-element-property :begin src-block)
+						(org-babel-get-src-block-info)))
+				 (summary (assoc-default :summary (elt block-info 2))))
+		(if (member summary '("%summary" ""))
+				result
+			(format "<details><summary>%s</summary>%s</details>"
+							summary
+							result))))
+
 (with-eval-after-load 'ox-html
 	(map-put!
 	 (org-export-backend-transcoders (org-export-get-backend 'html))
 	 'src-block 'my-org-html-src-block))
+(with-eval-after-load 'ox-11ty
+	(map-put!
+	 (org-export-backend-transcoders (org-export-get-backend '11ty))
+	 'src-block 'my-org-11ty-src-block))
 #+end_src
 
 So now I can use it by specifying blocks like this:
@@ -9228,6 +10337,16 @@ So that I can easily add links at point. Formatted as an Org list for now.
  :export #'my-org-video-export
  :complete #'my-org-video-complete)
 
+(defun my-org-video-replace-with-permalink ()
+	(interactive)
+	(let* ((elem (org-element-context))
+				 (path (org-element-property :path elem))
+				 (description (org-element-property :description elem))
+				 (permalink (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK" t)))
+		(delete-region (org-element-begin elem) (org-element-end elem))
+		(insert (org-link-make-string (concat "video:https://sachachua.com" permalink (file-name-nondirectory path))
+																	description))))
+
 (defun my-org-video-export (link desc format _)
 	"Export PATH to FORMAT using the specified wrap parameter."
 	(if desc
@@ -9237,16 +10356,16 @@ So that I can easily add links at point. Formatted as an Org list for now.
 			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
 							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query)))))
 				 (format
-				"<video%s%s><source src=\"%s\" type=\"%s\"><a href=\"%s\">Download the video</a></video>"
-				(if (string= (car (assoc-default "controls" params 'string= "1")) "0")
-						""
-					" controls")
-				(if (string= (car (assoc-default "autoplay" params 'string= "1")) "0")
-						""
-					" autoplay")
-				(car path-and-query)
-				(mailcap-file-name-to-mime-type (car path-and-query))
-				(car path-and-query))))
+					"<video%s%s><source src=\"%s\" type=\"%s\"><a href=\"%s\">Download the video</a></video>"
+					(if (string= (or (assoc-default "controls" params 'string= "1") "1") "0")
+							""
+						" controls")
+					(if (string= (or (assoc-default "autoplay" params 'string= "0") "0") "0")
+							""
+						" autoplay")
+					(car path-and-query)
+					(mailcap-file-name-to-mime-type (car path-and-query))
+					(car path-and-query))))
 			(_ path))))
 
 (defun my-org-video-complete ()
@@ -9255,7 +10374,50 @@ So that I can easily add links at point. Formatted as an Org list for now.
 	(concat "video:" (read-file-name "File: ")))
 
 #+end_src
+**** Audio
+#+begin_src emacs-lisp
+(org-link-set-parameters
+ "audio"
+ :export #'my-org-audio-export
+ :complete #'my-org-audio-complete)
 
+(defun my-org-audio-replace-with-permalink ()
+	(interactive)
+	(let* ((elem (org-element-context))
+				 (path (org-element-property :path elem))
+				 (description (org-element-property :description elem))
+				 (permalink (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK" t)))
+		(delete-region (org-element-begin elem) (org-element-end elem))
+		(insert (org-link-make-string (concat "audio:https://sachachua.com" permalink (file-name-nondirectory path))
+																	description))))
+
+(defun my-org-audio-export (link desc format _)
+	"Export PATH to FORMAT using the specified wrap parameter."
+	(if desc
+			(org-export-string-as (org-link-make-string link desc) format)
+		(pcase format
+			((or 'html '11ty 'md)
+			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
+							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query)))))
+				 (format
+					"<audio%s%s src=\"%s\" type=\"%s\"><a href=\"%s\">Download the audio</a></audio>"
+					(if (string= (or (assoc-default "controls" params 'string= "1") "1") "0")
+							""
+						" controls")
+					(if (string= (or (assoc-default "autoplay" params 'string= "0") "0") "0")
+							""
+						" autoplay")
+					(car path-and-query)
+					(mailcap-file-name-to-mime-type (car path-and-query))
+					(car path-and-query))))
+			(_ path))))
+
+(defun my-org-audio-complete ()
+	"Complete audio reference."
+	(interactive)
+	(concat "audio:" (read-file-name "File: ")))
+
+#+end_src
 **** Fix elisp links
 :PROPERTIES:
 :CUSTOM_ID: fix-elisp-links
@@ -11244,61 +12406,6 @@ Copied from https://www.reddit.com/r/emacs/comments/1051bfu/comment/j38ymkn/?utm
   :hook
   (emacs-lisp-mode . flycheck-elsa-setup))
 #+end_src
-**** Making highlight-sexp follow modus-themes-toggle        :elisp:emacs:
-:PROPERTIES:
-:EXPORT_DATE: 2023-01-26T10:25:38-0500
-:EXPORT_ELEVENTY_PERMALINK: /blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/
-:EXPORT_ELEVENTY_FILE_NAME: blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/
-:CUSTOM_ID: making-highlight-sexp-follow-modus-themes-toggle
-:END:
-
-#+begin_update
-[2023-01-27 Fri] Prot just added a [[https://github.com/protesilaos/modus-themes/commit/0ca79257ef941ff5f9ec34f5d76eed2ff35d7752][modus-themes-get-color-value]]
-function. Yay! Also, it turns out that I need to update the overlay in
-all the buffers.
-#+end_update
-
-I'm experimenting with using the ~highlight-sexp~ minor mode to
-highlight my current s-expression, since I sometimes get confused
-about what I'm modifying with smartparens. The highlight-sexp
-background colour is hardcoded in the variable
-~hl-sexp-background-color~, and will probably look terrible if you use
-a light background. I wanted it to adapt when I use
-~modus-themes-toggle~. Here's how that works:
-
-#+CAPTION: highlight-sexp demonstration
-#+begin_src emacs-lisp
-(use-package highlight-sexp
-  :quelpa
-  (highlight-sexp :repo "daimrod/highlight-sexp" :fetcher github :version original)
-  :hook
-  (emacs-lisp-mode . highlight-sexp-mode)
-	:config
-	(defun my-hl-sexp-update-overlay ()
-		(when (overlayp hl-sexp-overlay)
-			(overlay-put
-			 hl-sexp-overlay
-			 'face
-			 `(:background
-				 ,(if (fboundp 'modus-themes-get-color-value)
-							(modus-themes-get-color-value 'bg-inactive)
-						(car
-						 (assoc-default
-							'bg-inactive
-							(modus-themes--current-theme-palette))))))))
-	(defun my-hl-sexp-update-all-overlays (&rest args)
-		(dolist (buf (buffer-list))
-			(with-current-buffer buf
-				(when highlight-sexp-mode
-					(my-hl-sexp-update-overlay)))))
-	(advice-add 'hl-sexp-create-overlay :after 'my-hl-sexp-update-overlay)
-	(advice-add 'modus-themes-load-theme :after 'my-hl-sexp-update-all-overlays))
-#+end_src
-
-This is what it looks like:
-
-#+CAPTION: Animation of highlight-sexp toggling along with modus-themes-toggle
-[[file:/home/sacha/proj/static-blog/blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/highlight-sexp.gif]]
 **** Edebug
 :PROPERTIES:
 :CUSTOM_ID: edebug
@@ -11341,11 +12448,21 @@ From https://xenodium.com/inline-previous-result-and-why-you-should-edebug/
 
 (use-package package-lint)
 #+end_src
+***** ERT
+
+
+#+begin_src emacs-lisp
+(use-package ert
+	:config
+	;; handle truncated lists
+	(advice-add 'ert--pp-with-indentation-and-newline
+							:around (lambda (oldfunc &rest args) (condition-case nil (apply oldfunc args) (error nil)))))
+#+end_src
 ***** Buttercup
 :PROPERTIES:
 :CUSTOM_ID: buttercup
 :END:
-#+begin_src emacs-lisp :lexical t
+#+begin_src emacs-lisp
 (defvar my-buttercup-source-buffer nil)
 (defvar my-buttercup-tests nil)
 (defun my-buttercup-track-source ()
@@ -11703,7 +12820,11 @@ More things that I need to get used to...
         (delete-region (point-min) (point))
         (insert (mapconcat 'cdr list "\n"))))))
 #+end_src
-
+**** Editing lists
+#+begin_src emacs-lisp
+(use-package edit-list
+	:commands edit-list)
+#+end_src
 **** Evaluation
 :PROPERTIES:
 :CUSTOM_ID: evaluation
@@ -12905,6 +14026,9 @@ to things that look like Mastodon URLs by using mastodon.el.
 
 (thanks, [[https://mas.to/@ParetoOptimalDev/109378647927115065][@ParetoOptimalDev]]!)
 *** Copy Mastodon link for Emacs News
+:PROPERTIES:
+:CUSTOM_ID: copy-mastodon-link-for-emacs-news
+:END:
 
 #+begin_src emacs-lisp
 (defun my-emacs-news-copy-mastodon-link ()
@@ -12912,25 +14036,26 @@ to things that look like Mastodon URLs by using mastodon.el.
 	(let ((url (org-entry-get (point) "ITEM")))
 		(when (string-match "https://\\(.+?\\)/\\(@.+?\\)/" url)
 			(kill-new (org-link-make-string url (concat (match-string 2 url) "@" (match-string 1 url)))))))
-(defun my-emacs-news-copy-mastodon-item ()
-	(interactive)
+(defun my-emacs-news-copy-mastodon-item (&optional name-only)
+	(interactive (list current-prefix-arg))
 	(let ((url (thing-at-point 'url))
 				(toot (org-entry-get (point) "ITEM"))
 				attrib)
+		(when (string-match org-link-bracket-re toot)
+			(setq toot (match-string 1 toot)))
 		(when (string-match "https://\\(.+?\\)/\\(@.+?\\)/" toot)
-			(setq attrib (org-link-make-string toot (concat (match-string 2 toot) "@" (match-string 1 toot)))))
+			(setq attrib (org-link-make-string toot
+																				 (concat
+																					(match-string 2 toot) "@" (match-string 1 toot)))))
 		(kill-new
-		 (format "- %s (%s)\n"
-			(org-link-make-string
-			 url
-			 (my-page-title url))
-			attrib))))
+		 (if name-only
+				 (format " (%s)" attrib)
+			 (format "- %s (%s)\n"
+							 (org-link-make-string
+								url
+								(my-page-title url))
+							 attrib)))))
 #+end_src
-
-#+RESULTS:
-:results:
-my-emacs-news-copy-mastodon-item
-:end:
 
 *** Storing Mastodon links in Org mode
 :PROPERTIES:
@@ -12946,7 +14071,7 @@ This snippet makes it easier to store links to posts with
 (defun my-mastodon-store-link ()
   "Store links in Mastodon buffers."
   (when (derived-mode-p 'mastodon-mode)
-    (let ((json (get-text-property (point) 'toot-json)))
+    (let ((json (get-text-property (point) 'item-json)))
       (org-link-store-props
        :link (assoc-default 'url json)
        :content (assoc-default 'content json)
@@ -12973,13 +14098,7 @@ This snippet makes it easier to store links to posts with
    :store 'my-mastodon-store-link)
   (add-to-list 'org-capture-templates
                `("m" "Mastodon" entry (file ,my-org-inbox-file)
-                 "* %?
-
-,#+begin_quote
-%:text
-,#+end_quote
-
-%a"
+                 "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n%a"
                  :prepend t)))
 #+end_src
 *** Collecting Emacs News from Mastodon
@@ -12994,13 +14113,13 @@ News. I want to boost the post and save it to an Org file, and I can
 do that with a single keystroke. It uses the my-mastodon-store-link
 defined elsewhere in [[https://sachachua.com/dotemacs/#mastodon][my config]].
 
-#+begin_src emacs-lisp :noweb yes
+#+begin_src emacs-lisp
 (use-package org
 	:config
 	(add-to-list
 	 'org-capture-templates
    '("w" "Emacs News" entry (file+headline "~/sync/orgzly/organizer.org" "Collect Emacs News")
-     "* %a
+     "* %a  :news:
 
 ,#+begin_quote
 %:text
@@ -13284,12 +14403,13 @@ the Marionette support in Firefox, but I haven't looked into it yet.
 
 #+begin_src emacs-lisp
 (use-package spookfox
-	:quelpa (spookfox :fetcher github :repo "bitspook/spookfox"
-										:files ("lisp/*.el" "lisp/apps/*.el"))
+	;:quelpa (spookfox :fetcher github :repo "bitspook/spookfox"
+  ; :files ("lisp/*.el" "lisp/apps/*.el"))
+	:load-path "~/vendor/spookfox"
 	:when my-laptop-p
 	:config
 	(require 'spookfox-tabs)
-	(require 'spookfox-org-tabs)
+	;(require 'spookfox-org-tabs)
 	(require 'spookfox-js-injection)
 	(add-to-list 'spookfox-enabled-apps 'spookfox-tabs)
 	(add-to-list 'spookfox-enabled-apps 'spookfox-org-tabs)
@@ -13303,11 +14423,11 @@ Anyway, this code seems to do the job of scrolling my Firefox window:
 #+begin_src emacs-lisp
 (defun my-spookfox-scroll-down ()
 	(interactive)
- 	(spookfox-eval-js-in-active-tab "window.scrollBy(0, document.documentElement.clientHeight);"))
+ 	(spookfox-js-injection-eval-in-active-tab "window.scrollBy(0, document.documentElement.clientHeight);" t))
 
 (defun my-spookfox-scroll-up ()
 	(interactive)
- 	(spookfox-eval-js-in-active-tab "window.scrollBy(0, -document.documentElement.clientHeight);"))
+ 	(spookfox-js-injection-eval-in-active-tab "window.scrollBy(0, -document.documentElement.clientHeight);"))
 
 (global-set-key (kbd "C-s-v") 'my-spookfox-scroll-down)
 (global-set-key (kbd "C-s-S-v") 'my-spookfox-scroll-up)
@@ -14780,11 +15900,6 @@ TIMECODE-TIME is an alist of (timecode-string . elisp-time)."
                  (format "--title=%s" (shell-quote-argument (file-name-base recording)))
                  (format "--client-secrets=%s" google-video-credentials)))
     #+end_src
-*** Live captions
-:PROPERTIES:
-:CUSTOM_ID: live-captions
-:END:
-
 *** Stream notes
 :PROPERTIES:
 :CUSTOM_ID: stream-notes
@@ -15042,10 +16157,7 @@ Skip this for now
    with =#+NAME: bindings=, replaced the links with plain text, and added
    a third column with the category I wanted to put commands into.
 
-   #+begin_export html
-   <details><summary>#bindings</summary>
-   #+end_export
-
+   #+begin_my_details :summary Bindings
    #+NAME: bindings
    | key | function                      | column   |
    |-----+-------------------------------+----------|
@@ -15118,14 +16230,12 @@ Skip this for now
    | M   | lispy-multiline               | Other    |
    | xh  | lispy-describe                | Other    |
    | m   | lispy-mark-list               | Other    |
+   #+end_my_details
 
-   #+begin_export html
-   </details>
-   #+end_export
 
    I wrote this Emacs Lisp code with the header arguments =#+begin_src emacs-lisp :var bindings=bindings :colnames yes=:
 
-   #+BEGIN_SRC emacs-lisp :var bindings=bindings :colnames yes :results silent :exports code
+   #+begin_src emacs-lisp :var bindings=bindings :colnames yes
 (eval
  (append
   '(defhydra my-lispy-cheat-sheet (:hint nil :foreign-keys run)
@@ -15555,7 +16665,7 @@ In termux, you also need to =pkg install diffutils=.
   :load-path "~/proj/emacsconf/lisp")
 (global-set-key (kbd "M-g t") 'emacsconf-go-to-talk)
 #+end_src
-** ChatGPT, AI
+** ChatGPT, AI, and large-language models
 :PROPERTIES:
 :CUSTOM_ID: chatgpt-ai
 :END:
@@ -15570,6 +16680,14 @@ In termux, you also need to =pkg install diffutils=.
 	:disabled t
   :quelpa (khoj :fetcher github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
   :bind ("C-c s" . 'khoj))
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package gptel
+	:commands (gptel gptel-send gptel-set-topic gptel-menu)
+	:hook
+	(gptel-post-stream . gptel-auto-scroll)
+	(gptel-post-response . gptel-end-of-response))
 #+end_src
 ** Evil mode
 :PROPERTIES:
@@ -16247,6 +17365,245 @@ easier to discover commands.
     #+begin_src emacs-lisp
 (auto-image-file-mode -1)
     #+end_src
+**** TODO How can I generate PNG frames that step through the highlights?
+
+Ugh, ordering things is annoying. So let's step through things ourselves and ID them.
+
+#+begin_src emacs-lisp
+(defvar my-svg-auto-resize-timer nil)
+;; based on image-mode
+(defun my-svg-resize-with-window (window)
+	(when (numberp image-auto-resize-on-window-resize)
+    (when my-svg-auto-resize-timer
+      (cancel-timer my-svg-auto-resize-timer))
+    (setq my-svg-auto-resize-timer
+          (run-with-idle-timer 1 nil
+                               #'my-svg-fit-to-window window))))
+(defun my-svg-fit-to-window (window)
+	(when (window-live-p window)
+    (with-current-buffer (window-buffer window)
+      (let ((spec (get-text-property (point-min) 'display)))
+        (when (eq (car-safe spec) 'image)
+          (let* ((image-width  (plist-get (cdr spec) :max-width))
+                 (image-height (plist-get (cdr spec) :max-height))
+                 (edges (window-inside-pixel-edges window))
+                 (window-width  (- (nth 2 edges) (nth 0 edges)))
+                 (window-height (- (nth 3 edges) (nth 1 edges))))
+            ;; If the size has been changed manually (with `+'/`-'),
+            ;; then :max-width/:max-height is nil.  In that case, do
+            ;; no automatic resizing.
+            (when (and image-width image-height
+                       ;; Don't do resizing if we have a manual
+                       ;; rotation (from the `r' command), either.
+                       (not (plist-get (cdr spec) :rotation))
+                       (or (not (= image-width  window-width))
+                           (not (= image-height window-height))))
+              (unless image-fit-to-window-lock
+                (unwind-protect
+                    (progn
+                      (setq-local image-fit-to-window-lock t)
+                      (ignore-error remote-file-error
+												(setcdr spec
+																(plist-put
+																 (plist-put (cdr spec) :max-width window-width)
+																 :max-height window-height))
+												(put-text-property (point-min) (1+ (point-min))
+																					 'display spec)))
+                  (setq image-fit-to-window-lock nil))))))))))
+
+(defun my-svg-display (buffer-name svg &optional highlight-id)
+	(with-current-buffer (get-buffer-create buffer-name)
+		(when highlight-id
+			;; make a copy
+			(setq svg (with-temp-buffer (svg-print svg) (car (xml-parse-region (point-min) (point-max)))))
+			(if-let ((path (dom-by-id svg highlight-id)))
+					(dom-set-attribute path 'style
+														 (concat (dom-attr path 'style) "; stroke: 1px red; fill: #ff0000 !important"))
+				(error "Could not find %s" highlight-id)))
+		(let* ((inhibit-read-only t)
+					 (image (svg-image svg))
+					 (edges (window-inside-pixel-edges (get-buffer-window))))
+			(erase-buffer)
+			(display-buffer (current-buffer))
+			(insert-image (append image
+														(list :max-width
+																	(floor (* 0.8 (- (nth 2 edges) (nth 0 edges))))
+																	:max-height
+																	(floor (* 0.8 (- (nth 3 edges) (nth 1 edges)))) )))
+			;; (my-svg-resize-with-window (selected-window))
+			;; (add-hook 'window-state-change-functions #'my-svg-resize-with-window t)
+			)))
+
+(defun my-svg-reorder-paths (filename &optional ids output-filename)
+	(interactive (list (read-file-name "SVG: " nil nil (lambda (f) (string-match "\\.svg$" f)))
+										 nil (read-file-name "Output: ")))
+	(let* ((dom (car (xml-parse-file filename)))
+				 (paths (dom-by-tag dom 'path))
+				 (parent (dom-parent dom (car paths)))
+				 (ids-left
+					(nreverse (seq-keep (lambda (path)
+																(unless (string-match "path[0-9]+" (or (dom-attr path 'id) "path0"))
+																	(dom-attr path 'id)))
+															paths)))
+				 list)
+		(when (called-interactively-p)
+			(while ids-left
+				(my-svg-display "*image*" dom (car ids-left))
+				(let ((current (completing-read
+												(format "ID (%s): "
+																(car ids-left))
+												ids-left nil nil nil nil (car ids-left)))
+							node)
+					(add-to-list 'ids current)
+					(setq ids-left (seq-remove (lambda (o) (string= o current)) ids-left)))))
+		(if ids ;; reorganize under the first path's parent
+				(progn
+					(dolist (id (nreverse ids))
+						(if-let ((node (car (dom-by-id dom id))))
+								(progn
+									(dom-remove-node dom node)
+									(dom-append-child parent node))
+							(message "Could not find %s" id)))
+					(with-temp-file (or output-filename filename)
+						(svg-print dom))))
+		(nreverse (seq-keep (lambda (path)
+													(unless (string-match "path[0-9]+" (or (dom-attr path 'id) "path0"))
+														(dom-attr path 'id)))
+												(dom-by-tag dom 'path)))))
+
+
+(defun my-svg-identify-paths (filename)
+	"Prompt for IDs for each path in FILENAME."
+	(interactive (list (read-file-name "SVG: " nil nil
+																		 (lambda (f) (string-match "\\.svg$" f)))))
+	(let* ((dom (car (xml-parse-file filename)))
+				 (paths (dom-by-tag dom 'path))
+				 (ids (seq-keep (lambda (path)
+													(unless (string-match "path[0-9]+" (or (dom-attr path 'id) "path0"))
+														(dom-attr path 'id)))
+												paths))
+				 (edges (window-inside-pixel-edges (get-buffer-window)))
+				 id)
+		(my-svg-display "*image*" dom)
+		(dolist (path paths)
+			(when (string-match "path[0-9]+" (or (dom-attr path 'id) "path0"))
+				;; display the image with an outline
+				(unwind-protect
+						(progn
+							(my-svg-display "*image*" dom (dom-attr path 'id))
+							(setq id (completing-read "ID: " ids))
+							;; already exists, merge with existing element
+							(if-let ((old (dom-by-id dom id)))
+									(progn
+										(dom-set-attribute
+										 old
+										 'd
+										 (concat (dom-attr (dom-by-id dom id) 'd)
+														 " "
+														 ;; change relative to absolute
+														 (replace-regexp-in-string "^m" "M"
+																											 (dom-attr path 'd))))
+										(dom-remove-node dom path)
+										(setq id nil))
+								(dom-set-attribute path 'id id)
+								(add-to-list 'ids id)))
+					(when id
+						(dom-set-attribute path 'style old-style)))
+				;; save the image just in case we get interrupted halfway through
+				(with-temp-file filename
+					(svg-print dom))))))
+#+end_src
+
+#+begin_src emacs-lisp
+(my-svg-reorder-paths "~/proj/2023-12-audio-workflow/map.svg")
+#+end_src
+
+#+begin_src emacs-lisp
+(my-svg-reorder-paths "~/proj/2023-12-audio-workflow/map.svg"
+											'("t-start" "h-audio" "h-capture" "t-but" "t-mic" "h-mic"
+												"t-reviewing" "h-reviewing"
+												"t-words" "h-words" "t-workflow" "h-workflow"
+												"t-lapel"
+												"h-lapel"
+												"mic-recorder"
+												"t-recorder"
+												"h-recorder"
+												"t-syncthing" "h-sync"
+												"t-keywords" "h-keywords" "t-keyword-types"
+												"t-lines"
+												"h-lines"
+												"t-align"
+												"h-align"
+												"arrow"
+												"t-org" "h-org" "t-todo" "h-todo"
+												"t-jump" "h-jump"
+												"t-waveform" "h-waveform"
+												"t-someday"
+												"h-sections"
+												"t-speech-recognition" "h-speech-recognition"
+												"t-ai"
+												"h-ai"
+												"t-summary" "h-summary"
+												"extra")
+											"~/proj/2023-12-audio-workflow/map-output.svg"
+											)
+#+end_src
+
+#+begin_src emacs-lisp
+(defun my-animate-svg-highlights (filename output-dir &optional reverse)
+	"Add one path at a time. Save the resulting SVGs to OUTPUT-DIR.
+If REVERSE is non-nil, do things in the reverse order."
+	(let* ((dom (xml-parse-file filename))
+				 (paths (seq-filter (lambda (e) (dom-attr e 'style))
+														(dom-by-tag dom 'path)))
+				 (total (length paths))
+				 (frame-num (length paths))
+				 result)
+		(copy-file filename (expand-file-name (format "frame-%03d.svg" (1+ frame-num)) output-dir) t)
+		(when reverse
+			(dolist (elem paths)
+				(dom-set-attribute elem 'style
+													 (concat
+														(dom-attr elem 'style)
+														";fill-opacity:0"))))
+		(dolist (elem paths)
+			(with-temp-file (expand-file-name
+											 (format "frame-%03d.svg"
+															 (if reverse
+																	 (- total frame-num)
+																 frame-num))
+											 output-dir)
+				(message "%03d" frame-num)
+				(if reverse
+						(dom-set-attribute elem 'style
+														 (concat (dom-attr elem 'style)
+																		 ";fill-opacity:1"))
+					(dom-set-attribute elem 'style "opacity:0"))
+				(push (list (format "frame-%03d.svg"
+														(1+ (if reverse
+																		(- total frame-num)
+																	frame-num)))
+										(dom-attr elem 'id))
+							result)
+				(setq frame-num (1- frame-num))
+				(xml-print dom)))
+		result))
+#+end_src
+
+Example:
+
+#+begin_src emacs-lisp :tangle no :eval no
+(my-animate-svg-highlights "~/proj/2023-12-audio-workflow/map-output.svg"
+													 "~/proj/2023-12-audio-workflow/frames/")
+#+end_src
+
+for FILE in *.svg; do inkscape --export-type=png --export-dpi=96 --export-background-opacity=1 $FILE; done
+
+One image per second
+- ffmpeg -i frame-%03d.svg.png -vf palettegen palette.png
+- ffmpeg -f image2 -framerate 1 -i frame-%03d.svg.png -loop -1 animation.gif
+- ffmpeg -framerate 1 -i frame-%03d.svg.png -i palette.png -lavfi "paletteuse" -loop -1 animation.gif
+
 *** Finding sketches
 :PROPERTIES:
 :CUSTOM_ID: finding-sketches

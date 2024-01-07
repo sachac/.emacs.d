@@ -145,7 +145,7 @@ Here's how we start:
 							(replace-regexp-in-string
 							 "^-\\|-$" ""
 							 (replace-regexp-in-string "[^A-Za-z0-9]+" "-"
-																				 (downcase (org-entry-get (point) "ITEM"))))))
+																				 (downcase (string-join (org-get-outline-path t) " "))))))
 				 (while (member slug custom-ids)
 					 (setq slug (read-string "Manually set custom ID: ")))
 				 (org-entry-put (point) "CUSTOM_ID" slug)))
@@ -743,71 +743,73 @@ I like marginalia for M-x, but I've gotten used to Helm for finding files.
 :END:
 
      #+begin_src emacs-lisp
-(defun my-date-from-filename (filename)
-  (let ((f (file-name-nondirectory filename)))
-    (if (string-match "^[-0-9]+" f)
-        (replace-regexp-in-string "[^0-9]" "" (match-string 0 f))
-      nil)))
+       (defun my-date-from-filename (filename)
+         (let ((f (file-name-nondirectory filename)))
+           (if (string-match "^[-0-9]+" f)
+               (replace-regexp-in-string "[^0-9]" "" (match-string 0 f))
+             nil)))
 
-(defvar my-sketches nil "Cache for sketch filenames.")
-(defun my-update-sketch-cache ()
-  (interactive)
-  (setq my-sketches (sort
-                          (apply 'append (mapcar (lambda (dir)
-                                                   (directory-files dir t "\\.\\(jpe?g\\|png\\|svg\\)$"))
-                                                 my-sketch-directories))
-                          (lambda (a b)
-                            (string< (concat (or (my-date-from-filename b) "0") (file-name-nondirectory b))
-                                     (concat (or (my-date-from-filename a) "0") (file-name-nondirectory a)) )))))
+       (defvar my-sketches nil "Cache for sketch filenames.")
+       (defun my-sketches ()
+         (interactive)
+         (sort
+          (apply 'append (mapcar (lambda (dir)
+                                   (directory-files dir t "\\.\\(jpe?g\\|png\\|svg\\)$"))
+                                 my-sketch-directories))
+          (lambda (a b)
+            (string< (concat (or (my-date-from-filename b) "0") (file-name-nondirectory b))
+                     (concat (or (my-date-from-filename a) "0") (file-name-nondirectory a))))))
 
-(defun my-preview-image (candidate state)
-  (when (and my-sketch-preview candidate) (my-geeqie-view (list candidate)))
-  nil)
+       (defun my-preview-image (candidate state)
+         (when (and my-sketch-preview candidate) (my-geeqie-view (list candidate)))
+         nil)
 
-(defvar my-sketch-preview nil "Non-nil means preview images.")
-(defun my-find-sketch (file)
-	(interactive (list (my-complete-sketch-filename)))
-	(find-file file))
-(defun my-complete-sketch-filename ()
-  (interactive)
-  (consult--read (or my-sketches (my-update-sketch-cache))
-   :sort nil
-   :state 'my-preview-image
-   :prompt "Sketch: "
-   :category 'sketch))
+       (defvar my-sketch-preview nil "Non-nil means preview images.")
+       (defun my-find-sketch (file)
+       	(interactive (list (my-complete-sketch-filename)))
+       	(find-file file))
+       (defun my-complete-sketch-filename ()
+         (interactive)
+         (consult--read (my-sketches)
+          :sort nil
+          :state 'my-preview-image
+          :prompt "Sketch: "
+          :category 'sketch))
 
-(defun my-sketch-prepare-post (file)
-	(interactive (list (my-complete-sketch-filename)))
-	(insert (org-link-make-string (concat "sketchFull:" (file-name-base file))))
-	(let ((text (my-sketch-text file)))
-		(when text
-			(insert (format
-							 "\n\n#+begin_my_src \"Text from %s\"\n%s\n#"))
-			)
+       (defun my-sketch-prepare-post (file)
+       	(interactive (list (my-complete-sketch-filename)))
+       	(insert (org-link-make-string (concat "sketchFull:" (file-name-base file))))
+       	(let ((text (my-sketch-text file)))
+       		(when text
+       			(insert (format
+       							 "\n\n#+begin_my_src \"Text from %s\"\n%s\n#"))
+       			)
 
-		)
-)
+       		)
+       )
 
-(defun my-sketch-text (file)
-	(setq file
-				(if (string-match ".json" file) file
-					(concat (file-name-sans-extension file) ".json")))
-	(when (file-exists-p file)
-		(with-temp-buffer
-			(insert-file-contents file)
-			(goto-char (point-min))
-			(let ((json-object-type 'alist))
-				(assoc-default 'description (elt (assoc-default 'textAnnotations (json-read)) 0))))))
+       (defun my-sketch-text (file)
+       	(setq file
+       				(if (string-match ".json" file) file
+       					(concat (file-name-sans-extension file) ".json")))
+       	(when (file-exists-p file)
+       		(with-temp-buffer
+       			(insert-file-contents file)
+       			(goto-char (point-min))
+       			(let ((json-object-type 'alist))
+       				(assoc-default 'description (elt (assoc-default 'textAnnotations (json-read)) 0))))))
 
-(defun my-sketch-insert-text-from-json (file)
-	(interactive "FJSON: ")
-	(let ((text (my-sketch-text file)))
-		(insert (or text ""))))
+       (defun my-sketch-insert-text-from-json (file)
+       	(interactive "FJSON: ")
+       	(let ((text (my-sketch-text file)))
+       		(insert (or text ""))))
 
-(use-package marginalia
-  :config
-  (add-to-list 'marginalia-prompt-categories '("sketch" . sketch)))
-     #+end_src
+       (use-package marginalia
+       	:config
+       	(add-to-list 'marginalia-prompt-categories '("sketch" . sketch))
+       	(add-to-list 'marginalia-censor-variables "-api-key"))
+#+end_src
+
 **** Consult directory navigation
 :PROPERTIES:
 :CUSTOM_ID: consult-directory-navigation
@@ -874,7 +876,7 @@ This is the annotator function I used to have:
             (print-escape-multibyte t))
         (prin1-to-string
          (cond
-          ((string-match "pass" cand) "*******")
+          ((string-match "pass\\|key" cand) "*******")
           ((boundp sym) (symbol-value sym))
           (t 'unbound))))
       :truncate (/ marginalia-truncate-width 3) :face 'marginalia-variable)
@@ -974,6 +976,80 @@ I used to annotate functions with their arguments, but that seems to be built-in
 (with-eval-after-load 'embark
 	(define-key embark-file-map "O" #'my-insert-file-as-org-include))
 #+end_src
+**** TODO Using Embark to act on images
+
+#+begin_src emacs-lisp
+(defun my-embark-image ()
+	"Match images."
+	(let ((extensions "png\\|jpg\\|svg"))
+		(if-let ((link (and (derived-mode-p 'org-mode)
+												(org-element-context))))
+				(when (eq (org-element-type link) 'link)
+					(cond
+					 ((string-match "sketch" (org-element-property :type link))
+						(cons 'image (my-get-sketch-filename (org-element-property :path link))))
+					 ((string-match extensions (org-element-property :path link))
+						(cons 'image (org-element-property :path link)))))
+			(when (and (derived-mode-p 'dired-mode)
+								 (string-match extensions (dired-get-filename)))
+				(cons 'image (dired-get-filename))))))
+(with-eval-after-load 'embark
+	(add-to-list 'embark-target-finders 'my-embark-image))
+#+end_src
+
+I want to:
+
+- open images in an annotation program, maybe [[https://github.com/phase1geo/Annotator][com.github.phase1geo.annotator]]
+- open images in [[https://krita.org/en/][Krita]]
+- replace with latest screenshot
+- copy text to kill ring
+- insert text as details block
+
+#+begin_src emacs-lisp
+(defun my-image-open-in-annotator (file)
+	(interactive "FImage: ")
+	(start-process "annotator" nil "com.github.phase1geo.annotator" (expand-file-name file)))
+
+(defun my-image-open-in-krita (file)
+	(interactive "FImage: ")
+	(start-process "krita" nil "krita" "--nosplash" (expand-file-name file)))
+
+(defun my-image-recognize (file)
+	(let ((data (json-parse-string
+							 (if (file-exists-p (concat (file-name-sans-extension file) ".json"))
+									 (with-temp-buffer
+										 (insert-file-contents (concat (file-name-sans-extension file) ".json"))
+										 (buffer-string))
+								 (with-temp-file (concat (file-name-sans-extension file) ".json")
+									 (call-process "gcloud" nil t nil "ml" "vision" "detect-document" (expand-file-name file))
+									 (buffer-string)))
+							 :object-type 'alist)))
+		(if (assoc-default 'responses data)
+				(assoc-default 'text (assoc-default 'fullTextAnnotation (elt (assoc-default 'responses data) 0)))
+			(assoc-default 'description (elt (assoc-default 'textAnnotations data) 0)))))
+
+(defun my-image-copy-text (file)
+	(interactive "FImage: ")
+	(kill-new (my-image-recognize file)))
+
+(defun my-image-insert-text-as-details (file)
+	(interactive "FImage: ")
+	(when (and (derived-mode-p 'org-mode)
+						 (eq (org-element-type (org-element-context)) 'link))
+		(goto-char (org-element-end (org-element-context))))
+	(insert "\n#+begin_my_details\n" (my-image-recognize file) "\n#+end_my_details\n"))
+
+(with-eval-after-load 'embark
+	(with-eval-after-load 'cmap
+		(defvar-keymap my-embark-image-actions
+			:doc "Images"
+			("k" . my-image-open-in-krita)
+			("a" . my-image-open-in-annotator)
+			("w" . my-image-copy-text)
+			("d" . my-image-insert-text-as-details))
+		(add-to-list 'embark-keymap-alist '(image . my-embark-image-actions))))
+#+end_src
+
 
 **** Completing blog posts
 :PROPERTIES:
@@ -1060,6 +1136,9 @@ I used to annotate functions with their arguments, but that seems to be built-in
     (let ((context (org-element-context)))
       (when (eq (org-element-type context) 'link)
         (cons 'my-cmap-org-link-element-map context)))))
+(defun my-cmap-image ()
+	(when-let ((img (my-embark-image)))
+		(cons 'my-cmap-image-map (cdr img))))
 
 (defun my-cmap-org-block-target ()
 	(when (and (derived-mode-p 'org-mode)
@@ -1082,6 +1161,7 @@ I used to annotate functions with their arguments, but that seems to be built-in
 	:config
 	(add-to-list 'cmap-targets #'my-cmap-org-block-target)
   (add-to-list 'cmap-targets #'my-cmap-org-link-element-target)
+  (add-to-list 'cmap-targets #'my-cmap-image)
   (defvar my-cmap-org-link-element-map
     (cmap-keymap
       ("w" . my-org-link-element-copy-link)
@@ -1091,7 +1171,8 @@ I used to annotate functions with their arguments, but that seems to be built-in
 	  (cmap-keymap
 	    ("w" . my-org-copy-block-contents)
 	    ("i" . my-org-indent-block)))
-	:bind (("C-c E" . cmap-cmap)))
+	:bind (("C-c E" . cmap-cmap)
+				 ("s-." . cmap-cmap)))
 #+end_src
 
 *** Helm - interactive completion
@@ -1670,6 +1751,7 @@ This lets you use =C-x u= (=undo-tree-visualize=) to visually walk through the c
   (progn
     (global-undo-tree-mode)
     (setq undo-tree-visualizer-timestamps t)
+		(setq undo-tree-auto-save-history nil)
     (setq undo-tree-visualizer-diff t)
     (setq undo-tree-history-directory-alist '(("." . "~/.config/emacs/backups/undo-tree")))))
 #+END_SRC
@@ -1739,6 +1821,9 @@ command by default, and to use =kbd= for the keybinding definitions.
 :CUSTOM_ID: look-for-opportunities-to-use-this
 :END:
 ** Appearance
+:PROPERTIES:
+:CUSTOM_ID: appearance
+:END:
 *** Making highlight-sexp follow modus-themes-toggle            :elisp:emacs:
 :PROPERTIES:
 :EXPORT_DATE: 2023-01-26T10:25:38-0500
@@ -1842,6 +1927,7 @@ For that, I use =modus-themes-operandi=.
 :EXPORT_DATE: 2024-01-01T08:15:01-0500
 :EXPORT_ELEVENTY_PERMALINK: /blog/2024/01/highlight-the-active-modeline-using-colours-from-modus-themes/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2024/01/highlight-the-active-modeline-using-colours-from-modus-themes/
+:CUSTOM_ID: highlight-the-active-modeline-using-colours-from-modus-themes
 :END:
 
 I wanted to experiment with [[ https://irreal.org/blog/?p=11867#comment-6354017310][Ignacio Paz Posse's snippet]] for colouring the mode line of the active window ever so slightly different to make it easier to see where the active window is. I usually have ~global-hl-line-mode~ turned on, so that highlight is another indicator, but let's see how this tweak feels. I modified the code so that it uses the theme colours from the currently-selected Modus themes, since I trust Prot's colour choices more than I trust mine. Thanks to Irreal for sharing Ignacio's comment!
@@ -2165,8 +2251,8 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
     ("e" "~/sync/emacs/Sacha.org" "Config")
     ("E" "~/sync/emacs-news/index.org" "Emacs News")
     ("f" "~/proj/font/README.org" "Font")
-    ("i" "~/sync/orgzly/computer-inbox.org" "Computer inbox")
-    ("I" "~/sync/orgzly/Inbox.org" "Phone inbox")
+    ("I" "~/sync/orgzly/computer-inbox.org" "Computer inbox")
+    ("i" "~/sync/orgzly/Inbox.org" "Phone inbox")
     ("o" "~/sync/orgzly/organizer.org" "Main org file")
     ("s" "~/proj/stream/notes.org" "Public Emacs notes")
     ("b" "~/sync/orgzly/business.org" "Business")
@@ -2591,6 +2677,9 @@ From Xah Lee:
 #+end_src
 
 *** Try redacting                                              :emacs:config:
+:PROPERTIES:
+:CUSTOM_ID: try-redacting
+:END:
 
 #+begin_src emacs-lisp
 (defun my-redact (s)
@@ -3116,7 +3205,7 @@ The last step is to take the list of subtitles and format it into the subtree.
 	(cond
 	 ((string-match "^\\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]\\.[0-9][0-9]\\)" filename)
 		(date-to-time (replace-regexp-in-string "\\." ":" (match-string 0 filename))))
-	 ((string-match "^\\([^ ][^ ][^ ]\\)[^ ]+ at \\([0-9]+\\)-\\([0-9]+\\)" filename)
+	 ((string-match "^\\(?:Copy of \\)?\\([^ ][^ ][^ ]\\)[^ ]+ at \\([0-9]+\\)-\\([0-9]+\\)" filename)
 		(let* ((day (match-string 1 filename))
 					 (hour (match-string 2 filename))
 					 (min (match-string 3 filename))
@@ -4404,6 +4493,13 @@ If DIARIZE is non-nil, identify speakers."
 											 (error "Please specify DEEPGRAM_API_KEY."))))
 	(with-current-buffer (get-buffer-create "*Deepgram*")
 		(erase-buffer)
+		(unless (string-match "\\(opus\\|wav\\|mp3\\)$" audio-file)
+			(if (file-exists-p (concat (file-name-sans-extension audio-file) ".opus"))
+					(setq audio-file (concat (file-name-sans-extension audio-file) ".opus"))
+				(call-process "ffmpeg" nil t t "-i" (expand-file-name audio-file)
+											"-ac" "1" "-y"
+											(expand-file-name (concat (file-name-sans-extension audio-file) ".opus")))
+				(setq audio-file (concat (file-name-sans-extension audio-file) ".opus"))))
 		(call-process
 		 "curl" nil t t "--request" "POST" "--header"
 		 (concat "Authorization: Token " (getenv "DEEPGRAM_API_KEY"))
@@ -4640,6 +4736,9 @@ mode for now. I'll just use ~my-live-speech-start~ and
 ~my-live-speech-stop~.
 
 ***** General code
+:PROPERTIES:
+:CUSTOM_ID: general-code
+:END:
 #+begin_src emacs-lisp
 (defvar my-live-speech-buffer "*Speech*")
 (defvar my-live-speech-process nil)
@@ -4748,6 +4847,9 @@ done.
 Anyway, there it is!
 
 ***** Display in speech buffer
+:PROPERTIES:
+:CUSTOM_ID: display-in-speech-buffer
+:END:
 
 #+begin_src emacs-lisp
 (defun my-live-speech-display-in-speech-buffer (recognition-results)
@@ -4794,6 +4896,9 @@ Anyway, there it is!
 #+end_src
 
 ***** Display words per minute
+:PROPERTIES:
+:CUSTOM_ID: display-words-per-minute
+:END:
 #+begin_src emacs-lisp
 (defvar my-live-speech-wpm-window-seconds 15 "How many seconds to calculate WPM for.")
 (defvar my-live-speech-recent-words nil "Words spoken in `my-live-speech-wpm-window-minutes'.")
@@ -4833,6 +4938,9 @@ Anyway, there it is!
 #+end_src
 
 ***** Append to EmacsConf Etherpad
+:PROPERTIES:
+:CUSTOM_ID: append-to-emacsconf-etherpad
+:END:
 
 #+begin_src emacs-lisp
 (defvar my-live-speech-etherpad-id nil)
@@ -6324,74 +6432,6 @@ Filling in for obsolete functions
   )
 #+end_src
 
-*** Demarcate, but for begin_notes?                            :emacs:config:
-
-https://scripter.co/splitting-an-org-block-into-two/
-
-#+begin_src emacs-lisp
-(defun modi/org-in-any-block-p ()
-  "Return non-nil if the point is in any Org block.
-
-The Org block can be *any*: src, example, verse, etc., even any
-Org Special block.
-
-This function is heavily adapted from `org-between-regexps-p'."
-  (save-match-data
-    (let ((pos (point))
-          (case-fold-search t)
-          (block-begin-re "^[[:blank:]]*#\\+begin_\\(?1:.+?\\)\\(?: .*\\)*$")
-          (limit-up (save-excursion (outline-previous-heading)))
-          (limit-down (save-excursion (outline-next-heading)))
-          beg end)
-      (save-excursion
-        ;; Point is on a block when on BLOCK-BEGIN-RE or if
-        ;; BLOCK-BEGIN-RE can be found before it...
-        (and (or (org-in-regexp block-begin-re)
-                 (re-search-backward block-begin-re limit-up :noerror))
-             (setq beg (match-beginning 0))
-             ;; ... and BLOCK-END-RE after it...
-             (let ((block-end-re (concat "^[[:blank:]]*#\\+end_"
-                                         (match-string-no-properties 1)
-                                         "\\( .*\\)*$")))
-               (goto-char (match-end 0))
-               (re-search-forward block-end-re limit-down :noerror))
-             (> (setq end (match-end 0)) pos)
-             ;; ... without another BLOCK-BEGIN-RE in-between.
-             (goto-char (match-beginning 0))
-             (not (re-search-backward block-begin-re (1+ beg) :noerror))
-             ;; Return value.
-             (cons beg end))))))
-
-(defun modi/org-split-block ()
-  "Sensibly split the current Org block at point."
-  (interactive)
-  (if (modi/org-in-any-block-p)
-      (save-match-data
-        (save-restriction
-          (widen)
-          (let ((case-fold-search t)
-                (at-bol (bolp))
-                block-start
-                block-end)
-            (save-excursion
-              (re-search-backward "^\\(?1:[[:blank:]]*#\\+begin_.+?\\)\\(?: .*\\)*$" nil nil 1)
-              (setq block-start (match-string-no-properties 0))
-              (setq block-end (replace-regexp-in-string
-                               "begin_" "end_" ;Replaces "begin_" with "end_", "BEGIN_" with "END_"
-                               (match-string-no-properties 1))))
-            ;; Go to the end of current line, if not at the BOL
-            (unless at-bol
-              (end-of-line 1))
-            (insert (concat (if at-bol "" "\n")
-                            block-end
-                            "\n\n"
-                            block-start
-                            (if at-bol "\n" "")))
-            ;; Go to the line before the inserted "#+begin_ .." line
-            (beginning-of-line (if at-bol -1 0)))))
-    (message "Point is not in an Org block")))
-#+end_src
-
 *** My files
 :PROPERTIES:
 :CUSTOM_ID: org-files
@@ -7376,8 +7416,8 @@ redefine =<l= to insert a Lisp block instead.
 #+begin_src emacs-lisp
 (setq org-structure-template-alist
       '(("a" . "export ascii")
-        ("c" . "center")
-        ("C" . "comment")
+        ("C" . "center")
+        ("c" . "comment")
 				("d" . "my_details")
         ("e" . "example")
         ("E" . "export")
@@ -7388,6 +7428,8 @@ redefine =<l= to insert a Lisp block instead.
         ("n" . "notes")
         ("q" . "quote")
         ("s" . "src")
+        ("S" . "src sh")
+        ("u" . "update")
         ("v" . "verse")))
 #+end_src
 
@@ -7405,10 +7447,86 @@ This lets me nest quotes. http://emacs.stackexchange.com/questions/2404/exportin
   '(add-to-list 'org-export-filter-special-block-functions 'my-org-html-quote2))
 #+end_src
 
+***** Demarcate, but for all blocks                            :emacs:config:
+:PROPERTIES:
+:CUSTOM_ID: demarcate-but-for-begin-notes
+:END:
+
+I often want to split an Org Mode block so that I can add stuff in between. This code is based on
+https://scripter.co/splitting-an-org-block-into-two/ .
+
+#+begin_src emacs-lisp
+(defun modi/org-split-block ()
+  "Sensibly split the current Org block at point."
+  (interactive)
+  (if (modi/org-in-any-block-p)
+      (save-match-data
+        (save-restriction
+          (widen)
+          (let ((case-fold-search t)
+                (at-bol (bolp))
+                block-start
+                block-end)
+            (save-excursion
+              (re-search-backward "^\\(?1:[[:blank:]]*#\\+begin_.+?\\)\\(?: .*\\)*$" nil nil 1)
+              (setq block-start (match-string-no-properties 0))
+              (setq block-end (replace-regexp-in-string
+                               "begin_" "end_" ;Replaces "begin_" with "end_", "BEGIN_" with "END_"
+                               (match-string-no-properties 1))))
+            ;; Go to the end of current line, if not at the BOL
+            (unless at-bol
+              (end-of-line 1))
+            (insert (concat (if at-bol "" "\n")
+                            block-end
+                            "\n\n"
+                            block-start
+                            (if at-bol "\n" "")))
+            ;; Go to the line before the inserted "#+begin_ .." line
+            (beginning-of-line (if at-bol -1 0)))))
+    (message "Point is not in an Org block")))
+(defalias 'my-org-demarcate-block #'modi/org-split-block)
+(defalias 'my-org-split-block #'modi/org-split-block)
+
+
+(defun modi/org-in-any-block-p ()
+  "Return non-nil if the point is in any Org block.
+
+The Org block can be *any*: src, example, verse, etc., even any
+Org Special block.
+
+This function is heavily adapted from `org-between-regexps-p'."
+  (save-match-data
+    (let ((pos (point))
+          (case-fold-search t)
+          (block-begin-re "^[[:blank:]]*#\\+begin_\\(?1:.+?\\)\\(?: .*\\)*$")
+          (limit-up (save-excursion (outline-previous-heading)))
+          (limit-down (save-excursion (outline-next-heading)))
+          beg end)
+      (save-excursion
+        ;; Point is on a block when on BLOCK-BEGIN-RE or if
+        ;; BLOCK-BEGIN-RE can be found before it...
+        (and (or (org-in-regexp block-begin-re)
+                 (re-search-backward block-begin-re limit-up :noerror))
+             (setq beg (match-beginning 0))
+             ;; ... and BLOCK-END-RE after it...
+             (let ((block-end-re (concat "^[[:blank:]]*#\\+end_"
+                                         (match-string-no-properties 1)
+                                         "\\( .*\\)*$")))
+               (goto-char (match-end 0))
+               (re-search-forward block-end-re limit-down :noerror))
+             (> (setq end (match-end 0)) pos)
+             ;; ... without another BLOCK-BEGIN-RE in-between.
+             (goto-char (match-beginning 0))
+             (not (re-search-backward block-begin-re (1+ beg) :noerror))
+             ;; Return value.
+             (cons beg end))))))
+#+end_src
+
 **** Emacs chats, Emacs hangouts
 :PROPERTIES:
 :CUSTOM_ID: emacs-chats-emacs-hangouts
 :END:
+
 
 #+begin_src emacs-lisp
 (defun my-org-link-youtube-time (url beg end)
@@ -8904,6 +9022,7 @@ appropriate level.
 (setq org-babel-default-header-args
       '((:session . "none")
         (:results . "drawer replace")
+				(:comments . "both")
         (:exports . "code")
         (:cache . "no")
         (:eval . "never-export")
@@ -8977,6 +9096,9 @@ From https://isamert.net/2022/01/04/dealing-with-apis-jsons-and-databases-in-org
         (buffer-string))))))
 #+end_src
 ***** JQ
+:PROPERTIES:
+:CUSTOM_ID: jq
+:END:
 
 #+begin_src emacs-lisp
 (use-package jq-mode
@@ -9225,6 +9347,7 @@ This code displays the images inline.
 	(setq org-epub-style-default (concat org-epub-style-default "\n  p.my-verse { white-space: pre }\n")))
 
 #+end_src
+
 **** DONE Add a note to the bottom of blog posts exported from my config file
      CLOSED: [2021-03-25 Thu 23:43]
      :PROPERTIES:
@@ -9295,6 +9418,30 @@ This code displays the images inline.
 (use-package ox-11ty
   :if my-laptop-p
   :load-path "~/proj/ox-11ty")
+
+(defvar my-org-11ty-serve-process nil)
+
+(defun my-org-11ty-copy-permalink ()
+	(interactive)
+	(kill-new (concat "https://sachachua.com" (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK"))))
+
+(defun my-org-11ty-browse-local ()
+	(interactive)
+	(unless (seq-find (lambda (o) (string-match "--serve" (assoc-default 'args (cdr o) nil "")))
+										(proced-process-attributes))
+		(let ((default-directory "~/proj/static-blog"))
+			(setq my-org-11ty-serve-process (start-process "serve" nil "make" "serve"))))
+	(browse-url "http://localhost:8080/blog"))
+
+(defun my-org-11ty-serve-stop ()
+	(interactive)
+	(if (process-live-p my-org-11ty-serve-process)
+			(stop-process my-org-11ty-serve-process)
+		(when-let ((proc (seq-find (lambda (o) (string-match "--serve" (assoc-default 'args (cdr o) nil "")))
+															 (proced-process-attributes))))
+			(call-process "kill" nil nil nil (number-to-string) (car proc)))))
+
+
 (defun my-org-11ty-prepare-subtree ()
   (interactive)
   (unless (or (org-entry-get (point) "EXPORT_DATE")
@@ -9302,7 +9449,7 @@ This code displays the images inline.
     (org-entry-put (point) "EXPORT_DATE" (format-time-string "%Y-%m-%dT%T%z")))
   (let ((path (concat "blog/" (format-time-string "%Y/%m/")
                       (my-make-slug (org-get-heading t t t t))
-                              "/")))
+                      "/")))
     (unless (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK")
       (org-entry-put (point) "EXPORT_ELEVENTY_PERMALINK" (concat "/" path)))
     (unless (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
@@ -9340,13 +9487,21 @@ This code displays the images inline.
 	(let ((pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" url)))
 		(when pos (goto-char pos))))
 
-(defun my-org-11ty-find-file ()
-  (interactive)
+(defun my-org-11ty-find-file (file)
+  (interactive
+	 (list
+		(completing-read
+		 (if (my-org-11ty-pathname)
+				 (format "Post (%s): " (concat "/" (my-org-11ty-pathname)))
+			 "Post: ")
+		 (mapcar (lambda (o) (replace-regexp-in-string "^~/proj/static-blog\\|index.html$" "" o))
+						 (directory-files-recursively "~/proj/static-blog/blog" "index\\.html" nil))
+		 nil nil nil nil (concat "/" (my-org-11ty-pathname)))))
   (find-file
 	 (expand-file-name
 		"index.html"
 		(expand-file-name
-		 (my-org-11ty-pathname)
+		 (concat "." file)
 		 "~/proj/static-blog"))))
 
 (defun my-org-11ty-post-to-mastodon (&optional post-automatically)
@@ -9382,6 +9537,32 @@ This is extracted from lines like:
 
 
 #+end_src
+***** TODO Explore using 11ty base https://www.11ty.dev/docs/plugins/html-base/ :11ty:
+:PROPERTIES:
+:CREATED:  [2023-12-29 Fri 10:36]
+:END:
+
+so I can get absolute URLs automatically
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+2 days-agenda (W01):
+Tuesday     2 January 2024
+  business:   Scheduled:  STARTED [#A] Write shareholder's resolutions in lieu of meeting :build::
+  organizer:  Scheduled:  SOMEDAY Look up names for seating maps :consulting:asm:
+  Inbox:      Scheduled:  TODO Add more error handling to snippet :consulting:asm:
+  Inbox:      Scheduled:  SOMEDAY Write tests for seating map :consulting:asm:
+  routines:   Scheduled:  STARTED [#C] Track our food            :routine::
+Wednesday   3 January 2024
+  organizer:  Scheduled:  SOMEDAY Harvest closing remarks :emacs::emacsconf:harvest:
+  organizer:  Scheduled:  STARTED Check for Aerius
+  Inbox:      Scheduled:  TODO Fund TFSA and RESP
+  routines:   Scheduled:  STARTED [#C] Track our food            :routine::
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+SOMEDAY :Emacs: High-priority
+e
+
 ***** Linking to blog posts
 :PROPERTIES:
 :CUSTOM_ID: linking-to-blog-posts
@@ -9393,8 +9574,8 @@ This is extracted from lines like:
 					(completing-read
 					 "Post: "
 					 (mapcar (lambda (o) (replace-regexp-in-string "^~/proj/static-blog\\|index.html$" "" o))
-									 (directory-files-recursively "~/proj/static-blog/blog" "index\\.html" nil)
-									 ))))
+									 (directory-files-recursively "~/proj/static-blog/blog" "index\\.html" nil)))))
+
 (defun my-org-blog-export (link desc format _)
 	(let ((path (concat "https://sachachua.com" link)))
 		(pcase format
@@ -9407,7 +9588,7 @@ This is extracted from lines like:
 	(find-file "~/sync/orgzly/posts.org")
 	(let ((pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" link)))
 		(if pos (goto-char pos)
-			(find-file (expand-file-name "index.html" (expand-file-name link "~/proj/static-blog"))))))
+			(find-file (expand-file-name "index.html" (expand-file-name (concat "." link) "~/proj/static-blog"))))))
 
 (use-package org
 	:config
@@ -9469,8 +9650,9 @@ With prefix arg, move the subtree."
 							 "")
 							"\n")
 			(org-yank))
-		(find-file filename)
-		(goto-char (point-min))))
+		;(find-file filename)
+		;(goto-char (point-min))
+		))
 #+end_src
 
 Then this adds a link to it:
@@ -9510,7 +9692,8 @@ Then I want to wrap the whole thing up in an export function:
 			(save-window-excursion
 				(my-org-11ty-copy-subtree)))
 		(org-11ty-export-to-11tydata-and-html async subtreep visible-only body-only ext-plist)
-		(my-org-11ty-find-file)))
+		;(my-org-11ty-find-file)
+		))
 #+end_src
 
 Now to figure out how to override the export menu. Totally messy hack!
@@ -9518,7 +9701,7 @@ Now to figure out how to override the export menu. Totally messy hack!
 #+begin_src emacs-lisp
 (with-eval-after-load 'ox-11ty
 	(map-put (caddr (org-export-backend-menu (org-export-get-backend '11ty)))
-					 ?o (list "To Org, 11tydata.json, HTML" 'my-org-11ty-export)))
+					 ?1 (list "To Org, 11tydata.json, HTML" 'my-org-11ty-export)))
 #+end_src
 **** Cleaning up export
 :PROPERTIES:
@@ -10226,30 +10409,513 @@ From http://endlessparentheses.com/use-org-mode-links-for-absolutely-anything.ht
 With prefix argument, also display headlines without a TODO keyword."
 (org-tags-view (null current-prefix-arg) tag))
 #+end_quote
+**** Links to my config
+:PROPERTIES:
+:CUSTOM_ID: links-to-my-config
+:END:
 
-https://endlessparentheses.com/embedding-youtube-videos-with-org-mode-links.html
 #+begin_src emacs-lisp
-(defvar yt-iframe-format
-  ;; You may want to change your width and height.
-  (concat "<iframe width=\"440\""
-          " height=\"335\""
-          " src=\"https://www.youtube.com/embed/%s\""
-          " frameborder=\"0\""
-          " allowfullscreen>%s</iframe>"))
+(defun my-org-dotemacs-export (path desc format _)
+	"Export dotemacs link."
+	(pcase format
+   ((or 'html '11ty 'md)
+	  (format "<a href=\"https://sachachua.com/dotemacs#%s\">%s</a>" path (or desc path)))
+	('ascii
+		desc)))
 
-(org-add-link-type
- "yt"
- (lambda (handle)
-   (browse-url
-    (concat "https://www.youtube.com/embed/"
-            handle)))
- (lambda (path desc backend)
-   (cl-case backend
-     (html (format yt-iframe-format
-                   path (or desc "")))
-     (latex (format "\href{%s}{%s}"
-                    path (or desc "video"))))))
+(defun my-org-dotemacs-complete ()
+	"Prompt for dotemacs."
+	(interactive)
+	(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
+		(concat "dotemacs:" (org-read-property-value "CUSTOM_ID"))))
+
+(defun my-org-dotemacs-insert-description (link &optional description)
+	(unless description))
+
+(defun my-org-dotemacs-open (path)
+	(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
+		(org-find-property "CUSTOM_ID" path)))
+
+(defun my-org-dotemacs-store ()
+	(when (string= (buffer-file-name)
+								 (expand-file-name "~/sync/emacs/Sacha.org"))
+		(org-link-store-props
+		 :link (concat "dotemacs:" (org-entry-get (point) "CUSTOM_ID"))
+		 :content (org-entry-get (point) "ITEM"))))
+
+(org-link-set-parameters
+ "dotemacs"
+ :complete #'my-org-dotemacs-complete
+ :store #'my-org-dotemacs-store
+ :insert-description #'my-org-dotemacs-insert-description
+ :export #'my-org-dotemacs-export
+ :follow #'my-org-dotemacs-open)
 #+end_src
+
+***** TODO add dotemacs completion
+:PROPERTIES:
+:CREATED:  [2024-01-03 Wed 19:03]
+:END:
+
+**** YouTube
+:PROPERTIES:
+:CUSTOM_ID: youtube
+:END:
+
+#+begin_src emacs-lisp
+(defvar my-org-yt-iframe-format
+  (concat "<div><iframe width=\"456\""
+          " height=\"315\""
+					" title=""YouTube video player\""
+          " src=\"https://www.youtube-nocookie.com/embed/%s\""
+          " frameborder=\"0\""
+          " allowfullscreen>%s</iframe><a href=\"%s\">Watch on YouTube</a></div>"))
+(defun my-org-yt-export (path desc format _)
+	"Export time link or embed."
+	(pcase format
+		((or 'html '11ty 'md)
+		 (cond
+			(desc (format "<a href=\"%s\">%s</a>" path (or desc path)))
+			((string-match "t=" path) (format "<a href=\"%s\">%s</a>" path (or desc path)))
+			(t (format my-org-yt-iframe-format
+								 (if (string-match "\\(?:v=\\|tu\\.be/\\)\\([^&]+\\)" path)
+										 (match-string 1 path)
+									 path)
+								 (or desc "")
+								 path))))
+		('ascii
+		 desc)))
+
+(defun my-org-yt-complete ()
+	"Prompt for a timestamp and link to a video."
+	(interactive)
+	(let* ((url (read-string "URL: " (when (derived-mode-p 'org-mode)
+																		 (org-entry-get (point) "YOUTUBE"))))
+				 (time (read-string "Time: "))
+				 (split-time (reverse (split-string time ":"))))
+		(concat "yt:"
+						url
+						(if (string= time "")
+								""
+							(concat
+							 (if (string-match "\\?" url) "&t=" "?t=")
+							 (format "%sh%sm%ss"
+											 (or (elt split-time 2) "0")
+											 (or (elt split-time 1) "0")
+											 (or (elt split-time 0) "0")))))))
+
+(defun my-org-yt-insert-description (link &optional description)
+	(unless description
+		(when (string-match "t=\\([0-9hms]+\\)" link)
+			(let ((split-time (cdr (reverse (split-string (match-string 1 link) "[hms]")))))
+				(concat
+				 (if (and (elt split-time 2) (not (string= (elt split-time 2) "0")))
+						 (concat (elt split-time 2) ":")
+					 "")
+				 (if (elt split-time 1)
+						 (concat (if (and (and (elt split-time 2) (not (string= (elt split-time 2) "0")))
+															(< (length (elt split-time 1)) 2))
+												 "0" "")
+										 (elt split-time 1) ":")
+					 "")
+				 (concat (if (and (elt split-time 1) (< (length (elt split-time 0)) 2)) "0" "")
+								 (elt split-time 0)))))))
+(ert-deftest my-org-yt-insert-description ()
+	(should
+	 (string=
+		(my-org-yt-insert-description "yt:somevideo?t=0h1m2s")
+		"1:02"))
+	(should
+	 (string=
+		(my-org-yt-insert-description "yt:somevideo?t=1h2m3s")
+		"1:02:03")))
+
+(defun my-org-yt-open (path)
+	(browse-url path))
+(org-link-set-parameters "yt" :complete #'my-org-yt-complete
+												 :insert-description #'my-org-yt-insert-description
+												 :export #'my-org-yt-export
+												 :follow #'my-org-yt-open)
+
+(defun my-org-copy-region-as-plain-text (beg end)
+	"Copy as plain text, removing links."
+	(interactive "r")
+	(save-restriction
+		(narrow-to-region beg end)
+		(kill-new (org-export-as 'ascii nil nil t))))
+
+#+end_src
+
+
+**** Videos
+:PROPERTIES:
+:CUSTOM_ID: videos
+:END:
+
+#+begin_src emacs-lisp
+(org-link-set-parameters
+ "video"
+ :export #'my-org-video-export
+ :follow #'my-org-video-follow
+ :complete #'my-org-video-complete)
+(defun my-org-video-follow (path _)
+	(start-process "mpv" nil "mpv" (expand-file-name path)))
+
+(defun my-org-video-replace-with-permalink ()
+	(interactive)
+	(let* ((elem (org-element-context))
+				 (path (org-element-property :path elem))
+				 (description (org-element-property :description elem))
+				 (permalink (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK" t)))
+		(delete-region (org-element-begin elem) (org-element-end elem))
+		(insert (org-link-make-string (concat "video:https://sachachua.com" permalink (file-name-nondirectory path))
+																	description))))
+
+(defun my-org-video-export (link desc format _)
+	"Export PATH to FORMAT using the specified wrap parameter."
+	(if desc
+			(org-export-string-as (org-link-make-string link desc) format)
+		(pcase format
+			((or 'html '11ty 'md)
+			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
+							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query)))))
+				 (format
+					"<video%s%s><source src=\"%s\" type=\"%s\"><a href=\"%s\">Download the video</a></video>"
+					(if (string= (or (assoc-default "controls" params 'string= "1") "1") "0")
+							""
+						" controls")
+					(if (string= (or (assoc-default "autoplay" params 'string= "0") "0") "0")
+							""
+						" autoplay")
+					(car path-and-query)
+					(mailcap-file-name-to-mime-type (car path-and-query))
+					(car path-and-query))))
+			(_ path))))
+
+(defun my-org-video-complete ()
+	"Complete video reference."
+	(interactive)
+	(concat "video:" (read-file-name "File: ")))
+
+#+end_src
+**** Audio
+:PROPERTIES:
+:CUSTOM_ID: audio
+:END:
+#+begin_src emacs-lisp
+(org-link-set-parameters
+ "audio"
+ :export #'my-org-audio-export
+ :complete #'my-org-audio-complete)
+
+(defun my-org-audio-replace-with-permalink ()
+	(interactive)
+	(let* ((elem (org-element-context))
+				 (path (org-element-property :path elem))
+				 (description (org-element-property :description elem))
+				 (permalink (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK" t)))
+		(delete-region (org-element-begin elem) (org-element-end elem))
+		(insert (org-link-make-string (concat "audio:https://sachachua.com" permalink (file-name-nondirectory path))
+																	description))))
+
+(defun my-org-audio-export (link desc format _)
+	"Export PATH to FORMAT using the specified wrap parameter."
+	(if desc
+			(org-export-string-as (org-link-make-string link desc) format)
+		(pcase format
+			((or 'html '11ty 'md)
+			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
+							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query)))))
+				 (format
+					"<audio%s%s src=\"%s\" type=\"%s\"><a href=\"%s\">Download the audio</a></audio>"
+					(if (string= (or (assoc-default "controls" params 'string= "1") "1") "0")
+							""
+						" controls")
+					(if (string= (or (assoc-default "autoplay" params 'string= "0") "0") "0")
+							""
+						" autoplay")
+					(car path-and-query)
+					(mailcap-file-name-to-mime-type (car path-and-query))
+					(car path-and-query))))
+			(_ path))))
+
+(defun my-org-audio-complete ()
+	"Complete audio reference."
+	(interactive)
+	(concat "audio:" (read-file-name "File: ")))
+
+#+end_src
+**** Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search :org:emacs:coding:
+SCHEDULED: <2024-01-12 Fri>
+:PROPERTIES:
+:CUSTOM_ID: git-projects
+:EXPORT_DATE: 2024-01-07T08:07:09-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/01/using-an-emacs-lisp-macro-to-define-quick-custom-org-mode-links-to-project-files/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/01/using-an-emacs-lisp-macro-to-define-quick-custom-org-mode-links-to-project-files/
+:END:
+
+I'd like to get better at writing notes while coding and at turning
+those notes into blog posts and videos. I want to be able to link to
+files in projects easily with the ability to complete, follow, and
+export links. For example, ~[[subed:subed.el]]~ should become
+[[subed:subed.el]], which opens the file if I'm in Emacs and exports a
+link if I'm publishing a post. I've been making custom link types
+using ~org-link-set-parameters~. I think it's time to make a macro
+that defines that set of functions for me. Emacs Lisp macros are a
+great way to write code to write code.
+
+#+begin_src emacs-lisp
+(defvar my-project-web-base-list nil "Local path . web repo URLs for easy linking.")
+
+(defmacro my-org-project-link (type file-path git-url)
+  `(progn
+		 (defun ,(intern (format "my-org-%s-complete" type)) ()
+			 ,(format "Complete a file from %s." type)
+			 (concat ,type ":" (completing-read "File: "
+																					(projectile-project-files ,file-path))))
+		 (defun ,(intern (format "my-org-%s-follow" type)) (link _)
+			 ,(format "Open a file from %s." type)
+			 (find-file
+				(expand-file-name
+				 link
+				 ,file-path)))
+		 (defun ,(intern (format "my-org-%s-export" type)) (link desc format _)
+			 "Export link to file."
+			 (setq desc (or desc link))
+			 (when ,git-url
+				 (setq link (concat ,git-url (replace-regexp-in-string "^/" "" link))))
+			 (pcase format
+				 ((or 'html '11ty) (format "<a href=\"%s\">%s</a>"
+																	 link
+																	 (or desc link)))
+				 ('md (if desc (format "[%s](%s)" desc link)
+								(format "<%s>" link)))
+				 ('latex (format "\\href{%s}{%s}" link desc))
+				 ('texinfo (format "@uref{%s,%s}" link desc))
+				 ('ascii (format "%s (%s)" desc link))
+				 (_ (format "%s (%s)" desc link))))
+		 (with-eval-after-load 'org
+			 (org-link-set-parameters
+				,type
+				:complete (quote ,(intern (format "my-org-%s-complete" type)))
+				:export (quote ,(intern (format "my-org-%s-export" type)))
+				:follow (quote ,(intern (format "my-org-%s-follow" type))))
+			 (cl-pushnew (cons (expand-file-name ,file-path) ,git-url)
+									 my-project-web-base-list
+									 :test 'equal))))
+#+end_src
+
+Then I can define projects this way:
+
+#+begin_src emacs-lisp
+(my-org-project-link "subed"
+										 "~/proj/subed/subed/"
+										 "https://codeberg.org/sachac/subed/src/branch/main/subed/")
+(my-org-project-link "emacsconf-el"
+										 "~/proj/emacsconf/lisp/"
+										 "https://git.emacsconf.org/emacsconf-el/tree/")
+(my-org-project-link "subed-record"
+										 "~/proj/subed-record/"
+										 "https://codeberg.org/sachac/subed-record/src/branch/main/")
+(my-org-project-link "compile-media"
+										 "~/proj/compile-media/"
+										 "https://codeberg.org/sachac/compile-media/src/branch/main/"))
+(my-org-project-link "ox-11ty"
+										 "~/proj/ox-11ty/"
+										 "https://github.com/sachac/ox-11ty/blob/master/"))
+#+end_src
+
+And I can complete them with the usual ~C-c C-l~ (~org-insert-link~) process:
+
+#+BEGIN_COMMENT
+Demonstrate completion to subed-vtt
+#+END_COMMENT
+
+#+CAPTION: Completing a custom link with ~org-insert-link~
+[[file:images/completing-custom-links.gif]]
+
+Sketches are handled by [[dotemacs:org-mode-sketch-links][my Org Mode sketch links]], but we can add them anyway.
+
+#+begin_src emacs-lisp
+(cl-pushnew (cons (expand-file-name "~/sync/sketches/") "https://sketches.sachachua.com/filename/")
+						my-project-web-base-list
+						:test 'equal)
+#+end_src
+
+I've been really liking being able to refer to various emacsconf-el
+files by just selecting the link type and completing the filename, so
+maybe it'll be easier to write about lots of other stuff if I extend
+that to my other projects.
+
+***** Copy web link
+SCHEDULED: <2024-01-07 Sun>
+:PROPERTIES:
+:CUSTOM_ID: web-link
+:END:
+
+Keeping a list of projects and their web versions also makes it easier
+for me to get the URL for something. I try to post as much as possible
+on the Web so that it's easier for me to find things again and so that
+other people can pick up ideas from my notes. Things are a bit
+scattered: [[https://sachachua.com][my blog]], repositories on [[https://github.com/sachac/][Github]] and [[https://codeberg.org/sachac/][Codeberg]], [[https://sketches.sachachua.com][my
+sketches]]... I don't want to think about /where/ the code has ended
+up, I just want to grab the URL. If I'm going to put the link into an
+Org Mode document, that's super easy. I just take advantage of the
+things I've added to ~org-store-link~. If I'm going to put it into an
+e-mail or a toot or wherever else, I just want the bare URL.
+
+I can think of two ways to approach this. One is a command that copies
+just the URL by figuring it out from the buffer filename, which allows
+me to special-case a bunch of things:
+
+#+begin_src emacs-lisp
+(defun my-copy-link (&optional filename skip-links)
+	"Return the URL of this file.
+If FILENAME is non-nil, use that instead.
+If SKIP-LINKS is non-nil, skip custom links.
+If we're in a Dired buffer, use the file at point."
+	(interactive)
+	(setq filename (or filename
+										 (if (derived-mode-p 'dired-mode) (dired-get-filename))
+										 (buffer-file-name)))
+	(if-let*
+			((project-re (concat "\\(" (regexp-opt (mapcar 'car my-project-web-base-list)) "\\)"
+													 "\\(.*\\)"))
+			 (url (cond
+						 ((and (derived-mode-p 'org-mode)
+									 (eq (org-element-type (org-element-context)) 'link)
+									 (not skip-links))
+							(pcase (org-element-property :type (org-element-context))
+								((or "https" "http")
+								 (org-element-property :raw-link (org-element-context)))
+								("yt"
+								 (org-element-property :path (org-element-context)))
+								;; if it's a custom link, visit it and get the link
+								(_
+								 (save-window-excursion
+									 (org-open-at-point)
+									 (my-copy-link nil t)))))
+						 ;; links to my config usually have a CUSTOM_ID property
+						 ((string= (buffer-file-name) (expand-file-name "~/sync/emacs/Sacha.org"))
+							(concat "https://sachachua.com/dotemacs#" (org-entry-get (point) "CUSTOM_ID")))
+						 ;; blog post drafts have permalinks
+						 ((and (derived-mode-p 'org-mode) (org-entry-get-with-inheritance (point) "EXPORT_ELEVENTY_PERMALINK"))
+							(concat "https://sachachua.com" (org-entry-get-with-inheritance (point) "EXPORT_ELEVENTY_PERMALINK")))
+						 ;; some projects have web repos
+						 ((string-match
+							 project-re filename)
+							(concat (assoc-default (match-string 1 filename) my-project-web-base-list)
+											(url-hexify-string (match-string 2 filename)))))))
+			(progn
+				(kill-new url)
+				(message "%s" url)
+				url)
+		(error "Couldn't figure out URL.")))
+#+end_src
+
+Another approach is to hitch a ride on the Org Mode link storage and
+export functions and just grab the URL from whatever link I've stored
+with ~org-store-link~, which I've bound to ~C-c l~. I almost always
+have an HTML version of the exported link. We can even use XML parsing
+instead of regular expressions.
+
+#+begin_src emacs-lisp
+(defun my-org-stored-link-as-url (&optional link insert)
+	"Copy the stored link as a plain URL.
+If LINK is specified, use that instead."
+	(interactive (list nil current-prefix-arg))
+	(setq link (or link (caar org-stored-links)))
+	(let ((url (if link
+								 (dom-attr
+									(dom-by-tag
+									 (with-temp-buffer
+										 (insert (org-export-string-as link 'html t))
+										 (xml-parse-region (point-min) (point-max)))
+									 'a)
+									'href)
+							 (error "No stored link"))))
+		(when (called-interactively-p 'any)
+			(if url
+					(if insert (insert url) (kill-new url))
+				(error "Could not find URL.")))
+		url))
+
+(ert-deftest my-org-stored-link-as-url ()
+	(should
+	 (string= (my-org-stored-link-as-url "[[dotemacs:web-link]]")
+						"https://sachachua.com/dotemacs#web-link"))
+	(should
+	 (string= (my-org-stored-link-as-url "[[dotemacs:org-mode-sketch-links][my Org Mode sketch links]]")
+						"https://sachachua.com/dotemacs#org-mode-sketch-links")))
+#+end_src
+
+We'll see which one I end up using. I think both approaches might come in handy.
+
+***** Quickly search my code
+
+Since ~my-project-web-base-list~ is a list of projects I often think
+about or write about, I can also make something that searches through
+them. That way, I don't have to care about where my code is.
+
+#+begin_src emacs-lisp
+(defun my-consult-ripgrep-code ()
+  (interactive)
+	(consult-ripgrep (mapcar 'car my-project-web-base-list)))
+#+end_src
+
+I can add ~.rgignore~ files in directories to tell ripgrep to ignore
+things like ~node_modules~ or ~*.json~.
+
+I also want to search my Emacs configuration at the same time,
+although links to my config are handled by [[dotemacs:links-to-my-config][my dotemacs link type]] so
+I'll leave the URL as nil. This is also the way I can handle other
+unpublished directories.
+
+#+begin_src emacs-lisp
+(cl-pushnew (cons (expand-file-name "~/sync/emacs/Sacha.org") nil)
+						my-project-web-base-list
+						:test 'equal)
+(cl-pushnew (cons (expand-file-name "~/proj/static-blog/_includes") nil)
+						my-project-web-base-list
+						:test 'equal)
+(cl-pushnew (cons (expand-file-name "~/bin") nil)
+						my-project-web-base-list
+						:test 'equal)
+#+end_src
+
+Actually, let's throw my blog posts and Org files in there as well,
+since I often have code snippets. If it gets to be too much, I can
+always have different commands search different things.
+
+#+begin_src emacs-lisp
+(cl-pushnew (cons (expand-file-name "~/proj/static-blog/blog/") "https://sachachua.com/blog/")
+						my-project-web-base-list
+						:test 'equal)
+(cl-pushnew (cons (expand-file-name "~/sync/orgzly") nil)
+						my-project-web-base-list
+						:test 'equal)
+#+end_src
+
+#+BEGIN_COMMENT
+Demonstrate [[elisp:my-consult-ripgrep-code]] for defun file duration
+#+END_COMMENT
+
+#+CAPTION: Using my-consult-ripgrep-code
+[[file:images/ripgrep-code.gif]]
+
+I don't have anything bound to ~M-s c~ (code) yet, so let's try that.
+
+#+begin_src emacs-lisp
+(global-set-key (kbd "M-s c") #'my-consult-ripgrep-code)
+#+end_src
+
+At some point, it might be fun to get Embark set up so that I can grab
+a link to something right from the consult-ripgrep interface. In the
+meantime, I can always jump to it and get the link.
+
+In general, I don't want to have to think about where something is on
+my laptop or where it's published on the Web, I just want to write
+about it. One step closer, yay Emacs!
 **** Links from org-protocol
 :PROPERTIES:
 :CUSTOM_ID: links-from-org-protocol
@@ -10326,98 +10992,6 @@ So that I can easily add links at point. Formatted as an Org list for now.
 
 #+end_src
 
-**** Videos
-:PROPERTIES:
-:CUSTOM_ID: videos
-:END:
-
-#+begin_src emacs-lisp
-(org-link-set-parameters
- "video"
- :export #'my-org-video-export
- :complete #'my-org-video-complete)
-
-(defun my-org-video-replace-with-permalink ()
-	(interactive)
-	(let* ((elem (org-element-context))
-				 (path (org-element-property :path elem))
-				 (description (org-element-property :description elem))
-				 (permalink (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK" t)))
-		(delete-region (org-element-begin elem) (org-element-end elem))
-		(insert (org-link-make-string (concat "video:https://sachachua.com" permalink (file-name-nondirectory path))
-																	description))))
-
-(defun my-org-video-export (link desc format _)
-	"Export PATH to FORMAT using the specified wrap parameter."
-	(if desc
-			(org-export-string-as (org-link-make-string link desc) format)
-		(pcase format
-			((or 'html '11ty 'md)
-			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
-							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query)))))
-				 (format
-					"<video%s%s><source src=\"%s\" type=\"%s\"><a href=\"%s\">Download the video</a></video>"
-					(if (string= (or (assoc-default "controls" params 'string= "1") "1") "0")
-							""
-						" controls")
-					(if (string= (or (assoc-default "autoplay" params 'string= "0") "0") "0")
-							""
-						" autoplay")
-					(car path-and-query)
-					(mailcap-file-name-to-mime-type (car path-and-query))
-					(car path-and-query))))
-			(_ path))))
-
-(defun my-org-video-complete ()
-	"Complete video reference."
-	(interactive)
-	(concat "video:" (read-file-name "File: ")))
-
-#+end_src
-**** Audio
-#+begin_src emacs-lisp
-(org-link-set-parameters
- "audio"
- :export #'my-org-audio-export
- :complete #'my-org-audio-complete)
-
-(defun my-org-audio-replace-with-permalink ()
-	(interactive)
-	(let* ((elem (org-element-context))
-				 (path (org-element-property :path elem))
-				 (description (org-element-property :description elem))
-				 (permalink (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK" t)))
-		(delete-region (org-element-begin elem) (org-element-end elem))
-		(insert (org-link-make-string (concat "audio:https://sachachua.com" permalink (file-name-nondirectory path))
-																	description))))
-
-(defun my-org-audio-export (link desc format _)
-	"Export PATH to FORMAT using the specified wrap parameter."
-	(if desc
-			(org-export-string-as (org-link-make-string link desc) format)
-		(pcase format
-			((or 'html '11ty 'md)
-			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
-							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query)))))
-				 (format
-					"<audio%s%s src=\"%s\" type=\"%s\"><a href=\"%s\">Download the audio</a></audio>"
-					(if (string= (or (assoc-default "controls" params 'string= "1") "1") "0")
-							""
-						" controls")
-					(if (string= (or (assoc-default "autoplay" params 'string= "0") "0") "0")
-							""
-						" autoplay")
-					(car path-and-query)
-					(mailcap-file-name-to-mime-type (car path-and-query))
-					(car path-and-query))))
-			(_ path))))
-
-(defun my-org-audio-complete ()
-	"Complete audio reference."
-	(interactive)
-	(concat "audio:" (read-file-name "File: ")))
-
-#+end_src
 **** Fix elisp links
 :PROPERTIES:
 :CUSTOM_ID: fix-elisp-links
@@ -10576,7 +11150,7 @@ With a description:
 (defun my-org-set-custom-id (id)
   "Set the CUSTOM_ID property to ID at point."
   (interactive (list
-                (let ((default-custom-id (my-make-slug (elt (org-heading-components) 4))))
+                (let ((default-custom-id (my-make-slug (string-join (org-get-outline-path t) " "))))
                   (read-string (format "ID (%s): " default-custom-id) nil nil default-custom-id))))
   (org-entry-put (point) "CUSTOM_ID" id))
 
@@ -12449,6 +13023,9 @@ From https://xenodium.com/inline-previous-result-and-why-you-should-edebug/
 (use-package package-lint)
 #+end_src
 ***** ERT
+:PROPERTIES:
+:CUSTOM_ID: ert
+:END:
 
 
 #+begin_src emacs-lisp
@@ -12821,6 +13398,9 @@ More things that I need to get used to...
         (insert (mapconcat 'cdr list "\n"))))))
 #+end_src
 **** Editing lists
+:PROPERTIES:
+:CUSTOM_ID: editing-lists
+:END:
 #+begin_src emacs-lisp
 (use-package edit-list
 	:commands edit-list)
@@ -15451,6 +16031,14 @@ cool. On Windows, these things help a little.
    :CUSTOM_ID: streaming
    :END:
 
+*** Simple streaming
+:PROPERTIES:
+:CUSTOM_ID: simple-streaming
+:END:
+
+
+
+
 *** Setting up
 :PROPERTIES:
 :CUSTOM_ID: setting-up
@@ -16689,6 +17277,22 @@ In termux, you also need to =pkg install diffutils=.
 	(gptel-post-stream . gptel-auto-scroll)
 	(gptel-post-response . gptel-end-of-response))
 #+end_src
+*** SOMEDAY 3blue1 brown                                                 :ai:
+:PROPERTIES:
+:CREATED:  [2023-12-30 Sat 16:59]
+:END:
+
+AI recommendation from Wayne
+
+*** SOMEDAY Voice Assistant | 🦜️🔗 Langchain                         :ai:llm:
+:PROPERTIES:
+:CREATED:  [2024-01-05 Fri 21:38]
+:END:
+
+https://python.langchain.com.cn/docs/use_cases/chatbots/voice_assistant
+
+Prompts geared towards a voice assistant - more concise, swap words in input as needed
+
 ** Evil mode
 :PROPERTIES:
 :CUSTOM_ID: evil-mode
@@ -17366,6 +17970,9 @@ easier to discover commands.
 (auto-image-file-mode -1)
     #+end_src
 **** TODO How can I generate PNG frames that step through the highlights?
+:PROPERTIES:
+:CUSTOM_ID: how-can-i-generate-png-frames-that-step-through-the-highlights
+:END:
 
 Ugh, ordering things is annoying. So let's step through things ourselves and ID them.
 
@@ -18915,14 +19522,14 @@ xdotool key Return
 
 #+begin_src emacs-lisp
 (defun my-insert-sketch-and-text (sketch)
-	(interactive (list (and (my-update-sketch-cache) (my-complete-sketch-filename))))
+	(interactive (list (my-complete-sketch-filename)))
 	(insert (file-name-base sketch)
 					(format "\n\n[[sketchFull:%s][%s]]\n\n" (file-name-nondirectory sketch) (file-name-base sketch)))
 	(insert "#+begin_my_details Text from sketch\n")
 	(my-sketch-insert-text-from-json sketch)
 	(insert "\n#+end_my_details"))
 (defun my-write-about-sketch (sketch)
-  (interactive (list (and (my-update-sketch-cache) (my-complete-sketch-filename))))
+  (interactive (list (my-complete-sketch-filename)))
   (shell-command "make-sketch-thumbnails")
   (find-file "~/sync/orgzly/posts.org")
   (goto-char (point-max))
@@ -18970,7 +19577,7 @@ xdotool key Return
   (dired my-supernote-export-dir "-tl"))
 (defun my-supernote-process-sketch (new-name)
   (interactive (list
-								(completing-read "New name: " (my-update-sketch-cache))))
+								(completing-read "New name: " (my-sketches))))
   (unless (member (file-name-extension new-name) '("png" "jpg"))
     (setq new-name (concat new-name "." (file-name-extension (buffer-file-name)))))
 	(let ((dest (if (string-match "#private" new-name)
@@ -19090,7 +19697,84 @@ And in general:
 (setq htmlize-css-name-prefix "org-")
 (setq htmlize-head-tags "<link rel=\"stylesheet\" href=\"https://sachachua.com/assets/css/style.css\" />")
 #+end_src
+*** DONE Using Puppeteer to grab an image from the SuperNote's screen mirror :supernote:
+CLOSED: [2024-01-03 Wed 20:32]
+:PROPERTIES:
+:EXPORT_DATE: 2024-01-03T16:03:23-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/01/using-puppeteer-to-grab-an-image-from-the-supernote-s-screen-mirror/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/01/using-puppeteer-to-grab-an-image-from-the-supernote-s-screen-mirror/
+:CUSTOM_ID: using-puppeteer-to-grab-an-image-from-the-supernote-s-screen-mirror
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2024-01-03 Wed 20:32]
+- Note taken on [2024-01-03 Wed 20:32] \\
+  blogged
+:END:
 
+Partly inspired by John Kitchin's video showing how to [[https://www.youtube.com/watch?v=rGGAr1AWkTc][copy
+screenshots from his iPad and do optical character recognition]] so he
+can use the images and text in Org Mode, I'd like to be able to draw
+quick notes while I'm thinking through a topic on my computer.
+
+[[https://krita.org/en/][Krita]] might work, but it's awkward to draw on my tablet PC's screen
+when it's in laptop mode because of the angle. Flipping it to
+tablet mode is a bit disruptive.
+
+I can draw on my Supernote, which feels a bit more natural. I
+have a good workflow for [[blog:/blog/2023/01/recolor-rename-and-file-my-sketches-automatically/][recoloring and renaming exported sketches]],
+but exporting via Dropbox is a little slow since it synchronizes all
+the folders. The SuperNote has a built-in screen mirroring mode with
+an MJPEG that I can open in a web browser. Saving it to an image is a
+little complicated, though. ffmpeg doesn't work with the MJPEG that it
+streams, and I can't figure out how to get stuff out aside from using
+a browser. I can work around this by using Puppeteer and getting a
+screenshot. Here's a NodeJS snippet that saves that screenshot to a file.
+
+#+begin_src js :tangle "~/bin/supernote-screenshot.js"
+#!/usr/bin/env nodejs
+# This file is tangled to ~/bin/supernote-screenshot.js from my config at https://sachachua.com/dotemacs
+# Usage: supernote-screenshot.js [filename]
+# Set SUPERNOTE_URL to the URL.
+
+const process = require('process');
+const puppeteer = require('puppeteer');
+const url = process.env['SUPERNOTE_URL'] || 'http://192.168.1.221:8080/screencast.mjpeg';
+const scale = 0.5;
+const delay = 2000;
+
+async function takeSupernoteScreenshot() {
+	const browser = await puppeteer.launch({headless: 'new'});
+	const page = await browser.newPage();
+	await page.setViewport({width: 2808 * scale, height: 3744 * scale, deviceScaleFactor: 1});
+	page.goto(url);
+	await new Promise((resolve, reject) => setTimeout(resolve, delay));
+	let filename = process.argv[2] || 'screenshot.png';
+	await page.screenshot({type: 'png', path: filename, fullPage: true});
+	await browser.close();
+}
+
+takeSupernoteScreenshot();
+#+end_src
+
+Then I can call that from Emacs Lisp and run it through my usual [[dotemacs:org-mode-create-a-quick-timestamped-note-and-capture-a-screenshot][screenshot insertion process]]:
+
+#+begin_src emacs-lisp
+(defun my-org-insert-supernote-from-mirror ()
+	"Copy the current image from the SuperNote mirror."
+	(interactive)
+	(let ((filename (expand-file-name (format-time-string "%Y-%m-%d-%H-%M-%S.png") "~/recordings")))
+		(shell-command-to-string (concat "NODE_PATH=/usr/lib/node_modules node ~/bin/supernote-screenshot.js " (shell-quote-argument filename)))
+		(shell-command-to-string (concat "~/bin/recolor.py --colors c0c0c0,f6f396 " (shell-quote-argument filename)))
+		(call-interactively 'my-org-insert-screenshot)))
+#+end_src
+
+Ideas for next steps:
+
+- Add image actions:
+  - Annotate the image
+  - Crop the image
+  - Get the text for the image at point and insert it as a details block
+  - Get the text for the image at point and copy it to the kill-ring
 
 ** Tools for organizing
 :PROPERTIES:

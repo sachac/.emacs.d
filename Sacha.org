@@ -16669,6 +16669,14 @@ Make it easier to review my credit card transactions
               ("C-c a" . my-ledger-set-unknown-account)
               ("C-c f" . (lambda () (interactive) (find-file (my-latest-file "~/Downloads"))))))
 #+end_src
+
+#+begin_src emacs-lisp
+(use-package flycheck-ledger
+  :after (flycheck ledger-mode)
+	:hook (ledger-mode . flycheck-mode)
+  :demand t)
+#+end_src
+
 #+begin_src emacs-lisp
 (defvar my-ledger-account-list-cache nil)
 (make-variable-buffer-local 'my-ledger-account-list-cache)

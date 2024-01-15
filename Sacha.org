@@ -14865,6 +14865,55 @@ options to add at the end of the command, but that can wait for another time (or
 :PROPERTIES:
 :CUSTOM_ID: make-this-better-by-adding-a-post-command-options-variable
 :END:
+**** Finding repos with uncommitted changes
+
+Based on http://yitang.uk/2024/01/14/atomic-habit-in-emacs-keep-git-repos-clean/
+
+#+begin_src emacs-lisp
+(defun my-git-find-unclean-repo (root-dir)
+  "Find repo with modified files."
+  ;; (interactive)
+  (setq out nil)
+  (dolist (dir (directory-files-recursively root-dir "\\.git$" t))
+    (message "checking repo %s" dir)
+    (let* ((git-dir (file-name-parent-directory dir))
+           (default-directory git-dir))
+      (unless (string= "" (shell-command-to-string "git status --untracked=no --porcelain"))
+        (push git-dir out))))
+  out)
+
+(defun my-list-uncommitted-projects ()
+	(string-join
+	 (seq-keep (lambda (root)
+							 (when-let ((repo (my-git-find-unclean-repo root)))
+								 (concat "- "
+												 (org-link-make-string
+													(format "elisp:(magit-status \"%s\")"
+																	(car repo))
+													(file-name-nondirectory (replace-regexp-in-string "/$" "" root))))))
+					   (seq-uniq
+							(mapcar (lambda (row)
+												(or (projectile-project-root
+														 (car row))
+														(car row)))
+											(cons '("~/sync/emacs") my-project-web-base-list)))
+						 )
+	 "\n"))
+#+end_src
+
+#+begin_src emacs-lisp :tangle no :results drawer replace
+(my-list-uncommitted-projects)
+#+end_src
+
+#+RESULTS:
+:results:
+- [[elisp:(magit-status "/home/sacha/sync/emacs/")][emacs]]
+- [[elisp:(magit-status "/home/sacha/sync/orgzly/")][orgzly]]
+- [[elisp:(magit-status "/home/sacha/bin/")][bin]]
+- [[elisp:(magit-status "/home/sacha/proj/compile-media/")][compile-media]]
+- [[elisp:(magit-status "/home/sacha/proj/emacsconf/lisp/")][lisp]]
+:end:
+
 *** Forge
 :PROPERTIES:
 :CUSTOM_ID: forge

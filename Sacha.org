@@ -15451,23 +15451,43 @@ to things that look like Mastodon URLs by using mastodon.el.
 			(kill-new (org-link-make-string url (concat (match-string 2 url) "@" (match-string 1 url)))))))
 (defun my-emacs-news-copy-mastodon-item (&optional name-only)
 	(interactive (list current-prefix-arg))
-	(let ((url (thing-at-point 'url))
-				(toot (org-entry-get (point) "ITEM"))
-				attrib)
-		(when (string-match org-link-bracket-re toot)
-			(setq toot (match-string 1 toot)))
-		(when (string-match "https://\\(.+?\\)/\\(@.+?\\)/" toot)
-			(setq attrib (org-link-make-string toot
-																				 (concat
-																					(match-string 2 toot) "@" (match-string 1 toot)))))
-		(kill-new
-		 (if name-only
-				 (format " (%s)" attrib)
-			 (format "- %s (%s)\n"
-							 (org-link-make-string
-								url
-								(my-page-title url))
-							 attrib)))))
+	(let (s)
+		(with-current-buffer
+				(if (string-match "emacs-news/index.org" (buffer-file-name))
+						(save-window-excursion
+							(other-window 1)
+							(current-buffer))
+					(current-buffer))
+			(let ((url (or (thing-at-point 'url)
+										 (progn
+											 (save-restriction
+												 (org-back-to-heading)
+												 (org-narrow-to-subtree)
+												 (org-end-of-meta-data)
+												 (if (re-search-forward org-link-any-re nil t)
+														 (thing-at-point 'url)
+													 (setq name-only t)
+													 (org-entry-get (point) "ITEM")
+													 )))))
+						(toot (org-entry-get (point) "ITEM"))
+						attrib)
+				(when (string-match org-link-bracket-re toot)
+					(setq toot (match-string 1 toot)))
+				(when (string-match "https://\\(.+?\\)/\\(@.+?\\)/" toot)
+					(setq attrib (org-link-make-string toot
+																						 (concat
+																							(match-string 2 toot) "@" (match-string 1 toot)))))
+				(setq s
+							(if name-only
+									(format " (%s)" attrib)
+								(format "- %s (%s)\n"
+												(org-link-make-string
+												 url
+												 (my-page-title url))
+												attrib)))))
+		(if (string-match "emacs-news/index.org" (buffer-file-name))
+				(insert s)
+			(kill-new s))))
 #+end_src
 
 *** Storing Mastodon links in Org mode

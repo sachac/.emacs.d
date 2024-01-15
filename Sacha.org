@@ -17432,17 +17432,20 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
 (defun my-youtube-copy-chapters ()
 	"Call from a VTT file with NOTE comments."
 	(interactive)
-	(kill-new
-	 (concat "0:00 Intro\n"
-					 (mapconcat (lambda (o)
-												(if (elt o 4)
-														(concat (format-seconds "%m:%.2s" (/ (elt o 2) 1000))
-																		" "
-																		(elt o 4)
-																		"\n")
-													""))
-											(subed-subtitle-list)
-											""))))
+	(let ((subtitles (subed-subtitle-list)))
+		(kill-new
+		 (concat (if (elt (car subtitles) 4)
+								 ""
+							 "0:00 Intro\n")
+						 (mapconcat (lambda (o)
+													(if (elt o 4)
+															(concat (format-seconds "%m:%.2s" (/ (elt o 2) 1000))
+																			" "
+																			(elt o 4)
+																			"\n")
+														""))
+												subtitles
+												"")))))
 #+end_src
 *** CANCELLED Try continuous streaming and the Google Speech Recognition API
 CLOSED: [2023-03-23 Thu 22:27]

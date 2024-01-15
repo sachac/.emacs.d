@@ -1161,6 +1161,7 @@ If called interactively, copy to the kill ring."
 	(defvar-keymap my-embark-audio-actions
 		:doc "audio"
 		"d" #'my-deepgram-recognize-audio
+		"$" #'my-deepgram-cost
 		"D" #'my-audio-braindump-reprocess
 		"m" #'mpv-play
 		"w" #'my-audio-text
@@ -1193,6 +1194,7 @@ If called interactively, copy to the kill ring."
 	(defvar-keymap my-embark-video-actions
 		:doc "video"
 		"d" #'my-deepgram-recognize-audio
+		"$" #'my-deepgram-cost
 		"m" #'mpv-play
 		"w" #'my-audio-text
 		"W" #'waveform-show)
@@ -4892,13 +4894,31 @@ Save the results as JSON and VTT."
 								(assoc-default 'start (car b) nil 0)))))))
 
 (defun my-deepgram-convert-json-to-vtt (json-file &optional force)
-	(interactive (list (read-file-name "JSON: ")))
+	(interactive (list (read-file-name "JSON: ") current-prefix-arg))
 	"Convert JSON-FILE into a VTT."
 	(subed-create-file
 	 (concat (file-name-sans-extension json-file) ".vtt")
 	 (my-deepgram-parse json-file)
 	 force))
+
+(defun my-deepgram-cost (file)
+	(interactive "FFile: ")
+	(let* ((whisper-large-per-min 0.0048)
+				 (nova2-streaming-per-min 0.0059)
+				 (duration (/ (ceiling (/ (compile-media-get-file-duration-ms file) 1000.0)) 60))
+				 (msg (format "%.1f minutes: USD %.2f batch, USD %.2f streaming"
+											duration
+											(* duration whisper-large-per-min)
+											(* duration nova2-streaming-per-min))))
+		(when (called-interactively-p 'any)
+			(message "%s" msg)
+			(kill-new msg))
+		(list
+		 duration
+		 (* duration whisper-large-per-min)
+		 (* duration nova2-streaming-per-min))))
 #+end_src
+
 **** TOBLOG Rerecognize this audio and reprocess it
 :PROPERTIES:
 :CUSTOM_ID: rerecognize

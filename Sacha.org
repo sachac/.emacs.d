@@ -15711,7 +15711,8 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 		("w" my-mastodon-save-toot-for-emacs-news)
 		("o" (org-capture nil "m"))
 		;; more general things
-    ("h" mastodon-tl--get-home-timeline)
+    ("h" (progn (require 'mastodon) mastodon-tl--get-home-timeline))
+
     ("l" mastodon-tl--get-local-timeline)
     ("F" mastodon-tl--get-federated-timeline)
     ("V" mastodon-profile--view-favourites)

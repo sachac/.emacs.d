@@ -3025,7 +3025,7 @@ From Xah Lee:
 
 #+begin_src emacs-lisp
 (keymap-global-set "M-c" #'capitalize-dwim)
-(setq-default fill-column 60)
+(setq-default fill-column 50)
 #+end_src
 
 
@@ -11078,9 +11078,12 @@ With prefix argument, also display headlines without a TODO keyword."
 			(desc (format "<a href=\"%s\">%s</a>" path (or desc path)))
 			((string-match "t=" path) (format "<a href=\"%s\">%s</a>" path (or desc path)))
 			(t (format my-org-yt-iframe-format
-								 (if (string-match "\\(?:v=\\|tu\\.be/\\)\\([^&]+\\)" path)
-										 (match-string 1 path)
-									 path)
+								 (cond
+									((string-match "\\(?:v=\\|tu\\.be/\\)\\([^&]+\\)" path)
+									 (match-string 1 path))
+									((string-match "\\(live_stream\\?channel.*\\)" path)
+									 (match-string 1 path))
+									(t path))
 								 (or desc "")
 								 path))))
 		('ascii

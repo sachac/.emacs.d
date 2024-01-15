@@ -2306,7 +2306,98 @@ I should get the hang of using =helm-org-rifle= and =ripgrep=.
   :config
   (setq consult-recoll-search-flags nil)
   :bind
-  ("M-s s" . consult-recoll))
+  ("M-s S" . consult-recoll))
+#+end_src
+**** Transient for isearch
+
+From https://github.com/kickingvegas/cclisp/blob/fae13b5adb6cb667af23070d000f9bd91b6ba3d8/cc-isearch-menu.el#L96
+
+#+begin_src emacs-lisp
+(require 'transient)
+(transient-define-prefix cc/isearch-menu ()
+  "isearch Menu"
+  [["Edit Search String"
+    ("e"
+     "Edit the search string (recursive)"
+     isearch-edit-string
+     :transient nil)
+    ("w"
+     "Pull next word or character word from buffer"
+     isearch-yank-word-or-char
+     :transient nil)
+    ("s"
+     "Pull next symbol or character from buffer"
+     isearch-yank-symbol-or-char
+     :transient nil)
+    ("l"
+     "Pull rest of line from buffer"
+     isearch-yank-line
+     :transient nil)
+    ("y"
+     "Pull string from kill ring"
+     isearch-yank-kill
+     :transient nil)
+    ("t"
+     "Pull thing from buffer"
+     isearch-forward-thing-at-point
+     :transient nil)]
+
+   ["Replace"
+    ("q"
+     "Start ‘query-replace’"
+     isearch-query-replace
+     :if-nil buffer-read-only
+     :transient nil)
+    ("x"
+     "Start ‘query-replace-regexp’"
+     isearch-query-replace-regexp
+     :if-nil buffer-read-only
+     :transient nil)]]
+
+  [["Toggle"
+    ("X"
+     "Regexp searching"
+     isearch-toggle-regexp
+     :transient nil)
+    ("S"
+     "Symbol searching"
+     isearch-toggle-symbol
+     :transient nil)
+    ("W"
+     "Word searching"
+     isearch-toggle-word
+     :transient nil)
+    ("F"
+     "Case fold"
+     isearch-toggle-case-fold
+     :transient nil)
+    ("L"
+     "Lax whitespace"
+     isearch-toggle-lax-whitespace
+     :transient nil)]
+
+   ["Misc"
+    ("o"
+     "occur"
+     isearch-occur
+     :transient nil)
+    ("h"
+     "highlight"
+     isearch-highlight-regexp
+     :transient nil)
+    ("H"
+     "highlight lines"
+     isearch-highlight-lines-matching-regexp
+     :transient nil)]])
+
+(define-key isearch-mode-map (kbd "M-s") 'cc/isearch-menu)
+#+end_src
+**** Occur
+
+From https://emacs.ch/@bram85/111724372485640053:
+#+begin_src emacs-lisp
+(with-eval-after-load 'occur
+	(keymap-set occur-mode-map "C-x C-q" #'occur-edit-mode))
 #+end_src
 *** Ediff
 :PROPERTIES:

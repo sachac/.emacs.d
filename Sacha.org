@@ -17119,6 +17119,9 @@ Some code to start and stop the stream:
 		(kill-process my-stream-process)))
 
 (defalias 'my-recording-stop #'my-stream-stop)
+(defun my-recordings-dired ()
+	(interactive)
+	(dired my-recordings-dir "-lt"))
 #+end_src
 
 Let's have relative timestamps:

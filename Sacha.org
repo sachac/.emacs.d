@@ -15265,6 +15265,23 @@ From https://www.n16f.net/blog/eshell-key-bindings-and-completion/
 													(all-completions filename obarray #'functionp))
 										 completions))))))))
 #+end_src
+*** SQLite
+
+From https://christiantietze.de/posts/2024/01/emacs-sqlite-mode-open-sqlite-files-automatically/
+#+begin_src emacs-lisp
+(use-package sqlite-mode
+	:commands sqlite-mode-open-file
+  :config
+  (defun ct/sqlite-view-file-magically ()
+    "Runs `sqlite-mode-open-file' on the file name visited by the
+current buffer, killing it."
+    (require 'sqlite-mode)
+    (let ((file-name buffer-file-name))
+      (kill-current-buffer)
+      (sqlite-mode-open-file file-name)))
+  (add-to-list 'magic-mode-alist '("SQLite format 3\x00" . ct/sqlite-view-file-magically)))e
+#+end_src
+
 *** Documentation
 :PROPERTIES:
 :CUSTOM_ID: documentation

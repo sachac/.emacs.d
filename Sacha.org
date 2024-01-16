@@ -1,6 +1,6 @@
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:nil h:4
-#+SETUPFILE: /home/sacha/vendor/org-html-themes/org/theme-readtheorg.setup
+#+SETUPFILE: /home/sacha/vendor/org-html-themes/org/theme-readtheorg-sachac.setup
 #+STARTUP: showeverything
 #+PROPERTY: header-args:emacs-lisp+   :tangle yes :results silent :exports code
 #+ELEVENTY_COLLECTIONS: _posts
@@ -1013,7 +1013,7 @@ The following code annotates journal entries with their categories.
 	 :map embark-url-map
 	 ("c" . my-caption-show)
 	 :map embark-org-src-block-map
-	 ("i" . my-org-block-fix-indentation)
+	 ("i" . my-org-fix-block-indentation)
 	 ))
 #+end_src
 *** Using Embark and qrencode to show a QR code for the Org Mode link at point :emacs:org:
@@ -2666,7 +2666,7 @@ sentence navigation commands work for me.
 			(make-string (length (match-string 2 sub)) ?x)))
 	 s))
 
-(defun my-redact-emails (&optional _)
+(defun my-redact-emails (&rest _)
 	(interactive)
 	(my-redact-regexp
 	 "\\([-+_~a-zA-Z0-9][-+_.~:a-zA-Z0-9]*\\)@\\([-a-zA-Z0-9]+[-.a-zA-Z0-9]*\\)"
@@ -8260,32 +8260,6 @@ This is extracted from lines like:
 
 
 #+end_src
-**** TODO Explore using 11ty base https://www.11ty.dev/docs/plugins/html-base/ :11ty:
-:PROPERTIES:
-:CREATED:  [2023-12-29 Fri 10:36]
-:END:
-
-so I can get absolute URLs automatically
-
-
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-2 days-agenda (W01):
-Tuesday     2 January 2024
-  business:   Scheduled:  STARTED [#A] Write shareholder's resolutions in lieu of meeting :build::
-  organizer:  Scheduled:  SOMEDAY Look up names for seating maps :consulting:asm:
-  Inbox:      Scheduled:  TODO Add more error handling to snippet :consulting:asm:
-  Inbox:      Scheduled:  SOMEDAY Write tests for seating map :consulting:asm:
-  routines:   Scheduled:  STARTED [#C] Track our food            :routine::
-Wednesday   3 January 2024
-  organizer:  Scheduled:  SOMEDAY Harvest closing remarks :emacs::emacsconf:harvest:
-  organizer:  Scheduled:  STARTED Check for Aerius
-  Inbox:      Scheduled:  TODO Fund TFSA and RESP
-  routines:   Scheduled:  STARTED [#C] Track our food            :routine::
-
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-SOMEDAY :Emacs: High-priority
-e
-
 **** Linking to blog posts
 :PROPERTIES:
 :CUSTOM_ID: linking-to-blog-posts
@@ -9412,7 +9386,6 @@ With prefix argument, also display headlines without a TODO keyword."
 
 #+end_src
 *** Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search :org:emacs:coding:
-SCHEDULED: <2024-01-12 Fri>
 :PROPERTIES:
 :CUSTOM_ID: git-projects
 :EXPORT_DATE: 2024-01-07T08:07:09-0500
@@ -14759,7 +14732,7 @@ This uses ~my-spookfox-complete-link~ from [[dotemacs:spookfox]].
   (my-org-with-current-task
    (org-clock-in)
    (call-interactively 'my-org-quantified-track)
-   (when (websocket-openp obs-websocket)  (my-stream-message (org-get-heading t t t t)))
+   ;(when (websocket-openp obs-websocket)  (my-stream-message (org-get-heading t t t t)))
    (cond
     ((org-entry-get (point) "AUTO")
      (org-link-open-from-string (org-entry-get (point) "AUTO")))
@@ -15369,7 +15342,7 @@ to see which items I'd planned ahead, and which ones were new tasks.
          (string-to-number (car (last b)))
          (string-to-number (car (last a)))))))))
 #+end_src
-* Things related to Emacs and my phone
+* Emacs and my phone
 :PROPERTIES:
 :CUSTOM_ID: on-my-phone
 :END:
@@ -19280,20 +19253,79 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
    :complete 'my-org-image-complete))
 
 #+end_src
-*** Copy
+*** Org Mode custom link: copy to clipboard   :emacs:org:
 :PROPERTIES:
-:CUSTOM_ID: copy
+:CUSTOM_ID: org-mode-copy
+:EXPORT_DATE: 2024-01-16T07:57:50-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/01/org-mode-custom-link-copy-to-clipboard/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/01/org-mode-custom-link-copy-to-clipboard/
 :END:
 
-    #+begin_src emacs-lisp
+I have a tiny corporation for my consulting. I do
+all of my own paperwork. I have lots of notes in
+Org Mode for infrequent tasks like the tax-related
+paperwork I do once a year. My notes include
+checklists, links, and Org Babel blocks for
+calculations. I often need to copy standard text
+(ex: the name of the company) or parts of the
+output of my Org Babel blocks (ex: tax collected)
+so that I can fill in web forms on the Canada
+Revenue Agency website.
+
+This little snippet makes it easy to copy text for
+pasting. It defines a custom Org link that starts
+with ~copy:~. When I follow the link by clicking
+on it or using ~C-c C-o~ (~org-open-at-point~), it
+copies the text to the kill ring (which is what
+Emacs calls the clipboard) so that I can paste it
+anywhere. For example, ~[[copy:Hello world]]~
+becomes a link to copy "Hello world". Copying
+means never having to worry about typos or
+accidentally selecting only part of the text.
+
+#+begin_src emacs-lisp
 (use-package org
   :config
   (org-link-set-parameters
    "copy"
    :follow (lambda (link) (kill-new link))
-))
+	 :export (lambda (_ desc &rest _) desc)))
+#+end_src
 
-    #+end_src
+I can use these links as part of my checklist so
+that I can quickly fill in things like my business
+name and other details. I can put sensitive
+information like my social insurance number in a
+GPG-encrypted file. (Just set up your GPG keys and
+end a filename with ~.gpg~, and Emacs will take
+care of transparently encrypting and decrypting
+the file.)
+
+I can also export those links as part of my Org
+Babel output. For example, the following code
+calculates the numbers I need to fill in a T5 form
+for the other-than-eligible dividends that I issue
+myself according to the [[https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/completing-slips-summaries/financial-slips-summaries/return-investment-income-t5/t5-slip/completing-t5-slip.html][T5 instructions from the CRA]].
+
+#+begin_src emacs-lisp :results table replace :exports both
+(let* ((box-10 1234) ; fake number for demo
+       (box-11 (* 1.15 box-10))
+       (box-12 (* 0.090301 box-11)))
+  `((box-10 ,(format "[[copy:%.2f][%.2f]]" box-10 box-10))
+    (box-11 ,(format "[[copy:%.2f][%.2f]]" box-11 box-11))
+    (box-12 ,(format "[[copy:%.2f][%.2f]]" box-12 box-12)))))
+#+end_src
+
+#+RESULTS:
+:results:
+| box-10 | [[copy:1234.00][1234.00]] |
+| box-11 | [[copy:1419.10][1419.10]] |
+| box-12 | [[copy:128.15][128.15]]  |
+:end:
+
+On my computer, the numbers become links that I
+can click and copy. Another little shortcut thanks
+to Emacs and Org Mode!
 
 *** Config
 :PROPERTIES:
@@ -20539,7 +20571,7 @@ streams, and I can't figure out how to get stuff out aside from using
 a browser. I can work around this by using Puppeteer and getting a
 screenshot. Here's a NodeJS snippet that saves that screenshot to a file.
 
-#+begin_src js :tangle "~/bin/supernote-screenshot.js"
+#+begin_src js :tangle "~/bin/supernote-screenshot.js" :eval no
 #!/usr/bin/env nodejs
 # This file is tangled to ~/bin/supernote-screenshot.js from my config at https://sachachua.com/dotemacs
 # Usage: supernote-screenshot.js [filename]
@@ -21136,6 +21168,27 @@ h5 { font-size: 150% }
 h6 { font-size: 100% }
 
 </style>
+#+end_export
+
+Update the URL as we scroll: ([[https://stackoverflow.com/questions/14660580/change-url-when-manually-scrolled-to-an-anchor][based on this]])
+
+#+NAME: scrollspy
+#+begin_export html
+<script>
+function updateHref() {
+  let all = document.querySelectorAll('#text-table-of-contents .active > a');
+  if (all.length == 0) return;
+  let active = all[all.length - 1];
+  if (active && active.href != window.location.hash) {
+    let loc = window.location.toString().split('#')[0];
+    let hash = active.href.split('#')[1];
+    history.replaceState(null, null, loc + '#' + hash);
+  }
+}
+window.addEventListener('DOMContentLoaded', function() {
+  $(window).on('activate.bs.scrollspy', updateHref);
+});
+</script>
 #+end_export
 
 You can [[mailto:sacha@sachachua.com][e-mail me]] or @@html:<a rel="me" href="https://emacs.ch/@sachac">find me on Mastodon</a>@@.

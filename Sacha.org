@@ -2700,6 +2700,9 @@ cool. On Windows, these things help a little.
   (setq tramp-auto-save-directory "c:\\sacha\\tmp"))
 #+end_src
 ** Touch gestures
+:PROPERTIES:
+:CUSTOM_ID: touch
+:END:
 [2024-02-01 Thu]
 From https://kitchingroup.cheme.cmu.edu/blog/2014/08/31/Using-Mac-gestures-in-Emacs/
 #+begin_src emacs-lisp
@@ -5346,6 +5349,37 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
 (when (display-graphic-p)
   (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
 #+END_SRC
+** Wdiff
+:PROPERTIES:
+:CUSTOM_ID: wdiff
+:END:
+
+This uses the wdiff tool for word-based diffs.
+
+#+begin_src emacs-lisp
+(defun my-wdiff (old-file new-file)
+	(interactive (list (read-file-name "Original: ")
+										 (buffer-file-name)))
+	(with-current-buffer (get-buffer-create "*wdiff*")
+		(erase-buffer)
+		(call-process "wdiff" nil t t old-file new-file)
+		(goto-char (point-min))
+		(while (re-search-forward "\\(\\[-\\|{\\+\\)\\(.*?\\)\\(-\\]\\|\\+}\\)" nil t)
+				(add-text-properties (match-beginning 0) (match-end 0)
+														 (list 'face (if (string= (match-string 1) "[-")
+																						 'diff-removed
+																					 'diff-added))))
+		(switch-to-buffer (current-buffer))))
+
+(defun my-wdiff-buffer-with-file ()
+	(interactive)
+	(let ((s (buffer-string))
+				(temp-file (make-temp-file "temp")))
+		(with-temp-file temp-file
+			(insert s))
+		(my-wdiff (buffer-file-name) temp-file)
+		(delete-file temp-file)))
+#+end_src
 
 * Org Mode                                                              :org:
 :PROPERTIES:
@@ -9872,7 +9906,7 @@ With prefix argument, also display headlines without a TODO keyword."
 							body)
 				 (setq body
 							 (format
-								"<video%s%s src=\"%s\" type=\"%s\"><a href=\"%s\">Download the video</a></video>"
+								"<video%s%s src=\"%s\" type=\"%s\">%s<a href=\"%s\">Download the video</a>%s</video>"
 								(if (string= (or (car (assoc-default "controls" params 'string= '("1"))) "1") "0")
 										""
 									" controls=\"1\"")
@@ -9881,7 +9915,15 @@ With prefix argument, also display headlines without a TODO keyword."
 									" autoplay=\"1\"")
 								(car path-and-query)
 								(mailcap-file-name-to-mime-type (car path-and-query))
-								(car path-and-query)))
+								(if (assoc-default "captions" params)
+										(format "<track kind=\"subtitles\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
+														(expand-file-name (car (assoc-default "captions" params))))
+									"")
+								(car path-and-query)
+								(if (assoc-default "captions-below" params)
+										"<div class=\"captions\" style=\"display: none\"></div>"
+									"")
+								))
 				 (when (assoc-default "caption" params)
 					 (setq body (format "<figure>%s<figcaption><div>%s</div></figcaption></figure>"
 															body
@@ -9943,22 +9985,7 @@ With prefix argument, also display headlines without a TODO keyword."
 						"")
 					(if (and (assoc-default "captions" params)
 									 (assoc-default "id" params))
-							(format  "<div class=\"captions\" style=\"display: none\"></div>
-<script>
-(function(elem) {
-  // TODO: Load the first cue, and maybe display two cues at a time
-  let captions = elem.querySelector('.captions');
-  let track = elem.querySelector('audio').textTracks[0];
-  track.addEventListener('cuechange', function() {
-    captions.style.display = 'block';
-    if (this.activeCues[0]?.text) {
-       captions.innerText = this.activeCues[0]?.text;
-    } else {
-       captions.innerHTML = '&nbsp;';
-    }
-  });
-})(document.currentScript.closest('.audio'));
-</script>"
+							(format  "<div class=\"captions\" style=\"display: none\"></div>"
 											 (car (assoc-default "id" params)))
 						"")
 					)))
@@ -9974,8 +10001,6 @@ With prefix argument, also display headlines without a TODO keyword."
 		nil
 		)
 	 )))
-
-
 (defun my-org-audio-complete ()
 	"Complete audio reference."
 	(interactive)

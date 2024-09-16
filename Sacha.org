@@ -1,6 +1,6 @@
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:nil h:4
-#+SETUPFILE: /home/sacha/vendor/org-html-themes/org/theme-readtheorg-sachac.setup
+#+SETUPFILE: ~/vendor/org-html-themes/org/theme-readtheorg-sachac.setup
 #+STARTUP: showeverything
 #+PROPERTY: header-args:emacs-lisp+   :tangle yes :results silent :exports code
 #+ELEVENTY_COLLECTIONS: _posts
@@ -162,7 +162,7 @@ in a directory in my =load-path=, Emacs can find them.
 
 #+NAME: system-info
 #+begin_src emacs-lisp
-(defvar my-laptop-p (equal (system-name) "sacha-x220"))
+(defvar my-laptop-p (or (equal (system-name) "sacha-x230") (equal (system-name) "sacha-p52")))
 (defvar my-server-p (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
 (defvar my-phone-p (not (null (getenv "ANDROID_ROOT")))
   "If non-nil, GNU Emacs is running on Termux.")
@@ -1126,58 +1126,60 @@ The following code annotates journal entries with their categories.
 :CUSTOM_ID: embark
 :END:
 #+begin_src emacs-lisp
-(use-package embark
-	:load-path "~/vendor/embark"
-	; :quelpa (embark :fetcher github :repo "oantolin/embark")
-	:config
-	(setq embark-prompter 'embark-keymap-prompter)
-	(add-to-list 'embark-target-finders 'my-embark-org-element)
-	(add-to-list 'embark-target-finders 'my-embark-subed-timestamp)
-	(add-to-list 'embark-target-injection-hooks '(my-journal-post embark--allow-edit))
-	(with-eval-after-load 'subed
-	  (defvar-keymap embark-subed-timestamp-actions
-	    :doc "Subed timestamp actions"
-	    :parent subed-mode-map
-	    "." #'my-subed-set-timestamp-to-mpv-position
-	    "c" #'my-subed-copy-timestamp-dwim
-	    "<up>" #'my-subed-adjust-timestamp/my-subed-adjust-timestamp-up
-	    "w" #'my-waveform-subed-show-after-time
-	    "<down>" #'my-subed-adjust-timestamp/my-subed-adjust-timestamp-down))
-	(defvar-keymap embark-sketch-actions
-	  :doc "Org Mode sketch-related actions"
-	  :parent org-mode-map
-	  "o" #'my-sketch-insert-file-as-link
-	  "v" #'my-geeqie-view)
-	(defvar-keymap embark-journal-actions
-	  :doc "Journal"
-	  "e" #'my-journal-edit)
-	(add-to-list 'embark-keymap-alist '(sketch . embark-sketch-actions))
-	(add-to-list 'embark-keymap-alist '(subed-timestamp . embark-subed-timestamp-actions))
-	(add-to-list 'embark-keymap-alist '(journal . embark-journal-actions))
-	:bind
-	(("C-." . embark-act)
-	 ("C-;" . embark-act)
-	 :map minibuffer-local-map
-	 (("C-c e" . embark-act)
-	  ("C-;" . embark-act)
-		("C-<tab>" . embark-select)
-		("C-SPC" . (lambda () (interactive) (embark-select) (vertico-next))))
-	 :map embark-collect-mode-map
-	 (("C-c e" . embark-act)
-	  ("C-;" . embark-act)
-		("C-<tab>" . embark-select))
-	 :map embark-general-map
-	 (("j" . my-journal-post)
-	  ("m" . my-stream-message)
-	  ("M-w" . (lambda (s) (interactive "MString: ") (kill-new s))))
-	 :map embark-symbol-map
-	 ("r" . erefactor-rename-symbol-in-buffer)
-	 :map embark-url-map
-	 ("c" . my-caption-show)
-	 :map embark-org-src-block-map
-	 ("i" . my-org-fix-block-indentation)
-	 ))
-#+end_src
+  (use-package embark
+    :after org
+    :load-path "~/vendor/embark"
+  					; :quelpa (embark :fetcher github :repo "oantolin/embark")
+    :config
+  	(setq embark-prompter 'embark-keymap-prompter)
+  	(add-to-list 'embark-target-finders 'my-embark-org-element)
+  	(add-to-list 'embark-target-finders 'my-embark-subed-timestamp)
+  	(add-to-list 'embark-target-injection-hooks '(my-journal-post embark--allow-edit))
+  	(with-eval-after-load 'subed
+  	  (defvar-keymap embark-subed-timestamp-actions
+  	    :doc "Subed timestamp actions"
+  	    :parent subed-mode-map
+  	    "." #'my-subed-set-timestamp-to-mpv-position
+  	    "c" #'my-subed-copy-timestamp-dwim
+  	    "<up>" #'my-subed-adjust-timestamp/my-subed-adjust-timestamp-up
+  	    "w" #'my-waveform-subed-show-after-time
+  	    "<down>" #'my-subed-adjust-timestamp/my-subed-adjust-timestamp-down))
+  	(defvar-keymap embark-sketch-actions
+  	  :doc "Org Mode sketch-related actions"
+  	  :parent org-mode-map
+  	  "o" #'my-sketch-insert-file-as-link
+  	  "v" #'my-geeqie-view)
+  	(defvar-keymap embark-journal-actions
+  	  :doc "Journal"
+  	  "e" #'my-journal-edit)
+  	(add-to-list 'embark-keymap-alist '(sketch . embark-sketch-actions))
+  	(add-to-list 'embark-keymap-alist '(subed-timestamp . embark-subed-timestamp-actions))
+  	(add-to-list 'embark-keymap-alist '(journal . embark-journal-actions))
+  	:bind
+  	(("C-." . embark-act)
+  	 ("C-;" . embark-act)
+  	 :map minibuffer-local-map
+  	 (("C-c e" . embark-act)
+  	  ("C-;" . embark-act)
+  		("C-<tab>" . embark-select)
+  		("C-SPC" . (lambda () (interactive) (embark-select) (vertico-next))))
+  	 :map embark-collect-mode-map
+  	 (("C-c e" . embark-act)
+  	  ("C-;" . embark-act)
+  		("C-<tab>" . embark-select))
+  	 :map embark-general-map
+  	 (("j" . my-journal-post)
+  	  ("m" . my-stream-message)
+  	  ("M-w" . (lambda (s) (interactive "MString: ") (kill-new s))))
+  	 :map embark-symbol-map
+  	 ("r" . erefactor-rename-symbol-in-buffer)
+  	 :map embark-url-map
+  	 ("c" . my-caption-show)
+  	 ))
+  (with-eval-after-load 'embark-org
+    (define-key embark-org-src-block-map
+  	 "i" #'my-org-fix-block-indentation))
+	 #+end_src
 
 Things I'm getting used to using:
 
@@ -1214,7 +1216,7 @@ from [[dotemacs:web-link]] so that I can get the regular
 
 (use-package qrencode
 	:config
-	(with-eval-after-load 'embark
+	(with-eval-after-load 'embark-org
 		(define-key embark-org-link-map (kbd "q") #'my-org-link-qr)))
 #+end_src
 
@@ -1492,6 +1494,7 @@ I want to:
 	(start-process "firefox" nil "firefox" (if (string-match "^http" file) file (expand-file-name file))))
 
 (defun my-image-recognize (file)
+	(interactive "FFile: ")
 	(let ((data (json-parse-string
 							 (if (file-exists-p (concat (file-name-sans-extension file) ".json"))
 									 (with-temp-buffer
@@ -1587,6 +1590,18 @@ I want to:
 	      (my-subed-copy-timestamp-from-previous)
 	    (my-subed-copy-timestamp-to-next))))
 #+end_src
+*** Embark, symbols, and casual-symbol-overlay
+
+Link: http://yummymelon.com/devnull/announcing-casual-symbol-overlay.html
+
+#+begin_src emacs-lisp
+(use-package casual-symbol-overlay
+	:if my-laptop-p
+	:init
+	(with-eval-after-load 'embark
+		(keymap-set embark-symbol-map "z" #'casual-symbol-overlay-tmenu)))
+#+end_src
+
 ** Cargo-culted stuff
 :PROPERTIES:
 :CUSTOM_ID: cargo-culted-stuff
@@ -1953,9 +1968,9 @@ nil
   (interactive)
   (org-attach-attach (my-latest-file my-download-dir) nil 'cp)
   (org-insert-link nil (caar org-stored-links)))
-(defun my-copy-latest-download (dest)
+(defun my-copy-latest-download (dest &optional force)
   (interactive "FDestination: ")
-  (copy-file (my-latest-file my-download-dir) dest))
+  (copy-file (my-latest-file my-download-dir) dest force))
 (defun my-download-dired ()
 	(interactive)
 	(dired my-download-dir "-lt"))
@@ -2106,6 +2121,12 @@ From https://github.com/kickingvegas/cclisp/blob/fae13b5adb6cb667af23070d000f9bd
      :transient nil)]])
 
 (define-key isearch-mode-map (kbd "M-S") 'cc/isearch-menu)
+#+end_src
+*** Search invisible text
+
+#+begin_src emacs-lisp
+(setq isearch-invisible t
+			search-invisible t)
 #+end_src
 *** Occur
 
@@ -4431,11 +4452,15 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
 
 You can get these from https://github.com/sachac
 #+begin_src emacs-lisp
-(use-package waveform :load-path "~/proj/waveform-el")
-(use-package compile-media :load-path "~/proj/compile-media")
+(use-package waveform :load-path "~/proj/waveform-el" :if my-laptop-p)
+(use-package compile-media :load-path "~/proj/compile-media" :if my-laptop-p
+)
 #+end_src
 *** TODO Working with sections defined by NOTE comments
-SCHEDULED: <2024-01-23 Tue>
+SCHEDULED: <2024-10-07 Mon>
+:PROPERTIES:
+:CREATED:  [024-05-31 Fri 15:1]
+:END:
 
 #+begin_src emacs-lisp
 (defun my-subed-group-sections (subtitles)
@@ -5354,7 +5379,7 @@ From http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/03/C3F.htm
 :CUSTOM_ID: wdiff
 :END:
 
-This uses the wdiff tool for word-based diffs.
+This uses the [[https://www.gnu.org/software/wdiff/][wdiff]] tool for word-based diffs.
 
 #+begin_src emacs-lisp
 (defun my-wdiff (old-file new-file)
@@ -5395,9 +5420,9 @@ stuff.
   :bind
   (:map org-mode-map
         ("C-M-<return>" . org-insert-subheading))
-	:config
-	(setq org-export-with-sub-superscripts nil)
-	(setq org-fold-catch-invisible-edits 'smart))
+	:custom
+	(org-export-with-sub-superscripts nil)
+	(org-fold-catch-invisible-edits 'smart))
 #+end_src
 
 ** My files
@@ -5726,7 +5751,7 @@ entries, notes, and other semi-structured pieces of information.
          " "Basic task data")
 (defvar my-org-inbox-file "~/sync/orgzly/Inbox.org")
 (defvar my-ledger-file "~/cloud/ledger/current.ledger")
-(with-eval-after-load 'org
+(with-eval-after-load 'org-capture
 	(setq org-capture-templates
 				(seq-uniq
 				 (append
@@ -6447,6 +6472,7 @@ only a few of them them for faster scanning.
                       "~/sync/orgzly/garden.org"
                       "~/sync/orgzly/decisions.org"
                       "~/sync/orgzly/computer-inbox.org"
+                      "~/sync/orgzly/crafts.org"
                       "~/sync/emacs/Sacha.org"
                       "~/proj/stream/index.org"
                       "~/proj/plover-notes/README.org"
@@ -8190,7 +8216,7 @@ From https://isamert.net/2022/01/04/dealing-with-apis-jsons-and-databases-in-org
 
 #+begin_src emacs-lisp
 (use-package jq-mode
-	:load-path "~/vendor/jq-mode"
+	:vc (:url "https://github.com/ljos/jq-mode")
 	:config
 	(org-babel-do-load-languages 'org-babel-load-languages
 															 '((jq . t))))
@@ -8756,6 +8782,24 @@ position itself.
     (unless (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
       (org-entry-put (point) "EXPORT_ELEVENTY_FILE_NAME" path))))
 
+(defun my-org-11ty-rename-subtree ()
+	(interactive)
+	(let ((new-path (concat "blog/" (format-time-string "%Y/%m/")
+													(my-make-slug (org-get-heading t t t t))
+													"/")))
+		(when (not (string= new-path (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")))
+			(when
+					(file-exists-p (expand-file-name
+													(org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
+													my-11ty-base-dir))
+				(rename-file (expand-file-name
+											(org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
+											my-11ty-base-dir)
+										 (expand-file-name
+											new-path
+											my-11ty-base-dir)))
+			(org-entry-put (point) "EXPORT_ELEVENTY_PERMALINK" (concat "/" path))
+			(org-entry-put (point) "EXPORT_ELEVENTY_FILE_NAME" path))))
 (defun my-11ty-convert-to-njk ()
   (interactive)
   (let* ((filename (buffer-file-name))
@@ -8933,17 +8977,12 @@ copies or moves the subtree to the 11ty export directory.
 With prefix arg, move the subtree."
 	(interactive (list current-prefix-arg))
 	(let* ((file-properties
-					(org-element-map
-							(org-element-parse-buffer)
-							'keyword
-						(lambda (el)
-							(when (string-match "ELEVENTY" (org-element-property :key el))
-								(list
-								 (org-element-property :key el)
-								 (org-element-property :value el)
-								 (buffer-substring-no-properties
-									(org-element-property :begin el)
-									(org-element-property :end el)))))))
+					(save-restriction
+						(save-excursion
+							(widen)
+							(goto-char (point-min))
+							(cl-loop while (re-search-forward "^#\\+ELEVENTY.*" nil t)
+											 collect (match-string 0)))))
 				 (entry-properties (org-entry-properties))
 				 (filename (expand-file-name
 										"index.org"
@@ -8959,9 +8998,8 @@ With prefix arg, move the subtree."
 		(with-temp-file filename
 			(org-mode)
 			(insert (or
-							 (mapconcat (lambda (file-prop) (elt file-prop 2))
-													file-properties
-													"")
+							 (string-join file-properties
+														"\n")
 							 "")
 							"\n")
 			(org-yank))
@@ -9766,7 +9804,7 @@ With prefix argument, also display headlines without a TODO keyword."
 
 #+begin_src emacs-lisp
 (defvar my-org-yt-iframe-format
-  (concat "<div class=\"yt-video\"><iframe id=\"%s\" width=\"456\""
+  (concat "<div class=\"yt-video\"><iframe width=\"456\""
           " height=\"315\""
 					" title=""YouTube video player\""
           " src=\"https://www.youtube-nocookie.com/embed/%s?enablejsapi=1\""
@@ -10805,7 +10843,7 @@ With a description:
     (my-json-request (concat my-journal-url "/api/entries/" (plist-get plist :ZIDString)))))
 ;; (my-journal-post "Hello, world")
 
-(defun my-journal-get-entries (from to &optional search)
+(defun my-journal-get-entries (&optional from to search)
   "Return parsed CSV of entries limited by FROM, TO, and SEARCH."
   (with-current-buffer
       (url-retrieve-synchronously (format "%s/api/entries.csv?from=%s&to=%s&regex=1&q=%s"
@@ -11223,6 +11261,57 @@ This lets me define a custom link type.
                     "\n")))
     (if (called-interactively-p 'any) (insert result) result)))
 #+end_src
+*** Moments
+
+#+begin_src emacs-lisp
+(defun my-journal-moments (date)
+	(interactive (list (org-read-date "Start: ")))
+	(my-journal-post (concat "Moments starting " date " #moment") :Date (concat date " 23:00") :Category "Thoughts"))
+#+end_src
+*** Slicing and dicing the journal entries
+#+begin_src emacs-lisp
+(defun my-journal-filter-by-category (category list)
+	(reverse (seq-filter (lambda (o) (string= (my-journal-category o) "Eating"))
+											 list)))
+(defun my-journal-group-by-month (list)
+	(seq-group-by (lambda (o)
+									(substring (my-journal-date o) 0 7))
+								list))
+(defun my-journal-filter-by-month (month-regexp list)
+	(seq-filter (lambda (o)
+								(string-match month-regexp
+															(substring (my-journal-date o) 5 7)))
+								list))
+(defun my-journal-group-by-month-day (list)
+	(seq-group-by (lambda (o)
+									(substring (my-journal-date o) 5))
+								list))
+(defun my-journal-list-with-day (list)
+	(mapconcat (lambda (o)
+							 (concat "  - " (substring (my-journal-date o) 8) " "
+											 (replace-regexp-in-string "#.*" "" (my-journal-note o))))
+						 list
+						 "\n"))
+(defun my-journal-list-with-year (list)
+	(mapconcat (lambda (o)
+							 (concat "  - " (substring (my-journal-date o) 0 4) " "
+											 (replace-regexp-in-string "#.*" "" (my-journal-note o))))
+						 list
+						 "\n"))
+(defun my-journal-this-month-by-day (list)
+	(mapconcat (lambda (group)
+							 (format
+								"- %s\n%s"
+								(car group)
+								(my-journal-list-with-year (cdr group))))
+						 (cl-sort
+							(my-journal-group-by-month-day
+							 (my-journal-filter-by-month (format-time-string "%02m")
+																					 list))
+						'string<
+						:key #'car)
+					 "\n"))
+                                         #+end_src
 
 ** Attachments
 :PROPERTIES:
@@ -11272,6 +11361,7 @@ Org lets you attach files to an Org file. Haven't gotten the hang of this yet, b
 Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[http://sachachua.com/evil-plans]] for examples and source.
 
 #+begin_src emacs-lisp
+(use-package ob-mermaid)
 (setq org-ditaa-jar-path "c:/sacha/Dropbox/bin/ditaa.jar")
 (setq org-startup-with-inline-images t)
 (use-package org-contrib)
@@ -12211,6 +12301,7 @@ Handy for collecting items together.
 ** Appearance - org-modern, variable pitch
 #+begin_src emacs-lisp
 (use-package org-modern
+	:enabled nil
 	:config
 	(setq org-modern-block-name nil)
 	(global-org-modern-mode)
@@ -13602,7 +13693,6 @@ button to add more examples. My diff: https://github.com/xuchunyang/elisp-demos/
 	:custom
 	elisp-demos-user-files '("~/sync/orgzly/elisp-demos.org"))
 #+end_src
-
 ** Snippets
 :PROPERTIES:
 :CUSTOM_ID: snippets
@@ -14233,7 +14323,7 @@ Based on http://yitang.uk/2024/01/14/atomic-habit-in-emacs-keep-git-repos-clean/
 - [[elisp:(magit-status "/home/sacha/sync/orgzly/")][orgzly]]
 - [[elisp:(magit-status "/home/sacha/proj/static-blog/")][static-blog]]
 - [[elisp:(magit-status "/home/sacha/bin/")][bin]]
-- [[elisp:(magit-status "/home/sacha/proj/ox-11ty/")][ox-11ty]]
+- [[elisp:(magit-status "/home/sacha/proj/subed/")][subed]]
 :end:
 
 ** Forge
@@ -14570,6 +14660,15 @@ https://www.reddit.com/r/emacs/comments/b6n3t8/what_would_it_take_to_get_termina
         (remove 'eshell-handle-ansi-color eshell-output-filter-functions)))
 
 #+end_src
+*** Eshell completion
+
+[[https://www.emacs.dyerdwelling.family/emacs/20240827210257-emacs--enhancing-eshell-to-be-more-fishy/][Source]]
+
+#+begin_src emacs-lisp
+(use-package capf-autosuggest
+   :hook
+   (eshell-mode . capf-autosuggest-mode))
+#+end_src
 *** Correctly complete commands in subdirectories
 :PROPERTIES:
 :CUSTOM_ID: correctly-complete-commands-in-subdirectories
@@ -14698,7 +14797,9 @@ IRC is a great way to hang out with other Emacs geeks.
                                        "#emacs-beginners"
                                        "#emacs-ops")
                                       ("irc.chat.twitch.tv"
-                                       "#sachachua"))
+                                       "#sachachua")
+																			("irc.tilde.chat"
+																			 "#emacs.ch"))
         erc-server "irc.freenode.net"
         erc-nick "sachac"
         erc-track '("NICK" "333" "353" "JOIN" "PART" "AWAY"))
@@ -14766,12 +14867,14 @@ IRC is a great way to hang out with other Emacs geeks.
   :commands (mastodon-http--api mastodon-http--post mastodon-mode mastodon-http--get-search-json
 																mastodon-tl--get-local-timeline)
   :config
-  (setq mastodon-instance-url "https://emacs.ch"
-        mastodon-active-user "sachac"))
+  (setq mastodon-instance-url "https://social.sachachua.com"
+        mastodon-active-user "sacha"))
 
 (defun my-mastodon-clear-auth ()
-	"Fix alist-get: Wrong type argument: listp, (error . \"The access token is invalid\") error."
+	"Fix alist-get: Wrong type argument: listp, (error . \"The access token is invalid\") error. Then you can use `mastodon-auth--access-token'."
 	(interactive)
+	(setq mastodon-client--active-user-details-plist nil)
+	(delete-file (concat user-emacs-directory "mastodon.plstore"))
 	(setq mastodon-auth--token-alist nil))
 
 (defun my-mastodon-toot-public-string (message)
@@ -14827,6 +14930,12 @@ to things that look like Mastodon URLs by using mastodon.el.
 :END:
 
 #+begin_src emacs-lisp
+(defun my-mastodon-copy-link-dwim (prefix)
+	(interactive "P")
+	(if prefix
+			(mastodon-toot--copy-toot-url)
+		(my-mastodon-copy-toot-as-author-link)))
+
 (defun my-emacs-news-copy-mastodon-link ()
 	(interactive)
 	(let ((url (org-entry-get (point) "ITEM")))
@@ -14852,7 +14961,8 @@ to things that look like Mastodon URLs by using mastodon.el.
 											summary)
 								(if (and (car (plist-get info :links))
 												 (plist-get info :handle))
-										(concat " (" (org-link-make-string (plist-get info :url) (plist-get info :handle))
+										(concat " (" (org-link-make-string (plist-get info :url)
+																											 (plist-get info :handle))
 														")")
 									"")
 								"\n")))))
@@ -14872,7 +14982,7 @@ to things that look like Mastodon URLs by using mastodon.el.
 
 			(list
 			 :handle handle
-			 :url url
+			 :url (if (string-match org-link-bracket-re url) (match-string 1 url) url)
 			 :links (mapcar (lambda (o) (org-element-property :raw-link o))
 											(my-org-get-links-in-region beg end))
 			 :text (string-trim (buffer-substring-no-properties beg end))))))
@@ -15008,12 +15118,12 @@ defined elsewhere in [[https://sachachua.com/dotemacs/#mastodon][my config]].
 	:config
 	(add-to-list
 	 'org-capture-templates
-   '("w" "Emacs News" entry (file+headline "~/sync/orgzly/organizer.org" "Collect Emacs News")
+   '("w" "Emacs News" entry (file+headline "~/sync/orgzly/news.org" "Collect Emacs News")
      "* %a  :news:
 
-,#+begin_quote
+#+begin_quote
 %:text
-,#+end_quote
+#+end_quote
 
 "
      :prepend t :immediate-finish t)))
@@ -15031,6 +15141,241 @@ defined elsewhere in [[https://sachachua.com/dotemacs/#mastodon][my config]].
 (use-package mastodon
 	:bind (:map mastodon-mode-map ("w" . my-mastodon-save-toot-for-emacs-news)))
 #+end_src
+
+** DONE Combining Mastodon timelines using mastodon.el               :emacs:
+CLOSED: [2024-09-13 Fri 14:09]
+:PROPERTIES:
+:header-args:emacs-lisp: :results silent :exports code :eval never-export
+:EXPORT_DATE: 2024-09-13T12:55:25-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/combining-mastodon-timelines-using-mastodon-el/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/combining-mastodon-timelines-using-mastodon-el/
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2024-09-13 Fri 14:09]
+:END:
+
+I like checking out the #emacs hashtag when I put together Emacs News. In the past, I usually browsed the hashtag timeline on emacs.ch, which also picked up updates from other people that emacs.ch was following. Now that [[https://sachachua.com/blog/2024/09/moving-from-sachac-emacs-ch-to-sacha-social-sachachua-com/][I've moved to @sacha@social.sachachua.com]] and [[https://emacs.ch/@emacs/113087752901949391][emacs.ch is winding down]], I wanted to see if there was a way for me to see a combined view using [[https://mastodon.social/api/v1/timelines/tag/emacs?count=40][mastodon.social's API feed]] (paging by
+=max_id= as needed). I haven't enabled public
+timeline feeds on my server, so I also need to reuse the OAuth mechanics from mastodon.el.
+
+First, let's start by making a unified timeline. By digging around in =mastodon-tl.el=, I found that I could easily create a timeline view by passing it a vector of toot JSONs.
+
+#+begin_src emacs-lisp :eval never-export :results table :exports code :results silent
+(defun my-mastodon-fetch-posts-after (base-url after-date)
+	"Page backwards through BASE-URL using max_id for all the posts after AFTER-DATE."
+	(require 'plz)
+	(require 'mastodon-http)
+	(let ((results [])
+				(url base-url)
+				(use-mastodon-el (not (string-match "^http" base-url)))
+				page filtered)
+		(while url
+			(setq page (if use-mastodon-el
+										 (mastodon-http--get-json (mastodon-http--api url) nil :silent)
+									 (seq-map (lambda (o)
+															(cons (cons 'external t) o))
+														(plz 'get url :as #'json-read)))
+						filtered (seq-filter (lambda (o) (string< after-date (assoc-default 'created_at o)))
+																 page))
+			(if filtered
+					(progn
+						(setq results (seq-concatenate 'vector filtered results)
+									url (concat base-url (if (string-match "\\?" base-url) "&" "?")
+															"max_id=" (number-to-string (1- (string-to-number (assoc-default 'id (elt (last page) 0)))))))
+						(message "%s %s" (assoc-default 'created_at (elt (last page) 0)) url))
+				(setq url nil)))
+		results))
+
+(defun my-mastodon-combined-tag-timeline (later-than tag servers)
+	"Display items after LATER-THAN about TAG from SERVERS and the current mastodon.el account."
+	(interactive (list
+								(org-read-date nil nil nil nil nil "-Mon")
+								"#emacs"
+								'("mastodon.social" "emacs.ch")))
+	(require 'mastodon)
+	(require 'mastodon-tl)
+	(require 'mastodon-toot)
+	(let* ((limit 40)
+				 (sources (cons (format "timelines/tag/emacs?count=%d" limit)
+												(mapcar (lambda (s)
+																	(format "https://%s/api/v1/timelines/tag/emacs?count=%d" s limit))
+																servers)))
+				 (combined
+					(sort
+					 (seq-reduce (lambda (prev val)
+												 (seq-union prev
+																		(my-mastodon-fetch-posts-after val later-than)
+																		(lambda (a b) (string= (assoc-default 'uri a)
+																													 (assoc-default 'uri b)))))
+											 sources [])
+					 (lambda (a b)
+						 (string< (assoc-default 'created_at b)
+											(assoc-default 'created_at a))))))
+		(with-current-buffer (get-buffer-create "*Combined*")
+			(let ((inhibit-read-only t))
+				(erase-buffer)
+				(mastodon-tl--timeline combined)
+				(mastodon-mode))
+			(setq mastodon-tl--buffer-spec `(account ,(cons mastodon-active-user mastodon-instance-url) buffer-name ,(buffer-name)))
+			(display-buffer (current-buffer)))))
+#+end_src
+
+The tricky thing is that boosting and replying in
+mastodon.el both use the toot IDs instead of the
+toot URLs, so they only work for toots that came
+in via my current mastodon.el account. Toots from
+other timelines might not have been fetched by my
+server yet. Adding an =external= property lets me
+find that in the =item_json= text property in the
+timeline buffer. For those toots, I can use
+=(mastodon-url-lookup (mastodon-toot--toot-url))=
+to open the toot in a new buffer that does allow
+boosting or replying, which is probably enough for
+my purposes.
+
+#+begin_src emacs-lisp :results silent :exports code
+(defun my-mastodon-lookup-toot ()
+  (interactive)
+  (mastodon-url-lookup (mastodon-toot--toot-url)))
+#+end_src
+
+When I go through Emacs News, I have a shortcut
+ethat boosts a post and saves it to as an Org Mode
+capture with a link to the toot. I sometimes want
+to reply, too. So I just need to intervene before
+boosting and replying. Boosting and favoriting
+both use =mastodon-toot--action=, which looks up
+the =base-item-id= text property. Replying looks
+up the =item-json= property and gets the =id= from
+it.
+
+#+begin_src emacs-lisp :results silent
+(defun my-text-property-update-at-point (pos prop value)
+	(let ((start (previous-single-property-change (or pos (point)) prop))
+				(end (next-single-property-change (or pos (point)) prop)))
+		(put-text-property (or start (point-min))
+											 (or end (point-max))
+											 prop value)))
+
+(defun my-mastodon-update-external-item-id (&rest _)
+	(when (mastodon-tl--field 'external (mastodon-tl--property 'item-json))
+		;; ask the server to resolve it
+		(let* ((response (mastodon-http--get-json (format "%s/api/v2/search" mastodon-instance-url)
+																							`(("q" . ,(mastodon-toot--toot-url))
+																								("resolve" . "t"))))
+					 (id (alist-get 'id (seq-first (assoc-default 'statuses response))))
+					 (inhibit-read-only t)
+					 (json (get-text-property (point) 'item-json)))
+			(when (and id json)
+				(my-text-property-update-at-point (point) 'base-item-id id)
+				(my-text-property-update-at-point (point) 'item-json
+																					(progn
+																						(setf (alist-get 'id json) id)
+																						(setf (alist-get 'external json) nil)
+																						json))))))
+#+end_src
+
+So now all I need to do is make sure that this is called before the relevant mastodon.el functions if I'm looking at an external toot.
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'mastodon-tl
+	(advice-add #'mastodon-toot--action :before #'my-mastodon-update-external-item-id)
+	(advice-add #'mastodon-toot--reply :before #'my-mastodon-update-external-item-id)
+	(advice-add #'mastodon-tl--thread :before #'my-mastodon-update-external-item-id))
+#+end_src
+
+The only thing is that I need to press RET after loading a thread with T (=mastodon-tl--thread=) for some reason, but that's okay. Now I can boost and save posts with my usual Emacs News shortcut, and I can reply easily too.
+
+I'm curious: how many toots would I be missing if I looked at only one instance's hashtag? Let's look at the #emacs hashtag toots on 2024-09-12:
+
+#+NAME: mastodon-comparison
+#+begin_src emacs-lisp :summary Mastodon comparison :eval never-export :results replace table :exports both
+(defun my-three-way-comparison (seq1 seq2 seq3 &optional test-fn)
+	`(("1" ,@(seq-difference seq1 (seq-union seq2 seq3 test-fn) test-fn))
+		("2" ,@(seq-difference seq2 (seq-union seq1 seq3 test-fn) test-fn))
+		("3" ,@(seq-difference seq3 (seq-union seq1 seq2 test-fn) test-fn))
+		("1&2" ,@(seq-difference (seq-intersection seq1 seq2 test-fn) seq3 test-fn))
+		("1&3" ,@(seq-difference (seq-intersection seq1 seq3 test-fn) seq2 test-fn))
+		("2&3" ,@(seq-difference (seq-intersection seq2 seq3 test-fn) seq1 test-fn))
+		("1&2&3" ,@(seq-intersection (seq-intersection seq2 seq3 test-fn) seq1 test-fn))))
+(defun my-three-way-comparison-report (label1 seq1 label2 seq2 label3 seq3 &optional test-fn)
+	(let ((list (my-three-way-comparison seq1 seq2 seq3)))
+		`((,(format "%s only" label1) ,@(assoc-default "1" list #'string=))
+			(,(format "%s only" label2) ,@(assoc-default "2" list #'string=))
+			(,(format "%s only" label3) ,@(assoc-default "3" list #'string=))
+			(,(format "%s & %s" label1 label2) ,@(assoc-default "1&2" list #'string=))
+			(,(format "%s & %s" label1 label3) ,@(assoc-default "1&3" list #'string=))
+			(,(format "%s & %s" label2 label3) ,@(assoc-default "2&3" list #'string=))
+			("all" ,@(assoc-default "1&2&3" list #'string=)))))
+
+(assert (equal (my-three-way-comparison '("A" "A&B" "A&C" "A&B&C" "A1")
+																				'("B" "A&B" "A&B&C" "B&C")
+																				'("C" "A&C" "A&B&C" "B&C"))
+							 '(("1" "A" "A1")
+								 ("2" "B")
+								 ("3" "C")
+								 ("1&2" "A&B")
+								 ("1&3" "A&C")
+								 ("2&3" "B&C")
+								 ("1&2&3" "A&B&C"))))
+
+(let* ((later-than "2024-09-12")
+			 (earlier-than "2024-09-13")
+			 (results
+				(mapcar (lambda (o)
+									(cons (car o)
+												(seq-map (lambda (o) (assoc-default 'uri o))
+																 (seq-filter (lambda (toot)
+																							 (string< (assoc-default 'created_at toot)
+																												earlier-than))
+																						 (my-mastodon-fetch-posts-after
+																							(format "%stimelines/tag/emacs?count=40" (cdr o))
+																							later-than)))))
+								`((mastodon-social . "https://mastodon.social/api/v1/")
+									(emacs-ch . "https://emacs.ch/api/v1/")
+									(my-instance . ""))))
+			 (intersections
+				(let-alist results
+					(my-three-way-comparison-report
+					 "mastodon.social"
+					 .mastodon-social
+					 "emacs.ch"
+					 .emacs-ch
+					 "my instance"
+					 .my-instance
+					 #'string=))))
+	(mapcar
+	 (lambda (row)
+		 (list (elt row 0) (length (cdr row))
+					 (string-join
+						(seq-map-indexed (lambda (o i)
+															 (org-link-make-string o (number-to-string (1+ i))))
+														 (cdr row))
+						" ")))
+	 intersections))
+#+end_src
+
+#+begin_bordered
+#+RESULTS: mastodon-comparison
+:results:
+| mastodon.social only          |  3 | [[https://ubuntu.social/users/askubuntu/statuses/113126414967731060][1]] [[https://fosstodon.org/users/yabozdar/statuses/113124526863236697][2]] [[https://kolektiva.social/users/capita_picat/statuses/113124061187135721][3]]                   |
+| emacs.ch only                 |  1 | [[https://emacs.ch/users/pi/statuses/113121971331083227][1]]                       |
+| my instance only              |  0 |                         |
+| mastodon.social & emacs.ch    |  9 | [[https://mastodon.sdf.org/users/weigand/statuses/113126692283977409][1]] [[https://hostux.social/users/lfa/statuses/113126305338701924][2]] [[https://hostux.social/users/fsf/statuses/113125825197787920][3]] [[https://fosstodon.org/users/dliden/statuses/113125752869246982][4]] [[https://mas.to/users/evgandr/statuses/113125145671040666][5]] [[https://communick.news/post/1596509][6]] [[https://metalhead.club/users/stevoooo/statuses/113123854333728005][7]] [[https://hachyderm.io/users/fastloris/statuses/113127270000776260][8]] [[https://hostux.social/users/fsf/statuses/113126828026063155][9]]       |
+| mastodon.social & my instance |  0 |                         |
+| emacs.ch & my instance        |  1 | [[https://emacs.ch/users/pi/statuses/113126219575933425][1]]                       |
+| all                           | 11 | [[https://social.howellcloud.org/users/james/statuses/113125822427655325][1]] [[https://fosstodon.org/users/robjperez/statuses/113125629561857570][2]] [[https://mastodon.sdf.org/users/bmp/statuses/113125454491301488][3]] [[https://sonomu.club/users/kf/statuses/113125290519531930][4]] [[https://mastodon.social/users/adbenitez/statuses/113125114284046731][5]] [[https://mastodon.social/users/lisp_discussions/statuses/113124797381303645][6]] [[https://mathstodon.xyz/users/lepisma/statuses/113124048647122410][7]] [[https://mastodon.communick.com/users/raphael/statuses/113123503889071870][8]] [[https://emacs.ch/users/ramin_hal9001/statuses/113123160658553524][9]] [[https://fosstodon.org/users/willbush/statuses/113123135443452059][10]] [[https://recurse.social/users/mclare/statuses/113126571790537222][11]] |
+:end:
+#+end_bordered
+
+Here's an Euler diagram visualizing it.
+
+#+CAPTION: #emacs posts on 2024-09-12 - an Euler diagram showing the table above
+[[file:/home/sacha/recordings/2024-09-13-12-45-10.png]]
+
+I love that I can tinker with mastodon.el to get
+it to combine the timelines. (I'm crossing the
+streams!) Yay Emacs!
 
 ** Following people
 :PROPERTIES:
@@ -15581,14 +15926,14 @@ the Marionette support in Firefox, but I haven't looked into it yet.
 (use-package spookfox
 	;:quelpa (spookfox :fetcher github :repo "bitspook/spookfox"
   ; :files ("lisp/*.el" "lisp/apps/*.el"))
-	:load-path "~/vendor/spookfox"
+	:load-path ("~/vendor/spookfox/lisp" "~/vendor/spookfox/lisp/apps")
 	:when my-laptop-p
 	:config
 	(require 'spookfox-tabs)
 	;(require 'spookfox-org-tabs)
 	(require 'spookfox-js-injection)
 	(add-to-list 'spookfox-enabled-apps 'spookfox-tabs)
-	(add-to-list 'spookfox-enabled-apps 'spookfox-org-tabs)
+	(with-eval-after-load 'spookfox-org-tabs (add-to-list 'spookfox-enabled-apps 'spookfox-org-tabs))
 	(add-to-list 'spookfox-enabled-apps 'spookfox-js-injection)
 	;; (spookfox-init) ; don't automatically enable it; run (spookfox-init) to manually enable
 	)
@@ -16630,22 +16975,6 @@ I still use Gnus so that I can use [[http://gmane.org][Gmane]] to read mailing l
         (gnus-killed-mark (subject -5))
         (gnus-catchup-mark (subject -1))))
     #+end_src
-*** NNreddit?
-:PROPERTIES:
-:CUSTOM_ID: nnreddit
-:END:
-
-Experimenting with this.
-
-#+begin_src emacs-lisp
-(use-package nnreddit
-	:init (setq nnreddit-python-command "python3")
-	:quelpa (nnreddit :fetcher git :url "https://live.gitawonk.com/dickmao/nnreddit.git"
-										:files '("*.el" "requirements.txt"))
-	:config (with-eval-after-load 'gnus
-						(add-to-list 'gnus-secondary-select-methods '(nnreddit ""))))
-#+end_src
-
 *** Windows
 :PROPERTIES:
 :CUSTOM_ID: windows
@@ -16709,17 +17038,18 @@ program. We usually set mailing lists to moderated so that
 		(compose-mail (match-string 1) (match-string 3))
 		(message-send-and-exit)))
 
-(defun my-mailman-web ()
+(defun my-mailman-web (&optional list-id)
 	"Open the web admin interface."
-	(interactive)
+	(interactive
+	 (list
+		(if (and (derived-mode-p 'notmuch-show-mode)
+						 (re-search-forward "\\(https://.+?/mailman/admindb/\\(.+\\)\\)" nil t))
+			 (match-string 2)
+		 (completing-read "List: " '("emacsconf-org" "emacsconf-org-private" "emacs-tangents" "emacsconf-submit")))))
 	(goto-char (point-min))
-	(let ((id (if (and (derived-mode-p 'notmuch-show-mode)
-										 (re-search-forward "\\(https://.+?/mailman/admindb/\\(.+\\)\\)" nil t))
-								(match-string 2)
-							(completing-read "List: " '("emacsconf-org" "emacsconf-org-private" "emacs-tangents" "emacsconf-submit")))))
-		(browse-url (concat "https://lists.gnu.org/mailman/admindb/" id "?adminpw="
+	(browse-url (concat "https://lists.gnu.org/mailman/admindb/" list-id "?adminpw="
 												(url-hexify-string (string-trim (shell-command-to-string
-																												 (concat "pass " id))))))))
+																												 (concat "pass " list-id)))))))
       #+end_src
 * Emacs server
 :PROPERTIES:
@@ -17122,6 +17452,9 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
     #+begin_src emacs-lisp
 (use-package mpv :if my-laptop-p)
 (defvar my-recordings-dir "~/recordings/")
+(defun my-delete-latest-recording ()
+	(interactive)
+	(delete-file (my-latest-file my-recordings-dir)))
 (defun my-open-latest-recording ()
 	(interactive)
 	(find-file (my-latest-file my-recordings-dir)))
@@ -17473,7 +17806,6 @@ From https://github.com/nhoffman/.emacs.d/blob/master/init.org
 - [[https://github.com/iani/emacs-prelude][Iannis Zannos]]: Explained in this [[https://www.youtube.com/watch?v=0F8aCbC9z3A][Emacs Chat (~1h)]]
 - [[https://github.com/magnars/.emacs.d][Magnar Sveen]]: http://whattheemacsd.com/ has some explanations. [[http://sachachua.com/blog/2013/11/emacs-chat-magnar-sveen-emacs-rocks/][Emacs Chat (~1h)]]
 - [[https://github.com/jwiegley/dot-emacs][John Wiegley]]: Also see his [[http://www.youtube.com/watch?v=RvPFZL6NJNQ][Emacs Lisp Development talk]] (sorry, sucky video) and [[http://www.youtube.com/watch?v=ytNsHmRLZGM][Emacs Chat video]]
-
 * Inactive/infrequent things
 :PROPERTIES:
 :CUSTOM_ID: inactive-infrequent-things
@@ -19011,7 +19343,7 @@ with open("/home/sacha/.config/plover/annotated.txt", "w") as f:
 					 (call-interactively #'projectile-find-file)))
 		("o"
 		 (progn
-			 (find-file (expand-file-name "2023/organizers-notebook/index.org" emacsconf-directory))
+			 (find-file (expand-file-name "2024/organizers-notebook/index.org" emacsconf-directory))
 			 (call-interactively #'consult-org-heading))
 		 "org notes")
 		("a" (let ((default-directory emacsconf-ansible-directory))
@@ -20226,8 +20558,45 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
                             (my-get-sketch-filenames regexp t)))
                    'string>))))
 #+end_src
+*** Renaming and recoloring sketches
+:PROPERTIES:
+:CUSTOM_ID: sketch-rename-recolor
+:END:
+[2024-02-07 Wed]
+
+#+begin_src emacs-lisp
+(defun my-sketch-rename (file)
+	(interactive "FFile: ")
+	(let ((data (my-image-recognize file))
+				new-id)
+		(when (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" data)
+			(setq new-id (match-string 0 data))
+			(rename-file file
+									 (expand-file-name
+										(concat new-id "." (file-name-extension file))
+										(file-name-directory file)))
+			(when (file-exists-p (concat (file-name-sans-extension file) ".json"))
+				(rename-file (concat (file-name-sans-extension file) ".json")
+										 (expand-file-name
+											(concat new-id ".json")
+											(file-name-directory file)))))))
+(defun my-sketch-recolor-png (file color-scheme)
+	(interactive (list (read-file-name "File: ")
+										 (completing-read "Scheme: " (mapcar (lambda (o) (symbol-name (car o)))
+																												 my-sketch-color-map))))
+	(call-process "/home/sacha/bin/recolor.py" nil nil nil
+								"--colors"
+								(mapconcat
+								 (lambda (row)
+									 (concat (car row) "," (cdr row)))
+								 (assoc-default (if (stringp color-scheme)
+																		(intern color-scheme)
+																	color-scheme)
+																my-sketch-color-map)
+								 ",")
+								(expand-file-name file)))
+#+end_src
 *** Org Mode sketch: links
-***
 :PROPERTIES:
 :CUSTOM_ID: org-mode-sketch-links
 :END:
@@ -21261,6 +21630,7 @@ Let's try xournal++.
   :quelpa (org-krita :fetcher github :repo "lepisma/org-krita" :files ("*.el" "resources"))
   :hook (org-mode . org-krita-mode))
 (use-package org-xournalpp
+  :disabled t
   :quelpa (org-xournalpp :fetcher gitlab :repo "vherrmann/org-xournalpp" :files ("*.el" "resources"))
   :hook (org-mode . org-xournalpp-mode))
 #+end_src
@@ -21715,6 +22085,8 @@ CLOSED: [2024-01-03 Wed 20:32]
   blogged
 :END:
 
+[2024-09-13 Fri] I added a =mogrify= call to automatically trim the image.
+
 Partly inspired by John Kitchin's video showing how to [[https://www.youtube.com/watch?v=rGGAr1AWkTc][copy
 screenshots from his iPad and do optical character recognition]] so he
 can use the images and text in Org Mode, I'd like to be able to draw
@@ -21735,10 +22107,10 @@ a browser. I can work around this by using Puppeteer and getting a
 screenshot. Here's a NodeJS snippet that saves that screenshot to a file.
 
 #+begin_src js :tangle "~/bin/supernote-screenshot.js" :eval no
-#!/usr/bin/env nodejs
-# This file is tangled to ~/bin/supernote-screenshot.js from my config at https://sachachua.com/dotemacs
-# Usage: supernote-screenshot.js [filename]
-# Set SUPERNOTE_URL to the URL.
+/* This file is tangled to ~/bin/supernote-screenshot.js from my config at https://sachachua.com/dotemacs
+Usage: supernote-screenshot.js [filename]
+Set SUPERNOTE_URL to the URL.
+*/
 
 const process = require('process');
 const puppeteer = require('puppeteer');
@@ -21763,22 +22135,19 @@ takeSupernoteScreenshot();
 Then I can call that from Emacs Lisp and run it through my usual [[dotemacs:org-mode-create-a-quick-timestamped-note-and-capture-a-screenshot][screenshot insertion process]]:
 
 #+begin_src emacs-lisp
-(defun my-org-insert-supernote-from-mirror ()
+(defun my-org-insert-supernote-screenshot-from-mirror ()
 	"Copy the current image from the SuperNote mirror."
 	(interactive)
 	(let ((filename (expand-file-name (format-time-string "%Y-%m-%d-%H-%M-%S.png") "~/recordings")))
 		(shell-command-to-string (concat "NODE_PATH=/usr/lib/node_modules node ~/bin/supernote-screenshot.js " (shell-quote-argument filename)))
+		;; trim it
+		(call-process "mogrify" nil nil nil "-trim" "+repage" filename)
 		(shell-command-to-string (concat "~/bin/recolor.py --colors c0c0c0,f6f396 " (shell-quote-argument filename)))
 		(call-interactively 'my-org-insert-screenshot)))
 #+end_src
 
-Ideas for next steps:
-
-- Add image actions:
-  - Annotate the image
-  - Crop the image
-  - Get the text for the image at point and insert it as a details block
-  - Get the text for the image at point and copy it to the kill-ring
+[2024-09-13 Fri] I already have some code elsewhere for using the Google Cloud Vision API to extract text from an image, so I should hook that up sometime.
+Also, OpenAI supports multimodal requests, so I've been thinking about using AI to recognize text and diagrams like in [[https://www.reddit.com/r/Supernote/s/5cINfAEIAA][this Supernote to Markdown example]]. Fun fun fun!
 
 ** Tools for organizing
 :PROPERTIES:
@@ -22161,11 +22530,15 @@ Here's the very rough code I use for that:
               (cons 'description .description)
               (cons 'rating .aggregateRating.ratingValue)
               (cons 'ratingCount .aggregateRating.reviewCount)
-              (cons 'image (if (stringp .image) .image (elt .image 0)))
+              (cons 'image (cond
+														((stringp .image) .image)
+														((stringp .image.url) .image.url)
+														(t (elt .image 0))))
               (cons 'price
-                    (assoc-default 'price (if (arrayp .offers)
-                                              (elt .offers 0)
-                                            .offers))))))
+                    (assoc-default 'price (cond
+																					 ((arrayp .offers)
+																						(elt .offers 0))
+																					 (t .offers)))))))
 		 (t
 			(goto-char (point-min))
       (re-search-forward "^$")
@@ -22223,7 +22596,7 @@ Here's the very rough code I use for that:
 					(org-entry-put (point) "BRAND" .brand)
 					(org-entry-put (point) "DESCRIPTION" (replace-regexp-in-string "&#039;" "'" (replace-regexp-in-string "\n" " " (or .description ""))))
 					(org-entry-put (point) "IMAGE"
-												 (if (string-match "https" .image)
+												 (if (string-match "https?" .image)
 														 .image
 													 (concat "https:" .image)))
 					(org-entry-put (point) "PRICE" (cond ((stringp .price) .price) ((numberp .price) (format "%.2f" .price)) (t "")))
@@ -22231,28 +22604,29 @@ Here's the very rough code I use for that:
 					(if .ratingCount (org-entry-put (point) "RATING_COUNT" (if (stringp .ratingCount) .ratingCount (number-to-string .ratingCount))))
 					)))))
 
-(defun my-org-format-shopping-subtree (&optional height)
+(defun my-org-format-shopping-subtree (&optional height large)
 	(concat
 	 "<style>body { max-width: 100% !important } #content { max-width: 100% !important } .item img { max-height: "
 	 (or height "100px")
-	 " }</style><div style=\"display: flex; flex-wrap: wrap; align-items: flex-start\">"
+	 " } .item img:hover { max-height: " (or large "400px") " }</style><div style=\"display: flex; flex-wrap: wrap; align-items: flex-start\">"
 	 (string-join
 		(save-excursion
 			(org-map-entries
 			 (lambda ()
 				 (if (org-entry-get (point) "URL")
 						 (format
-							"<div class=item style=\"width: 200px\"><div><a href=\"%s\"><img src=\"%s\" height=100></a></div>
+							"<div class=item style=\"width: %s\"><div><a href=\"%s\"><img src=\"%s\" height=100></a></div>
 <div>%s</div>
 <div><a href=\"%s\">%s</a></div>
 <div>%s</div>
 <div>%s</div></div>"
+							(or height "200px")
 							(org-entry-get (point) "URL")
 							(org-entry-get (point) "IMAGE")
-							(org-entry-get (point) "PRICE")
+							(or  (org-entry-get (point) "PRICE") "")
 							(org-entry-get (point) "URL")
 							(url-domain (url-generic-parse-url (org-entry-get (point) "URL")))
-							(org-entry-get (point) "NAME")
+							(or (org-entry-get (point) "NAME") "")
 							(or (org-entry-get (point) "NOTES") ""))
 					 ""))
 			 nil

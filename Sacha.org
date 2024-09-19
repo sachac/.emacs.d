@@ -1058,6 +1058,9 @@ any directory proferred by `consult-dir'."
   (add-to-list 'consult-buffer-sources my-consult-source-projectile-projects 'append))
     #+end_src
 *** consult-omni
+:PROPERTIES:
+:CUSTOM_ID: consult-omni
+:END:
 
 I also needed to create a Google custom search JSON API key at https://developers.google.com/custom-search/v1/introduction .
 
@@ -1111,7 +1114,7 @@ I also needed to create a Google custom search JSON API key at https://developer
 
 (use-package consult-omni
 	:load-path "~/vendor/consult-omni"
-  :after consult
+  :after (consult embark)
   :custom
   (consult-omni-show-preview t) ;;; show previews
   (consult-omni-preview-key "C-o") ;;; set the preview key to C-o

@@ -1132,20 +1132,6 @@ I also needed to create a Google custom search JSON API key at https://developer
 	 ("w t" . #'my-consult-omni-embark-copy-title-as-kill)))
   #+end_src
 
-#+begin_src emacs-lisp
-(use-package consult-omni
-	;; :vc (:url "https://github.com/armindarvish/consult-omni")
-	:after consult
-	:load-path "~/vendor/consult-omni"
-	:config
-	(add-to-list 'load-path "~/vendor/consult-omni/sources")
-	(require 'consult-omni-embark)
-	(require 'consult-omni-sources)
-	(require 'consult-omni-google)
-	(setq consult-omni-sources-modules-to-load '(consult-omni-google consult-omni-wikipedia))
-	(consult-omni-sources-load-modules)
-	)
-#+end_src
 ** Marginalia
 :PROPERTIES:
 :CUSTOM_ID: marginalia

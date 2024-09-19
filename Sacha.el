@@ -196,7 +196,7 @@
 
 
 ;; [[file:Sacha.org::#killing-text][Killing text:1]]
-    (setq kill-ring-max 1000)
+(setq kill-ring-max 1000)
 ;; Killing text:1 ends here
 
 
@@ -426,7 +426,10 @@ invoking, give a prefix argument to `execute-extended-command'."
 (use-package hydra :commands defhydra)
 (use-package use-package-hydra)
 (if my-laptop-p
-    (use-package hydra-posframe :if my-laptop-p :after hydra))
+    (use-package hydra-posframe
+			:if my-laptop-p :after hydra
+			:vc (:url "https://github.com/Ladicle/hydra-posframe")
+			))
 ;; Hydra keyboard shortcuts:1 ends here
 
 ;; [[file:Sacha.org::#hydras][Hydra keyboard shortcuts:2]]
@@ -803,18 +806,18 @@ invoking, give a prefix argument to `execute-extended-command'."
 ;; Consult:1 ends here
 
 ;; [[file:Sacha.org::#consult][Consult:2]]
-  (declare-function 'my-geeqie-view "Sacha.el")
-  (defun my-preview-image (candidate state)
-    (when (and my-sketch-preview candidate) (my-geeqie-view (list candidate)))
-    nil)
+(declare-function 'my-geeqie-view "Sacha.el")
+(defun my-preview-image (candidate state)
+  (when (and my-sketch-preview candidate) (my-geeqie-view (list candidate)))
+  nil)
 
-  (defun my-complete-sketch-filename ()
-    (interactive)
-    (consult--read (my-sketches)
-    		 :sort nil
-    		 :state 'my-preview-image
-    		 :prompt "Sketch: "
-    		 :category 'sketch))
+(defun my-complete-sketch-filename ()
+  (interactive)
+  (consult--read (my-sketches)
+  		 :sort nil
+  		 :state 'my-preview-image
+  		 :prompt "Sketch: "
+  		 :category 'sketch))
 ;; Consult:2 ends here
 
 ;; Completing blog posts
@@ -986,51 +989,141 @@ any directory proferred by `consult-dir'."
   (add-to-list 'consult-buffer-sources my-consult-source-projectile-projects 'append))
 ;; Using projects as a source for consult-buffer:1 ends here
 
+;; consult-omni
+
+;; I also needed to create a Google custom search JSON API key at https://developers.google.com/custom-search/v1/introduction .
+
+
+;; [[file:Sacha.org::*consult-omni][consult-omni:1]]
+;; override the embark actions
+(defun my-consult-omni-embark-copy-url-as-kill (cand)
+	"Don't add spaces."
+	(when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
+		(kill-new (string-trim s))))
+
+(defun my-consult-omni-embark-insert-url (cand)
+	"Don't add spaces."
+	(when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
+		(insert (string-trim s))))
+
+(defun my-consult-omni-embark-copy-title-as-kill (cand)
+	"Don't add spaces."
+	(when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
+		(kill-new (string-trim s))))
+
+(defun my-consult-omni-embark-insert-title (cand)
+	"Don't add spaces."
+	(when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
+		(insert (string-trim s))))
+
+(defun my-consult-omni-embark-insert-link (cand)
+	"Don't add spaces."
+	(let ((url (and (stringp cand) (get-text-property 0 :url cand )))
+				(title (and (stringp cand) (get-text-property 0 :title cand))))
+		(cond
+		 ((derived-mode-p 'org-mode)
+			(cond
+			 ((org-in-regexp org-link-any-re 1)
+				(when (match-end 2) (setq title (match-string-no-properties 2)))
+				(delete-region (match-beginning 0) (match-end 0)))
+			 ((region-active-p)
+				(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+				(delete-region (region-beginning) (region-end))))
+			;; update link
+			(insert (org-link-make-string url title)))
+		 ((derived-mode-p 'org-mode) ; not in a link
+			(insert (org-link-make-string url title)))
+		 ((and (region-active-p) (derived-mode-p 'markdown-mode))
+			(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+			(delete-region (region-beginning) (region-end))
+			(insert (format "[%s](%s)" title url)))
+		 ((derived-mode-p 'markdown-mode)
+			(insert (format "[%s](%s)" title url)))
+		 (t
+			(insert (format "%s (%s)" title url))))))
+
+(use-package consult-omni
+	:load-path "~/vendor/consult-omni"
+  :after consult
+  :custom
+  (consult-omni-show-preview t) ;;; show previews
+  (consult-omni-preview-key "C-o") ;;; set the preview key to C-o
+  :config
+	(add-to-list 'load-path "~/vendor/consult-omni/sources")
+  (require 'consult-omni-sources)
+  (require 'consult-omni-embark)
+  (setq consult-omni-sources-modules-to-load (list 'consult-omni-wikipedia 'consult-omni-google))
+  (consult-omni-sources-load-modules)
+  (setq consult-omni-default-interactive-command #'consult-omni-google)
+	:bind
+	(("M-g w" . consult-omni)
+	 :map consult-omni-embark-general-actions-map
+	 ("i l" .  #'my-consult-omni-embark-insert-link)
+	 ("i u" .  #'my-consult-omni-embark-insert-url)
+	 ("i t" .  #'my-consult-omni-embark-insert-title)
+	 ("w u" . #'my-consult-omni-embark-copy-url-as-kill)
+	 ("w t" . #'my-consult-omni-embark-copy-title-as-kill)))
+;; consult-omni:1 ends here
+
+;; [[file:Sacha.org::*consult-omni][consult-omni:2]]
+(use-package consult-omni
+	;; :vc (:url "https://github.com/armindarvish/consult-omni")
+	:after consult
+	:load-path "~/vendor/consult-omni"
+	:config
+	(add-to-list 'load-path "~/vendor/consult-omni/sources")
+	(require 'consult-omni-embark)
+	(require 'consult-omni-sources)
+	(require 'consult-omni-google)
+	(setq consult-omni-sources-modules-to-load '(consult-omni-google consult-omni-wikipedia))
+	(consult-omni-sources-load-modules)
+	)
+;; consult-omni:2 ends here
+
 ;; Marginalia
-;; **
 ;; :PROPERTIES:
 ;; :CUSTOM_ID: marginalia
 ;; :END:
 ;; [[https://www.reddit.com/r/emacs/comments/196pvtx/comment/khxa8ip/?share_id=-4IBSwNFQR_-Gd744ZcrH&utm_content=2&utm_medium=android_app&utm_name=androidcss&utm_source=share&utm_term=2][Marginalia - add function name for aliases]]
 
 
-;; [[file:Sacha.org::*Marginalia][Marginalia:1]]
-  (use-package marginalia :quelpa (marginalia :fetcher github :repo "minad/marginalia")
-  	:init
-  	(marginalia-mode)
-  	:bind (:map minibuffer-local-completion-map
-  							("M-m" . marginalia-cycle))
-  	:config
-  	(add-to-list 'marginalia-prompt-categories '("sketch" . sketch))
-  	(add-to-list 'marginalia-censor-variables "-api-key")
-  	(cl-pushnew #'marginalia-annotate-symbol-with-alias
-  		    (alist-get 'command marginalia-annotator-registry))
-  	(cl-pushnew #'marginalia-annotate-symbol-with-alias
-  		    (alist-get 'function marginalia-annotator-registry))
-  	(cl-pushnew #'marginalia-annotate-symbol-with-alias
-  		    (alist-get 'symbol marginalia-annotator-registry)))
+;; [[file:Sacha.org::#marginalia][Marginalia:1]]
+(use-package marginalia :quelpa (marginalia :fetcher github :repo "minad/marginalia")
+	:init
+	(marginalia-mode)
+	:bind (:map minibuffer-local-completion-map
+							("M-m" . marginalia-cycle))
+	:config
+	(add-to-list 'marginalia-prompt-categories '("sketch" . sketch))
+	(add-to-list 'marginalia-censor-variables "-api-key")
+	(cl-pushnew #'marginalia-annotate-symbol-with-alias
+		    (alist-get 'command marginalia-annotator-registry))
+	(cl-pushnew #'marginalia-annotate-symbol-with-alias
+		    (alist-get 'function marginalia-annotator-registry))
+	(cl-pushnew #'marginalia-annotate-symbol-with-alias
+		    (alist-get 'symbol marginalia-annotator-registry)))
 
-  (defun marginalia-annotate-alias (cand)
-    "Annotate CAND with the function it aliases."
-    (when-let ((sym (intern-soft cand))
-               (alias (car (last (function-alias-p sym))))
-               (name (and (symbolp alias) (symbol-name alias))))
-      (format " (%s)" name)))
+(defun marginalia-annotate-alias (cand)
+  "Annotate CAND with the function it aliases."
+  (when-let ((sym (intern-soft cand))
+             (alias (car (last (function-alias-p sym))))
+             (name (and (symbolp alias) (symbol-name alias))))
+    (format " (%s)" name)))
 
-  (defun marginalia-annotate-symbol-with-alias (cand)
-    "Annotate symbol CAND with its documentation string.
-      Similar to `marginalia-annotate-symbol'."
-    (when-let (sym (intern-soft cand))
-      (concat
-       (marginalia-annotate-binding cand)
-       (marginalia--fields
-        ((marginalia-annotate-alias cand) :face 'marginalia-function)
-        ((marginalia--symbol-class sym) :face 'marginalia-type)
-        ((cond
-          ((fboundp sym) (marginalia--function-doc sym))
-          ((facep sym) (documentation-property sym 'face-documentation))
-          (t (documentation-property sym 'variable-documentation)))
-         :truncate 1.0 :face 'marginalia-documentation)))))
+(defun marginalia-annotate-symbol-with-alias (cand)
+  "Annotate symbol CAND with its documentation string.
+    Similar to `marginalia-annotate-symbol'."
+  (when-let (sym (intern-soft cand))
+    (concat
+     (marginalia-annotate-binding cand)
+     (marginalia--fields
+      ((marginalia-annotate-alias cand) :face 'marginalia-function)
+      ((marginalia--symbol-class sym) :face 'marginalia-type)
+      ((cond
+        ((fboundp sym) (marginalia--function-doc sym))
+        ((facep sym) (documentation-property sym 'face-documentation))
+        (t (documentation-property sym 'variable-documentation)))
+       :truncate 1.0 :face 'marginalia-documentation)))))
 ;; Marginalia:1 ends here
 
 ;; Marginalia and annotating journal entries
@@ -1042,16 +1135,16 @@ any directory proferred by `consult-dir'."
 
 
 ;; [[file:Sacha.org::#marginalia-and-annotating-journal-entries][Marginalia and annotating journal entries:1]]
-  (defun my-marginalia-annotate-journal (cand)
-    (when-let ((o (cdr (assoc cand my-journal-search-cache))))
-      (marginalia--fields
-       ((plist-get o :Category)
-	:face 'marginalia-documentation
-	:truncate 13))))
+(defun my-marginalia-annotate-journal (cand)
+  (when-let ((o (cdr (assoc cand my-journal-search-cache))))
+    (marginalia--fields
+     ((plist-get o :Category)
+:face 'marginalia-documentation
+:truncate 13))))
 
-  (use-package marginalia
-    :config
-    (add-to-list 'marginalia-annotator-registry '(journal my-marginalia-annotate-journal builtin none)))
+(use-package marginalia
+  :config
+  (add-to-list 'marginalia-annotator-registry '(journal my-marginalia-annotate-journal builtin none)))
 ;; Marginalia and annotating journal entries:1 ends here
 
 ;; Embark
@@ -1060,59 +1153,59 @@ any directory proferred by `consult-dir'."
 ;; :END:
 
 ;; [[file:Sacha.org::#embark][Embark:1]]
-  (use-package embark
-    :after org
-    :load-path "~/vendor/embark"
-  					; :quelpa (embark :fetcher github :repo "oantolin/embark")
-    :config
-  	(setq embark-prompter 'embark-keymap-prompter)
-  	(add-to-list 'embark-target-finders 'my-embark-org-element)
-  	(add-to-list 'embark-target-finders 'my-embark-subed-timestamp)
-  	(add-to-list 'embark-target-injection-hooks '(my-journal-post embark--allow-edit))
-  	(with-eval-after-load 'subed
-  	  (defvar-keymap embark-subed-timestamp-actions
-  	    :doc "Subed timestamp actions"
-  	    :parent subed-mode-map
-  	    "." #'my-subed-set-timestamp-to-mpv-position
-  	    "c" #'my-subed-copy-timestamp-dwim
-  	    "<up>" #'my-subed-adjust-timestamp/my-subed-adjust-timestamp-up
-  	    "w" #'my-waveform-subed-show-after-time
-  	    "<down>" #'my-subed-adjust-timestamp/my-subed-adjust-timestamp-down))
-  	(defvar-keymap embark-sketch-actions
-  	  :doc "Org Mode sketch-related actions"
-  	  :parent org-mode-map
-  	  "o" #'my-sketch-insert-file-as-link
-  	  "v" #'my-geeqie-view)
-  	(defvar-keymap embark-journal-actions
-  	  :doc "Journal"
-  	  "e" #'my-journal-edit)
-  	(add-to-list 'embark-keymap-alist '(sketch . embark-sketch-actions))
-  	(add-to-list 'embark-keymap-alist '(subed-timestamp . embark-subed-timestamp-actions))
-  	(add-to-list 'embark-keymap-alist '(journal . embark-journal-actions))
-  	:bind
-  	(("C-." . embark-act)
-  	 ("C-;" . embark-act)
-  	 :map minibuffer-local-map
-  	 (("C-c e" . embark-act)
-  	  ("C-;" . embark-act)
-  		("C-<tab>" . embark-select)
-  		("C-SPC" . (lambda () (interactive) (embark-select) (vertico-next))))
-  	 :map embark-collect-mode-map
-  	 (("C-c e" . embark-act)
-  	  ("C-;" . embark-act)
-  		("C-<tab>" . embark-select))
-  	 :map embark-general-map
-  	 (("j" . my-journal-post)
-  	  ("m" . my-stream-message)
-  	  ("M-w" . (lambda (s) (interactive "MString: ") (kill-new s))))
-  	 :map embark-symbol-map
-  	 ("r" . erefactor-rename-symbol-in-buffer)
-  	 :map embark-url-map
-  	 ("c" . my-caption-show)
-  	 ))
-  (with-eval-after-load 'embark-org
-    (define-key embark-org-src-block-map
-  	 "i" #'my-org-fix-block-indentation))
+(use-package embark
+  :after org
+  :load-path "~/vendor/embark"
+					; :quelpa (embark :fetcher github :repo "oantolin/embark")
+  :config
+	(setq embark-prompter 'embark-keymap-prompter)
+	(add-to-list 'embark-target-finders 'my-embark-org-element)
+	(add-to-list 'embark-target-finders 'my-embark-subed-timestamp)
+	(add-to-list 'embark-target-injection-hooks '(my-journal-post embark--allow-edit))
+	(with-eval-after-load 'subed
+	  (defvar-keymap embark-subed-timestamp-actions
+	    :doc "Subed timestamp actions"
+	    :parent subed-mode-map
+	    "." #'my-subed-set-timestamp-to-mpv-position
+	    "c" #'my-subed-copy-timestamp-dwim
+	    "<up>" #'my-subed-adjust-timestamp/my-subed-adjust-timestamp-up
+	    "w" #'my-waveform-subed-show-after-time
+	    "<down>" #'my-subed-adjust-timestamp/my-subed-adjust-timestamp-down))
+	(defvar-keymap embark-sketch-actions
+	  :doc "Org Mode sketch-related actions"
+	  :parent org-mode-map
+	  "o" #'my-sketch-insert-file-as-link
+	  "v" #'my-geeqie-view)
+	(defvar-keymap embark-journal-actions
+	  :doc "Journal"
+	  "e" #'my-journal-edit)
+	(add-to-list 'embark-keymap-alist '(sketch . embark-sketch-actions))
+	(add-to-list 'embark-keymap-alist '(subed-timestamp . embark-subed-timestamp-actions))
+	(add-to-list 'embark-keymap-alist '(journal . embark-journal-actions))
+	:bind
+	(("C-." . embark-act)
+	 ("C-;" . embark-act)
+	 :map minibuffer-local-map
+	 (("C-c e" . embark-act)
+	  ("C-;" . embark-act)
+		("C-<tab>" . embark-select)
+		("C-SPC" . (lambda () (interactive) (embark-select) (vertico-next))))
+	 :map embark-collect-mode-map
+	 (("C-c e" . embark-act)
+	  ("C-;" . embark-act)
+		("C-<tab>" . embark-select))
+	 :map embark-general-map
+	 (("j" . my-journal-post)
+	  ("m" . my-stream-message)
+	  ("M-w" . (lambda (s) (interactive "MString: ") (kill-new s))))
+	 :map embark-symbol-map
+	 ("r" . erefactor-rename-symbol-in-buffer)
+	 :map embark-url-map
+	 ("c" . my-caption-show)
+	 ))
+(with-eval-after-load 'embark-org
+  (define-key embark-org-src-block-map
+	 "i" #'my-org-fix-block-indentation))
 ;; Embark:1 ends here
 
 ;; Using Embark and qrencode to show a QR code for the Org Mode link at point :emacs:org:
@@ -1709,11 +1802,7 @@ targets."
 	(set-face-attribute
 	 'mode-line nil
 	 :foreground (modus-themes-get-color-value 'fg-mode-line-active)
-	 :background (modus-themes-get-color-value 'bg-blue-subtle)
-	 :box '(:line-width
-					1
-					:color
-					(modus-themes-get-color-value 'border-mode-line-active))))
+	 :background (modus-themes-get-color-value 'bg-blue-subtle)))
 (use-package modus-themes
 	:hook
 	(modus-themes-after-load-theme . my-update-active-mode-line-colors))
@@ -2190,15 +2279,36 @@ Otherwise call FUN with STRING, PRED and ACTION as arguments."
   )
 ;; Helm-swoop - quickly finding lines:1 ends here
 
-;; Highlight Line Mode
+;; Highlight the current line while still being able to easily customize/describe underlying faces
 ;; :PROPERTIES:
 ;; :CUSTOM_ID: highlight-line-mode
+;; :EXPORT_DATE: 2024-09-17T12:14:19-0400
+;; :EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/highlight-the-current-line-while-still-being-able-to-easily-customize-describe-underlying-faces/
+;; :EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/highlight-the-current-line-while-still-being-able-to-easily-customize-describe-underlying-faces/
 ;; :END:
 
+;; I use ~global-hl-line-mode~ to highlight the current line.
 
-;; [[file:Sacha.org::#highlight-line-mode][Highlight Line Mode:1]]
+
+;; [[file:Sacha.org::#highlight-line-mode][Highlight the current line while still being able to easily customize/describe underlying faces:1]]
 (global-hl-line-mode 1)
-;; Highlight Line Mode:1 ends here
+;; Highlight the current line while still being able to easily customize/describe underlying faces:1 ends here
+
+
+
+;; However, I don't want ~hl-line~ to interfere with the default face suggested by ~customize-face~, which is returned by ~face-at-point~.
+
+
+;; [[file:Sacha.org::#highlight-line-mode][Highlight the current line while still being able to easily customize/describe underlying faces:2]]
+(defun my-suggest-other-faces (func &rest args)
+	(if global-hl-line-mode
+			(progn
+				(global-hl-line-mode -1)
+				(prog1 (apply func args)
+					(global-hl-line-mode 1)))
+		(apply func args)))
+(advice-add #'face-at-point :around #'my-suggest-other-faces)
+;; Highlight the current line while still being able to easily customize/describe underlying faces:2 ends here
 
 ;; Windmove - switching between windows
 ;; :PROPERTIES:
@@ -2561,7 +2671,7 @@ Otherwise call FUN with STRING, PRED and ACTION as arguments."
 
 
 ;; [[file:Sacha.org::#dogears][Dogears:1]]
-    ;; Install and load `quelpa-use-package'.
+;; Install and load `quelpa-use-package'.
 (use-package dogears
   ;; :quelpa (dogears :fetcher github :repo "alphapapa/dogears.el")
 
@@ -4139,6 +4249,98 @@ If WORD-TIMING is non-nil, include word-level timestamps."
              ""))))
 ;; Using word-level timing information when editing subtitles or captions in Emacs:4 ends here
 
+
+
+;; The resulting VTT file looks like this:
+
+;; #+begin_example
+;; WEBVTT
+
+;; 00:00.427 --> 00:00.507
+;; <u>I</u> often need to... I sometimes need to replace or navigate by symbols.
+
+;; 00:00.507 --> 00:00.587
+;; I often need to... I sometimes need to replace or navigate by symbols.
+
+;; 00:00.587 --> 00:00.887
+;; I <u>often</u> need to... I sometimes need to replace or navigate by symbols.
+
+;; 00:00.887 --> 00:00.987
+;; I often need to... I sometimes need to replace or navigate by symbols.
+;; #+end_example
+
+;; Sometimes I just want the text so that I can use [[dotemacs:transcript-keywords][an audio braindump as the starting point for a blog post or for notes]]. WhisperX is way more accurate than Google Recorder, so that will probably be easier once I update my workflow for that.
+
+;; Sometimes I want to make an edited audio file that sounds smooth so that I can use it in a podcast, a video, or some audio notes. For that, I'd like word-level timing data so that I can cut out words or sections. Aeneas didn't give me word-level timestamps, but WhisperX does, so I can get the time information before I start editing. I can extract the word timestamps from the underlined text like this:
+
+
+;; [[file:Sacha.org::#whisperx][Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record:2]]
+(defun my-subed-load-word-data-from-whisperx-highlights (file)
+	"Return a list of word cues from FILE.
+FILE should be a VTT or SRT file produced by whisperx with the
+--highlight_words True option."
+	(seq-keep (lambda (sub)
+							(when (string-match "<u>\\(.+?\\)</u>" (elt sub 3))
+								(setf (elt sub 3) (match-string 1 (elt sub 3)))
+								sub))
+						(subed-parse-file file)))
+
+(defun my-subed-word-tsv-from-whisperx-highlights (file)
+	(interactive "FVTT: ")
+	(with-current-buffer (find-file-noselect (concat (file-name-nondirectory file) ".tsv"))
+		(erase-buffer)
+		(subed-tsv-mode)
+		(subed-auto-insert)
+    (mapc (lambda (sub) (apply #'subed-append-subtitle nil (cdr sub)))
+					(my-subed-load-word-data-from-whisperx-highlights file))
+		(switch-to-buffer (current-buffer))))
+;; Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record:2 ends here
+
+
+
+;; I like to use the TSV format for this one because
+;; it's easy to scan down the right side.
+;; Incidentally, this format is compatible with
+;; [[https://www.audacityteam.org/][Audacity]] labels, so I could import that there if I
+;; wanted. I like Emacs much more, though. I'm used
+;; to having all my keyboard shortcuts at hand.
+
+;; #+begin_example
+;; 0.427000	0.507000	I
+;; 0.587000	0.887000	often
+;; 0.987000	1.227000	need
+;; 1.267000	1.508000	to...
+;; 4.329000	4.429000	I
+;; 4.469000	4.869000	sometimes
+;; 4.950000	5.170000	need
+;; 5.210000	5.410000	to
+;; 5.530000	6.090000	replace
+;; 6.270000	6.370000	or
+;; 6.490000	6.971000	navigate
+;; #+end_example
+
+;; Once I've deleted the words I don't want to
+;; include, I can merge subtitles for phrases so that
+;; I can keep the pauses between words. A quick
+;; heuristic is to merge subtitles if they don't have
+;; much of a pause between them.
+
+
+;; [[file:Sacha.org::#whisperx][Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record:3]]
+(defvar my-subed-merge-close-subtitles-threshold 500)
+(defun my-subed-merge-close-subtitles (threshold)
+	"Merge subtitles with the following one if there is less than THRESHOLD msecs gap between them."
+	(interactive (list (read-number "Threshold in msecs " my-subed-merge-close-subtitles-threshold)))
+	(while (not (eobp))
+		(let ((end (subed-subtitle-msecs-stop))
+					(next-start (save-excursion
+												(and (subed-forward-subtitle-time-start)
+														 (subed-subtitle-msecs-stop)))))
+			(if (and end next-start (< (- next-start end) threshold))
+					(subed-merge-with-next)
+				(or (subed-forward-subtitle-end) (goto-char (point-max)))))))
+;; Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record:3 ends here
+
 ;; Showing captions
 ;; :PROPERTIES:
 ;; :CUSTOM_ID: showing-captions
@@ -4594,25 +4796,29 @@ The current section is defined by NOTE comments."
 
 
 ;; [[file:Sacha.org::*Export transcript as list][Export transcript as list:1]]
-  (cl-defun my-subed-as-org-list-with-times (file &key from to)
-    (when (stringp from) (setq from (compile-media-timestamp-to-msecs from)))
-    (when (stringp to) (setq to (compile-media-timestamp-to-msecs to)))
-    (mapconcat
-     (lambda (o)
-       (format "- @@html:<span class=\"audio-time\" data-start=\"%.3f\" data-stop=\"%.3f\">%s</span>@@: *%s*:\n  %s\n\n"
-  	     (/ (plist-get o :start-ms) 1000.0)
-  	     (/ (plist-get o :stop-ms) 1000.0)
-  	     (replace-regexp-in-string "^00:0?\\|\\.[0-9]+$" "" (my-msecs-to-timestamp (plist-get o :start-ms)))
-  	     (plist-get o :comment)
-  	     (string-trim (replace-regexp-in-string
-  			   "[ \n]+" " "
-  			   (subed-subtitle-list-text (plist-get o :subtitles))))))
-     (my-subed-group-sections
-      (seq-filter (lambda (sub)
-  		  (and (or (not from) (>= (elt sub 1) from))
-  		       (or (not to) (< (elt sub 2) to))))
-  		(subed-parse-file file)))
-     ""))
+(cl-defun my-subed-as-org-list-with-times (file &key from to)
+	(interactive "FVTT: ")
+  (when (stringp from) (setq from (compile-media-timestamp-to-msecs from)))
+  (when (stringp to) (setq to (compile-media-timestamp-to-msecs to)))
+	(let ((s (mapconcat
+						(lambda (o)
+							(format "- @@html:<span class=\"audio-time\" data-start=\"%.3f\" data-stop=\"%.3f\">%s</span>@@: *%s*:\n  %s\n\n"
+											(/ (plist-get o :start-ms) 1000.0)
+											(/ (plist-get o :stop-ms) 1000.0)
+											(replace-regexp-in-string "^00:0?\\|\\.[0-9]+$" "" (my-msecs-to-timestamp (plist-get o :start-ms)))
+											(plist-get o :comment)
+											(string-trim (replace-regexp-in-string
+																		"[ \n]+" " "
+																		(subed-subtitle-list-text (plist-get o :subtitles))))))
+						(my-subed-group-sections
+						 (seq-filter (lambda (sub)
+													 (and (or (not from) (>= (elt sub 1) from))
+																(or (not to) (< (elt sub 2) to))))
+												 (subed-parse-file file)))
+						"")))
+		(if (called-interactively-p 'any)
+				(insert s)
+			s)))
 ;; Export transcript as list:1 ends here
 
 ;; Transcripts from my phone
@@ -4662,7 +4868,7 @@ The current section is defined by NOTE comments."
 ;; split on prepositions.
 
 
-;; [[file:Sacha.org::#using-emacs-lisp-to-send-audio-files-to-deepgram-and-format-vtts][Using Emacs Lisp to send audio files to Deepgram and format VTTs:1]]
+;; [[file:Sacha.org::#using-emacs-lisp-to-send-audio-files-to-deepgram-and-format-vtts][TOBLOG Using Emacs Lisp to send audio files to Deepgram and format VTTs:1]]
 (defvar my-deepgram-length-threshold 45 "Number of characters.")
 (defvar my-deepgram-time-threshold 10 "Number of seconds since the first word.")
 
@@ -4803,7 +5009,7 @@ Save the results as JSON and VTT."
 		 duration
 		 (* duration whisper-large-per-min)
 		 (* duration nova2-streaming-per-min))))
-;; Using Emacs Lisp to send audio files to Deepgram and format VTTs:1 ends here
+;; TOBLOG Using Emacs Lisp to send audio files to Deepgram and format VTTs:1 ends here
 
 ;; TOBLOG Rerecognize this audio and reprocess it
 ;; :PROPERTIES:
@@ -4811,7 +5017,7 @@ Save the results as JSON and VTT."
 ;; :END:
 
 
-;; [[file:Sacha.org::#rerecognize][Rerecognize this audio and reprocess it:1]]
+;; [[file:Sacha.org::#rerecognize][TOBLOG Rerecognize this audio and reprocess it:1]]
 (defun my-audio-braindump-reprocess (audio-file)
 	(interactive
 	 (list
@@ -4840,7 +5046,7 @@ Save the results as JSON and VTT."
 	(find-file my-audio-braindump-braindump-file)
 	(goto-char (point-min))
 	(my-audio-braindump-insert-subtitles-as-org-tree (concat (file-name-sans-extension audio-file) ".vtt")))
-;; Rerecognize this audio and reprocess it:1 ends here
+;; TOBLOG Rerecognize this audio and reprocess it:1 ends here
 
 ;; Gladia
 ;; :PROPERTIES:
@@ -5192,8 +5398,10 @@ If DIARIZE is non-nil, identify speakers."
 ;; I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of
 ;; stuff.
 
+;; #+NAME: org-package-setup
 
-;; [[file:Sacha.org::#org][Org Mode:1]]
+;; [[file:Sacha.org::org-package-setup][org-package-setup]]
+(defvar my-org-inbox-file "~/sync/orgzly/Inbox.org")
 (use-package org
   :load-path ("~/vendor/org-mode/lisp" "~/vendor/org-mode/contrib/lisp")
   :bind
@@ -5202,7 +5410,7 @@ If DIARIZE is non-nil, identify speakers."
 	:custom
 	(org-export-with-sub-superscripts nil)
 	(org-fold-catch-invisible-edits 'smart))
-;; Org Mode:1 ends here
+;; org-package-setup ends here
 
 ;; Modules
 ;; :PROPERTIES:
@@ -5513,7 +5721,6 @@ If DIARIZE is non-nil, identify speakers."
 
          %i
          " "Basic task data")
-(defvar my-org-inbox-file "~/sync/orgzly/Inbox.org")
 (defvar my-ledger-file "~/cloud/ledger/current.ledger")
 (with-eval-after-load 'org-capture
 	(setq org-capture-templates
@@ -7069,61 +7276,61 @@ This function is heavily adapted from `org-between-regexps-p'."
 
 
 ;; [[file:Sacha.org::#weekly-review][Weekly review:3]]
-  (defun my-org-prepare-weekly-review (&optional date skip-urls)
-    "Prepare weekly review template."
-    (interactive (list (org-read-date nil nil nil "Ending on Fri: " nil "-fri")))
-    (let* ((post-date (current-time))
-	   (base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
-	   start end links prev
-	   (title (format-time-string "Weekly review: Week ending %B %e, %Y" base-date))
-	   (post-location (concat (format-time-string "%Y/%m/" post-date) (my-make-slug title))))
-      (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6)) (current-time-zone)))
-      (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date))) (current-time-zone)))
-      (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6)) (current-time-zone)))
-      (outline-next-heading)
-      (insert
-       "** " title "  :weekly:\n"
-       (format
-        ":PROPERTIES:
-  :EXPORT_DATE: %s
-  :EXPORT_ELEVENTY_PERMALINK: %s
-  :EXPORT_ELEVENTY_FILE_NAME: %s
-  :END:\n"
-        (format-time-string "%Y-%m-%dT%T%z")
-        (concat "/blog/" post-location "/")
-        (concat "blog/" post-location))
-       (my-org-summarize-journal-csv start end nil my-journal-category-map my-journal-categories)
-       "\n\n*Blog posts*\n\n"
-       (my-org-list-from-rss "https://sachachua.com/blog/feed" start end)
-       "\n\n*Sketches*\n\n"
-       (my-sketches-export-and-extract start end) "\n"
-       "\n\n#+begin_my_details Time\n"
-       (orgtbl-to-orgtbl
-        (my-quantified-compare prev start start end
-                               '("A-"
-                                 "Business"
-                                 "Discretionary - Play"
-                                 "Unpaid work"
-                                 "Discretionary - Social"
-                                 "Discretionary - Family"
-                                 "Sleep"
-                                 "Discretionary - Productive"
-                                 "Personal")
-                               "The other week %" "Last week %")
-        nil)
-       "\n#+end_my_details\n\n")))
+(defun my-org-prepare-weekly-review (&optional date skip-urls)
+  "Prepare weekly review template."
+  (interactive (list (org-read-date nil nil nil "Ending on Fri: " nil "-fri")))
+  (let* ((post-date (current-time))
+   (base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
+   start end links prev
+   (title (format-time-string "Weekly review: Week ending %B %e, %Y" base-date))
+   (post-location (concat (format-time-string "%Y/%m/" post-date) (my-make-slug title))))
+    (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6)) (current-time-zone)))
+    (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date))) (current-time-zone)))
+    (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6)) (current-time-zone)))
+    (outline-next-heading)
+    (insert
+     "** " title "  :weekly:\n"
+     (format
+      ":PROPERTIES:
+:EXPORT_DATE: %s
+:EXPORT_ELEVENTY_PERMALINK: %s
+:EXPORT_ELEVENTY_FILE_NAME: %s
+:END:\n"
+      (format-time-string "%Y-%m-%dT%T%z")
+      (concat "/blog/" post-location "/")
+      (concat "blog/" post-location))
+     (my-org-summarize-journal-csv start end nil my-journal-category-map my-journal-categories)
+     "\n\n*Blog posts*\n\n"
+     (my-org-list-from-rss "https://sachachua.com/blog/feed" start end)
+     "\n\n*Sketches*\n\n"
+     (my-sketches-export-and-extract start end) "\n"
+     "\n\n#+begin_my_details Time\n"
+     (orgtbl-to-orgtbl
+      (my-quantified-compare prev start start end
+                             '("A-"
+                               "Business"
+                               "Discretionary - Play"
+                               "Unpaid work"
+                               "Discretionary - Social"
+                               "Discretionary - Family"
+                               "Sleep"
+                               "Discretionary - Productive"
+                               "Personal")
+                             "The other week %" "Last week %")
+      nil)
+     "\n#+end_my_details\n\n")))
 
-  (defun my-prepare-missing-weekly-reviews ()
-    "Prepare missing weekly reviews based on LAST_REVIEW property."
-    (interactive)
-    (let ((today (substring (org-read-date nil nil ".") 0 10))
-	  (date (org-entry-get (point) "LAST_REVIEW")))
-      (while (string< date today)
-	(setq date (substring (org-read-date nil nil "++1w" nil (org-time-string-to-time date)) 0 10))
-	(unless (string< today date)
-	  (save-excursion
-	    (my-org-prepare-weekly-review date))
-	  (org-entry-put (point) "LAST_REVIEW" date)))))
+(defun my-prepare-missing-weekly-reviews ()
+  "Prepare missing weekly reviews based on LAST_REVIEW property."
+  (interactive)
+  (let ((today (substring (org-read-date nil nil ".") 0 10))
+  (date (org-entry-get (point) "LAST_REVIEW")))
+    (while (string< date today)
+(setq date (substring (org-read-date nil nil "++1w" nil (org-time-string-to-time date)) 0 10))
+(unless (string< today date)
+  (save-excursion
+    (my-org-prepare-weekly-review date))
+  (org-entry-put (point) "LAST_REVIEW" date)))))
 ;; Weekly review:3 ends here
 
 ;; Flickr extract
@@ -7436,7 +7643,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
 ;; :END:
 
 
-;; [[file:Sacha.org::#jump-to-org-location-by-substring][Jump to Org location by substring:1]]
+;; [[file:Sacha.org::#jump-to-org-location-by-substring][TEACH Jump to Org location by substring:1]]
 ;; Example: (org-refile 4 nil (my-org-refile-get-location-by-substring "Other Emacs"))
 (defun my-org-refile-get-location-by-substring (regexp &optional file)
   "Return the refile location identified by REGEXP."
@@ -7495,7 +7702,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
   (eval-when-compile (require 'quantified nil t))
   (my-org-clock-in-refile "Off my computer")
   (quantified-track category))
-;; Jump to Org location by substring:1 ends here
+;; TEACH Jump to Org location by substring:1 ends here
 
 ;; Quick way to jump
 ;; :PROPERTIES:
@@ -8057,8 +8264,9 @@ and indent it one level."
 ;; ~my-include-complete~ uses ~consult-line~ so that we can specify the
 ;; prompt.
 
+;; #+NAME: org-my-include-link
 
-;; [[file:Sacha.org::#org-mode-including-portions-of-files-between-two-regular-expressions][Org Mode: Including portions of files between two regular expressions:1]]
+;; [[file:Sacha.org::org-my-include-link][org-my-include-link]]
 (org-link-set-parameters
  "my-include"
  :follow #'my-include-open
@@ -8067,6 +8275,7 @@ and indent it one level."
 
 (defun my-include-open (path &optional _)
 	"Narrow to the region specified in PATH."
+	(require 'org-protocol)
 	(let (params start end)
 		(if (string-match "^\\(.*+?\\)\\(?:::\\|\\?\\)\\(.*+\\)" path)
 				(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))
@@ -8105,6 +8314,7 @@ and indent it one level."
 
 (defun my-include-export (path _ format _)
 	"Export PATH to FORMAT using the specified wrap parameter."
+	(require 'org-protocol)
 	(let (params body start end)
 		(when (string-match "^\\(.*+?\\)\\(?:::\\|\\?\\)\\(.*+\\)" path)
 			(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))
@@ -8176,7 +8386,7 @@ and indent it one level."
 								(url-hexify-string
 								 (regexp-quote (buffer-substring (line-beginning-position) (line-end-position)))))
 							"&wrap=src " (replace-regexp-in-string "-mode$" "" (symbol-name major-mode))))))
-;; Org Mode: Including portions of files between two regular expressions:1 ends here
+;; org-my-include-link ends here
 
 
 
@@ -8455,13 +8665,13 @@ and indent it one level."
   (my-capture-timestamped-note time note))
 ;; Org Mode: Create a quick timestamped note and capture a screenshot:2 ends here
 
-;; 11ty
+;; 11ty static site generation
 ;; :PROPERTIES:
 ;; :CUSTOM_ID: 11ty
 ;; :END:
 
 
-;; [[file:Sacha.org::#11ty][11ty:1]]
+;; [[file:Sacha.org::#11ty][11ty static site generation:1]]
 (use-package ox-11ty
   :if my-laptop-p
   :load-path "~/proj/ox-11ty"
@@ -8623,7 +8833,27 @@ This is extracted from lines like:
 		(copy-file filename path t)
 		(insert "#+CAPTION: " caption "\n"
 						(org-link-make-string (concat "file:" path)) "\n")))
-;; 11ty:1 ends here
+;; 11ty static site generation:1 ends here
+
+;; [[file:Sacha.org::#11ty][11ty static site generation:2]]
+(defun my-org-replace-with-permalink ()
+	(interactive)
+	(let* ((elem (org-element-context))
+				 (path (org-element-property :path elem))
+				 (description (org-element-property :description elem))
+				 (type (org-element-property :type elem))
+				 (permalink (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK" t))
+				 (base-url "https://sachachua.com"))
+		(when (member type '("file" "audio" "video"))
+			(delete-region (org-element-begin elem) (org-element-end elem))
+			(insert (org-link-make-string (concat
+																		 (if (string= type "file") "" (concat type ":"))
+																		 base-url permalink (file-name-nondirectory path)
+																		 (if (string-match "\\?.+" path)
+																				 (match-string 0 path)
+																			 ""))
+																		description)))))
+;; 11ty static site generation:2 ends here
 
 ;; Linking to blog posts
 ;; :PROPERTIES:
@@ -8634,8 +8864,9 @@ This is extracted from lines like:
 ;; - [2024-01-19 Fri]: added link description
 ;; #+end_update
 
+;; #+NAME: org-blog-link
 
-;; [[file:Sacha.org::#linking-to-blog-posts][Linking to blog posts:1]]
+;; [[file:Sacha.org::org-blog-link][org-blog-link]]
 (defun my-org-blog-complete ()
 	(concat "blog:"
 					(completing-read
@@ -8669,7 +8900,7 @@ This is extracted from lines like:
 	 :insert-description #'my-org-link-insert-description
 	 :export #'my-org-blog-export
 	 :complete #'my-org-blog-complete))
-;; Linking to blog posts:1 ends here
+;; org-blog-link ends here
 
 ;; embark-11ty                                     :11ty:org:emacs:embark:
 ;; :PROPERTIES:
@@ -8729,14 +8960,14 @@ With prefix arg, move the subtree."
 						(save-excursion
 							(widen)
 							(goto-char (point-min))
-							(cl-loop while (re-search-forward "^#\\+ELEVENTY.*" nil t)
-											 collect (match-string 0)))))
+							(cl-loop while (re-search-forward "^#\\+\\(ELEVENTY.*?\\):[ \t]\\(.+\\)" nil t)
+											 collect (cons (match-string 1) (match-string 2))))))
 				 (entry-properties (org-entry-properties))
 				 (filename (expand-file-name
 										"index.org"
 										(expand-file-name
 										 (assoc-default "EXPORT_ELEVENTY_FILE_NAME" entry-properties)
-										 (car (assoc-default "ELEVENTY_BASE_DIR" file-properties))))))
+										 (assoc-default "ELEVENTY_BASE_DIR" file-properties)))))
 		(unless (file-directory-p (file-name-directory filename))
 			(make-directory (file-name-directory filename) t))
 		;; find the heading that sets the current EXPORT_ELEVENTY_FILE_NAME
@@ -8746,8 +8977,7 @@ With prefix arg, move the subtree."
 		(with-temp-file filename
 			(org-mode)
 			(insert (or
-							 (string-join file-properties
-														"\n")
+							 (mapconcat (lambda (o) (format "#+%s: %s" (car o) (cdr o))) file-properties "\n")
 							 "")
 							"\n")
 			(org-yank))
@@ -8924,20 +9154,22 @@ With prefix arg, move the subtree."
   ;; Use short names like ‘defblock’ instead of the fully qualified name
   ;; ‘org-special-block-extras--defblock’
 	(setcdr org-special-block-extras-mode-map nil)
-  (org-defblock my_details (title "Details" title-color "Green")
-              "Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Enclose contents in a folded up box."
-              (cond
-               ((eq backend '11ty)
-                (format
-                 "{%% details \"%s\"%%}\n%s\n{%% enddetails %%}"
-                 title contents))
-               ((eq backend 'html)
-                (format
-                 "<details class=\"code-details\"
+	(org-defblock
+	 my_details (title "Details" title-color "Green" open "")
+	 "Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Enclose contents in a folded up box."
+	 (message "my_details %s %s %s" title title-color open)
+   (cond
+    ((eq backend '11ty)
+     (format
+      "{%% details \"%s\" %s%%}\n%s\n{%% enddetails %%}"
+      title (if (string= open "") "" ", \"open\"") contents))
+    ((eq backend 'html)
+     (format
+      "<details class=\"code-details\"
                  style =\"padding: 1em;
                           border-radius: 15px;
                           font-size: 0.9em;
-                          box-shadow: 0.05em 0.1em 5px 0.01em  #00000057;\">
+                          box-shadow: 0.05em 0.1em 5px 0.01em  #00000057;\"%s>
                   <summary>
                     <strong>
                       <font face=\"Courier\" size=\"3\" color=\"%s\">
@@ -8947,16 +9179,38 @@ With prefix arg, move the subtree."
                   </summary>
                   %s
                </details>"
-                 title-color title contents))))
+      (if (string= open "") "" " open") title-color title contents))))
 
   (org-defblock columns nil nil
-              "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
-              (format "<div class=\"row\">%s</div>" contents))
+								"Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
+								(format "<div class=\"row\">%s</div>" contents))
   (org-defblock column50 nil nil
-              "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns."
-              (format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents))
-)
+								"Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns."
+								(format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents))
+	)
 ;; org-special-blocks ends here
+
+
+
+;; And here's a little thing to convert a two-level list into my collapsible sections:
+
+
+;; [[file:Sacha.org::#special-blocks][Special blocks:2]]
+(defun my-org-convert-list-to-collapsible-details ()
+	(interactive)
+	(let ((list (org-list-to-lisp t)))
+		(mapc (lambda (o)
+						(when (stringp (car o))
+							(insert
+							 (format
+								"#+begin_my_details %s :open t\n%s#+end_my_details\n"
+								(car o)
+								(mapconcat
+								 (lambda (s)
+									 (concat "- " (string-trim (org-ascii--indent-string (car s) 2)) "\n"))
+								 (cdr (cadr o)))))))
+					(cdr list))))
+;; Special blocks:2 ends here
 
 ;; Adding a custom header argument to Org Mode source blocks and using that argument during export :org:emacs:
 ;; :PROPERTIES:
@@ -9207,7 +9461,7 @@ With prefix arg, move the subtree."
 
 
 ;; [[file:Sacha.org::#plantuml][PlantUML:1]]
-     (setq org-plantuml-jar-path (expand-file-name "/usr/share/plantuml/plantuml.jar"))
+(setq org-plantuml-jar-path (expand-file-name "/usr/share/plantuml/plantuml.jar"))
 (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
 ;; PlantUML:1 ends here
 
@@ -9252,14 +9506,14 @@ With prefix arg, move the subtree."
 ;; by focusing away from Emacs.
 
 
-;; [[file:Sacha.org::#org-async-export-and-tangle][Org Mode: Asynchronous export and tangle of a large file:4]]
+;; [[file:Sacha.org::#org-async-export-and-tangle][Org Mode: Asynchronous export and tangle of a large file:3]]
 (defmacro my-org-debounce-idle-timer (seconds var body &rest args)
   `(progn
      (defvar ,var nil "Timer.")
      (when (timerp ,var) (cancel-timer ,var))
      (setq ,var (run-with-idle-timer ,seconds nil ,body ,@args))))
 (defvar my-unfocusing nil "Non-nil when I'm in the middle of unfocusing.")
-(defun my-org-async-export-and-tangle ()
+(defun my-org-async-export-and-tangle (&optional filename)
   (async-start
    `(lambda ()
       ;; make async emacs aware of packages (for byte-compilation)
@@ -9280,8 +9534,9 @@ With prefix arg, move the subtree."
       (org-babel-tangle-file ,(buffer-file-name))
       )
    (lambda (&rest results) (message "Tangled.")))
-  (org-html-export-to-html t))
+  (org-export-to-file 'html (or filename "index.html") t))
 (defun my-org-export-and-tangle-if-saved-in-focus ()
+	(interactive)
   (when (frame-focus-state)
     (message "Scheduling export...")
     (my-org-debounce-idle-timer
@@ -9289,7 +9544,7 @@ With prefix arg, move the subtree."
      my-export-org-config
      (lambda (buf)
        (with-current-buffer buf
-         (my-org-async-export-and-tangle)))
+         (my-org-async-export-and-tangle "index.html")))
      (current-buffer))))
 (define-minor-mode my-org-export-and-tangle-when-saved-in-focus-mode
   "Toggle a mode for exporting and tangling when saved.
@@ -9307,7 +9562,7 @@ the mode, `toggle' toggles the state."
 
 (use-package org
   :hook ((org-mode . my-org-save-and-tangle-my-config)))
-;; Org Mode: Asynchronous export and tangle of a large file:4 ends here
+;; Org Mode: Asynchronous export and tangle of a large file:3 ends here
 
 ;; PDF
 ;; :PROPERTIES:
@@ -9460,8 +9715,9 @@ the mode, `toggle' toggles the state."
 ;; :CUSTOM_ID: links-to-my-config
 ;; :END:
 
+;; #+NAME: org-dotemacs-link
 
-;; [[file:Sacha.org::#links-to-my-config][Links to my config:1]]
+;; [[file:Sacha.org::org-dotemacs-link][org-dotemacs-link]]
 (defun my-org-dotemacs-export (path desc format _)
 	"Export dotemacs link."
 	(pcase format
@@ -9499,15 +9755,16 @@ the mode, `toggle' toggles the state."
  :insert-description #'my-org-dotemacs-insert-description
  :export #'my-org-dotemacs-export
  :follow #'my-org-dotemacs-open)
-;; Links to my config:1 ends here
+;; org-dotemacs-link ends here
 
 ;; YouTube
 ;; :PROPERTIES:
 ;; :CUSTOM_ID: youtube
 ;; :END:
 
+;; #+NAME: org-yt-link
 
-;; [[file:Sacha.org::#youtube][YouTube:1]]
+;; [[file:Sacha.org::org-yt-link][org-yt-link]]
 (defvar my-org-yt-iframe-format
   (concat "<div class=\"yt-video\"><iframe width=\"456\""
           " height=\"315\""
@@ -9603,15 +9860,16 @@ the mode, `toggle' toggles the state."
 	(save-restriction
 		(narrow-to-region beg end)
 		(kill-new (org-export-as 'ascii nil nil t))))
-;; YouTube:1 ends here
+;; org-yt-link ends here
 
 ;; Videos
 ;; :PROPERTIES:
 ;; :CUSTOM_ID: videos
 ;; :END:
 
+;; #+NAME: org-video-link
 
-;; [[file:Sacha.org::#videos][Videos:1]]
+;; [[file:Sacha.org::org-video-link][org-video-link]]
 (org-link-set-parameters
  "video"
  :export #'my-org-video-export
@@ -9678,14 +9936,16 @@ the mode, `toggle' toggles the state."
 	"Complete video reference."
 	(interactive)
 	(concat "video:" (read-file-name "File: ")))
-;; Videos:1 ends here
+;; org-video-link ends here
 
 ;; Audio
 ;; :PROPERTIES:
 ;; :CUSTOM_ID: audio
 ;; :END:
 
-;; [[file:Sacha.org::#audio][Audio:1]]
+;; #+NAME: org-audio-link
+
+;; [[file:Sacha.org::org-audio-link][org-audio-link]]
 (org-link-set-parameters
  "audio"
  :export #'my-org-audio-export
@@ -9708,9 +9968,11 @@ the mode, `toggle' toggles the state."
 		(pcase format
 			((or 'html '11ty 'md)
 			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
-							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query)))))
+							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query))))
+							(element (or (assoc-default "element" params #'string=) "audio")))
 				 (format
-					"<div class=\"audio\"><audio%s%s%s preload=\"metadata\" src=\"%s\" type=\"%s\"><a href=\"%s\">Download the audio</a>%s</audio>%s</div>"
+					"<div class=\"audio\"><%s%s%s%s preload=\"metadata\" src=\"%s\" type=\"%s\"><a href=\"%s\">Download the audio</a>%s</%s>%s</div>"
+					element
 					(if (string= (or (assoc-default "controls" params 'string= "1") "1") "0")
 							""
 						" controls=\"1\"")
@@ -9724,9 +9986,10 @@ the mode, `toggle' toggles the state."
 					(mailcap-file-name-to-mime-type (car path-and-query))
 					(car path-and-query)
 					(if (assoc-default "captions" params)
-							(format "<track kind=\"subtitles\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
+							(format "<track kind=\"captions\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
 											(car (assoc-default "captions" params)))
 						"")
+					element
 					(if (and (assoc-default "captions" params)
 									 (assoc-default "id" params))
 							(format  "<div class=\"captions\" style=\"display: none\"></div>"
@@ -9749,7 +10012,47 @@ the mode, `toggle' toggles the state."
 	"Complete audio reference."
 	(interactive)
 	(concat "audio:" (read-file-name "File: ")))
-;; Audio:1 ends here
+;; org-audio-link ends here
+
+;; Captions
+;; :PROPERTIES:
+;; :CUSTOM_ID: org-captions
+;; :END:
+
+;; #+NAME: org-captions-link
+
+;; [[file:Sacha.org::org-captions-link][org-captions-link]]
+(org-link-set-parameters
+ "captions"
+ :export #'my-org-captions-export
+ :complete #'my-org-captions-complete)
+
+(defun my-org-captions-format (file &optional separator)
+	(let ((cues (subed-parse-file file)))
+		(mapconcat (lambda (cue)
+								 (format "<span class=\"audio-time\" data-start=\"%f\" data-stop=\"%f\">%s</span>"
+												 (/ (elt cue 1) 1000.0)
+												 (/ (elt cue 2) 1000.0)
+												 (elt cue 3)))
+							 cues (or separator " "))))
+
+(defun my-org-captions-export (link desc format _)
+	"Export PATH to FORMAT using the specified wrap parameter."
+	(if desc
+			(org-export-string-as (org-link-make-string link desc) format)
+		(pcase format
+			((or 'html '11ty 'md) (my-org-captions-format (car (url-path-and-query (url-generic-parse-url link)))))
+			(_ path))))
+
+(defun my-org-captions-complete ()
+	"Complete audio reference."
+	(interactive)
+	(concat "captions:" (read-ffile-name "Captions: ")))
+
+(defun my-org-captions-insert-as-html-block (file)
+	(interactive "FFile: ")
+	(insert "#+begin_export html\n" (my-org-captions-format file "\n") "\n#+end_export html\n"))
+;; org-captions-link ends here
 
 ;; Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search :org:emacs:coding:
 ;; :PROPERTIES:
@@ -9782,8 +10085,9 @@ the mode, `toggle' toggles the state."
 ;; that defines that set of functions for me. Emacs Lisp macros are a
 ;; great way to write code to write code.
 
+;; #+NAME: org-project-link
 
-;; [[file:Sacha.org::#git-projects][Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search:1]]
+;; [[file:Sacha.org::org-project-link][org-project-link]]
 (defvar my-project-web-base-list nil "Local path . web repo URLs for easy linking.")
 
 (defmacro my-org-project-link (type file-path git-url)
@@ -9822,7 +10126,7 @@ the mode, `toggle' toggles the state."
 			 (cl-pushnew (cons (expand-file-name ,file-path) ,git-url)
 									 my-project-web-base-list
 									 :test 'equal))))
-;; Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search:1 ends here
+;; org-project-link ends here
 
 
 
@@ -10207,8 +10511,9 @@ If LINK is specified, use that instead."
 ;; :CUSTOM_ID: fix-elisp-links
 ;; :END:
 
+;; #+NAME: org-elisp-link
 
-;; [[file:Sacha.org::#fix-elisp-links][Fix elisp links:1]]
+;; [[file:Sacha.org::org-elisp-link][org-elisp-link]]
 (defun my-org-elisp-link-export (link description format &optional arg)
   (pcase format
    ('html (format "<span title=\"%s\">%s</span>" (replace-regexp-in-string "\"" "&quot;" link) description))
@@ -10217,14 +10522,16 @@ If LINK is specified, use that instead."
 (org-link-set-parameters
  "elisp"
  :export 'my-org-elisp-link-export)
-;; Fix elisp links:1 ends here
+;; org-elisp-link ends here
 
 ;; IRC
 ;; :PROPERTIES:
 ;; :CUSTOM_ID: irc
 ;; :END:
 
-;; [[file:Sacha.org::#irc][IRC:1]]
+;; #+NAME: org-irc-link
+
+;; [[file:Sacha.org::org-irc-link][org-irc-link]]
 (org-link-set-parameters
  "ircs"
  :export
@@ -10237,7 +10544,7 @@ FORMAT."
        (`html (format "<a href=\"ircs:%s\">%s</a>" link desc))
        (`md (format "[%s](ircs:%s)" desc link))
        (_ nil)))))
-;; IRC:1 ends here
+;; org-irc-link ends here
 
 ;; Dired
 ;; :PROPERTIES:
@@ -10288,8 +10595,9 @@ FORMAT."
 ;; our Org files? Here's a quick hack that reuses =org-store-link= and
 ;; =org-link-open=.
 
+;; #+NAME: org-protocol-link
 
-;; [[file:Sacha.org::#org-protocol-open][Org protocol: following Org links from outside Emacs:1]]
+;; [[file:Sacha.org::org-protocol-link][org-protocol-link]]
 (defun org-protocol-open-link (info)
 	"Process an org-protocol://open style url with INFO."
 	(org-link-open (car (org-element-parse-secondary-string (plist-get info :link) '(link)))))
@@ -10298,10 +10606,10 @@ FORMAT."
 	(interactive "P")
 	(kill-new (concat "org-protocol://open?link=" (url-hexify-string (org-store-link arg)))))
 
-(with-eval-after-load 'org
+(with-eval-after-load 'org-protocol
 	(add-to-list 'org-protocol-protocol-alist
 							 '("org-open" :protocol "open" :function org-protocol-open-link)))
-;; Org protocol: following Org links from outside Emacs:1 ends here
+;; org-protocol-link ends here
 
 
 
@@ -10694,8 +11002,9 @@ FORMAT."
 
 ;; This lets me define a custom link type.
 
+;; #+NAME: org-journal-link
 
-;; [[file:Sacha.org::#journal][Journal:4]]
+;; [[file:Sacha.org::org-journal-link][org-journal-link]]
 (defun my-org-journal-open (id &optional arg)
   (browse-url (format "%s/zid/%s" my-journal-url id)))
 
@@ -10723,7 +11032,7 @@ FORMAT."
    :follow 'my-org-journal-open
    :export 'my-org-journal-export
    :complete 'my-org-journal-complete))
-;; Journal:4 ends here
+;; org-journal-link ends here
 
 ;; [[file:Sacha.org::#journal][Journal:5]]
 (defun my-org-journal-summarize (from to &optional search category-map categories)
@@ -11115,11 +11424,13 @@ FORMAT."
      (plantuml . t)
      (lilypond . t)
      (python . t)
+     (ruby . t)
      (shell . t)
      (calc . t)
      (js . t)
      (sqlite . t)
      (http . t)
+		 (org . t)
      (ledger . t)
      (shell . t)
      (R . t)))
@@ -11622,7 +11933,9 @@ If BLOCK-NAME is specified, use that block type instead."
 ;; :CUSTOM_ID: package-links
 ;; :END:
 
-;; [[file:Sacha.org::#package-links][Package links:1]]
+;; #+NAME: org-package-link
+
+;; [[file:Sacha.org::org-package-link][org-package-link]]
 (defun my-org-package-open (package-name)
   (interactive "MPackage name: ")
   (describe-package (intern package-name)))
@@ -11661,7 +11974,7 @@ If BLOCK-NAME is specified, use that block type instead."
 				 (t path))
 			desc)))
 (org-link-set-parameters "package" :follow 'my-org-package-open :export 'my-org-package-export)
-;; Package links:1 ends here
+;; org-package-link ends here
 
 ;; Save when Emacs loses focus
 ;; :PROPERTIES:
@@ -11805,8 +12118,9 @@ Use the region if active."
 ;; ~org-store-link~ to capture a link to the function, insert it into a
 ;; blog post, navigate back to the function, and export HTML.
 
+;; #+NAME: org-defun-link
 
-;; [[file:Sacha.org::#linking-to-and-exporting-function-definitions-in-org-mode][Linking to and exporting function definitions in Org Mode:1]]
+;; [[file:Sacha.org::org-defun-link][org-defun-link]]
 (defun my-org-defun-complete ()
 	"Return function definitions."
 	(concat "defun:"
@@ -11902,7 +12216,7 @@ If it's from a tangled file, follow the link."
 												 :export #'my-org-defun-open-export
 												 :complete #'my-org-defun-open-complete
 												 :insert-description #'my-org-defun-link-description)
-;; Linking to and exporting function definitions in Org Mode:1 ends here
+;; org-defun-link ends here
 
 ;; TODO Still allow linking to the file
 ;; :PROPERTIES:
@@ -11933,8 +12247,9 @@ If it's from a tangled file, follow the link."
 ;; [2024-01-20]: Fixed org-def-store thanks to oantolin's comment.
 ;; #+end_update
 
+;; #+NAME: org-defvar-link
 
-;; [[file:Sacha.org::#including-variables][Including variables:1]]
+;; [[file:Sacha.org::org-defvar-link][org-defvar-link]]
 (defun my-org-defvar-complete ()
 	"Return variable definitions."
 	(concat "defvar:"
@@ -12012,65 +12327,7 @@ If it's from a tangled file, follow the link."
 												 :insert-description #'my-org-defvar-link-description
 												 ; :store #'my-org-def-store  ; already added by defun link
 												 )
-;; Including variables:1 ends here
-
-;; Appearance - org-modern, variable pitch
-
-;; [[file:Sacha.org::*Appearance - org-modern, variable pitch][Appearance - org-modern, variable pitch:1]]
-(use-package org-modern
-	:enabled nil
-	:config
-	(setq org-modern-block-name nil)
-	(global-org-modern-mode)
-	)
-;; Appearance - org-modern, variable pitch:1 ends here
-
-
-
-;; https://zzamboni.org/post/beautifying-org-mode-in-emacs/
-
-
-;; [[file:Sacha.org::*Appearance - org-modern, variable pitch][Appearance - org-modern, variable pitch:2]]
- (set-face-attribute 'default nil :family "Iosevka")
- (set-face-attribute 'variable-pitch nil :family "Iosevka Aile")
- (set-face-attribute 'org-modern-symbol nil :family "Iosevka")
- (set-face-attribute 'org-table nil :inherit 'fixed-pitch)
-  (let* ((variable-tuple
-          (cond ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
-                ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
-                ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
-                ((x-list-fonts "Verdana")         '(:font "Verdana"))
-                ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
-                (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
-         (base-font-color     (face-foreground 'default nil 'default))
-         (headline           `(:inherit default :weight bold)))
-
-    (custom-theme-set-faces
-     'user
-     `(org-level-8 ((t (,@headline ,@variable-tuple))))
-     `(org-level-7 ((t (,@headline ,@variable-tuple))))
-     `(org-level-6 ((t (,@headline ,@variable-tuple))))
-     `(org-level-5 ((t (,@headline ,@variable-tuple))))
-     `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.1))))
-     `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.25))))
-     `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.5))))
-     `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.75))))
-     `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
- (custom-theme-set-faces
-   'user
-   '(org-block ((t (:inherit fixed-pitch))))
-   '(org-code ((t (:inherit (shadow fixed-pitch)))))
-   '(org-document-info ((t (:foreground "dark orange"))))
-   '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
-   '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
-   '(org-link ((t (:foreground "royal blue" :underline t))))
-   '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
-   '(org-property-value ((t (:inherit fixed-pitch))) t)
-   '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
-   '(org-table ((t (:inherit fixed-pitch))))
-   '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
-   '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
-;; Appearance - org-modern, variable pitch:2 ends here
+;; org-defvar-link ends here
 
 ;; Multimedia
 ;; :PROPERTIES:
@@ -12319,7 +12576,10 @@ If it's from a tangled file, follow the link."
      ("pyls.plugins.pyls_mypy.live_mode" nil t)
      ("pyls.plugins.pyls_black.enabled" t t)
      ("pyls.plugins.pyls_isort.enabled" t t)))
-  :hook ((prog-mode-hook . lsp)
+	(add-to-list 'lsp-file-watch-ignored-directories "/blog\\'")
+	(add-to-list 'lsp-file-watch-ignored-directories "/_site\\'")
+	(add-to-list 'lsp-file-watch-ignored-directories "/_local\\'")
+  :hook ((js-mode . lsp)
          (python-mode . lsp)
          (lsp-mode-hook . lsp-enable-which-key-integration)))
 (use-package lsp-ui
@@ -12452,10 +12712,10 @@ If it's from a tangled file, follow the link."
 
 
 ;; [[file:Sacha.org::#emacs-lisp][Emacs Lisp:1]]
-  (use-package auto-compile
-    :if my-laptop-p
-    :config (auto-compile-on-load-mode))
-  (setq native-comp-async-report-warnings-errors nil)
+(use-package auto-compile
+  :if my-laptop-p
+  :config (auto-compile-on-load-mode))
+(setq native-comp-async-report-warnings-errors nil)
 ;; Emacs Lisp:1 ends here
 
 
@@ -13424,6 +13684,13 @@ Useful as `imenu-create-index-function'."
 	:custom
 	elisp-demos-user-files '("~/sync/orgzly/elisp-demos.org"))
 ;; elisp-demos:1 ends here
+
+;; Useful libraries
+
+;; [[file:Sacha.org::*Useful libraries][Useful libraries:1]]
+(use-package plz)
+(use-package tzc)
+;; Useful libraries:1 ends here
 
 ;; Snippets
 ;; :PROPERTIES:
@@ -14502,7 +14769,7 @@ current buffer, killing it."
     (call-interactively 'consult-ripgrep)))
 ;; Search logs:1 ends here
 
-;; Mastodon
+;; Mastodon  :mastodon:
 ;; :PROPERTIES:
 ;; :CUSTOM_ID: mastodon
 ;; :END:
@@ -14579,25 +14846,115 @@ current buffer, killing it."
 		(mastodon-url-lookup url)))
 ;; Mastodon:2 ends here
 
-;; Copy Mastodon link for Emacs News
+;; Storing Mastodon links in Org mode
 ;; :PROPERTIES:
-;; :CUSTOM_ID: copy-mastodon-link-for-emacs-news
+;; :CUSTOM_ID: storing-mastodon-links-in-org-mode
 ;; :END:
 
+;; This snippet makes it easier to store links to posts with
+;; ~org-store-link~ and to use them as automatic annotations in
+;; ~org-capture~. (2022-12-11: Now it links to media attachments, too!)
 
-;; [[file:Sacha.org::#copy-mastodon-link-for-emacs-news][Copy Mastodon link for Emacs News:1]]
-(defun my-mastodon-copy-link-dwim (prefix)
-	(interactive "P")
-	(if prefix
-			(mastodon-toot--copy-toot-url)
-		(my-mastodon-copy-toot-as-author-link)))
+;; #+NAME: my-mastodon-store-link
 
-(defun my-emacs-news-copy-mastodon-link ()
+;; [[file:Sacha.org::my-mastodon-store-link][my-mastodon-store-link]]
+(defun my-mastodon-store-link ()
+  "Store links in Mastodon buffers."
+  (when (derived-mode-p 'mastodon-mode)
+    (let ((json (get-text-property (point) 'item-json)))
+      (org-link-store-props
+       :link (mastodon-toot--toot-url)
+       :content (mastodon-tl--content json)
+       :text
+			 (concat
+				(string-trim (mastodon-tl--render-text (mastodon-tl--content json)))
+				(if (assoc-default 'media_attachments json)
+						(concat "\n\n"
+										(mapconcat
+										 (lambda (attachment)
+											 (org-link-make-string
+												(assoc-default 'url attachment)
+												(assoc-default 'description attachment)))
+										 (assoc-default 'media_attachments json)
+										 "\n"
+										 )))
+						"")
+				))))
+
+(use-package org
+  :config
+  (org-link-set-parameters
+   "mastodon"
+   :store 'my-mastodon-store-link)
+	(with-eval-after-load 'org-capture
+		(add-to-list 'org-capture-templates
+								 `("m" "Mastodon" entry (file ,my-org-inbox-file)
+									 "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n%a"
+									 :prepend t))))
+;; my-mastodon-store-link ends here
+
+;; Collecting Emacs News from Mastodon  :emacs:mastodon:
+;; :PROPERTIES:
+;; :CUSTOM_ID: mastodon-news
+;; :EXPORT_DATE: 2024-09-16T13:07:16-0400
+;; :EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/collecting-emacs-news-from-mastodon/
+;; :EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/collecting-emacs-news-from-mastodon/
+;; :END:
+
+;; One of the things I like about browsing Mastodon in Emacs using
+;; [[https://codeberg.org/martianh/mastodon.el][mastodon.el]] is that I can modify my workflow to make things easier.
+;; For example, I often come across links that I'd like to save for Emacs
+;; News. I want to boost the post and save it to an Org file, and I can
+;; do that with a single keystroke. It uses the ~my-mastodon-store-link~ function
+;; defined elsewhere in [[https://sachachua.com/dotemacs/#mastodon][my config]].
+
+
+;; [[file:Sacha.org::#mastodon-news][Collecting Emacs News from Mastodon:1]]
+(use-package org
+	:config
+	(add-to-list
+	 'org-capture-templates
+   '("w" "Emacs News" entry (file+headline "~/sync/orgzly/news.org" "Collect Emacs News")
+     "* %a  :news:
+
+#+begin_quote
+%:text
+#+end_quote
+
+"
+     :prepend t :immediate-finish t)))
+(defun my-mastodon-save-toot-for-emacs-news ()
 	(interactive)
-	(let ((url (org-entry-get (point) "ITEM")))
-		(when (string-match "https://\\(.+?\\)/\\(@.+?\\)/" url)
-			(kill-new (org-link-make-string url (concat (match-string 2 url) "@" (match-string 1 url)))))))
+	;; boost if not already boosted
+	(unless (get-text-property
+					 (car
+						(mastodon-tl--find-property-range 'byline (point)))
+					 'boosted-p)
+		(mastodon-toot--toggle-boost-or-favourite 'boost))
+	;; store a link and capture the note
+	(org-capture nil "w"))
 
+(use-package mastodon
+	:bind (:map mastodon-mode-map ("w" . my-mastodon-save-toot-for-emacs-news)))
+;; Collecting Emacs News from Mastodon:1 ends here
+
+
+
+;; This puts a bunch of notes in my
+;; =~/sync/orgzly/news.org= file. Then I can use
+;; =my-emacs-news-summarize-mastodon-items= to
+;; summarize a bunch of items I've captured from
+;; Mastodon, taking the title from the first link and
+;; including a link to the toot using the author's
+;; handle. This is what it looks like:
+
+;; #+CAPTION: Quick screencast summarizing Mastodon toots
+;; [[file:/home/sacha/recordings/output-2024-09-16-13:14:38.gif]]
+
+;; Here's the code that makes that happen:
+
+
+;; [[file:Sacha.org::#mastodon-news][Collecting Emacs News from Mastodon:2]]
 (defun my-emacs-news-summarize-mastodon-items ()
 	(interactive)
 	(while (not (eobp))
@@ -14669,6 +15026,26 @@ If you can find there something you can use, then I'm happy to be useful to the 
 						 ("https://codeberg.org/jcastp/emacs.d")
 						 :text
 						 "jcastp@mastodon.online - I've shared my emacs config: https://codeberg.org/jcastp/emacs.d\n\nAfter years of reading other's configs, copying really useful snippets, and tinkering a little bit myself, I wanted to give something back, although I'm still an amateur (and it shows, but I want to improve!)\n\nIf you can find there something you can use, then I'm happy to be useful to the community.\n\n#emacs"))))
+;; Collecting Emacs News from Mastodon:2 ends here
+
+;; Copy Mastodon link for Emacs News
+;; :PROPERTIES:
+;; :CUSTOM_ID: copy-mastodon-link-for-emacs-news
+;; :END:
+
+
+;; [[file:Sacha.org::#copy-mastodon-link-for-emacs-news][Copy Mastodon link for Emacs News:1]]
+(defun my-mastodon-copy-link-dwim (prefix)
+	(interactive "P")
+	(if prefix
+			(mastodon-toot--copy-toot-url)
+		(my-mastodon-copy-toot-as-author-link)))
+
+(defun my-emacs-news-copy-mastodon-link ()
+	(interactive)
+	(let ((url (org-entry-get (point) "ITEM")))
+		(when (string-match "https://\\(.+?\\)/\\(@.+?\\)/" url)
+			(kill-new (org-link-make-string url (concat (match-string 2 url) "@" (match-string 1 url)))))))
 
 (defun my-emacs-news-copy-mastodon-item (&optional name-only)
 	(interactive (list current-prefix-arg))
@@ -14712,94 +15089,6 @@ If you can find there something you can use, then I'm happy to be useful to the 
 				(kill-new s)))
 		s))
 ;; Copy Mastodon link for Emacs News:1 ends here
-
-;; Storing Mastodon links in Org mode
-;; :PROPERTIES:
-;; :CUSTOM_ID: storing-mastodon-links-in-org-mode
-;; :END:
-
-;; This snippet makes it easier to store links to posts with
-;; ~org-store-link~ and to use them as automatic annotations in
-;; ~org-capture~. (2022-12-11: Now it links to media attachments, too!)
-
-;; #+NAME: my-mastodon-store-link
-
-;; [[file:Sacha.org::my-mastodon-store-link][my-mastodon-store-link]]
-(defun my-mastodon-store-link ()
-  "Store links in Mastodon buffers."
-  (when (derived-mode-p 'mastodon-mode)
-    (let ((json (get-text-property (point) 'item-json)))
-      (org-link-store-props
-       :link (mastodon-toot--toot-url)
-       :content (mastodon-tl--content json)
-       :text
-			 (concat
-				(string-trim (mastodon-tl--render-text (mastodon-tl--content json)))
-				(if (assoc-default 'media_attachments json)
-						(concat "\n\n"
-										(mapconcat
-										 (lambda (attachment)
-											 (org-link-make-string
-												(assoc-default 'url attachment)
-												(assoc-default 'description attachment)))
-										 (assoc-default 'media_attachments json)
-										 "\n"
-										 )))
-						"")
-				))))
-
-(use-package org
-  :config
-  (org-link-set-parameters
-   "mastodon"
-   :store 'my-mastodon-store-link)
-  (add-to-list 'org-capture-templates
-               `("m" "Mastodon" entry (file ,my-org-inbox-file)
-                 "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n%a"
-                 :prepend t)))
-;; my-mastodon-store-link ends here
-
-;; Collecting Emacs News from Mastodon
-;; :PROPERTIES:
-;; :CUSTOM_ID: mastodon-news
-;; :END:
-
-;; One of the things I like about browsing Mastodon in Emacs using
-;; [[https://codeberg.org/martianh/mastodon.el][mastodon.el]] is that I can modify my workflow to make things easier.
-;; For example, I often come across links that I'd like to save for Emacs
-;; News. I want to boost the post and save it to an Org file, and I can
-;; do that with a single keystroke. It uses the my-mastodon-store-link
-;; defined elsewhere in [[https://sachachua.com/dotemacs/#mastodon][my config]].
-
-
-;; [[file:Sacha.org::#mastodon-news][Collecting Emacs News from Mastodon:1]]
-(use-package org
-	:config
-	(add-to-list
-	 'org-capture-templates
-   '("w" "Emacs News" entry (file+headline "~/sync/orgzly/news.org" "Collect Emacs News")
-     "* %a  :news:
-
-#+begin_quote
-%:text
-#+end_quote
-
-"
-     :prepend t :immediate-finish t)))
-(defun my-mastodon-save-toot-for-emacs-news ()
-	(interactive)
-	;; boost if not already boosted
-	(unless (get-text-property
-					 (car
-						(mastodon-tl--find-property-range 'byline (point)))
-					 'boosted-p)
-		(mastodon-toot--toggle-boost-or-favourite 'boost))
-	;; store a link and capture the note
-	(org-capture nil "w"))
-
-(use-package mastodon
-	:bind (:map mastodon-mode-map ("w" . my-mastodon-save-toot-for-emacs-news)))
-;; Collecting Emacs News from Mastodon:1 ends here
 
 ;; Following people
 ;; :PROPERTIES:
@@ -14907,7 +15196,7 @@ Use consult to provide a preview."
 
 
 ;; [[file:Sacha.org::#mastodon-keyboard-shortcuts-via-hydra][Mastodon keyboard shortcuts via Hydra:1]]
- ;; Not in the following hydra, but mentioned in "M-x describe-mode". Also, the README.org
+;; Not in the following hydra, but mentioned in "M-x describe-mode". Also, the README.org
   ;; contains several functions that aren't in my hydra.
   ;;
   ;; TAB                     mastodon-tl--next-tab-item
@@ -15153,6 +15442,40 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 (advice-add #'org-feed-add-items :after #'my-org-feed-sort)
 ;; Collect my recent toots in an Org file so that I can refile them:1 ends here
 
+;; Archive toots on my blog
+;; :PROPERTIES:
+;; :CUSTOM_ID: mastodon-insert-statuses
+;; :END:
+
+;; I want to compile my public microblog posts into
+;; weekly posts so that they're archived on my blog.
+;; It might make sense to make them list items or
+;; subtrees so that I can move them around easily.
+
+
+;; [[file:Sacha.org::#mastodon-insert-statuses][Archive toots on my blog:1]]
+(defun my-mastodon-insert-my-statuses-since (date)
+	(interactive (list (org-read-date "Since date: ")))
+	(insert
+	 (format "#+begin_toot_archive\n%s\n#+end_toot_archive\n"
+					 (mapconcat
+						(lambda (o)
+							(format "- %s\n  #+begin_quote\n  #+begin_export html\n%s\n  #+end_export\n  #+end_quote\n\n"
+											(org-link-make-string (assoc-default 'url o) (assoc-default 'created_at o))
+											(org-ascii--indent-string (assoc-default 'content o) 2))
+							;; (format "#+begin_quote\n#+begin_export html\n%s\n#+end_export\n#+end_quote\n\n%s\n\n"
+							;; 				(assoc-default 'content o)
+							;; 				(org-link-make-string (assoc-default 'url o) (assoc-default 'created_at o)))
+							)
+						(seq-filter
+						 (lambda (o)
+							 (string= (assoc-default 'visibility o) "public"))
+						 (my-mastodon-fetch-posts-after
+							(format "accounts/%s/statuses?count=40&exclude_reblogs=t&exclude_replies=t" (mastodon-auth--get-account-id))
+							date))
+						""))))
+;; Archive toots on my blog:1 ends here
+
 ;; Checking URLs
 ;; :PROPERTIES:
 ;; :CUSTOM_ID: checking-urls
@@ -15199,11 +15522,6 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 
 ;; #+RESULTS:
 ;; :results:
-;; - Sacha Chua: Yay Emacs: Using elisp: links in Org Mode to note the time and display messages on stream
-;; - Irreal: Quick Accents
-;; - Kisaragi Hiu: 我的 KDE 翻譯流程
-;; - James Dyer: Emacs asynchronous copying using dired-async-mode
-;; - Corwin Brust: Emacs 29.2 Windows Binaries
 ;; :end:
 
 ;; [[video:/home/sacha/recordings/2024-01-19_08.16.31.webm?caption=Evaluating a Javascript block with :spookfox t]]
@@ -16488,6 +16806,10 @@ See also:  http://ivan.kanis.fr/caly.el"
 
 
 
+;; #+RESULTS:
+;; :results:
+;; :end:
+
 ;; Some code to start and stop the stream:
 
 
@@ -16924,7 +17246,7 @@ See also:  http://ivan.kanis.fr/caly.el"
 ;; With data logging $0.004 USD / 15 seconds
 
 
-;; [[file:Sacha.org::#speech-to-text][Try continuous streaming and the Google Speech Recognition API:1]]
+;; [[file:Sacha.org::#speech-to-text][CANCELLED Try continuous streaming and the Google Speech Recognition API:1]]
 (defvar my-stream-captions-websocket nil)
 (defvar my-stream-captions-history nil)
 (defvar my-stream-captions-last-caption nil)
@@ -16987,7 +17309,7 @@ See also:  http://ivan.kanis.fr/caly.el"
 (defun my-stream-captions-stop ()
   (interactive)
   (stop-process my-stream-captions-process))
-;; Try continuous streaming and the Google Speech Recognition API:1 ends here
+;; CANCELLED Try continuous streaming and the Google Speech Recognition API:1 ends here
 
 ;; Ledger
 ;; :PROPERTIES:
@@ -17178,7 +17500,7 @@ See also:  http://ivan.kanis.fr/caly.el"
 ;; references.
 
 
-;; [[file:Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie:1]]
+;; [[file:Sacha.org::#manage-photos-with-geeqie][TOBLOG Manage photos with geeqie:1]]
 (defvar my-scan-directory "~/sync/scans/")
 (defvar my-ipad-directory "~/sync/ipad")
 (defvar my-portfolio-directory "~/sync/portfolio")
@@ -17350,7 +17672,7 @@ See also:  http://ivan.kanis.fr/caly.el"
 				 'file-regular-p
 				 (directory-files my-scan-directory t "^[0-9]+.*#")))
   (shell-command-to-string "make-sketch-thumbnails"))
-;; Manage photos with geeqie:1 ends here
+;; TOBLOG Manage photos with geeqie:1 ends here
 
 ;; Plover
 ;;    :PROPERTIES:
@@ -17387,80 +17709,80 @@ See also:  http://ivan.kanis.fr/caly.el"
 
 
 ;; [[file:Sacha.org::#looking-things-up][Looking things up:1]]
-  (defun my-plover-search-dictionary-for-strokes-jq (stroke-regexp)
-    (json-parse-string
-     (shell-command-to-string
-      (format "cat ~/.config/plover/main.json | jq 'with_entries(if (.key|test(\"%s\")) then ( {key: .key, value: .value}) else empty end)'"
-	      stroke-regexp))
-     :object-type 'alist))
-  (defvar my-plover-main-dict
-    (if (and my-laptop-p (file-exists-p "~/.config/plover/main.json"))
-	(mapcar (lambda (o) (cons (symbol-name (car o)) (cdr o)))
-		(json-read-file "~/.config/plover/main.json"))))
-  (defun my-plover-search-dictionary-for-strokes (stroke-regexp)
-    (interactive "MStroke regexp: ")
-    (let ((results (seq-filter (lambda (o) (string-match stroke-regexp (car o))) my-plover-main-dict)))
-      (when (called-interactively-p 'any) (my-plover-display-dictionary-results results))
-      results))
-  (defvar my-plover-dict-cache nil "Alist of (filename . ((stroke . translation) ...))")
-  (defvar my-plover-home "~/.config/plover")
-  (defun my-plover-dict (&optional filename)
-    (setq filename (expand-file-name (or filename "main.json") my-plover-home))
-    (or (cdr (assoc-default filename my-plover-dict-cache))
-	(let ((result (mapcar (lambda (o) (cons (symbol-name (car o)) (cdr o))) (json-read-file filename))))
-	  (push (cons filename result) my-plover-dict-cache )
-	  result)))
+(defun my-plover-search-dictionary-for-strokes-jq (stroke-regexp)
+  (json-parse-string
+   (shell-command-to-string
+    (format "cat ~/.config/plover/main.json | jq 'with_entries(if (.key|test(\"%s\")) then ( {key: .key, value: .value}) else empty end)'"
+      stroke-regexp))
+   :object-type 'alist))
+(defvar my-plover-main-dict
+  (if (and my-laptop-p (file-exists-p "~/.config/plover/main.json"))
+(mapcar (lambda (o) (cons (symbol-name (car o)) (cdr o)))
+	(json-read-file "~/.config/plover/main.json"))))
+(defun my-plover-search-dictionary-for-strokes (stroke-regexp)
+  (interactive "MStroke regexp: ")
+  (let ((results (seq-filter (lambda (o) (string-match stroke-regexp (car o))) my-plover-main-dict)))
+    (when (called-interactively-p 'any) (my-plover-display-dictionary-results results))
+    results))
+(defvar my-plover-dict-cache nil "Alist of (filename . ((stroke . translation) ...))")
+(defvar my-plover-home "~/.config/plover")
+(defun my-plover-dict (&optional filename)
+  (setq filename (expand-file-name (or filename "main.json") my-plover-home))
+  (or (cdr (assoc-default filename my-plover-dict-cache))
+(let ((result (mapcar (lambda (o) (cons (symbol-name (car o)) (cdr o))) (json-read-file filename))))
+  (push (cons filename result) my-plover-dict-cache )
+  result)))
 
-  (defun my-plover-search-dictionary-for-translation (translation &optional start file)
-    (interactive "MTranslation: \nP")
-    (let* ((regexp (concat "^" (regexp-quote translation) (unless start "$")))
-	   (results (seq-filter (lambda (o) (string-match regexp (cdr o))) (my-plover-dict file))))
-      (when (called-interactively-p 'any) (my-plover-display-dictionary-results results))
-      results))
+(defun my-plover-search-dictionary-for-translation (translation &optional start file)
+  (interactive "MTranslation: \nP")
+  (let* ((regexp (concat "^" (regexp-quote translation) (unless start "$")))
+   (results (seq-filter (lambda (o) (string-match regexp (cdr o))) (my-plover-dict file))))
+    (when (called-interactively-p 'any) (my-plover-display-dictionary-results results))
+    results))
 
-  (defun my-plover-display-dictionary-results (results)
-    (with-current-buffer (get-buffer-create "*Plover*")
-      (erase-buffer)
-      (insert (format "%d entries\n" (length results))
-	      (mapconcat (lambda (o) (format "%s\t%s" (car o) (cdr o))) results "\n"))
-      (goto-char (point-min))
-      (display-buffer (current-buffer))))
+(defun my-plover-display-dictionary-results (results)
+  (with-current-buffer (get-buffer-create "*Plover*")
+    (erase-buffer)
+    (insert (format "%d entries\n" (length results))
+      (mapconcat (lambda (o) (format "%s\t%s" (car o) (cdr o))) results "\n"))
+    (goto-char (point-min))
+    (display-buffer (current-buffer))))
 
-  (defmacro my-with-plover-fingerspelling (&rest body)
-    `(progn
-       (plover-websocket-send :translation "{PLOVER:SOLO_DICT:+commands.json,+fingerspelling.json}")
-       (prog1 (progn ,@body)
-	 (plover-websocket-send :translation "{PLOVER:END_SOLO_DICT}"))))
+(defmacro my-with-plover-fingerspelling (&rest body)
+  `(progn
+     (plover-websocket-send :translation "{PLOVER:SOLO_DICT:+commands.json,+fingerspelling.json}")
+     (prog1 (progn ,@body)
+ (plover-websocket-send :translation "{PLOVER:END_SOLO_DICT}"))))
 
-  (defun my-consult-plover-read-stroke-or-translation ()
-    (interactive)
-    (let ((dict (mapcar (lambda (o) (cons (format "%s: %s" (car o) (cdr o)) o))
-			(my-plover-dict))))
-      (my-with-plover-fingerspelling
-       (consult--read
-	dict
-	:prompt "Strokes/translation: "
-	:category 'plover-stroke))))
+(defun my-consult-plover-read-stroke-or-translation ()
+  (interactive)
+  (let ((dict (mapcar (lambda (o) (cons (format "%s: %s" (car o) (cdr o)) o))
+		(my-plover-dict))))
+    (my-with-plover-fingerspelling
+     (consult--read
+dict
+:prompt "Strokes/translation: "
+:category 'plover-stroke))))
 
-  (defun my-consult-plover-and-execute-strokes (choice)
-    (interactive (list (my-consult-plover-read-stroke-or-translation)))
-    (when (string-match "^\\([^ ]+\\): \\(.+\\)" choice)
-      (plover-websocket-send :translation (match-string 2 choice) :force t :zero_last_stroke_length t)))
+(defun my-consult-plover-and-execute-strokes (choice)
+  (interactive (list (my-consult-plover-read-stroke-or-translation)))
+  (when (string-match "^\\([^ ]+\\): \\(.+\\)" choice)
+    (plover-websocket-send :translation (match-string 2 choice) :force t :zero_last_stroke_length t)))
 
-  (defun my-consult-plover-search-strokes (regexp solo-p)
-    (interactive (list (with-plover-plain (read-string "Strokes: ")) current-prefix-arg))
-    (consult--read
-     (mapcar (lambda (o) (cons (format "%s: %s" (car o) (cdr o)) o))
-	     (my-plover-search-dictionary-for-strokes (if solo-p (concat "^" regexp "\\(?:/\\|$\\)" ) (concat "^" regexp))))
-     :prompt "Narrow: "))
+(defun my-consult-plover-search-strokes (regexp solo-p)
+  (interactive (list (with-plover-plain (read-string "Strokes: ")) current-prefix-arg))
+  (consult--read
+   (mapcar (lambda (o) (cons (format "%s: %s" (car o) (cdr o)) o))
+     (my-plover-search-dictionary-for-strokes (if solo-p (concat "^" regexp "\\(?:/\\|$\\)" ) (concat "^" regexp))))
+   :prompt "Narrow: "))
 
 
 
-  ;; (list
-  ;;  (benchmark-run 2 (my-plover-search-dictionary-for-strokes-jq "^THER"))
-  ;;  (benchmark-run 2 (my-plover-search-dictionary-for-translation "stenography" t "typey-type.json")
-  ;; (benchmark-run 2 (my-plover-search-dictionary-for-translation "stenography" t))
-  ;;  (benchmark-run 2 (my-plover-search-dictionary-for-strokes "^THER/")))
+;; (list
+;;  (benchmark-run 2 (my-plover-search-dictionary-for-strokes-jq "^THER"))
+;;  (benchmark-run 2 (my-plover-search-dictionary-for-translation "stenography" t "typey-type.json")
+;; (benchmark-run 2 (my-plover-search-dictionary-for-translation "stenography" t))
+;;  (benchmark-run 2 (my-plover-search-dictionary-for-strokes "^THER/")))
 ;; Looking things up:1 ends here
 
 ;; Adding steno hints as I type                                :steno:emacs:
@@ -19627,7 +19949,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 ;; :CUSTOM_ID: org-mode-sketch-links
 ;; :END:
 
-;; [[file:Sacha.org::#org-mode-sketch-links][Org Mode sketch: links:1]]
+;; #+NAME: org-sketch-link
+
+;; [[file:Sacha.org::org-sketch-link][org-sketch-link]]
 (defun my-open-images-in-krita (files)
   (apply 'call-process "krita" nil 0 nil "--nosplash" files))
 (defun my-open-images-in-gwenview (files)
@@ -19807,7 +20131,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
    :follow 'my-org-image-open
    :export 'my-org-image-export
    :complete 'my-org-image-complete))
-;; Org Mode sketch: links:1 ends here
+;; org-sketch-link ends here
 
 ;; Org Mode custom link: copy to clipboard   :emacs:org:
 ;; :PROPERTIES:
@@ -19839,15 +20163,16 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 ;; means never having to worry about typos or
 ;; accidentally selecting only part of the text.
 
+;; #+NAME: org-copy-link
 
-;; [[file:Sacha.org::#org-mode-copy][Org Mode custom link: copy to clipboard:1]]
+;; [[file:Sacha.org::org-copy-link][org-copy-link]]
 (use-package org
   :config
   (org-link-set-parameters
    "copy"
    :follow (lambda (link) (kill-new link))
 	 :export (lambda (_ desc &rest _) desc)))
-;; Org Mode custom link: copy to clipboard:1 ends here
+;; org-copy-link ends here
 
 
 
@@ -19881,8 +20206,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 ;; :CUSTOM_ID: config
 ;; :END:
 
+;; #+NAME: org-config-link
 
-;; [[file:Sacha.org::#config][Config:1]]
+;; [[file:Sacha.org::org-config-link][org-config-link]]
 (use-package org
   :config
   (org-link-set-parameters
@@ -19890,7 +20216,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
    :follow (lambda (id) (org-open-link-from-string (format "[[~/sync/emacs/Sacha.org::%s]]" id)))
    :export (lambda (link description format)
              (format "<a href=\"https://sachachua.com/dotemacs#%s\">%s</a>" link description))))
-;; Config:1 ends here
+;; org-config-link ends here
 
 ;; Helm completion with my-helm-org-sketches
 ;; :PROPERTIES:
@@ -20421,54 +20747,54 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 
 
 ;; [[file:Sacha.org::#digital-index-piles-with-emacs][Digital index piles with Emacs:1]]
-      (defun my-org-get-list-categories ()
-        "Return a list of (category indent matching-regexp sample).
-              List categories are items that don't contain links."
-        (let ((list (org-list-struct)) last-category results)
-          (save-excursion
-            (mapc
-             (lambda (x)
-               (goto-char (car x))
-               (let ((current-item
-                      (buffer-substring-no-properties
-                       (+ (point)
-                          (elt x 1)
-                          (length (elt x 2)))
-                       (line-end-position))))
-                 (if (string-match
-                      org-link-bracket-re
-                      (buffer-substring-no-properties
-                       (point)
-                       (line-end-position)))
-                     ;; Link - update the last category
-                     (when last-category
-                       (if (< (elt x 1) (elt last-category 1))
-                           (setq results
-                                 (cons (append last-category
-                                               (list
-                                                (match-string-no-properties
-                                                 3
-                                                 (buffer-substring-no-properties
-                                                  (point)
-                                                  (line-end-position)))))
-                                       (cdr results))))
-                       (setq last-category nil))
-                   ;; Category
-                   (setq results
-                         (cons
-                          (setq last-category
-                                (list
-                                 current-item
-                                 (elt x 1)
-                                 (concat "^"
-                                         (make-string (elt x 1) ?\ )
-                                         (regexp-quote
-                                          (concat (elt x 2)
-                                                  current-item))
-                                         "$")))
-                          results)))))
-             list))
-          (append '(("x" 2 "^$" nil)) results)))
+(defun my-org-get-list-categories ()
+  "Return a list of (category indent matching-regexp sample).
+        List categories are items that don't contain links."
+  (let ((list (org-list-struct)) last-category results)
+    (save-excursion
+      (mapc
+       (lambda (x)
+         (goto-char (car x))
+         (let ((current-item
+                (buffer-substring-no-properties
+                 (+ (point)
+                    (elt x 1)
+                    (length (elt x 2)))
+                 (line-end-position))))
+           (if (string-match
+                org-link-bracket-re
+                (buffer-substring-no-properties
+                 (point)
+                 (line-end-position)))
+               ;; Link - update the last category
+               (when last-category
+                 (if (< (elt x 1) (elt last-category 1))
+                     (setq results
+                           (cons (append last-category
+                                         (list
+                                          (match-string-no-properties
+                                           3
+                                           (buffer-substring-no-properties
+                                            (point)
+                                            (line-end-position)))))
+                                 (cdr results))))
+                 (setq last-category nil))
+             ;; Category
+             (setq results
+                   (cons
+                    (setq last-category
+                          (list
+                           current-item
+                           (elt x 1)
+                           (concat "^"
+                                   (make-string (elt x 1) ?\ )
+                                   (regexp-quote
+                                    (concat (elt x 2)
+                                            current-item))
+                                   "$")))
+                    results)))))
+       list))
+    (append '(("x" 2 "^$" nil)) results)))
 ;; Digital index piles with Emacs:1 ends here
 
 
@@ -20897,7 +21223,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 ;; :END:
 
 
-;; [[file:Sacha.org::#write-about-half-page-scans][Write about half-page scans:1]]
+;; [[file:Sacha.org::#write-about-half-page-scans][SOMEDAY Write about half-page scans:1]]
 (defun my-insert-sketch-and-text (sketch)
 	(interactive (list (my-complete-sketch-filename)))
 	(insert (file-name-base sketch)
@@ -20938,7 +21264,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
                                          my-sketches-directory))
         (rename-file filename new-name)))
     (my-write-about-sketch new-name)))
-;; Write about half-page scans:1 ends here
+;; SOMEDAY Write about half-page scans:1 ends here
 
 ;; Supernote
 ;; :PROPERTIES:

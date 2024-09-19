@@ -2,13 +2,14 @@
 #+OPTIONS: toc:nil h:4
 #+SETUPFILE: ~/vendor/org-html-themes/org/theme-readtheorg-sachac.setup
 #+STARTUP: showeverything
-#+PROPERTY: header-args:emacs-lisp+   :tangle yes :results silent :exports code
+#+PROPERTY: header-args:emacs-lisp+   :tangle yes :results silent :exports code :eval never-export
 #+ELEVENTY_COLLECTIONS: _posts
 #+ELEVENTY_BASE_DIR: ~/proj/static-blog/
+#+FILETAGS: :emacs:
 #+ELEVENTY_CATEGORIES+: emacs
 #+ELEVENTY_LAYOUT: layouts/post
 #+LINK: dotemacs  https://sachachua.com/dotemacs#%s
-
+#+ELEVENTY_BASE_URL: https://sachachua.com
 
 Last exported:  {{{modification-time(%Y-%m-%d %H:%M)}}}
 
@@ -42,7 +43,7 @@ and a package name you might like, you can use ~M-x package-install~
 to install the package of that name.
 
 If you're viewing the Org file, you can open source code blocks (those
-are the ones in begin_src) in a separate buffer by moving your point
+are the ones in ~begin_src~) in a separate buffer by moving your point
 inside them and typing ~C-c '~ (~org-edit-special~). This opens another
 buffer in =emacs-lisp-mode=, so you can use =M-x eval-buffer= to load
 the changes. If you want to explore how functions work, use =M-x
@@ -275,7 +276,7 @@ contents of the minibuffer before submitting it.
 :END:
 
     #+begin_src emacs-lisp
-    (setq kill-ring-max 1000)
+(setq kill-ring-max 1000)
     #+end_src
 
 From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
@@ -510,7 +511,10 @@ package:hydra offers customizable shortcuts. package:transient is another option
 (use-package hydra :commands defhydra)
 (use-package use-package-hydra)
 (if my-laptop-p
-    (use-package hydra-posframe :if my-laptop-p :after hydra))
+    (use-package hydra-posframe
+			:if my-laptop-p :after hydra
+			:vc (:url "https://github.com/Ladicle/hydra-posframe")
+			))
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
@@ -742,7 +746,6 @@ Some code from http://emacsredux.com/blog/2013/04/28/switch-to-previous-buffer/
         (key2 (logand 255 (aref keys 1))))
     (define-key keymap (vector 'key-chord key1 key2) command)))
 (fset 'key-chord-define 'my-key-chord-define)
-
 #+END_SRC
 
 Now let's set up the actual keychords.
@@ -879,18 +882,18 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
 #+end_src
 
 #+begin_src emacs-lisp
-  (declare-function 'my-geeqie-view "Sacha.el")
-  (defun my-preview-image (candidate state)
-    (when (and my-sketch-preview candidate) (my-geeqie-view (list candidate)))
-    nil)
+(declare-function 'my-geeqie-view "Sacha.el")
+(defun my-preview-image (candidate state)
+  (when (and my-sketch-preview candidate) (my-geeqie-view (list candidate)))
+  nil)
 
-  (defun my-complete-sketch-filename ()
-    (interactive)
-    (consult--read (my-sketches)
-    		 :sort nil
-    		 :state 'my-preview-image
-    		 :prompt "Sketch: "
-    		 :category 'sketch))
+(defun my-complete-sketch-filename ()
+  (interactive)
+  (consult--read (my-sketches)
+  		 :sort nil
+  		 :state 'my-preview-image
+  		 :prompt "Sketch: "
+  		 :category 'sketch))
 #+end_src
 *** Completing blog posts
 :PROPERTIES:
@@ -1054,8 +1057,96 @@ any directory proferred by `consult-dir'."
                 :items    ,projectile-known-projects))
   (add-to-list 'consult-buffer-sources my-consult-source-projectile-projects 'append))
     #+end_src
+*** consult-omni
+
+I also needed to create a Google custom search JSON API key at https://developers.google.com/custom-search/v1/introduction .
+
+#+begin_src emacs-lisp
+;; override the embark actions
+(defun my-consult-omni-embark-copy-url-as-kill (cand)
+	"Don't add spaces."
+	(when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
+		(kill-new (string-trim s))))
+
+(defun my-consult-omni-embark-insert-url (cand)
+	"Don't add spaces."
+	(when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
+		(insert (string-trim s))))
+
+(defun my-consult-omni-embark-copy-title-as-kill (cand)
+	"Don't add spaces."
+	(when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
+		(kill-new (string-trim s))))
+
+(defun my-consult-omni-embark-insert-title (cand)
+	"Don't add spaces."
+	(when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
+		(insert (string-trim s))))
+
+(defun my-consult-omni-embark-insert-link (cand)
+	"Don't add spaces."
+	(let ((url (and (stringp cand) (get-text-property 0 :url cand )))
+				(title (and (stringp cand) (get-text-property 0 :title cand))))
+		(cond
+		 ((derived-mode-p 'org-mode)
+			(cond
+			 ((org-in-regexp org-link-any-re 1)
+				(when (match-end 2) (setq title (match-string-no-properties 2)))
+				(delete-region (match-beginning 0) (match-end 0)))
+			 ((region-active-p)
+				(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+				(delete-region (region-beginning) (region-end))))
+			;; update link
+			(insert (org-link-make-string url title)))
+		 ((derived-mode-p 'org-mode) ; not in a link
+			(insert (org-link-make-string url title)))
+		 ((and (region-active-p) (derived-mode-p 'markdown-mode))
+			(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+			(delete-region (region-beginning) (region-end))
+			(insert (format "[%s](%s)" title url)))
+		 ((derived-mode-p 'markdown-mode)
+			(insert (format "[%s](%s)" title url)))
+		 (t
+			(insert (format "%s (%s)" title url))))))
+
+(use-package consult-omni
+	:load-path "~/vendor/consult-omni"
+  :after consult
+  :custom
+  (consult-omni-show-preview t) ;;; show previews
+  (consult-omni-preview-key "C-o") ;;; set the preview key to C-o
+  :config
+	(add-to-list 'load-path "~/vendor/consult-omni/sources")
+  (require 'consult-omni-sources)
+  (require 'consult-omni-embark)
+  (setq consult-omni-sources-modules-to-load (list 'consult-omni-wikipedia 'consult-omni-google))
+  (consult-omni-sources-load-modules)
+  (setq consult-omni-default-interactive-command #'consult-omni-google)
+	:bind
+	(("M-g w" . consult-omni)
+	 :map consult-omni-embark-general-actions-map
+	 ("i l" .  #'my-consult-omni-embark-insert-link)
+	 ("i u" .  #'my-consult-omni-embark-insert-url)
+	 ("i t" .  #'my-consult-omni-embark-insert-title)
+	 ("w u" . #'my-consult-omni-embark-copy-url-as-kill)
+	 ("w t" . #'my-consult-omni-embark-copy-title-as-kill)))
+  #+end_src
+
+#+begin_src emacs-lisp
+(use-package consult-omni
+	;; :vc (:url "https://github.com/armindarvish/consult-omni")
+	:after consult
+	:load-path "~/vendor/consult-omni"
+	:config
+	(add-to-list 'load-path "~/vendor/consult-omni/sources")
+	(require 'consult-omni-embark)
+	(require 'consult-omni-sources)
+	(require 'consult-omni-google)
+	(setq consult-omni-sources-modules-to-load '(consult-omni-google consult-omni-wikipedia))
+	(consult-omni-sources-load-modules)
+	)
+#+end_src
 ** Marginalia
-**
 :PROPERTIES:
 :CUSTOM_ID: marginalia
 :END:
@@ -1772,11 +1863,7 @@ I wanted to experiment with [[ https://irreal.org/blog/?p=11867#comment-63540173
 	(set-face-attribute
 	 'mode-line nil
 	 :foreground (modus-themes-get-color-value 'fg-mode-line-active)
-	 :background (modus-themes-get-color-value 'bg-blue-subtle)
-	 :box '(:line-width
-					1
-					:color
-					(modus-themes-get-color-value 'border-mode-line-active))))
+	 :background (modus-themes-get-color-value 'bg-blue-subtle)))
 (use-package modus-themes
 	:hook
 	(modus-themes-after-load-theme . my-update-active-mode-line-colors))
@@ -2243,14 +2330,35 @@ This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= t
   )
 #+END_SRC
 
-** Highlight Line Mode
+** Highlight the current line while still being able to easily customize/describe underlying faces
 :PROPERTIES:
 :CUSTOM_ID: highlight-line-mode
+:EXPORT_DATE: 2024-09-17T12:14:19-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/highlight-the-current-line-while-still-being-able-to-easily-customize-describe-underlying-faces/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/highlight-the-current-line-while-still-being-able-to-easily-customize-describe-underlying-faces/
 :END:
 
-    #+begin_src emacs-lisp
+I use ~global-hl-line-mode~ to highlight the current line.
+
+#+begin_src emacs-lisp
 (global-hl-line-mode 1)
-    #+end_src
+#+end_src
+
+However, I don't want ~hl-line~ to interfere with the default face suggested by ~customize-face~, which is returned by ~face-at-point~.
+
+#+begin_src emacs-lisp
+(defun my-suggest-other-faces (func &rest args)
+	(if global-hl-line-mode
+			(progn
+				(global-hl-line-mode -1)
+				(prog1 (apply func args)
+					(global-hl-line-mode 1)))
+		(apply func args)))
+(advice-add #'face-at-point :around #'my-suggest-other-faces)
+#+end_src
+
+Now I can use ~customize-face~ and ~describe-face~ without ~hl-line~ interfering all the time.
+
 ** Windmove - switching between windows
 :PROPERTIES:
 :CUSTOM_ID: windmove-switching-between-windows
@@ -4281,6 +4389,159 @@ If WORD-TIMING is non-nil, include word-level timestamps."
               (or data (my-caption-fix-common-errors subed-word-data--cache)))
              ""))))
 #+end_src
+*** Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record :emacs:subed:
+:PROPERTIES:
+:EXPORT_DATE: 2024-09-17T12:34:13-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/
+:CUSTOM_ID: whisperx
+:END:
+
+I'm gradually shifting more things to this Lenovo
+P52 to take advantage of its newer processor, 64
+GB of RAM, and 2 TB drive. (Whee!) One of the
+things I'm curious about is how I can make better
+use of multimedia. I couldn't get [[https://github.com/ggerganov/whisper.cpp][whisper.cpp]] to
+work on my Lenovo X230T, so I mostly relied on the
+automatic transcripts from Google Recorder (with
+timestamps generated by [[https://www.readbeyond.it/aeneas/][aeneas]]) or cloud-based
+transcription services like [[https://deepgram.com/][Deepgram]].
+
+I have a lot of silences in my voice notes when I
+think out loud. [[https://github.com/ggerganov/whisper.cpp][whisper.cpp]] got stuck in loops
+during silent parts, but [[https://github.com/m-bain/whisperX][WhisperX]] handles them
+perfectly. WhisperX is also fast enough for me to
+handle audio files locally instead of relying on
+Deepgram. With the default model, I can process
+the files faster than real-time:
+
+| File length | Transcription time |
+|-----------+------------------|
+| 42s       | 17s              |
+| 7m48s    | 1m41s           |
+
+I used this command to get word-level timing data.
+It makes VTT and SRT files that underline the
+specific word:
+
+#+begin_src sh :eval no :tangle "~/bin/whisperx"
+~/vendor/whisperx/.venv/bin/whisperx --compute_type int8 --highlight_words True --print_progress True "$1"
+#+end_src
+
+The resulting VTT file looks like this:
+
+#+begin_example
+WEBVTT
+
+00:00.427 --> 00:00.507
+<u>I</u> often need to... I sometimes need to replace or navigate by symbols.
+
+00:00.507 --> 00:00.587
+I often need to... I sometimes need to replace or navigate by symbols.
+
+00:00.587 --> 00:00.887
+I <u>often</u> need to... I sometimes need to replace or navigate by symbols.
+
+00:00.887 --> 00:00.987
+I often need to... I sometimes need to replace or navigate by symbols.
+#+end_example
+
+Sometimes I just want the text so that I can use [[dotemacs:transcript-keywords][an audio braindump as the starting point for a blog post or for notes]]. WhisperX is way more accurate than Google Recorder, so that will probably be easier once I update my workflow for that.
+
+Sometimes I want to make an edited audio file that sounds smooth so that I can use it in a podcast, a video, or some audio notes. For that, I'd like word-level timing data so that I can cut out words or sections. Aeneas didn't give me word-level timestamps, but WhisperX does, so I can get the time information before I start editing. I can extract the word timestamps from the underlined text like this:
+
+#+begin_src emacs-lisp
+(defun my-subed-load-word-data-from-whisperx-highlights (file)
+	"Return a list of word cues from FILE.
+FILE should be a VTT or SRT file produced by whisperx with the
+--highlight_words True option."
+	(seq-keep (lambda (sub)
+							(when (string-match "<u>\\(.+?\\)</u>" (elt sub 3))
+								(setf (elt sub 3) (match-string 1 (elt sub 3)))
+								sub))
+						(subed-parse-file file)))
+
+(defun my-subed-word-tsv-from-whisperx-highlights (file)
+	(interactive "FVTT: ")
+	(with-current-buffer (find-file-noselect (concat (file-name-nondirectory file) ".tsv"))
+		(erase-buffer)
+		(subed-tsv-mode)
+		(subed-auto-insert)
+    (mapc (lambda (sub) (apply #'subed-append-subtitle nil (cdr sub)))
+					(my-subed-load-word-data-from-whisperx-highlights file))
+		(switch-to-buffer (current-buffer))))
+#+end_src
+
+I like to use the TSV format for this one because
+it's easy to scan down the right side.
+Incidentally, this format is compatible with
+[[https://www.audacityteam.org/][Audacity]] labels, so I could import that there if I
+wanted. I like Emacs much more, though. I'm used
+to having all my keyboard shortcuts at hand.
+
+#+begin_example
+0.427000	0.507000	I
+0.587000	0.887000	often
+0.987000	1.227000	need
+1.267000	1.508000	to...
+4.329000	4.429000	I
+4.469000	4.869000	sometimes
+4.950000	5.170000	need
+5.210000	5.410000	to
+5.530000	6.090000	replace
+6.270000	6.370000	or
+6.490000	6.971000	navigate
+#+end_example
+
+Once I've deleted the words I don't want to
+include, I can merge subtitles for phrases so that
+I can keep the pauses between words. A quick
+heuristic is to merge subtitles if they don't have
+much of a pause between them.
+
+#+begin_src emacs-lisp
+(defvar my-subed-merge-close-subtitles-threshold 500)
+(defun my-subed-merge-close-subtitles (threshold)
+	"Merge subtitles with the following one if there is less than THRESHOLD msecs gap between them."
+	(interactive (list (read-number "Threshold in msecs " my-subed-merge-close-subtitles-threshold)))
+	(while (not (eobp))
+		(let ((end (subed-subtitle-msecs-stop))
+					(next-start (save-excursion
+												(and (subed-forward-subtitle-time-start)
+														 (subed-subtitle-msecs-stop)))))
+			(if (and end next-start (< (- next-start end) threshold))
+					(subed-merge-with-next)
+				(or (subed-forward-subtitle-end) (goto-char (point-max)))))))
+#+end_src
+
+Then I can use ~subed-waveform-show-all~ to tweak the start and end timestamps.
+
+#+CAPTION: Screenshot of subed-waveform
+[[https://sachachua.com/blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/2024-09-17-12-06-12.svg]]
+
+After that, I can [[blog:/blog/2023/12/using-subed-record-in-emacs-to-edit-audio-and-clean-up-oopses/][use subed-record to compile the
+audio]] into an ~.opus~ file that sounds reasonably smooth.
+
+[[audio:https://sachachua.com/blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/casual-symbol-overlay.opus?captions=/blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/casual-symbol-overlay.vtt]]
+
+#+begin_export html
+<span class="audio-time" data-start="0.000000" data-end="2.999000">I sometimes need to replace or navigate by symbols.</span>
+<span class="audio-time" data-start="3.000000" data-end="4.339000"><a href="http://yummymelon.com/devnull/announcing-casual-symbol-overlay.html">casual-symbol-overlay</a></span>
+<span class="audio-time" data-start="4.340000" data-end="5.684000">is a package that adds a</span>
+<span class="audio-time" data-start="5.685000" data-end="9.279000">transient menu so that I don't have to remember the keyboard shortcuts for them.</span>
+<span class="audio-time" data-start="9.280000" data-end="10.371000">I've added it to my</span>
+<span class="audio-time" data-start="10.372000" data-end="11.612000">embark-symbol-keymap</span>
+<span class="audio-time" data-start="11.613000" data-end="13.592000">so I can call it with embark-act.</span>
+<span class="audio-time" data-start="13.593000" data-end="16.932000">That way it's just a C-. z away.</span>
+#+end_export
+
+I want to make lots of quick audio notes that I
+can shuffle and listen to in order to remember
+things I'm learning about Emacs (might even come
+up with some kind of spaced repetition system),
+and I'd like to make more videos someday too. I
+think WhisperX, subed, and Org Mode will be fun
+parts of my workflow.
 *** Showing captions
 :PROPERTIES:
 :CUSTOM_ID: showing-captions
@@ -4766,24 +5027,28 @@ my-subed-record-wpm
 
 #+begin_src emacs-lisp
   (cl-defun my-subed-as-org-list-with-times (file &key from to)
+		(interactive "FVTT: ")
     (when (stringp from) (setq from (compile-media-timestamp-to-msecs from)))
     (when (stringp to) (setq to (compile-media-timestamp-to-msecs to)))
-    (mapconcat
-     (lambda (o)
-       (format "- @@html:<span class=\"audio-time\" data-start=\"%.3f\" data-stop=\"%.3f\">%s</span>@@: *%s*:\n  %s\n\n"
-  	     (/ (plist-get o :start-ms) 1000.0)
-  	     (/ (plist-get o :stop-ms) 1000.0)
-  	     (replace-regexp-in-string "^00:0?\\|\\.[0-9]+$" "" (my-msecs-to-timestamp (plist-get o :start-ms)))
-  	     (plist-get o :comment)
-  	     (string-trim (replace-regexp-in-string
-  			   "[ \n]+" " "
-  			   (subed-subtitle-list-text (plist-get o :subtitles))))))
-     (my-subed-group-sections
-      (seq-filter (lambda (sub)
-  		  (and (or (not from) (>= (elt sub 1) from))
-  		       (or (not to) (< (elt sub 2) to))))
-  		(subed-parse-file file)))
-     ""))
+		(let ((s (mapconcat
+							(lambda (o)
+								(format "- @@html:<span class=\"audio-time\" data-start=\"%.3f\" data-stop=\"%.3f\">%s</span>@@: *%s*:\n  %s\n\n"
+  											(/ (plist-get o :start-ms) 1000.0)
+  											(/ (plist-get o :stop-ms) 1000.0)
+  											(replace-regexp-in-string "^00:0?\\|\\.[0-9]+$" "" (my-msecs-to-timestamp (plist-get o :start-ms)))
+  											(plist-get o :comment)
+  											(string-trim (replace-regexp-in-string
+  																		"[ \n]+" " "
+  																		(subed-subtitle-list-text (plist-get o :subtitles))))))
+							(my-subed-group-sections
+							 (seq-filter (lambda (sub)
+  													 (and (or (not from) (>= (elt sub 1) from))
+  																(or (not to) (< (elt sub 2) to))))
+  												 (subed-parse-file file)))
+							"")))
+			(if (called-interactively-p 'any)
+					(insert s)
+				s)))
 #+end_src
 ** Transcripts from my phone
 :PROPERTIES:
@@ -5414,7 +5679,9 @@ This uses the [[https://www.gnu.org/software/wdiff/][wdiff]] tool for word-based
 I use [[http://www.orgmode.org][Org Mode]] to take notes, publish my blog, and do all sorts of
 stuff.
 
+#+NAME: org-package-setup
 #+begin_src emacs-lisp
+(defvar my-org-inbox-file "~/sync/orgzly/Inbox.org")
 (use-package org
   :load-path ("~/vendor/org-mode/lisp" "~/vendor/org-mode/contrib/lisp")
   :bind
@@ -5749,7 +6016,6 @@ entries, notes, and other semi-structured pieces of information.
 
          %i
          " "Basic task data")
-(defvar my-org-inbox-file "~/sync/orgzly/Inbox.org")
 (defvar my-ledger-file "~/cloud/ledger/current.ledger")
 (with-eval-after-load 'org-capture
 	(setq org-capture-templates
@@ -8321,6 +8587,7 @@ reuses ~my-include-open~ to narrow to the file, and
 ~my-include-complete~ uses ~consult-line~ so that we can specify the
 prompt.
 
+#+NAME: org-my-include-link
 #+begin_src emacs-lisp
 (org-link-set-parameters
  "my-include"
@@ -8330,6 +8597,7 @@ prompt.
 
 (defun my-include-open (path &optional _)
 	"Narrow to the region specified in PATH."
+	(require 'org-protocol)
 	(let (params start end)
 		(if (string-match "^\\(.*+?\\)\\(?:::\\|\\?\\)\\(.*+\\)" path)
 				(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))
@@ -8368,6 +8636,7 @@ prompt.
 
 (defun my-include-export (path _ format _)
 	"Export PATH to FORMAT using the specified wrap parameter."
+	(require 'org-protocol)
 	(let (params body start end)
 		(when (string-match "^\\(.*+?\\)\\(?:::\\|\\?\\)\\(.*+\\)" path)
 			(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))
@@ -8712,7 +8981,7 @@ position itself.
   (my-capture-timestamped-note time note))
 #+end_src
 
-*** 11ty
+*** 11ty static site generation
 :PROPERTIES:
 :CUSTOM_ID: 11ty
 :END:
@@ -8882,6 +9151,27 @@ This is extracted from lines like:
 
 
 #+end_src
+
+#+begin_src emacs-lisp
+(defun my-org-replace-with-permalink ()
+	(interactive)
+	(let* ((elem (org-element-context))
+				 (path (org-element-property :path elem))
+				 (description (org-element-property :description elem))
+				 (type (org-element-property :type elem))
+				 (permalink (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK" t))
+				 (base-url "https://sachachua.com"))
+		(when (member type '("file" "audio" "video"))
+			(delete-region (org-element-begin elem) (org-element-end elem))
+			(insert (org-link-make-string (concat
+																		 (if (string= type "file") "" (concat type ":"))
+																		 base-url permalink (file-name-nondirectory path)
+																		 (if (string-match "\\?.+" path)
+																				 (match-string 0 path)
+																			 ""))
+																		description)))))
+#+end_src
+
 **** Linking to blog posts
 :PROPERTIES:
 :CUSTOM_ID: linking-to-blog-posts
@@ -8891,6 +9181,7 @@ This is extracted from lines like:
 - [2024-01-19 Fri]: added link description
 #+end_update
 
+#+NAME: org-blog-link
 #+begin_src emacs-lisp
 (defun my-org-blog-complete ()
 	(concat "blog:"
@@ -8981,14 +9272,14 @@ With prefix arg, move the subtree."
 						(save-excursion
 							(widen)
 							(goto-char (point-min))
-							(cl-loop while (re-search-forward "^#\\+ELEVENTY.*" nil t)
-											 collect (match-string 0)))))
+							(cl-loop while (re-search-forward "^#\\+\\(ELEVENTY.*?\\):[ \t]\\(.+\\)" nil t)
+											 collect (cons (match-string 1) (match-string 2))))))
 				 (entry-properties (org-entry-properties))
 				 (filename (expand-file-name
 										"index.org"
 										(expand-file-name
 										 (assoc-default "EXPORT_ELEVENTY_FILE_NAME" entry-properties)
-										 (car (assoc-default "ELEVENTY_BASE_DIR" file-properties))))))
+										 (assoc-default "ELEVENTY_BASE_DIR" file-properties)))))
 		(unless (file-directory-p (file-name-directory filename))
 			(make-directory (file-name-directory filename) t))
 		;; find the heading that sets the current EXPORT_ELEVENTY_FILE_NAME
@@ -8998,8 +9289,7 @@ With prefix arg, move the subtree."
 		(with-temp-file filename
 			(org-mode)
 			(insert (or
-							 (string-join file-properties
-														"\n")
+							 (mapconcat (lambda (o) (format "#+%s: %s" (car o) (cdr o))) file-properties "\n")
 							 "")
 							"\n")
 			(org-yank))
@@ -9153,20 +9443,22 @@ I want to be able to export without having to say yes to code blocks all the tim
   ;; Use short names like ‘defblock’ instead of the fully qualified name
   ;; ‘org-special-block-extras--defblock’
 	(setcdr org-special-block-extras-mode-map nil)
-  (org-defblock my_details (title "Details" title-color "Green")
-              "Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Enclose contents in a folded up box."
-              (cond
-               ((eq backend '11ty)
-                (format
-                 "{%% details \"%s\"%%}\n%s\n{%% enddetails %%}"
-                 title contents))
-               ((eq backend 'html)
-                (format
-                 "<details class=\"code-details\"
+	(org-defblock
+	 my_details (title "Details" title-color "Green" open "")
+	 "Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Enclose contents in a folded up box."
+	 (message "my_details %s %s %s" title title-color open)
+   (cond
+    ((eq backend '11ty)
+     (format
+      "{%% details \"%s\" %s%%}\n%s\n{%% enddetails %%}"
+      title (if (string= open "") "" ", \"open\"") contents))
+    ((eq backend 'html)
+     (format
+      "<details class=\"code-details\"
                  style =\"padding: 1em;
                           border-radius: 15px;
                           font-size: 0.9em;
-                          box-shadow: 0.05em 0.1em 5px 0.01em  #00000057;\">
+                          box-shadow: 0.05em 0.1em 5px 0.01em  #00000057;\"%s>
                   <summary>
                     <strong>
                       <font face=\"Courier\" size=\"3\" color=\"%s\">
@@ -9176,17 +9468,36 @@ I want to be able to export without having to say yes to code blocks all the tim
                   </summary>
                   %s
                </details>"
-                 title-color title contents))))
+      (if (string= open "") "" " open") title-color title contents))))
 
   (org-defblock columns nil nil
-              "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
-              (format "<div class=\"row\">%s</div>" contents))
+								"Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
+								(format "<div class=\"row\">%s</div>" contents))
   (org-defblock column50 nil nil
-              "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns."
-              (format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents))
-)
+								"Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns."
+								(format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents))
+	)
 
 #+end_src
+
+And here's a little thing to convert a two-level list into my collapsible sections:
+
+#+begin_src emacs-lisp
+(defun my-org-convert-list-to-collapsible-details ()
+	(interactive)
+	(let ((list (org-list-to-lisp t)))
+		(mapc (lambda (o)
+						(when (stringp (car o))
+							(insert
+							 (format
+								"#+begin_my_details %s :open t\n%s#+end_my_details\n"
+								(car o)
+								(mapconcat
+								 (lambda (s)
+									 (concat "- " (string-trim (org-ascii--indent-string (car s) 2)) "\n"))
+								 (cdr (cadr o)))))))
+					(cdr list))))
+                                        #+end_src
 *** Adding a custom header argument to Org Mode source blocks and using that argument during export :org:emacs:
 :PROPERTIES:
 :EXPORT_DATE: 2023-01-27T10:11:01-0500
@@ -9485,28 +9796,37 @@ configuration that focuses on just the packages needed.
 I've named the source blocks, and this block assembles the config from
 those named blocks by using noweb.
 
+#+NAME: export-config
 #+begin_src emacs-lisp :noweb no-export :tangle "~/.config/emacs/org-async-export-config.el" :results nil :eval no
 <<org-async-variables>>
 <<startup>>
 <<system-info>>
 <<package-setup>>
+<<org-package-setup>>
+(require 'ol)
 <<org-babel-default-header-args>>
 <<org-styles>>
 <<org-special-blocks>>
 <<org-clean-up-export>>
-#+end_src
-
-This is what the code looks like when it's expanded:
-
-#+begin_src emacs-lisp :noweb yes :results nil :tangle no :eval no
-<<org-async-variables>>
-<<startup>>
-<<system-info>>
-<<package-setup>>
-<<org-babel-default-header-args>>
-<<org-styles>>
-<<org-special-blocks>>
-<<org-clean-up-export>>
+<<org-my-include-link>>
+<<org-blog-link>>
+<<org-dotemacs-link>>
+<<org-yt-link>>
+<<org-video-link>>
+<<org-audio-link>>
+<<org-captions-link>>
+<<org-project-link>>
+<<org-elisp-link>>
+<<org-irc-link>>
+<<org-protocol-link>>
+<<org-journal-link>>
+<<org-package-link>>
+<<org-defun-link>>
+<<org-defvar-link>>
+<<my-mastodon-store-link>>
+<<org-sketch-link>>
+<<org-copy-link>>
+<<org-config-link>>
 #+end_src
 
 I want my config file to be tangled and exported
@@ -9522,7 +9842,7 @@ by focusing away from Emacs.
      (when (timerp ,var) (cancel-timer ,var))
      (setq ,var (run-with-idle-timer ,seconds nil ,body ,@args))))
 (defvar my-unfocusing nil "Non-nil when I'm in the middle of unfocusing.")
-(defun my-org-async-export-and-tangle ()
+(defun my-org-async-export-and-tangle (&optional filename)
   (async-start
    `(lambda ()
       ;; make async emacs aware of packages (for byte-compilation)
@@ -9534,8 +9854,9 @@ by focusing away from Emacs.
       (org-babel-tangle-file ,(buffer-file-name))
       )
    (lambda (&rest results) (message "Tangled.")))
-  (org-html-export-to-html t))
+  (org-export-to-file 'html (or filename "index.html") t))
 (defun my-org-export-and-tangle-if-saved-in-focus ()
+	(interactive)
   (when (frame-focus-state)
     (message "Scheduling export...")
     (my-org-debounce-idle-timer
@@ -9543,7 +9864,7 @@ by focusing away from Emacs.
      my-export-org-config
      (lambda (buf)
        (with-current-buffer buf
-         (my-org-async-export-and-tangle)))
+         (my-org-async-export-and-tangle "index.html")))
      (current-buffer))))
 (define-minor-mode my-org-export-and-tangle-when-saved-in-focus-mode
   "Toggle a mode for exporting and tangling when saved.
@@ -9752,6 +10073,7 @@ With prefix argument, also display headlines without a TODO keyword."
 :CUSTOM_ID: links-to-my-config
 :END:
 
+#+NAME: org-dotemacs-link
 #+begin_src emacs-lisp
 (defun my-org-dotemacs-export (path desc format _)
 	"Export dotemacs link."
@@ -9802,6 +10124,7 @@ With prefix argument, also display headlines without a TODO keyword."
 :CUSTOM_ID: youtube
 :END:
 
+#+NAME: org-yt-link
 #+begin_src emacs-lisp
 (defvar my-org-yt-iframe-format
   (concat "<div class=\"yt-video\"><iframe width=\"456\""
@@ -9906,6 +10229,7 @@ With prefix argument, also display headlines without a TODO keyword."
 :CUSTOM_ID: videos
 :END:
 
+#+NAME: org-video-link
 #+begin_src emacs-lisp
 (org-link-set-parameters
  "video"
@@ -9979,6 +10303,8 @@ With prefix argument, also display headlines without a TODO keyword."
 :PROPERTIES:
 :CUSTOM_ID: audio
 :END:
+
+#+NAME: org-audio-link
 #+begin_src emacs-lisp
 (org-link-set-parameters
  "audio"
@@ -10002,9 +10328,11 @@ With prefix argument, also display headlines without a TODO keyword."
 		(pcase format
 			((or 'html '11ty 'md)
 			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
-							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query)))))
+							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query))))
+							(element (or (assoc-default "element" params #'string=) "audio")))
 				 (format
-					"<div class=\"audio\"><audio%s%s%s preload=\"metadata\" src=\"%s\" type=\"%s\"><a href=\"%s\">Download the audio</a>%s</audio>%s</div>"
+					"<div class=\"audio\"><%s%s%s%s preload=\"metadata\" src=\"%s\" type=\"%s\"><a href=\"%s\">Download the audio</a>%s</%s>%s</div>"
+					element
 					(if (string= (or (assoc-default "controls" params 'string= "1") "1") "0")
 							""
 						" controls=\"1\"")
@@ -10018,9 +10346,10 @@ With prefix argument, also display headlines without a TODO keyword."
 					(mailcap-file-name-to-mime-type (car path-and-query))
 					(car path-and-query)
 					(if (assoc-default "captions" params)
-							(format "<track kind=\"subtitles\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
+							(format "<track kind=\"captions\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
 											(car (assoc-default "captions" params)))
 						"")
+					element
 					(if (and (assoc-default "captions" params)
 									 (assoc-default "id" params))
 							(format  "<div class=\"captions\" style=\"display: none\"></div>"
@@ -10044,6 +10373,46 @@ With prefix argument, also display headlines without a TODO keyword."
 	(interactive)
 	(concat "audio:" (read-file-name "File: ")))
 
+#+end_src
+
+
+*** Captions
+:PROPERTIES:
+:CUSTOM_ID: org-captions
+:END:
+
+#+NAME: org-captions-link
+#+begin_src emacs-lisp
+(org-link-set-parameters
+ "captions"
+ :export #'my-org-captions-export
+ :complete #'my-org-captions-complete)
+
+(defun my-org-captions-format (file &optional separator)
+	(let ((cues (subed-parse-file file)))
+		(mapconcat (lambda (cue)
+								 (format "<span class=\"audio-time\" data-start=\"%f\" data-stop=\"%f\">%s</span>"
+												 (/ (elt cue 1) 1000.0)
+												 (/ (elt cue 2) 1000.0)
+												 (elt cue 3)))
+							 cues (or separator " "))))
+
+(defun my-org-captions-export (link desc format _)
+	"Export PATH to FORMAT using the specified wrap parameter."
+	(if desc
+			(org-export-string-as (org-link-make-string link desc) format)
+		(pcase format
+			((or 'html '11ty 'md) (my-org-captions-format (car (url-path-and-query (url-generic-parse-url link)))))
+			(_ path))))
+
+(defun my-org-captions-complete ()
+	"Complete audio reference."
+	(interactive)
+	(concat "captions:" (read-ffile-name "Captions: ")))
+
+(defun my-org-captions-insert-as-html-block (file)
+	(interactive "FFile: ")
+	(insert "#+begin_export html\n" (my-org-captions-format file "\n") "\n#+end_export html\n"))
 #+end_src
 *** Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search :org:emacs:coding:
 :PROPERTIES:
@@ -10076,6 +10445,7 @@ using ~org-link-set-parameters~. I think it's time to make a macro
 that defines that set of functions for me. Emacs Lisp macros are a
 great way to write code to write code.
 
+#+NAME: org-project-link
 #+begin_src emacs-lisp
 (defvar my-project-web-base-list nil "Local path . web repo URLs for easy linking.")
 
@@ -10497,6 +10867,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
 :CUSTOM_ID: fix-elisp-links
 :END:
 
+#+NAME: org-elisp-link
      #+begin_src emacs-lisp
 (defun my-org-elisp-link-export (link description format &optional arg)
   (pcase format
@@ -10511,6 +10882,8 @@ So that I can easily add links at point. Formatted as an Org list for now.
 :PROPERTIES:
 :CUSTOM_ID: irc
 :END:
+
+#+NAME: org-irc-link
 #+begin_src emacs-lisp
 (org-link-set-parameters
  "ircs"
@@ -10572,6 +10945,7 @@ things inside Emacs, so that we can have a webpage with bookmarks into
 our Org files? Here's a quick hack that reuses =org-store-link= and
 =org-link-open=.
 
+#+NAME: org-protocol-link
 #+begin_src emacs-lisp
 (defun org-protocol-open-link (info)
 	"Process an org-protocol://open style url with INFO."
@@ -10581,7 +10955,7 @@ our Org files? Here's a quick hack that reuses =org-store-link= and
 	(interactive "P")
 	(kill-new (concat "org-protocol://open?link=" (url-hexify-string (org-store-link arg)))))
 
-(with-eval-after-load 'org
+(with-eval-after-load 'org-protocol
 	(add-to-list 'org-protocol-protocol-alist
 							 '("org-open" :protocol "open" :function org-protocol-open-link)))
 #+end_src
@@ -10975,8 +11349,8 @@ I should probably figure out how to switch this over to my Consult-based workflo
 
 This lets me define a custom link type.
 
+#+NAME: org-journal-link
 #+begin_src emacs-lisp
-
 (defun my-org-journal-open (id &optional arg)
   (browse-url (format "%s/zid/%s" my-journal-url id)))
 
@@ -11385,11 +11759,13 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
      (plantuml . t)
      (lilypond . t)
      (python . t)
+     (ruby . t)
      (shell . t)
      (calc . t)
      (js . t)
      (sqlite . t)
      (http . t)
+		 (org . t)
      (ledger . t)
      (shell . t)
      (R . t)))
@@ -11880,6 +12256,8 @@ and turn it into:
 :PROPERTIES:
 :CUSTOM_ID: package-links
 :END:
+
+#+NAME: org-package-link
 #+begin_src emacs-lisp
 (defun my-org-package-open (package-name)
   (interactive "MPackage name: ")
@@ -12062,6 +12440,7 @@ much more elegant way to do things. Anyway, it makes it easier to use
 ~org-store-link~ to capture a link to the function, insert it into a
 blog post, navigate back to the function, and export HTML.
 
+#+NAME: org-defun-link
 #+begin_src emacs-lisp
 (defun my-org-defun-complete ()
 	"Return function definitions."
@@ -12203,6 +12582,7 @@ scoping so that it kicks in only when ~defun:~ would also kick in.
 [2024-01-20]: Fixed org-def-store thanks to oantolin's comment.
 #+end_update
 
+#+NAME: org-defvar-link
 #+begin_src emacs-lisp
 (defun my-org-defvar-complete ()
 	"Return variable definitions."
@@ -12297,59 +12677,6 @@ Handy for collecting items together.
       (kill-line 1)
       (org-end-of-item-list)
       (yank))))
-#+end_src
-** Appearance - org-modern, variable pitch
-#+begin_src emacs-lisp
-(use-package org-modern
-	:enabled nil
-	:config
-	(setq org-modern-block-name nil)
-	(global-org-modern-mode)
-	)
-#+end_src
-
-https://zzamboni.org/post/beautifying-org-mode-in-emacs/
-
-#+begin_src emacs-lisp
- (set-face-attribute 'default nil :family "Iosevka")
- (set-face-attribute 'variable-pitch nil :family "Iosevka Aile")
- (set-face-attribute 'org-modern-symbol nil :family "Iosevka")
- (set-face-attribute 'org-table nil :inherit 'fixed-pitch)
-  (let* ((variable-tuple
-          (cond ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
-                ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
-                ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
-                ((x-list-fonts "Verdana")         '(:font "Verdana"))
-                ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
-                (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
-         (base-font-color     (face-foreground 'default nil 'default))
-         (headline           `(:inherit default :weight bold)))
-
-    (custom-theme-set-faces
-     'user
-     `(org-level-8 ((t (,@headline ,@variable-tuple))))
-     `(org-level-7 ((t (,@headline ,@variable-tuple))))
-     `(org-level-6 ((t (,@headline ,@variable-tuple))))
-     `(org-level-5 ((t (,@headline ,@variable-tuple))))
-     `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.1))))
-     `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.25))))
-     `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.5))))
-     `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.75))))
-     `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
- (custom-theme-set-faces
-   'user
-   '(org-block ((t (:inherit fixed-pitch))))
-   '(org-code ((t (:inherit (shadow fixed-pitch)))))
-   '(org-document-info ((t (:foreground "dark orange"))))
-   '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
-   '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
-   '(org-link ((t (:foreground "royal blue" :underline t))))
-   '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
-   '(org-property-value ((t (:inherit fixed-pitch))) t)
-   '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
-   '(org-table ((t (:inherit fixed-pitch))))
-   '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
-   '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
 #+end_src
 * Multimedia
 :PROPERTIES:
@@ -12592,7 +12919,10 @@ https://www.mattduck.com/lsp-python-getting-started.html
      ("pyls.plugins.pyls_mypy.live_mode" nil t)
      ("pyls.plugins.pyls_black.enabled" t t)
      ("pyls.plugins.pyls_isort.enabled" t t)))
-  :hook ((prog-mode-hook . lsp)
+	(add-to-list 'lsp-file-watch-ignored-directories "/blog\\'")
+	(add-to-list 'lsp-file-watch-ignored-directories "/_site\\'")
+	(add-to-list 'lsp-file-watch-ignored-directories "/_local\\'")
+  :hook ((js-mode . lsp)
          (python-mode . lsp)
          (lsp-mode-hook . lsp-enable-which-key-integration)))
 (use-package lsp-ui
@@ -13693,6 +14023,11 @@ button to add more examples. My diff: https://github.com/xuchunyang/elisp-demos/
 	:custom
 	elisp-demos-user-files '("~/sync/orgzly/elisp-demos.org"))
 #+end_src
+*** Useful libraries
+#+begin_src emacs-lisp
+(use-package plz)
+(use-package tzc)
+#+end_src
 ** Snippets
 :PROPERTIES:
 :CUSTOM_ID: snippets
@@ -14320,10 +14655,11 @@ Based on http://yitang.uk/2024/01/14/atomic-habit-in-emacs-keep-git-repos-clean/
 #+RESULTS:
 :results:
 - [[elisp:(magit-status "/home/sacha/sync/emacs/")][emacs]]
-- [[elisp:(magit-status "/home/sacha/sync/orgzly/")][orgzly]]
-- [[elisp:(magit-status "/home/sacha/proj/static-blog/")][static-blog]]
+- [[elisp:(magit-status "/home/sacha/sync/orgzly/~/sync/.stversions/orgzly/")][orgzly]]
+- [[elisp:(magit-status "/home/sacha/sync/static-blog/")][static-blog]]
 - [[elisp:(magit-status "/home/sacha/bin/")][bin]]
-- [[elisp:(magit-status "/home/sacha/proj/subed/")][subed]]
+- [[elisp:(magit-status "/home/sacha/proj/subed-record/")][subed-record]]
+- [[elisp:(magit-status "/home/sacha/proj/emacsconf/lisp/")][lisp]]
 :end:
 
 ** Forge
@@ -14848,7 +15184,7 @@ IRC is a great way to hang out with other Emacs geeks.
   (let ((default-directory "~/backups/server/home/.znc/users/sachac/moddata/log"))
     (call-interactively 'consult-ripgrep)))
 #+end_src
-* Mastodon
+* Mastodon  :mastodon:
 :PROPERTIES:
 :CUSTOM_ID: mastodon
 :END:
@@ -14924,24 +15260,109 @@ to things that look like Mastodon URLs by using mastodon.el.
 #+end_src
 
 (thanks, [[https://mas.to/@ParetoOptimalDev/109378647927115065][@ParetoOptimalDev]]!)
-** Copy Mastodon link for Emacs News
+** Storing Mastodon links in Org mode
 :PROPERTIES:
-:CUSTOM_ID: copy-mastodon-link-for-emacs-news
+:CUSTOM_ID: storing-mastodon-links-in-org-mode
 :END:
 
+This snippet makes it easier to store links to posts with
+~org-store-link~ and to use them as automatic annotations in
+~org-capture~. (2022-12-11: Now it links to media attachments, too!)
+
+#+NAME: my-mastodon-store-link
 #+begin_src emacs-lisp
-(defun my-mastodon-copy-link-dwim (prefix)
-	(interactive "P")
-	(if prefix
-			(mastodon-toot--copy-toot-url)
-		(my-mastodon-copy-toot-as-author-link)))
+(defun my-mastodon-store-link ()
+  "Store links in Mastodon buffers."
+  (when (derived-mode-p 'mastodon-mode)
+    (let ((json (get-text-property (point) 'item-json)))
+      (org-link-store-props
+       :link (mastodon-toot--toot-url)
+       :content (mastodon-tl--content json)
+       :text
+			 (concat
+				(string-trim (mastodon-tl--render-text (mastodon-tl--content json)))
+				(if (assoc-default 'media_attachments json)
+						(concat "\n\n"
+										(mapconcat
+										 (lambda (attachment)
+											 (org-link-make-string
+												(assoc-default 'url attachment)
+												(assoc-default 'description attachment)))
+										 (assoc-default 'media_attachments json)
+										 "\n"
+										 )))
+						"")
+				))))
 
-(defun my-emacs-news-copy-mastodon-link ()
+(use-package org
+  :config
+  (org-link-set-parameters
+   "mastodon"
+   :store 'my-mastodon-store-link)
+	(with-eval-after-load 'org-capture
+		(add-to-list 'org-capture-templates
+								 `("m" "Mastodon" entry (file ,my-org-inbox-file)
+									 "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n%a"
+									 :prepend t))))
+#+end_src
+** Collecting Emacs News from Mastodon  :emacs:mastodon:
+:PROPERTIES:
+:CUSTOM_ID: mastodon-news
+:EXPORT_DATE: 2024-09-16T13:07:16-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/collecting-emacs-news-from-mastodon/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/collecting-emacs-news-from-mastodon/
+:END:
+
+One of the things I like about browsing Mastodon in Emacs using
+[[https://codeberg.org/martianh/mastodon.el][mastodon.el]] is that I can modify my workflow to make things easier.
+For example, I often come across links that I'd like to save for Emacs
+News. I want to boost the post and save it to an Org file, and I can
+do that with a single keystroke. It uses the ~my-mastodon-store-link~ function
+defined elsewhere in [[https://sachachua.com/dotemacs/#mastodon][my config]].
+
+#+begin_src emacs-lisp
+(use-package org
+	:config
+	(add-to-list
+	 'org-capture-templates
+   '("w" "Emacs News" entry (file+headline "~/sync/orgzly/news.org" "Collect Emacs News")
+     "* %a  :news:
+
+#+begin_quote
+%:text
+#+end_quote
+
+"
+     :prepend t :immediate-finish t)))
+(defun my-mastodon-save-toot-for-emacs-news ()
 	(interactive)
-	(let ((url (org-entry-get (point) "ITEM")))
-		(when (string-match "https://\\(.+?\\)/\\(@.+?\\)/" url)
-			(kill-new (org-link-make-string url (concat (match-string 2 url) "@" (match-string 1 url)))))))
+	;; boost if not already boosted
+	(unless (get-text-property
+					 (car
+						(mastodon-tl--find-property-range 'byline (point)))
+					 'boosted-p)
+		(mastodon-toot--toggle-boost-or-favourite 'boost))
+	;; store a link and capture the note
+	(org-capture nil "w"))
 
+(use-package mastodon
+	:bind (:map mastodon-mode-map ("w" . my-mastodon-save-toot-for-emacs-news)))
+#+end_src
+
+This puts a bunch of notes in my
+=~/sync/orgzly/news.org= file. Then I can use
+=my-emacs-news-summarize-mastodon-items= to
+summarize a bunch of items I've captured from
+Mastodon, taking the title from the first link and
+including a link to the toot using the author's
+handle. This is what it looks like:
+
+#+CAPTION: Quick screencast summarizing Mastodon toots
+[[file:/home/sacha/recordings/output-2024-09-16-13:14:38.gif]]
+
+Here's the code that makes that happen:
+
+#+begin_src emacs-lisp
 (defun my-emacs-news-summarize-mastodon-items ()
 	(interactive)
 	(while (not (eobp))
@@ -15013,6 +15434,33 @@ If you can find there something you can use, then I'm happy to be useful to the 
 						 ("https://codeberg.org/jcastp/emacs.d")
 						 :text
 						 "jcastp@mastodon.online - I've shared my emacs config: https://codeberg.org/jcastp/emacs.d\n\nAfter years of reading other's configs, copying really useful snippets, and tinkering a little bit myself, I wanted to give something back, although I'm still an amateur (and it shows, but I want to improve!)\n\nIf you can find there something you can use, then I'm happy to be useful to the community.\n\n#emacs"))))
+#+end_src
+
+It turns headings into something like this:
+
+  - [[https://gitlab.di.unimi.it/-/snippets/4][Insert a screenshot image in latex-mode with the help of org-download]] ([[https://mathstodon.xyz/@mmonga/113118159165252806][@mmonga@mathstodon.xyz]])
+
+which I can then copy into my Emacs News Org Mode file and categorize with some keyboard shortcuts.
+
+This works particularly well with [[dotemacs:mastodon-combined-timeline][my combined Mastodon timelines]], because then I can look through all the #emacs posts from mastodon.social, emacs.ch, and social.sachachua.com in one go.
+
+** Copy Mastodon link for Emacs News
+:PROPERTIES:
+:CUSTOM_ID: copy-mastodon-link-for-emacs-news
+:END:
+
+#+begin_src emacs-lisp
+(defun my-mastodon-copy-link-dwim (prefix)
+	(interactive "P")
+	(if prefix
+			(mastodon-toot--copy-toot-url)
+		(my-mastodon-copy-toot-as-author-link)))
+
+(defun my-emacs-news-copy-mastodon-link ()
+	(interactive)
+	(let ((url (org-entry-get (point) "ITEM")))
+		(when (string-match "https://\\(.+?\\)/\\(@.+?\\)/" url)
+			(kill-new (org-link-make-string url (concat (match-string 2 url) "@" (match-string 1 url)))))))
 
 (defun my-emacs-news-copy-mastodon-item (&optional name-only)
 	(interactive (list current-prefix-arg))
@@ -15057,91 +15505,6 @@ If you can find there something you can use, then I'm happy to be useful to the 
 		s))
 #+end_src
 
-** Storing Mastodon links in Org mode
-:PROPERTIES:
-:CUSTOM_ID: storing-mastodon-links-in-org-mode
-:END:
-
-This snippet makes it easier to store links to posts with
-~org-store-link~ and to use them as automatic annotations in
-~org-capture~. (2022-12-11: Now it links to media attachments, too!)
-
-#+NAME: my-mastodon-store-link
-#+begin_src emacs-lisp
-(defun my-mastodon-store-link ()
-  "Store links in Mastodon buffers."
-  (when (derived-mode-p 'mastodon-mode)
-    (let ((json (get-text-property (point) 'item-json)))
-      (org-link-store-props
-       :link (mastodon-toot--toot-url)
-       :content (mastodon-tl--content json)
-       :text
-			 (concat
-				(string-trim (mastodon-tl--render-text (mastodon-tl--content json)))
-				(if (assoc-default 'media_attachments json)
-						(concat "\n\n"
-										(mapconcat
-										 (lambda (attachment)
-											 (org-link-make-string
-												(assoc-default 'url attachment)
-												(assoc-default 'description attachment)))
-										 (assoc-default 'media_attachments json)
-										 "\n"
-										 )))
-						"")
-				))))
-
-(use-package org
-  :config
-  (org-link-set-parameters
-   "mastodon"
-   :store 'my-mastodon-store-link)
-  (add-to-list 'org-capture-templates
-               `("m" "Mastodon" entry (file ,my-org-inbox-file)
-                 "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n%a"
-                 :prepend t)))
-#+end_src
-** Collecting Emacs News from Mastodon
-:PROPERTIES:
-:CUSTOM_ID: mastodon-news
-:END:
-
-One of the things I like about browsing Mastodon in Emacs using
-[[https://codeberg.org/martianh/mastodon.el][mastodon.el]] is that I can modify my workflow to make things easier.
-For example, I often come across links that I'd like to save for Emacs
-News. I want to boost the post and save it to an Org file, and I can
-do that with a single keystroke. It uses the my-mastodon-store-link
-defined elsewhere in [[https://sachachua.com/dotemacs/#mastodon][my config]].
-
-#+begin_src emacs-lisp
-(use-package org
-	:config
-	(add-to-list
-	 'org-capture-templates
-   '("w" "Emacs News" entry (file+headline "~/sync/orgzly/news.org" "Collect Emacs News")
-     "* %a  :news:
-
-#+begin_quote
-%:text
-#+end_quote
-
-"
-     :prepend t :immediate-finish t)))
-(defun my-mastodon-save-toot-for-emacs-news ()
-	(interactive)
-	;; boost if not already boosted
-	(unless (get-text-property
-					 (car
-						(mastodon-tl--find-property-range 'byline (point)))
-					 'boosted-p)
-		(mastodon-toot--toggle-boost-or-favourite 'boost))
-	;; store a link and capture the note
-	(org-capture nil "w"))
-
-(use-package mastodon
-	:bind (:map mastodon-mode-map ("w" . my-mastodon-save-toot-for-emacs-news)))
-#+end_src
-
 ** DONE Combining Mastodon timelines using mastodon.el               :emacs:
 CLOSED: [2024-09-13 Fri 14:09]
 :PROPERTIES:
@@ -15149,10 +15512,16 @@ CLOSED: [2024-09-13 Fri 14:09]
 :EXPORT_DATE: 2024-09-13T12:55:25-0400
 :EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/combining-mastodon-timelines-using-mastodon-el/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/combining-mastodon-timelines-using-mastodon-el/
+:EXPORT_MODIFIED: 2024-09-16T10:21:21-0400
+:CUSTOM_ID: mastodon-combined-timeline
 :END:
 :LOGBOOK:
 - State "DONE"       from              [2024-09-13 Fri 14:09]
 :END:
+
+#+begin_update
+[2024-09-16]: Read JSON arrays as lists to be compatible with the latest mastodon.el.
+#+end_update
 
 I like checking out the #emacs hashtag when I put together Emacs News. In the past, I usually browsed the hashtag timeline on emacs.ch, which also picked up updates from other people that emacs.ch was following. Now that [[https://sachachua.com/blog/2024/09/moving-from-sachac-emacs-ch-to-sacha-social-sachachua-com/][I've moved to @sacha@social.sachachua.com]] and [[https://emacs.ch/@emacs/113087752901949391][emacs.ch is winding down]], I wanted to see if there was a way for me to see a combined view using [[https://mastodon.social/api/v1/timelines/tag/emacs?count=40][mastodon.social's API feed]] (paging by
 =max_id= as needed). I haven't enabled public
@@ -15168,6 +15537,7 @@ First, let's start by making a unified timeline. By digging around in =mastodon-
 	(let ((results [])
 				(url base-url)
 				(use-mastodon-el (not (string-match "^http" base-url)))
+				(json-array-type 'list)
 				page filtered)
 		(while url
 			(setq page (if use-mastodon-el
@@ -15240,7 +15610,7 @@ my purposes.
 #+end_src
 
 When I go through Emacs News, I have a shortcut
-ethat boosts a post and saves it to as an Org Mode
+that boosts a post and saves it to as an Org Mode
 capture with a link to the toot. I sometimes want
 to reply, too. So I just need to intervene before
 boosting and replying. Boosting and favoriting
@@ -15289,7 +15659,7 @@ The only thing is that I need to press RET after loading a thread with T (=masto
 I'm curious: how many toots would I be missing if I looked at only one instance's hashtag? Let's look at the #emacs hashtag toots on 2024-09-12:
 
 #+NAME: mastodon-comparison
-#+begin_src emacs-lisp :summary Mastodon comparison :eval never-export :results replace table :exports both
+#+begin_src emacs-lisp :summary Mastodon comparison :eval no :results replace table :exports both
 (defun my-three-way-comparison (seq1 seq2 seq3 &optional test-fn)
 	`(("1" ,@(seq-difference seq1 (seq-union seq2 seq3 test-fn) test-fn))
 		("2" ,@(seq-difference seq2 (seq-union seq1 seq3 test-fn) test-fn))
@@ -15723,6 +16093,39 @@ I can build up my notes.
 #+end_src
 
 Now I can use ~org-feed-update-all~ (~C-c C-x g~) to pull things into my toots.org file.
+** Archive toots on my blog
+:PROPERTIES:
+:CUSTOM_ID: mastodon-insert-statuses
+:END:
+
+I want to compile my public microblog posts into
+weekly posts so that they're archived on my blog.
+It might make sense to make them list items or
+subtrees so that I can move them around easily.
+
+#+begin_src emacs-lisp
+(defun my-mastodon-insert-my-statuses-since (date)
+	(interactive (list (org-read-date "Since date: ")))
+	(insert
+	 (format "#+begin_toot_archive\n%s\n#+end_toot_archive\n"
+					 (mapconcat
+						(lambda (o)
+							(format "- %s\n  #+begin_quote\n  #+begin_export html\n%s\n  #+end_export\n  #+end_quote\n\n"
+											(org-link-make-string (assoc-default 'url o) (assoc-default 'created_at o))
+											(org-ascii--indent-string (assoc-default 'content o) 2))
+							;; (format "#+begin_quote\n#+begin_export html\n%s\n#+end_export\n#+end_quote\n\n%s\n\n"
+							;; 				(assoc-default 'content o)
+							;; 				(org-link-make-string (assoc-default 'url o) (assoc-default 'created_at o)))
+							)
+						(seq-filter
+						 (lambda (o)
+							 (string= (assoc-default 'visibility o) "public"))
+						 (my-mastodon-fetch-posts-after
+							(format "accounts/%s/statuses?count=40&exclude_reblogs=t&exclude_replies=t" (mastodon-auth--get-account-id))
+							date))
+						""))))
+#+end_src
+
 * Web
 :PROPERTIES:
 :CUSTOM_ID: web
@@ -15799,7 +16202,6 @@ window.location.href
 
 #+RESULTS:
 :results:
-https://planet.emacslife.com/
 :end:
 
 #+begin_src js :eval never-export :spookfox t :exports results
@@ -15808,11 +16210,6 @@ https://planet.emacslife.com/
 
 #+RESULTS:
 :results:
-- Sacha Chua: Yay Emacs: Using elisp: links in Org Mode to note the time and display messages on stream
-- Irreal: Quick Accents
-- Kisaragi Hiu: 我的 KDE 翻譯流程
-- James Dyer: Emacs asynchronous copying using dired-async-mode
-- Corwin Brust: Emacs 29.2 Windows Binaries
 :end:
 
 [[video:/home/sacha/recordings/2024-01-19_08.16.31.webm?caption=Evaluating a Javascript block with :spookfox t]]
@@ -15895,6 +16292,10 @@ Let's try it out by sending the last line repeatedly:
 window.location = 'https://example.com';
 document.querySelector('h1').style.fontSize = Math.floor(Math.random() * 10 + 10) + 'px';
 #+end_src
+
+#+RESULTS:
+:results:
+:end:
 
 [[video:/home/sacha/recordings/2024-01-19_08.26.35.webm?caption=Sending the current line]]
 
@@ -17120,6 +17521,10 @@ export SCREEN=LVDS-1  # from xrandr
 xrandr --output $SCREEN --mode 1280x720
 #+end_src
 
+#+RESULTS: streaming-setup
+:results:
+:end:
+
 I switch to a larger size and a light theme. I also turn [[https://github.com/minad/consult][consult]] previews off to minimize the risk of leaking data through buffer previews.
 
 [[dotemacs:prepare-for-emacsconf-screenshots-or-recordings]]
@@ -17135,11 +17540,19 @@ DATE=$(date "+%Y-%m-%d-%H-%M-%S")
 ffmpeg -f x11grab -framerate 30 -video_size $SIZE -i :0.0$OFFSET -f pulse -i $MIC -f pulse -i $SYSTEM -filter_complex "amix=inputs=2:weights=$AUDIO_WEIGHTS:duration=longest:normalize=0[audio]" -c:v libx264 -preset fast -maxrate 690k -bufsize 2000k -g 60 -vf format=yuv420p -c:a aac -b:a 96k -y -f tee -map 0:v -map '[audio]' -flags +global_header  "/home/sacha/recordings/$DATE.flv|[f=flv]rtmp://a.rtmp.youtube.com/live2/$YOUTUBE_KEY"
 #+end_src
 
+#+RESULTS:
+:results:
+:end:
+
 #+begin_src sh :tangle ~/bin/record-laptop :shebang "#!/usr/bin/env bash" :noweb yes :eval never-export :summary record-laptop
 source ~/bin/setup-laptop-for-streaming
 DATE=$(date "+%Y-%m-%d-%H-%M-%S")
 ffmpeg -f x11grab -framerate 30 -video_size $SIZE -i :0.0$OFFSET -f pulse -i $MIC -f pulse -i $SYSTEM -filter_complex "amix=inputs=2:weights=$AUDIO_WEIGHTS:duration=longest:normalize=0[audio]" -c:v libx264 -preset fast -maxrate 690k -bufsize 2000k -g 60 -vf format=yuv420p -c:a aac -b:a 96k -map 0:v -map '[audio]' -y "/home/sacha/recordings/$DATE.flv"
 #+end_src
+
+#+RESULTS:
+:results:
+:end:
 
 Some code to start and stop the stream:
 
@@ -20600,6 +21013,8 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 :PROPERTIES:
 :CUSTOM_ID: org-mode-sketch-links
 :END:
+
+#+NAME: org-sketch-link
 #+begin_src emacs-lisp
 (defun my-open-images-in-krita (files)
   (apply 'call-process "krita" nil 0 nil "--nosplash" files))
@@ -20812,6 +21227,7 @@ becomes a link to copy "Hello world". Copying
 means never having to worry about typos or
 accidentally selecting only part of the text.
 
+#+NAME: org-copy-link
 #+begin_src emacs-lisp
 (use-package org
   :config
@@ -20849,7 +21265,7 @@ myself according to the [[https://www.canada.ca/en/revenue-agency/services/tax/b
 :results:
 | box-10 | 1234.00 |
 | box-11 | 1419.10 |
-| box-12 |  128.15 |
+| box-12 | 128.15 |
 :end:
 
 [[copy:Hello world]]
@@ -20864,6 +21280,7 @@ to Emacs and Org Mode!
 :CUSTOM_ID: config
 :END:
 
+#+NAME: org-config-link
     #+begin_src emacs-lisp
 (use-package org
   :config

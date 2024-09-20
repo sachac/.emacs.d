@@ -1062,9 +1062,35 @@ any directory proferred by `consult-dir'."
 :CUSTOM_ID: consult-omni
 :END:
 
+For some reason, installing [[https://github.com/armindarvish/consult-omni][consult-omni]] using the ~:vc~ keyword was giving me problems, so I checked it out from Github instead.
+
 I also needed to create a Google custom search JSON API key at https://developers.google.com/custom-search/v1/introduction .
 
 #+begin_src emacs-lisp
+(defun my-insert-or-replace-link (url &optional title)
+	"Insert a link, wrap the current region in a link, or replace the current link."
+	(cond
+	 ((derived-mode-p 'org-mode)
+		(cond
+		 ((org-in-regexp org-link-any-re 1)
+			(when (match-end 2) (setq title (match-string-no-properties 2)))
+			(delete-region (match-beginning 0) (match-end 0)))
+		 ((region-active-p)
+			(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+			(delete-region (region-beginning) (region-end))))
+		;; update link
+		(insert (org-link-make-string url title)))
+	 ((derived-mode-p 'org-mode)		 ; not in a link
+		(insert (org-link-make-string url title)))
+	 ((and (region-active-p) (derived-mode-p 'markdown-mode))
+		(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+		(delete-region (region-beginning) (region-end))
+		(insert (format "[%s](%s)" title url)))
+	 ((derived-mode-p 'markdown-mode)
+		(insert (format "[%s](%s)" title url)))
+	 (t
+		(insert (format "%s (%s)" title url)))))
+
 ;; override the embark actions
 (defun my-consult-omni-embark-copy-url-as-kill (cand)
 	"Don't add spaces."
@@ -1090,27 +1116,7 @@ I also needed to create a Google custom search JSON API key at https://developer
 	"Don't add spaces."
 	(let ((url (and (stringp cand) (get-text-property 0 :url cand )))
 				(title (and (stringp cand) (get-text-property 0 :title cand))))
-		(cond
-		 ((derived-mode-p 'org-mode)
-			(cond
-			 ((org-in-regexp org-link-any-re 1)
-				(when (match-end 2) (setq title (match-string-no-properties 2)))
-				(delete-region (match-beginning 0) (match-end 0)))
-			 ((region-active-p)
-				(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
-				(delete-region (region-beginning) (region-end))))
-			;; update link
-			(insert (org-link-make-string url title)))
-		 ((derived-mode-p 'org-mode) ; not in a link
-			(insert (org-link-make-string url title)))
-		 ((and (region-active-p) (derived-mode-p 'markdown-mode))
-			(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
-			(delete-region (region-beginning) (region-end))
-			(insert (format "[%s](%s)" title url)))
-		 ((derived-mode-p 'markdown-mode)
-			(insert (format "[%s](%s)" title url)))
-		 (t
-			(insert (format "%s (%s)" title url))))))
+		(my-insert-or-replace-link url title)))
 
 (use-package consult-omni
 	:load-path "~/vendor/consult-omni"
@@ -1671,12 +1677,16 @@ I want to:
 	    (my-subed-copy-timestamp-to-next))))
 #+end_src
 *** Embark, symbols, and casual-symbol-overlay
+:PROPERTIES:
+:CUSTOM_ID: casual-symbol-overlay
+:END:
 
 Link: http://yummymelon.com/devnull/announcing-casual-symbol-overlay.html
 
 #+begin_src emacs-lisp
 (use-package casual-symbol-overlay
 	:if my-laptop-p
+	:after embark
 	:init
 	(with-eval-after-load 'embark
 		(keymap-set embark-symbol-map "z" #'casual-symbol-overlay-tmenu)))
@@ -1891,6 +1901,92 @@ I wanted to experiment with [[ https://irreal.org/blog/?p=11867#comment-63540173
 	(set-face-attribute 'default nil :height 115)
 	(keycast-mode -1))
 #+end_src
+** Quickly adding face properties to regions                         :emacs:
+:PROPERTIES:
+:CUSTOM_ID: face-text
+:EXPORT_DATE: 2024-09-19T20:25:35-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/quickly-adding-face-properties-to-regions/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/quickly-adding-face-properties-to-regions/
+:EXPORT_MODIFIED: 2024-09-20T07:38:17-0400
+:END:
+
+#+begin_update
+- [2024-09-20 Fri]: Set the first frame of the animated GIF to a reasonable backup image.
+- [2024-09-20]: Add ~:init-value nil~ to the mode.
+#+end_update
+
+#+CAPTION: Screencast of modifying face properties
+[[file:/home/sacha/recordings/output-2024-09-20-13:09:17.gif]]
+
+Sometimes I just want to make some text look a
+little fancier in the buffer so that I can make a
+thumbnail or display a message. This
+~my-add-face-text-property~ function lets me
+select a region and temporarily change its height,
+make it bold, or do other things. It will work in
+~text-mode~ or ~enriched-mode~ buffers (not Org
+Mode or programming buffers like ~*scratch*~, as
+those do a lot of font-locking).
+
+#+begin_src emacs-lisp
+(defun my-add-face-text-property (start end attribute value)
+	(interactive
+	 (let ((attribute (intern
+										 (completing-read
+											"Attribute: "
+											(mapcar (lambda (o) (symbol-name (car o)))
+															face-attribute-name-alist)))))
+		 (list (point)
+					 (mark)
+					 attribute
+					 (read-face-attribute '(()) attribute))))
+	(add-face-text-property start end (list attribute value)))
+#+end_src
+
+~enriched-mode~ has some keyboard shortcuts for
+face attributes (~M-o b~ for bold, ~M-o i~ for
+italic). I can add some keyboard shortcuts for
+other properties even if they can't be saved in
+~text/enriched~ format.
+
+#+begin_src emacs-lisp :results silent
+(defun my-face-text-larger (start end)
+	(interactive "r")
+	(add-face-text-property
+	 start end
+	 (list :height (floor (+ 50 (car (alist-get :height (get-text-property start 'face) '(100))))))))
+(defun my-face-text-smaller (start end)
+	(interactive "r")
+	(add-face-text-property
+	 start end
+	 (list :height (floor (- (car (alist-get :height (get-text-property start 'face) '(100))) 50)))))
+#+end_src
+
+What's an easy way to make this keyboard shortcut
+available during the rare times I want it? I know,
+maybe I'll make a quick minor mode so I don't
+have to dedicate those keyboard shortcuts all the
+time. ~repeat-mode~ lets me change the size by
+repeating just the last keystroke.
+
+#+begin_src emacs-lisp :results silent
+  (defvar-keymap my-face-text-property-mode-map
+  	"M-o p" #'my-add-face-text-property
+    "M-o +" #'my-face-text-larger
+  	"M-o -" #'my-face-text-smaller)
+  (define-minor-mode my-face-text-property-mode
+    "Make it easy to modify face properties."
+    :init-value nil
+    (repeat-mode 1))
+  (defvar-keymap my-face-text-property-mode-repeat-map
+  	:repeat t
+  	"+" #'my-face-text-larger
+  	"-" #'my-face-text-smaller)
+  (dolist (cmd '(my-face-text-larger my-face-text-smaller))
+    (put cmd 'repeat-map 'my-face-text-property-mode-repeat-map))
+#+end_src
+
+
 * Navigation
 :PROPERTIES:
 :CUSTOM_ID: navigation
@@ -2894,23 +2990,95 @@ From Xah Lee:
 :CUSTOM_ID: gif-screencast
 :END:
 
+Animated GIFs make it easy to demonstrate things,
+and [[package:gif-screencast][gif-screencast]] makes it easy to record a
+screencast with each command getting its own GIF
+frame. In my config, I have ~s-s~ (super-s, or the
+Windows key + s) bound to
+~gif-screencast-start-or-stop~. I like adding
+animated GIFs to my blog posts and videos.
+
+Not all interfaces can display animated GIFs. For
+example, some people read my blog in [[package:elfeed][elfeed]] or in
+a console Emacs and can see only the first frame
+of a GIF. It makes sense to select the a frame to
+use as the fallback for the animated GIF, much
+like videos can have thumbnails.
+
+When I stop gif-screencast, I want to pick a frame
+and use it as the first frame. Let's see if this works...
+
+#+begin_src emacs-lisp
+(defun my-gif-screencast-start-or-stop-and-choose-thumbnail ()
+	"Start a screencast or pause recording."
+	(interactive)
+	(if gif-screencast-mode
+			(progn
+				(gif-screencast-toggle-pause)
+				(dired gif-screencast-screenshot-directory)
+				(revert-buffer)
+				(dired gif-screencast-screenshot-directory)
+				(image-dired gif-screencast-screenshot-directory))
+		(gif-screencast)))
+#+end_src
+
+Actually, what I want to do is a more general
+case: be able to delete frames, copy frames to the
+beginning, eventually move frames around, etc.,
+and then generate the GIF based on the contents of
+that directory.
+
+#+begin_src emacs-lisp
+(defun my-gif-screencast-copy-image-to-first-frame (file)
+	(interactive (list (dired-get-filename)))
+  ;; Determine the timestamp of the first file in this directory
+	(copy-file
+	 file
+	 (expand-file-name
+		(format-time-string
+		 "screen-%F-%T-%3N.png"
+		 (time-subtract
+			(my-gif-screencast-timestamp-from-filename
+			 (car (directory-files gif-screencast-screenshot-directory nil ".png")))
+			(seconds-to-time 0.001)))
+		gif-screencast-screenshot-directory)))
+
+(defun my-gif-screencast-timestamp-from-filename (file)
+	(setq file (replace-regexp-in-string "^screen-" "" (file-name-base file)))
+	(time-add (date-to-time (format "%s %s" (substring file 0 10) (substring file 11 19)))
+						(float-time (/ (string-to-number (substring file 20 23)) 1000.0))))
+(cl-assert
+ (string= (format-time-string "test-%F-%T-%3N" (my-gif-screencast-timestamp-from-filename "screen-2024-09-20-13:18:08-024.png"))
+					"test-2024-09-20-13:18:08-024"))
+
+(defun my-gif-screencast-update-frames-from-directory ()
+	(interactive)
+	(let* ((files (directory-files gif-screencast-screenshot-directory nil ".png"))
+				 (start-time (my-gif-screencast-timestamp-from-filename (car files))))
+		(setq gif-screencast--frames
+					(mapcar (lambda (o)
+										(make-gif-screencast-frame
+										 :timestamp (my-gif-screencast-timestamp-from-filename o)
+										 :filename o))
+									files))
+		(gif-screencast-mode 0)
+		(gif-screencast--finish)))
+#+end_src
+
+Someday it could be pretty cool to have an SVG where I can see the frames on a timeline and then drag them around. In the meantime, let's see how this works out.
+
 #+begin_src emacs-lisp
 (use-package gif-screencast
 	:bind
-	("s-s" . gif-screencast-start-or-stop)
+	("s-s" . my-gif-screencast-start-or-stop-and-choose-thumbnail)
 	:config
 	(setq gif-screencast-output-directory my-recordings-dir))
 
 (use-package giffy
 	:quelpa (giffy :fetcher github :repo "larsmagne/giffy"))
-
-(defun my-giffy-open-gif (file)
-	(interactive (list (read-file-name "GIF: ")))
-	(let ((directory (make-temp-file (concat "giffy-" (file-name-base file)) t)))
-	;;TODO
-		)
-	)
 #+end_src
+
+
 ** Sentences end with a single space
 :PROPERTIES:
 :CUSTOM_ID: sentences-end-with-a-single-space
@@ -4115,6 +4283,8 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
   (key-chord-define subed-mode-map "hu" 'my-subed/body)
   (key-chord-define subed-mode-map "ht" 'my-subed/body)
 	(setq subed-loop-seconds-before 0 subed-loop-seconds-after 0)
+	(setq subed-align-command
+				'("/home/sacha/vendor/aeneas/venv/bin/python3" "-m" "aeneas.tools.execute_task"))
   :bind
   (:map subed-mode-map
         ("M-j" . avy-goto-char-timer)
@@ -10413,6 +10583,7 @@ With prefix argument, also display headlines without a TODO keyword."
 :END:
 
 #+begin_update
+- [2024-09-19 Thu]: Added function for replacing current link, bound to ~C-. r~ (~my-embark-replace-link-with-exported-url~)
 - [2024-01-12 Fri] Added embark action to copy the exported link URL.
 - [2024-01-11 Thu] Switched to using Github links since Codeberg's down.
 - [2024-01-11 Thu] Updated my-copy-link to just return the link if called from Emacs Lisp. Fix getting the properties.
@@ -10536,8 +10707,8 @@ that to my other projects.
 :END:
 
 #+begin_update
-[2024-01-20]: Fix Wayback link handling.
-[2024-01-19]: Add Wayback machine.
+- [2024-01-20]: Fix Wayback link handling.
+- [2024-01-19]: Add Wayback machine.
 #+end_update
 
 Keeping a list of projects and their web versions also makes it easier
@@ -10669,19 +10840,16 @@ If LINK is specified, use that instead."
 			(message "Copied %s" url))
 		url))
 
+(defun my-embark-replace-link-with-exported-url (link &rest _)
+	(interactive (list (org-element-property :raw-link (org-element-context))))
+	(my-insert-or-replace-link (my-org-link-as-url link)))
+
 (with-eval-after-load 'embark-org
-	(define-key embark-org-link-map
-							"u"
-							#'my-embark-org-copy-exported-url)
-	(define-key embark-org-link-map
-							"U"
-							#'my-embark-org-copy-exported-url-as-wayback)
-	(define-key embark-org-link-copy-map
-							"u"
-							#'my-embark-org-copy-exported-url)
-	(define-key embark-org-link-copy-map
-							"U"
-							#'my-embark-org-copy-exported-url-as-wayback))
+	(mapc (lambda (map)
+					(keymap-set map "u" #'my-embark-org-copy-exported-url)
+					(keymap-set map "U" #'my-embark-org-copy-exported-url-as-wayback)
+					(keymap-set map "r" #'my-embark-replace-link-with-exported-url))
+				(list embark-url-map embark-org-link-map embark-org-link-copy-map)))
 #+end_src
 
 We'll see which one I end up using. I think both approaches might come in handy.
@@ -11760,6 +11928,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
      (R . t)))
   (setq org-babel-python-command "python3")
   (setq python-shell-interpreter "python3")
+	(add-to-list 'org-src-lang-modes '("html" . web))
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot)))
 #+end_src
 
@@ -12285,7 +12454,26 @@ and turn it into:
 				 ((eq format 'ascii) (format "%s <%s>" desc path))
 				 (t path))
 			desc)))
-(org-link-set-parameters "package" :follow 'my-org-package-open :export 'my-org-package-export)
+(defun my-org-package-complete ()
+	(require 'finder-inf nil t)
+  (unless package--initialized
+    (package-initialize t))
+	(concat
+	 "package:"
+   ;; Load the package list if necessary (but don't activate them).
+   (let ((packages (mapcar #'symbol-name (mapcar #'car package-archive-contents))))
+		 (completing-read "Package: "
+                      packages nil t nil nil))))
+
+(defun my-org-package-link-description (link description)
+	(unless description
+		(when (string-match "package:\\(.+\\)" link)
+			(match-string 1 link))))
+
+(org-link-set-parameters
+ "package"
+ :follow 'my-org-package-open :export 'my-org-package-export :complete 'my-org-package-complete
+ :insert-description #'my-org-package-link-description)
 #+end_src
 
 ** Save when Emacs loses focus
@@ -12839,11 +13027,11 @@ Let's see how that goes!
 				(setq-local python-check-command "flake8 --append-config /home/sacha/.config/flake8"))
 			70)
 	)
-(use-package lsp-pyright
-  :ensure t
-  :hook (python-mode . (lambda ()
-                          (require 'lsp-pyright)
-                          (lsp))))
+;; (use-package lsp-pyright
+;;   :ensure t
+;;   :hook (python-mode . (lambda ()
+;;                           (require 'lsp-pyright)
+;;                           (lsp))))
 (require 'ansi-color)
 (defun colorize-compilation-buffer ()
   (when (eq major-mode 'compilation-mode)
@@ -14829,6 +15017,30 @@ SASS
 (setq-default indent-tabs-mode nil)
 #+end_src
 
+#+begin_src emacs-lisp
+(use-package inf-ruby
+	:config
+	(setq inf-ruby-prompt-format
+			(concat
+			 (mapconcat
+				#'identity
+				'("\\(^%s> *\\)"					; Simple
+					"\\(^(rdb:1) *\\)"			; Debugger
+					"\\(^(rdbg[^)]*) *\\)"	; Ruby Debug Gem
+					"\\(^(byebug) *\\)"			; byebug
+					"\\(^\\(irb([^)]+)"			; IRB default
+					"\\([[0-9]+] \\)?[Pp]ry ?([^)]+)"	; Pry
+					"\\(^[^%s]+\\)"			 ; new rails console with project name and environment
+					"\\(jruby-\\|JRUBY-\\)?[1-9]\\.[0-9]\\(\\.[0-9]+\\)*\\(-?p?[0-9]+\\)?" ; RVM
+					"^rbx-head\\)")					 ; RVM continued
+				"\\|")
+			 ;; Statement and nesting counters, common to the last four.
+			 " ?[0-9:]* ?%s *\\)")
+			inf-ruby-first-prompt-pattern
+			(format inf-ruby-prompt-format ">" ">" ">")
+			inf-ruby-prompt-pattern
+			(format inf-ruby-prompt-format "[?>]" "*>" "[\]>*\"'/`]")))
+#+end_src
 ** Skewer
 :PROPERTIES:
 :CUSTOM_ID: skewer

@@ -717,6 +717,14 @@ It's hard to remember keyboard shortcuts.
 (use-package which-key-posframe :if my-laptop-p :init (which-key-posframe-mode 1))
 #+END_SRC
 
+Sometimes ~C-h~ gets weird and calls ~which-key-C-h-dispatch~, probably from a transient map that got confused.
+
+#+begin_src emacs-lisp
+(defun my-reset-transients ()
+	(interactive)
+	(setq overriding-terminal-local-map nil))
+#+end_src
+
 ** Key chords
 :PROPERTIES:
 :CUSTOM_ID: key-chord
@@ -1529,8 +1537,11 @@ targets."
 **** TODO Using Embark to act on images
 :PROPERTIES:
 :CUSTOM_ID: embark-image
+:EXPORT_MODIFIED: 2024-09-25T14:31:49-0400
 :END:
-
+#+begin_update
+[2024-09-25]: added attachment handling
+#+end_update
 #+begin_src emacs-lisp
 (defun my-embark-image ()
 	"Match images."
@@ -1539,6 +1550,9 @@ targets."
 												(org-element-context))))
 				(when (eq (org-element-type link) 'link)
 					(cond
+					 ((string= "attachment" (org-element-property :type link))
+						(cons 'image (expand-file-name (org-element-property :path link)
+																					 (org-attach-dir))))
 					 ((string-match "sketch" (org-element-property :type link))
 						(cons 'image (my-get-sketch-filename (org-element-property :path link))))
 					 ((string-match extensions (org-element-property :path link))
@@ -1579,6 +1593,10 @@ I want to:
 	(interactive "FItem: ")
 	(start-process "firefox" nil "firefox" (if (string-match "^http" file) file (expand-file-name file))))
 
+(defun my-image-autocrop (filename)
+	(interactive "FFile: ")
+	(call-process "mogrify" nil nil nil "-trim" "+repage" filename))
+
 (defun my-image-recognize (file)
 	(interactive "FFile: ")
 	(let ((data (json-parse-string
@@ -1594,6 +1612,38 @@ I want to:
 				(assoc-default 'text (assoc-default 'fullTextAnnotation (elt (assoc-default 'responses data) 0)))
 			(assoc-default 'description (elt (assoc-default 'textAnnotations data) 0)))))
 
+(defun my-image-recognize-get-new-filename (file)
+	(interactive "FFile: ")
+	(if-let* ((text (my-image-recognize file))
+						(id (and (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" text)
+										 (match-string 0 text)))
+						(data (and id (my-journal-get-by-zidstring id))))
+			(concat id " " (plist-get data :Note) "." (file-name-extension file))))
+
+(defun my-image-recognize-and-rename (file)
+	(interactive "FFile: ")
+	(let ((new-name (expand-file-name (my-image-recognize-get-new-filename file)
+																		(file-name-directory file))))
+		(rename-file file new-name t)
+		new-name))
+
+(defun my-image-store (file &optional do-move)
+	"Copy or move this image into public or private sketches as needed."
+	(unless (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] " (file-name-nondirectory file))
+		(setq file (my-image-recognize-and-rename file)))
+	(when (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] " (file-name-nondirectory file))
+		(funcall
+		 (if do-move
+				 'rename-file
+			 'copy-file)
+		 file
+		 (expand-file-name
+			(file-name-nondirectory file)
+			(if (string-match "#private" (file-name-nondirectory file))
+					my-private-sketches-directory
+				(car my-sketch-directories)))
+		 t)))
+
 (defun my-image-copy-text (file)
 	(interactive "FImage: ")
 	(kill-new (my-image-recognize file)))
@@ -1607,14 +1657,18 @@ I want to:
 
 (with-eval-after-load 'embark
 	(defvar-keymap my-embark-image-actions
-			:doc "Images"
-			"k" #'my-image-open-in-krita
-			"a" #'my-image-open-in-annotator
-			"i" #'my-image-open-in-inkscape
-			"w" #'my-image-copy-text
-			"g" #'my-image-open-in-gimp
-			"f" #'my-open-in-firefox
-			"d" #'my-image-insert-text-as-details)
+		:doc "Images"
+		"k" #'my-image-open-in-krita
+		"a" #'my-image-open-in-annotator
+		"i" #'my-image-open-in-inkscape
+		"w" #'my-image-copy-text
+		"c" #'my-image-autocrop
+		"g" #'my-image-open-in-gimp
+		"f" #'my-open-in-firefox
+		"s" #'my-image-store
+		"r" #'my-image-recognize-and-rename
+		"C" #'my-image-recolor
+		"d" #'my-image-insert-text-as-details)
 	(add-to-list 'embark-keymap-alist '(image . my-embark-image-actions)))
 #+end_src
 *** Embark and subed
@@ -11336,7 +11390,10 @@ With a description:
                      :Other (read-string "Other: ")))
   (setq plist (append `(:Note ,note) plist))
   (let ((url-request-method "POST")
-        (url-request-extra-headers '(("Content-Type" . "application/json")))
+        (url-request-extra-headers '(("Content-Type" . "application/json")
+																		 ("Authorization" . ,(concat "Basic "
+																			 (base64-encode-string
+																				(concat my-journal-user ":" my-journal-password))))))
         (json-object-type 'plist)
         (url-request-data (encode-coding-string (json-encode-plist plist) 'utf-8))
         data)
@@ -11386,7 +11443,12 @@ With a description:
     (delete-region (point-min) (search-forward "\n\n"))
     (cdr (pcsv-parse-buffer))))
 
-(defun my-journal-get (url) (my-json-request (concat my-journal-url "/" url)))
+(defun my-journal-get (url)
+	(let ((url-request-extra-headers
+				 `(("Authorization" . ,(concat "Basic "
+																			 (base64-encode-string
+																				(concat my-journal-user ":" my-journal-password)))))))
+		(my-json-request (concat my-journal-url "/" url))))
 (defun my-journal-get-entry (zid) (my-journal-get (format "api/entries/zid/%s" zid)))
 #+end_src
 
@@ -14368,17 +14430,10 @@ I sometimes need to know where I am in a line.
 :CUSTOM_ID: javascript
 :END:
 
-I like js2-mode.
-
-#+begin_src emacs-lisp
-(add-to-list 'auto-mode-alist '("\\.js\\'\\|\\.json\\'" . js2-mode))
-#+end_src
-
 Handy shortcuts:
 #+begin_src emacs-lisp
 (use-package js2-mode
   :if my-laptop-p
-  :mode "\\.js\\'"
   :bind (:map js2-mode-map ("C-c C-c" . projectile-compile-project)))
 #+end_src
 
@@ -14576,7 +14631,7 @@ https://amitp.blogspot.com/2023/10/emacs-and-shellcheck.html
   (defface my-flymake-modeline-error-echo
     '((t :inherit 'flymake-error-echo :background "red"))
     "Mode line flymake errors")
-  (put 'flymake-error 'mode-line-face 'my/flymake-modeline-error-echo)
+  (put 'flymake-error 'mode-line-face 'my-flymake-modeline-error-echo)
   (defface my-flymake-modeline-warning-echo
     '((t :inherit 'flymake-warning-echo :background "orange"))
     "Mode line flymake warnings")
@@ -14835,6 +14890,7 @@ Based on http://yitang.uk/2024/01/14/atomic-habit-in-emacs-keep-git-repos-clean/
 - [[elisp:(magit-status "/home/sacha/sync/orgzly/~/sync/.stversions/orgzly/")][orgzly]]
 - [[elisp:(magit-status "/home/sacha/sync/static-blog/")][static-blog]]
 - [[elisp:(magit-status "/home/sacha/bin/")][bin]]
+- [[elisp:(magit-status "/home/sacha/proj/compile-media/")][compile-media]]
 - [[elisp:(magit-status "/home/sacha/proj/subed-record/")][subed-record]]
 - [[elisp:(magit-status "/home/sacha/proj/emacsconf/lisp/")][lisp]]
 :end:
@@ -16305,8 +16361,9 @@ It might make sense to make them list items or
 subtrees so that I can move them around easily.
 
 #+begin_src emacs-lisp
-(defun my-mastodon-insert-my-statuses-since (date)
+(defun my-mastodon-insert-my-toots-since (date)
 	(interactive (list (org-read-date "Since date: ")))
+	(require 'mastodon-auth)
 	(insert
 	 (format "#+begin_toot_archive\n%s\n#+end_toot_archive\n"
 					 (mapconcat
@@ -21466,7 +21523,7 @@ myself according to the [[https://www.canada.ca/en/revenue-agency/services/tax/b
 :results:
 | box-10 | 1234.00 |
 | box-11 | 1419.10 |
-| box-12 | 128.15 |
+| box-12 |  128.15 |
 :end:
 
 [[copy:Hello world]]
@@ -22689,7 +22746,58 @@ And in general:
 (setq htmlize-css-name-prefix "org-")
 (setq htmlize-head-tags "<link rel=\"stylesheet\" href=\"https://sachachua.com/assets/css/style.css\" />")
 #+end_src
-*** DONE Using Puppeteer to grab an image from the SuperNote's screen mirror :supernote:
+**** Getting files from Browse & Access
+:PROPERTIES:
+:CUSTOM_ID: supernote-browse
+:ID:       20240926T080807.815726
+:END:
+
+[[attachment:2024-09-26-01 Supernote A5X Browse and Access #supernote.png]]
+
+#+begin_src emacs-lisp
+(defvar my-supernote-ip-address "192.168.1.221")
+(defun my-supernote-get-exported-files ()
+	(let ((data (plz 'get (format "http://%s:8089/EXPORT" my-supernote-ip-address)))
+				(list))
+		(when (string-match "const json = '\\(.*\\)'" data)
+			(sort
+			 (alist-get 'fileList (json-parse-string (match-string 1 data) :object-type 'alist :array-type 'list))
+			 :key (lambda (o) (alist-get 'date o))
+			 :lessp 'string<
+			 :reverse t))))
+
+(defun my-supernote-org-attach-latest-exported-file ()
+	(interactive)
+	;; save the file to the screenshot directory
+	(let ((info (car (my-supernote-get-exported-files)))
+				new-file
+				renamed)
+		;; delete matching files
+		(when (file-exists-p (expand-file-name (alist-get 'name info) (org-attach-dir)))
+			(delete-file (expand-file-name (alist-get 'name info) (org-attach-dir))))
+		(org-attach-attach
+		 (format "http://%s:8089/%s" my-supernote-ip-address
+						 (alist-get 'uri info))
+		 nil
+		 'url)
+		(setq new-file (my-latest-file (org-attach-dir)))
+		;; autocrop that image
+		(my-image-autocrop new-file)
+		;; recolor
+		(my-sketch-recolor-png new-file)
+		;; possibly rename
+		(setq renamed (my-image-recognize-get-new-filename new-file))
+		(when renamed
+			(setq renamed (expand-file-name renamed (org-attach-dir)))
+			(rename-file new-file renamed t)
+			(my-image-store renamed) 					; file it in my archive
+			(setq new-file renamed))
+		;; insert the link
+		(org-insert-link nil (concat "attachment:" (file-name-nondirectory new-file)))
+		(org-redisplay-inline-images)))
+#+end_src
+
+**** DONE Using Puppeteer to grab an image from the SuperNote's screen mirror :supernote:
 CLOSED: [2024-01-03 Wed 20:32]
 :PROPERTIES:
 :EXPORT_DATE: 2024-01-03T16:03:23-0500

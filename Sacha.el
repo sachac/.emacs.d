@@ -632,6 +632,17 @@ invoking, give a prefix argument to `execute-extended-command'."
 (use-package which-key-posframe :if my-laptop-p :init (which-key-posframe-mode 1))
 ;; which-key and which-key-posframe:1 ends here
 
+
+
+;; Sometimes ~C-h~ gets weird and calls ~which-key-C-h-dispatch~, probably from a transient map that got confused.
+
+
+;; [[file:Sacha.org::#which-key-and-which-key-posframe][which-key and which-key-posframe:2]]
+(defun my-reset-transients ()
+	(interactive)
+	(setq overriding-terminal-local-map nil))
+;; which-key and which-key-posframe:2 ends here
+
 ;; Key chords
 ;; :PROPERTIES:
 ;; :CUSTOM_ID: key-chord
@@ -990,11 +1001,40 @@ any directory proferred by `consult-dir'."
 ;; Using projects as a source for consult-buffer:1 ends here
 
 ;; consult-omni
+;; :PROPERTIES:
+;; :CUSTOM_ID: consult-omni
+;; :END:
+
+;; For some reason, installing [[https://github.com/armindarvish/consult-omni][consult-omni]] using the ~:vc~ keyword was giving me problems, so I checked it out from Github instead.
 
 ;; I also needed to create a Google custom search JSON API key at https://developers.google.com/custom-search/v1/introduction .
 
 
-;; [[file:Sacha.org::*consult-omni][consult-omni:1]]
+;; [[file:Sacha.org::#consult-omni][consult-omni:1]]
+(defun my-insert-or-replace-link (url &optional title)
+	"Insert a link, wrap the current region in a link, or replace the current link."
+	(cond
+	 ((derived-mode-p 'org-mode)
+		(cond
+		 ((org-in-regexp org-link-any-re 1)
+			(when (match-end 2) (setq title (match-string-no-properties 2)))
+			(delete-region (match-beginning 0) (match-end 0)))
+		 ((region-active-p)
+			(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+			(delete-region (region-beginning) (region-end))))
+		;; update link
+		(insert (org-link-make-string url title)))
+	 ((derived-mode-p 'org-mode)		 ; not in a link
+		(insert (org-link-make-string url title)))
+	 ((and (region-active-p) (derived-mode-p 'markdown-mode))
+		(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+		(delete-region (region-beginning) (region-end))
+		(insert (format "[%s](%s)" title url)))
+	 ((derived-mode-p 'markdown-mode)
+		(insert (format "[%s](%s)" title url)))
+	 (t
+		(insert (format "%s (%s)" title url)))))
+
 ;; override the embark actions
 (defun my-consult-omni-embark-copy-url-as-kill (cand)
 	"Don't add spaces."
@@ -1020,31 +1060,11 @@ any directory proferred by `consult-dir'."
 	"Don't add spaces."
 	(let ((url (and (stringp cand) (get-text-property 0 :url cand )))
 				(title (and (stringp cand) (get-text-property 0 :title cand))))
-		(cond
-		 ((derived-mode-p 'org-mode)
-			(cond
-			 ((org-in-regexp org-link-any-re 1)
-				(when (match-end 2) (setq title (match-string-no-properties 2)))
-				(delete-region (match-beginning 0) (match-end 0)))
-			 ((region-active-p)
-				(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
-				(delete-region (region-beginning) (region-end))))
-			;; update link
-			(insert (org-link-make-string url title)))
-		 ((derived-mode-p 'org-mode) ; not in a link
-			(insert (org-link-make-string url title)))
-		 ((and (region-active-p) (derived-mode-p 'markdown-mode))
-			(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
-			(delete-region (region-beginning) (region-end))
-			(insert (format "[%s](%s)" title url)))
-		 ((derived-mode-p 'markdown-mode)
-			(insert (format "[%s](%s)" title url)))
-		 (t
-			(insert (format "%s (%s)" title url))))))
+		(my-insert-or-replace-link url title)))
 
 (use-package consult-omni
 	:load-path "~/vendor/consult-omni"
-  :after consult
+  :after (consult embark)
   :custom
   (consult-omni-show-preview t) ;;; show previews
   (consult-omni-preview-key "C-o") ;;; set the preview key to C-o
@@ -1064,21 +1084,6 @@ any directory proferred by `consult-dir'."
 	 ("w u" . #'my-consult-omni-embark-copy-url-as-kill)
 	 ("w t" . #'my-consult-omni-embark-copy-title-as-kill)))
 ;; consult-omni:1 ends here
-
-;; [[file:Sacha.org::*consult-omni][consult-omni:2]]
-(use-package consult-omni
-	;; :vc (:url "https://github.com/armindarvish/consult-omni")
-	:after consult
-	:load-path "~/vendor/consult-omni"
-	:config
-	(add-to-list 'load-path "~/vendor/consult-omni/sources")
-	(require 'consult-omni-embark)
-	(require 'consult-omni-sources)
-	(require 'consult-omni-google)
-	(setq consult-omni-sources-modules-to-load '(consult-omni-google consult-omni-wikipedia))
-	(consult-omni-sources-load-modules)
-	)
-;; consult-omni:2 ends here
 
 ;; Marginalia
 ;; :PROPERTIES:
@@ -1474,8 +1479,11 @@ targets."
 ;; TODO Using Embark to act on images
 ;; :PROPERTIES:
 ;; :CUSTOM_ID: embark-image
+;; :EXPORT_MODIFIED: 2024-09-25T14:31:49-0400
 ;; :END:
-
+;; #+begin_update
+;; [2024-09-25]: added attachment handling
+;; #+end_update
 
 ;; [[file:Sacha.org::#embark-image][Using Embark to act on images:1]]
 (defun my-embark-image ()
@@ -1485,6 +1493,9 @@ targets."
 												(org-element-context))))
 				(when (eq (org-element-type link) 'link)
 					(cond
+					 ((string= "attachment" (org-element-property :type link))
+						(cons 'image (expand-file-name (org-element-property :path link)
+																					 (org-attach-dir))))
 					 ((string-match "sketch" (org-element-property :type link))
 						(cons 'image (my-get-sketch-filename (org-element-property :path link))))
 					 ((string-match extensions (org-element-property :path link))
@@ -1528,6 +1539,10 @@ targets."
 	(interactive "FItem: ")
 	(start-process "firefox" nil "firefox" (if (string-match "^http" file) file (expand-file-name file))))
 
+(defun my-image-autocrop (filename)
+	(interactive "FFile: ")
+	(call-process "mogrify" nil nil nil "-trim" "+repage" filename))
+
 (defun my-image-recognize (file)
 	(interactive "FFile: ")
 	(let ((data (json-parse-string
@@ -1543,6 +1558,38 @@ targets."
 				(assoc-default 'text (assoc-default 'fullTextAnnotation (elt (assoc-default 'responses data) 0)))
 			(assoc-default 'description (elt (assoc-default 'textAnnotations data) 0)))))
 
+(defun my-image-recognize-get-new-filename (file)
+	(interactive "FFile: ")
+	(if-let* ((text (my-image-recognize file))
+						(id (and (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" text)
+										 (match-string 0 text)))
+						(data (and id (my-journal-get-by-zidstring id))))
+			(concat id " " (plist-get data :Note) "." (file-name-extension file))))
+
+(defun my-image-recognize-and-rename (file)
+	(interactive "FFile: ")
+	(let ((new-name (expand-file-name (my-image-recognize-get-new-filename file)
+																		(file-name-directory file))))
+		(rename-file file new-name t)
+		new-name))
+
+(defun my-image-store (file &optional do-move)
+	"Copy or move this image into public or private sketches as needed."
+	(unless (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] " (file-name-nondirectory file))
+		(setq file (my-image-recognize-and-rename file)))
+	(when (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] " (file-name-nondirectory file))
+		(funcall
+		 (if do-move
+				 'rename-file
+			 'copy-file)
+		 file
+		 (expand-file-name
+			(file-name-nondirectory file)
+			(if (string-match "#private" (file-name-nondirectory file))
+					my-private-sketches-directory
+				(car my-sketch-directories)))
+		 t)))
+
 (defun my-image-copy-text (file)
 	(interactive "FImage: ")
 	(kill-new (my-image-recognize file)))
@@ -1556,14 +1603,18 @@ targets."
 
 (with-eval-after-load 'embark
 	(defvar-keymap my-embark-image-actions
-			:doc "Images"
-			"k" #'my-image-open-in-krita
-			"a" #'my-image-open-in-annotator
-			"i" #'my-image-open-in-inkscape
-			"w" #'my-image-copy-text
-			"g" #'my-image-open-in-gimp
-			"f" #'my-open-in-firefox
-			"d" #'my-image-insert-text-as-details)
+		:doc "Images"
+		"k" #'my-image-open-in-krita
+		"a" #'my-image-open-in-annotator
+		"i" #'my-image-open-in-inkscape
+		"w" #'my-image-copy-text
+		"c" #'my-image-autocrop
+		"g" #'my-image-open-in-gimp
+		"f" #'my-open-in-firefox
+		"s" #'my-image-store
+		"r" #'my-image-recognize-and-rename
+		"C" #'my-image-recolor
+		"d" #'my-image-insert-text-as-details)
 	(add-to-list 'embark-keymap-alist '(image . my-embark-image-actions)))
 ;; Using Embark to act on images:2 ends here
 
@@ -1629,13 +1680,17 @@ targets."
 ;; Embark and subed:1 ends here
 
 ;; Embark, symbols, and casual-symbol-overlay
+;; :PROPERTIES:
+;; :CUSTOM_ID: casual-symbol-overlay
+;; :END:
 
 ;; Link: http://yummymelon.com/devnull/announcing-casual-symbol-overlay.html
 
 
-;; [[file:Sacha.org::*Embark, symbols, and casual-symbol-overlay][Embark, symbols, and casual-symbol-overlay:1]]
+;; [[file:Sacha.org::#casual-symbol-overlay][Embark, symbols, and casual-symbol-overlay:1]]
 (use-package casual-symbol-overlay
 	:if my-laptop-p
+	:after embark
 	:init
 	(with-eval-after-load 'embark
 		(keymap-set embark-symbol-map "z" #'casual-symbol-overlay-tmenu)))
@@ -1831,6 +1886,98 @@ targets."
 	(set-face-attribute 'default nil :height 115)
 	(keycast-mode -1))
 ;; Prepare for EmacsConf screenshots or recordings:1 ends here
+
+;; Quickly adding face properties to regions                         :emacs:
+;; :PROPERTIES:
+;; :CUSTOM_ID: face-text
+;; :EXPORT_DATE: 2024-09-19T20:25:35-0400
+;; :EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/quickly-adding-face-properties-to-regions/
+;; :EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/quickly-adding-face-properties-to-regions/
+;; :EXPORT_MODIFIED: 2024-09-20T07:38:17-0400
+;; :END:
+
+;; #+begin_update
+;; - [2024-09-20 Fri]: Set the first frame of the animated GIF to a reasonable backup image.
+;; - [2024-09-20]: Add ~:init-value nil~ to the mode.
+;; #+end_update
+
+;; #+CAPTION: Screencast of modifying face properties
+;; [[file:/home/sacha/recordings/output-2024-09-20-13:09:17.gif]]
+
+;; Sometimes I just want to make some text look a
+;; little fancier in the buffer so that I can make a
+;; thumbnail or display a message. This
+;; ~my-add-face-text-property~ function lets me
+;; select a region and temporarily change its height,
+;; make it bold, or do other things. It will work in
+;; ~text-mode~ or ~enriched-mode~ buffers (not Org
+;; Mode or programming buffers like ~*scratch*~, as
+;; those do a lot of font-locking).
+
+
+;; [[file:Sacha.org::#face-text][Quickly adding face properties to regions:1]]
+(defun my-add-face-text-property (start end attribute value)
+	(interactive
+	 (let ((attribute (intern
+										 (completing-read
+											"Attribute: "
+											(mapcar (lambda (o) (symbol-name (car o)))
+															face-attribute-name-alist)))))
+		 (list (point)
+					 (mark)
+					 attribute
+					 (read-face-attribute '(()) attribute))))
+	(add-face-text-property start end (list attribute value)))
+;; Quickly adding face properties to regions:1 ends here
+
+
+
+;; ~enriched-mode~ has some keyboard shortcuts for
+;; face attributes (~M-o b~ for bold, ~M-o i~ for
+;; italic). I can add some keyboard shortcuts for
+;; other properties even if they can't be saved in
+;; ~text/enriched~ format.
+
+
+;; [[file:Sacha.org::#face-text][Quickly adding face properties to regions:2]]
+(defun my-face-text-larger (start end)
+	(interactive "r")
+	(add-face-text-property
+	 start end
+	 (list :height (floor (+ 50 (car (alist-get :height (get-text-property start 'face) '(100))))))))
+(defun my-face-text-smaller (start end)
+	(interactive "r")
+	(add-face-text-property
+	 start end
+	 (list :height (floor (- (car (alist-get :height (get-text-property start 'face) '(100))) 50)))))
+;; Quickly adding face properties to regions:2 ends here
+
+
+
+;; What's an easy way to make this keyboard shortcut
+;; available during the rare times I want it? I know,
+;; maybe I'll make a quick minor mode so I don't
+;; have to dedicate those keyboard shortcuts all the
+;; time. ~repeat-mode~ lets me change the size by
+;; repeating just the last keystroke.
+
+
+;; [[file:Sacha.org::#face-text][Quickly adding face properties to regions:3]]
+(defvar-keymap my-face-text-property-mode-map
+	"M-o p" #'my-add-face-text-property
+  "M-o +" #'my-face-text-larger
+	"M-o -" #'my-face-text-smaller)
+(define-minor-mode my-face-text-property-mode
+  "Make it easy to modify face properties."
+  :init-value nil
+  (repeat-mode 1))
+(defvar-keymap my-face-text-property-mode-repeat-map
+	:repeat t
+	"+" #'my-face-text-larger
+	"-" #'my-face-text-smaller)
+(dolist (cmd '(my-face-text-larger my-face-text-smaller))
+  (put cmd 'repeat-map 'my-face-text-property-mode-repeat-map))
+;; Quickly adding face properties to regions:3 ends here
 
 ;; Navigation
 ;; :PROPERTIES:
@@ -2852,24 +2999,100 @@ Otherwise call FUN with STRING, PRED and ACTION as arguments."
 ;; :CUSTOM_ID: gif-screencast
 ;; :END:
 
+;; Animated GIFs make it easy to demonstrate things,
+;; and [[package:gif-screencast][gif-screencast]] makes it easy to record a
+;; screencast with each command getting its own GIF
+;; frame. In my config, I have ~s-s~ (super-s, or the
+;; Windows key + s) bound to
+;; ~gif-screencast-start-or-stop~. I like adding
+;; animated GIFs to my blog posts and videos.
+
+;; Not all interfaces can display animated GIFs. For
+;; example, some people read my blog in [[package:elfeed][elfeed]] or in
+;; a console Emacs and can see only the first frame
+;; of a GIF. It makes sense to select the a frame to
+;; use as the fallback for the animated GIF, much
+;; like videos can have thumbnails.
+
+;; When I stop gif-screencast, I want to pick a frame
+;; and use it as the first frame. Let's see if this works...
+
 
 ;; [[file:Sacha.org::#gif-screencast][gif-screencast:1]]
+(defun my-gif-screencast-start-or-stop-and-choose-thumbnail ()
+	"Start a screencast or pause recording."
+	(interactive)
+	(if gif-screencast-mode
+			(progn
+				(gif-screencast-toggle-pause)
+				(dired gif-screencast-screenshot-directory)
+				(revert-buffer)
+				(dired gif-screencast-screenshot-directory)
+				(image-dired gif-screencast-screenshot-directory))
+		(gif-screencast)))
+;; gif-screencast:1 ends here
+
+
+
+;; Actually, what I want to do is a more general
+;; case: be able to delete frames, copy frames to the
+;; beginning, eventually move frames around, etc.,
+;; and then generate the GIF based on the contents of
+;; that directory.
+
+
+;; [[file:Sacha.org::#gif-screencast][gif-screencast:2]]
+(defun my-gif-screencast-copy-image-to-first-frame (file)
+	(interactive (list (dired-get-filename)))
+  ;; Determine the timestamp of the first file in this directory
+	(copy-file
+	 file
+	 (expand-file-name
+		(format-time-string
+		 "screen-%F-%T-%3N.png"
+		 (time-subtract
+			(my-gif-screencast-timestamp-from-filename
+			 (car (directory-files gif-screencast-screenshot-directory nil ".png")))
+			(seconds-to-time 0.001)))
+		gif-screencast-screenshot-directory)))
+
+(defun my-gif-screencast-timestamp-from-filename (file)
+	(setq file (replace-regexp-in-string "^screen-" "" (file-name-base file)))
+	(time-add (date-to-time (format "%s %s" (substring file 0 10) (substring file 11 19)))
+						(float-time (/ (string-to-number (substring file 20 23)) 1000.0))))
+(cl-assert
+ (string= (format-time-string "test-%F-%T-%3N" (my-gif-screencast-timestamp-from-filename "screen-2024-09-20-13:18:08-024.png"))
+					"test-2024-09-20-13:18:08-024"))
+
+(defun my-gif-screencast-update-frames-from-directory ()
+	(interactive)
+	(let* ((files (directory-files gif-screencast-screenshot-directory nil ".png"))
+				 (start-time (my-gif-screencast-timestamp-from-filename (car files))))
+		(setq gif-screencast--frames
+					(mapcar (lambda (o)
+										(make-gif-screencast-frame
+										 :timestamp (my-gif-screencast-timestamp-from-filename o)
+										 :filename o))
+									files))
+		(gif-screencast-mode 0)
+		(gif-screencast--finish)))
+;; gif-screencast:2 ends here
+
+
+
+;; Someday it could be pretty cool to have an SVG where I can see the frames on a timeline and then drag them around. In the meantime, let's see how this works out.
+
+
+;; [[file:Sacha.org::#gif-screencast][gif-screencast:3]]
 (use-package gif-screencast
 	:bind
-	("s-s" . gif-screencast-start-or-stop)
+	("s-s" . my-gif-screencast-start-or-stop-and-choose-thumbnail)
 	:config
 	(setq gif-screencast-output-directory my-recordings-dir))
 
 (use-package giffy
 	:quelpa (giffy :fetcher github :repo "larsmagne/giffy"))
-
-(defun my-giffy-open-gif (file)
-	(interactive (list (read-file-name "GIF: ")))
-	(let ((directory (make-temp-file (concat "giffy-" (file-name-base file)) t)))
-	;;TODO
-		)
-	)
-;; gif-screencast:1 ends here
+;; gif-screencast:3 ends here
 
 ;; Sentences end with a single space
 ;; :PROPERTIES:
@@ -4006,6 +4229,8 @@ Saves to a temp file and puts the filename in the kill ring."
   (key-chord-define subed-mode-map "hu" 'my-subed/body)
   (key-chord-define subed-mode-map "ht" 'my-subed/body)
 	(setq subed-loop-seconds-before 0 subed-loop-seconds-after 0)
+	(setq subed-align-command
+				'("/home/sacha/vendor/aeneas/venv/bin/python3" "-m" "aeneas.tools.execute_task"))
   :bind
   (:map subed-mode-map
         ("M-j" . avy-goto-char-timer)
@@ -10064,6 +10289,7 @@ the mode, `toggle' toggles the state."
 ;; :END:
 
 ;; #+begin_update
+;; - [2024-09-19 Thu]: Added function for replacing current link, bound to ~C-. r~ (~my-embark-replace-link-with-exported-url~)
 ;; - [2024-01-12 Fri] Added embark action to copy the exported link URL.
 ;; - [2024-01-11 Thu] Switched to using Github links since Codeberg's down.
 ;; - [2024-01-11 Thu] Updated my-copy-link to just return the link if called from Emacs Lisp. Fix getting the properties.
@@ -10189,8 +10415,8 @@ the mode, `toggle' toggles the state."
 ;; :END:
 
 ;; #+begin_update
-;; [2024-01-20]: Fix Wayback link handling.
-;; [2024-01-19]: Add Wayback machine.
+;; - [2024-01-20]: Fix Wayback link handling.
+;; - [2024-01-19]: Add Wayback machine.
 ;; #+end_update
 
 ;; Keeping a list of projects and their web versions also makes it easier
@@ -10326,19 +10552,16 @@ If LINK is specified, use that instead."
 			(message "Copied %s" url))
 		url))
 
+(defun my-embark-replace-link-with-exported-url (link &rest _)
+	(interactive (list (org-element-property :raw-link (org-element-context))))
+	(my-insert-or-replace-link (my-org-link-as-url link)))
+
 (with-eval-after-load 'embark-org
-	(define-key embark-org-link-map
-							"u"
-							#'my-embark-org-copy-exported-url)
-	(define-key embark-org-link-map
-							"U"
-							#'my-embark-org-copy-exported-url-as-wayback)
-	(define-key embark-org-link-copy-map
-							"u"
-							#'my-embark-org-copy-exported-url)
-	(define-key embark-org-link-copy-map
-							"U"
-							#'my-embark-org-copy-exported-url-as-wayback))
+	(mapc (lambda (map)
+					(keymap-set map "u" #'my-embark-org-copy-exported-url)
+					(keymap-set map "U" #'my-embark-org-copy-exported-url-as-wayback)
+					(keymap-set map "r" #'my-embark-replace-link-with-exported-url))
+				(list embark-url-map embark-org-link-map embark-org-link-copy-map)))
 ;; Copy web link:2 ends here
 
 ;; Quickly search my code
@@ -10874,7 +11097,8 @@ FORMAT."
     (delete-region (point-min) (search-forward "\n\n"))
     (cdr (pcsv-parse-buffer))))
 
-(defun my-journal-get (url) (my-json-request (concat my-journal-url "/" url)))
+(defun my-journal-get (url)
+	(my-json-request (concat my-journal-url "/" url)))
 (defun my-journal-get-entry (zid) (my-journal-get (format "api/entries/zid/%s" zid)))
 ;; Journal:1 ends here
 
@@ -11436,6 +11660,7 @@ FORMAT."
      (R . t)))
   (setq org-babel-python-command "python3")
   (setq python-shell-interpreter "python3")
+	(add-to-list 'org-src-lang-modes '("html" . web))
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot)))
 ;; Diagrams and graphics:1 ends here
 
@@ -11973,7 +12198,26 @@ If BLOCK-NAME is specified, use that block type instead."
 				 ((eq format 'ascii) (format "%s <%s>" desc path))
 				 (t path))
 			desc)))
-(org-link-set-parameters "package" :follow 'my-org-package-open :export 'my-org-package-export)
+(defun my-org-package-complete ()
+	(require 'finder-inf nil t)
+  (unless package--initialized
+    (package-initialize t))
+	(concat
+	 "package:"
+   ;; Load the package list if necessary (but don't activate them).
+   (let ((packages (mapcar #'symbol-name (mapcar #'car package-archive-contents))))
+		 (completing-read "Package: "
+                      packages nil t nil nil))))
+
+(defun my-org-package-link-description (link description)
+	(unless description
+		(when (string-match "package:\\(.+\\)" link)
+			(match-string 1 link))))
+
+(org-link-set-parameters
+ "package"
+ :follow 'my-org-package-open :export 'my-org-package-export :complete 'my-org-package-complete
+ :insert-description #'my-org-package-link-description)
 ;; org-package-link ends here
 
 ;; Save when Emacs loses focus
@@ -12504,11 +12748,11 @@ If it's from a tangled file, follow the link."
 				(setq-local python-check-command "flake8 --append-config /home/sacha/.config/flake8"))
 			70)
 	)
-(use-package lsp-pyright
-  :ensure t
-  :hook (python-mode . (lambda ()
-                          (require 'lsp-pyright)
-                          (lsp))))
+;; (use-package lsp-pyright
+;;   :ensure t
+;;   :hook (python-mode . (lambda ()
+;;                           (require 'lsp-pyright)
+;;                           (lsp))))
 (require 'ansi-color)
 (defun colorize-compilation-buffer ()
   (when (eq major-mode 'compilation-mode)
@@ -13859,45 +14103,35 @@ Useful as `imenu-create-index-function'."
 ;; :CUSTOM_ID: javascript
 ;; :END:
 
-;; I like js2-mode.
-
-
-;; [[file:Sacha.org::#javascript][Javascript:1]]
-(add-to-list 'auto-mode-alist '("\\.js\\'\\|\\.json\\'" . js2-mode))
-;; Javascript:1 ends here
-
-
-
 ;; Handy shortcuts:
 
-;; [[file:Sacha.org::#javascript][Javascript:2]]
+;; [[file:Sacha.org::#javascript][Javascript:1]]
 (use-package js2-mode
   :if my-laptop-p
-  :mode "\\.js\\'"
   :bind (:map js2-mode-map ("C-c C-c" . projectile-compile-project)))
-;; Javascript:2 ends here
+;; Javascript:1 ends here
 
-;; [[file:Sacha.org::#javascript][Javascript:3]]
+;; [[file:Sacha.org::#javascript][Javascript:2]]
 (use-package coffee-mode
   :if my-laptop-p
   :mode "\\.coffee\\'"
   :bind (:map coffee-mode-map ("C-c C-c" . compile)))
-;; Javascript:3 ends here
+;; Javascript:2 ends here
 
-;; [[file:Sacha.org::#javascript][Javascript:4]]
+;; [[file:Sacha.org::#javascript][Javascript:3]]
 (use-package jasminejs-mode
   :if my-laptop-p
   :after js2-mode
   :hook ((js2-mode . jasminejs-mode)
          (jasminejs-mode-hook . jasminejs-add-snippets-to-yas-snippet-dirs)))
-;; Javascript:4 ends here
+;; Javascript:3 ends here
 
 
 
 ;; This makes script blocks easier to copy:
 
 
-;; [[file:Sacha.org::#javascript][Javascript:5]]
+;; [[file:Sacha.org::#javascript][Javascript:4]]
 (defvar my-javascript-test-regexp (concat (regexp-quote "/** Testing **/") "\\(.*\n\\)*")
   "Regular expression matching testing-related code to remove.
       See `my-copy-javascript-region-or-buffer'.")
@@ -13920,14 +14154,14 @@ Useful as `imenu-create-index-function'."
      (buffer-substring (point-min) (point-max))
      nil)
     "\n</script>")))
-;; Javascript:5 ends here
+;; Javascript:4 ends here
 
 
 
 ;; This makes it easier to debug:
 
 
-;; [[file:Sacha.org::#javascript][Javascript:6]]
+;; [[file:Sacha.org::#javascript][Javascript:5]]
 (defvar my-debug-counter 1)
 (defun my-insert-or-flush-debug (&optional reset beg end)
   (interactive "pr")
@@ -13950,14 +14184,14 @@ Useful as `imenu-create-index-function'."
     (setq my-debug-counter (1+ my-debug-counter))
     (backward-char 3)
     (js2-indent-line))))
-;; Javascript:6 ends here
+;; Javascript:5 ends here
 
 
 
 ;; And the rest of the js2 config:
 
 
-;; [[file:Sacha.org::#javascript][Javascript:7]]
+;; [[file:Sacha.org::#javascript][Javascript:6]]
 (use-package js2-mode
   :if my-laptop-p
   :commands js2-mode
@@ -13971,14 +14205,14 @@ Useful as `imenu-create-index-function'."
               ("C-c C-b" . js-send-buffer-and-go)
               ("C-c w" . my-copy-javascript-region-or-buffer))
   :config (js2-imenu-extras-setup))
-;; Javascript:7 ends here
+;; Javascript:6 ends here
 
-;; [[file:Sacha.org::#javascript][Javascript:8]]
+;; [[file:Sacha.org::#javascript][Javascript:7]]
 (use-package coffee-mode
   :if my-laptop-p
   :defer t
   :config (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
-;; Javascript:8 ends here
+;; Javascript:7 ends here
 
 ;; Indium
 ;; :PROPERTIES:
@@ -14089,7 +14323,7 @@ Useful as `imenu-create-index-function'."
   (defface my-flymake-modeline-error-echo
     '((t :inherit 'flymake-error-echo :background "red"))
     "Mode line flymake errors")
-  (put 'flymake-error 'mode-line-face 'my/flymake-modeline-error-echo)
+  (put 'flymake-error 'mode-line-face 'my-flymake-modeline-error-echo)
   (defface my-flymake-modeline-warning-echo
     '((t :inherit 'flymake-warning-echo :background "orange"))
     "Mode line flymake warnings")
@@ -14457,6 +14691,31 @@ so that it's still active even after you stage a change. Very experimental."
 ;; [[file:Sacha.org::#exploring-melpa-recipes][Exploring MELPA recipes:1]]
 
 ;; Exploring MELPA recipes:1 ends here
+
+;; [[file:Sacha.org::#ruby][Ruby:4]]
+(use-package inf-ruby
+	:config
+	(setq inf-ruby-prompt-format
+			(concat
+			 (mapconcat
+				#'identity
+				'("\\(^%s> *\\)"					; Simple
+					"\\(^(rdb:1) *\\)"			; Debugger
+					"\\(^(rdbg[^)]*) *\\)"	; Ruby Debug Gem
+					"\\(^(byebug) *\\)"			; byebug
+					"\\(^\\(irb([^)]+)"			; IRB default
+					"\\([[0-9]+] \\)?[Pp]ry ?([^)]+)"	; Pry
+					"\\(^[^%s]+\\)"			 ; new rails console with project name and environment
+					"\\(jruby-\\|JRUBY-\\)?[1-9]\\.[0-9]\\(\\.[0-9]+\\)*\\(-?p?[0-9]+\\)?" ; RVM
+					"^rbx-head\\)")					 ; RVM continued
+				"\\|")
+			 ;; Statement and nesting counters, common to the last four.
+			 " ?[0-9:]* ?%s *\\)")
+			inf-ruby-first-prompt-pattern
+			(format inf-ruby-prompt-format ">" ">" ">")
+			inf-ruby-prompt-pattern
+			(format inf-ruby-prompt-format "[?>]" "*>" "[\]>*\"'/`]")))
+;; Ruby:4 ends here
 
 ;; Skewer
 ;; :PROPERTIES:
@@ -15454,8 +15713,9 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 
 
 ;; [[file:Sacha.org::#mastodon-insert-statuses][Archive toots on my blog:1]]
-(defun my-mastodon-insert-my-statuses-since (date)
+(defun my-mastodon-insert-my-toots-since (date)
 	(interactive (list (org-read-date "Since date: ")))
+	(require 'mastodon-auth)
 	(insert
 	 (format "#+begin_toot_archive\n%s\n#+end_toot_archive\n"
 					 (mapconcat
@@ -21407,6 +21667,58 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 (setq htmlize-css-name-prefix "org-")
 (setq htmlize-head-tags "<link rel=\"stylesheet\" href=\"https://sachachua.com/assets/css/style.css\" />")
 ;; Supernote:4 ends here
+
+;; Getting files from Browse & Access
+;; :PROPERTIES:
+;; :CUSTOM_ID: supernote-browse
+;; :ID:       20240926T080807.815726
+;; :END:
+
+;; [[attachment:2024-09-26-01 Supernote A5X Browse and Access #supernote.png]]
+
+
+;; [[file:Sacha.org::#supernote-browse][Getting files from Browse & Access:1]]
+(defvar my-supernote-ip-address "192.168.1.221")
+(defun my-supernote-get-exported-files ()
+	(let ((data (plz 'get (format "http://%s:8089/EXPORT" my-supernote-ip-address)))
+				(list))
+		(when (string-match "const json = '\\(.*\\)'" data)
+			(sort
+			 (alist-get 'fileList (json-parse-string (match-string 1 data) :object-type 'alist :array-type 'list))
+			 :key (lambda (o) (alist-get 'date o))
+			 :lessp 'string<
+			 :reverse t))))
+
+(defun my-supernote-org-attach-latest-exported-file ()
+	(interactive)
+	;; save the file to the screenshot directory
+	(let ((info (car (my-supernote-get-exported-files)))
+				new-file
+				renamed)
+		;; delete matching files
+		(when (file-exists-p (expand-file-name (alist-get 'name info) (org-attach-dir)))
+			(delete-file (expand-file-name (alist-get 'name info) (org-attach-dir))))
+		(org-attach-attach
+		 (format "http://%s:8089/%s" my-supernote-ip-address
+						 (alist-get 'uri info))
+		 nil
+		 'url)
+		(setq new-file (my-latest-file (org-attach-dir)))
+		;; autocrop that image
+		(my-image-autocrop new-file)
+		;; recolor
+		(my-sketch-recolor-png new-file)
+		;; possibly rename
+		(setq renamed (my-image-recognize-get-new-filename new-file))
+		(when renamed
+			(setq renamed (expand-file-name renamed (org-attach-dir)))
+			(rename-file new-file renamed t)
+			(my-image-store renamed) 					; file it in my archive
+			(setq new-file renamed))
+		;; insert the link
+		(org-insert-link nil (concat "attachment:" (file-name-nondirectory new-file)))
+		(org-redisplay-inline-images)))
+;; Getting files from Browse & Access:1 ends here
 
 
 

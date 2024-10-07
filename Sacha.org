@@ -819,7 +819,12 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
 :END:
 
 #+begin_src emacs-lisp
-(use-package vertico :config (vertico-mode +1))
+(use-package vertico
+	:config
+	(vertico-mode +1)
+	(vertico-multiform-mode)
+	(with-eval-after-load 'vertico-multiform
+		(add-to-list 'vertico-multiform-categories '(embark-keybinding grid))))
 (use-package orderless
 	:custom
 	(completion-styles '(orderless basic))
@@ -1080,8 +1085,10 @@ I also needed to create a Google custom search JSON API key at https://developer
 	(cond
 	 ((derived-mode-p 'org-mode)
 		(cond
-		 ((org-in-regexp org-link-any-re 1)
+		 ((org-in-regexp org-link-bracket-re 1)
 			(when (match-end 2) (setq title (match-string-no-properties 2)))
+			(delete-region (match-beginning 0) (match-end 0)))
+		 ((org-in-regexp org-link-any-re 1)
 			(delete-region (match-beginning 0) (match-end 0)))
 		 ((region-active-p)
 			(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
@@ -1252,8 +1259,11 @@ The following code annotates journal entries with their categories.
   	:bind
   	(("C-." . embark-act)
   	 ("C-;" . embark-act)
+  	 :map vertico-map
+		 (("M-e" . embark-export))
   	 :map minibuffer-local-map
   	 (("C-c e" . embark-act)
+			("M-e" . embark-export)
   	  ("C-;" . embark-act)
   		("C-<tab>" . embark-select)
   		("C-SPC" . (lambda () (interactive) (embark-select) (vertico-next))))
@@ -1306,7 +1316,9 @@ from [[dotemacs:web-link]] so that I can get the regular
 (defun my-org-link-qr (url)
 	"Display a QR code for URL in a buffer."
 	(let ((buf (save-window-excursion (qrencode--encode-to-buffer (my-org-stored-link-as-url url)))))
-		(display-buffer-in-side-window buf '((side . right)))))
+		(if (> (frame-width) 80)
+				(display-buffer-in-side-window buf '((side . right)))
+			(display-buffer buf))))
 
 (use-package qrencode
 	:config
@@ -1315,6 +1327,7 @@ from [[dotemacs:web-link]] so that I can get the regular
 #+end_src
 
 #+CAPTION: Screenshot of QR code for the link at point
+#+ATTR_HTML: :data-link t
 [[file:images/qr-code.svg]]
 
 *** TODO Using Embark to act on video
@@ -1545,7 +1558,7 @@ targets."
 #+begin_src emacs-lisp
 (defun my-embark-image ()
 	"Match images."
-	(let ((extensions "\\(png\\|jpg\\|svg\\|gif\\)\\$"))
+	(let ((extensions "\\(png\\|jpg\\|svg\\|gif\\)\\'"))
 		(if-let ((link (and (derived-mode-p 'org-mode)
 												(org-element-context))))
 				(when (eq (org-element-type link) 'link)
@@ -1593,9 +1606,14 @@ I want to:
 	(interactive "FItem: ")
 	(start-process "firefox" nil "firefox" (if (string-match "^http" file) file (expand-file-name file))))
 
-(defun my-image-autocrop (filename)
+(defvar my-image-autocrop-border 10)
+(defun my-image-autocrop (filename &optional border)
 	(interactive "FFile: ")
-	(call-process "mogrify" nil nil nil "-trim" "+repage" filename))
+	(setq border (or border my-image-autocrop-border))
+	(let ((args (append '("-trim")
+											(if border `("-bordercolor" "#FFFFFF" "-border" ,(number-to-string border)))
+											(list "+repage" filename))))
+		(apply #'call-process "mogrify" nil nil nil args)))
 
 (defun my-image-recognize (file)
 	(interactive "FFile: ")
@@ -1925,36 +1943,16 @@ I wanted to experiment with [[ https://irreal.org/blog/?p=11867#comment-63540173
 #+begin_columns
 #+begin_column50
 #+CAPTION: with dark mode
+#+ATTR_HTML: :data-link t
 [[file:images/dark-mode-line.svg][file:images/dark-mode-line.svg]]
 #+end_column50
 #+begin_column50
 #+CAPTION: with light mode
+#+ATTR_HTML: :data-link t
 [[file:images/light-mode-line.svg][file:images/light-mode-line.svg]]
 #+end_column50
 #+end_columns
 
-** Prepare for EmacsConf screenshots or recordings
-:PROPERTIES:
-:CUSTOM_ID: prepare-for-emacsconf-screenshots-or-recordings
-:END:
-
-#+begin_src emacs-lisp
-(defun my-emacsconf-prepare-for-screenshots ()
-	(interactive)
-	(shell-command "xrandr --output LVDS-1 --mode 1280x720")
-	(modus-themes-load-theme 'modus-operandi)
-	(my-hl-sexp-update-overlay)
-	(set-face-attribute 'default nil :height 170)
-	(keycast-mode))
-
-(defun my-emacsconf-back-to-normal ()
-	(interactive)
-	(shell-command "xrandr --output LVDS-1 --mode 1366x768")
-	(modus-themes-load-theme 'modus-vivendi)
-	(my-hl-sexp-update-overlay)
-	(set-face-attribute 'default nil :height 115)
-	(keycast-mode -1))
-#+end_src
 ** Quickly adding face properties to regions                         :emacs:
 :PROPERTIES:
 :CUSTOM_ID: face-text
@@ -3328,6 +3326,7 @@ it. As. Something links at those or four none. Uh, into my inbox.
 #+end_example
 
 #+begin_comment
+#+ATTR_HTML: :data-link t
 #+CAPTION: Keywords
 [[file:/home/sacha/recordings/2023-12-16-09-45-42.svg]]
 #+end_comment
@@ -3345,21 +3344,22 @@ START CHAPTER second brain STOP CHAPTER
 #+end_src
 
 #+begin_comment Timestamps after alignment
-#+CAPTION:
+#+ATTR_HTML: :data-link t
+#+CAPTION: Timestamps after alignment
 [[file:/home/sacha/recordings/2023-12-16-09-46-07.svg]]
 #+end_comment
 
 I can then create an Org Mode TODO item with a quick hyperlinked summary as well as my transcript.
 
 #+CAPTION: Summary with headings and links
-#+ATTR_HTML: :style max-height:80vh
+#+ATTR_HTML: :style max-height:80vh :data-link t
 [[file:images/braindump-summary.svg]]
 
 I can jump to the audio if there are misrecognized words.
 
 #+begin_my_details Screenshot of jumping to the audio
 #+CAPTION: Following the link to the chapter in the VTT file
-#+ATTR_HTML: :style max-height:80vh
+#+ATTR_HTML: :style max-height:80vh :data-link t
 [[file:images/braindump-vtt.png]]
 #+end_my_details
 
@@ -4730,6 +4730,7 @@ much of a pause between them.
 Then I can use ~subed-waveform-show-all~ to tweak the start and end timestamps.
 
 #+CAPTION: Screenshot of subed-waveform
+#+ATTR_HTML: :data-link t
 [[https://sachachua.com/blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/2024-09-17-12-06-12.svg]]
 
 After that, I can [[blog:/blog/2023/12/using-subed-record-in-emacs-to-edit-audio-and-clean-up-oopses/][use subed-record to compile the
@@ -4931,7 +4932,7 @@ You can get these from https://github.com/sachac
 )
 #+end_src
 *** TODO Working with sections defined by NOTE comments
-SCHEDULED: <2024-10-07 Mon>
+SCHEDULED: <2024-10-21 Mon>
 :PROPERTIES:
 :CREATED:  [024-05-31 Fri 15:1]
 :END:
@@ -5263,6 +5264,51 @@ my-subed-record-wpm
 					(insert s)
 				s)))
 #+end_src
+*** Removing gaps and merging subtitles
+:PROPERTIES:
+:CUSTOM_ID: subed-gaps
+:END:
+
+#+begin_src emacs-lisp
+(defun my-subed-remove-gaps (&optional threshold)
+	"Remove gaps between cues below threshold.
+If threshold is 0, remove all gaps."
+	(interactive "NThreshold: ")
+	(goto-char (point-min))
+	(unless (subed-jump-to-subtitle-time-start)
+		(subed-forward-subtitle-time-start))
+	(subed-set-subtitle-time-start 0)
+	(let (last-start)
+		(subed-for-each-subtitle (point) (point-max) t
+			(if (and last-start (< (- last-start (subed-subtitle-msecs-stop)) threshold))
+					(subed-set-subtitle-time-stop (1- last-start)))
+			(setq last-start (subed-subtitle-msecs-start)))))
+(defun my-subed-merge-to-min-length (threshold)
+	"Merge cues until the duration is at least THRESHOLD."
+	(interactive "NThreshold (msecs): ")
+	(goto-char (point-min))
+	(while (not (eobp))
+		(subed-jump-to-subtitle-text)
+		(while (not (eobp))
+			(let ((duration (- (subed-subtitle-msecs-stop)
+												 (subed-subtitle-msecs-start)))
+						(next-duration (save-excursion
+														 (when (subed-forward-subtitle-start-pos)
+															 (- (subed-subtitle-msecs-stop)
+																	(subed-subtitle-msecs-start))))))
+				(while (and next-duration (< (+ duration next-duration) threshold))
+					(subed-merge-with-next)
+					(setq duration (- (subed-subtitle-msecs-stop)
+														(subed-subtitle-msecs-start))
+								next-duration (save-excursion
+																(when (subed-forward-subtitle-start-pos)
+																	(- (subed-subtitle-msecs-stop)
+																		 (subed-subtitle-msecs-start)))))))
+			(unless (subed-forward-subtitle-start-pos)
+				(goto-char (point-max))))))
+
+#+end_src
+
 ** Transcripts from my phone
 :PROPERTIES:
 :CUSTOM_ID: transcripts-from-my-phone
@@ -5904,6 +5950,31 @@ stuff.
 	(org-export-with-sub-superscripts nil)
 	(org-fold-catch-invisible-edits 'smart))
 #+end_src
+
+** TODO Move Org Mode properties from subtree to parent
+:PROPERTIES:
+:CREATED:  [2024-09-16 Mon 14:04]
+:CUSTOM_ID: my-org-move-properties-to-parent
+:END:
+
+Sometimes I set Org properties on a subtree when I meant to set them on the parent heading.
+This function moves all the properties up one level.
+
+#+begin_src emacs-lisp
+(defun my-org-move-properties-to-parent ()
+	(interactive)
+	(let ((properties (org-entry-properties (point) 'standard)))
+		;; delete properties from the current entry
+		(mapc (lambda (prop)
+						(unless (string= (car prop) "CATEGORY") (org-entry-delete (point) (car prop))))
+					properties)
+		;; add properties
+		(outline-up-heading 1)
+		(mapc (lambda (prop)
+						(org-entry-put (point) (car prop) (cdr prop)))
+					properties)))
+#+end_src
+
 
 ** My files
 :PROPERTIES:
@@ -8124,7 +8195,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
 (setq org-refile-use-outline-path 'file)
 (setq org-outline-path-complete-in-steps nil)
 (setq org-refile-allow-creating-parent-nodes 'confirm)
-(setq org-refile-use-cache nil)
+(setq org-refile-use-cache t)
 (setq org-blank-before-new-entry nil)
 
 (setq org-refile-targets
@@ -8727,6 +8798,119 @@ Then I should be able to use =literate-elisp-load-file= and still be able to jum
 :PROPERTIES:
 :CUSTOM_ID: publishing
 :END:
+*** Include inline SVGs in Org Mode HTML and Markdown exports   :emacs:org:
+:PROPERTIES:
+:CUSTOM_ID: org-inline-svg
+:EXPORT_DATE: 2024-09-26T12:54:34-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/include-inline-svgs-in-org-mode-html-and-markdown-exports/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/include-inline-svgs-in-org-mode-html-and-markdown-exports/
+:EXPORT_MODIFIED: 2024-10-07T10:44:51-0400
+:END:
+
+#+begin_update
+- [2024-10-07]: Now I can specify ~#+ATTR_HTML :data-link t~ to make it link instead of include.
+- [2024-09-26]: Whoops, forgot to make sure ox-11ty is also covered.
+#+end_update
+
+In my Org Mode HTML and Markdown exports, I
+usually want to include SVGs inline so that I can
+use links. Sometimes I also want to use Javascript
+and CSS to modify elements within the images. I
+used to use a [[dotemacs:org-mode-including-portions-of-files-between-two-regular-expressions][my-include:]] link to do this, but I
+realized that I can also modify this behaviour by
+making my own functions that call ~org-html-link~
+or ~org-md-link~ and then put those functions in
+~org-export-backend-transcoders~.
+
+Here is an example of an SVG:
+
+#+begin_src dot :file inline.svg
+digraph g {
+		rankdir=LR;
+		node [fontcolor="#000000",fontname="Roboto,Arial,sans-serif"];
+		edge [fontcolor="#000000",fontname="Roboto,Arial,sans-serif"];
+		Graphviz -> "Org Mode" [label="SVG"];
+		"Org Mode" -> {HTML Markdown};
+		Graphviz[URL="https://graphviz.org",fontcolor="blue"];
+}
+#+end_src
+
+#+RESULTS:
+:results:
+[[file:inline.svg]]
+:end:
+
+The following code overrides HTML and Markdown exports
+to include SVGs.
+
+#+begin_src emacs-lisp :results silent
+(defun my-ox-link-path (link _ info)
+	(let* ((raw-path (org-element-property :path link)))
+		(setq raw-path
+					(org-export-file-uri
+					 (org-publish-file-relative-name raw-path info)))
+		;; Possibly append `:html-link-home' to relative file
+		;; name.
+		(let ((home (and (plist-get info :html-link-home)
+										 (org-trim (plist-get info :html-link-home)))))
+			(when (and home
+								 (plist-get info :html-link-use-abs-url)
+								 (not (file-name-absolute-p raw-path)))
+				(setq raw-path (concat (file-name-as-directory home) raw-path))))
+		raw-path))
+
+(defun my-org-html-link (link desc info)
+	(if (and
+			 (string= (org-element-property :type link) "file")
+			 (not (plist-get (org-export-read-attribute :attr_html (org-element-parent-element link))
+											 :data-link))
+			 (org-export-inline-image-p link (plist-get info :html-inline-image-rules)))
+			(let ((path (my-ox-link-path link desc info)))
+				(if (string= (file-name-extension path) "svg")
+						(with-temp-buffer
+							(insert-file-contents-literally path)
+							(buffer-string))
+					(org-html-link link desc info)))
+		(org-html-link link desc info)))
+
+(defun my-org-md-link (link desc info)
+	(if (and (string= (org-element-property :type link) "file")
+					 (not (plist-get (org-export-read-attribute :attr_html (org-element-parent-element link))
+											 :data-link)))
+			(let ((path (my-ox-link-path link desc info)))
+				(if (string= (file-name-extension path) "svg")
+						(with-temp-buffer
+							(insert-file-contents-literally path)
+							(buffer-string))
+					(org-md-link link desc info)))
+		(org-md-link link desc info)))
+
+(defun my-org-11ty-link (link desc info)
+	(if (and (string= (org-element-property :type link) "file")
+					 (not (plist-get (org-export-read-attribute :attr_html (org-element-parent-element link))
+											 :data-link)))
+			(let ((path (my-ox-link-path link desc info)))
+				(if (string= (file-name-extension path) "svg")
+						(with-temp-buffer
+							(insert-file-contents-literally path)
+							(buffer-string))
+					(org-11ty-link link desc info)))
+		(org-11ty-link link desc info)))
+
+(with-eval-after-load 'ox-html
+	(setf
+	 (alist-get 'link (org-export-backend-transcoders (org-export-get-backend 'html)))
+	 'my-org-html-link))
+(with-eval-after-load 'ox-md
+	(setf
+	 (alist-get 'link (org-export-backend-transcoders (org-export-get-backend 'md)))
+	 'my-org-md-link))
+(with-eval-after-load 'ox-11ty
+	(setf
+	 (alist-get 'link (org-export-backend-transcoders (org-export-get-backend '11ty)))
+	 'my-org-11ty-link))
+#+end_src
+
 *** Counting words without blocks
 
 #+begin_src emacs-lisp
@@ -9221,7 +9405,7 @@ position itself.
 												 (plist-get info field)))))
 	info)
 
-(defun my-org-11ty-unpublish ()
+(defun my-org-11ty-unpublish-current-post ()
 	(interactive)
 	(when (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
 		(delete-directory (expand-file-name (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
@@ -9230,6 +9414,8 @@ position itself.
 		(delete-directory (expand-file-name (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
 																				(expand-file-name "_site" my-11ty-base-dir))
 											t)))
+(defalias 'my-org-11ty-delete-current-post #'my-org-11ty-unpublish-current-post)
+
 (defun my-org-11ty-copy-permalink ()
 	(interactive)
 	(kill-new (concat "https://sachachua.com" (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK"))))
@@ -10352,16 +10538,23 @@ With prefix argument, also display headlines without a TODO keyword."
 		((or 'html '11ty 'md)
 		 (cond
 			(desc (format "<a href=\"%s\">%s</a>" path (or desc path)))
-			((string-match "t=" path) (format "<a href=\"%s\">%s</a>" path (or desc path)))
-			(t (format my-org-yt-iframe-format
-								 (cond
-									((string-match "\\(?:v=\\|tu\\.be/\\|live/\\)\\([^&]+\\)" path)
-									 (match-string 1 path))
-									((string-match "\\(live_stream\\?channel.*\\)" path)
-									 (match-string 1 path))
-									(t path))
-								 (or desc "")
-								 path))))
+			(t
+			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url path)))
+							(url (car path-and-query))
+							(params (url-parse-query-string (cdr path-and-query)))
+							(id (cond
+									 ((string-match "\\(?:v=\\|tu\\.be/\\|live/\\)\\([^&]+\\)" path)
+										(match-string 1 path))
+									 ((string-match "\\(live_stream\\?channel.*\\)" path)
+										(match-string 1 path))
+									 (t path)))
+							(width (or (car (assoc-default "width" params 'string=)) "456"))
+							(height (or (car (assoc-default "height" params 'string=)) "315"))
+							(time (assoc-default "t" params 'string=)))
+				 (if time
+						 (format "<a href=\"%s\">%s</a>" path (or desc path))
+					 (format "<div class=\"yt-video\"><iframe width=\"%s\" height=\"%s\" title=\"YouTube video player\" src=\"https://www.youtube-nocookie.com/embed/%s?enablejsapi=1\" frameborder=\"0\" allowfullscreen>%s</iframe><a href=\"%s\">Watch on YouTube</a></div>"
+ width height id desc path))))))
 		('ascii
 		 desc)))
 
@@ -11390,10 +11583,10 @@ With a description:
                      :Other (read-string "Other: ")))
   (setq plist (append `(:Note ,note) plist))
   (let ((url-request-method "POST")
-        (url-request-extra-headers '(("Content-Type" . "application/json")
-																		 ("Authorization" . ,(concat "Basic "
-																			 (base64-encode-string
-																				(concat my-journal-user ":" my-journal-password))))))
+        (url-request-extra-headers `(("Content-Type" . "application/json")
+																		("Authorization" . ,(concat "Basic "
+																																(base64-encode-string
+																																 (concat my-journal-user ":" my-journal-password))))))
         (json-object-type 'plist)
         (url-request-data (encode-coding-string (json-encode-plist plist) 'utf-8))
         data)
@@ -11953,7 +12146,17 @@ Org lets you attach files to an Org file. Haven't gotten the hang of this yet, b
 
 Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[http://sachachua.com/evil-plans]] for examples and source.
 
+The ~pikchr-cli~ package in Ubuntu 24 is version 0.1.2 and does not have the ~--svg-only~ argument that ~pikchr-mode~ uses, so I followed the instructions at https://pikchr.org/home/doc/trunk/doc/download.md to download and compile pikchr.c.
+
 #+begin_src emacs-lisp
+;also includes Org Babel support
+(use-package pikchr-mode
+	:config
+	(setq pikchr-executable "/home/sacha/vendor/pikchr/pikchr"))
+#+end_src
+
+#+begin_src emacs-lisp
+
 (use-package ob-mermaid)
 (setq org-ditaa-jar-path "c:/sacha/Dropbox/bin/ditaa.jar")
 (setq org-startup-with-inline-images t)
@@ -11972,6 +12175,7 @@ Ooooh. Graphviz and Ditaa make it easier to create diagrams from Emacs. See [[ht
    'org-babel-load-languages
    '((dot . t)
      (ditaa . t)
+		 (pikchr . t)
 		 (gnuplot . t)
 		 (mermaid . t)
      (emacs-lisp . t)
@@ -12746,7 +12950,11 @@ blog post, navigate back to the function, and export HTML.
 					 (when (assoc-default "link" params)
 						 (setq body (format "%s<div><a href=\"%s\">Context</a></div>" body (my-copy-link))))
 					 body)
-					(`ascii function-body)
+					('latex
+					 (org-latex-src-block `(test
+																	(:language "emacs-lisp" :value ,function-body))
+																function-body nil))
+					('ascii function-body)
 					(_ function-body))))))
 
 (defun my-org-defun-store ()
@@ -12866,7 +13074,8 @@ scoping so that it kicks in only when ~defun:~ would also kick in.
 										 (if (assoc-default "open" params 'string=) " open"
 											 "")
 										 (or description
-												 (and (documentation (intern symbol))
+												 (and (functionp (intern symbol))
+															(documentation (intern symbol))
 															(concat
 															 symbol
 															 ": "
@@ -12988,6 +13197,48 @@ Handy for collecting items together.
 											(file-name-extension file)))))
 			(rename-file file new-file t)))
 	(when (derived-mode-p 'dired-mode) (revert-buffer)))
+#+end_src
+** Creating
+:PROPERTIES:
+:CUSTOM_ID: multimedia-creating
+:END:
+
+See also [[dotemacs:subed]]
+
+*** Prepare for EmacsConf screenshots or recordings
+:PROPERTIES:
+:CUSTOM_ID: prepare-for-emacsconf-screenshots-or-recordings
+:END:
+
+#+begin_src emacs-lisp
+(defun my-emacsconf-prepare-for-screenshots ()
+	(interactive)
+	(shell-command "xrandr --output LVDS-1 --mode 1280x720")
+	(modus-themes-load-theme 'modus-operandi)
+	(my-hl-sexp-update-overlay)
+	(set-face-attribute 'default nil :height 170)
+	(keycast-mode))
+
+(defun my-emacsconf-back-to-normal ()
+	(interactive)
+	(shell-command "xrandr --output LVDS-1 --mode 1366x768")
+	(modus-themes-load-theme 'modus-vivendi)
+	(my-hl-sexp-update-overlay)
+	(set-face-attribute 'default nil :height 115)
+	(keycast-mode -1))
+#+end_src
+*** Preparing to record YouTube shorts
+:PROPERTIES:
+:CUSTOM_ID: youtube-shorts
+:END:
+
+#+begin_src emacs-lisp
+(defun my-youtube-prepare-for-shorts ()
+	(interactive)
+	(setq compile-media-output-video-width 1080
+				compile-media-output-video-height 1920
+				compile-media-output-video-fps 30)
+	(shell-command "wmctrl -r :ACTIVE: -e 0,300,0,554,984"))
 #+end_src
 * Coding
 :PROPERTIES:
@@ -13747,14 +13998,35 @@ From https://xenodium.com/inline-previous-result-and-why-you-should-edebug/
 :CUSTOM_ID: ert
 :END:
 
+From https://www.reddit.com/r/emacs/comments/1fub66z/comment/lpyv8no/:
+#+begin_src emacs-lisp
+(defun my-eval-buf-and-run-ert-test-at-point ()
+  "Evaluate the current buffer and run the ERT test at point."
+  (interactive)
+  (save-excursion
+    (beginning-of-defun)
+    (unless (looking-at "(ert-deftest\\s-+")
+      (user-error "Not at an ERT test"))
+    (goto-char (match-end 0))
+    (let ((test-name (thing-at-point 'symbol)))
+      (unless test-name
+        (user-error "Couldn't get ERT test name"))
+      (eval-buffer)
+      (ert-run-tests-interactively test-name))))
+#+end_src
 
 #+begin_src emacs-lisp
 (use-package ert
 	:config
 	;; handle truncated lists
 	(advice-add 'ert--pp-with-indentation-and-newline
-							:around (lambda (oldfunc &rest args) (condition-case nil (apply oldfunc args) (error nil)))))
+							:around (lambda (oldfunc &rest args) (condition-case nil (apply oldfunc args) (error nil))))
+	:bind
+	(:map
+	 emacs-lisp-mode-map ("C-c C-t" . #'my-eval-buf-and-run-ert-test-at-point)))
 #+end_src
+
+
 **** Buttercup
 :PROPERTIES:
 :CUSTOM_ID: buttercup
@@ -14548,7 +14820,12 @@ And the rest of the js2 config:
 (use-package rjsx-mode
   :if my-laptop-p)
 #+end_src
+** Typescript
 
+#+begin_src emacs-lisp
+(use-package typescript-mode
+	:mode "\\.ts\\'")
+#+end_src
 ** HTML
 :PROPERTIES:
 :CUSTOM_ID: html
@@ -15762,14 +16039,13 @@ This works particularly well with [[dotemacs:mastodon-combined-timeline][my comb
 		s))
 #+end_src
 
-** DONE Combining Mastodon timelines using mastodon.el               :emacs:
-CLOSED: [2024-09-13 Fri 14:09]
+** Combining Mastodon timelines using mastodon.el                    :emacs:mastodon:
 :PROPERTIES:
-:header-args:emacs-lisp: :results silent :exports code :eval never-export
 :EXPORT_DATE: 2024-09-13T12:55:25-0400
 :EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/combining-mastodon-timelines-using-mastodon-el/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/combining-mastodon-timelines-using-mastodon-el/
-:EXPORT_MODIFIED: 2024-09-16T10:21:21-0400
+:EXPORT_MODIFIED: 2024-10-07T10:37:51-0400
+:header-args:emacs-lisp+: :results silent :exports code :eval never-export
 :CUSTOM_ID: mastodon-combined-timeline
 :END:
 :LOGBOOK:
@@ -15777,8 +16053,13 @@ CLOSED: [2024-09-13 Fri 14:09]
 :END:
 
 #+begin_update
-[2024-09-16]: Read JSON arrays as lists to be compatible with the latest mastodon.el.
+- [2024-10-07]: Added screenshot.
+- [2024-09-16]: Read JSON arrays as lists to be compatible with the latest mastodon.el.
 #+end_update
+
+#+CAPTION: Screenshot of combined timeline in mastodon.el
+#+ATTR_HTML: :data-link t
+[[file:/home/sacha/recordings/2024-10-07-10-37-39.svg]]
 
 I like checking out the #emacs hashtag when I put together Emacs News. In the past, I usually browsed the hashtag timeline on emacs.ch, which also picked up updates from other people that emacs.ch was following. Now that [[https://sachachua.com/blog/2024/09/moving-from-sachac-emacs-ch-to-sacha-social-sachachua-com/][I've moved to @sacha@social.sachachua.com]] and [[https://emacs.ch/@emacs/113087752901949391][emacs.ch is winding down]], I wanted to see if there was a way for me to see a combined view using [[https://mastodon.social/api/v1/timelines/tag/emacs?count=40][mastodon.social's API feed]] (paging by
 =max_id= as needed). I haven't enabled public
@@ -15786,7 +16067,7 @@ timeline feeds on my server, so I also need to reuse the OAuth mechanics from ma
 
 First, let's start by making a unified timeline. By digging around in =mastodon-tl.el=, I found that I could easily create a timeline view by passing it a vector of toot JSONs.
 
-#+begin_src emacs-lisp :eval never-export :results table :exports code :results silent
+#+begin_src emacs-lisp
 (defun my-mastodon-fetch-posts-after (base-url after-date)
 	"Page backwards through BASE-URL using max_id for all the posts after AFTER-DATE."
 	(require 'plz)
@@ -15818,7 +16099,7 @@ First, let's start by making a unified timeline. By digging around in =mastodon-
 	(interactive (list
 								(org-read-date nil nil nil nil nil "-Mon")
 								"#emacs"
-								'("mastodon.social" "emacs.ch")))
+								'("mastodon.social" "emacs.ch" "fosstodon.org")))
 	(require 'mastodon)
 	(require 'mastodon-tl)
 	(require 'mastodon-toot)
@@ -15904,7 +16185,7 @@ it.
 
 So now all I need to do is make sure that this is called before the relevant mastodon.el functions if I'm looking at an external toot.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :results silent :eval never-export :exports code
 (with-eval-after-load 'mastodon-tl
 	(advice-add #'mastodon-toot--action :before #'my-mastodon-update-external-item-id)
 	(advice-add #'mastodon-toot--reply :before #'my-mastodon-update-external-item-id)
@@ -15916,7 +16197,7 @@ The only thing is that I need to press RET after loading a thread with T (=masto
 I'm curious: how many toots would I be missing if I looked at only one instance's hashtag? Let's look at the #emacs hashtag toots on 2024-09-12:
 
 #+NAME: mastodon-comparison
-#+begin_src emacs-lisp :summary Mastodon comparison :eval no :results replace table :exports both
+#+begin_src emacs-lisp :summary Mastodon comparison :eval no :results replace table :exports both :tangle no
 (defun my-three-way-comparison (seq1 seq2 seq3 &optional test-fn)
 	`(("1" ,@(seq-difference seq1 (seq-union seq2 seq3 test-fn) test-fn))
 		("2" ,@(seq-difference seq2 (seq-union seq1 seq3 test-fn) test-fn))
@@ -16795,6 +17076,71 @@ This uses ~my-spookfox-complete-link~ from [[dotemacs:spookfox]].
 
 (require 'quantified nil t)
 #+end_src
+
+*** Make a tablist of my time entries
+:PROPERTIES:
+:CUSTOM_ID: quantified-tablist
+:END:
+
+#+begin_src emacs-lisp
+(define-derived-mode my-quantified-list-mode tablist-mode "Time"
+	"Major mode for time entries"
+	(setq tabulated-list-format [("id" 5)
+															 ("timestamp" 25)
+															 ("duration" 5)
+															 ("full_name" 60)
+															 ("note" 20)])
+	(tabulated-list-init-header)
+	(tabulated-list-print t))
+
+(defun my-quantified-list (start end filter)
+	(interactive (list (org-read-date "Start: ") (org-read-date "End: ")
+										 (read-string "Filter: ")))
+	(switch-to-buffer (get-buffer-create "*quantified*"))
+	(let ((json-array-type 'list)
+				(json-object-type 'alist))
+		(setq tabulated-list-entries
+					(seq-keep
+					 (lambda (o)
+						 (let-alist o
+							 (when (or (not filter) (string= filter "") (string-match filter .full_name)
+												 (string-match filter (or .data.note "")))
+								 (list
+									.id
+									(vector
+									 (number-to-string .id)
+									 (format-time-string "%a %b %d %l:%M%p" (parse-iso8601-time-string .timestamp))
+									 (propertize (if .duration (format-seconds "%h:%.2m" .duration) "")
+															 'duration .duration)
+									 .full_name
+									 (or .data.note ""))))))
+					 (quantified-parse-json
+											 (quantified-request
+												(format
+												 "/records.json?start=%s&end=%s&auth_token=%s"
+												 (or start "")
+												 (or end "")
+												 (quantified-token))
+												nil "GET")))))
+	(my-quantified-list-mode))
+(defun my-quantified-list-sum-marked-duration ()
+	(interactive)
+	(let ((seconds (apply '+
+																	(mapcar
+																	 (lambda (o)
+																		 (get-text-property 0 'duration
+																												(aref (cdr o) 2)))
+																	 (tablist-get-marked-items)))))
+		(message "%s (%.1f)"
+						 (format-seconds "%d:%z%.2h:%.2m" seconds)
+						 (/ seconds 3600.0))))
+;; (my-quantified-list "2024-09-30" nil "E1")
+#+end_src
+
+#+RESULTS:
+:results:
+my-quantified-list-sum-marked-duration
+:end:
 
 ** Compare times and effort estimates
 :PROPERTIES:
@@ -18329,7 +18675,6 @@ Make it easier to review my credit card transactions
 
 #+begin_src emacs-lisp
 (use-package ledger-mode
-  :load-path "~/vendor/ledger-mode"
   :mode "\\.ledger$"
   :bind (:map ledger-mode-map
               ("C-c C-n" . my-ledger-change-account)
@@ -20379,6 +20724,11 @@ easier to discover commands.
 :CUSTOM_ID: drawing
 :END:
 <<drawing>>
+*** TODO Make header for Mastodon                                 :drawing:
+:PROPERTIES:
+:CREATED:  [2024-09-30 Mon 20:58]
+:END:
+
 *** Imagemagick
 :PROPERTIES:
 :CUSTOM_ID: imagemagick
@@ -20664,12 +21014,14 @@ or a list of nodes."
 		 ("#9c9c9c" . "#2b64a9")
 		 ("#c9c9c9" . "#b3e3f1")
 		 ("#c8c8c8" . "#b3e3f1")
-		 ("#cacaca" . "#b3e3f1"))
+		 ("#cacaca" . "#b3e3f1")
+		 ("#a6d2ff" . "#ffffff"))
 		(t
 		 ("#9d9d9d" . "#884636")
 		 ("#9c9c9c" . "#884636")
 		 ("#cacaca" . "#f6f396")
 		 ("#c8c8c8" . "#f6f396")
+		 ("#a6d2ff" . "#ffffff")
 		 ("#c9c9c9" . "#f6f396"))))
 
 (cl-defun my-sketch-convert-pdf-and-break-up-paths (pdf-file &key rotate color-map color-scheme selector)
@@ -21251,10 +21603,11 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 										 (expand-file-name
 											(concat new-id ".json")
 											(file-name-directory file)))))))
-(defun my-sketch-recolor-png (file color-scheme)
+(defun my-sketch-recolor-png (file &optional color-scheme)
 	(interactive (list (read-file-name "File: ")
 										 (completing-read "Scheme: " (mapcar (lambda (o) (symbol-name (car o)))
 																												 my-sketch-color-map))))
+	(setq color-scheme (or color-scheme 't))
 	(call-process "/home/sacha/bin/recolor.py" nil nil nil
 								"--colors"
 								(mapconcat
@@ -21266,6 +21619,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 																my-sketch-color-map)
 								 ",")
 								(expand-file-name file)))
+(defalias 'my-image-recolor 'my-sketch-recolor-png)
 #+end_src
 *** Org Mode sketch: links
 :PROPERTIES:
@@ -22611,7 +22965,7 @@ xdotool key Return
         (rename-file filename new-name)))
     (my-write-about-sketch new-name)))
 #+end_src
-*** Supernote
+*** Supernote   :supernote:
 :PROPERTIES:
 :CUSTOM_ID: supernote
 :END:
@@ -22746,13 +23100,137 @@ And in general:
 (setq htmlize-css-name-prefix "org-")
 (setq htmlize-head-tags "<link rel=\"stylesheet\" href=\"https://sachachua.com/assets/css/style.css\" />")
 #+end_src
-**** Getting files from Browse & Access
+**** https://www.reddit.com/r/Supernote/s/OakRsLxmT7 simple heuristic for reflowing text
+:PROPERTIES:
+:CREATED:  [2024-10-03 Thu 07:25]
+:END:
+
+**** Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access :supernote:org:emacs:
+:PROPERTIES:
+:CREATED:  [2024-09-29 Sun 07:58]
+:EXPORT_LATEX_HEADER: \usepackage{setspace}
+:EXPORT_DATE: 2024-09-29T08:27:21-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/using-emacs-lisp-to-export-txt-epub-pdf-from-org-mode-to-the-supernote-via-browse-and-access/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/using-emacs-lisp-to-export-txt-epub-pdf-from-org-mode-to-the-supernote-via-browse-and-access/
+:CUSTOM_ID: supernote-org-upload
+:END:
+
+#+begin_export latex
+\spacing{1.5}
+#+end_export
+
+I've been experimenting with the Supernote's
+Browse and Access feature because I want to be
+able to upload files quickly instead of waiting
+for Dropbox to synchronize. First, I want to store
+the IP address in a variable:
+
+[[defvar:my-supernote-ip-address?open=1]]
+
+Here's how to upload:
+
+#+begin_src emacs-lisp :results silent
+(defun my-supernote-upload (filename &optional supernote-path)
+	(interactive "FFile: ")
+	(setq supernote-path (or supernote-path "/INBOX"))
+	(let* ((boundary (mml-compute-boundary '()))
+				 (url-request-method "POST")
+				 (url-request-extra-headers
+					`(("Content-Type" . ,(format "multipart/form-data; boundary=%s" boundary))))
+				 (url-request-data
+					(mm-url-encode-multipart-form-data
+					 `(("file" . (("name" . "file")
+												("filename" . ,(file-name-nondirectory filename))
+												("content-type" . "application/octet-stream")
+												("filedata" . ,(with-temp-buffer
+																				 (insert-file-contents-literally filename)
+																				 (buffer-substring-no-properties (point-min) (point-max)))))))
+					 boundary)))
+		(with-current-buffer
+				(url-retrieve-synchronously
+				 (format "http://%s:8089%s" my-supernote-ip-address supernote-path))
+			(re-search-backward "^$")
+			(prog1 (json-read)
+				(kill-buffer)))))
+#+end_src
+
+HTML isn't supported. Text works, but it doesn't support annotation. PDF or EPUB could work.
+It would make sense to register this as an export backend so that I can call it as part of the usual export process.
+
+#+begin_src emacs-lisp :results silent
+(defun my-supernote-org-upload-as-text (&optional async subtree visible-only body-only ext-plist)
+	"Export Org format, but save it with a .txt extension."
+	(interactive (list nil current-prefix-arg))
+	(let ((filename (org-export-output-file-name ".txt" subtree))
+				(text (org-export-as 'org subtree visible-only body-only ext-plist)))
+		;; consider copying instead of exporting so that #+begin_export html etc. is preserved
+		(with-temp-file filename
+			(insert text))
+		(my-supernote-upload filename)))
+
+(defun my-supernote-org-upload-as-pdf (&optional async subtree visible-only body-only ext-plist)
+	(interactive (list nil current-prefix-arg))
+	(my-supernote-upload (org-latex-export-to-pdf async subtree visible-only body-only ext-plist)))
+
+(defun my-supernote-org-upload-as-epub (&optional async subtree visible-only body-only ext-plist)
+	(interactive (list nil current-prefix-arg))
+	(my-supernote-upload (org-epub-export-to-epub async subtree visible-only ext-plist)))
+
+(org-export-define-backend
+		'supernote nil
+		:menu-entry '(?s "Supernote"
+										 ((?s "as PDF" my-supernote-org-upload-as-pdf)
+											(?e "as EPUB" my-supernote-org-upload-as-epub)
+											(?o "as Org" my-supernote-org-upload-as-text))))
+#+end_src
+
+Adding this line to my Org file allows me to use ~\spacing{1.5}~ for 1.5 line spacing, so I can write in more annotations..
+
+#+begin_example
+,#+LATEX_HEADER+: \usepackage{setspace}
+#+end_example
+
+Sometimes I use custom blocks for HTML classes. When LaTeX complains about undefined environments, I can define them like this:
+
+#+begin_example
+,#+LATEX_HEADER+: \newenvironment{whatever_my_custom_environment_is_called}
+#+end_example
+
+Now I can export a subtree or file to my Supernote for easy review.
+
+I wonder if multimodal AI models can handle annotated images with editing marks...
+
+**** org-attaching the latest image from my Supernote via Browse and Access  :supernote:org:
 :PROPERTIES:
 :CUSTOM_ID: supernote-browse
 :ID:       20240926T080807.815726
+:EXPORT_DATE: 2024-09-26T08:25:54-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/org-attaching-the-latest-image-from-my-supernote-via-browse-and-access/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/org-attaching-the-latest-image-from-my-supernote-via-browse-and-access/
+:EXPORT_MODIFIED: 2024-09-29T20:32:58-0400
 :END:
 
-[[attachment:2024-09-26-01 Supernote A5X Browse and Access #supernote.png]]
+#+begin_update
+[2024-09-29]: Use sketch links when possible. Recolor before cropping so that the grid is removed.
+#+end_update
+
+#+CAPTION: Diagram of different ways to get drawings off my Supernote A5X
+[[attachment:2024-09-26-01 Supernote A5X Browse and Access %23supernote.png]]
+
+#+begin_my_details Text from sketch
+Supernote A5X
+- Screen mirroring (pixelated) -> Puppeteer screenshot (or maybe .mjpeg?)
+- Browse & Access (HTTP) -> latest file: recognize text, recolor, crop, upload?
+- Dropbox/Google Drive (slow) -> batch process: recognize text, recolor, upload
+
+Bonus: Autocropping encourages me to just get stuff out there even if I haven't filled a page
+
+ideas: remove template automatically? I wonder if I can use another color...
+
+2024-09-26-01
+#+end_my_details
+
+I want to quickly get drawings from my Supernote A5X into Emacs so that I can include them in blog posts. Dropbox/Google Drive sync is slow because it synchronizes all the files. The Supernote can mirror its screen as an .mjpeg stream. I couldn't figure out how to grab a frame from that, but I did find out how to [[dotemacs:using-puppeteer-to-grab-an-image-from-the-supernote-s-screen-mirror][use Puppeteer to take an screenshot of the Supernote's screen mirror]]. Still, the resulting image is a little pixelated. If I turn on Browse and Access, the Supernote can serve directories and files as webpages. This lets me grab the latest file and process it. I don't often have time to fill a full A5 page with thoughts, so [[dotemacs:embark-image][autocropping]] the image encourages me to get stuff out there instead of holding on to things.
 
 #+begin_src emacs-lisp
 (defvar my-supernote-ip-address "192.168.1.221")
@@ -22773,30 +23251,35 @@ And in general:
 				new-file
 				renamed)
 		;; delete matching files
-		(when (file-exists-p (expand-file-name (alist-get 'name info) (org-attach-dir)))
-			(delete-file (expand-file-name (alist-get 'name info) (org-attach-dir))))
+		(setq new-file (expand-file-name
+										(replace-regexp-in-string " " "%20" (alist-get 'name info) (org-attach-dir))))
+		(when (file-exists-p new-file)
+			(delete-file new-file))
 		(org-attach-attach
-		 (format "http://%s:8089/%s" my-supernote-ip-address
+		 (format "http://%s:8089%s" my-supernote-ip-address
 						 (alist-get 'uri info))
 		 nil
 		 'url)
 		(setq new-file (my-latest-file (org-attach-dir)))
-		;; autocrop that image
-		(my-image-autocrop new-file)
 		;; recolor
 		(my-sketch-recolor-png new-file)
+		;; autocrop that image
+		(my-image-autocrop new-file)
 		;; possibly rename
 		(setq renamed (my-image-recognize-get-new-filename new-file))
 		(when renamed
 			(setq renamed (expand-file-name renamed (org-attach-dir)))
 			(rename-file new-file renamed t)
-			(my-image-store renamed) 					; file it in my archive
+			(my-image-store renamed) ; file it in my archive
 			(setq new-file renamed))
-		;; insert the link
-		(org-insert-link nil (concat "attachment:" (file-name-nondirectory new-file)))
+		;; use a sketch link if it has an ID
+		(if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] "
+											(file-name-base renamed))
+				(org-insert-link nil (concat "sketchFull:" (file-name-base renamed)))
+			;; insert the link
+			(org-insert-link nil (concat "attachment:" (replace-regexp-in-string "#" "%23" (file-name-nondirectory new-file)))))
 		(org-redisplay-inline-images)))
 #+end_src
-
 **** DONE Using Puppeteer to grab an image from the SuperNote's screen mirror :supernote:
 CLOSED: [2024-01-03 Wed 20:32]
 :PROPERTIES:

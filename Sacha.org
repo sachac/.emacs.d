@@ -9875,8 +9875,33 @@ I want to be able to export without having to say yes to code blocks all the tim
   (org-defblock column50 nil nil
 								"Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns."
 								(format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents))
+	(org-defblock short (yt nil video nil audio nil)
+							"Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Mark up a YouTube short."
+							(let ((yt-link (and yt (format "<a href=\"https://youtube.com/watch?v=%s\">watch this on YouTube</a>"
+																						 (my-org-yt-id yt))))
+										(video-link (and video
+																		 (format "<a href=\"%s\">download the video</a>"
+																						 (org-export-file-uri video))))
+										(audio-link (and audio
+																		 (format "<a href=\"%s\">download the audio</a>"
+																						 (org-export-file-uri audio)))))
+								(concat
+								 "<div class=\"row\"><div class=\"columns\"><div style=\"width: 400px\">"
+								 (if video
+										 (my-org-video-export (concat "video:" (expand-file-name video)) nil backend nil)
+									 (my-org-yt-export yt nil backend nil))
+								 "</div></div><div class=\"columns\">"
+								 contents
+								 "<p>You can "
+								 (cond
+									((and yt-link video-link audio-link) (format "%s, %s, or %s." yt-link video-link audio-link))
+									((and yt-link video-link) (format "%s or %s." yt-link video-link))
+									((and yt-link audio-link) (format "%s or %s." yt-link audio-link))
+									((and video-link audio-link) (format "%s or %s." video-link audio-link))
+									(video-link (format "%s." video-link))
+									(audio-link (format "%s." audio-link)))
+								 "</p></div></div>")))
 	)
-
 #+end_src
 
 And here's a little thing to convert a two-level list into my collapsible sections:
@@ -10532,6 +10557,14 @@ With prefix argument, also display headlines without a TODO keyword."
           " src=\"https://www.youtube-nocookie.com/embed/%s?enablejsapi=1\""
           " frameborder=\"0\""
           " allowfullscreen>%s</iframe><a href=\"%s\">Watch on YouTube</a></div>"))
+(defun my-org-yt-id (path)
+	(cond
+	 ((string-match "\\(?:v=\\|tu\\.be/\\|live/\\)\\([^&]+\\)" path)
+		(match-string 1 path))
+	 ((string-match "\\(live_stream\\?channel.*\\)" path)
+		(match-string 1 path))
+	 (t path)))
+
 (defun my-org-yt-export (path desc format _)
 	"Export time link or embed."
 	(pcase format
@@ -10554,7 +10587,7 @@ With prefix argument, also display headlines without a TODO keyword."
 				 (if time
 						 (format "<a href=\"%s\">%s</a>" path (or desc path))
 					 (format "<div class=\"yt-video\"><iframe width=\"%s\" height=\"%s\" title=\"YouTube video player\" src=\"https://www.youtube-nocookie.com/embed/%s?enablejsapi=1\" frameborder=\"0\" allowfullscreen>%s</iframe><a href=\"%s\">Watch on YouTube</a></div>"
- width height id desc path))))))
+									 width height id desc path))))))
 		('ascii
 		 desc)))
 
@@ -10697,7 +10730,7 @@ With prefix argument, also display headlines without a TODO keyword."
 															body
 															(car (assoc-default "caption" params)))))
 				 body))
-			(_ path))))
+			(_ link))))
 
 (defun my-org-video-complete ()
 	"Complete video reference."

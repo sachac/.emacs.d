@@ -8,8 +8,9 @@
 #+FILETAGS: :emacs:
 #+ELEVENTY_CATEGORIES+: emacs
 #+ELEVENTY_LAYOUT: layouts/post
-#+LINK: dotemacs  https://sachachua.com/dotemacs#%s
 #+ELEVENTY_BASE_URL: https://sachachua.com
+
+
 
 Last exported:  {{{modification-time(%Y-%m-%d %H:%M)}}}
 
@@ -96,7 +97,7 @@ If things break, I can use:
 Here's how we start:
 
 #+NAME: startup
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp  :comments no
 ;; -*- lexical-binding: t -*-
 ;; This sets up the load path so that we can override it
 (setq warning-suppress-log-types '((package reinitialization)))  (package-initialize)
@@ -192,8 +193,7 @@ This is one of the things people usually want to change right away. By default, 
 #+BEGIN_SRC emacs-lisp
 (setq backup-directory-alist '(("." . "~/.config/emacs/backups")))
 (with-eval-after-load 'tramp
-	(add-to-list 'tramp-backup-directory-alist
-							 (cons tramp-file-name-regexp nil)))
+	(setq tramp-backup-directory-alist nil))
 #+END_SRC
 
 Disk space is cheap. Save lots.
@@ -317,14 +317,15 @@ From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
   	    :doc "Subed timestamp actions"
   	    :parent subed-mode-map
   	    "." #'my-subed-set-timestamp-to-mpv-position
-  	    "c" #'my-subed-copy-timestamp-dwim
+  	    "w" #'my-subed-copy-timestamp-dwim
   	    "<up>" #'my-subed-adjust-timestamp/my-subed-adjust-timestamp-up
-  	    "w" #'my-waveform-subed-show-after-time
+  	    "f" #'my-waveform-subed-show-after-time
   	    "<down>" #'my-subed-adjust-timestamp/my-subed-adjust-timestamp-down))
   	(defvar-keymap embark-sketch-actions
   	  :doc "Org Mode sketch-related actions"
   	  :parent org-mode-map
   	  "o" #'my-sketch-insert-file-as-link
+			"i" #'my-sketch-insert-file-as-link
   	  "v" #'my-geeqie-view)
   	(defvar-keymap embark-journal-actions
   	  :doc "Journal"
@@ -361,23 +362,30 @@ From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
   	 "i" #'my-org-fix-block-indentation))
 	 #+end_src
 
+This allows me to use C-h with completion in general.
+
+#+begin_src emacs-lisp
+(setq prefix-help-command 'embark-prefix-help-command)
+#+end_src
+
 Things I'm getting used to using:
 
 - ~C-. c~ on an Org Mode source block to copy the contents
 
 In addition to the entries below, I also have Embark-related code in other places in my config:
 
-  - [[file:~/sync/emacs/Sacha.org::#consult-omni][consult-omni]]
-  - [[file:~/sync/emacs/Sacha.org::#quickly-jump-to-positions][Quickly jump to positions]]
-  - [[file:~/sync/emacs/Sacha.org::*Making it easier to add a category to a blog post][Making it easier to add a category to a blog post]]
-  - [[file:~/sync/emacs/Sacha.org::#embark-11ty][embark-11ty]]
-  - [[file:~/sync/emacs/Sacha.org::#git-projects][Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search]] (2024)
-  - [[file:~/sync/emacs/Sacha.org::#web-link][Copy web link]]
-  - [[file:~/sync/emacs/Sacha.org::*Quickly search my code][Quickly search my code]]
-  - [[file:~/sync/emacs/Sacha.org::*Tip from Omar: embark-around-action-hooks][Tip from Omar: embark-around-action-hooks]]
-  - [[file:~/sync/emacs/Sacha.org::#edit-list][Edit list]]
-  - [[file:~/sync/emacs/Sacha.org::#spookfox-babel][Running the current Org Mode Babel Javascript block from Emacs using Spookfox]] (2024)
-  - [[file:~/sync/emacs/Sacha.org::#act-on-current-message-with-embark][Act on current message with Embark]]
+- [[dotemacs:org-refile-insert-link][Insert a link to an Org Mode heading from an org-refile prompt]]
+- [[file:~/sync/emacs/Sacha.org::#consult-omni][consult-omni]]
+- [[file:~/sync/emacs/Sacha.org::#quickly-jump-to-positions][Quickly jump to positions]]
+- [[file:~/sync/emacs/Sacha.org::*Making it easier to add a category to a blog post][Making it easier to add a category to a blog post]]
+- [[file:~/sync/emacs/Sacha.org::#embark-11ty][embark-11ty]]
+- [[file:~/sync/emacs/Sacha.org::#git-projects][Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search]] (2024)
+- [[file:~/sync/emacs/Sacha.org::#web-link][Copy web link]]
+- [[file:~/sync/emacs/Sacha.org::*Quickly search my code][Quickly search my code]]
+- [[file:~/sync/emacs/Sacha.org::*Tip from Omar: embark-around-action-hooks][Tip from Omar: embark-around-action-hooks]]
+- [[file:~/sync/emacs/Sacha.org::#edit-list][Edit list]]
+- [[file:~/sync/emacs/Sacha.org::#spookfox-babel][Running the current Org Mode Babel Javascript block from Emacs using Spookfox]] (2024)
+- [[file:~/sync/emacs/Sacha.org::#act-on-current-message-with-embark][Act on current message with Embark]]
 
 *** Using Embark and qrencode to show a QR code for the Org Mode link at point :emacs:org:
 :PROPERTIES:
@@ -642,8 +650,13 @@ targets."
 
 #+begin_src emacs-lisp
 (defun my-sketch-insert-file-as-link (f)
-	(interactive "fSketch: ")
-	(insert (org-link-make-string (concat "sketch:" (file-name-nondirectory f))) "\n"))
+	(interactive (list (my-complete-sketch-filename)))
+	(cond
+	 ((derived-mode-p 'org-mode)
+		(insert (org-link-make-string (concat "sketch:" (file-name-nondirectory f))) "\n"))
+	 ((or (derived-mode-p 'html-mode) (derived-mode-p 'web-mode))
+		(insert "{% sketchFull \"" (file-name-base f) "\" %}"))
+	 (t (insert f))))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -776,6 +789,7 @@ I want to:
 		"f" #'my-open-in-firefox
 		"s" #'my-image-store
 		"r" #'my-image-recognize-and-rename
+		"t" #'my-org-sketch-open-text-file
 		"C" #'my-image-recolor
 		"d" #'my-image-insert-text-as-details)
 	(add-to-list 'embark-keymap-alist '(image . my-embark-image-actions)))
@@ -1469,13 +1483,19 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
 	(let ((base (replace-regexp-in-string
 							 (concat "^" (regexp-quote my-blog-base-url))
 							 ""
-							 url)))
-		(catch 'found
-			(dolist (f (list (expand-file-name "index.html" (expand-file-name base my-11ty-base-dir))
-											 (expand-file-name (replace-regexp-in-string "/?$" ".html" base) my-11ty-base-dir)))
-				(when (file-exists-p f)
-					(find-file f)
-					(throw 'found f))))))
+							 url))
+				(filename (my-11ty-html-filename url)))
+		(if filename
+				(find-file filename)
+			(error "Could not find file."))))
+
+(defun my-blog-edit-json (url)
+  (interactive (list (my-org-blog-complete)))
+	(let* ((filename (my-11ty-html-filename url))
+				 (json (and filename (concat (file-name-sans-extension filename) ".11tydata.json"))))
+		(if json
+				(find-file json)
+			(error "Could not find file."))))
 
 (defun my-view-blog-post-locally (url)
   (interactive (list (my-org-blog-complete)))
@@ -1556,18 +1576,18 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
       (insert (format "\n\n#+begin_my_src \"Text from %s\"\n%s\n#")))))
 
 (defun my-sketch-text (file)
-  (setq file
-       	(if (string-match ".json" file) file
-       		(concat (file-name-sans-extension file) ".json")))
-  (when (file-exists-p file)
-    (with-temp-buffer
-      (insert-file-contents file)
-      (goto-char (point-min))
-      (let ((json-object-type 'alist))
-       	(assoc-default 'description (elt (assoc-default 'textAnnotations (json-read)) 0))))))
+	(cond
+	 ((file-exists-p (concat (file-name-sans-extension file) ".txt"))
+		(with-temp-buffer
+			(insert-file-contents (concat (file-name-sans-extension file) ".txt"))
+			(buffer-string)))
+	 ((file-exists-p (concat (file-name-sans-extension file) ".json"))
+		(let ((json-object-type 'alist))
+      (assoc-default 'description (elt (assoc-default 'textAnnotations (json-read-file (concat (file-name-sans-extension file) ".json"))) 0))))
+	 (t (error "Can't find text."))))
 
-(defun my-sketch-insert-text-from-json (file)
-  (interactive "FJSON: ")
+(defun my-sketch-insert-text (file)
+  (interactive "FFile: ")
   (let ((text (my-sketch-text file)))
     (insert (or text ""))))
 #+end_src
@@ -1623,7 +1643,7 @@ any directory proferred by `consult-dir'."
                 :category project
                 :action   ,#'projectile-switch-project-by-name
                 :items    ,projectile-known-projects))
-  (add-to-list 'consult-buffer-sources my-consult-source-projectile-projects 'append))
+  (add-to-list 'consult-buffer-sources 'my-consult-source-projectile-projects 'append))
     #+end_src
 *** consult-omni  :embark:
 :PROPERTIES:
@@ -1710,6 +1730,126 @@ I also needed to create a Google custom search JSON API key at https://developer
 	 ("w u" . #'my-consult-omni-embark-copy-url-as-kill)
 	 ("w t" . #'my-consult-omni-embark-copy-title-as-kill)))
   #+end_src
+
+*** STARTED Searching my blog, notes, and sketches with consult-ripgrep and consult-omni
+:PROPERTIES:
+:CREATED: [2024-11-05 Tue 09:17]
+:Effort:   0:30
+:QUANTIFIED: Emacs
+:CUSTOM_ID: searching-my-blog
+:END:
+:LOGBOOK:
+CLOCK: [2024-11-05 Tue 13:05]--[2024-11-05 Tue 14:07] =>  1:02
+CLOCK: [2024-11-05 Tue 09:18]--[2024-11-05 Tue 11:02] =>  1:44
+:END:
+
+
+#+begin_src emacs-lisp
+(defun my-search-notes ()
+	(interactive)
+	(consult-ripgrep '("~/sync/orgzly" "~/sync/static-blog/blog" "~/sync/sketches" "~/sync/topics")))
+(defun my-search-public-notes ()
+	(interactive)
+	(consult-ripgrep '("~/sync/static-blog/blog" "~/sync/sketches" "~/sync/topics")))
+#+end_src
+
+#+begin_src emacs-lisp :lexical t
+  (cl-defun my-consult-omni--google-blog-fetch-results (input &rest args &key callback &allow-other-keys)
+    "Fetches search results for INPUT from “Google Custom Search” service.
+  Narrows to `my-blog-base-url'.
+
+  Refer to URL `https://programmablesearchengine.google.com/about/' and
+  URL `https://developers.google.com/custom-search/' for more info."
+    (pcase-let* ((`(,query . ,opts)
+  		(consult-omni--split-command input (seq-difference args (list :callback callback))))
+                 (opts (car-safe opts))
+                 (count (plist-get opts :count))
+                 (page (plist-get opts :page))
+                 (filter (plist-get opts :filter))
+                 (count (or (and count (integerp (read count)) (string-to-number count))
+                            consult-omni-default-count))
+                 (page (or (and page (integerp (read page)) (string-to-number page))
+                           consult-omni-default-page))
+                 (filter (or (and (integerp filter) filter)
+                             (and filter (string-to-number (format "%s" filter)))
+                             1))
+                 (filter (if (member filter '(0 1)) filter 1))
+                 (count (min count 10))
+                 (page (+ (* page count) 1))
+                 (page (min page (- 100 count)))
+                 (params `(("q" . ,(format "site:%s+%s"
+  					 (url-encode-url my-blog-base-url)
+  					 (replace-regexp-in-string " " "+" query)))
+                           ("key" . ,(consult-omni-expand-variable-function consult-omni-google-customsearch-key))
+                           ("cx" . ,(consult-omni-expand-variable-function consult-omni-google-customsearch-cx))
+                           ("gl" . "en")
+                           ("filter" . ,(format "%s" filter))
+                           ("num" . ,(format "%s" count))
+                           ("start" . ,(format "%s" page))))
+                 (headers '(("Accept" . "application/json")
+                            ("Accept-Encoding" . "gzip")
+                            ("User-Agent" . "consult-omni (gzip)"))))
+      (consult-omni--fetch-url
+       consult-omni-google-customsearch-api-url consult-omni-http-retrieve-backend
+       :encoding 'utf-8
+       :params params
+       :headers headers
+       :parser #'consult-omni--json-parse-buffer
+       :callback
+       (lambda (attrs)
+         (let* ((raw-results (gethash "items" attrs))
+                (annotated-results
+                 (mapcar (lambda (item)
+                           (let*
+                               ((source "Google")
+                                (url (format "%s" (gethash "link" item)))
+                                (title (format "%s" (gethash "title" item)))
+                                (snippet (string-trim (format "%s" (gethash "snippet" item))))
+                                (search-url (consult-omni--make-url-string consult-omni-google-search-url params '("key" "cx" "gl")))
+                                (decorated (funcall consult-omni-default-format-candidate :source source :query query :url url :search-url search-url :title title :snippet snippet)))
+                             (propertize decorated
+                                         :source source
+                                         :title title
+                                         :url url
+                                         :search-url search-url
+                                         :query query
+                                         :snippet snippet)))
+                         raw-results)))
+           (when (and annotated-results (functionp callback))
+             (funcall callback annotated-results))
+           annotated-results)))))
+
+  (use-package consult-omni
+		:load-path "~/vendor/consult-omni"
+		:after (consult embark)
+		:config
+    (consult-omni-define-source
+     "Google my blog"
+     :narrow-char ?b
+     :type 'dynamic
+     :require-match nil
+     :face 'consult-omni-engine-title-face
+     :request #'my-consult-omni--google-blog-fetch-results
+     :on-new (apply-partially #'consult-omni-external-search-with-engine "Google")
+     :preview-key consult-omni-preview-key
+     :search-hist 'consult-omni--search-history
+     :select-hist 'consult-omni--selection-history
+     :enabled (lambda () (bound-and-true-p consult-omni-google-customsearch-key))
+     :group #'consult-omni--group-function
+     :sort t
+     :interactive consult-omni-intereactive-commands-type
+     :annotate nil))
+#+end_src
+
+To get more results, I can add parameters like ~-- --count 10~ and ~--page 2~. I wonder if there's an easier keyboard shortcut for paginating through results...
+
+Let's try these shortcuts...
+
+#+begin_src emacs-lisp :results silent
+(keymap-global-set "M-g b" #'my-search-public-notes)
+(keymap-global-set "M-g N" #'my-search-notes)
+(keymap-global-set "M-g B" #'consult-omni-google-my-blog)
+#+end_src
 
 ** Marginalia
 :PROPERTIES:
@@ -1832,6 +1972,14 @@ The following code annotates journal entries with their categories.
 (keymap-global-set "C-M-0" (lambda () (interactive) (modify-frame-parameters nil `((alpha . 100)))))
 #+end_src
 
+From https://protesilaos.com/codelog/2024-11-28-basic-emacs-configuration/:
+
+#+begin_src emacs-lisp
+(add-to-list 'display-buffer-alist
+             '("\\`\\*\\(Warnings\\|Compile-Log\\)\\*\\'"
+               (display-buffer-no-window)
+               (allow-no-window . t)))
+#+end_src
 ** Color theme
 :PROPERTIES:
 :CUSTOM_ID: color-theme
@@ -2046,8 +2194,6 @@ repeating just the last keystroke.
   (dolist (cmd '(my-face-text-larger my-face-text-smaller))
     (put cmd 'repeat-map 'my-face-text-property-mode-repeat-map))
 #+end_src
-
-
 * Navigation
 :PROPERTIES:
 :CUSTOM_ID: navigation
@@ -2062,6 +2208,40 @@ repeating just the last keystroke.
         (delete (current-buffer)
                 (buffer-list))))
 #+end_src
+** PDF view
+:PROPERTIES:
+:CUSTOM_ID: pdf
+:END:
+*** TOBLOG Copy text from current PDFview page in other window
+:PROPERTIES:
+:Effort:   0:15
+:QUANTIFIED: Emacs
+:CUSTOM_ID: pdf-copy
+:END:
+:LOGBOOK:
+- State "DONE"       from "STARTED"    [2024-10-23 Wed 08:08]
+CLOCK: [2024-10-23 Wed 08:03]--[2024-10-23 Wed 08:08] =>  0:05
+:END:
+
+This makes it easier to pick up text from my annotated PDFs.
+
+#+begin_src emacs-lisp
+(defun my-pdf-view-insert-current-page-text ()
+	(interactive)
+	(let (text)
+		(catch 'found
+			(walk-window-tree
+			 (lambda (win)
+				 (with-selected-window win
+					 (when (derived-mode-p 'pdf-view-mode)
+						 (setq text
+									 (pdf-info-gettext (pdf-view-current-page)
+																		 (list 0 0 1 1)))
+						 (throw 'found text))))))
+		(when text (save-excursion (insert text)))))
+#+end_src
+
+
 ** TODO Get the hang of using vundo
     :PROPERTIES:
     :CREATED:  [2024-10-14 Mon 10:40]
@@ -2152,10 +2332,11 @@ Quickly jump to a position in the current view.
 :CUSTOM_ID: sort-read-file-name
 :END:
 
-https://emacs.stackexchange.com/questions/55502/list-files-in-directory-in-reverse-order-of-date
+Updated version of
+https://emacs.stackexchange.com/questions/55502/list-files-in-directory-in-reverse-order-of-date - added cycle-sort-function and sorting by modification date.
 
 #+begin_src emacs-lisp
-(defcustom file-name-completions-sort-function #'files-sort-access-time
+(defcustom file-name-completions-sort-function #'files-sort-modification-time
   "Function for sorting the completion list of file names.
 The function takes the list of file names as argument
 and returns the sorted list."
@@ -2171,16 +2352,25 @@ and returns the sorted list."
       (file-attribute-access-time (file-attributes fn2))
       (file-attribute-access-time (file-attributes fn1))))))
 
+(defun files-sort-modification-time (files)
+  "Sort FILES list with respect to modification time."
+  (sort
+   files
+	 :key (lambda (f) (file-attribute-modification-time (file-attributes f)))
+	 :lessp #'time-less-p
+	 :reverse t))
+
 (defun ad-completion-file-name-table (fun string pred action)
   "Add 'display-sort-function' to metadata.
 If the completion action is metadata, add
 `file-name-completions-sort-function' as display-sort-function.
 Otherwise call FUN with STRING, PRED and ACTION as arguments."
   (if (and (functionp file-name-completions-sort-function)
-       (eq action 'metadata))
-      (list 'metadata
-        '(category . file)
-        (cons 'display-sort-function file-name-completions-sort-function))
+					 (eq action 'metadata))
+      `(metadata
+				(category . file)
+				(cycle-sort-function . identity)
+				(display-sort-function . ,file-name-completions-sort-function))
     (funcall fun string pred action)))
 
 (advice-add 'completion-file-name-table :around #'ad-completion-file-name-table)
@@ -2484,21 +2674,22 @@ This promises to be a fast way to find things. Let's bind it to =Ctrl-Shift-S= t
 :EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/highlight-the-current-line-while-still-being-able-to-easily-customize-describe-underlying-faces/
 :END:
 
-I use ~global-hl-line-mode~ to highlight the current line.
+I use ~hl-line-mode~ to highlight the current line.
 
 #+begin_src emacs-lisp
-(global-hl-line-mode 1)
+(add-hook 'prog-mode-hook 'hl-line-mode)
+(add-hook 'text-mode-hook 'hl-line-mode)
 #+end_src
 
 However, I don't want ~hl-line~ to interfere with the default face suggested by ~customize-face~, which is returned by ~face-at-point~.
 
 #+begin_src emacs-lisp
 (defun my-suggest-other-faces (func &rest args)
-	(if global-hl-line-mode
+	(if hl-line-mode
 			(progn
-				(global-hl-line-mode -1)
+				(hl-line-mode -1)
 				(prog1 (apply func args)
-					(global-hl-line-mode 1)))
+					(hl-line-mode 1)))
 		(apply func args)))
 (advice-add #'face-at-point :around #'my-suggest-other-faces)
 #+end_src
@@ -2605,12 +2796,41 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
     ("1" "~/proj/static-blog/" "Static blog")
     ("r" "~/sync/orgzly/reference.org" "Reference")
     ("R" "~/personal/reviews.org" "Reviews")
+    ("v" "~/proj/emacstv.github.io/videos.org" "Videos")
     ("g" "~/proj/sachac.github.io/evil-plans/index.org" "Evil plans"))
   :bind
   ("C-c f" . #'my-file-shortcuts/body))
   #+end_src
+** C-g improvement
 
+From https://protesilaos.com/codelog/2024-11-28-basic-emacs-configuration/
+#+begin_src emacs-lisp
+(defun prot/keyboard-quit-dwim ()
+  "Do-What-I-Mean behaviour for a general `keyboard-quit'.
 
+The generic `keyboard-quit' does not do the expected thing when
+the minibuffer is open.  Whereas we want it to close the
+minibuffer, even without explicitly focusing it.
+
+The DWIM behaviour of this command is as follows:
+
+- When the region is active, disable it.
+- When a minibuffer is open, but not focused, close the minibuffer.
+- When the Completions buffer is selected, close it.
+- In every other case use the regular `keyboard-quit'."
+  (interactive)
+  (cond
+   ((region-active-p)
+    (keyboard-quit))
+   ((derived-mode-p 'completion-list-mode)
+    (delete-completion-window))
+   ((> (minibuffer-depth) 0)
+    (abort-recursive-edit))
+   (t
+    (keyboard-quit))))
+
+(define-key global-map (kbd "C-g") #'prot/keyboard-quit-dwim)
+#+end_src
 ** Smartscan
 :PROPERTIES:
 :CUSTOM_ID: smartscan
@@ -2641,6 +2861,21 @@ From http://www.masteringemacs.org/articles/2011/03/25/working-multiple-files-di
 (setq find-ls-option '("-print0 | xargs -0 ls -ld" . "-ld"))
 #+END_SRC
 
+From https://protesilaos.com/codelog/2024-11-28-basic-emacs-configuration/
+
+#+begin_src emacs-lisp
+(use-package dired-subtree
+  :ensure t
+  :after dired
+  :bind
+  ( :map dired-mode-map
+    ("<tab>" . dired-subtree-toggle)
+    ("TAB" . dired-subtree-toggle)
+    ("<backtab>" . dired-subtree-remove)
+    ("S-TAB" . dired-subtree-remove))
+  :config
+  (setq dired-subtree-use-backgrounds nil))
+#+end_src
 *** peep-dired
 :PROPERTIES:
 :CUSTOM_ID: peep-dired
@@ -3044,6 +3279,8 @@ From Xah Lee:
 #+begin_src emacs-lisp
 (keymap-global-set "M-c" #'capitalize-dwim)
 (setq-default fill-column 50)
+(keymap-global-set "M-o" #'join-line)
+
 #+end_src
 
 
@@ -3442,7 +3679,9 @@ Return (start end before-part part) if found, nil otherwise."
 											('start my-audio-braindump-open-keywords)
 											('stop my-audio-braindump-close-keywords)
 											('nil (append my-audio-braindump-open-keywords my-audio-braindump-close-keywords))
+
 											(_ before-part)))
+	(if (stringp before-part) (setq before-part (list before-part)))
 	(setq part-keywords (or part-keywords my-audio-braindump-part-keywords))
 	(when (stringp part-keywords) (setq part-keywords (list part-keywords)))
 	(setq within-distance (or within-distance my-audio-braindump-part-keyword-distance-words))
@@ -3523,7 +3762,7 @@ Add a linebreak after \"stop\" followed by
 
 Look for begin keyword ... stop keyword with at most
 `my-audio-braindump-part-keyword-distance-words' between them and put them on one
-line."
+line. If begin or stop has been misrecognized, try the best guess."
 	(interactive)
 	(let ((case-fold-search t) result close-result)
 		(my-split-oops)
@@ -3549,9 +3788,33 @@ line."
 						(goto-char (car stop-result))
 						(while (re-search-backward " *\n+ *" (car result) t)
 							(replace-match " ")))
-				;; no stop keyword; are we on an empty line? If so, just merge it with the next one
-				(when (looking-at "\n+ *")
-					(replace-match " "))))
+				;; no stop keyword; is the keyword around? maybe it was just misrecognized
+				(if (re-search-forward (elt result 3)
+															 (save-excursion
+																 (forward-word my-audio-braindump-close-keyword-distance-words)
+																 (point))
+															 t)
+						(save-excursion
+							(goto-char (match-beginning 0))
+							(save-excursion
+								(insert " STOP "))
+							(while (re-search-backward " *\n+ *" (car result) t)
+								(replace-match " ")))
+					(when (looking-at "\n+ *")
+						(replace-match " ")))))
+		;; Check for stops without starts
+		(goto-char (point-min))
+		(while (setq result (my-audio-braindump-scan-for-part-keyword 'stop nil nil t))
+			(goto-char (car result))
+			(save-excursion
+				(unless (re-search-backward (elt result 3) (line-beginning-position) t)
+					(when (re-search-backward
+								 (elt result 3)
+								 (save-excursion (backward-word my-audio-braindump-close-keyword-distance-words)
+																 (point))
+								 t)
+						(replace-match (concat "\nSTART " (elt result 3))))))
+			(goto-char (cadr result)))
 		;; remove empty lines
 		(goto-char (point-min))
 		(when (looking-at "\n+") (replace-match ""))
@@ -3897,6 +4160,111 @@ needs some tinkering with.
 - Experiment with just sending everything to OpenAI Whisper instead of conditionally sending it based on the keywords (which might not be recognized).
 - See if I want to reuse more sentences or move them around.
 - Find out where people who have thought about dictation keywords have their notes; probably don't have to reinvent the wheel here
+
+
+** DONE Updating my audio braindump workflow to take advantage of WhisperX :speechtotext:org:
+CLOSED: [2024-11-19 Tue 09:08] SCHEDULED: <2024-11-19 Tue>
+:PROPERTIES:
+:CREATED: [2024-11-17 Sun 08:24]
+:EXPORT_DATE: 2024-11-19T08:33:59-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/11/updating-my-audio-braindump-workflow-to-take-advantage-of-whisperx/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/11/updating-my-audio-braindump-workflow-to-take-advantage-of-whisperx/
+:END:
+:LOGBOOK:
+- State "DONE"       from              [2024-11-19 Tue 09:08]
+:END:
+
+I get word timestamps for free when I transcribe
+with [[https://github.com/m-bain/whisperX][WhisperX]], so I can skip the Aeneas alignment
+step. That means I can update my [[https://sachachua.com/blog/2023/12/audio-braindump-workflow-tweaks-adding-org-mode-hyperlinks-to-recordings-based-on-keywords/][previous code for
+handling audio braindumps]] . Breaking the transcript up into sections  Also, I recently
+updated [[subed:subed-word-data.el][subed-word-data]] to [[https://sachachua.com/blog/2024/11/yay-emacs-7-using-word-timing-in-caption-editing-with-subed-word-data/][colour words based on
+their transcription score]], which draws my
+attention to things that might be uncertain.
+
+Here's what it looks like when I have the post,
+the transcript, and the annotated PDF.
+
+#+CAPTION: Screenshot of draft, transcript, and PDF
+[[file:images/2024-11-17_20-44-30.png][file:images/2024-11-17_20-44-30.png]]
+
+Here's what I needed to implement ~my-audio-braindump-from-whisperx-json~ (plus some code from  [[https://sachachua.com/blog/2023/12/audio-braindump-workflow-tweaks-adding-org-mode-hyperlinks-to-recordings-based-on-keywords/][my previous audio braindump workflow]]):
+
+#+begin_src emacs-lisp
+(defun my-whisperx-word-list (file)
+	(let* ((json-object-type 'alist)
+				 (json-array-type 'list))
+		(seq-mapcat (lambda (seg)
+									(alist-get 'words seg))
+								(alist-get 'segments (json-read-file file)))))
+
+;; (seq-take (my-whisperx-word-list (my-latest-file "~/sync/recordings" "\\.json")) 10)
+(defun my-whisperx-insert-word-list (words)
+	"Inserts WORDS with text properties."
+	(require 'subed-word-data)
+	(mapc (lambda (word)
+						(let ((start (point)))
+							(insert
+							 (alist-get 'word word))
+							(subed-word-data--add-word-properties start (point) word)
+							(insert " ")))
+				words))
+
+(defun my-audio-braindump-turn-sections-into-headings ()
+	(interactive)
+	(goto-char (point-min))
+	(while (re-search-forward "START SECTION \\(.+?\\) STOP SECTION" nil t)
+		(replace-match
+		 (save-match-data
+			 (format
+				"\n*** %s\n"
+				(save-match-data (string-trim (replace-regexp-in-string "^[,\\.]\\|[,\\.]$" "" (match-string 1))))))
+		 nil t)
+		(let ((prop-match (save-excursion (text-property-search-forward 'subed-word-data-start))))
+			(when prop-match
+				(org-entry-put (point) "START" (format-seconds "%02h:%02m:%02s" (prop-match-value prop-match)))))))
+
+(defun my-audio-braindump-split-sentences ()
+	(interactive)
+	(goto-char (point-min))
+	(while (re-search-forward "[a-z]\\. " nil t)
+		(replace-match (concat (string-trim (match-string 0)) "\n") )))
+
+(defun my-audio-braindump-restructure ()
+	(interactive)
+	(goto-char (point-min))
+	(my-subed-fix-common-errors)
+	(org-mode)
+	(my-audio-braindump-prepare-alignment-breaks)
+	(my-audio-braindump-turn-sections-into-headings)
+	(my-audio-braindump-split-sentences)
+	(goto-char (point-min))
+	(my-remove-filler-words-at-start))
+
+(defun my-audio-braindump-from-whisperx-json (file)
+	(interactive (list (read-file-name "JSON: " "~/sync/recordings/" nil nil nil (lambda (f) (string-match "\\.json\\'" f)))))
+	;; put them all into a buffer
+	(with-current-buffer (get-buffer-create "*Words*")
+		(erase-buffer)
+		(fundamental-mode)
+		(my-whisperx-insert-word-list (my-whisperx-word-list file))
+		(my-audio-braindump-restructure)
+		(goto-char (point-min))
+		(switch-to-buffer (current-buffer))))
+
+(defun my-audio-braindump-process-text (file)
+	(interactive (list (read-file-name "Text: " "~/sync/recordings/" nil nil nil (lambda (f) (string-match "\\.txt\\'" f)))))
+	(with-current-buffer (find-file-noselect file)
+		(my-audio-braindump-restructure)
+		(save-buffer)))
+;; (my-audio-braindump-from-whisperx-json (my-latest-file "~/sync/recordings" "\\.json"))
+#+end_src
+
+Ideas for next steps:
+
+- I can change my processing script to split up the Whisper TXT into sections and automatically make the PDF with nice sections.
+- I can add reminders and other callouts. I can style them, and I can copy reminders into a different section for easier processing.
+- I can look into extracting PDF annotations so that I can jump to the next highlight or copy highlighted text.
 
 ** Markdown
 :PROPERTIES:
@@ -4740,6 +5108,68 @@ stuff.
 	(org-fold-catch-invisible-edits 'smart))
 #+end_src
 
+** Insert a link to an Org Mode heading from an org-refile prompt :embark:org:
+:PROPERTIES:
+:Effort:   0:30
+:QUANTIFIED: Emacs
+:CUSTOM_ID: org-refile-insert-link
+:ID:       20241024T101354.312732
+:EXPORT_DATE: 2024-10-24T10:17:47-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/10/insert-a-link-to-an-org-mode-heading-from-an-org-refile-prompt/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/10/insert-a-link-to-an-org-mode-heading-from-an-org-refile-prompt/
+:END:
+:LOGBOOK:
+CLOCK: [2024-10-24 Thu 09:25]
+:END:
+
+I often want to link to an Org heading from somewhere in my ~org-refile-targets~, which includes my agenda files and other things. I don't want to think about where the heading is, I just want to link to it. I could use ~C-u C-c C-w~ (~org-refile~) to go to the heading, use ~C-c l~ (my shortcut for ~org-store-link~), head back with ~org-mark-ring-goto~, and then insert it with ~C-c C-l~ (~org-insert-link~).
+
+Or I can use this code to make an Embark command that hooks into minibuffer prompts that include "goto" or "refile", so I can link to something with ~C-. i~ right from a refile or goto query.
+
+#+begin_src emacs-lisp :results silent
+(defun my-embark-org-insert-link-from-path (path)
+	(interactive (list (car (org-refile-get-location))))
+	(let* ((extra (if org-refile-use-outline-path "/" ""))
+				 (tbl (mapcar
+							 (lambda (x)
+								 (if (and (not (member org-refile-use-outline-path
+																			 '(file full-file-path title)))
+													(not (equal filename (file-truename (nth 1 x)))))
+										 (cons (concat (car x) extra " ("
+																	 (file-name-nondirectory (nth 1 x)) ")")
+													 (cdr x))
+									 (cons (concat (car x) extra) (cdr x))))
+							 org-refile-target-table))
+				 link)
+		(insert (save-window-excursion
+							(save-excursion
+								(org-goto-marker-or-bmk
+								 (elt
+									(org-refile--get-location path tbl)
+									3))
+								(org-store-link nil))))))
+(defvar-keymap my-org-path-map
+	:doc "Shortcuts for working with Org paths from `org-refile'."
+	"i" #'my-embark-org-insert-link-from-path
+	"L" #'my-embark-org-insert-link-from-path)
+(with-eval-after-load 'marginalia
+	(add-to-list 'marginalia-prompt-categories '("Goto\\|Refile" . my-org-path)))
+(with-eval-after-load 'embark
+	(add-to-list 'embark-keymap-alist '(my-org-path . my-org-path-map)))
+#+end_src
+
+#+CAPTION: Screenshot of Embark menu invoked with "C-.", showing the new "i" shortcut for inserting a link
+[[file:/home/sacha/recordings/2024-10-24_10-34-21.png]]
+
+Let's make it work for ~org-heading~ too, like what we get from ~M-x consult-org-heading~:
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'consult-org
+	(keymap-set embark-org-heading-map "L" #'embark-org-insert-link-to))
+#+end_src
+
+There are more Embark shortcuts in my [[dotemacs:embark][Embark]] configuration.
+
 ** Org - mapping blog posts and image URLs from bulk exports         :image:
 :PROPERTIES:
 :CUSTOM_ID: org-mapping-blog-posts-and-image-urls-from-bulk-exports
@@ -4835,7 +5265,6 @@ currently experimenting with.
                     org-mouse
                     org-protocol
                     org-annotate-file
-                    org-eval
                     org-expiry
                     org-interactive-query
                     org-collector
@@ -5377,6 +5806,23 @@ I'm curious about how fast I type some things.
 :PROPERTIES:
 :CUSTOM_ID: managing-tasks
 :END:
+**** Get things to be set to TODO when they repeat
+:PROPERTIES:
+:CREATED: [2024-10-24 Thu 10:42]
+:Effort:   0:15
+:QUANTIFIED: Emacs
+:END:
+:LOGBOOK:
+- State "DONE"       from "STARTED"    [2024-10-24 Thu 10:58]
+CLOCK: [2024-10-24 Thu 10:42]--[2024-10-24 Thu 10:58] =>  0:16
+:END:
+
+I use ~STARTED~ to keep track of things I've started working on, and this is updated when I clock into the task. If I have a repeating task, I want the task to be automatically reset to ~TODO~.
+
+#+begin_src emacs-lisp
+(setq org-todo-repeat-to-state "TODO")
+#+end_src
+
 **** Track TODO state
 :PROPERTIES:
 :CUSTOM_ID: todo-keywords
@@ -5392,8 +5838,9 @@ and =!= automatically logs the timestamp of the state change.
       '((sequence
          "STARTED(s)"
          "TODO(t)"  ; next action
-         "TOBLOG(b)"  ; next action
+         "TOBLOG(b)"
          "WAITING(w@/!)"
+         "READY(r)"
          "SOMEDAY(.)" "BLOCKED(k@/!)" "|" "DONE(x!)" "CANCELLED(c)")
         (sequence "PROJECT" "|" "DONE(x)")
         (sequence "LEARN" "TRY" "TEACH" "|" "COMPLETE(x)")
@@ -5868,6 +6315,7 @@ only a few of them them for faster scanning.
                       "~/sync/orgzly/garden.org"
                       "~/sync/orgzly/decisions.org"
                       "~/sync/orgzly/computer-inbox.org"
+                      "~/sync/orgzly/posts.org"
                       "~/sync/orgzly/crafts.org"
                       "~/sync/emacs/Sacha.org"
                       "~/proj/stream/index.org"
@@ -6778,6 +7226,8 @@ Now we put it all together...
        (my-org-list-from-rss "https://sachachua.com/blog/feed" start end)
        "\n\n*Sketches*\n\n"
        (my-sketches-export-and-extract start end) "\n"
+			 "\n\n*Toots*\n\n"
+			 (my-mastodon-format-my-toots-since start)
        "\n\n#+begin_my_details Time\n"
        (orgtbl-to-orgtbl
         (my-quantified-compare prev start start end
@@ -7031,6 +7481,43 @@ Here's a function like =my-org-prepare-weekly-review=:
 :PROPERTIES:
 :CUSTOM_ID: filing
 :END:
+*** DONE Org Mode: Prompt for a heading and then refile it to point   :org:
+CLOSED: [2024-10-31 Thu 10:56]
+:PROPERTIES:
+:CREATED: [2024-10-31 Thu 10:35]
+:Effort:   0:30
+:QUANTIFIED: Emacs
+:EXPORT_DATE: 2024-10-31T10:42:20-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/10/org-mode-prompt-for-a-heading-and-then-refile-it-to-point/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/10/org-mode-prompt-for-a-heading-and-then-refile-it-to-point/
+:END:
+:LOGBOOK:
+- State "DONE"       from "STARTED"    [2024-10-31 Thu 10:56]
+CLOCK: [2024-10-31 Thu 10:35]--[2024-10-31 Thu 10:56] =>  0:21
+:END:
+
+I sometimes want the inverse of ~org-refile~ when
+I create a subtree and think of things that should
+probably go into it. This function prompts for a
+heading that matches ~org-refile-targets~ and then
+moves it to the current location.
+
+#+begin_src emacs-lisp
+(defun my-org-refile-to-point (refloc)
+	"Prompt for a heading and refile it to point."
+	(interactive (list (org-refile-get-location "Heading: ")))
+	(let* ((file (nth 1 refloc))
+				 (pos (nth 3 refloc)))
+		(save-excursion
+			(with-current-buffer (find-file-noselect file 'noward)
+				(save-excursion
+					(save-restriction
+						(widen)
+						(goto-char pos)
+						(org-copy-subtree 1 t))))
+			(org-paste-subtree nil nil nil t))))
+#+end_src
+
 *** TODO Bounce to another file                             :computer:phone:
 :PROPERTIES:
 :CUSTOM_ID: bounce-to-another-file
@@ -7575,19 +8062,51 @@ shortcuts when I'm at headings.
 :CUSTOM_ID: org-babel
 :END:
 
+#+begin_src emacs-lisp
+(setq org-edit-src-auto-save-idle-delay 5)
+#+end_src
+*** Linking to Org Babel source in a comment, and making that always use file links
+
+I've been experimenting with these default header args for Org Babel source blocks.
+
 #+NAME: org-babel-default-header-args
-    #+begin_src emacs-lisp
+#+begin_src emacs-lisp
 (setq org-babel-default-header-args
       '((:session . "none")
         (:results . "drawer replace")
-				(:comments . "both")
-        (:exports . "code")
+				(:comments . "link")  ;; add a link to the original source
+        (:exports . "both")
         (:cache . "no")
         (:eval . "never-export")
         (:hlines . "no")
         (:tangle . "no")))
-(setq org-edit-src-auto-save-idle-delay 5)
-    #+end_src
+#+end_src
+
+In particular, ~:comments link~ adds a comment
+before each source block with a link to the file
+it came from. This allows me to quickly jump to
+the actual definition. It also lets me use
+~org-babel-detangle~ to copy changes back to my Org file.
+
+I also have a custom link type to make it easier
+to link to sections of my configuration file
+([[dotemacs:links-to-my-config][Links to my config]]). Org Mode prompts for the
+link type to use when more than one function
+returns a link for storing, so that was
+interrupting my tangling with lots of interactive
+prompts. The following piece of advice ignores all
+the custom link types when tangling the link
+reference. That way, the link reference always
+uses the file: link.
+
+#+begin_src emacs-lisp :lexical t :exports code
+(advice-add #'org-babel-tangle--unbracketed-link
+						:around (lambda (old-fun &rest args)
+											(let (org-link-parameters)
+												(apply old-fun args))))
+#+end_src
+
+
 *** Format source
 :PROPERTIES:
 :CUSTOM_ID: format-source
@@ -7692,7 +8211,58 @@ Then I should be able to use =literate-elisp-load-file= and still be able to jum
 :PROPERTIES:
 :CUSTOM_ID: publishing
 :END:
-*** Include inline SVGs in Org Mode HTML and Markdown exports   :emacs:org:images:
+*** DONE Remove heading from TOC
+CLOSED: [2024-10-25 Fri 10:17]
+:PROPERTIES:
+:CREATED:  [2024-10-24 Thu 13:08]
+:Effort:   0:30
+:QUANTIFIED: Emacs
+:END:
+:LOGBOOK:
+- State "DONE"       from "STARTED"    [2024-10-25 Fri 10:17]
+CLOCK: [2024-10-24 Thu 13:08]
+:END:
+[[file:~/sync/topics/visual-book-notes.org::#business][Business]]
+
+#+begin_src emacs-lisp
+(defun my-org-html-toc (depth info &optional scope)
+  "Build a table of contents.
+DEPTH is an integer specifying the depth of the table.  INFO is
+a plist used as a communication channel.  Optional argument SCOPE
+is an element defining the scope of the table.  Return the table
+of contents as a string, or nil if it is empty."
+  (let ((toc-entries
+	 (mapcar (lambda (headline)
+		   (cons (org-html--format-toc-headline headline info)
+			 (org-export-get-relative-level headline info)))
+		 (org-export-collect-headlines info depth scope))))
+    (when toc-entries
+      (let* ((toc-id-counter (plist-get info :org-html--toc-counter))
+             (toc (concat (format "<div class=\"text-table-of-contents toc-id%s\" role=\"doc-toc\">"
+                                  (if toc-id-counter (format "-%d" toc-id-counter) ""))
+			  (org-html--toc-text toc-entries)
+			  "</div>\n")))
+        (plist-put info :org-html--toc-counter (1+ (or toc-id-counter 0)))
+	(if scope toc
+	  (let ((outer-tag (if (org-html--html5-fancy-p info)
+			       "nav"
+			     "div")))
+	    (concat (format "<%s class=\"table-of-contents toc-id%s\" role=\"doc-toc\">\n"
+                            outer-tag
+                            (if toc-id-counter (format "-%d" toc-id-counter) ""))
+							;; (let ((top-level (plist-get info :html-toplevel-hlevel)))
+							;; (format "<h%d>%s</h%d>\n"
+							;;   top-level
+							;;   (org-html--translate "Table of Contents" info)
+							;;   top-level))
+		    toc
+		    (format "</%s>\n" outer-tag))))))))
+
+(with-eval-after-load 'org
+	(defalias 'org-html-toc #'my-org-html-toc))
+#+end_src
+
+*** Include inline SVGs in Org Mode HTML and Markdown exports :emacs:org:images:
 :PROPERTIES:
 :CUSTOM_ID: org-inline-svg
 :EXPORT_DATE: 2024-09-26T12:54:34-0400
@@ -7760,11 +8330,19 @@ to include SVGs.
 			 (not (plist-get (org-export-read-attribute :attr_html (org-element-parent-element link))
 											 :data-link))
 			 (org-export-inline-image-p link (plist-get info :html-inline-image-rules)))
-			(let ((path (org-element-property :path link)))
+			(let ((path (org-element-property :path link))
+						(attr (org-export-read-attribute :attr_html (org-element-parent-element link))))
 				(if (string= (file-name-extension path) "svg")
 						(with-temp-buffer
-							(insert-file-contents-literally path)
-							(buffer-string))
+							(if attr
+									(replace-regexp-in-string
+									 "<svg "
+									 (concat
+										"<svg "
+										(org-html--make-attribute-string attr)
+										" ")
+									 (buffer-string))
+								(buffer-string)))
 					(org-html-link link desc info)))
 		(org-html-link link desc info)))
 
@@ -7783,12 +8361,22 @@ to include SVGs.
 (defun my-org-11ty-link (link desc info)
 	(if (and (string= (org-element-property :type link) "file")
 					 (not (plist-get (org-export-read-attribute :attr_html (org-element-parent-element link))
-											 :data-link)))
-			(let ((path (org-element-property :path link)))
+													 :data-link))
+					 (not desc))
+			(let ((path (org-element-property :path link))
+						(attr (org-export-read-attribute :attr_html (org-element-parent-element link))))
 				(if (string= (file-name-extension path) "svg")
 						(with-temp-buffer
 							(insert-file-contents-literally path)
-							(buffer-string))
+							(if attr
+									(replace-regexp-in-string
+									 "<svg "
+									 (concat
+										"<svg "
+										(org-html--make-attribute-string attr)
+										" ")
+									 (buffer-string))
+								(buffer-string)))
 					(org-11ty-link link desc info)))
 		(org-11ty-link link desc info)))
 
@@ -8204,8 +8792,12 @@ position itself.
                                    (display-buffer (current-buffer))))))
                      my-screenshot-directory)
                   (my-latest-file my-screenshot-directory))))
-	(if (derived-mode-p 'mastodon-toot-mode)
-			(mastodon-toot--attach-media file (or note (read-string "Caption: ")))
+	(cond
+	 ((derived-mode-p 'mastodon-toot-mode)
+		(mastodon-toot--attach-media file (or note (read-string "Caption: "))))
+	 ((derived-mode-p 'subed-mode)
+		(insert "NOTE\n" (org-link-make-string (concat "file:" file)) "\n"))
+	 (t
 		(save-window-excursion
 			(if (string-match "webm" file)
 					(progn
@@ -8213,7 +8805,7 @@ position itself.
 						(insert (org-link-make-string (concat "video:" file "?caption=" (or note (read-string "Caption: ")))) "\n"))
 				(with-current-buffer (find-file-noselect file) (display-buffer (current-buffer)))
 				(insert "#+CAPTION: " (or note (read-string "Caption: ")) "\n"
-								(org-link-make-string (concat "file:" file)))))))
+								(org-link-make-string (concat "file:" file))))))))
 
 (defun my-copy-last-screenshot-to-file (new-filename)
   (interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (my-latest-file my-screenshot-directory))))))
@@ -8308,7 +8900,11 @@ position itself.
 											t)
 		(delete-directory (expand-file-name (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
 																				(expand-file-name "_site" my-11ty-base-dir))
-											t)))
+											t)
+		(org-delete-property "EXPORT_ELEVENTY_FILE_NAME")
+		(org-delete-property "EXPORT_DATE")
+		(org-delete-property "EXPORT_ELEVENTY_PERMALINK")))
+
 (defalias 'my-org-11ty-delete-current-post #'my-org-11ty-unpublish-current-post)
 
 (defun my-org-11ty-copy-permalink ()
@@ -8480,14 +9076,22 @@ CLOCK: [2024-10-18 Fri 17:43]--[2024-10-18 Fri 17:51] =>  0:08
 #+begin_src emacs-lisp
 (defun my-org-topic-open (link &rest _)
 	"Find the post."
-	(find-file (format "~/sync/topic/%s.org" link)))
+	(if (string-match "\\(.*\\)#\\(.+\\)" link)
+			(let ((file (match-string 1 link))
+						(anchor (match-string 2 link)))
+				(find-file (format "~/sync/topics/%s.org" file))
+				(goto-char (org-find-property "CUSTOM_ID" anchor)))
+		(find-file (format "~/sync/topics/%s.org" link))))
 
 (defun my-org-topic-export (link desc format _)
 	(let ((path (concat (if (eq format '11ty) "/" "https://sachachua.com/")
 											"topic/"
-											(replace-regexp-in-string "\\.html$" "/"
-																								(replace-regexp-in-string "^/\\|index.html$" ""
-																																					link)))))
+											(replace-regexp-in-string
+											 "\\.html$" "/"
+											 (replace-regexp-in-string
+												"^/\\|index.html$" ""
+												(replace-regexp-in-string "^index" ""
+																									link))))))
 		(pcase format
 			((or 'html '11ty) (format "<a href=\"%s\">%s</a>" path (or desc link)))
       ('latex (format "\\href{%s}{%s}" path desc))
@@ -8496,11 +9100,12 @@ CLOCK: [2024-10-18 Fri 17:43]--[2024-10-18 Fri 17:51] =>  0:08
 								path)))))
 
 (defun my-org-topic-complete ()
-	(concat "topic:"
+	(format "%stopic/%s/"
+					my-blog-base-url
 					(completing-read
 					 "Topic: "
-					 (mapcar (lambda (o) (replace-regexp-in-string ".org$" "" o))
-									 (directory-files "~/sync/topic" "\\.org" nil)))))
+					 (mapcar (lambda (o) (file-name-base o))
+									 (directory-files "~/sync/topics" "\\.org" nil)))))
 
 (org-link-set-parameters
 	 "topic"
@@ -8553,40 +9158,41 @@ CLOCK: [2024-10-18 Fri 17:43]--[2024-10-18 Fri 17:51] =>  0:08
 
 (defun my-11ty-html-filename (link)
 	"Return the HTML file for LINK."
-	(setq link (replace-regexp-in-string "^blog:" "" link))
+	(setq link (replace-regexp-in-string "^blog:\\|https://sachachua.com/" "" link))
 	(if (file-exists-p link)
 			link
-		(catch 'found
-			(dolist (f
-							 (list
-								(expand-file-name "index.html"
-																	(expand-file-name
-																	 (if (string-match "^/" link)
-																			 (concat "." link)
-																		 link)
-																	 my-11ty-base-dir))
-								(expand-file-name "index.html"
-																	(expand-file-name
-																	 (if (string-match "^/" link)
-																			 (concat "." link)
-																		 link)
-																	 (expand-file-name "blog" my-11ty-base-dir)))
-								(replace-regexp-in-string
-								 "/$" ".html"
-								 (expand-file-name
-									(if (string-match "^/" link)
-											(concat "." link)
-										link)
-									my-11ty-base-dir))
-								(replace-regexp-in-string
-								 "/$" ".html"
-								 (expand-file-name
-									(if (string-match "^/" link)
-											(concat "." link)
-										link)
-									(expand-file-name "blog" my-11ty-base-dir)))))
-				(when (file-exists-p f)
-					(throw 'found f))))))
+		(or (catch 'found
+					(dolist (f
+									 (list
+										(expand-file-name "index.html"
+																			(expand-file-name
+																			 (if (string-match "^/" link)
+																					 (concat "." link)
+																				 link)
+																			 my-11ty-base-dir))
+										(expand-file-name "index.html"
+																			(expand-file-name
+																			 (if (string-match "^/" link)
+																					 (concat "." link)
+																				 link)
+																			 (expand-file-name "blog" my-11ty-base-dir)))
+										(replace-regexp-in-string
+										 "/$" ".html"
+										 (expand-file-name
+											(if (string-match "^/" link)
+													(concat "." link)
+												link)
+											my-11ty-base-dir))
+										(replace-regexp-in-string
+										 "/$" ".html"
+										 (expand-file-name
+											(if (string-match "^/" link)
+													(concat "." link)
+												link)
+											my-11ty-base-dir))))
+						(if (and f (file-exists-p f))
+								(throw 'found f))))
+				(error "%s not found" link))))
 
 (defun my-org-blog-open (link &rest _)
 	"Find the post if it exists, or open the HTML."
@@ -8601,14 +9207,53 @@ CLOCK: [2024-10-18 Fri 17:43]--[2024-10-18 Fri 17:51] =>  0:08
 	(unless description
 		(my-blog-title (my-org-link-as-url link))))
 
+(defun my-org-store-blog-post-link ()
+	(when (and (derived-mode-p 'org-mode)
+						 (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK"))
+		(let ((permalink (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
+			(org-link-store-props
+			 :link (concat (replace-regexp-in-string "/$" "" my-blog-base-url) permalink)
+			 :description
+			 (save-excursion
+				 (goto-char (org-find-property "EXPORT_ELEVENTY_PERMALINK" permalink))
+				 (org-entry-get (point) "ITEM"))))))
+
 (use-package org
 	:config
 	(org-link-set-parameters
 	 "blog"
 	 :follow #'my-org-blog-open
+	 :store #'my-org-store-blog-post-link
 	 :insert-description #'my-org-link-insert-description
 	 :export #'my-org-blog-export
 	 :complete #'my-org-blog-complete))
+#+end_src
+
+***** DONE List all blog posts that match a category or title search
+CLOSED: [2024-10-25 Fri 11:02]
+:PROPERTIES:
+:CREATED: [2024-10-25 Fri 10:48]
+:Effort:   0:30
+:QUANTIFIED: Emacs
+:END:
+:LOGBOOK:
+- State "DONE"       from "STARTED"    [2024-10-25 Fri 11:02]
+CLOCK: [2024-10-25 Fri 10:48]--[2024-10-25 Fri 11:02] =>  0:14
+:END:
+[[dotemacs:monthly-reviews][Monthly reviews]]
+
+#+begin_src emacs-lisp
+(defun my-11ty-list-all-matching-blog-posts (match)
+	(interactive "MMatch: ")
+	(mapc (lambda (o)
+					(when (or (string-match match (alist-get 'title o))
+										(member match (alist-get 'categories o)))
+						(insert "- "
+										(org-link-make-string
+										 (concat my-blog-base-url (alist-get 'permalink o))
+										 (alist-get 'title o))
+										"\n")))
+				(my-blog-posts)))
 #+end_src
 
 ***** Making it easier to add a category to a blog post  :embark:
@@ -8639,6 +9284,10 @@ I want to be able to quickly add a category to a post when I'm looking at the fi
 											 (json-array-type 'list))
 									 (json-read-file (my-11ty-json-filename file)))))
 
+(defun my-11ty-add-category-tag (cat)
+	(interactive (list (my-11ty-complete-category "Category: ")))
+	(org-set-tags (cons cat (org-get-tags))))
+
 (defun my-11ty-complete-category (prompt &optional categories)
 	(let ((all-categories
 				 (json-read-file
@@ -8656,22 +9305,30 @@ I want to be able to quickly add a category to a post when I'm looking at the fi
 (defun my-11ty-json-filename (path)
 	(concat (file-name-sans-extension (my-11ty-html-filename path)) ".11tydata.json"))
 
+(defun my-11ty-change-details (file modify-func)
+	(let* ((json-object-type 'alist)
+				 (json-array-type 'list)
+				 (json-file (my-11ty-json-filename file))
+				 (json (funcall modify-func (json-read-file json-file))))
+		(when json
+			(with-temp-file json-file
+				(insert (json-encode json)))
+			json-file)))
+
 (defun my-11ty-add-category-to-post (file new-category)
 	(interactive (list (buffer-file-name)
 										 (my-11ty-complete-category "Add category: "
 																								(my-11ty-post-categories file))))
-	(let* ((json-object-type 'alist)
-				 (json-array-type 'list)
-				 (json-file (my-11ty-json-filename file))
-				 (json (json-read-file json-file))
-				 (categories (assoc-default 'categories json)))
-		(unless (member new-category categories)
-			(if categories
-					(setcdr (assoc 'categories json)
-									(cons new-category categories))
-				(setq json (cons (cons 'categories (cons new-category categories)) json)))
-			(with-temp-file json-file
-				(insert (json-encode json))))))
+	(my-11ty-change-details
+	 file
+	 (lambda (json)
+		 (let ((categories (assoc-default 'categories json)))
+			 (if categories
+					 (unless (member new-category categories)
+						 (setcdr (assoc 'categories json)
+										 (cons new-category categories)))
+				 (setq json (cons (cons 'categories (cons new-category categories)) json)))
+			 json))))
 #+end_src
 
 Then it makes sense to be able to work with blog URLs from an Embark action:
@@ -8709,10 +9366,25 @@ Then it makes sense to be able to work with blog URLs from an Embark action:
 	(defvar-keymap embark-my-blog-actions
 		:doc "Shortcuts for my blog"
 		"h" #'my-blog-edit-html
+		"j" #'my-blog-edit-json
 		"e" #'my-embark-11ty-find-org
 		"c" #'my-embark-org-blog-add-category
 		"b" #'my-embark-org-blog-open-in-browser)
 	(add-to-list 'embark-keymap-alist '(my-blog . embark-my-blog-actions)))
+#+end_src
+
+Then I want to be able to add a category to all the blog posts in a region:
+
+#+begin_src emacs-lisp
+(defun my-11ty-add-category-to-all-posts-in-region (category beg end)
+	(interactive (list (my-11ty-complete-category "Category: ")
+										 (min (point) (mark))
+										 (max (point) (mark))))
+	(goto-char beg)
+	(while (re-search-forward org-link-bracket-re end t)
+		(my-11ty-add-category-to-post
+		 (my-11ty-html-filename (org-element-property :raw-link (org-element-context)))
+		 category)))
 #+end_src
 **** embark-11ty                                     :11ty:org:emacs:embark:
 :PROPERTIES:
@@ -8723,7 +9395,8 @@ Then it makes sense to be able to work with blog URLs from an Embark action:
 (defvar my-11ty-base-dir "~/proj/static-blog/")
 (defun my-embark-11ty-find-org (url)
 	(interactive (list (my-complete-blog-post-url)))
-	(when (string-match "https://sachachua\\.com\\(/blog/.*\\)" (my-org-link-as-url url))
+	(setq url (my-org-link-as-url url))
+	(when (string-match "https://sachachua\\.com\\(/blog/.*\\)" url)
 		(let ((path (match-string 1 url))
 					pos)
 			;; check my config
@@ -8790,9 +9463,16 @@ With prefix arg, move the subtree."
 								(org-export--get-buffer-attributes)
 								(org-export-get-environment '11ty subtreep)))
 				 (file-properties
-					(org-element-map (org-element-parse-buffer) 'keyword
-						(lambda (el) (cons (org-element-property :key el)
-															 (org-element-property :value el)))))
+					(seq-filter (lambda (entry)
+												(string-match (regexp-opt
+																			 '("ELEVENTY_COLLECTIONS" "ELEVENTY_BASE_DIR" "ELEVENTY_BASE_URL"
+																				 "TITLE"
+																				 "ELEVENTY_CATEGORIES"
+																				 "ELEVENTY_LAYOUT"))
+																			(car entry)))
+					 (org-element-map (org-element-parse-buffer) 'keyword
+						 (lambda (el) (cons (org-element-property :key el)
+																(org-element-property :value el))))))
 				 (entry-properties (org-entry-properties))
 				 (filename (expand-file-name
 										"index.org"
@@ -8898,6 +9578,13 @@ complicated than they are. Let's turn them off by default, and let's use fancy H
 This makes it easier to publish my files:
 
 #+begin_src emacs-lisp
+(defun my-org-11ty-publish-from-project (_ from-file _)
+  (with-current-buffer (find-file-noselect from-file)
+    (save-excursion
+     (goto-char (point-min))
+     (when (save-excursion (re-search-forward "ELEVENTY_PERMALINK" nil t))
+       (my-org-11ty-export)))))
+
 (setq org-publish-project-alist
       '(("stream"
          :base-directory "~/proj/stream"
@@ -8911,7 +9598,11 @@ This makes it easier to publish my files:
          :base-directory "c:/sacha/Dropbox/books"
          :publishing-directory "c:/sacha/Dropbox/books/html"
          :publishing-function my-org-html-publish-to-html-trustingly
-         :makeindex t)))
+         :makeindex t)
+				("topics"
+				 :base-directory "~/sync/topics"
+				 :publishing-directory "/tmp/topics"
+				 :publishing-function my-org-11ty-publish-from-project)))
 ;(load "~/proj/dev/emacs-chats/build-site.el" t)
 ;(load "~/proj/dev/emacs-notes/build-site.el" t)
 #+end_src
@@ -9003,33 +9694,48 @@ I want to be able to export without having to say yes to code blocks all the tim
   (org-defblock column50 nil nil
 								"Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns."
 								(format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents))
-	(org-defblock short (yt nil video nil audio nil)
-							"Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Mark up a YouTube short."
-							(let ((yt-link (and yt (format "<a href=\"https://youtube.com/watch?v=%s\">watch this on YouTube</a>"
-																						 (my-org-yt-id yt))))
-										(video-link (and video
-																		 (format "<a href=\"%s\">download the video</a>"
-																						 (org-export-file-uri video))))
-										(audio-link (and audio
-																		 (format "<a href=\"%s\">download the audio</a>"
-																						 (org-export-file-uri audio)))))
-								(concat
-								 "<div class=\"row\"><div class=\"columns\"><div style=\"width: 400px\">"
-								 (if video
-										 (my-org-video-export (concat "video:" (expand-file-name video)) nil backend nil)
-									 (my-org-yt-export yt nil backend nil))
-								 "</div></div><div class=\"columns\">"
-								 contents
-								 "<p>You can "
-								 (cond
-									((and yt-link video-link audio-link) (format "%s, %s, or %s." yt-link video-link audio-link))
-									((and yt-link video-link) (format "%s or %s." yt-link video-link))
-									((and yt-link audio-link) (format "%s or %s." yt-link audio-link))
-									((and video-link audio-link) (format "%s or %s." video-link audio-link))
-									(video-link (format "%s." video-link))
-									(audio-link (format "%s." audio-link)))
-								 "</p></div></div>")))
-	)
+	(org-defblock short (yt nil video nil audio nil thumbnail nil)
+								"Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Mark up a YouTube short."
+								(let ((yt-link (and yt (format "<a href=\"https://youtube.com/watch?v=%s\">watch this on YouTube</a>"
+																							 (my-org-yt-id yt))))
+											(video-link (and video
+																			 (format "<a href=\"%s\">download the video</a>"
+																							 (org-export-file-uri video))))
+											(audio-link (and audio
+																			 (format "<a href=\"%s\">download the audio</a>"
+																							 (org-export-file-uri audio)))))
+									(concat
+									 "<div class=\"row\"><div class=\"columns\"><div style=\"width: 400px\">"
+									 (if video
+											 (my-org-video-export (concat "video:" (expand-file-name video) "?thumbnail=" (or thumbnail ""))
+																						nil backend nil)
+										 (my-org-yt-export yt nil backend nil))
+									 "</div></div><div class=\"columns\">"
+									 contents
+									 "<p>You can "
+									 (cond
+										((and yt-link video-link audio-link) (format "%s, %s, or %s." yt-link video-link audio-link))
+										((and yt-link video-link) (format "%s or %s." yt-link video-link))
+										((and yt-link audio-link) (format "%s or %s." yt-link audio-link))
+										((and video-link audio-link) (format "%s or %s." video-link audio-link))
+										(video-link (format "%s." video-link))
+										(audio-link (format "%s." audio-link)))
+									 "</p></div></div>")))
+	(org-defblock visual_book_note (title nil post nil image nil)
+								"Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Mark up a visual book note thumbnail."
+								(format
+								 "<figure class=\"book\">
+<a href=\"%s\">
+<div><img src=\"%s\" alt=\"%s\" /></div>
+<figcaption>%s</figcaption>
+</a>
+</figure>"
+								 post image title title))
+	(org-defblock gallerylist ()
+								"Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Mark up a visual book note thumbnail."
+								(if (eq backend '11ty)
+										(concat "{% gallerylist %}\n" contents "\n{% endgallerylist %}\n")
+									(concat "<div class=\"gallerylist\">" contents "</div>"))))
 #+end_src
 
 And here's a little thing to convert a two-level list into my collapsible sections:
@@ -9432,8 +10138,11 @@ the mode, `toggle' toggles the state."
 (defun my-org-save-and-tangle-my-config ()
 	(when (string= (buffer-file-name) (expand-file-name "~/sync/emacs/Sacha.org")) (my-org-export-and-tangle-when-saved-in-focus-mode 1)))
 
-(use-package org
-  :hook ((org-mode . my-org-save-and-tangle-my-config)))
+(defun my-export-dotemacs ()
+	(interactive)
+	(org-export-to-file 'html "index.html"))
+;(use-package org
+;  :hook ((org-mode . my-org-save-and-tangle-my-config)))
 #+end_src
 
 Let's see if this makes it easier for me to tweak things.
@@ -9644,7 +10353,11 @@ With prefix argument, also display headlines without a TODO keyword."
 		(concat "dotemacs:" (org-read-property-value "CUSTOM_ID"))))
 
 (defun my-org-dotemacs-insert-description (link &optional description)
-	(unless description))
+	(unless description
+		(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
+			(save-restriction
+				(widen)
+				(org-entry-get (org-find-property "CUSTOM_ID" link) "ITEM")))))
 
 (defun my-org-dotemacs-open (path)
 	(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
@@ -9653,11 +10366,12 @@ With prefix argument, also display headlines without a TODO keyword."
 			(goto-char pos))))
 
 (defun my-org-dotemacs-store ()
-	(when (string= (buffer-file-name)
-								 (expand-file-name "~/sync/emacs/Sacha.org"))
+	(when (and (string= (buffer-file-name)
+											(expand-file-name "~/sync/emacs/Sacha.org"))
+						 (org-entry-get (point) "CUSTOM_ID"))
 		(org-link-store-props
 		 :link (concat "dotemacs:" (org-entry-get (point) "CUSTOM_ID"))
-		 :content (org-entry-get (point) "ITEM"))))
+		 :description (org-entry-get (point) "ITEM"))))
 
 (org-link-set-parameters
  "dotemacs"
@@ -9837,7 +10551,7 @@ With prefix argument, also display headlines without a TODO keyword."
 							body)
 				 (setq body
 							 (format
-								"<video%s%s src=\"%s\" type=\"%s\">%s<a href=\"%s\">Download the video</a>%s</video>"
+								"<video%s%s src=\"%s\" %stype=\"%s\">%s%s<a href=\"%s\">Download the video</a>%s</video>"
 								(if (string= (or (car (assoc-default "controls" params 'string= '("1"))) "1") "0")
 										""
 									" controls=\"1\"")
@@ -9845,10 +10559,18 @@ With prefix argument, also display headlines without a TODO keyword."
 										""
 									" autoplay=\"1\"")
 								(car path-and-query)
+								(if (assoc-default "thumbnail" params)
+										(format "poster=\"%s\" "
+														(car (assoc-default "thumbnail" params)))
+									"")
 								(mailcap-file-name-to-mime-type (car path-and-query))
 								(if (assoc-default "captions" params)
 										(format "<track kind=\"subtitles\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
 														(expand-file-name (car (assoc-default "captions" params))))
+									"")
+								(if (assoc-default "thumbnail" params)
+										(format "<div>Video not supported. Thumbnail:<br /><img src=\"%s\" alt=\"Thumbnail\" /></div>"
+														(car (assoc-default "thumbnail" params)))
 									"")
 								(car path-and-query)
 								(if (assoc-default "captions-below" params)
@@ -10191,13 +10913,19 @@ instead of regular expressions.
 #+begin_src emacs-lisp
 (defun my-org-link-as-url (link)
 	"Return the final URL for LINK."
-	(dom-attr
-	 (dom-by-tag
-		(with-temp-buffer
-			(insert (org-export-string-as link 'html t))
-			(xml-parse-region (point-min) (point-max)))
-		'a)
-	 'href))
+	(cond
+	 ((string-match "^/" link)
+		(concat my-blog-base-url (replace-regexp-in-string "^/" "" link)))
+	 ((string-match "^https://" link)
+		link)
+	 (t
+		(dom-attr
+		 (dom-by-tag
+			(with-temp-buffer
+				(insert (org-export-string-as link 'html t))
+				(xml-parse-region (point-min) (point-max)))
+			'a)
+		 'href))))
 
 (defun my-org-stored-link-as-url (&optional link insert)
 	"Copy the stored link as a plain URL.
@@ -11489,18 +12217,17 @@ I don't want to get distracted by the same code in the other window, so I want o
 (defun my-org-quantified-get-detailed-hours-based-on-range (category start end)
   "Return a list of (date week-ending-date dow seconds) for CATEGORY from START to END."
   (let ((entries
-         (gethash "entries"
-                  (quantified-parse-json
-                   (quantified-request (format "records.json?start=%s&end=%s&filter_string=%s&per_page=1000&split=split" start end (url-encode-url category))
-                                       nil "GET")))))
+         (quantified-parse-json
+           (quantified-request (format "records.json?start=%s&end=%s&filter_string=%s&per_page=1000&split=split" start end (url-encode-url category))
+                               nil "GET"))))
     (mapcar
      (lambda (entry)
-       (let ((time (date-to-time (gethash "timestamp" entry))))
+       (let ((time (date-to-time (assoc-default 'timestamp entry))))
          (list
           (format-time-string "%F" time)
           (format-time-string "%F" (my-get-week-end-for-time time))
           (format-time-string "%a" time)
-          (gethash "duration" entry))))
+          (assoc-default 'duration entry))))
      entries)))
 
 (defun my-get-week-end-for-time (time &optional week-ends-on-day)
@@ -11998,9 +12725,19 @@ Based on https://xenodium.com/emacs-dwim-do-what-i-mean/
 (with-eval-after-load 'markdown-mode
 	(define-key markdown-mode-map (kbd "C-c C-l") #'ar/org-insert-link-dwim))
 
+(defun my-org-link-https-insert-description (link desc)
+	"Default to the page title."
+	(unless desc
+		(let ((title (my-page-title link)))
+			(cond
+			 ((string-match "Reddit - " title)
+				"Reddit")
+			 (t title)))))
 
-
+(with-eval-after-load 'org
+	(org-link-set-parameters "https" :insert-description #'my-org-link-https-insert-description))
 #+end_src
+
 ** Clipboard
 :PROPERTIES:
 :CUSTOM_ID: clipboard
@@ -12309,13 +13046,217 @@ Handy for collecting items together.
       (org-end-of-item-list)
       (yank))))
 #+end_src
+** Org Mode: Format Libby book highlights exported as JSON
+:PROPERTIES:
+:CREATED:  [2024-10-28 Mon 13:44]
+:Effort:   0:30
+:EXPORT_DATE: 2024-11-02T17:48:03-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/11/org-mode-format-libby-book-highlights-exported-as-json/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/11/org-mode-format-libby-book-highlights-exported-as-json/
+:END:
+:LOGBOOK:
+CLOCK: [2024-10-28 Mon 13:45]--[2024-10-28 Mon 14:00] =>  0:15
+:END:
+
+The [[https://www.torontopubliclibrary.ca/][Toronto Public Library]] (and many other
+libraries) offers e-book access through Overdrive,
+which I can read through the Libby app on my
+phone. It turns out that I can select passages to
+highlight. It also turns out that I can use the
+Reading Journey view to [[https://help.libbyapp.com/en-us/6151.htm][export the highlights as
+JSON]], even for books I've returned. This is what
+the JSON looks like.
+
+#+begin_src js :eval no
+{
+  "version": 1,
+  "readingJourney": {
+    "cover": {
+      "contentType": "image/jpeg",
+      "url": "https://img1.od-cdn.com/ImageType-100/7635-1/{B41A3269-BC2A-4497-8C71-0A3F1FA3C694}Img100.jpg",
+      "title": "How to Take Smart Notes",
+      "color": "#D9D9D9",
+      "format": "ebook"
+    },
+    "title": {
+      "text": "How to Take Smart Notes",
+      "url": "https://share.libbyapp.com/title/5796521",
+      "titleId": "5796521"
+    },
+    "author": "Sönke Ahrens",
+    "publisher": "Sönke Ahrens",
+    "isbn": "9781393776819",
+    "percent": 0.313229455252918
+  },
+  "highlights": [
+    {
+      "timestamp": 1729898852000,
+      "chapter": "13       Share Your Insight",
+      "percent": 0.824912451361868,
+      "color": "#FFB",
+      "quote": "For every document I write, I have another called “xy-rest.doc,” and every single time I cut something, I copy it into the other document, convincing myself that I will later look through it and add it back where it might fit. Of"
+    },
+    {
+      "timestamp": 1729898760000,
+      "chapter": "13       Share Your Insight",
+      "percent": 0.801566108949416,
+      "color": "#FFB",
+      "quote": "I always work on different manuscripts at the same time. With this method, to work on different things simultaneously, I never encounter any mental blockages"
+    },
+		...
+ ]
+}
+#+end_src
+
+I want to save those highlights in my ~books.org~
+file for easy searching, grouping the highlights
+by chapter. The following code helps with that:
+
+#+begin_src emacs-lisp
+(defun my-org-insert-book-highlights-from-libby (url)
+	(interactive "MURL: ")
+	(let-alist (plz 'get url :as #'json-read)
+		(insert
+		 "* "
+		 .readingJourney.title.text
+		 " - "
+		 .readingJourney.author
+		 "\n")
+		(org-set-property "ISBN" .readingJourney.isbn)
+		(org-set-property "COVER" .readingJourney.cover.url)
+		(org-set-property "TITLE" .readingJourney.title.text)
+		(org-set-property "AUTHOR" .readingJourney.author)
+		(insert (org-link-make-string .readingJourney.title.url .readingJourney.cover.url)
+						"\n")
+		;; sort the highlights by chapter
+		(insert
+		 (mapconcat
+			(lambda (row)
+				(concat "** " (replace-regexp-in-string " +" " " (car row)) "\n"
+								(mapconcat (lambda (quote)
+														 (concat "#+begin_quote\n"
+																		 (alist-get 'quote quote)
+																		 "\n#+end_quote\n\n"))
+													 (cdr row)
+													 "")
+								"\n\n"))
+			(seq-group-by
+			 (lambda (o) (alist-get 'chapter o))
+			 (sort .highlights
+						 :key (lambda (o) (alist-get 'percent o))))))))
+#+end_src
+
+This is what the resulting document looks like:
+
+#+begin_src org
+,* How to Take Smart Notes - Sönke Ahrens
+:PROPERTIES:
+:ISBN:     9781393776819
+:COVER:    https://img1.od-cdn.com/ImageType-100/7635-1/{B41A3269-BC2A-4497-8C71-0A3F1FA3C694}Img100.jpg
+:TITLE:    How to Take Smart Notes
+:AUTHOR:   Sönke Ahrens
+:END:
+[[https://share.libbyapp.com/title/5796521][https://img1.od-cdn.com/ImageType-100/7635-1/{B41A3269-BC2A-4497-8C71-0A3F1FA3C694}Img100.jpg]]
+,** 1  Everything You Need to Know
+,#+begin_quote
+ never force myself to do anything I don’t feel like. Whenever I am stuck, I do something else.”
+,#+end_quote
+
+,#+begin_quote
+Luhmann’s only real help was a housekeeper who cooked for him and his children during the week, not that extraordinary considering he had to raise three children on his own after his wife died early.
+,#+end_quote
+
+...
+#+end_src
+** STARTED Validation
+:PROPERTIES:
+:Effort:   0:30
+:QUANTIFIED: Emacs
+:ID:       20241123T091738.333004
+:END:
+:LOGBOOK:
+CLOCK: [2024-11-20 Wed 18:54]
+:END:
+
+#+begin_src emacs-lisp
+(defvar my-org-validate-functions
+	'(my-org-validate-no-blank-titles
+		my-org-validate-unique-outline-paths
+		my-org-validate-no-syncthing-conflicts))
+(defun my-org-validate ()
+	(interactive)
+	(unless (string-match "_archive\\'" (buffer-file-name))
+		(run-hooks 'my-org-validate-functions)))
+#+end_src
+
+*** TODO No blank titles, no duplicate paths
+:PROPERTIES:
+:CREATED:  [2024-11-18 Mon 14:49]
+:END:
+
+#+begin_src emacs-lisp
+(defun my-org-validate-no-blank-titles ()
+	(interactive)
+	(let ((point (point)))
+		(goto-char (point-min))
+		(while (re-search-forward org-heading-regexp nil t)
+			(unless (match-string 2)
+				(error "Empty title")))
+		(goto-char point)))
+
+(defun my-org-validate-unique-outline-paths ()
+	(interactive)
+	(let ((point (point)))
+		(goto-char (point-min))
+		(let* (paths
+					 org-outline-path-cache
+					 (found (catch 'found
+										(org-map-entries
+										 (lambda ()
+											 (let ((path (string-join (org-get-outline-path t t) "/")))
+												 (if (member path paths)
+														 (throw 'found (cons (point) path))
+													 (push path paths)))))
+										nil)))
+			(if found
+					(progn
+						(goto-char (car found))
+						(error "Duplicate found: %s" (cdr found))
+						found)
+				(goto-char point)
+				(when (called-interactively-p 'any) (message "No duplicates"))))))
+
+(defun my-org-delete-duplicate-outline-paths-interactively ()
+	(interactive)
+	(let ((point (point))
+				previous)
+		(goto-char (point-min))
+		(org-map-entries
+		 (lambda ()
+			 (let ((path (string-join (org-get-outline-path t t) "/")))
+				 (when (assoc-default path previous #'string=)
+					 (when (y-or-n-p "Delete this possible duplicate? ")
+						 (org-cut-subtree)))
+				 (push (cons path (point)) previous))))))
+
+(defun my-org-validate-no-syncthing-conflicts ()
+	(when (directory-files default-directory nil "sync-conflict.*\\.org")
+		(error "Syncthing conflicts exist.")))
+#+end_src
 * Multimedia
 :PROPERTIES:
 :CUSTOM_ID: multimedia
 :END:
-** Images
+** Emacs.tv
 
-My sketch- and image-related code is scattered throughout my config. Here are some headings:
+#+begin_src emacs-lisp
+(use-package emacs-tv
+	:load-path "~/proj/emacstv.github.io")
+#+end_src
+** Images
+:CUSTOM_ID: drawing
+
+My sketch- and image-related code is scattered throughout my config. Here are some other headings:
 
 - [[file:~/sync/emacs/Sacha.org::#embark-image][Embark and images]]
 - [[file:~/sync/emacs/Sacha.org::#completing-sketches][Completing sketches]]
@@ -12327,17 +13268,21 @@ My sketch- and image-related code is scattered throughout my config. Here are so
 - [[file:~/sync/emacs/Sacha.org::#sketch-rename-recolor][Renaming and recoloring sketches]]
 - [[file:~/sync/emacs/Sacha.org::#org-mode-sketch-links][Org Mode sketch: links]]
 - [[file:~/sync/emacs/Sacha.org::#templates][Templates]]
-*** Drawing                                                         :image:
-:PROPERTIES:
-:CUSTOM_ID: drawing
-:END:
-<<drawing>>
-**** TODO Make header for Mastodon                                  :drawing:
+
+*** Save edited text for sketch post                     :images:dotemacs:
+
+#+begin_src emacs-lisp
+(defun my-org-sketch-open-text-file (sketch)
+  (interactive (list (my-complete-sketch-filename)))
+	(find-file (concat (file-name-sans-extension sketch) ".txt")))
+#+end_src
+
+*** TODO Make header for Mastodon                                :drawing:
 :PROPERTIES:
 :CREATED:  [2024-09-30 Mon 20:58]
 :END:
 
-**** Imagemagick
+*** Imagemagick
 :PROPERTIES:
 :CUSTOM_ID: imagemagick
 :END:
@@ -12347,7 +13292,178 @@ https://xenodium.com/emacs-viewing-webp-images/
 (setq image-use-external-converter t)
 #+end_src
 
-**** Artrage
+**** TOBLOG Emacs: Extract part of an image to another file
+:PROPERTIES:
+:EXPORT_DATE: 2024-11-04T14:57:40-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/11/emacs-extract-part-of-an-image-to-another-file/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/11/emacs-extract-part-of-an-image-to-another-file/
+:CUSTOM_ID: my-image-write-region
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2024-11-04 Mon 13:13]
+:END:
+
+It turns out that image-mode allows you to open an
+image and then crop it with ~i c~ (~image-crop~)
+by drawing (or moving) a rectangle with the mouse,
+all within Emacs.
+
+Instead of cropping the original image, I want to
+select a region and then write it to a different
+file. I think the ability to select a portion of
+an image by drawing/moving a rectangle is
+generally useful, so let's start by defining a
+function for that. The heavy lifting is done by
+~image-crop--crop-image-1~, which tracks the mouse
+and listens for events.
+
+#+begin_src emacs-lisp :results silent
+;; Based on image-crop.
+(defun my-image-select-rect (op)
+	"Select a region of the current buffer's image.
+OP should be a string describing the operation (ex: \"cut\").
+
+`q':   Exit without changing anything.
+`RET': Select this region.
+`m':   Make mouse movements move the rectangle instead of altering the
+       rectangle shape.
+`s':   Same as `m', but make the rectangle into a square first."
+	(unless (image-type-available-p 'svg)
+    (error "SVG support is needed to crop and cut images"))
+	(let ((image (image--get-image)))
+    (unless (imagep image)
+      (user-error "No image under point"))
+    (when (overlays-at (point))
+      (user-error "Can't edit images that have overlays"))
+    ;; We replace the image under point with an SVG image that looks
+    ;; just like that image.  That allows us to draw lines over it.
+    ;; At the end, we replace that SVG with a cropped version of the
+    ;; original image.
+    (let* ((data (cl-getf (cdr image) :data))
+					 (type (cond
+									((cl-getf (cdr image) :format)
+									 (format "%s" (cl-getf (cdr image) :format)))
+									(data
+									 (image-crop--content-type data))))
+					 (image-scaling-factor 1)
+           (orig-point (point))
+					 (size (image-size image t))
+					 (svg (svg-create (car size) (cdr size)
+														:xmlns:xlink "http://www.w3.org/1999/xlink"
+														:stroke-width 5))
+           ;; We want to get the original text that's covered by the
+           ;; image so that we can restore it.
+           (image-start
+            (save-excursion
+              (let ((match (text-property-search-backward 'display image)))
+                (if match
+                    (prop-match-end match)
+                  (point-min)))))
+           (image-end
+            (save-excursion
+              (let ((match (text-property-search-forward 'display image)))
+                (if match
+                    (prop-match-beginning match)
+                  (point-max)))))
+					 (text (buffer-substring image-start image-end))
+					 (inhibit-read-only t)
+           orig-data svg-end)
+      (with-temp-buffer
+				(set-buffer-multibyte nil)
+				(if (null data)
+						(insert-file-contents-literally (cl-getf (cdr image) :file))
+					(insert data))
+				(let ((image-crop-exif-rotate nil))
+					(image-crop--possibly-rotate-buffer image))
+				(setq orig-data (buffer-string))
+				(setq type (image-crop--content-type orig-data))
+        (image-crop--process image-crop-resize-command
+                             `((?w . 600)
+                               (?f . ,(cadr (split-string type "/")))))
+				(setq data (buffer-string)))
+      (svg-embed svg data type t
+								 :width (car size)
+								 :height (cdr size))
+			(with-temp-buffer
+				(svg-insert-image svg)
+				(switch-to-buffer (current-buffer))
+        (setq svg-end (point))
+				;; Area
+				(let ((area
+							 (condition-case _
+									 (save-excursion
+										 (forward-line 1)
+										 (image-crop--crop-image-1
+											svg op))
+								 (quit nil))))
+					(when area
+						;;  scale to original
+						(let* ((image-scaling-factor 1)
+									 (osize (image-size (create-image orig-data nil t) t))
+									 (factor (/ (float (car osize)) (car size)))
+									 ;; width x height + left + top
+									 (width (abs (truncate (* factor (- (cl-getf area :right)
+																											(cl-getf area :left))))))
+									 (height (abs (truncate (* factor (- (cl-getf area :bottom)
+																											 (cl-getf area :top))))))
+									 (left (truncate (* factor (min (cl-getf area :left)
+																									(cl-getf area :right)))))
+									 (top (truncate (* factor (min (cl-getf area :top)
+																								 (cl-getf area :bottom))))))
+							(list :left left :top top
+										:width width :height height
+										:right (+ left width)
+										:bottom (+ top height)))))))))
+#+end_src
+
+Then we can use it to select part of an image, and
+then use ImageMagick to extract that part of the
+image:
+
+#+begin_src emacs-lisp
+(defun my-image-write-region ()
+  "Copy a section of the image under point to a different file.
+This command presents the image with a rectangular area superimposed
+on it, and allows moving and resizing the area to define which
+part of it to crop.
+
+While moving/resizing the cropping area, the following key bindings
+are available:
+
+`q':   Exit without changing anything.
+`RET': Save the image.
+`m':   Make mouse movements move the rectangle instead of altering the
+       rectangle shape.
+`s':   Same as `m', but make the rectangle into a square first."
+  (interactive)
+	(goto-char (point-min))
+	(when-let* ((orig-data (buffer-string))
+							(area (my-image-select-rect "write"))
+							(inhibit-read-only t)
+							(type (image-crop--content-type orig-data))
+							(left (plist-get area :left))
+							(top (plist-get area :top))
+							(width (plist-get area :width))
+							(height (plist-get area :height)))
+		(with-temp-file (read-file-name "File: ")
+			(set-buffer-multibyte nil)
+			(insert orig-data)
+			(image-crop--process image-crop-crop-command
+													 `((?l . ,left)
+                             (?t . ,top)
+                             (?w . ,width)
+                             (?h . ,height)
+                             (?f . ,(cadr (split-string type "/"))))))))
+#+end_src
+
+~i w~ seems like a sensible shortcut for writing a region of an image.
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'image
+	(keymap-set image-mode-map "i w" #'my-image-write-region))
+#+end_src
+
+*** Artrage
 :PROPERTIES:
 :CUSTOM_ID: artrage
 :END:
@@ -12371,7 +13487,7 @@ https://xenodium.com/emacs-viewing-webp-images/
       <StrokeEvent>") t t)))
 
 #+end_src
-**** Tablet clicks count as drags
+*** Tablet clicks count as drags
 :PROPERTIES:
 :CUSTOM_ID: tablet-clicks-count-as-drags
 :END:
@@ -12483,21 +13599,21 @@ https://xenodium.com/emacs-viewing-webp-images/
               (call-interactively command)))))
     (message "You clicked somewhere weird.")))
 #+end_src
-**** SVG                                                              :image:
+*** SVG                                                            :image:
 :PROPERTIES:
 :CUSTOM_ID: svg
 :END:
     #+begin_src emacs-lisp
 (auto-image-file-mode -1)
     #+end_src
-***** Animating SVGs                                    :animation:video:
+**** Animating SVGs                                      :animation:video:
 :PROPERTIES:
 :CUSTOM_ID: how-can-i-generate-png-frames-that-step-through-the-highlights
 :END:
 
 Detailed notes are at [[https://sachachua.com/blog/2024/01/animating-svg-topic-maps-with-inkscape-emacs-ffmpeg-and-reveal-js/][Animating SVG topic maps with Inkscape, Emacs, FFmpeg, and Reveal.js]].
 
-******  Breaking up a PDF from Supernote
+*****  Breaking up a PDF from Supernote
 #+begin_src emacs-lisp
 (defun my-sketch-convert-pdf (pdf-file)
 	"Returns the SVG filename."
@@ -12669,7 +13785,7 @@ or a list of nodes."
 :CUSTOM_ID: svg-breaking-up-supernote
 :END:
 
-****** Identifying paths
+***** Identifying paths
 :PROPERTIES:
 :CUSTOM_ID: svg-identifying-paths
 :END:
@@ -12877,7 +13993,7 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 					(svg-print dom))))))
 #+end_src
 
-****** Sorting paths
+***** Sorting paths
 :PROPERTIES:
 :CUSTOM_ID: svg-sorting-paths
 :END:
@@ -12956,7 +14072,7 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 											"~/proj/2023-12-audio-workflow/map-output.svg"
 											)
 #+end_src
-****** Animating paths in order
+***** Animating paths in order
 :PROPERTIES:
 :CUSTOM_ID: svg-animating-paths-in-order
 :END:
@@ -13056,7 +14172,7 @@ If FRAMERATE is specified, use that instead of 30."
 			(display-buffer (current-buffer))))
 	output-file)
 #+end_src
-****** RevealJS CSS animation of sketches
+***** RevealJS CSS animation of sketches
 :PROPERTIES:
 :CUSTOM_ID: reveal-js-sketch-animation
 :END:
@@ -13116,7 +14232,7 @@ map-progression should be a list of lists with the following format:
 			map-progression
 			"\n"))))
 #+end_src
-**** Finding sketches                                                 :image:
+*** Finding sketches                                               :image:
 :PROPERTIES:
 :CUSTOM_ID: finding-sketches
 :END:
@@ -13189,7 +14305,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
                             (my-get-sketch-filenames regexp t)))
                    'string>))))
 #+end_src
-**** Renaming and recoloring sketches                                 :image:
+*** Renaming and recoloring sketches                               :image:
 :PROPERTIES:
 :CUSTOM_ID: sketch-rename-recolor
 :END:
@@ -13229,7 +14345,107 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 								(expand-file-name file)))
 (defalias 'my-image-recolor 'my-sketch-recolor-png)
 #+end_src
-**** Org Mode sketch: links                                           :image:
+*** TODO Interactively recolor a sketch
+:PROPERTIES:
+:CUSTOM_ID: interactively-recolor
+:EXPORT_DATE: 2024-11-05T14:23:57-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/11/interactively-recolor-a-sketch/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/11/interactively-recolor-a-sketch/
+:END:
+
+I wanted to be able to change the colours used in
+a sketch, all from Emacs. For this, I can reuse my
+[[https://sachachua.com/blog/2022/08/recoloring-my-sketches-with-python/][Python script for analyzing colours and changing
+them]] and just add some Emacs Lisp to pick colours
+from Emacs.
+
+#+begin_columns
+#+begin_column50
+#+CAPTION: Selecting the colour to replace
+#+ATTR_HTML: :data-link t :class box-shadow
+[[file:~/recordings/2024-11-05-14-15-55.svg]]
+#+end_column50
+#+begin_column50
+#+CAPTION: Selecting the new colour
+#+ATTR_HTML: :data-link t :class box-shadow
+[[file:~/recordings/2024-11-05-14-16-04.svg]]
+#+end_column50
+#+end_columns
+
+#+begin_src emacs-lisp
+(defvar my-recolor-command "/home/sacha/bin/recolor.py")
+
+(defun my-image-colors-by-frequency (file)
+	"Return the colors in FILE."
+	(with-temp-buffer
+		(call-process my-recolor-command nil t nil (expand-file-name file))
+		(goto-char (point-min))
+		(delete-region (point-min) (1+ (line-end-position)))
+		(mapcar (lambda (o) (concat "#" (car (split-string o "[ \t]"))))
+						(split-string (string-trim (buffer-string)) "\n"))))
+
+(defun my-completing-read-color (prompt list)
+	"Display PROMPT and select a color from LIST."
+	(completing-read
+	 (or prompt "Color: ")
+	 (mapcar (lambda (o)
+						 (faces--string-with-color o o))
+					 list)))
+
+(defun my-image-recolor-interactively (file)
+	(interactive (list (read-file-name "File: " (concat my-sketches-directory "/") nil t
+																		 nil
+																		 (lambda (file) (string-match "\\.png\\'" file)))))
+	(save-window-excursion
+		(find-file file)
+
+		;; Identify the colors by frequency
+		(let (choice done)
+			(while (not done)
+				(let* ((by-freq (my-image-colors-by-frequency file))
+							 (old-color (my-completing-read-color "Old color: " by-freq))
+							 (new-color (read-color "New color: " t))
+							 (temp-file (make-temp-file "recolor" nil (concat "." (file-name-extension file))))
+							 color-map)
+					(when (string-match "#\\(..\\)..\\(..\\)..\\(..\\).." new-color)
+						(setq new-color (concat (match-string 1 new-color)
+																		(match-string 2 new-color)
+																		(match-string 3 new-color))))
+					(setq color-map (replace-regexp-in-string "#" "" (concat old-color "," new-color)))
+					(call-process my-recolor-command nil nil nil
+												(expand-file-name file)
+												"--colors"
+												color-map
+												"--output" temp-file)
+					(find-file temp-file)
+					(pcase (read-char-choice "(y)es, (m)ore, (r)edo, (c)ancel: " "yrc")
+						(?y
+						 (kill-buffer)
+						 (rename-file temp-file file t)
+						 (setq done t))
+						(?m
+						 (kill-buffer)
+						 (rename-file temp-file file t))
+						(?r
+						 (kill-buffer)
+						 (delete-file temp-file))
+						(?c
+						 (kill-buffer)
+						 (delete-file temp-file)
+						 (setq done t))))))))
+#+end_src
+
+#+RESULTS:
+:results:
+my-image-recolor-interactively
+:end:
+
+It would be nice to update the preview as I
+selected things in the completion, which I might
+be able to do by making a [[https://github.com/minad/consult][consult--read]] command
+for it. It would be extra cool if I could use this
+[[https://github.com/ozanmakes/emacs-webkit-color-picker/blob/master/webkit-color-picker.org][webkit-based color picker]]. Maybe someday!
+*** Org Mode sketch: links                                         :image:
 :PROPERTIES:
 :CUSTOM_ID: org-mode-sketch-links
 :END:
@@ -13303,9 +14519,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
     (cond
      ((eq backend '11ty) (format "{%% sketchThumb \"%s\", \"%s\" %%}" (file-name-base link) desc))
      ((or (eq format 'html) (eq format 'wp))
-      (if description
-          (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc)
-        (format "<div class=\"sketch-thumbnail\"><a target=\"_blank\" href=\"%s\"><img src=\"%s\"><br />%s</a></div>" path image desc)))
+      (format "<div class=\"sketch-thumbnail\"><a target=\"_blank\" href=\"%s\"><img src=\"%s\"><br />%s</a></div>" path image desc))
      ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
      ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
      ((eq format 'md)
@@ -13417,7 +14631,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
    :complete 'my-org-image-complete))
 
 #+end_src
-**** Org Mode custom link: copy to clipboard                      :emacs:org:
+*** Org Mode custom link: copy to clipboard                    :emacs:org:
 :PROPERTIES:
 :CUSTOM_ID: org-mode-copy
 :EXPORT_DATE: 2024-01-16T07:57:50-0500
@@ -13449,12 +14663,16 @@ accidentally selecting only part of the text.
 
 #+NAME: org-copy-link
 #+begin_src emacs-lisp
+(defun my-org-copy-export (link desc format)
+	(pcase format
+		('org (org-link-make-string (concat "copy:" link) desc))
+		(_ desc)))
 (use-package org
   :config
   (org-link-set-parameters
    "copy"
    :follow (lambda (link) (kill-new link))
-	 :export (lambda (_ desc &rest _) desc)))
+	 :export #'my-org-copy-export))
 #+end_src
 
 I can use these links as part of my checklist so
@@ -13495,7 +14713,7 @@ On my computer, the numbers become links that I
 can click and copy. Another little shortcut thanks
 to Emacs and Org Mode!
 
-**** Config
+*** Config
 :PROPERTIES:
 :CUSTOM_ID: config
 :END:
@@ -13511,7 +14729,7 @@ to Emacs and Org Mode!
              (format "<a href=\"https://sachachua.com/dotemacs#%s\">%s</a>" link description))))
 
     #+end_src
-**** Helm completion with my-helm-org-sketches
+*** Helm completion with my-helm-org-sketches
 :PROPERTIES:
 :CUSTOM_ID: helm-completion-with-my-helm-org-sketches
 :END:
@@ -13550,7 +14768,7 @@ to Emacs and Org Mode!
         :buffer "*helm-org-sketches*"))
 #+end_src
 
-**** Button-based interface
+*** Button-based interface
 :PROPERTIES:
 :CUSTOM_ID: button-based-interface
 :END:
@@ -13653,7 +14871,7 @@ This makes a buffer with big buttons so that I can easily tap them with my stylu
 
 #+end_src
 
-**** Templates                                                        :image:
+*** Templates                                                      :image:
 :PROPERTIES:
 :CUSTOM_ID: templates
 :END:
@@ -13729,7 +14947,7 @@ This makes a buffer with big buttons so that I can easily tap them with my stylu
 
 
 #+end_src
-**** Easily backfill my journal
+*** Easily backfill my journal
 CLOSED: [2015-07-19 Sun 11:53]
 :PROPERTIES:
 :Effort:   0:30
@@ -13800,7 +15018,7 @@ CLOSED: [2015-07-19 Sun 11:53]
       (widget-minor-mode))))
 #+end_src
 
-**** Rename scanned index cards
+*** Rename scanned index cards
 :PROPERTIES:
 :CUSTOM_ID: rename-scanned-index-cards
 :END:
@@ -13922,7 +15140,7 @@ script]] to upload the files to Flickr, move them to my =To blog=
 directory, and copy Org-formatted text that I can paste into my
 learning outline.
 
-**** Automatically resize images
+*** Automatically resize images
 :PROPERTIES:
 :CUSTOM_ID: automatically-resize-images
 :END:
@@ -13938,7 +15156,7 @@ that they're scaled to the window size.
   :init (progn (imagex-global-sticky-mode) (imagex-auto-adjust-mode)))
 #+end_src
 
-**** Get information for sketched books
+*** Get information for sketched books
 :PROPERTIES:
 :CUSTOM_ID: get-information-for-sketched-books
 :END:
@@ -13961,7 +15179,7 @@ while still being able to take advantage of structured information.
 Do you work with external applications? Where does it make sense to
 use Emacs Lisp to make setup or processing easier?
 
-**** Make it easy to follow up on a sketch
+*** Make it easy to follow up on a sketch
 :PROPERTIES:
 :CUSTOM_ID: make-it-easy-to-follow-up-on-a-sketch
 :END:
@@ -13990,7 +15208,7 @@ use Emacs Lisp to make setup or processing easier?
     (my-set-up-sketch-buffer)))
 #+end_src
 
-**** Digital index piles with Emacs
+*** Digital index piles with Emacs
 CLOSED: [2015-02-01 Sun 18:26]
 :PROPERTIES:
 :Effort:   2:00
@@ -14253,7 +15471,7 @@ I wanted to write a function that could take a list structured like this:
           (forward-line 1))))))
     #+end_src
 
-**** Xournalpp and Krita
+*** Xournalpp and Krita
 :PROPERTIES:
 :CUSTOM_ID: xournalpp-and-krita
 :END:
@@ -14277,7 +15495,7 @@ Xournal++ uses vectors and makes it easier to insert space when
 drawing notebook-style stuff, so that might be interesting too. I
 probably want to write something that converts it to PNG for export.
 
-**** Sketched books
+*** Sketched books
 :PROPERTIES:
 :CUSTOM_ID: insert-point
 :END:
@@ -14344,7 +15562,7 @@ Convenience functions to make my life easier when sketchnoting books.
 
 #+end_src
 
-**** Other sketches
+*** Other sketches
 :PROPERTIES:
 :CUSTOM_ID: other-sketches
 :END:
@@ -14464,7 +15682,7 @@ xdotool key Return
 
 #+RESULTS:
 
-**** Other sketch-related functions
+*** Other sketch-related functions
 :PROPERTIES:
 :CUSTOM_ID: other-sketch-related-functions
 :END:
@@ -14525,7 +15743,7 @@ xdotool key Return
     (add-to-list listvar '("d" call-interactively 'my-prepare-index-card-for-subtree))))
 #+end_src
 
-**** SOMEDAY Write about half-page scans
+*** SOMEDAY Write about half-page scans
 :PROPERTIES:
 :CREATED:  [2021-12-19 Sun 21:16]
 :CUSTOM_ID: write-about-half-page-scans
@@ -14537,7 +15755,7 @@ xdotool key Return
 	(insert (file-name-base sketch)
 					(format "\n\n[[sketchFull:%s][%s]]\n\n" (file-name-nondirectory sketch) (file-name-base sketch)))
 	(insert "#+begin_my_details Text from sketch\n")
-	(my-sketch-insert-text-from-json sketch)
+	(my-sketch-insert-text sketch)
 	(insert "\n#+end_my_details"))
 (defun my-write-about-sketch (sketch)
   (interactive (list (my-complete-sketch-filename)))
@@ -14573,7 +15791,7 @@ xdotool key Return
         (rename-file filename new-name)))
     (my-write-about-sketch new-name)))
 #+end_src
-**** Supernote                                                    :supernote:
+*** Supernote                                                  :supernote:
 :PROPERTIES:
 :CUSTOM_ID: supernote
 :END:
@@ -14708,12 +15926,12 @@ And in general:
 (setq htmlize-css-name-prefix "org-")
 (setq htmlize-head-tags "<link rel=\"stylesheet\" href=\"https://sachachua.com/assets/css/style.css\" />")
 #+end_src
-***** https://www.reddit.com/r/Supernote/s/OakRsLxmT7 simple heuristic for reflowing text
+**** https://www.reddit.com/r/Supernote/s/OakRsLxmT7 simple heuristic for reflowing text
 :PROPERTIES:
 :CREATED:  [2024-10-03 Thu 07:25]
 :END:
 
-***** Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access :supernote:org:emacs:
+**** Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access :supernote:org:emacs:
 :PROPERTIES:
 :CREATED:  [2024-09-29 Sun 07:58]
 :EXPORT_LATEX_HEADER: \usepackage{setspace}
@@ -14808,7 +16026,7 @@ Now I can export a subtree or file to my Supernote for easy review.
 
 I wonder if multimodal AI models can handle annotated images with editing marks...
 
-***** org-attaching the latest image from my Supernote via Browse and Access :supernote:org:
+**** org-attaching the latest image from my Supernote via Browse and Access :supernote:org:
 :PROPERTIES:
 :CUSTOM_ID: supernote-browse
 :ID:       20240926T080807.815726
@@ -14852,6 +16070,38 @@ I want to quickly get drawings from my Supernote A5X into Emacs so that I can in
 			 :lessp 'string<
 			 :reverse t))))
 
+(defun my-supernote-download-latest-exported-file ()
+	"Save exported file in downloads dir."
+	(interactive)
+	(let* ((info (car (my-supernote-get-exported-files)))
+				 (dest-dir my-download-dir)
+				 (new-file (expand-file-name (file-name-nondirectory (alist-get 'name info)) dest-dir))
+				 renamed)
+		(copy-file
+		 (plz 'get (format "http://%s:8089%s" my-supernote-ip-address
+											 (alist-get 'uri info))
+			 :as 'file)
+		 new-file
+		 t)
+		;; recolor
+		(my-sketch-recolor-png new-file)
+		;; autocrop that image
+		(my-image-autocrop new-file)
+		;; possibly rename
+		(setq renamed (my-image-recognize-get-new-filename new-file))
+		(when renamed
+			(setq renamed (expand-file-name renamed (org-attach-dir)))
+			(rename-file new-file renamed t)
+			(my-image-store renamed) ; file it in my archive
+			(setq new-file renamed))
+		;; use a sketch link if it has an ID
+		(if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] "
+											(file-name-base renamed))
+				(org-insert-link nil (concat "sketchFull:" (file-name-base renamed)))
+			;; insert the link
+			(org-insert-link nil (concat "file:" new-file)))
+		(org-redisplay-inline-images)))
+
 (defun my-supernote-org-attach-latest-exported-file ()
 	(interactive)
 	;; save the file to the screenshot directory
@@ -14888,7 +16138,7 @@ I want to quickly get drawings from my Supernote A5X into Emacs so that I can in
 			(org-insert-link nil (concat "attachment:" (replace-regexp-in-string "#" "%23" (file-name-nondirectory new-file)))))
 		(org-redisplay-inline-images)))
 #+end_src
-***** DONE Using Puppeteer to grab an image from the SuperNote's screen mirror :supernote:
+**** DONE Using Puppeteer to grab an image from the SuperNote's screen mirror :supernote:
 CLOSED: [2024-01-03 Wed 20:32]
 :PROPERTIES:
 :EXPORT_DATE: 2024-01-03T16:03:23-0500
@@ -15076,6 +16326,7 @@ CLOCK: [2024-10-21 Mon 12:13]--[2024-10-21 Mon 13:12] =>  0:59
 *** Remove underlining from WhisperX VTT
 :PROPERTIES:
 :CREATED:  [2024-10-16 Wed 20:43]
+:CUSTOM_ID: remove-whisperx-underline
 :END:
 :LOGBOOK:
 CLOCK: [2024-10-16 Wed 20:43]--[2024-10-16 Wed 20:50] =>  0:07
@@ -15618,17 +16869,19 @@ If WORD-TIMING is non-nil, include word-level timestamps."
               (or data (my-caption-fix-common-errors subed-word-data--cache)))
              ""))))
 #+end_src
-*** Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record  :emacs:subed:
+*** Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record :emacs:subed:
 :PROPERTIES:
 :EXPORT_DATE: 2024-09-17T12:34:13-0400
 :EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/
 :CUSTOM_ID: whisperx
-:EXPORT_MODIFIED: 2024-10-14T17:46:01-0400
+:EXPORT_MODIFIED: 2024-12-09T08:01:16-0500
 :END:
 
 #+begin_update
-[2024-10-14]: Actually, WhisperX makes a JSON with word-level timing data, so let's use that instead.
+- [2024-12-09]: Split whisperx to pass one file per call.
+- [2024-11-16]: Removed ~highlight_words~, made ~max_line_width~ use the environment variable if specified.
+- [2024-10-14]: Actually, WhisperX makes a JSON with word-level timing data, so let's use that instead.
 #+end_update
 
 I'm gradually shifting more things to this Lenovo
@@ -15657,7 +16910,11 @@ the files faster than real-time:
 I used this command to get word-level timing data. ([[https://medium.com/@didierlacroix/the-power-of-single-word-subtitles-662f8c3891bd][Experimenting with options from this post]])
 
 #+begin_src sh :eval no :tangle "~/bin/whisperx"
-~/vendor/whisperx/.venv/bin/whisperx --model large-v2 --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --compute_type int8 --highlight_words True --print_progress True --max_line_width 50 --segment_resolution chunk --max_line_count 1 "$@"
+MAX_LINE_WIDTH="${MAX_LINE_WIDTH:-50}"
+MODEL="${MODEL:-large-v2}"
+for FILE in "$@"; do
+		~/vendor/whisperx/.venv/bin/whisperx --model "$MODEL" --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --compute_type int8 --print_progress True --max_line_width $MAX_LINE_WIDTH --segment_resolution chunk --max_line_count 1 --language en "$FILE"
+done
 #+end_src
 
 Among other things, it makes a text file that looks like this:
@@ -15809,6 +17066,100 @@ up with some kind of spaced repetition system),
 and I'd like to make more videos someday too. I
 think WhisperX, subed, and Org Mode will be fun
 parts of my workflow.
+*** Testing subtitle start times by skimming the first second
+:PROPERTIES:
+:CUSTOM_ID: my-subed-skim-starts
+:END:
+
+#+begin_src emacs-lisp
+(defvar my-subed-skim-msecs 1000 "Number of milliseconds to play when skimming.")
+(defun my-subed-skim-starts ()
+	(interactive)
+	(subed-mpv-unpause)
+	(subed-disable-loop-over-current-subtitle)
+	(catch 'done
+		(while (not (eobp))
+			(subed-mpv-jump-to-current-subtitle)
+			(let ((ch
+						 (read-char "(q)uit? " nil (/ my-subed-skim-msecs 1000.0))))
+				(when ch
+					(throw 'done t)))
+			(subed-forward-subtitle-time-start)
+			(when (and subed-waveform-minor-mode
+								 (not subed-waveform-show-all))
+				(subed-waveform-refresh))
+			(recenter)))
+	(subed-mpv-pause))
+#+end_src
+*** DONE Remove filler words at the start and upcase the next word :speechtotext:emacs:
+CLOSED: [2024-11-21 Thu 13:06] SCHEDULED: <2024-11-21 Thu>
+:PROPERTIES:
+:CREATED:  [2024-11-10 Sun 11:02]
+:CUSTOM_ID: filler-start
+:EXPORT_DATE: 2024-11-21T13:06:10-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/11/remove-filler-words-at-the-start-and-upcase-the-next-word/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/11/remove-filler-words-at-the-start-and-upcase-the-next-word/
+:EXPORT_MODIFIED: 2024-11-21T19:47:40-0500
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2024-11-21 Thu 13:06]
+:END:
+
+#+begin_update
+[2024-11-21]: Fixed the second filler words regexp, and make it work at the start of lines too. Thanks to [[https://mastodon.online/@arialdo/113522591084370172][@arialdo@mastodon.online]] for the feedback!
+#+end_update
+
+Like many people, I tend to use "So", "And", "You
+know", and "Uh" to bridge between sentences when
+thinking. WhisperX does a reasonable job of
+detecting sentences and splitting them up anyway,
+but it leaves those filler words in at the start
+of the sentence. I usually like to remove these
+from transcripts so that they read more smoothly.
+
+Here's a short Emacs Lisp function that removes
+those filler words when they start a sentence,
+capitalizing the next word. When called
+interactively, it prompts while displaying an
+overlay. When called from Emacs Lisp, it changes
+without asking for confirmation.
+
+#+begin_src emacs-lisp
+(defvar my-filler-words-regexp "\\(\\. \\|^\\)\\(?:So?\\|And\\|You know\\|Uh\\)\\(?:,\\|\\.\\.\\.\\)? \\(.\\)")
+(defun my-remove-filler-words-at-start ()
+	(interactive)
+	(save-excursion
+		(let ((case-fold-search nil))
+			(while (re-search-forward my-filler-words-regexp nil t)
+				(if (and (called-interactively-p) (not current-prefix-arg))
+						(let ((overlay (make-overlay (match-beginning 0)
+																				 (match-end 0))))
+							(overlay-put overlay 'common-edit t)
+							(overlay-put
+							 overlay 'display
+							 (propertize (concat (match-string 0) " -> "
+																	 (match-string 1)
+																	 (upcase (match-string 2)))
+													 'face 'modus-themes-mark-sel))
+							(unwind-protect
+									(pcase (save-match-data (read-char-choice "Replace (y/n/!/q)? " "yn!q"))
+										(?!
+										 (replace-match (concat (match-string 1) (upcase (match-string 2))) t)
+										 (while (re-search-forward my-filler-words-regexp nil t)
+											 (replace-match (concat (match-string 1) (upcase (match-string 2))) t)))
+										(?y
+										 (replace-match (concat (match-string 1) (upcase (match-string 2))) t))
+										(?n nil)
+										(?q (goto-char (point-max))))
+								(delete-overlay overlay)))
+					(replace-match (concat (match-string 1) (upcase (match-string 2))) t))))))
+#+end_src
+
+#+RESULTS:
+:results:
+my-remove-filler-words-at-start
+:end:
+
 *** Showing captions
 :PROPERTIES:
 :CUSTOM_ID: showing-captions
@@ -15852,6 +17203,8 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
     "Mendeley"
     "JavaScript"
     "RSS"
+		("stop section" "subsection")
+		("EmacsConf" "EmacsCon")
     ("going to" "gonna")
     ("want to" "wanna")
     ("transient" "transit")
@@ -15964,13 +17317,14 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
             (not done)
             (setq entry (my-subed-find-next-fix-point)))
       (setq correction (if (listp entry) (car entry) entry))
-      (let* ((c (read-char (format "%s (yn.): " correction))))
-        (cond
-         ((= c ?y) (replace-match correction t t))
-         ((= c ?n) (goto-char (match-end 0)))
-         ((= c ?j) (subed-mpv-jump-to-current-subtitle))
-         ((= c ?.) (setq done t)))
-        ))))
+			(if (called-interactively-p 'any)
+					(let* ((c (read-char (format "%s (yn.): " correction))))
+						(cond
+						 ((= c ?y) (replace-match correction t t))
+						 ((= c ?n) (goto-char (match-end 0)))
+						 ((= c ?j) (subed-mpv-jump-to-current-subtitle))
+						 ((= c ?.) (setq done t))))
+				(replace-match correction t t)))))
 #+end_src
 
 *** Working with media
@@ -15981,13 +17335,15 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
 You can get these from https://github.com/sachac
 #+begin_src emacs-lisp
 (use-package waveform :load-path "~/proj/waveform-el" :if my-laptop-p)
-(use-package compile-media :load-path "~/proj/compile-media" :if my-laptop-p
-)
+(use-package compile-media :load-path "~/proj/compile-media" :if my-laptop-p)
 #+end_src
-*** TODO Working with sections defined by NOTE comments
-SCHEDULED: <2024-10-28 Mon>
+*** DONE Working with sections defined by NOTE comments
+CLOSED: [2024-12-12 Thu 19:50] SCHEDULED: <2024-12-13 Fri>
 :PROPERTIES:
 :CREATED:  [024-05-31 Fri 15:1]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2024-12-12 Thu 19:50]
 :END:
 
 #+begin_src emacs-lisp
@@ -16634,6 +17990,18 @@ From [[https://themkat.net/2022/10/04/emacs_web_mode_mixed.html][Mixed content H
 #+end_src
 
 #+begin_src emacs-lisp
+(defvar my-copy-append "" "String to append.")
+(defun my-copy-and-append (beg end string)
+	(interactive (list (if (region-active-p) (region-beginning) (point-min))
+										 (if (region-active-p) (region-end) (point-max))
+										 (if current-prefix-arg
+												 (read-string "Append: ")
+											 my-copy-append)))
+	(setq my-copy-append string)
+	(kill-new (concat (buffer-substring beg end) string)))
+#+end_src
+
+#+begin_src emacs-lisp
 ;; from FAQ at http://web-mode.org/ for smartparens
 
 ;; Avoid lockfiles because they mess up React projects
@@ -16660,7 +18028,8 @@ From [[https://themkat.net/2022/10/04/emacs_web_mode_mixed.html][Mixed content H
 	:mode
   (("\\.html?$" . themkat/setup-web-mode-mixed))
 	:bind
-  ([(control return)] . themkat/complete-web-mode))
+  ([(control return)] . themkat/complete-web-mode)
+	("C-c C-r" my-copy-and-append))
 
 #+end_src
 
@@ -16682,6 +18051,8 @@ https://www.mattduck.com/lsp-python-getting-started.html
         company-idle-delay 0.5
         company-minimum-prefix-length 1
         create-lockfiles nil ;; lock files will kill `npm start'
+				lsp-enable-file-watchers nil
+				lsp-auto-register-remote-clients nil
         )
   (lsp-register-custom-settings
    '(("pyls.plugins.pyls_mypy.enabled" t t)
@@ -17215,20 +18586,10 @@ Copied from https://www.reddit.com/r/emacs/comments/1051bfu/comment/j38ymkn/?utm
   :ensure t
   :defer t)
 
-(use-package flycheck-package
-  :ensure t
-  :hook
-  (emacs-lisp-mode . flycheck-package-setup))
-
 ;; Emacs Lisp Static Analyzer
 (use-package elsa
   :defer t
   :ensure t)
-
-(use-package flycheck-elsa
-  :ensure t
-  :hook
-  (emacs-lisp-mode . flycheck-elsa-setup))
 #+end_src
 *** Edebug
 :PROPERTIES:
@@ -17358,7 +18719,9 @@ From https://www.reddit.com/r/emacs/comments/1fub66z/comment/lpyv8no/:
 						(pop-to-buffer my-buttercup-source-buffer)
 						(goto-char pos))))
 		(let ((tests (my-buttercup-tests-and-positions)))
-			(goto-char (assoc-default (completing-read "Test: " tests) tests)))))
+			(goto-char (assoc-default (completing-read "Test: "
+																								 (my-presorted-completion-table tests))
+																tests)))))
 
 (defun my-buttercup-test-name ()
 	(save-excursion
@@ -17813,6 +19176,11 @@ button to add more examples. My diff: https://github.com/xuchunyang/elisp-demos/
 	:custom
 	elisp-demos-user-files '("~/sync/orgzly/elisp-demos.org"))
 #+end_src
+*** JSON
+#+begin_src emacs-lisp
+(setq json-object-type 'alist
+			json-array-type 'list)
+#+end_src
 *** Useful libraries
 #+begin_src emacs-lisp
 (use-package plz)
@@ -17982,11 +19350,9 @@ I sometimes need to know where I am in a line.
 :END:
 
 Handy shortcuts:
+
 #+begin_src emacs-lisp
-(use-package js2-mode
-	:mode "\\.c?js\\'"
-  :if my-laptop-p
-  :bind (:map js2-mode-map ("C-c C-c" . projectile-compile-project)))
+(add-to-list 'auto-mode-alist '("\\.c?js\\'" . js-mode))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -18082,6 +19448,8 @@ And the rest of the js2 config:
   :defer t
   :config (setq-default coffee-js-mode 'js2-mode coffee-tab-width 2))
 #+end_src
+
+
 *** Indium
 :PROPERTIES:
 :CUSTOM_ID: indium
@@ -18444,13 +19812,13 @@ Based on http://yitang.uk/2024/01/14/atomic-habit-in-emacs-keep-git-repos-clean/
 #+RESULTS:
 :results:
 - [[elisp:(magit-status "/home/sacha/sync/emacs/")][emacs]]
-- [[elisp:(magit-status "/home/sacha/sync/orgzly/~/sync/.stversions/orgzly/")][orgzly]]
+- [[elisp:(magit-status "/home/sacha/sync/orgzly/~/sync/.stversions/orgzly/~/sync/.stversions/orgzly/")][orgzly]]
 - [[elisp:(magit-status "/home/sacha/sync/static-blog/")][static-blog]]
 - [[elisp:(magit-status "/home/sacha/bin/")][bin]]
+- [[elisp:(magit-status "/home/sacha/proj/ox-11ty/")][ox-11ty]]
 - [[elisp:(magit-status "/home/sacha/proj/compile-media/")][compile-media]]
 - [[elisp:(magit-status "/home/sacha/proj/subed-record/")][subed-record]]
 - [[elisp:(magit-status "/home/sacha/proj/emacsconf/lisp/")][lisp]]
-- [[elisp:(magit-status "/home/sacha/proj/subed/")][subed]]
 :end:
 
 ** Forge
@@ -19012,6 +20380,9 @@ IRC is a great way to hang out with other Emacs geeks.
   (interactive)
   (let ((default-directory "~/backups/server/home/.znc/users/sachac/moddata/log"))
     (call-interactively 'consult-ripgrep)))
+(defun my-irc-log-dired ()
+  (interactive)
+	(dired "~/backups/server/home/.znc/users/sachac/moddata/log"))
 #+end_src
 * Mastodon  :mastodon:
 :PROPERTIES:
@@ -19021,9 +20392,7 @@ IRC is a great way to hang out with other Emacs geeks.
 #+begin_src emacs-lisp
 (use-package mastodon
   :if my-laptop-p
-	:quelpa
-	(mastodon :fetcher git :url "https://codeberg.org/martianh/mastodon.el.git" :branch "develop")
-	;:load-path "~/vendor/mastodon.el/lisp"
+	:load-path "~/vendor/mastodon.el/lisp"
   :bind
   (:map mastodon-mode-map
         ("g" . mastodon-tl--update)
@@ -19031,9 +20400,10 @@ IRC is a great way to hang out with other Emacs geeks.
         ("o" . (lambda () (interactive) (org-capture nil "m"))))
   :commands (mastodon-http--api mastodon-http--post mastodon-mode mastodon-http--get-search-json
 																mastodon-tl--get-local-timeline)
-  :config
-  (setq mastodon-instance-url "https://social.sachachua.com"
-        mastodon-active-user "sacha"))
+	:custom
+	(mastodon-instance-url "https://social.sachachua.com")
+  (mastodon-active-user "sacha")
+	(mastodon-group-notifications nil))
 
 (defun my-mastodon-clear-auth ()
 	"Fix alist-get: Wrong type argument: listp, (error . \"The access token is invalid\") error. Then you can use `mastodon-auth--access-token'."
@@ -19069,8 +20439,6 @@ IRC is a great way to hang out with other Emacs geeks.
      (t (insert url)))))
 
 (autoload 'mastodon-notifications--get-mentions "mastodon-notifications" nil t)
-
-
 #+end_src
 
 I use [[https://tusky.app/][Tusky]] on my Android phone in order to share post content with
@@ -19233,8 +20601,8 @@ Here's the code that makes that happen:
 			(list
 			 :handle handle
 			 :url (if (string-match org-link-bracket-re url) (match-string 1 url) url)
-			 :links (mapcar (lambda (o) (org-element-property :raw-link o))
-											(my-org-get-links-in-region beg end))
+			 :links (reverse (mapcar (lambda (o) (org-element-property :raw-link o))
+															 (my-org-get-links-in-region beg end)))
 			 :text (string-trim (buffer-substring-no-properties beg end))))))
 
 (ert-deftest my-mastodon-get-note-info ()
@@ -19339,7 +20707,7 @@ This works particularly well with [[dotemacs:mastodon-combined-timeline][my comb
 :EXPORT_DATE: 2024-09-13T12:55:25-0400
 :EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/combining-mastodon-timelines-using-mastodon-el/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/combining-mastodon-timelines-using-mastodon-el/
-:EXPORT_MODIFIED: 2024-10-07T10:37:51-0400
+:EXPORT_MODIFIED: 2024-11-04T10:37:51-0400
 :header-args:emacs-lisp+: :results silent :exports code :eval never-export
 :CUSTOM_ID: mastodon-combined-timeline
 :END:
@@ -19348,6 +20716,7 @@ This works particularly well with [[dotemacs:mastodon-combined-timeline][my comb
 :END:
 
 #+begin_update
+- [2024-11-04]: Make tag a parameter.
 - [2024-10-07]: Added screenshot.
 - [2024-09-16]: Read JSON arrays as lists to be compatible with the latest mastodon.el.
 #+end_update
@@ -19389,19 +20758,23 @@ First, let's start by making a unified timeline. By digging around in =mastodon-
 				(setq url nil)))
 		results))
 
-(defun my-mastodon-combined-tag-timeline (later-than tag servers)
+(defun my-mastodon-combined-tag-timeline (later-than tag &optional servers)
 	"Display items after LATER-THAN about TAG from SERVERS and the current mastodon.el account."
 	(interactive (list
 								(org-read-date nil nil nil nil nil "-Mon")
 								"#emacs"
-								'("mastodon.social" "emacs.ch" "fosstodon.org")))
+								'("mastodon.social" "fosstodon.org")))
+	(setq servers (or servers '("mastodon.social" "fosstodon.org")))
 	(require 'mastodon)
 	(require 'mastodon-tl)
 	(require 'mastodon-toot)
+	(if (stringp later-than)
+			(setq later-than (org-read-date nil nil later-than)))
+	(setq tag (replace-regexp-in-string "#" "" tag))
 	(let* ((limit 40)
-				 (sources (cons (format "timelines/tag/emacs?count=%d" limit)
+				 (sources (cons (format "timelines/tag/%s?count=%d" tag limit)
 												(mapcar (lambda (s)
-																	(format "https://%s/api/v1/timelines/tag/emacs?count=%d" s limit))
+																	(format "https://%s/api/v1/timelines/tag/%s?count=%d" s tag limit))
 																servers)))
 				 (combined
 					(sort
@@ -19612,11 +20985,13 @@ I want to make it easier to microblog the current Org subtree.
 
 #+begin_src emacs-lisp
 (defun my-mastodon-toot-subtree ()
-	"Compose a buffer and include the current subtree."
 	(interactive)
-	(let ((text (org-export-as 'md t nil t)))
+	(let ((body (org-export-as 'md t nil t))
+				(link (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK")))
 		(mastodon-toot)
-		(insert text)))
+		(save-excursion
+			(insert body)
+			(when link (insert "\n\nBlog post: <" my-blog-base-url link ">\n")))))
 #+end_src
 
 The automatic link to my configuration is handled by a function that I add to ~org-export-filter-body-functions~:
@@ -19937,16 +21312,16 @@ It might make sense to make them list items or
 subtrees so that I can move them around easily.
 
 #+begin_src emacs-lisp
-(defun my-mastodon-insert-my-toots-since (date)
-	(interactive (list (org-read-date "Since date: ")))
+(defun my-mastodon-format-my-toots-since (date)
 	(require 'mastodon-auth)
-	(insert
-	 (format "#+begin_toot_archive\n%s\n#+end_toot_archive\n"
+	(format "#+begin_toot_archive\n%s\n#+end_toot_archive\n"
 					 (mapconcat
 						(lambda (o)
-							(format "- %s\n  #+begin_quote\n  #+begin_export html\n%s\n  #+end_export\n  #+end_quote\n\n"
+							(format "- %s\n  #+begin_quote\n%s\n  #+end_quote\n\n"
 											(org-link-make-string (assoc-default 'url o) (assoc-default 'created_at o))
-											(org-ascii--indent-string (assoc-default 'content o) 2))
+											(org-ascii--indent-string
+											 (string-trim (pandoc-convert-stdio (assoc-default 'content o) "html" "org"))
+											 2))
 							;; (format "#+begin_quote\n#+begin_export html\n%s\n#+end_export\n#+end_quote\n\n%s\n\n"
 							;; 				(assoc-default 'content o)
 							;; 				(org-link-make-string (assoc-default 'url o) (assoc-default 'created_at o)))
@@ -19955,9 +21330,20 @@ subtrees so that I can move them around easily.
 						 (lambda (o)
 							 (string= (assoc-default 'visibility o) "public"))
 						 (my-mastodon-fetch-posts-after
-							(format "accounts/%s/statuses?count=40&exclude_reblogs=t&exclude_replies=t" (mastodon-auth--get-account-id))
+							(format "accounts/%s/statuses?count=40&exclude_reblogs=t" (mastodon-auth--get-account-id))
 							date))
-						""))))
+						"")))
+
+(defun my-mastodon-insert-my-toots-since (date)
+	(interactive (list (org-read-date nil nil nil "Since date: ")))
+	(insert (my-mastodon-format-my-toots-since date)))
+
+(defun my-mastodon-roundup (date)
+	(interactive (list (org-read-date nil nil nil "Date of post: ")))
+	(org-insert-heading)
+	(let ((start (org-read-date nil nil "--wed" nil (date-to-time date))))
+		(insert "Wednesday weblog: Toots ending " start " :review:weblog:\n\n")
+		(my-mastodon-insert-my-toots-since start)))
 #+end_src
 
 * Web
@@ -20007,6 +21393,25 @@ subtrees so that I can move them around easily.
 :PROPERTIES:
 :CUSTOM_ID: spookfox
 :END:
+*** STARTED Link to currently-selected text using Spookfox
+:PROPERTIES:
+:CREATED:  [2024-10-28 Mon 14:02]
+:Effort:   0:15
+:END:
+:LOGBOOK:
+CLOCK: [2024-10-28 Mon 14:02]--[2024-10-28 Mon 14:48] =>  0:46
+:END:
+
+#+begin_src emacs-lisp
+(defun my-spookfox-link-to-fragment ()
+	(interactive)
+	(let ((url
+				 (spookfox-js-injection-eval-in-active-tab "window.location.href + '#:~:text=' + encodeURIComponent(window.getSelection().toString())" t)))
+		(when (called-interactively-p 'any)
+			(insert url))
+		url))
+#+end_src
+
 *** Running the current Org Mode Babel Javascript block from Emacs using Spookfox  :embark:emacs:org:spookfox:
 :PROPERTIES:
 :CUSTOM_ID: spookfox-babel
@@ -20315,6 +21720,7 @@ This uses ~my-spookfox-complete-link~ from [[dotemacs:spookfox]].
        (org-next-link)
        (when (looking-at org-link-any-re)
          (org-open-at-point)))))))
+
 (bind-key "!" 'my-org-clock-in-and-track org-agenda-mode-map)
 
 (defmacro my-with-org-task (&rest body)
@@ -20334,6 +21740,12 @@ This uses ~my-spookfox-complete-link~ from [[dotemacs:spookfox]].
     ((org-clocking-p) (save-excursion (org-clock-goto) ,@body))
     ((derived-mode-p 'org-mode) ,@body)))
 
+(defvar my-org-quantified-regexps
+	'(("emacsconf" . "Emacs | Emacsconf")
+		("emacs" . "Emacs")
+		("consulting" . "E1 Gen"))
+	"Alist of regexp . category.")
+
 (defun my-org-quantified-track (&optional category note)
   "Create a tracking record using CATEGORY and NOTE.
       Default to the current task in the agenda, the currently-clocked
@@ -20345,7 +21757,12 @@ This uses ~my-spookfox-complete-link~ from [[dotemacs:spookfox]].
                         (org-entry-get-with-inheritance "QUANTIFIED")))
      (cond
       ((null category)
-       (setq category (read-string "Category: "))
+			 (let* ((heading (org-get-heading))
+							(guess (seq-find (lambda (entry)
+																 (string-match (car entry)
+																							 heading))
+															 my-org-quantified-regexps)))
+				 (setq category (or (cdr guess) (read-string "Category: "))))
        (org-set-property "QUANTIFIED" category))
       ((string= category ' "ask")
        (setq category (read-string "Category: "))))
@@ -20376,8 +21793,9 @@ This uses ~my-spookfox-complete-link~ from [[dotemacs:spookfox]].
 #+begin_src emacs-lisp
 (defun my-childcare ()
 	(interactive)
-	(when (org-clocking-p)
-		(org-clock-out))
+	(unwind-protect
+			(when (org-clocking-p)
+				(org-clock-out)))
 	(quantified-track "Childcare"))
 #+end_src
 
@@ -20401,14 +21819,23 @@ This uses ~my-spookfox-complete-link~ from [[dotemacs:spookfox]].
 	(interactive (list (org-read-date nil nil nil "Start: ") (org-read-date nil nil nil "End: ")
 										 (read-string "Filter: ")))
 	(switch-to-buffer (get-buffer-create "*quantified*"))
+	(setq filter (and filter
+										(not (string= filter ""))
+										(split-string filter " ")))
 	(let ((json-array-type 'list)
 				(json-object-type 'alist))
 		(setq tabulated-list-entries
 					(seq-keep
 					 (lambda (o)
 						 (let-alist o
-							 (when (or (not filter) (string= filter "") (string-match filter .full_name)
-												 (string-match filter (or .data.note "")))
+							 (when (or (not filter)
+												 (not (seq-find
+															 (lambda (term)
+																 (not
+																	(or
+																	 (string-match term .full_name)
+																	 (string-match term (or .data.note "")))))
+															 filter)))
 								 (list
 									.id
 									(vector
@@ -20419,13 +21846,13 @@ This uses ~my-spookfox-complete-link~ from [[dotemacs:spookfox]].
 									 .full_name
 									 (or .data.note ""))))))
 					 (quantified-parse-json
-											 (quantified-request
-												(format
-												 "/records.json?start=%s&end=%s&auth_token=%s"
-												 (or start "")
-												 (or end "")
-												 (quantified-token))
-												nil "GET")))))
+						(quantified-request
+						 (format
+							"/records.json?start=%s&end=%s&auth_token=%s"
+							(or start "")
+							(or end "")
+							(quantified-token))
+						 nil "GET")))))
 	(my-quantified-list-mode))
 (defun my-quantified-list-sum-marked-duration ()
 	(interactive)
@@ -21163,8 +22590,8 @@ CLOCK: [2024-10-15 Tue 11:01]--[2024-10-15 Tue 11:17] =>  0:16
 :END:
 
 Based on [[https://github.com/jwiegley/emacs-async/blob/master/smtpmail-async.el][smtpmail-async]], but with the list of variables tweaked because ~mail-extr-all-top-level-domains~ was an ~#<obarray n=344>~ that couldn't get passed.
-#+begin_src emacs-lisp
 
+#+begin_src emacs-lisp
 (defun my-async-smtpmail-send-it ()
   (let ((to          (message-field-value "To"))
         (buf-content (buffer-substring-no-properties
@@ -23735,9 +25162,17 @@ with open("/home/sacha/.config/plover/annotated.txt", "w") as f:
 #+begin_src emacs-lisp
 (use-package gptel
 	:commands (gptel gptel-send gptel-set-topic gptel-menu)
+	:config
+	(setq gptel-model 'gemma:2b
+				gptel-backend
+				(gptel-make-ollama "Ollama"             ;Any name of your choosing
+					:host "localhost:11434"               ;Where it's running
+					:stream t                             ;Stream responses
+					:models '(gemma:2b)))
 	:hook
 	(gptel-post-stream . gptel-auto-scroll)
-	(gptel-post-response . gptel-end-of-response))
+	(gptel-post-response . gptel-end-of-response)
+	)
 #+end_src
 ** Chronos timers
 :PROPERTIES:
@@ -23929,8 +25364,24 @@ left.
 :CUSTOM_ID: completion-at-point
 :END:
 
+https://protesilaos.com/codelog/2024-11-28-basic-emacs-configuration/
+
 #+begin_src emacs-lisp
-(use-package corfu :init (global-corfu-mode))
+(use-package corfu :init (global-corfu-mode)
+  :bind (:map corfu-map ("<tab>" . corfu-complete))
+  :config
+  (setq tab-always-indent 'complete)
+  (setq corfu-preview-current nil)
+  (setq corfu-min-width 20)
+
+  (setq corfu-popupinfo-delay '(1.25 . 0.5))
+  (corfu-popupinfo-mode 1) ; shows documentation after `corfu-popupinfo-delay'
+
+  ;; Sort by input history (no need to modify `corfu-sort-function').
+  (with-eval-after-load 'savehist
+    (corfu-history-mode 1)
+    (add-to-list 'savehist-additional-variables 'corfu-history))
+	)
 (use-package cape
 	:bind (("M-/" . completion-at-point))
 	:init
@@ -24316,7 +25767,11 @@ root.
 Here's the very rough code I use for that:
 
 #+begin_src emacs-lisp
-(defvar my-get-shopping-details-functions '(my-get-shopping-details-amazon my-get-shopping-details-uniqlo my-get-shopping-details-manually))
+(defvar my-get-shopping-details-functions
+	'(my-org-shopping-get-details-from-spookfox
+		my-get-shopping-details-amazon
+		my-get-shopping-details-uniqlo
+		my-get-shopping-details-manually))
 
 (defun my-get-shopping-details-manually (link)
 	(when (string-match "theshoecompany\\|dsw" link)
@@ -24338,6 +25793,24 @@ Here's the very rough code I use for that:
 							(cons 'price
 										(dom-texts (dom-by-id doc "priceblock_ourprice"))))))))
 
+(defun my-shopping-reformat-ld-data (data)
+  (let-alist data
+    (list (cons 'name .name)
+          (cons 'url (or .url .@id))
+          (cons 'brand .brand.name)
+          (cons 'description .description)
+          (cons 'rating .aggregateRating.ratingValue)
+          (cons 'ratingCount .aggregateRating.reviewCount)
+          (cons 'image (cond
+												((stringp .image) .image)
+												((stringp .image.url) .image.url)
+												(t (elt .image 0))))
+          (cons 'price
+                (assoc-default 'price (cond
+																			 ((arrayp .offers)
+																				(elt .offers 0))
+																			 (t .offers)))))))
+
 (defun my-get-shopping-details ()
   (goto-char (point-min))
   (let (data)
@@ -24349,7 +25822,7 @@ Here's the very rough code I use for that:
         (list (cons 'name .product.title)
               (cons 'brand .product.vendor)
               (cons 'description .product.description)
-              (cons 'image (concat "https:" .product.featured_image))
+              (cons 'image (if (stringp .image) .image (concat "https:" .product.featured_image)))
               (cons 'price (/ .product.price 100.0)))))
      ((and (re-search-forward "<script type=\"application/ld\\+json\">" nil t)
            (null (re-search-forward "Fabric Fabric" nil t))) ; Carter's, Columbia?
@@ -24358,22 +25831,7 @@ Here's the very rough code I use for that:
       (if (assoc-default '@graph data)
           (setq data (assoc-default '@graph data)))
       (if (vectorp data) (setq data (elt data 0)))
-      (let-alist data
-        (list (cons 'name .name)
-              (cons 'url (or .url .@id))
-              (cons 'brand .brand.name)
-              (cons 'description .description)
-              (cons 'rating .aggregateRating.ratingValue)
-              (cons 'ratingCount .aggregateRating.reviewCount)
-              (cons 'image (cond
-														((stringp .image) .image)
-														((stringp .image.url) .image.url)
-														(t (elt .image 0))))
-              (cons 'price
-                    (assoc-default 'price (cond
-																					 ((arrayp .offers)
-																						(elt .offers 0))
-																					 (t .offers)))))))
+			(my-shopping-reformat-ld-data data))
 		 (t
 			(goto-char (point-min))
       (re-search-forward "^$")
@@ -24407,37 +25865,60 @@ Here's the very rough code I use for that:
   (interactive)
 	(save-excursion
 		(org-insert-heading)
-		(save-excursion (yank))
+		(when (string-match "^https://" (car kill-ring))
+			(save-excursion (yank)))
 		(my-org-update-shopping-details)
 		(when (org-entry-get (point) "NAME")
 			(org-edit-headline (org-entry-get (point) "NAME")))))
 
+(defun my-org-shopping-get-details-from-spookfox (&optional link)
+	"Get shopping details from Spookfox for sites that use Javascript."
+	(let* ((current-url
+					(spookfox-js-injection-eval-in-active-tab "window.location.href" t))
+				 (data
+					(when (or (not link)
+										(string= link current-url))
+						(json-parse-string
+						 (spookfox-js-injection-eval-in-active-tab
+							"JSON.stringify({
+name: rawData?.Product?.Name || document.querySelector('meta[property=\"og:title\"]')?.getAttribute('content'),
+image: document.querySelector('meta[property=\"og:image\"]')?.getAttribute('content'),
+description: rawData?.Product?.Description || document.querySelector('meta[property=\"og:description\"]')?.getAttribute('content'),
+url: document.querySelector('link[rel=\"canonical\"]')?.getAttribute('href') || window.location.href,
+price: rawData?.Product?.MinPrice || document.querySelector('.nl-price--total')?.textContent?.replace(/^\s*$/, '')
+})"
+							t)
+						 :object-type 'alist))))
+		(when (alist-get 'name data)
+			data)))
 
 ;; (my-org-get-shopping-details-uniqlo "https://www.uniqlo.com/ca/en/products/E451023-000?colorCode=COL07&sizeCode=KSS020")
 (defun my-org-update-shopping-details ()
   (interactive)
-  (when (re-search-forward org-link-any-re (save-excursion (org-end-of-subtree)) t)
-    (let* ((link (org-element-property :raw-link (org-element-context)))
-           data)
-			(setq
-			 data
-			 (or (run-hook-with-args-until-success 'my-get-shopping-details-functions link)
-					 (with-current-buffer (url-retrieve-synchronously link)
-						 (my-get-shopping-details))))
-			(when data
-				(let-alist data
-					(org-entry-put (point) "NAME" .name)
-					(org-entry-put (point) "URL" link)
-					(org-entry-put (point) "BRAND" .brand)
-					(org-entry-put (point) "DESCRIPTION" (replace-regexp-in-string "&#039;" "'" (replace-regexp-in-string "\n" " " (or .description ""))))
-					(org-entry-put (point) "IMAGE"
-												 (if (string-match "https?" .image)
-														 .image
-													 (concat "https:" .image)))
-					(org-entry-put (point) "PRICE" (cond ((stringp .price) .price) ((numberp .price) (format "%.2f" .price)) (t "")))
-					(if .rating (org-entry-put (point) "RATING" (if (stringp .rating) .rating (format "%.1f" .rating))))
-					(if .ratingCount (org-entry-put (point) "RATING_COUNT" (if (stringp .ratingCount) .ratingCount (number-to-string .ratingCount))))
-					)))))
+	(let (data)
+		(if (and (< (point)
+								(save-excursion (org-end-of-subtree)))
+						 (re-search-forward org-link-any-re (save-excursion (org-end-of-subtree)) t))
+				(let ((link (org-element-property :raw-link (org-element-context))))
+					(setq
+					 data
+					 (or (run-hook-with-args-until-success 'my-get-shopping-details-functions link)
+							 (with-current-buffer (url-retrieve-synchronously link)
+								 (my-get-shopping-details)))))
+			(setq data (my-org-shopping-get-details-from-spookfox)))
+		(when data
+			(let-alist data
+				(org-entry-put (point) "NAME" \.name)
+				(org-entry-put (point) "URL" \.url)
+				(org-entry-put (point) "BRAND" \.brand)
+				(org-entry-put (point) "DESCRIPTION" (replace-regexp-in-string "&#039;" "'" (replace-regexp-in-string "\n" " " (or \.description ""))))
+				(org-entry-put (point) "IMAGE"
+											 (if (string-match "https?" \.image)
+													 \.image
+												 (concat "https:" \.image)))
+				(org-entry-put (point) "PRICE" (cond ((stringp \.price) \.price) ((numberp \.price) (format "%.2f" \.price)) (t "")))
+				(if \.rating (org-entry-put (point) "RATING" (if (stringp \.rating) \.rating (format "%.1f" \.rating))))
+				(if \.ratingCount (org-entry-put (point) "RATING_COUNT" (if (stringp \.ratingCount) \.ratingCount (number-to-string \.ratingCount))))))))
 
 (defun my-org-format-shopping-subtree (&optional height large)
 	(concat

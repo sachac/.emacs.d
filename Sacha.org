@@ -2405,7 +2405,7 @@ I wanted to experiment with [[ https://irreal.org/blog/?p=11867#comment-63540173
 #+end_update
 
 #+CAPTION: Screencast of modifying face properties
-[[file:/home/sacha/recordings/output-2024-09-20-13:09:17.gif]]
+[[file:images/output-2024-09-20-13:09:17.gif]]
 
 Sometimes I just want to make some text look a
 little fancier in the buffer so that I can make a
@@ -5689,7 +5689,7 @@ Or I can use this code to make an Embark command that hooks into minibuffer prom
 #+end_src
 
 #+CAPTION: Screenshot of Embark menu invoked with "C-.", showing the new "i" shortcut for inserting a link
-[[file:/home/sacha/recordings/2024-10-24_10-34-21.png]]
+[[file:images/2024-10-24_10-34-21.png]]
 
 Let's make it work for ~org-heading~ too, like what we get from ~M-x consult-org-heading~:
 
@@ -6432,11 +6432,11 @@ colour them based on the current Modus theme.
 
 #+CAPTION: Light background
 #+ATTR_HTML: :data-link t
-file:/home/sacha/recordings/2024-10-14-17-21-48.svg
+[[file:images/2024-10-14-17-21-48.svg]]
 
 #+ATTR_HTML: :data-link t
 #+CAPTION: Dark background
-[[file:/home/sacha/recordings/2024-10-14-17-22-31.svg]]
+[[file:images/2024-10-14-17-22-31.svg]]
 
 
 **** Projects
@@ -9003,7 +9003,7 @@ CLOSED: [2024-10-25 Fri 10:17]
 :LOGBOOK:
 - State "DONE"       from "STARTED"    [2024-10-25 Fri 10:17]
 :END:
-[[file:~/sync/topics/visual-book-notes.org::#business][Business]]
+[[file:images/visual-book-notes.org]]
 
 #+begin_src emacs-lisp
 (defun my-org-html-toc (depth info &optional scope)
@@ -9084,7 +9084,7 @@ digraph g {
 
 #+RESULTS:
 :results:
-[[file:inline.svg]]
+[[file:images/inline.svg]]
 :end:
 
 The following code overrides HTML and Markdown exports
@@ -13051,7 +13051,7 @@ mindmap
 
 #+RESULTS:
 :results:
-[[file:mermaid-example.svg]]
+[[file:images/mermaid-example.svg]]
 :end:
 
 Now I can see the labeled diagrams inside Emacs, too.
@@ -14256,16 +14256,16 @@ Luhmann’s only real help was a housekeeper who cooked for him and his children
 
 My sketch- and image-related code is scattered throughout my config. Here are some other headings:
 
-- [[file:~/sync/emacs/Sacha.org::#embark-image][Embark and images]]
-- [[file:~/sync/emacs/Sacha.org::#completing-sketches][Completing sketches]]
-- [[file:~/sync/emacs/Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie]]
-- [[file:~/sync/emacs/Sacha.org::#org-mapping-blog-posts-and-image-urls-from-bulk-exports][Org - mapping blog posts and image URLs from bulk exports]]
-- [[file:~/sync/emacs/Sacha.org::#drawing][Drawing]]
-- [[file:~/sync/emacs/Sacha.org::#svg][SVG]]
-- [[file:~/sync/emacs/Sacha.org::#finding-sketches][Finding sketches]]
-- [[file:~/sync/emacs/Sacha.org::#sketch-rename-recolor][Renaming and recoloring sketches]]
-- [[file:~/sync/emacs/Sacha.org::#org-mode-sketch-links][Org Mode sketch: links]]
-- [[file:~/sync/emacs/Sacha.org::#templates][Templates]]
+- [[file:images/Sacha.org]]
+- [[file:images/Sacha.org]]
+- [[file:images/Sacha.org]]
+- [[file:images/Sacha.org]]
+- [[file:images/Sacha.org]]
+- [[file:images/Sacha.org]]
+- [[file:images/Sacha.org]]
+- [[file:images/Sacha.org]]
+- [[file:images/Sacha.org]]
+- [[file:images/Sacha.org]]
 
 
 *** Save edited text for sketch post                     :images:dotemacs:
@@ -15829,12 +15829,12 @@ from Emacs.
 #+begin_column50
 #+CAPTION: Selecting the colour to replace
 #+ATTR_HTML: :data-link t :class box-shadow
-[[file:~/recordings/2024-11-05-14-15-55.svg]]
+[[file:images/2024-11-05-14-15-55.svg]]
 #+end_column50
 #+begin_column50
 #+CAPTION: Selecting the new colour
 #+ATTR_HTML: :data-link t :class box-shadow
-[[file:~/recordings/2024-11-05-14-16-04.svg]]
+[[file:images/2024-11-05-14-16-04.svg]]
 #+end_column50
 #+end_columns
 
@@ -17759,10 +17759,10 @@ Also, OpenAI supports multimodal requests, so I've been thinking about using AI 
 
 Likewise, I have a number of headings that deal with audio.
 
-- [[file:~/sync/emacs/Sacha.org::#transcript-keywords][Audio braindump workflow tweaks: Adding Org Mode hyperlinks to recordings based on keywords]] (2023)
-- [[file:~/sync/emacs/Sacha.org::#transcripts-from-my-phone][Transcripts from my phone]]
-- [[file:~/sync/emacs/Sacha.org::#speech-recognition][Speech recognition]]
-- [[file:~/sync/emacs/Sacha.org::#subed][Subtitles with Subed]]
+- [[file:images/Sacha.org]](2023)
+- [[file:images/Sacha.org]]
+- [[file:images/Sacha.org]]
+- [[file:images/Sacha.org]]
 ** FFmpeg
 
 #+begin_src emacs-lisp
@@ -22412,7 +22412,7 @@ including a link to the toot using the author's
 handle. This is what it looks like:
 
 #+CAPTION: Quick screencast summarizing Mastodon toots
-[[file:/home/sacha/recordings/output-2024-09-16-13:14:38.gif]]
+[[file:images/output-2024-09-16-13:14:38.gif]]
 
 Here's the code that makes that happen:
 
@@ -22609,7 +22609,7 @@ This works particularly well with [[dotemacs:mastodon-combined-timeline][my comb
 
 #+CAPTION: Screenshot of combined timeline in mastodon.el
 #+ATTR_HTML: :data-link t
-[[file:/home/sacha/recordings/2024-10-07-10-37-39.svg]]
+[[file:images/2024-10-07-10-37-39.svg]]
 
 I like checking out the #emacs hashtag when I put together Emacs News. In the past, I usually browsed the hashtag timeline on emacs.ch, which also picked up updates from other people that emacs.ch was following. Now that [[https://sachachua.com/blog/2024/09/moving-from-sachac-emacs-ch-to-sacha-social-sachachua-com/][I've moved to @sacha@social.sachachua.com]] and [[https://emacs.ch/@emacs/113087752901949391][emacs.ch is winding down]], I wanted to see if there was a way for me to see a combined view using [[https://mastodon.social/api/v1/timelines/tag/emacs?count=40][mastodon.social's API feed]] (paging by
 =max_id= as needed). I haven't enabled public
@@ -22833,7 +22833,7 @@ I'm curious: how many toots would I be missing if I looked at only one instance'
 Here's an Euler diagram visualizing it.
 
 #+CAPTION: #emacs posts on 2024-09-12 - an Euler diagram showing the table above
-[[file:/home/sacha/recordings/2024-09-13-12-45-10.png]]
+[[file:images/2024-09-13-12-45-10.png]]
 
 I love that I can tinker with mastodon.el to get
 it to combine the timelines. (I'm crossing the
@@ -23815,7 +23815,7 @@ Use with =#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM=, =#+BEGIN: colum
 :END:
 
 #+CAPTION: Sketch heatmap from 2008-2023
-[[file:~/recordings/output-2023-01-06-10:26:49.gif]]
+[[file:images/output-2023-01-06-10:26:49.gif]]
 
 Building on [[https://sachachua.com/blog/2023/01/display-a-calendar-heat-map-using-emacs-lisp/][Display a calendar heat map using Emacs Lisp]],
 I figured out how to use ~calendar-date-echo-text~ to store

@@ -1,0 +1,184 @@
+#+ELEVENTY_BASE_DIR: ~/sync/static-blog/
+#+ELEVENTY_COLLECTIONS: _topics
+#+ELEVENTY_BASE_URL: https://sachachua.com
+#+FILETAGS: topic
+#+ELEVENTY_EXPORT_DATE: 2024-10-16T13:03:25-0400
+#+ELEVENTY_PERMALINK: /topic/visual-book-notes/
+#+ELEVENTY_FILE_NAME: topic/visual-book-notes/
+#+DATE: 2024-10-23
+#+title: Visual book notes
+
+On this page:
+
+#+TOC: headlines 2
+
+* Business
+:PROPERTIES:
+:CUSTOM_ID: business
+:END:
+#+begin_gallerylist
+  - [X] [[https://sachachua.com/blog/2012/05/sketchnotes-the-100-startup-reinvent-the-way-you-make-a-living-do-what-you-love-and-create-a-new-future/][The $100 Startup: Reinvent the Way You Make a Living, Do What You Love, and Create a New Future]]
+  - [X] [[https://sachachua.com/blog/2013/01/visual-book-review-the-art-of-pricing-how-to-find-the-hidden-profits-to-grow-your-businessrafi-mohammed/][The Art of Pricing: How to Find the Hidden Profits to Grow Your Business-Rafi Mohammed]] (Jan 2013)
+  - [X] [[https://sachachua.com/blog/2012/12/visual-book-notes-best-practices-are-stupidstephen-m-shapiro/][Best Practices Are Stupid: 40 ways to Out-Innovate the Competition-Stephen M. Shapiro]]
+  - [X] [[https://sachachua.com/blog/2013/01/visual-book-review-blue-ocean-strategyw-chan-kim-rene-mauborgne/][Blue Ocean Strategy - W. Chan Kim, Renée Mauborgne]] (Jan 2013)
+  - [X] [[https://sachachua.com/blog/2014/03/visual-book-review-conscious-millionaire-grow-business-making-difference-jv-crum-iii/][Conscious Millionaire: Grow your business by making a difference (JV Crum III)]] (March 2014)
+  - [X] [[https://sachachua.com/blog/2013/04/visual-book-review-the-culture-blueprint-robert-richman/][The Culture Blueprint (Robert Richman)]] (Apr 2013)
+  - [X] [[https://sachachua.com/blog/2013/06/visual-book-review-customer-ceo-how-to-profit-from-the-power-of-your-customers-chuck-wall/][Customer CEO: How to Profit from the Power of Your Customers (Chuck Wall)]] (June 2013)
+  - [X] [[https://sachachua.com/blog/2014/12/sketched-book-inner-game-work-w-timothy-gallwey/][The Inner Game of Work - W. Timothy Gallwey]] (Dec 2014)
+  - [X] [[https://sachachua.com/blog/2014/12/sketched-book-just-fucking-ship-amy-hoy-alex-hillman/][Just F*cking Ship - Amy Hoy, Alex Hillman]] (Dec 2014)
+  - [X] [[https://sachachua.com/blog/2013/07/visual-book-review-leading-out-loud-a-guide-for-engaging-others-in-creating-the-future/][Leading Out Loud: A Guide for Engaging Others in Creating the Future (Terry Pearce)]]
+  - [X] [[https://sachachua.com/blog/2012/02/visual-book-notes-the-lean-startup-by-eric-ries/][The Lean Startup by Eric Ries]]
+  - [X] [[https://sachachua.com/blog/2012/12/visual-book-review-running-leanash-maurya/][Running Lean - Ash Maurya]]
+  - [X] [[https://sachachua.com/blog/2013/03/visual-book-summary-to-sell-is-human-daniel-pink/][To Sell is Human (Daniel Pink)]]
+  - [X] [[https://sachachua.com/blog/2012/03/visual-book-notes-6-secrets-to-startup-success/][6 Secrets to Startup Success]]
+ #+end_gallerylist
+
+Other sketches without posts:
+
+#+ATTR_HTML: :style display: flex; flex-wrap: wrap
+#+begin_grid2
+[[sketchThumb:2015-04-29d Raw book notes - Makers - Chris Anderson][Makers - Chris Anderson]]
+[[sketchThumb:2014-01-28 Book - Decode and Conquer - Lewis Lin][Decode and Conquer]]
+[[sketchThumb:2013-02-17 The Spirit of Kaizen - book #book #sketchnote][The Spirit of Kaizen]]
+[[sketchThumb:2013-02-17 Classic Drucker #sketchnote #book][Classic Drucker]]
+#+end_grid2
+
+* Career
+:PROPERTIES:
+:CUSTOM_ID: career
+:END:
+   #+begin_gallerylist
+  - [X] [[https://sachachua.com/blog/2014/05/visual-book-notes-mastery-robert-greene/][Mastery (Robert Greene)]] (May 2014)
+  - [X] [[https://sachachua.com/blog/2012/03/visual-book-notes-the-start-up-of-you-reid-hoffman-ben-casnocha/][The Start-up of You (Reid Hoffman, Ben Casnocha)]]
+  - [X] [[https://sachachua.com/blog/2015/01/sketched-book-start-great-leaders-inspire-everyone-take-action-simon-sinek/][Start With Why: How Great Leaders Inspire Everyone to Take Action - Simon Sinek]] (Jan 2015)
+  - [X] [[https://sachachua.com/blog/2015/02/sketched-book-good-cant-ignore-skills-trump-passion-quest-work-love-cal-newport/][So Good They Can't Ignore You: Why Skills Trump Passion in the Quest for Work You Love - Cal Newport]] (Feb 2015)
+  - [X] [[https://sachachua.com/blog/2015/02/sketched-book-take-charge-talent-three-keys-thriving-career-organization-life-don-maruska-jay-perry-2013/][Take Charge of Your Talent: Three Keys to Thriving in Your Career, Organization, and Life - Don Maruska, Jay Perry (2013)]] (Feb 2015)
+ #+end_gallerylist
+
+   Other sketches without posts:
+
+#+ATTR_HTML: :style display: flex; flex-wrap: wrap
+#+begin_grid2
+[[sketchThumb:2015-04-29e Raw book notes - The Great Work of Your Life - Stephen Cope][The Great Work of Your Life - Stephen Cope]]
+[[sketchThumb:2015-04-29c Raw book notes - Self-help, Inc][Self-help, Inc]]
+#+end_grid2
+
+* Communication
+:PROPERTIES:
+:CUSTOM_ID: communication
+:END:
+
+#+begin_gallerylist
+  - [X] [[https://sachachua.com/blog/2012/03/visual-book-review-critical-inquiry-the-process-of-argument/][Critical Inquiry: The Process of Argument]]
+  - [X] [[https://sachachua.com/blog/2012/03/visual-book-notes-getting-to-yes-negotiating-agreement-without-giving-in/][Getting to Yes: Negotiating Agreement Without Giving In]]
+  - [X] [[https://sachachua.com/blog/2022/08/visual-book-notes-influence-is-your-superpower/][Influence is Your Superpower - Zoe Chance (2022)]] (2022)
+  - [X] [[https://sachachua.com/blog/2012/04/visual-book-review-thank-you-for-arguing-what-aristotle-lincoln-and-homer-simpson-can-teach-us-about-the-art-of-persuasion/][Thank You for Arguing: What Aristotle, Lincoln, and Homer Simpson Can Teach Us about the Art of Persuasion]]
+#+end_gallerylist
+
+Other sketches without blog posts:
+
+[[sketchThumb:2013-02-22 Book - MWF Seeking BFF #book #sketchnote #connecting][MWF Seeking BFF]]
+
+* Learning
+:PROPERTIES:
+:CUSTOM_ID: learning
+:END:
+ #+begin_gallerylist
+  - [[https://sachachua.com/blog/2024/10/how-to-take-smart-notes-sonke-ahrens-2017/][How to Take Smart Notes - Sonke Ahrens (2017)]]
+  - [X] [[https://sachachua.com/blog/2013/07/visual-book-review-the-first-20-hours-how-to-learn-anything-fast-josh-kaufman/][The First 20 Hours: How to Learn Anything... Fast (Josh Kaufman)]]
+  - [X] [[https://sachachua.com/blog/2013/10/visual-book-review-how-to-make-a-complete-map-of-every-thought-you-think-lion-kimbro/][How to Make a Complete Map of Every Thought You Think (Lion Kimbro)]] (Oct 2013)
+  - [X] [[https://sachachua.com/blog/2012/03/visual-book-notes-how-to-read-a-book/][How to Read a Book]]
+  - [X] [[https://sachachua.com/blog/2013/05/visual-book-review-red-thread-thinking-weaving-together-connections-for-brilliant-ideas-and-profitable-innovation-debra-kaye-with-karen-kelly/][Red Thread Thinking: Weaving Together Connections for Brilliant Ideas and Profitable Innovation (Debra Kaye with Karen Kelly)]] (May 2013)
+ #+end_gallerylist
+* Parenting
+:PROPERTIES:
+:CUSTOM_ID: parenting
+:END:
+
+#+begin_gallerylist
+  - [X] [[https://sachachua.com/blog/2019/03/visual-book-notes-between-parent-and-child-2003/][Between Parent and Child (2003)]]
+  - [X] [[https://sachachua.com/blog/2012/09/visual-book-review-help-your-kids-get-better-grades/][Help Your Kids Get Better Grades]]
+  - [X] [[https://sachachua.com/blog/2020/07/book-helping-children-succeed-what-works-and-why-paul-tough/][Helping Children Succeed: What Works and Why (Paul Tough)]]
+  - [X] [[https://sachachua.com/blog/2019/03/visual-book-notes-no-drama-discipline-2014/][No-Drama Discipline (2014)]]
+  - [X] [[https://sachachua.com/blog/2018/07/book-unconditional-parenting/][Unconditional Parenting]]
+#+end_gallerylist
+
+Other sketches without blog posts:
+
+#+ATTR_HTML: :style display: flex; flex-wrap: wrap
+#+begin_grid2
+[[sketchThumb:2023-06-26-06 Good Inside - Dr. Becky Kennedy][Good Inside - Dr. Becky Kennedy - part 1]]
+[[sketchThumb:2023-06-26-07 Good Inside - Dr. Becky Kennedy][Good Inside - Dr. Becky Kennedy - part 2]]
+[[sketchThumb:2022-09-15-11 The Explosive Child - Ross W. Greene, PhD (2021, 6th ed)][The Explosive Child - Ross W. Greene, PhD (2021, 6th ed)]]
+[[sketchThumb:2022-08-14-01 Raising Critical Thinkers - Julie Bogart][Raising Critical Thinkers - Julie Bogart]]
+[[sketchThumb:2022-08-19-01 How to Stop Losing Your Shit with Your Kids - Carla Naumburg, PhD (2019)][How to Stop Losing Your Shit with Your Kids - Carla Naumburg, PhD (2019)]]
+[[sketchThumb:2013-01-26 Happier at Home - book notes #sketchnote #book][Happier at Home]]
+[[sketchThumb:2017-06-04e Book - Mind in the Making - chapters 1 to 3][Mind in the Making - chapters 1 to 3]]
+[[sketchThumb:2017-05-27b Book - How Babies Talk][How Babies Talk]]
+[[sketchThumb:2016-06-02a Thoughts after The Psychology of Babies][The Psychology of Babies]]
+#+end_grid2
+
+* Philosophy
+:PROPERTIES:
+:CUSTOM_ID: philosophy
+:END:
+#+begin_gallerylist
+  - [X] [[https://sachachua.com/blog/2015/03/sketched-book-obstacle-way-timeless-art-turning-trials-triumph-ryan-holiday/][The Obstacle Is The Way: The Timeless Art of Turning Trials into Triumph - Ryan Holiday]] (Mar 2015)
+  - [X] [[https://sachachua.com/blog/2014/12/sketched-book-stoic-art-living/][The Stoic Art of Living: Inner Resilience and Outer Results - Tom Morris]] (Dec 2014)
+#+end_gallerylist
+
+Sketches without blog posts:
+
+#+ATTR_HTML: :style display: flex; flex-wrap: wrap
+#+begin_grid2
+[[sketchThumb:2022-08-29-01 How to Think like a Roman Emperor - Donald Robertson - 2019][How to Think like a Roman Emperor - Donald Robertson - 2019]]
+[[sketchThumb:2022-08-18-01 Everything is F-cked: A Book About Hope - Mark Manson (2019)][Everything is F-cked: A Book About Hope - Mark Manson (2019)]]
+[[sketchThumb:2015-01-14 On Desire - Why We Want What We Want - William Irvine -- index cards #book][On Desire: Why We Want What We Want]]
+#+end_grid2
+
+* Productivity
+:PROPERTIES:
+:CUSTOM_ID: productivity
+:END:
+
+#+begin_gallerylist
+  - [[https://sachachua.com/blog/2024/11/tiny-habits-the-small-changes-that-change-everything-bj-fogg-phd-2020/][Tiny Habits: The Small Changes that Change Everything - BJ Fogg, PhD (2020)]]
+  - [[https://sachachua.com/blog/2024/10/2024-10-21-05-atomic-habits-visual-book-notes-productivity-personal-development/][Atomic Habits - James Clear (2022)]]
+  - [[https://sachachua.com/blog/2015/03/sketched-book-checklist-manifesto-get-things-right-atul-gawande/][The Checklist Manifesto: How to Get Things Right - Atul Gawande (2009)]] (Mar 2015)
+  - [[https://sachachua.com/blog/2013/01/visual-book-review-cool-time-a-hands-on-plan-for-managing-work-and-balancing-timesteve-prentice/][Cool Time: A Hands-on Plan for Managing Work and Balancing Time-Steve Prentice]] (Jan 2013)
+  - [[https://sachachua.com/blog/2012/03/visual-book-review-enough/][Enough, by Patrick Rhone]] (2012)
+  - [[https://sachachua.com/blog/2022/08/visual-book-notes-four-thousand-weeks-time-management-for-mortals-oliver-burkeman-2021/][Four Thousand Weeks: Time Management for Mortals - Oliver Burkeman (2021)]] (2022)
+  - [[https://sachachua.com/blog/2015/03/sketched-book-self-compassion-stop-beating-yourself-up-and-leave-insecurity-behind-kristin-neff/][Self-compassion: Stop Beating Yourself Up and Leave Insecurity Behind - Kristin Neff (2011)]] (Mar 2015)
+  - [[https://sachachua.com/blog/2015/03/sketched-book-write-faster-write-better-david-fryxell/][Write Faster, Write Better - David A. Fryxell]] (Mar 2015)
+#+end_gallerylist
+
+Sketches without blog posts:
+
+#+ATTR_HTML: :style display: flex; flex-wrap: wrap
+#+begin_grid2
+[[sketchThumb:2022-08-22-02 The Bullet Journal Method - Ryder Carroll (2018)][The Bullet Journal Method - Ryder Carroll (2018)]]
+[[sketchThumb:2015-01-07 Sketched Book - The Progress Principle - Using Small Wins to Ignite Joy, Engagement, and Creativity at Work - Teresa Amabile, Steven Kramer][The Progress Principle: Using Small Wins to Ignite Joy, Engagement, and Creativity at Work]]
+[[sketchThumb:2020-02-26 Wits Guts Grit][Wits Guts Grit]]
+[[sketchThumb:2016-04-20a Book - Design for How People Learn - Julie Dirksen][Design for How People Learn - Julie Dirksen]]
+[[sketchThumb:2016-03-24d Level Up Your Life - Steve Kamb][Level Up Your Life - Steve Kamb]]
+[[sketchThumb:2015-01-22 Book - Leading the Life You Want - Friedman 2014][Leading the Life You Want - Friedman 2014]]
+[[sketchThumb:2015-01-15 How to Read and Why - Harold Bloom -- index card #book #raw #reading][How to Read and Why - Harold Bloom]]
+[[sketchThumb:2015-01-15 Think Better - Tim Hurson -- index card #book #raw #thinking #creativity.png][Think Better - Tim Hurson]]
+[[sketchThumb:2013-01-26 Getting More - book notes #sketchnote #book][Getting More]]
+[[sketchThumb:2015-07-05a Book - Better and Faster - The Proven Path to Unstoppable Ideas - Jeremy Gutsche][Better and Faster - The Proven Path to Unstoppable Ideas - Jeremy Gutsche]]
+[[sketchThumb:2015-05-11a Book - A Beautiful Constraint - Adam Morgan and Mark Barden][A Beautiful Constraint - Adam Morgan and Mark Barden]]
+[[sketchThumb:2015-01-26 Book - How to Think Like Leonardo da Vinci][How to Think Like Leonardo da Vinci]]
+[[sketchThumb:2015-01-23 Book - Leaving a Trace - Alexandra Johnson][Leaving a Trace - Alexandra Johnson]]
+#+end_grid2
+
+* Visual thinking
+:PROPERTIES:
+:CUSTOM_ID: visual-thinking
+:END:
+ #+begin_gallerylist
+  - [X] [[https://sachachua.com/blog/2012/12/visual-book-review-the-sketchnote-handbook-mike-rohde/][The Sketchnote Handbook-Mike Rohde]]
+  - [X] [[https://sachachua.com/blog/2013/05/visual-book-review-the-visual-marketing-revolution-stephanie-diamond/][The Visual Marketing Revolution (Stephanie Diamond)]] (May 2013)
+#+end_gallerylist
+
+Sketches without blog posts:
+[[sketchThumb:2012-12-04 Book - Visual Problem-solving - Dan Roam][Visual Problem-solving]]

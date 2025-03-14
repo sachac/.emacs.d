@@ -375,17 +375,17 @@ Things I'm getting used to using:
 In addition to the entries below, I also have Embark-related code in other places in my config:
 
 - [[dotemacs:org-refile-insert-link][Insert a link to an Org Mode heading from an org-refile prompt]]
-- [[file:~/sync/emacs/Sacha.org::#consult-omni][consult-omni]]
-- [[file:~/sync/emacs/Sacha.org::#quickly-jump-to-positions][Quickly jump to positions]]
-- [[file:~/sync/emacs/Sacha.org::*Making it easier to add a category to a blog post][Making it easier to add a category to a blog post]]
-- [[file:~/sync/emacs/Sacha.org::#embark-11ty][embark-11ty]]
-- [[file:~/sync/emacs/Sacha.org::#git-projects][Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search]] (2024)
-- [[file:~/sync/emacs/Sacha.org::#web-link][Copy web link]]
-- [[file:~/sync/emacs/Sacha.org::*Quickly search my code][Quickly search my code]]
-- [[file:~/sync/emacs/Sacha.org::*Tip from Omar: embark-around-action-hooks][Tip from Omar: embark-around-action-hooks]]
-- [[file:~/sync/emacs/Sacha.org::#edit-list][Edit list]]
-- [[file:~/sync/emacs/Sacha.org::#spookfox-babel][Running the current Org Mode Babel Javascript block from Emacs using Spookfox]] (2024)
-- [[file:~/sync/emacs/Sacha.org::#act-on-current-message-with-embark][Act on current message with Embark]]
+- [[#consult-omni][consult-omni]]
+- [[#quickly-jump-to-positions][Quickly jump to positions]]
+- [[*Making it easier to add a category to a blog post][Making it easier to add a category to a blog post]]
+- [[#embark-11ty][embark-11ty]]
+- [[#git-projects][Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search]] (2024)
+- [[#web-link][Copy web link]]
+- [[*Quickly search my code][Quickly search my code]]
+- [[*Tip from Omar: embark-around-action-hooks][Tip from Omar: embark-around-action-hooks]]
+- [[#edit-list][Edit list]]
+- [[#spookfox-babel][Running the current Org Mode Babel Javascript block from Emacs using Spookfox]] (2024)
+- [[#act-on-current-message-with-embark][Act on current message with Embark]]
 
 *** Using Embark and qrencode to show a QR code for the Org Mode link at point :emacs:org:
 :PROPERTIES:
@@ -563,6 +563,7 @@ If called interactively, copy to the kill ring."
 
 #+NAME: embark
 #+begin_src emacs-lisp :var foo="bar"
+(let ((foo '"bar"))
 (defun my-embark-org-element ()
   "Target an Org Mode element at point."
   (save-window-excursion
@@ -591,8 +592,12 @@ If called interactively, copy to the kill ring."
                 (format "<<%s(%s)>>" (org-element-property element :name)
                         (org-element-property element :parameters))
               (format "<<%s>>" (org-element-property element :parameters)))))
+)
 #+end_src
 *** Whichkey and Embark
+:PROPERTIES:
+:CUSTOM_ID: whichkey-embark
+:END:
 
 From https://github.com/oantolin/embark/wiki/Additional-Configuration#use-which-key-like-a-key-menu-prompt
 
@@ -637,6 +642,80 @@ targets."
 							:around #'embark-hide-which-key-indicator))
 #+end_src
 
+**** DONE Changing the which-key labels for shortcuts             :embark:
+CLOSED: [2025-01-06 Mon 13:50] SCHEDULED: <2025-01-05 Sun>
+:PROPERTIES:
+:CUSTOM_ID: which-key-replacements
+:CREATED:  [2025-01-04 Sat 21:11]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2025-01-06 Mon 13:50]
+:END:
+
+It's hard to remember keyboard shortcuts, so I'm
+glad that Emacs 30 now includes which-key by
+default. You still need to enable
+~which-key-mode~, but once you do, if you pause in
+the middle of a keyboard combination like
+~C-c ...~, you'll see a menu of shortcuts.
+
+I've been exploring more context menus with [[https://github.com/oantolin/embark][Embark]]. Using the [[https://github.com/oantolin/embark/wiki/Additional-Configuration#use-which-key-like-a-key-menu-prompt][suggested configuration from Embark's wiki]], I have it set up so that I can use ~C-.~ (~embark-act~) to open or cycle through different context-sensitive keymaps, with a ~which-key~ display when I pause, and completion on the commands in the keymap if I use ~C-h~.
+
+I want to make the ~which-key~ menu a little
+easier to scan: shorter function names, more
+logical grouping, and less visual noise. I think
+I'm on the right track with these which-key
+tweaks.
+
+#+CAPTION: Screenshot of which-key with some tweaks
+[[file:images/2025-01-04_21-02-39.png]]
+
+#+begin_src emacs-lisp :eval never-export :results none :exports code
+(with-eval-after-load 'which-key
+	(setopt which-key-allow-multiple-replacements t
+				which-key-sort-order 'which-key-description-order
+				which-key-replacement-alist
+				(seq-map
+				 (lambda (rep)
+					 `((nil . ,(elt rep 0))
+						 . (nil . ,(elt rep 1))))
+				 '(("my-subed-set-timestamp-to-mpv-position" "set to MPV")
+					 ("my-embark-org-copy-exported-url" "⭐🗐🔗 copy exported URL")
+					 ("my-subed-copy-timestamp-dwim" "copy")
+					 ("my-sketch-insert-file-as-link" "insert")
+					 ("my-geeqie-view" "geeqie")
+					 ("my-journal-edit" "edit")
+					 ("my-org-link-qr" "qr")
+					 ("my-image-open-in-" "")
+					 ("org-babel-" "ob-")
+					 ("next" "🠆")
+					 ("previous" "🠄")
+					 ("my-image-" "")
+					 ("my-embark-org-blog-" "")
+					 ("embark-collect" "⇶ collect")
+					 ("my-embark-org-" "")
+					 ("my-" "")
+					 ("embark-" "")
+					 ("embark-act-all" "all")
+					 ("embark-become" "become")
+					 ("embark-collect" "collect")
+					 ("-" " ")))))
+#+end_src
+
+Changing ~which-key-sort-order~ to sort by
+description seems to do a reasonable job of
+grouping things somewhat logically. The sorting
+happens before replacement, so the result might
+not look sorted once my replacements are done. If
+I want to tweak it further, I could ~defalias~
+commands and then put them into the keymaps with
+replacements, or maybe look into overriding
+~which-key--get-bindings~. Also, these
+replacements are not used by
+~embark-completing-read-prompter~, but maybe I can
+wrap some advice around
+~embark--formatted-bindings~ in order to change that.
+
 *** Embark and images   :image:
 :PROPERTIES:
 :CATEGORY: Sacha
@@ -662,9 +741,10 @@ targets."
 #+begin_src emacs-lisp
 (defun my-embark-image ()
 	"Match images."
-	(let ((extensions "\\(png\\|jpg\\|svg\\|gif\\)\\'"))
-		(if-let ((link (and (derived-mode-p 'org-mode)
-												(org-element-context))))
+	(let ((extensions "\\(png\\|jpg\\|svg\\|gif\\|jpeg\\)\\'"))
+		(cond
+		 ((derived-mode-p 'org-mode)
+			(when-let* ((link (org-element-context)))
 				(when (eq (org-element-type link) 'link)
 					(cond
 					 ((string= "attachment" (org-element-property :type link))
@@ -673,10 +753,17 @@ targets."
 					 ((string-match "sketch" (org-element-property :type link))
 						(cons 'image (my-get-sketch-filename (org-element-property :path link))))
 					 ((string-match extensions (org-element-property :path link))
-						(cons 'image (org-element-property :path link)))))
-			(when (and (derived-mode-p 'dired-mode)
-								 (string-match extensions (dired-get-filename)))
-				(cons 'image (dired-get-filename))))))
+						(cons 'image (org-element-property :path link)))))))
+		 ((and (derived-mode-p 'dired-mode)
+					 (string-match extensions (dired-get-filename)))
+			(cons 'image (dired-get-filename)))
+		 ((derived-mode-p 'subed-mode)
+			(when-let* ((filename (thing-at-point 'filename)))
+				(when (string-match (concat "file:\\(.+\\." extensions "\\)") filename)
+					(cons 'image (match-string 1 filename)))))
+		 ((and (buffer-file-name)
+					 (string-match extensions (buffer-file-name)))
+			(cons 'image (buffer-file-name))))))
 (with-eval-after-load 'embark
 	(add-to-list 'embark-target-finders 'my-embark-image))
 #+end_src
@@ -716,23 +803,65 @@ I want to:
 	(setq border (or border my-image-autocrop-border))
 	(let ((args (append '("-trim")
 											(if border `("-bordercolor" "#FFFFFF" "-border" ,(number-to-string border)))
-											(list "+repage" filename))))
-		(apply #'call-process "mogrify" nil nil nil args)))
+											(list "+repage" (expand-file-name filename)))))
+		(apply #'call-process "mogrify" nil my-debug-buffer nil args)
+		filename))
 
 (defun my-image-recognize (file)
+	"Returns the text."
 	(interactive "FFile: ")
-	(let ((data (json-parse-string
-							 (if (file-exists-p (concat (file-name-sans-extension file) ".json"))
-									 (with-temp-buffer
-										 (insert-file-contents (concat (file-name-sans-extension file) ".json"))
-										 (buffer-string))
+	(if (file-exists-p (concat (file-name-sans-extension file) ".txt"))
+			(with-temp-buffer
+				(insert-file-contents (concat (file-name-sans-extension file) ".txt"))
+				(buffer-string))
+		(let* ((data
+						(json-parse-string
+						 (if (file-exists-p (concat (file-name-sans-extension file) ".json"))
+								 (with-temp-buffer
+									 (insert-file-contents (concat (file-name-sans-extension file) ".json"))
+									 (buffer-string))
+							 (when (string= (file-name-extension file) "pdf")
+								 (setq file (my-sketch-convert-pdf file)))
+							 (when (string= (file-name-extension file) "svg")
+								 (call-process "inkscape" nil my-debug-buffer nil "--export-type=png" "--export-dpi=96" "--export-background-opacity=1" "--pdf-poppler" (expand-file-name file)))
+							 (when (file-exists-p (concat (file-name-sans-extension file) ".png"))
 								 (with-temp-file (concat (file-name-sans-extension file) ".json")
-									 (call-process "gcloud" nil t nil "ml" "vision" "detect-document" (expand-file-name file))
-									 (buffer-string)))
-							 :object-type 'alist)))
-		(if (assoc-default 'responses data)
-				(assoc-default 'text (assoc-default 'fullTextAnnotation (elt (assoc-default 'responses data) 0)))
-			(assoc-default 'description (elt (assoc-default 'textAnnotations data) 0)))))
+									 (call-process "gcloud" nil t nil "ml" "vision" "detect-document"
+																 (expand-file-name (concat (file-name-sans-extension file) ".png")))
+									 (buffer-string))))
+						 :object-type 'alist))
+					 (text
+						(if (assoc-default 'responses data)
+								(assoc-default 'text (assoc-default 'fullTextAnnotation (elt (assoc-default 'responses data) 0)))
+							(assoc-default 'description (elt (assoc-default 'textAnnotations data) 0)))))
+			(with-temp-file (concat (file-name-sans-extension file) ".txt")
+				(insert text))
+			text)))
+
+(defun my-image-rename-current-image-based-on-id (id)
+	(interactive
+	 (let ((filename (if (derived-mode-p 'image-mode)
+											 (buffer-file-name)
+										 (dired-get-filename))))
+		 (list
+
+			(if (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" filename)
+					(match-string 0 filename)
+				(read-string "ID: ")))))
+	(let* ((data (my-journal-get-by-zidstring id))
+				 (old-file (if (derived-mode-p 'image-mode)
+											 (buffer-file-name)
+										 (dired-get-filename)))
+				 (ext (file-name-extension old-file))
+				 (new-prefix (concat id " " (plist-get data :Note)))
+				 new-file)
+		(setq new-file
+					(my-image-store (my-rename-file-set old-file
+																							new-prefix) t))
+		(when (derived-mode-p 'image-mode)
+			(kill-buffer)
+			(find-file (expand-file-name (concat new-prefix "." ext)
+																	 (file-name-directory old-file))))))
 
 (defun my-image-recognize-get-new-filename (file)
 	(interactive "FFile: ")
@@ -740,7 +869,10 @@ I want to:
 						(id (and (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" text)
 										 (match-string 0 text)))
 						(data (and id (my-journal-get-by-zidstring id))))
-			(concat id " " (plist-get data :Note) "." (file-name-extension file))))
+			(expand-file-name
+			 (concat id " " (plist-get data :Note) "." (file-name-extension file))
+			 (file-name-directory file))
+		file))
 
 (defun my-image-recognize-and-rename (file)
 	(interactive "FFile: ")
@@ -749,22 +881,56 @@ I want to:
 		(rename-file file new-name t)
 		new-name))
 
+(defun my-image-tags (file)
+	(setq file (file-name-base file))
+	(cond
+	 ((string-match "#\\([^ ]+\\)" file)
+		(let ((start-pos 0))
+			(cl-loop for match-pos = (string-match "#\\([^ \\.]+\\)" file start-pos)
+							 while match-pos
+							 collect (match-string 1 file)
+							 do (setf start-pos (1+ match-pos)))))
+	 ((string-match " -- \\(.+\\)" file)
+		(split-string (match-string 1 file) " "))))
+
+(defun my-image-name-without-tags (file)
+	(replace-regexp-in-string " -- \\([^\\.]+\\)" (replace-regexp-in-string " #\\([^\\.]+\\)" "" file)))
+
+(defun my-image-rename-set (old-name new-name &optional tags do-copy)
+	(when (or (not (string= old-name new-name)) tags)
+		(when tags
+			(setq new-name (concat (my-image-name-without-tags new-name)
+														 " -- "
+														 (string-join tags " ")
+														 (file-name-extension new-name))))
+		(dolist (file (my-file-set old-name))
+			(funcall
+			 (if do-copy
+					 'copy-file
+				 'rename-file)
+				 file
+				 (concat (file-name-sans-extension new-name) "." (file-name-extension file))
+				 t)))
+	new-name)
+
 (defun my-image-store (file &optional do-move)
 	"Copy or move this image into public or private sketches as needed."
+	(interactive (list (if (derived-mode-p 'image-mode)
+												 (buffer-file-name)
+											 (dired-get-filename))
+										 t))
 	(unless (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] " (file-name-nondirectory file))
 		(setq file (my-image-recognize-and-rename file)))
-	(when (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] " (file-name-nondirectory file))
-		(funcall
-		 (if do-move
-				 'rename-file
-			 'copy-file)
-		 file
-		 (expand-file-name
-			(file-name-nondirectory file)
-			(if (string-match "#private" (file-name-nondirectory file))
-					my-private-sketches-directory
-				(car my-sketch-directories)))
-		 t)))
+	(if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] " (file-name-nondirectory file))
+			(let ((private (member "private" (my-image-tags file))))
+				(my-image-rename-set
+				 file
+				 (expand-file-name
+					(file-name-nondirectory file)
+					(if private
+							my-private-sketches-directory
+						(car my-sketch-directories)))))
+		file))
 
 (defun my-image-copy-text (file)
 	(interactive "FImage: ")
@@ -777,6 +943,31 @@ I want to:
 		(goto-char (org-element-end (org-element-context))))
 	(insert "\n#+begin_my_details\n" (my-image-recognize file) "\n#+end_my_details\n"))
 
+(defun my-image-thumbnail (path)
+	(interactive "FImage: ")
+	(let* ((filename (expand-file-name (concat "thumb-" (file-name-nondirectory path))
+																		 (file-name-directory path))))
+		(call-process "convert" nil nil nil path "-thumbnail" "500x" filename)
+		(kill-new filename)
+		filename))
+
+(defun my-org-svg-copy-links (filename)
+	(interactive (list (read-file-name "SVG: " nil
+																		 nil
+																		 (lambda (f)
+																			 (or (string-match "\\.svg$" f)
+																					 (file-directory-p f))))))
+	(let ((dom (car (xml-parse-file filename))))
+		(kill-new
+		 (mapconcat
+			(lambda (elem)
+				(concat "- " (org-link-make-string
+											(dom-attr elem 'href)
+											(or (dom-attr elem 'title)
+													(dom-text (dom-by-tag elem 'title))))))
+			(dom-by-tag dom 'a)
+			"\n"))))
+
 (with-eval-after-load 'embark
 	(defvar-keymap my-embark-image-actions
 		:doc "Images"
@@ -785,11 +976,15 @@ I want to:
 		"i" #'my-image-open-in-inkscape
 		"w" #'my-image-copy-text
 		"c" #'my-image-autocrop
+		"]" #'my-image-rotate-clockwise
+		"[" #'my-image-rotate-counterclockwise
 		"g" #'my-image-open-in-gimp
 		"f" #'my-open-in-firefox
 		"s" #'my-image-store
 		"r" #'my-image-recognize-and-rename
 		"t" #'my-org-sketch-open-text-file
+		"T" #'my-image-thumbnail
+		"L" #'my-org-svg-copy-links
 		"C" #'my-image-recolor
 		"d" #'my-image-insert-text-as-details)
 	(add-to-list 'embark-keymap-alist '(image . my-embark-image-actions)))
@@ -868,7 +1063,22 @@ Link: http://yummymelon.com/devnull/announcing-casual-symbol-overlay.html
 	(with-eval-after-load 'embark
 		(keymap-set embark-symbol-map "z" #'casual-symbol-overlay-tmenu)))
 #+end_src
+*** Embark and erefactor-rename-symbol-in-buffer
 
+[[https://github.com/oantolin/embark][Embark]] automatically passes the Embark target as the first value for an interactive prompt, which interferes with ~erefactor-rename-symbol-in-buffer~.
+
+#+begin_src emacs-lisp
+(defun my-embark-erefactor-rename-symbol-in-buffer (old-name new-name)
+	(interactive (let* ((old-name (read-string "Symbol: "))
+											(new-name (read-string (format "%s -> New name: " old-name)
+																						 old-name
+																						 'erefactor--read-symbol-history)))
+								 (list old-name new-name)))
+	(erefactor-rename-symbol-in-buffer old-name new-name))
+(with-eval-after-load 'embark
+	(keymap-set embark-command-map "r" #'my-embark-erefactor-rename-symbol-in-buffer)
+	(keymap-set embark-symbol-map "r" #'my-embark-erefactor-rename-symbol-in-buffer))
+#+end_src
 ** Extended command list
    CLOSED: [2022-01-03 Mon 21:01]
    :PROPERTIES:
@@ -1166,7 +1376,13 @@ package:hydra offers customizable shortcuts. package:transient is another option
   (when (org-in-regexp org-link-bracket-re 1)
     (goto-char (match-end 0))
     (insert "\n"))
-  (call-interactively 'org-insert-link))
+	(cond
+	 ((or (string-match (regexp-quote "*new toot*") (buffer-name))
+				(derived-mode-p 'markdown-mode))
+		(let ((url (read-string "URL: ")))
+			(insert (format "[%s](%s)"
+											(read-string "Title: " (my-page-title url))))))
+	 (t (call-interactively 'org-insert-link))))
 #+END_SRC
 
 
@@ -1221,7 +1437,6 @@ From https://github.com/abo-abo/hydra/wiki/Nesting-Hydras :
      :CUSTOM_ID: hydra-completion
      :END:
    :LOGBOOK:
-   CLOCK: [2021-04-25 Sun 22:32]
    :END:
 2021-04-29: Added the ability to complete using an arbitrary Hydra.
 
@@ -1390,7 +1605,10 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
 :CUSTOM_ID: completion
 :END:
 
+
 #+begin_src emacs-lisp
+(global-completion-preview-mode 1)
+
 (use-package vertico
 	:config
 	(vertico-mode +1)
@@ -1449,6 +1667,7 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
 				 ;; Isearch integration
 				 ("M-s e" . consult-isearch)
 				 ("M-g l" . consult-line)
+				 ("M-g L" . ace-link)
 				 ("M-s m" . consult-multi-occur)
 				 ("C-x c o" . consult-multi-occur)
 				 ("C-x c SPC" . consult-mark)
@@ -1657,6 +1876,7 @@ I also needed to create a Google custom search JSON API key at https://developer
 #+begin_src emacs-lisp
 (defun my-insert-or-replace-link (url &optional title)
 	"Insert a link, wrap the current region in a link, or replace the current link."
+	(interactive (list (read-string "URL: ")))
 	(cond
 	 ((derived-mode-p 'org-mode)
 		(cond
@@ -1678,6 +1898,13 @@ I also needed to create a Google custom search JSON API key at https://developer
 		(insert (format "[%s](%s)" title url)))
 	 ((derived-mode-p 'markdown-mode)
 		(insert (format "[%s](%s)" title url)))
+	 ((and (region-active-p) (string-match (regexp-quote "*new toot*") (buffer-name)))
+		(setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+		(delete-region (region-beginning) (region-end))
+		(insert (format "[%s](%s)" title url)))
+	 ((string-match (regexp-quote "*new toot*") (buffer-name))
+		(insert (format "[%s](%s)" (read-string "Title: " (my-page-title url))
+										url)))
 	 (t
 		(insert (format "%s (%s)" title url)))))
 
@@ -1704,7 +1931,7 @@ I also needed to create a Google custom search JSON API key at https://developer
 
 (defun my-consult-omni-embark-insert-link (cand)
 	"Don't add spaces."
-	(let ((url (and (stringp cand) (get-text-property 0 :url cand )))
+	(let ((url (and (stringp cand) (get-text-property 0 :url cand)))
 				(title (and (stringp cand) (get-text-property 0 :title cand))))
 		(my-insert-or-replace-link url title)))
 
@@ -1720,7 +1947,7 @@ I also needed to create a Google custom search JSON API key at https://developer
   (require 'consult-omni-embark)
   (setq consult-omni-sources-modules-to-load (list 'consult-omni-wikipedia 'consult-omni-google))
   (consult-omni-sources-load-modules)
-  (setq consult-omni-default-interactive-command #'consult-omni-google)
+  (setq consult-omni-default-interactive-command #'consult-omni-multi)
 	:bind
 	(("M-g w" . consult-omni)
 	 :map consult-omni-embark-general-actions-map
@@ -1730,6 +1957,60 @@ I also needed to create a Google custom search JSON API key at https://developer
 	 ("w u" . #'my-consult-omni-embark-copy-url-as-kill)
 	 ("w t" . #'my-consult-omni-embark-copy-title-as-kill)))
   #+end_src
+
+Let's add [[dotemacs:org-bookmarks][my bookmarks]] as a source.
+
+#+begin_src emacs-lisp
+(defun my-consult-omni-bookmarks (&optional input)
+	(let ((quoted (when input (regexp-quote input))))
+		(mapcar
+		 (lambda (o)
+			 (propertize
+				(concat (plist-get o :title) "\s"
+								(plist-get o :url))
+				:title (plist-get o :title)
+				:url (plist-get o :url)))
+		 (seq-filter
+			(lambda (o)
+				;; TODO: Someday use regular completion matching, so I can use orderless
+				(if quoted
+						(string-match quoted (concat (plist-get o :title) " - " (plist-get o :title)))
+					t))
+			(my-org-bookmarks)))))
+
+(defun my-consult-omni-org-bookmark-transform (candidates &optional query)
+	(mapcar
+	 (lambda (cand)
+		 (propertize
+			cand
+			:url (and (get-text-property 0 :title cand) (get-text-property 0 :url (get-text-property 0 :title cand)))
+			:title (and (get-text-property 0 :title cand) (get-text-property 0 :title (get-text-property 0 :title cand)))))
+	 candidates))
+
+(defvar my-consult--org-bookmark-history nil)
+(defvar my-consult--source-org-bookmark
+	`(:name "My Org bookmarks"
+					:narrow ?B
+					:category consult-omni
+					:face consult-bookmark
+					:items ,#'my-org-bookmarks-for-completion))
+
+;; (consult--multi (list my-consult--source-org-bookmark))
+(with-eval-after-load 'consult-omni
+  (consult-omni--make-source-from-consult-source
+   'my-consult--source-org-bookmark
+   :narrow-char ?b
+   :type 'sync
+	 :search-hist 'my-consult--org-bookmark-history
+	 :transform (quote 'my-consult-omni-org-bookmark-transform)
+   :min-input 1
+   :require-match t)
+
+	(setq consult-omni-multi-sources '(consult-omni--source-google consult-omni--source-my-org-bookmarks))
+
+	;;(consult-omni--multi-dynamic (list consult-omni--source-my-org-bookmarks))
+  )
+#+end_src
 
 *** STARTED Searching my blog, notes, and sketches with consult-ripgrep and consult-omni
 :PROPERTIES:
@@ -1894,7 +2175,6 @@ Let's try these shortcuts...
           ((facep sym) (documentation-property sym 'face-documentation))
           (t (documentation-property sym 'variable-documentation)))
          :truncate 1.0 :face 'marginalia-documentation)))))
-
 #+end_src
 *** Marginalia and annotating journal entries
 :PROPERTIES:
@@ -1914,7 +2194,6 @@ The following code annotates journal entries with their categories.
   (use-package marginalia
     :config
     (add-to-list 'marginalia-annotator-registry '(journal my-marginalia-annotate-journal builtin none)))
-
 #+end_src
 
 ** Cargo-culted stuff
@@ -2052,7 +2331,8 @@ a light background. I wanted it to adapt when I use
 This is what it looks like:
 
 #+CAPTION: Animation of highlight-sexp toggling along with modus-themes-toggle
-[[file:/home/sacha/proj/static-blog/blog/2023/01/making-highlight-sexp-follow-modus-themes-toggle/highlight-sexp.gif]]
+[[file:images/highlight-sexp.gif]]
+
 ** Modeline
 :PROPERTIES:
 :CUSTOM_ID: modeline
@@ -2208,6 +2488,22 @@ repeating just the last keystroke.
         (delete (current-buffer)
                 (buffer-list))))
 #+end_src
+** Copy and append string
+
+#+begin_src emacs-lisp
+(defvar my-copy-append-string nil "String to append when copying.")
+(defun my-copy-and-append (beg end append)
+	(interactive
+	 (list
+		(if (region-active-p) (region-beginning) (point-min))
+		(if (region-active-p) (region-end) (point-max))
+		(if current-prefix-arg (read-string "Append: ")
+			my-copy-append-string)))
+	(when append
+		(setq my-copy-append-string append))
+	(kill-new (concat (buffer-substring beg end) append)))
+#+end_src
+
 ** PDF view
 :PROPERTIES:
 :CUSTOM_ID: pdf
@@ -2240,8 +2536,22 @@ This makes it easier to pick up text from my annotated PDFs.
 						 (throw 'found text))))))
 		(when text (save-excursion (insert text)))))
 #+end_src
+** Links
 
+#+begin_src emacs-lisp
+(use-package ace-link)
+#+end_src
+** Jumping between windows
 
+#+begin_src emacs-lisp
+(use-package ace-window
+	:config
+	(setq aw-keys '(?a ?o ?e ?u ?h ?t ?n ?s))
+	:bind
+	("M-o" . 'ace-window)
+	("C-x o" . 'ace-window)
+	)
+#+end_src
 ** TODO Get the hang of using vundo
     :PROPERTIES:
     :CREATED:  [2024-10-14 Mon 10:40]
@@ -2251,6 +2561,54 @@ This makes it easier to pick up text from my annotated PDFs.
 (use-package vundo)
 #+end_src
 [[https://mastodon.online/@arialdo/113282285763018537]]
+** Focus on the current window
+
+From https://protesilaos.com/codelog/2020-08-03-emacs-custom-functions-galore/
+
+#+begin_src emacs-lisp
+;; `prot/window-single-toggle' is based on `windower' by Pierre
+;; Neidhardt (ambrevar on GitLab)
+(use-package emacs
+  :config
+  (defvar prot/window-configuration nil
+    "Current window configuration.
+Intended for use by `prot/window-monocle'.")
+
+  (define-minor-mode prot/window-single-toggle
+    "Toggle between multiple windows and single window.
+This is the equivalent of maximising a window.  Tiling window
+managers such as DWM, BSPWM refer to this state as 'monocle'."
+    :lighter " [M]"
+    :global nil
+    (if (one-window-p)
+        (when prot/window-configuration
+          (set-window-configuration prot/window-configuration))
+      (setq prot/window-configuration (current-window-configuration))
+      (delete-other-windows)))
+
+  (defun prot/kill-buffer-current (&optional arg)
+    "Kill current buffer or abort recursion when in minibuffer."
+    (interactive "P")
+    (if (minibufferp)
+        (abort-recursive-edit)
+      (kill-buffer (current-buffer)))
+    (when (and arg
+               (not (one-window-p)))
+      (delete-window)))
+  :bind (("s-m" . prot/window-single-toggle)
+         ("s-k" . prot/kill-buffer-current)))
+#+end_src
+
+Here's [[https://vmst.io/@t0yv0/113926344601704453][another approach that wraps around delete-other-windows]]:
+
+#+begin_src emacs-lisp
+(advice-add 'delete-other-windows
+						:around (lambda (orig-fun &rest args)
+											(if (frame-root-window-p (selected-window))
+													(call-interactively 'winner-undo)
+												(let ((ignore-window-parameters t))
+													(apply orig-fun args)))))
+#+end_src
 
 ** Get scroll-other-window to work with PDFs
 
@@ -2324,7 +2682,8 @@ Quickly jump to a position in the current view.
 
 #+BEGIN_SRC emacs-lisp
 (use-package winner
-  :defer t)
+  :init
+	(winner-mode 1))
 #+END_SRC
 
 ** TODO Sort files in read-file-name
@@ -2391,6 +2750,16 @@ nil
   (interactive)
   (org-attach-attach (my-latest-file my-download-dir) nil 'cp)
   (org-insert-link nil (caar org-stored-links)))
+
+(defun my-link-latest-download ()
+  (interactive)
+  (org-insert-link nil (concat "file:" (my-latest-file my-download-dir))
+									 (file-name-nondirectory (my-latest-file my-download-dir))))
+
+(defun my-include-latest-download ()
+	(interactive)
+	(my-insert-file-as-org-include (my-latest-file my-download-dir)))
+
 (defun my-copy-latest-download (dest &optional force)
   (interactive "FDestination: ")
   (copy-file (my-latest-file my-download-dir) dest force))
@@ -2406,7 +2775,6 @@ nil
 I should get the hang of using =helm-org-rifle= and =ripgrep=.
 
 #+begin_src emacs-lisp
-
 (defun my-helm-org-rifle-org-directory ()
   (interactive)
   (helm-org-rifle-directories (list org-directory) t))
@@ -2787,7 +3155,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
     ("o" "~/sync/orgzly/organizer.org" "Main org file")
     ("s" "~/proj/stream/index.org" "Yay Emacs")
     ("b" "~/sync/orgzly/business.org" "Business")
-    ("P" "/scp:web:/mnt/prev/home/sacha/planet/en.ini" "Planet Emacsen")
+    ("P" "/scp:web:/mnt/prev/home/sacha/planet/data/feeds.json" "Planet Emacsen")
     ("p" "~/sync/orgzly/posts.org" "Posts")
     ("m" "~/sync/web/beginner-map.org" "Map")
     ("n" "/ssh:web|sudo::/etc/nginx/sites-available" "Nginx sites")
@@ -2876,6 +3244,133 @@ From https://protesilaos.com/codelog/2024-11-28-basic-emacs-configuration/
   :config
   (setq dired-subtree-use-backgrounds nil))
 #+end_src
+*** Using image-dired to browse the latest screenshots from multiple directories  :image:org:link:
+:PROPERTIES:
+:CUSTOM_ID: image-dired-screenshots
+:EXPORT_DATE: 2025-01-02T08:24:06-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2025/01/using-image-dired-to-browse-the-latest-screenshots-from-multiple-directories/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2025/01/using-image-dired-to-browse-the-latest-screenshots-from-multiple-directories/
+:EXPORT_MODIFIED: 2025-01-06T10:23:22-0500
+:END:
+
+#+begin_update
+[2025-01-06]: [[https://lists.gnu.org/archive/html/emacs-devel/2025-01/msg00064.html][Patch in progress]], Stefan Kangas is looking into it.
+#+end_update
+
+Since A+ and I play lots of Minecraft together, I
+figured it's a good opportunity to slowly get her
+into the idea of documenting learning. Besides, I
+can always practise it myself. Screenshots are
+handy for that. In Minecraft Java, ~F1~ hides the
+usual heads-up display, and ~F2~ takes the
+screenshot. Usually, when I start taking
+screenshots. A+ starts taking screenshots too. I
+want to build on her enthusiasm by including her
+screenshots in notes. To make it easy to
+incorporate her pictures into our notes, I've
+shared her [[https://gdlauncher.com/][GDLauncher]] folder and her Videos folder
+with my computer using [[https://docs.syncthing.net/][Syncthing]] so that I can
+grab any screenshots or videos that she's taken.
+
+In Emacs, [[http://www.gnu.org/s/emacs/manual/html_node/emacs/Image_002dDired.html][image-dired]] makes it easy to see
+thumbnails. The neat thing is that it doesn't just
+work with a single directory. Just like Dired, you
+can give it a cons cell with a directory in the
+first part and a list of files in the second part
+as the first argument to the function, and it will
+display those files. This means I can use
+~directory-files-recursively~ to make a list of
+files, sort it to show most recent screenshots
+first, limit it to the most recent items, and then
+display a buffer with thumbnails.
+~image-dired-show-all-from-dir~ reports a small
+error when you do this (I need to send a patch
+[[https://lists.gnu.org/archive/html/emacs-devel/2025-01/msg00064.html][upstream]]), so we hush it with ~condition-case~ in
+~my-show-combined-screenshots~.
+
+#+name: screenshots
+#+begin_src emacs-lisp
+(defvar my-screenshot-dirs
+	'("~/recordings"
+		"~/.var/app/org.prismlauncher.PrismLauncher/data/PrismLauncher/instances/"
+		"~/sync/gdlauncher-instances/"
+		))
+(defvar my-recent-screenshot-limit 50)
+
+(defun my-combined-screenshots (&optional limit)
+	(seq-take
+	 (sort
+		(seq-mapcat (lambda (dir)
+									(directory-files-recursively dir "^[0-9][0-9][0-9][0-9]-.*\\.\\(png\\|webm\\)"))
+								my-screenshot-dirs)
+		:key #'file-name-base
+		:lessp #'string<
+		:reverse t)
+	 (or limit my-recent-screenshot-limit)))
+
+(defun my-latest-screenshot ()
+	(car (my-combined-screenshots)))
+
+(defun my-show-combined-screenshots (&optional limit)
+	"Show thumbnails for combined screenshots."
+	(interactive (list (when current-prefix-arg (read-number "Limit: "))))
+	(condition-case nil
+			;; ignore errors from image-dired trying to set default-directory
+			(image-dired-show-all-from-dir
+			 (cons (car my-screenshot-dirs) (my-combined-screenshots limit)))
+		(error nil)))
+#+end_src
+
+#+CAPTION: The result of ~my-show-combined-screenshots~
+[[file:images/2025-01-02_08-19-32.png]]
+
+In the ~*image-dired*~ buffer created by
+~my-show-combined-screenshots~, I can use ~m~
+(~image-dired-mark-thumb-original-file~) to mark
+images and ~C-u w~
+(~image-dired-copy-filename-as-kill~) to copy
+their absolute paths.
+
+To make it easier to create links to a file by
+using ~org-store-link~ (which I've bound to ~C-c
+l~) and ~org-insert-link~ (~C-c C-l~ in an Org
+buffer), I can define a link-storing function that
+takes the original filename:
+
+#+NAME: my-org-image-dired-store-link
+#+begin_src emacs-lisp
+(defun my-org-image-dired-store-link ()
+	(when (and (derived-mode-p 'image-dired-thumbnail-mode)
+						 (get-text-property (point) 'original-file-name))
+		(org-link-store-props
+		 :link (concat "file:" (get-text-property (point) 'original-file-name)))))
+
+(with-eval-after-load 'org
+	(org-link-set-parameters
+	 "image-dired"
+	 :store #'my-org-image-dired-store-link))
+#+end_src
+
+To make it easier to insert the marked links that
+have been copied as absolute paths:
+
+#+begin_src emacs-lisp
+(defun my-org-yank-file-links-from-kill-ring ()
+	(interactive)
+	(dolist (file (read (concat "(" (current-kill 0) ")")))
+			(insert (org-link-make-string (concat "file:" file)) "\n")))
+#+end_src
+
+I usually want to copy those files to another
+directory anyway. I have a
+~my-org-copy-linked-files~ function in [[dotemacs:copy-linked-file-and-change-link][Copy linked
+file and change link]] that copies the files and
+rewrites the Org links. This means that I can copy
+my notes to an index.org in a directory I share
+with A+, save the images to an ~images~
+subdirectory, and export the index.html so that
+she can read the notes any time she likes.
+
 *** peep-dired
 :PROPERTIES:
 :CUSTOM_ID: peep-dired
@@ -3031,7 +3526,6 @@ Copied from Prelude: http://emacsredux.com/blog/2013/03/27/open-file-in-external
                      (t (read-shell-command "Open current file with: ")))
                     " "
                     (shell-quote-argument buffer-file-name)))))
-
 #+end_src
 
 Don't use docview for PDFs.
@@ -3280,9 +3774,7 @@ From Xah Lee:
 (keymap-global-set "M-c" #'capitalize-dwim)
 (setq-default fill-column 50)
 (keymap-global-set "M-o" #'join-line)
-
 #+end_src
-
 
 ** gif-screencast
 :PROPERTIES:
@@ -3961,7 +4453,6 @@ The last step is to take the list of subtitles and format it into the subtree.
 #+end_src
 
 #+begin_src emacs-lisp :summary "Formatting the subtree"
-
 (defun my-file-start-time (filename &optional base-date)
 	"Return the local time based on FILENAME."
 	(setq filename (file-name-base filename))
@@ -5087,6 +5578,14 @@ This uses the [[https://www.gnu.org/software/wdiff/][wdiff]] tool for word-based
 		(delete-file temp-file)))
 #+end_src
 
+** Denote
+
+#+begin_src emacs-lisp
+(use-package denote
+	:config
+	(setopt denote-directory "~/sync/Notes")
+)
+#+end_src
 * Org Mode                                                              :org:
 :PROPERTIES:
 :CUSTOM_ID: org
@@ -5108,6 +5607,38 @@ stuff.
 	(org-fold-catch-invisible-edits 'smart))
 #+end_src
 
+** Remove open Org Mode clock entries
+:PROPERTIES:
+:CUSTOM_ID: org-mode-remove-open-org-mode-clock-entries
+:EXPORT_DATE: 2025-03-14T10:36:04-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2025/03/remove-open-org-mode-clock-entries/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2025/03/remove-open-org-mode-clock-entries/
+:END:
+
+Pedro pointed out that I had some incomplete clock
+entries in my Emacs configuration.
+[[https://orgmode.org/manual/Resolving-idle-time.html][org-resolve-clocks]] prompts you for what to do
+with each open clock entry in your Org agenda
+files and whatever Org Mode files you have open.
+
+If you don't feel like cancelling each clock with
+~C~, I also wrote this function to delete all open
+clocks in the current file.
+
+#+begin_src emacs-lisp
+(defun my-org-delete-open-clocks ()
+	(interactive)
+	(flush-lines
+	 (rx
+		line-start
+		(zero-or-more space)
+		"CLOCK:"
+		(one-or-more space)
+		(regexp org-ts-regexp-inactive)
+		(zero-or-more space)
+		line-end)))
+#+end_src
+
 ** Insert a link to an Org Mode heading from an org-refile prompt :embark:org:
 :PROPERTIES:
 :Effort:   0:30
@@ -5119,7 +5650,6 @@ stuff.
 :EXPORT_ELEVENTY_FILE_NAME: blog/2024/10/insert-a-link-to-an-org-mode-heading-from-an-org-refile-prompt/
 :END:
 :LOGBOOK:
-CLOCK: [2024-10-24 Thu 09:25]
 :END:
 
 I often want to link to an Org heading from somewhere in my ~org-refile-targets~, which includes my agenda files and other things. I don't want to think about where the heading is, I just want to link to it. I could use ~C-u C-c C-w~ (~org-refile~) to go to the heading, use ~C-c l~ (my shortcut for ~org-store-link~), head back with ~org-mark-ring-goto~, and then insert it with ~C-c C-l~ (~org-insert-link~).
@@ -5220,8 +5750,6 @@ This function moves all the properties up one level.
 						(org-entry-put (point) (car prop) (cdr prop)))
 					properties)))
 #+end_src
-
-
 ** My files
 :PROPERTIES:
 :CUSTOM_ID: org-files
@@ -5606,9 +6134,13 @@ entries, notes, and other semi-structured pieces of information.
          (file ,my-org-inbox-file)
          "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
          :prepend t)
-				("s" "Screenshot" entry
+				("s" "Selection from browser" entry
 				 (file ,my-org-inbox-file)
-				 "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n[[file:%(my-latest-file my-screenshot-directory)]]\n"
+				 "* %a :website:\n:PROPERTIES:\n:CREATED: %U\n:END:\n%i%?\n"
+				 :prepend t)
+				("S" "Screenshot" entry
+				 (file ,my-org-inbox-file)
+				 "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n[[file:%(my-latest-screenshot)]]\n"
 				 :prepend t)
         ("b" "Business task" entry
          (file+headline "~/personal/business.org" "Tasks")
@@ -5651,12 +6183,12 @@ entries, notes, and other semi-structured pieces of information.
          (file+datetree "~/personal/books.org" "Inbox")
          "* %^{Title}  %^g
            %i
-           ,*Author(s):* %^{Author} \\\\
-           ,*ISBN:* %^{ISBN}
+           *Author(s):* %^{Author} \\\\
+           *ISBN:* %^{ISBN}
 
            %?
 
-           ,*Review on:* %^t \\
+           *Review on:* %^t \\
            %a
            %U"
          :clock-in :clock-resume)
@@ -5665,6 +6197,23 @@ entries, notes, and other semi-structured pieces of information.
 :PROPERTIES:
 :EMAIL: %(my-org-contacts-template-email)
 :END:")
+				("w" "Web" entry (file "~/sync/orgzly/Inbox.org")
+				 "* %a
+:PROPERTIES:
+:CREATED: %U
+:END:
+
+%i
+")
+				("W" "Web bookmark" entry (file "~/sync/orgzly/resources.org")
+				 "* %a
+:PROPERTIES:
+:CREATED: %U
+:END:
+
+%i
+"
+				 :prepend t)
 				("y" "Yay Emacs" entry (file+headline "~/proj/stream/index.org" "Notes for this session")
 				 "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n
 
@@ -5700,7 +6249,6 @@ able to clock in on them.
   (org-refile-goto-last-stored))
 (eval-after-load 'org-capture
   '(bind-key "C-c C-r" 'my-org-refile-and-jump org-capture-mode-map))
-
 #+end_src
 
 *** Try out this capture command
@@ -6113,6 +6661,14 @@ still need to do. This [[http://lists.gnu.org/archive/html/emacs-orgmode/2007-03
      (:foreground "LightSalmon" :strike-through t)))))
 #+end_src
 
+*** Checklists
+
+https://orgmode.org/worg/org-contrib/org-checklist.html
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'org
+	(require 'org-checklist))
+#+end_src
 ** Templates
 :PROPERTIES:
 :CUSTOM_ID: templates
@@ -8057,6 +8613,75 @@ shortcuts when I'm at headings.
   (setq org-edit-src-content-indentation 0)
   (setq org-src-preserve-indentation t))
 #+end_src
+** Bookmarks
+:PROPERTIES:
+:CUSTOM_ID: org-bookmarks
+:END:
+
+This lets me easily insert links with completion.
+
+#+begin_src emacs-lisp
+(defvar my-org-bookmark-file "~/sync/orgzly/resources.org")
+
+(defun my-org-bookmarks ()
+	"Returns a list of plists like this: ((:title ... :url ...) ...).
+Uses the info from `my-org-bookmark-file'."
+	(delq nil
+							 (with-current-buffer (find-file-noselect my-org-bookmark-file)
+								 (org-map-entries
+									(lambda ()
+										(let ((title (org-entry-get (point) "ITEM"))
+													(url (or (org-entry-get (point) "URL")
+																	 (progn
+																		 (let ((end (save-excursion (org-end-of-subtree))))
+																			 (when (and (< (point) end)
+																									(re-search-forward org-link-any-re end t))
+																				 (org-element-property
+																					:raw-link
+																					(org-element-context))))))))
+											(when (string-match org-link-bracket-re title)
+												(setq title (match-string 2 title)))
+											(when url
+												(list :title title :url url))))))))
+
+(defun my-org-bookmarks-for-completion ()
+	(mapcar
+	 (lambda (o)
+		 (cons (propertize (format "%s - %s"
+															 (plist-get o :title)
+															 (plist-get o :url))
+											 :title (plist-get o :title)
+											 :url (plist-get o :url))
+					 (propertize
+						(plist-get o :url)
+						:title (plist-get o :title)
+						:url (plist-get o :url)
+						'title (plist-get o :title)
+						'url (plist-get o :url))))
+	 (my-org-bookmarks)))
+
+(defun my-org-bookmark-complete ()
+	"Complete a bookmark."
+	(let ((bookmarks (my-org-bookmarks-for-completion)))
+		(assoc-default
+		 (completing-read
+			"Bookmark: " bookmarks)
+		 bookmarks
+		 #'string=)))
+
+(defun my-org-bookmark-insert-description (link &optional description)
+	"Provide a default description."
+	(or description
+			(get-text-property 0 'title link)
+			(my-page-title link)))
+
+(with-eval-after-load 'org
+	(org-link-set-parameters
+	 "bookmark"
+	 :complete #'my-org-bookmark-complete
+	 :insert-description #'my-org-link-insert-description))
+#+end_src
+
 ** Org Babel
 :PROPERTIES:
 :CUSTOM_ID: org-babel
@@ -8065,9 +8690,16 @@ shortcuts when I'm at headings.
 #+begin_src emacs-lisp
 (setq org-edit-src-auto-save-idle-delay 5)
 #+end_src
-*** Linking to Org Babel source in a comment, and making that always use file links
+*** Linking to Org Babel source in a comment, and making that always use file links  :org:
+:PROPERTIES:
+:CUSTOM_ID: org-babel-comments
+:EXPORT_DATE: 2024-12-29T08:41:17-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/12/linking-to-org-babel-source-in-a-comment-and-making-that-always-use-file-links/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/12/linking-to-org-babel-source-in-a-comment-and-making-that-always-use-file-links/
+:END:
 
-I've been experimenting with these default header args for Org Babel source blocks.
+I've been experimenting with these default header
+args for Org Babel source blocks.
 
 #+NAME: org-babel-default-header-args
 #+begin_src emacs-lisp
@@ -8077,16 +8709,17 @@ I've been experimenting with these default header args for Org Babel source bloc
 				(:comments . "link")  ;; add a link to the original source
         (:exports . "both")
         (:cache . "no")
-        (:eval . "never-export")
+        (:eval . "never-export") ;; explicitly evaluate blocks instead of evaluating them during export
         (:hlines . "no")
-        (:tangle . "no")))
+        (:tangle . "no"))) ;; I have to explicitly set up blocks for tangling
 #+end_src
 
 In particular, ~:comments link~ adds a comment
 before each source block with a link to the file
 it came from. This allows me to quickly jump to
 the actual definition. It also lets me use
-~org-babel-detangle~ to copy changes back to my Org file.
+~org-babel-detangle~ to copy changes back to my
+Org file.
 
 I also have a custom link type to make it easier
 to link to sections of my configuration file
@@ -8097,7 +8730,8 @@ interrupting my tangling with lots of interactive
 prompts. The following piece of advice ignores all
 the custom link types when tangling the link
 reference. That way, the link reference always
-uses the file: link.
+uses the ~file:~ link instead of offering my
+custom link types.
 
 #+begin_src emacs-lisp :lexical t :exports code
 (advice-add #'org-babel-tangle--unbracketed-link
@@ -8211,6 +8845,154 @@ Then I should be able to use =literate-elisp-load-file= and still be able to jum
 :PROPERTIES:
 :CUSTOM_ID: publishing
 :END:
+*** TODO Copy Tasker task
+
+#+begin_src emacs-lisp
+(defun my-tasker-org-insert (url)
+	(interactive "MTaskernet URL: ")
+	(let* ((parts (url-path-and-query (url-generic-parse-url url)))
+				 (params (url-parse-query-string (cdr parts)))
+				 (xml-url (format
+							 "https://taskernet.com/_ah/api/datashare/v1/sharedata/%s/%s?a=0&xml=true"
+							 (url-hexify-string (car (assoc-default "user" params 'string=)))
+							 (url-hexify-string (replace-regexp-in-string
+																	 "\\+" " "
+																	 (car (assoc-default "id" params 'string=))))))
+				 (json-object-type 'alist)
+				 (data (plz 'get
+								 xml-url
+								 :as
+								 #'json-read))
+				 filename)
+		(setq filename (expand-file-name (concat (alist-get 'fileName data)
+																						 "."
+																						 (alist-get 'extension data)
+																						 ".xml")
+																		 my-download-dir))
+		(with-temp-file filename
+			(insert (alist-get 'shareData data)))
+		(my-insert-file-as-org-include filename)
+		(insert (org-link-make-string url "Import via Taskernet"))))
+
+#+end_src
+
+*** Changing Org Mode underlines to the HTML mark element             :org:
+:PROPERTIES:
+:CREATED: [2024-11-17 Sun 16:16]
+:Effort:   0:30
+:QUANTIFIED: Emacs
+:EXPORT_DATE: 2024-11-17T16:44:36-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2024/11/changing-org-mode-underlines-to-the-html-mark-element/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2024/11/changing-org-mode-underlines-to-the-html-mark-element/
+:ARCHIVE_TIME: 2024-11-17 Sun 20:19
+:ARCHIVE_FILE: ~/sync/orgzly/Inbox.org
+:ARCHIVE_CATEGORY: Inbox
+:ARCHIVE_TODO: STARTED
+:END:
+:LOGBOOK:
+CLOCK: [2024-11-17 Sun 16:30]--[2024-11-17 Sun 17:09] =>  0:39
+:END:
+
+Apparently, [[https://developer.mozilla.org/en-US/docs/Web/HTML/Element/mark][HTML has a mark element]] that is useful
+for highlighting. ox-html.el in Org Mode doesn't
+seem to export that yet. I don't use ~_~ to
+underline things because I don't want that
+confused with links. Maybe I can override
+~org-html-text-markup-alist~ to use it for my own
+purposes...
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'org-html
+	(setf (alist-get 'underline org-html-text-markup-alist)
+				"<mark>%s</mark>"))
+#+end_src
+
+Okay, let's try it with:
+
+#+begin_example
+Let's see _how that works._
+#+end_example
+
+Let's see _how that works._ Oooh, that's promising.
+
+Now, what if I want something fancier, like the
+way it can be nice to use different-coloured
+highlighters when marking up notes in order to
+make certain things jump out easily? A custom link
+might come in handy.
+
+#+begin_src emacs-lisp
+(defun my-org-highlight-export (link desc format _)
+	(pcase format
+		((or '11ty 'html)
+		 (format "<mark%s>%s</mark>"
+						 (if link
+								 (format " class=\"%s\"" link)
+							 link)
+						 desc))))
+(with-eval-after-load 'org
+	(org-link-set-parameters "hl" :export 'my-org-highlight-export)
+	)
+#+end_src
+
+A [[hl:green][green highlight]] might be good for ideas, while
+[[hl:red][red]] might be good for warnings. ([[hl:green][Idea:]] I wonder
+how to font-lock them differently in Emacs...)
+
+I shouldn't rely only on the colours, since people
+reading through RSS won't get them and also since
+some people are colour-blind. Still, the
+highlights could make my blog posts easier to skim
+on my website.
+
+Of course, now I want to port [[https://protesilaos.com/emacs/modus-themes][Prot's excellent
+colours from the Modus themes]] over to CSS
+variables so that I can have colours that make
+sense in both light mode and dark mode. Here's a
+snippet that exports the colours from one of the
+themes:
+
+#+begin_src emacs-lisp :exports code :results silent :eval never-export :tangle no
+(format ":root {\n%s\n}\n"
+				(mapconcat
+				 (lambda (entry)
+					 (format "  --modus-%s: %s;"
+									 (symbol-name (car entry))
+									 (if (stringp (cadr entry))
+											 (cadr entry)
+										 (format "var(--modus-%s)" (symbol-name (cadr entry))))))
+				 modus-operandi-palette
+				 "\n"))
+#+end_src
+
+So now my style.css has:
+
+#+begin_src css
+/* Based on Modus Operandi by Protesilaos Stavrou */
+:root {
+   // ...
+   --modus-bg-red-subtle: #ffcfbf;
+   --modus-bg-green-subtle: #b3fabf;
+   --modus-bg-yellow-subtle: #fff576;
+   // ...
+}
+@media (prefers-color-scheme: dark) {
+   /* Based on Modus Vivendi by Protesilaos Stavrou */
+   :root {
+      // ...
+      --modus-bg-red-subtle: #620f2a;
+      --modus-bg-green-subtle: #00422a;
+      --modus-bg-yellow-subtle: #4a4000;
+      // ...
+   }
+}
+mark { background-color: var(--modus-bg-yellow-subtle) }
+mark.green { background-color: var(--modus-bg-green-subtle) }
+mark.red { background-color: var(--modus-bg-red-subtle) }
+#+end_src
+
+Interesting, interesting...
+
 *** DONE Remove heading from TOC
 CLOSED: [2024-10-25 Fri 10:17]
 :PROPERTIES:
@@ -8220,7 +9002,6 @@ CLOSED: [2024-10-25 Fri 10:17]
 :END:
 :LOGBOOK:
 - State "DONE"       from "STARTED"    [2024-10-25 Fri 10:17]
-CLOCK: [2024-10-24 Thu 13:08]
 :END:
 [[file:~/sync/topics/visual-book-notes.org::#business][Business]]
 
@@ -8268,10 +9049,11 @@ of contents as a string, or nil if it is empty."
 :EXPORT_DATE: 2024-09-26T12:54:34-0400
 :EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/include-inline-svgs-in-org-mode-html-and-markdown-exports/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/include-inline-svgs-in-org-mode-html-and-markdown-exports/
-:EXPORT_MODIFIED: 2024-10-14T17:30:05-0400
+:EXPORT_MODIFIED: 2025-01-10T12:41:48-0500
 :END:
 
 #+begin_update
+- [2025-01-10]: Fixed descriptions.
 - [2024-10-14]: Fixed path when inlining file URLs.
 - [2024-10-07]: Now I can specify ~#+ATTR_HTML :data-link t~ to make it link instead of include.
 - [2024-09-26]: Whoops, forgot to make sure ox-11ty is also covered.
@@ -8334,6 +9116,7 @@ to include SVGs.
 						(attr (org-export-read-attribute :attr_html (org-element-parent-element link))))
 				(if (string= (file-name-extension path) "svg")
 						(with-temp-buffer
+							(insert-file-contents-literally path)
 							(if attr
 									(replace-regexp-in-string
 									 "<svg "
@@ -8735,27 +9518,57 @@ This code displays the images inline.
 
 #+begin_src emacs-lisp
 (defun my-org-copy-linked-file-and-change-link (destination)
-	(interactive (list (read-file-name (format "Copy %s to: "
-																						 (file-name-nondirectory (org-element-property :path (org-element-context)))))))
+	(interactive (list
+								(cond
+								 ((org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")
+									(expand-file-name
+										(org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")
+										(cadar (org-collect-keywords '("ELEVENTY_BASE_DIR")))))
+								 ((and (not current-prefix-arg) (file-directory-p "images/"))
+									"images/")
+								 (t
+									(read-file-name (format "Copy %s to: "
+																					(file-name-nondirectory (org-element-property :path (org-element-context)))))))))
 	(let* ((elem (org-element-context))
 				 (path (org-element-property :path elem))
 				 (description (org-element-property :description elem)))
 		(copy-file path destination t)
 		(delete-region (org-element-begin elem) (org-element-end elem))
-		(insert (org-link-make-string (concat "file:" (file-relative-name (if (file-directory-p destination)
-																																					(expand-file-name (file-name-nondirectory path)
-																																														destination)
-																																				destination)))
-																	description))))
-(defun my-org-copy-linked-files (destination)
-	(interactive (list (read-file-name (format "Copy %s to: "
-																						 (file-name-nondirectory (org-element-property :path (org-element-context)))))))
-	(while (re-search-forward "file:" nil t)
+		(insert (org-link-make-string
+						 (concat "file:"
+										 (file-relative-name
+											(if (file-directory-p destination)
+													(expand-file-name (file-name-nondirectory path)
+																						destination)
+												destination)))
+						 description))))
+
+(defun my-embark-org-copy-linked-file-and-change-link (url destination)
+	(interactive (list
+								(read-string "Link: ")
+								(read-file-name (format "Copy %s to: "
+																				(file-name-nondirectory (org-element-property :path (org-element-context)))))))
+	(my-org-copy-linked-file-and-change-link destination))
+
+(defun my-org-copy-linked-files (destination beg end)
+	(interactive (list
+								(if (and (not current-prefix-arg) (file-directory-p "images/"))
+										"images/"
+									(read-file-name (format "Copy %s to: "
+																					(file-name-nondirectory (org-element-property :path (org-element-context))))))
+								(if (region-active-p) (region-beginning) (point-min))
+								(if (region-active-p) (region-end) (point-max))))
+	(goto-char beg)
+	(while (re-search-forward "file:" end t)
 		(let* ((elem (org-element-context))
 					 (path (org-element-property :path elem))
 					 (description (org-element-property :description elem)))
-			(unless (string-match (concat "^" (regexp-quote (expand-file-name destination))) (expand-file-name path))
-				(my-org-copy-linked-file-and-change-link destination)))))
+			(when path
+				(unless (string-match (concat "^" (regexp-quote (expand-file-name destination))) (expand-file-name path))
+					(my-org-copy-linked-file-and-change-link destination))))))
+
+(with-eval-after-load 'embark-org
+	(keymap-set embark-org-link-map "r l" #'my-embark-org-copy-linked-file-and-change-link))
 #+end_src
 
 *** Org Mode: Create a quick timestamped note and capture a screenshot :emacs:org:
@@ -8775,23 +9588,23 @@ through org-capture-templates, but I wanted to take advantage of the
 fact that Org Mode will deal with the date tree and finding the right
 position itself.
 
+This uses the ~my-combined-screenshots~ and ~my-latest-screenshot~ functions from [[#image-dired-screenshots][Using image-dired to browse the latest screenshots from multiple directories]].
+
+#+NAME: my-org-insert-screenshot
 #+begin_src emacs-lisp
-(defvar my-screenshot-directory "~/recordings")
 (defun my-org-insert-screenshot (file &optional note)
   (interactive (list
                 (if current-prefix-arg
-                    (expand-file-name
-                     (consult--read
-                      (reverse (directory-files my-screenshot-directory nil "\\.png$"))
-                      :sort nil
-                      :require-match t
-                      :category 'file
-                      :state (lambda (candidate state)
-                               (when candidate
-                                 (with-current-buffer (find-file-noselect (expand-file-name candidate my-screenshot-directory))
-                                   (display-buffer (current-buffer))))))
-                     my-screenshot-directory)
-                  (my-latest-file my-screenshot-directory))))
+                    (consult--read
+                     (my-combined-screenshots)
+                     :sort nil
+                     :require-match t
+                     :category 'file
+                     :state (lambda (candidate state)
+                              (when candidate
+                                (with-current-buffer (find-file-noselect candidate)
+                                  (display-buffer (current-buffer))))))
+									(my-latest-screenshot))))
 	(cond
 	 ((derived-mode-p 'mastodon-toot-mode)
 		(mastodon-toot--attach-media file (or note (read-string "Caption: "))))
@@ -8808,16 +9621,15 @@ position itself.
 								(org-link-make-string (concat "file:" file))))))))
 
 (defun my-copy-last-screenshot-to-file (new-filename)
-  (interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (my-latest-file my-screenshot-directory))))))
-  (copy-file (my-latest-file my-screenshot-directory) new-filename))
+  (interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (my-latest-screenshot))))))
+  (copy-file (my-latest-screenshot) new-filename))
 
 (defun my-copy-last-screenshot-and-insert-into-org (new-filename caption)
-  (interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (my-latest-file my-screenshot-directory))))
+  (interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (my-latest-screenshot))))
                      (read-string "Caption: ")))
-  (copy-file (my-latest-file my-screenshot-directory) new-filename t)
+  (copy-file (my-latest-screenshot) new-filename t)
   (insert "#+CAPTION: " caption "\n"
           (org-link-make-string (concat "file:" (file-relative-name new-filename))) "\n"))
-
 #+end_src
 
 #+begin_src emacs-lisp
@@ -8861,7 +9673,7 @@ position itself.
 (defun my-capture-timestamped-note-with-screenshot (time note)
   "Include a link to the latest screenshot."
   (interactive (list (current-time) (read-string "Note: ")))
-  (kill-new (my-latest-file my-screenshot-directory))
+  (kill-new (my-latest-screenshot))
   (my-capture-timestamped-note time note))
 #+end_src
 
@@ -9415,6 +10227,7 @@ Then I want to be able to add a category to all the blog posts in a region:
 					(find-file
 					 (expand-file-name "index.org" (concat my-11ty-base-dir path)))
 					(throw 'found (buffer-file-name)))))))
+(defalias 'my-blog-edit-org #'my-embark-11ty-find-org)
 (defun my-embark-11ty-find-html (url)
 	(interactive (list (my-complete-blog-post-url)))
 	(when (string-match "https://sachachua\\.com\\(/blog/.*\\)" (my-org-link-as-url url))
@@ -9756,6 +10569,55 @@ And here's a little thing to convert a two-level list into my collapsible sectio
 								 (cdr (cadr o)))))))
 					(cdr list))))
                                         #+end_src
+*** Abbreviations
+
+There's an ~abbr~ HTML tag that I can use to provide inline abbreviations and definitions.
+
+#+begin_src emacs-lisp
+(defun my-org-abbr-export (path desc backend info)
+  "Export abbr links for Org mode.
+PATH is the expansion/title.
+DESC is the abbreviation text (optional).
+BACKEND is the export backend.
+INFO is a plist holding contextual information."
+  (pcase backend
+    ;; HTML export
+    ((or 'html '11ty)
+     (if desc
+         (format "<abbr title=\"%s\" tabindex=\"0\">%s</abbr>"
+                 (org-html-encode-plain-text path)
+                 (org-html-encode-plain-text desc))
+       (format "<abbr>%s</abbr>"
+               (org-html-encode-plain-text path))))
+
+    ;; LaTeX export
+    ('latex
+     (if desc
+         (format "\\abbr[%s]{%s}"
+                 (org-latex-encode-plain-text path)
+                 (org-latex-encode-plain-text desc))
+       (format "\\abbr{%s}"
+               (org-latex-encode-plain-text path))))
+
+    ;; ASCII/plain text export
+    ('ascii
+     (if desc
+         (format "%s (%s)" desc path)
+       path))
+
+    ;; Default for other backends
+    (_
+     (if desc
+         (format "%s (%s)" desc path)
+       path))))
+
+(use-package org
+	:config
+	(org-link-set-parameters
+	 "abbr"
+	 :export #'my-org-abbr-export))
+#+end_src
+
 *** Adding a custom header argument to Org Mode source blocks and using that argument during export :org:emacs:
 :PROPERTIES:
 :EXPORT_DATE: 2023-01-27T10:11:01-0500
@@ -9849,8 +10711,7 @@ Might as well take advantage of my stylesheet:
 (setq org-html-head "
        <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/assets/css/style.css\"></link>
        <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/assets/css/org-export.css\"></link>
-       <script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"></script>
-       <script src=\"https://sachachua.com/assets/js/misc.js\"></script>")
+       <script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"></script>")
 (setq org-html-htmlize-output-type 'css)
 (setq org-src-fontify-natively t)
 #+end_src
@@ -9897,7 +10758,8 @@ Make it easy to scroll to the top:
                    jQuery('.back-to-top').fadeOut(duration);
                }
            });
-       </script>")
+       </script>
+       <script src=\"https://sachachua.com/assets/js/misc.js\"></script>")
 #+end_src
 
 *** Copy region
@@ -10418,7 +11280,7 @@ With prefix argument, also display headlines without a TODO keyword."
 			(t
 			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url path)))
 							(url (car path-and-query))
-							(params (url-parse-query-string (cdr path-and-query)))
+							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query))))
 							(id (cond
 									 ((string-match "\\(?:v=\\|tu\\.be/\\|live/\\)\\([^&]+\\)" path)
 										(match-string 1 path))
@@ -10547,6 +11409,9 @@ With prefix argument, also display headlines without a TODO keyword."
 		(pcase format
 			((or 'html '11ty 'md)
 			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
+							(url (concat "file://" (if (file-name-absolute-p (car path-and-query))
+																				 (expand-file-name (car path-and-query))
+																			 (car path-and-query))))
 							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query))))
 							body)
 				 (setq body
@@ -10558,7 +11423,7 @@ With prefix argument, also display headlines without a TODO keyword."
 								(if (string= (or (car (assoc-default "autoplay" params 'string= '("0"))) "0") "0")
 										""
 									" autoplay=\"1\"")
-								(car path-and-query)
+								url
 								(if (assoc-default "thumbnail" params)
 										(format "poster=\"%s\" "
 														(car (assoc-default "thumbnail" params)))
@@ -10986,7 +11851,7 @@ If LINK is specified, use that instead."
 	(mapc (lambda (map)
 					(keymap-set map "u" #'my-embark-org-copy-exported-url)
 					(keymap-set map "U" #'my-embark-org-copy-exported-url-as-wayback)
-					(keymap-set map "r" #'my-embark-replace-link-with-exported-url))
+					(keymap-set map "r e" #'my-embark-replace-link-with-exported-url))
 				(list embark-url-map embark-org-link-map embark-org-link-copy-map)))
 #+end_src
 
@@ -11178,6 +12043,11 @@ So that I can easily add links at point. Formatted as an Org list for now.
 
 #+end_src
 
+#+begin_src emacs-lisp
+(use-package org-protocol-capture-html
+	:vc (:url "https://github.com/alphapapa/org-protocol-capture-html"))
+
+#+end_src
 *** Fix elisp links
 :PROPERTIES:
 :CUSTOM_ID: fix-elisp-links
@@ -11428,8 +12298,8 @@ With a description:
 (defun my-journal-other (o) (elt o 9))
 (defun my-journal-zidstring (o) (elt o 11))
 (defun my-org-group-journal-entries (filtered &optional category-map categories)
-  (setq category-map (or category-map (my-journal-category-map)))
-  (setq categories (or categories (my-journal-categories)))
+  (setq category-map (or category-map my-journal-category-map))
+  (setq categories (or categories my-journal-categories))
   (let* ((grouped (-group-by 'my-journal-category filtered))
          (mapped-list
           (mapcar
@@ -11841,6 +12711,15 @@ This lets me define a custom link type.
                                                              (my-journal-get-refs-from-region beg end)
                                                              " "))))
    #+end_src
+
+   #+begin_src emacs-lisp
+(defun my-journal-browse-current-day ()
+	(interactive)
+	(browse-url
+	 (format "https://journal.sachachua.com/day/%s"
+					 (format-time-string "%Y-%m-%d"
+															 (my-filename-timestamp (buffer-file-name))))))
+   #+end_src
 *** Tagging journal entries
 :PROPERTIES:
 :CUSTOM_ID: tagging-journal-entries
@@ -12068,8 +12947,8 @@ The ~pikchr-cli~ package in Ubuntu 24 is version 0.1.2 and does not have the ~--
 #+end_src
 
 #+begin_src emacs-lisp
-(use-package ob-mermaid)
 (setq org-ditaa-jar-path "c:/sacha/Dropbox/bin/ditaa.jar")
+
 (setq org-startup-with-inline-images t)
 (use-package org-contrib)
 (use-package org
@@ -12108,6 +12987,74 @@ The ~pikchr-cli~ package in Ubuntu 24 is version 0.1.2 and does not have the ~--
 	(add-to-list 'org-src-lang-modes '("html" . web))
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot)))
 #+end_src
+** Org Babel, Mermaid JS, and fixing "Failed to launch the browser process" on Ubuntu 24 :org:
+:PROPERTIES:
+:CUSTOM_ID: mermaid
+:EXPORT_DATE: 2025-01-10T14:16:20-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2025/01/org-babel-mermaid-js-and-fixing-failed-to-launch-the-browser-process-on-ubuntu-24/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2025/01/org-babel-mermaid-js-and-fixing-failed-to-launch-the-browser-process-on-ubuntu-24/
+:END:
+
+[[https://mermaid.js.org/][Mermaid]] makes pretty diagrams from text. It's
+Javascript-based, so the command-line tool (mmdc)
+uses Puppeteer to get the results of evaluating
+the diagram in the browser. I was running into
+some errors trying to get it to work from Org Mode
+over [[https://github.com/arnm/ob-mermaid][ob-mermaid]] on Ubuntu 24, since apparently
+[[https://github.com/puppeteer/puppeteer/issues/12818][AppArmor restricts Puppeteer]]. ([[https://github.com/mermaid-js/mermaid-cli/issues/730][Error: Failed to
+launch the browser process! · Issue #730 ·
+mermaid-js/mermaid-cli]]).
+
+I put together a [[https://github.com/arnm/ob-mermaid/pull/33][pull request to modify
+ob-mermaid-cli-path]] so that it doesn't get quoted
+and can therefore have the aa-exec command needed
+to work around that. With that modified
+~org-babel-execute:mermaid~, I can then configure
+~ob-mermaid~ like this:
+
+#+begin_src emacs-lisp
+(use-package ob-mermaid
+	:load-path "~/vendor/ob-mermaid")
+;; I need to override this so that the executable isn't quoted
+(setq ob-mermaid-cli-path "aa-exec --profile chrome mmdc -c ~/.config/mermaid/config.json")
+#+end_src
+
+I also ran into a problem where the library that
+Emacs uses to display SVGs could not handle the
+~foreignObject~ elements used for the labels.
+[[https://github.com/mermaid-js/mermaid-cli/issues/112][mermaid missing text in svg · Issue #112 ·
+mermaid-js/mermaid-cli]] . Using the following
+~~/.config/mermaid/config.json~ fixed it, and I
+put the option in the ~ob-mermaid-cli-path~ above
+so that it always gets loaded.
+
+#+begin_src js :eval no :comments no :tangle "~/.config/mermaid/config.json"
+{
+  "flowchart": {
+    "useMaxWidth": false,
+    "htmlLabels": false
+  }
+}
+#+end_src
+
+Here's sample Mermaid markup and the file it creates:
+
+#+begin_src mermaid :file mermaid-example.svg :exports both
+mindmap
+  root((test))
+    Node 1
+      Node 1A
+      Node 1B
+    Node 2
+    Node 3
+#+end_src
+
+#+RESULTS:
+:results:
+[[file:mermaid-example.svg]]
+:end:
+
+Now I can see the labeled diagrams inside Emacs, too.
 
 ** Counting
 :PROPERTIES:
@@ -12524,6 +13471,11 @@ https://www.reddit.com/prefs/feeds/ .
 ;;  (my-reddit-list-upvoted "-mon")
 #+end_src
 
+Trying out reddigg:
+
+#+begin_src emacs-lisp
+(use-package reddigg :vc (:url "https://github.com/thanhvg/emacs-reddigg"))
+#+end_src
 *** Sorting Org Mode lists using a sequence of regular expressions :emacs:org:
 :PROPERTIES:
 :ID:       o2b:ab84dc77-bea4-4e71-ae7f-e91fb34bfa28
@@ -12847,8 +13799,12 @@ blog post, navigate back to the function, and export HTML.
 			(setq symbol link))
 		(save-window-excursion
 			(my-org-defun-open symbol)
-			(let ((function-body (buffer-substring (point)
-																						 (progn (forward-sexp) (point))))
+			(let ((function-body
+						 ;; get the whole babel block instead of the sexp at point
+						 (nth 2 (org-src--contents-area (org-element-at-point)))
+						 ;; (buffer-substring (point)
+						 ;; 									 (progn (forward-sexp) (point)))
+						 )
 						body)
 				(pcase format
 					((or '11ty 'html)
@@ -12890,7 +13846,7 @@ If it's from a tangled file, follow the link."
 	(when (re-search-backward "^;; \\[\\[file:" nil t)
 		(goto-char (match-end 0))
 		(org-open-at-point-global)
-		(when (re-search-forward (concat "( *defun +" (regexp-quote (replace-regexp-in-string "\\?.*$" "" symbol)))
+		(when (re-search-forward (concat "( *\\(cl-\\)?defun +" (regexp-quote (replace-regexp-in-string "\\?.*$" "" symbol)))
 														 nil t)
 			(goto-char (match-beginning 0)))))
 
@@ -13175,7 +14131,6 @@ Luhmann’s only real help was a housekeeper who cooked for him and his children
 :ID:       20241123T091738.333004
 :END:
 :LOGBOOK:
-CLOCK: [2024-11-20 Wed 18:54]
 :END:
 
 #+begin_src emacs-lisp
@@ -13187,6 +14142,23 @@ CLOCK: [2024-11-20 Wed 18:54]
 	(interactive)
 	(unless (string-match "_archive\\'" (buffer-file-name))
 		(run-hooks 'my-org-validate-functions)))
+#+end_src
+
+*** Keep only unique headings
+
+#+begin_src emacs-lisp :eval never-export
+(defun my-compare-org-headings (file)
+	(interactive "FOther file: ")
+	(let ((current (org-map-entries (lambda () (org-entry-get (point) "ITEM")) "LEVEL=1" 'file)))
+		(find-file file)
+		(goto-char
+		 (catch 'done
+			 (org-map-entries
+				(lambda ()
+					(when (member (org-entry-get (point) "ITEM") current)
+						(throw 'done (point))))
+				"LEVEL=1" 'file)))))
+
 #+end_src
 
 *** TODO No blank titles, no duplicate paths
@@ -13241,7 +14213,7 @@ CLOCK: [2024-11-20 Wed 18:54]
 
 (defun my-org-validate-no-syncthing-conflicts ()
 	(when (directory-files default-directory nil "sync-conflict.*\\.org")
-		(error "Syncthing conflicts exist.")))
+		(message "Syncthing conflicts exist.")))
 #+end_src
 * Multimedia
 :PROPERTIES:
@@ -13250,8 +14222,34 @@ CLOCK: [2024-11-20 Wed 18:54]
 ** Emacs.tv
 
 #+begin_src emacs-lisp
-(use-package emacs-tv
+(use-package emacstv
 	:load-path "~/proj/emacstv.github.io")
+#+end_src
+** Timestamps
+
+#+begin_src emacs-lisp
+(defun my-filename-timestamp (file)
+	(setq file (replace-regexp-in-string "^screen-" "" (file-name-base file)))
+	(cond
+	 ((string-match
+		 "\\([0-9][0-9][0-9][0-9]\\)_?\\([0-9][0-9]\\)_?\\([0-9][0-9]\\)_\\([0-9][0-9]\\)_?\\([0-9][0-9]\\)_?\\([0-9][0-9]\\)"
+		 file)
+		(date-to-time (format "%s-%s-%s %s:%s:%s"
+													(match-string 1 file)
+													(match-string 2 file)
+													(match-string 3 file)
+													(match-string 4 file)
+													(match-string 5 file)
+													(match-string 6 file))))
+	 (t
+		(time-add (date-to-time (format "%s %s" (substring file 0 10) (substring file 11 19)))
+							(float-time (/ (string-to-number (substring file 20 23)) 1000.0))))))
+
+(cl-assert
+ (string= (format-time-string "test-%F-%T-%3N" (my-filename-timestamp "screen-2024-09-20-13:18:08-024.png"))
+					"test-2024-09-20-13:18:08-024")
+ (string= (format-time-string "test-%F-%T-%3N" (my-filename-timestamp "screen-2024-09-20-13_1808-024.png"))
+					"test-2024-09-20-13:18:08-024"))
 #+end_src
 ** Images
 :CUSTOM_ID: drawing
@@ -13269,13 +14267,20 @@ My sketch- and image-related code is scattered throughout my config. Here are so
 - [[file:~/sync/emacs/Sacha.org::#org-mode-sketch-links][Org Mode sketch: links]]
 - [[file:~/sync/emacs/Sacha.org::#templates][Templates]]
 
+
 *** Save edited text for sketch post                     :images:dotemacs:
 
 #+begin_src emacs-lisp
 (defun my-org-sketch-open-text-file (sketch)
   (interactive (list (my-complete-sketch-filename)))
-	(find-file (concat (file-name-sans-extension sketch) ".txt")))
+	(find-file (concat (file-name-sans-extension sketch) ".txt"))
+	(with-current-buffer (find-file-noselect sketch)
+		(display-buffer-in-side-window
+		 (current-buffer)
+		 '((window-width . 0.5)
+			 (side . right)))))
 #+end_src
+
 
 *** TODO Make header for Mastodon                                :drawing:
 :PROPERTIES:
@@ -13290,6 +14295,16 @@ My sketch- and image-related code is scattered throughout my config. Here are so
 https://xenodium.com/emacs-viewing-webp-images/
 #+begin_src emacs-lisp
 (setq image-use-external-converter t)
+#+end_src
+**** Rotate clockwise or counterclockwise
+
+#+begin_src emacs-lisp
+(defun my-image-rotate-counterclockwise (image)
+	(interactive "FImage: ")
+	(call-process "mogrify" nil nil nil "-rotate" "270" image))
+(defun my-image-rotate-clockwise (image)
+	(interactive "FImage: ")
+	(call-process "mogrify" nil nil nil "-rotate" "90" image))
 #+end_src
 
 **** TOBLOG Emacs: Extract part of an image to another file
@@ -13462,7 +14477,86 @@ are available:
 (with-eval-after-load 'image
 	(keymap-set image-mode-map "i w" #'my-image-write-region))
 #+end_src
+**** TODO Make an image square
 
+#+begin_src emacs-lisp
+(defun my-image-square (filename &optional output-filename)
+	(interactive)
+	(let* ((size (image-size (create-image filename) t))
+				(args
+				 (delq nil (list
+										"-background"
+										"white"
+										"-gravity"
+										"center"
+										"-resize"
+										(format "%sx%s"
+														(max (car size) (cdr size))
+														(max (car size) (cdr size)))
+										"-extent"
+										(format "%sx%s"
+														(max (car size) (cdr size))
+														(max (car size) (cdr size)))))))
+		(apply 'call-process (if output-filename "convert" "mogrify") nil nil nil
+					 (if output-filename
+							 (append
+								(list filename)
+								args
+								(list output-filename))
+						 (append args (list filename)))
+					 args)))
+#+end_src
+
+**** TODO Animate highlighting part of an image
+
+#+begin_src emacs-lisp
+(defun my-image-get-coordinates ()
+	(interactive)
+	(when-let*
+			((area (my-image-select-rect "select"))
+			 (x1y1x2y2
+				(format "%d,%d,%d,%d"
+								(plist-get area :left)
+								(plist-get area :top)
+								(+ (plist-get area :left)
+									 (plist-get area :width))
+								(+ (plist-get area :top)
+									 (plist-get area :height)))))
+		(when (called-interactively-p 'any)
+			(kill-new x1y1x2y2))
+		x1y1x2y2))
+#+end_src
+
+Ex: 3,991,146,1041
+
+
+#+begin_src sh :dir ~/proj/quick-notes/media
+ffmpeg -y -loop 1 -i /home/sacha/recordings/2025-01-08_10-50-40.png -t 2 -filter_complex "split[original][copy];[copy]crop=x=0:y=0:w='100*N/2':h=100[cropped];[original]colorlevels=romax=0.2:gomax=0.2:bomax=0.2[dimmed];[dimmed][cropped]overlay" \
+output.webm && mpv output.webm
+#+end_src
+
+#+RESULTS:
+:results:
+:end:
+
+
+ffmpeg -loop 1 -i /home/sacha/recordings/2025-01-08_10-50-40.png -t 2 -vf "split[original][copy]; \
+[copy]crop=w='iw-(iw-146)*(t/2)':h='ih-(ih-50)*(t/2)':x='0':y='991',pad=w=iw:h=ih[cropped]; \
+[original]colorlevels=rimin=0.5:gimin=0.5:bimin=0.5[dimmed]; \
+[dimmed][cropped]overlay" \
+output.mp4
+
+ffmpeg -loop 1 -i /home/sacha/recordings/2025-01-08_10-50-40.png -t 2 -vf "split[original][copy]; \
+[copy]crop=w='w-(w-146)*(t/2)':h='h-(h-50)*(t/2)':x='0+(iw-146)*(t/4)':y='991+(ih-1041)*(t/4)',pad=w=iw:h=ih[cropped]; \
+[original]colorlevels=rimin=0.5:gimin=0.5:bimin=0.5[dimmed]; \
+[dimmed][cropped]overlay" \
+output.mp4
+
+ffmpeg -loop 1 -i /home/sacha/recordings/2025-01-08_10-50-40.png -t 2 -vf "split[original][copy]; \
+[copy]crop=w='w-(w-146)*t/2':h='h-(h-50)*t/2':x='0+(iw-146)*t/4':y='991+(ih-1041)*t/4',pad=w=iw:h=ih[cropped]; \
+[original]colorlevels=rimin=0.5:gimin=0.5:bimin=0.5[dimmed]; \
+[dimmed][cropped]overlay" \
+output.webm
 *** Artrage
 :PROPERTIES:
 :CUSTOM_ID: artrage
@@ -13614,14 +14708,46 @@ are available:
 Detailed notes are at [[https://sachachua.com/blog/2024/01/animating-svg-topic-maps-with-inkscape-emacs-ffmpeg-and-reveal-js/][Animating SVG topic maps with Inkscape, Emacs, FFmpeg, and Reveal.js]].
 
 *****  Breaking up a PDF from Supernote
-#+begin_src emacs-lisp
+
+#+begin_src emacs-lisp :lexical t
+(defvar my-debug-buffer (get-buffer-create "*temp*"))
 (defun my-sketch-convert-pdf (pdf-file)
 	"Returns the SVG filename."
 	(interactive "FPDF: ")
-	(unless (file-exists-p (concat (file-name-sans-extension pdf-file) ".svg"))
-		(call-process "pdftocairo" nil nil nil "-svg" (expand-file-name pdf-file)
+	(if-let ((links (and (file-exists-p (concat (file-name-sans-extension pdf-file) ".svg"))
+											 (dom-by-tag
+												(car (xml-parse-file (concat (file-name-sans-extension pdf-file) ".svg")))
+												'a))))
+			;; copy links over
+			(let ((temp-file (concat (make-temp-name "svg-conversion") ".svg"))
+						new-file)
+				(unwind-protect
+						(progn
+							(call-process "pdftocairo" nil my-debug-buffer nil "-svg" (expand-file-name pdf-file)
+														temp-file)
+							(setq new-file (car (xml-parse-file temp-file)))
+							(dolist (link links)
+								(dom-append-child new-file link))
+							(with-temp-file (file-exists-p (concat (file-name-sans-extension pdf-file) ".svg"))
+								(svg-print new-file)))
+					(error
+					 (delete-file temp-file))))
+		(delete-file (concat (file-name-sans-extension pdf-file) ".svg"))
+		(call-process "pdftocairo" nil my-debug-buffer nil "-svg" (expand-file-name pdf-file)
 									(expand-file-name (concat (file-name-sans-extension pdf-file) ".svg"))))
-	(expand-file-name (concat (file-name-sans-extension pdf-file) ".svg")))
+	(concat (file-name-sans-extension pdf-file) ".svg"))
+
+(defun my-sketch-change-fill-to-style (dom)
+	"Inkscape handles these better when we split paths."
+	(dolist (path (dom-by-tag dom 'path))
+		(when (dom-attr path 'fill)
+			(dom-set-attribute
+			 path 'style
+			 (if (dom-attr path 'style)
+					 (concat (dom-attr path 'style) ";fill:" (dom-attr path 'fill))
+				 (concat "fill:" (dom-attr path 'fill))))
+			(dom-remove-attribute path 'fill)))
+	dom)
 
 (defun my-sketch-recolor (dom color-map &optional selector)
 	"Colors are specified as ((\"#input\" . \"#output\") ...)."
@@ -13631,55 +14757,31 @@ Detailed notes are at [[https://sachachua.com/blog/2024/01/animating-svg-topic-m
 	(let ((map-re (regexp-opt (mapcar 'car color-map))))
 		(dolist (path (if selector (dom-search dom selector)
 										(dom-by-tag dom 'path)))
-			(when (and (dom-attr path 'style)
-								 (string-match map-re (dom-attr path 'style)))
-				(dom-set-attribute
-				 path 'style
-				 (replace-regexp-in-string
-					map-re
-					(lambda (match)
-						(assoc-default match color-map))
-					(or (dom-attr path 'style) ""))))))
-	dom)
-
-
-(defun my-sketch-regroup (dom groups)
-	"Move matching paths to their own group.
-GROUPS is specified as ((id . (lambda (elem) ..)))."
-	(dolist (group groups)
-		(when-let* ((matches (dom-search dom (cdr group)))
-								(node (dom-node 'g '((id . "highlights")))))
-			(dolist (p matches)
-				(dom-remove-node dom p)
-				(dom-append-child node p))
-			(dom-append-child dom node)))
-	dom)
-
-(defun my-sketch-break-apart (dom selector)
-	"Break paths apart.
-SELECTOR can be a function that takes the node as an argument and returns non-nil,
-or a list of nodes."
-	(dolist (path (if (functionp selector) (dom-search dom selector) selector))
-		(let ((parent (dom-parent dom path)))
-			;; break apart
-			(when (dom-attr path 'd)
-				(dolist (part (split-string (dom-attr path 'd) "M " t " +"))
-					(dom-append-child
-					 parent
-					 (dom-node 'path `((style . ,(dom-attr path 'style))
-														 (d . ,(concat "M " part))))))
-				(dom-remove-node dom path))))
+			(dolist (attr '(style fill))
+				(when (and (dom-attr path attr)
+									 (string-match map-re (dom-attr path attr)))
+					(dom-set-attribute
+					 path attr
+					 (replace-regexp-in-string
+						map-re
+						(lambda (match)
+							(assoc-default match color-map))
+						(or (dom-attr path attr) "")))))))
 	dom)
 
 (defun my-sketch-add-bg (dom)
 	;; add background rectangle
-	(let ((view-box (mapcar 'string-to-number (split-string (dom-attr dom 'viewBox)))))
-		(push (dom-node 'rect `((x . 0)
-														(y . 0)
-														(width . ,(elt view-box 2))
-														(height . ,(elt view-box 3))
-														(fill . "#ffffff")))
-					(cddr (car (dom-by-id dom "surface1")))))
+	(unless (dom-search dom (lambda (elem) (and (dom-attr elem 'class) (string-match "\\<background\\>" (dom-attr elem 'class)))))
+		(let* ((view-box (mapcar 'string-to-number (split-string (dom-attr dom 'viewBox))))
+					 (bg-node (dom-node 'rect `((x . 0)
+																			(y . 0)
+																			(class . "background")
+																			(width . ,(elt view-box 2))
+																			(height . ,(elt view-box 3))
+																			(fill . "#ffffff")))))
+			(if (dom-by-id dom "surface1")
+					(push bg-node (cddr (car (dom-by-id dom "surface1"))))
+				(push bg-node (cddr (car dom))))))
 	dom)
 
 (defun my-sketch-clean (dom)
@@ -13704,31 +14806,34 @@ or a list of nodes."
 
 (defun my-sketch-mix-blend-mode-darken (dom &optional selector)
 	(dolist (p (if (functionp selector) (dom-search dom selector) (or selector (dom-by-tag dom 'path))))
-		(when (dom-attr p 'style)
+		(when (and (dom-attr p 'style)
+							 (not (string-match "mix-blend-mode" (dom-attr p 'style))))
 			(dom-set-attribute
 			 p 'style
 			 (replace-regexp-in-string ";;\\|^;" ""
 																 (concat
-																	(dom-attr p 'style)
+																	(or (dom-attr p 'style) "")
 																	";mix-blend-mode:darken")))))
 	dom)
 
 (defun my-sketch-color-to-hex (dom &optional selector)
 	(dolist (p (if (functionp selector) (dom-search dom selector)
 							 (or selector (dom-search dom
-																				(lambda (p) (dom-attr p 'style))))))
-		(when (dom-attr p 'style)
-			(dom-set-attribute
-			 p 'style
-			 (replace-regexp-in-string
-				"rgb(\\([0-9\\.]+\\)%,\\([0-9\\.%]+\\)%,\\([0-9\\.]+\\)%)"
-				(lambda (s)
-					(color-rgb-to-hex
-					 (* 0.01 (string-to-number (match-string 1 s)))
-					 (* 0.01 (string-to-number (match-string 2 s)))
-					 (* 0.01 (string-to-number (match-string 3 s)))
-					 2))
-				(dom-attr p 'style)))))
+																				(lambda (p) (or (dom-attr p 'style)
+																												(dom-attr p 'fill)))))))
+		(dolist (attr '(style fill))
+			(when (dom-attr p attr)
+				(dom-set-attribute
+				 p attr
+				 (replace-regexp-in-string
+					"rgb(\\([0-9\\.]+\\)%, *\\([0-9\\.%]+\\)%, *\\([0-9\\.]+\\)%)"
+					(lambda (s)
+						(color-rgb-to-hex
+						 (* 0.01 (string-to-number (match-string 1 s)))
+						 (* 0.01 (string-to-number (match-string 2 s)))
+						 (* 0.01 (string-to-number (match-string 3 s)))
+						 2))
+					(dom-attr p attr))))))
 	dom)
 
 ;; default for now, but will support more colour schemes someday
@@ -13741,12 +14846,61 @@ or a list of nodes."
 		 ("#cacaca" . "#b3e3f1")
 		 ("#a6d2ff" . "#ffffff"))
 		(t
-		 ("#9d9d9d" . "#884636")
-		 ("#9c9c9c" . "#884636")
+		 ("#9d9d9d" . "#888888")
+		 ("#9c9c9c" . "#888888")
 		 ("#cacaca" . "#f6f396")
 		 ("#c8c8c8" . "#f6f396")
 		 ("#a6d2ff" . "#ffffff")
 		 ("#c9c9c9" . "#f6f396"))))
+
+(cl-defun my-sketch-svg-prepare (file &key color-map color-scheme new-file)
+	"Clean up SVG for publishing."
+	(when (string= (file-name-extension file) "pdf")
+		(setq file (my-sketch-convert-pdf file)))
+	(let ((dom (xml-parse-file file)))
+		(setq dom (my-sketch-clean dom))
+		(setq dom (my-sketch-color-to-hex dom))
+		(setq dom (my-sketch-add-bg dom))
+		(setq dom (my-sketch-change-fill-to-style dom))
+		(setq dom (my-sketch-recolor dom
+																 (or color-map
+																		 color-scheme
+																		 t)))
+		(with-temp-file (or new-file file) (svg-print (car dom)))
+		(or new-file file)))
+#+end_src
+
+#+begin_src emacs-lisp :lexical t
+(defun my-sketch-regroup (dom groups)
+	"Move matching paths to their own group.
+GROUPS is specified as ((id . (lambda (elem) ..)))."
+	(dolist (group groups)
+		(when-let* ((matches (dom-search dom
+																		 (lambda (elem)
+																			 (funcall (cdr group) elem))))
+								(node (dom-node 'g `((id . ,(car group))))))
+			(dolist (p matches)
+				(dom-remove-node dom p)
+				(dom-append-child node p))
+			(dom-append-child dom node)))
+	dom)
+(defun my-sketch-break-apart (dom selector)
+	"Break paths apart.
+SELECTOR can be a function that takes the node as an argument and returns non-nil,
+or a list of nodes."
+	(dolist (path (if (functionp selector) (dom-search dom selector) selector))
+		(let ((parent (dom-parent dom path)))
+			;; break apart
+			(when (dom-attr path 'd)
+				(dolist (part (split-string (dom-attr path 'd) "M " t " +"))
+					(dom-add-child-before
+					 parent
+					 (dom-node 'path `((style . ,(or (dom-attr path 'style) ""))
+														 (fill . ,(or (dom-attr path 'fill) ""))
+														 (d . ,(concat "M " part))))
+					 path))
+				(dom-remove-node dom path))))
+	dom)
 
 (cl-defun my-sketch-convert-pdf-and-break-up-paths (pdf-file &key rotate color-map color-scheme selector)
 	"Convert PDF to SVG and break up paths."
@@ -13758,24 +14912,15 @@ or a list of nodes."
 											t
 											nil
 											(lambda (s) (string-match "pdf" s)))))
-	(let ((dom (xml-parse-file (my-sketch-convert-pdf pdf-file)))
+
+	(let (dom
 				(new-file (expand-file-name (concat (file-name-sans-extension pdf-file) "-split.svg"))))
-		(setq dom (my-sketch-clean dom))
-		(setq dom (my-sketch-color-to-hex dom))
-		(setq dom (my-sketch-add-bg dom))
-		(setq dom (my-sketch-regroup
-							 dom
-							 '(("highlights" . (lambda (elem)
-																	 (and (dom-attr elem 'style)
-																				(string-match "#c"
-																											(dom-attr elem 'style))))))))
-		(setq dom (my-sketch-mix-blend-mode-darken dom))
+		(my-sketch-svg-prepare
+		 file :color-map color-map :color-scheme color-scheme :new-file new-file)
+		(setq dom (xml-parse-file new-file))
 		(when rotate (setq dom (my-sketch-rotate dom)))
 		(setq dom (my-sketch-break-apart dom (or selector
 																						 (dom-by-tag dom 'path))))
-		(setq dom (my-sketch-recolor dom
-																 (or color-map
-																		 color-scheme)))
 		(with-temp-file new-file
 			(svg-print (car dom)))
 		new-file))
@@ -13832,57 +14977,70 @@ or a list of nodes."
 																					 'display spec)))
                   (setq image-fit-to-window-lock nil))))))))))
 
-(defun my-svg-bounding-box (path)
-	"Note: Relative paths don't work very well yet, so it's probably
+(defun my-svg-bounding-box (node)
+	"Return (x1 y1 x2 y2) for NODE.
+
+Note: Relative paths don't work very well yet, so it's probably
 better to set Inkscape's Preferences - Input/Output - SVG output
 - Path string format - Absolute."
 	(require 's)
-	(let ((x1 most-positive-fixnum)
-				(y1 most-positive-fixnum)
-				(x2 most-negative-fixnum)
-				(y2 most-negative-fixnum)
-				(x 0)
-				(y 0)
-				(i 0))
-		(dolist (seg (s-slice-at " *[MCmc] *" path))
-			(unless (string= (string-trim seg) "")
-				(setq seg (split-string seg "[ ,]") i 0)
-				(let ((points (mapcar 'string-to-number (cdr seg))))
-					(pcase (car seg)
-						((or "m" "M")
-						 (if (or (eq (car seg) "M") (= i 0))
-								 ;; starting points are always absolute
-								 (setq x (car points)
-											 y (cadr points))
-							 ;; m, so relative movement
-							 (setq x (+ x (car points))
-										 y (+ y (cadr points))))
-						 (when (< x x1) (setq x1 x))
-						 (when (< y y1) (setq y1 y))
-						 (when (> x x2) (setq x2 x))
-						 (when (> y y2) (setq y2 y)))
-						("c"
-						 (let ((old-x x) (old-y y))
-							 (dolist (set (seq-partition points 6))
-								 ;; relative movement? still very fuzzy on how this should work
-								 (setq x (+ x (elt set 4))
-											 y (+ y (elt set 5)))
-								 (when (< x x1) (setq x1 x))
-								 (when (< y y1) (setq y1 y))
-								 (when (> x x2) (setq x2 x))
-								 (when (> y y2) (setq y2 y))))
-						 )
-						("C"
-						 (dolist (set (seq-partition points 2))
-							 (setq x (elt set 0))
-							 (setq y (elt set 1))
-							 (when (and x y)
-								 (when (< x x1) (setq x1 x))
-								 (when (< y y1) (setq y1 y))
-								 (when (> x x2) (setq x2 x))
-								 (when (> y y2) (setq y2 y))))))
-					(cl-incf i))))
-		(list x1 y1 x2 y2)))
+	(pcase (dom-tag node)
+		('rect
+		 (list
+			(string-to-number (dom-attr node 'x))
+			(string-to-number (dom-attr node 'y))
+			(+ (string-to-number (dom-attr node 'x)) (string-to-number (dom-attr node 'width)))
+			(+ (string-to-number (dom-attr node 'y)) (string-to-number (dom-attr node 'height)))))
+		('path
+		 (let ((path (dom-attr node 'path))
+					 (x1 most-positive-fixnum)
+					 (y1 most-positive-fixnum)
+					 (x2 most-negative-fixnum)
+					 (y2 most-negative-fixnum)
+					 (x 0)
+					 (y 0)
+					 (i 0))
+			 (dolist (seg (s-slice-at " *[MCmc] *" path))
+				 (unless (string= (string-trim seg) "")
+					 (setq seg (split-string seg "[ ,]") i 0)
+					 (let ((points (mapcar 'string-to-number (cdr seg))))
+						 (pcase (car seg)
+							 ((or "m" "M")
+								(if (or (eq (car seg) "M") (= i 0))
+										;; starting points are always absolute
+										(setq x (car points)
+													y (cadr points))
+									;; m, so relative movement
+									(setq x (+ x (car points))
+												y (+ y (cadr points))))
+								(when (< x x1) (setq x1 x))
+								(when (< y y1) (setq y1 y))
+								(when (> x x2) (setq x2 x))
+								(when (> y y2) (setq y2 y)))
+							 ("c"
+								(let ((old-x x) (old-y y))
+									(dolist (set (seq-partition points 6))
+										;; relative movement? still very fuzzy on how this should work
+										(setq x (+ x (elt set 4))
+													y (+ y (elt set 5)))
+										(when (< x x1) (setq x1 x))
+										(when (< y y1) (setq y1 y))
+										(when (> x x2) (setq x2 x))
+										(when (> y y2) (setq y2 y))))
+								)
+							 ("C"
+								(dolist (set (seq-partition points 2))
+									(setq x (elt set 0))
+									(setq y (elt set 1))
+									(when (and x y)
+										(when (< x x1) (setq x1 x))
+										(when (< y y1) (setq y1 y))
+										(when (> x x2) (setq x2 x))
+										(when (> y y2) (setq y2 y))))))
+						 (cl-incf i))))
+			 (list x1 y1 x2 y2)))
+		)
+	)
 #+end_src
 
 #+begin_src emacs-lisp :summary "Tests for my-svg-bounding-box"
@@ -13895,6 +15053,9 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 	 (equal (my-svg-bounding-box "m 1160.0156,382.75391 c 0.3867,4.04296 1.2696,9.02343 1.1719,12.88281 -1.6953,1.875 -5.8711,0.25781 -8.3906,1.05469 -0.6055,0.26171 -0.9063,0.65234 -0.9063,1.28906 0,0.64844 0.2969,0.98047 0.8907,1.21094 2.5664,0.20703 5.1289,0.41406 7.6953,0.62109 1.3672,1 0.9218,4.21484 3.4453,4.29297 0.7344,0.0273 1.0742,-0.29688 1.2109,-0.88281 0.035,-1.375 -0.625,-2.5 0.457,-3.56641 2.9375,-1.20313 5.8711,-2.41016 8.8086,-3.61328 0.9727,-0.47656 1.793,-1.08203 1.7539,-2.0625 -0.035,-0.99219 -0.8789,-1.27344 -1.871,-1.17969 -2.9336,0.74219 -5.8672,1.48047 -8.7969,2.22266 -1.8281,-2.50782 -1.6758,-7.36328 -2.1953,-11.23828 -0.2813,-0.95704 -1.1446,-1.80469 -2.1875,-1.86719 -0.7305,-0.043 -0.9922,0.26953 -1.086,0.83594 m 11.9219,24.23828 c 0.7188,2.97656 1.4375,5.94922 2.1563,8.92187 -0.027,1.29297 -1.125,3.60156 -2.3438,4.05078 -1.1836,0.44141 -3.1602,-0.78515 -4.4961,-1.76172 -1.5625,-1.13671 -2.7851,-2.75781 -4.0351,-4.40234 -2.625,-2.01953 0.1328,-5.14844 -1.3594,-6.60156 -0.9766,-0.60938 -2.9571,0.32812 -3.1133,1.64844 -0.5391,1.83984 -0.3594,4.5 0.7695,6.35546 1.9532,2.94532 5.1953,6.72266 8.3203,7.9336 1.6993,0.57422 4.7149,0.65625 6.3125,0.19531 1.0039,-0.28906 1.4297,-0.96094 1.8633,-2.05078 0.8008,-1.99609 1.5196,-4.24609 1.375,-6.26953 -0.8554,-2.90625 -0.9883,-6.82031 -3.4179,-8.94922 -1.0157,-0.50781 -1.875,-0.0508 -2.0313,0.92969 m -13.3789,26.9375 c -0.078,1.33593 -0.1328,2.92187 0.293,4.17968 0.9453,1.51172 1.8867,3.02344 2.8281,4.53907 -0.6524,0.73828 -1.3086,1.47656 -1.9609,2.21484 -0.7305,2.76172 -0.875,9.38672 0.1484,12.29297 1.0859,2.86719 4.3516,4.23047 7.0312,5.91016 1.9375,0.79296 4.3946,0.40234 6.3516,-0.21485 0.6641,-0.21094 1.2969,-0.46875 1.6484,-0.96484 0.5274,-0.7461 0.5274,-2.09766 -0.027,-2.64844 -1.9102,0.008 -3.8203,0.0156 -5.7305,0.0273 -1.7773,-0.49218 -4.207,-1.9414 -5.6484,-3.60156 -1.8672,-2.39453 -0.8125,-5.0625 -0.9766,-7.5625 0.1758,-1.18359 0.8164,-2.70703 1.8867,-3.11328 2.5977,0.14844 5.1915,0.29688 7.7891,0.44531 1.0625,-0.0664 1.918,-0.27734 2.8945,-1.19531 1.2657,-1.19531 2.086,-2.81641 2.3008,-4.16406 0.3164,-2 0.1094,-4.34375 -0.5312,-6.33203 -0.2149,-0.66016 -0.4805,-1.29297 -1.0157,-1.63282 -0.4882,-0.30859 -1.1914,-0.30078 -1.6093,0.0156 -1.4844,1.51562 0.1953,4.54687 -0.2383,6.68359 -0.2969,0.9375 -1.3047,1.9961 -2.2344,2.72266 -0.9765,0.76562 -1.7734,1.05469 -2.7187,0.95703 -1.461,-0.14844 -3.1953,-1.41797 -4.5274,-2.86328 -1.2578,-1.37109 -2.5078,-3.19922 -2.7187,-4.59375 -0.1289,-0.86719 0.2734,-1.10938 1.1289,-0.38672 1.3867,1.78125 2.7695,3.55859 4.1562,5.33594 0.586,0.28515 1.2813,0.2539 1.7071,-0.125 0.6796,-0.60547 0.6523,-1.85156 0.25,-2.94922 -0.6368,-1.73828 -2.043,-3.77734 -3.1602,-5.26953 -0.7656,-1.01953 -1.668,-1.77344 -2.8086,-1.94922 -0.6992,-0.10938 -1.5234,0.004 -2.2461,0.37891 -1.6445,0.85937 -2.1758,2.46093 -2.2617,3.86328 m -44.8516,12.89843 c -0.1562,7.03125 -0.1875,14.48047 0.1016,21.36719 0.2305,0.60938 0.5703,0.91016 1.1914,0.91406 0.625,0 0.9648,-0.30078 1.1953,-0.89843 0.6914,-3.53125 -0.582,-10 0.8906,-11.95313 4.9375,6.73438 15.668,16.79688 20.3321,24.84766 -1.0469,9.58203 -3.8399,19.17187 -6.2578,28.75 -1.8321,3.38672 -3.668,6.77344 -5.5039,10.16015 -0.1485,1.13672 0.3281,2.05469 1.3789,2.11329 1.0625,0.0586 2.0625,-0.78516 2.8046,-1.76954 1.8125,-2.41406 3.2461,-5.60937 4.129,-8.1914 2.9101,-11.14063 5.621,-21.85156 7.3515,-33.25781 -3.9726,-6.83594 -13.1719,-14.88672 -17.6406,-20.35938 -1.8203,-2.29297 -6.4102,-8.75 -6.3594,-9.76953 0.035,-0.78906 2.4805,-1.89844 3.8164,-2.04688 1.668,0.19141 3.3321,0.38672 5,0.57813 0.875,-0.26563 1.3047,-1.26953 0.7383,-2.34766 -0.3984,-0.7539 -1.0117,-1.07031 -1.7031,-1.26562 -2.0547,-0.57031 -5.2188,-0.38281 -7.2813,-0.0703 -1.6797,0.16015 -3.9687,1.58203 -4.1836,3.19921 m 35.4766,21.35547 c -0.668,0.67188 -0.7461,2.96485 0.039,3.65625 0.6523,0.56641 1.9531,0.3086 2.9531,-0.67578 0.9961,-0.98437 1.2695,-2.28515 0.6836,-2.9414 -0.7071,-0.79297 -3.0117,-0.70313 -3.6758,-0.0391 m 25.8633,-0.39062 c -2.7031,1.03906 -5.4024,2.07812 -8.1055,3.11719 -1.3398,-0.0742 -2.6836,-0.14844 -4.0234,-0.22266 -0.9102,0.23047 -1.3477,1.27734 -0.7813,2.34766 0.3946,0.75 1.0274,1.08203 1.7227,1.26953 1.3515,0.36328 2.9023,0.0469 4.2109,-0.27344 2.4883,-0.60547 6.1172,-1.4375 8.1797,-2.63281 0.7969,-0.46094 1.2578,-1.35938 1,-2.41016 -0.2578,-1.05469 -1.0547,-1.3125 -2.2031,-1.19531 m 0.2304,28.30078 c 0.4258,1.11719 -0.2382,2.55078 -1.375,2.75781 -1.871,-0.043 -4.7148,-3.05078 -6.0546,-5.01562 -0.4727,-0.92188 -0.4532,-1.77344 -0.012,-2.64063 0.4454,-0.87109 1.3633,-1.84765 2.0664,-1.92187 1.8711,0.53906 4.0547,4.24218 5.375,6.82031 m 3.0899,-2.16406 c -1.0859,-2.19141 -2.168,-4.38282 -3.25,-6.57422 1.2812,-0.79688 2.5586,-1.59375 3.8398,-2.39063 0.6172,-0.96093 0.6602,-3.09765 -0.1601,-3.80468 -2.2735,-1.32813 -4.2344,3.59765 -6.8633,3.10546 -3.6523,-0.54296 -7.3047,-1.08203 -10.957,-1.625 -2.8828,0.15625 -6.6953,-0.55468 -8.8477,0.5586 -0.6953,0.88281 -0.4726,2.82031 0.6484,3.00781 3.2657,0.89844 7.7657,1.15234 10.7071,1.50391 0.6289,0.41797 0.2226,6.12109 1.4258,8.48437 1.0195,1.99219 2.8632,3.76563 4.8945,5.17969 1.4844,1.03516 2.7617,1.15234 4.2695,1.03516 1.3711,-0.10547 3.086,-0.37891 3.8164,-1.3711 0.9766,-1.32812 0.7188,-5.28125 0.4766,-7.10937 M 1167,513.47266 1167.5273,514 1167,514.52734 1166.4727,514 1167,513.47266 m 10.8203,-7.64844 c 0.3906,2.33594 0.7774,4.66797 1.1641,7.0039 -0.4024,1.29297 -2.8242,3.76172 -4.0078,4.0625 -0.8868,0.22657 -1.586,-0.41796 -2.3125,-1.30468 -1.5469,-2.1836 -3.0938,-4.3711 -4.6407,-6.55469 -0.875,-0.5 -2.0898,-0.54297 -3.1992,0.0352 -1.1719,0.60937 -1.8789,1.70703 -2.1406,2.83203 -0.8633,2.57812 1.2852,4.94922 2.1484,7.125 -0.4062,1.29687 -0.8086,2.59375 -1.2148,3.89062 -0.3281,2.24219 -0.2422,4.94922 0.3203,7.21875 0.4297,1.72656 1.2578,3.50391 2.5195,5.2461 0.7696,1.0625 1.4141,1.71875 2.4258,1.92187 2.5938,0.52344 7.75,-0.74609 10.3945,-1.55078 1.0547,-0.32422 1.7735,-0.68359 1.9766,-1.78516 0.1992,-1.08984 -0.2422,-1.89843 -1.0703,-2.01953 -2.9961,0.375 -5.9961,0.75391 -8.9961,1.12891 -2.207,-1.27735 -4.4453,-4.15235 -4.6523,-6.15235 -0.086,-1.98828 0.4921,-4.85937 1.9531,-5.94531 2.5547,0.0547 5.1133,0.10938 7.6719,0.16406 1.5898,-0.55468 3.7968,-2.25 4.9414,-3.92187 1.125,-1.64063 1.375,-3.51953 1.2812,-5.1875 -0.3476,-2.22266 -0.8398,-5.41016 -2.5117,-6.94922 -0.9102,-0.53125 -1.8203,-0.11328 -2.0508,0.74219")
 					nil 													; don't know what
 					)))
+#+end_src
+
+#+begin_src emacs-lisp :summary "Tests for my-svg-bounding-box"
 
 (defun my-svg-display (buffer-name svg &optional highlight-id full-window)
 	"HIGHLIGHT-ID is a string ID or a node."
@@ -13904,7 +15065,7 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 			(setq svg (with-temp-buffer (svg-print svg) (car (xml-parse-region (point-min) (point-max)))))
 			(if-let* ((path (if (stringp highlight-id) (dom-by-id svg highlight-id) highlight-id))
 								(view-box (split-string (dom-attr svg 'viewBox)))
-								(box (my-svg-bounding-box (dom-attr path 'd)))
+								(box (my-svg-bounding-box path))
 								(parent (car path)))
 					(progn
 						;; find parents for possible rotation
@@ -13947,34 +15108,39 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 			;; (add-hook 'window-state-change-functions #'my-svg-resize-with-window t)
 			(current-buffer))))
 
-(defun my-svg-identify-paths (filename &optional selector)
+(cl-defun my-svg-identify-paths (filename &key selector node-func dom)
 	"Prompt for IDs for each path in FILENAME."
 	(interactive (list (read-file-name "SVG: " nil nil
-																		 (lambda (f) (string-match "\\.svg$" f)))))
-	(let* ((dom (car (xml-parse-file filename)))
-				 (paths (if (functionp selector) (dom-search dom selector)
+																		 (lambda (f)
+																			 (or (string-match "\\.svg$" f)
+																					 (file-directory-p f))))))
+	(let* ((dom (or dom (car (xml-parse-file filename))))
+				 (paths (if (functionp selector)
+										(dom-search dom selector)
 									(or selector
 											(dom-by-tag dom 'path))))
 				 (vertico-count 3)
 				 (ids (seq-keep (lambda (path)
 													(and (dom-attr path 'id)
-															 (unless (string-match "path[0-9]+" (or (dom-attr path 'id) "path0"))
+															 (unless (string-match "\\(path\\|rect\\)[0-9]+"
+																										 (or (dom-attr path 'id) "path0"))
 																 (dom-attr path 'id))))
 												paths))
 				 (edges (window-inside-pixel-edges (get-buffer-window)))
 				 id)
 		(my-svg-display "*image*" dom nil t)
 		(dolist (path paths)
-			(when (string-match "path[0-9]+" (or (dom-attr path 'id) "path0"))
-				;; display the image with an outline
-				(unwind-protect
-						(progn
-							(my-svg-display "*image*" dom path t)
+			;; display the image with an outline
+			(unwind-protect
+					(progn
+						(my-svg-display "*image*" dom (dom-attr path 'id) t)
+						(if (functionp node-func)
+								(funcall node-func path dom)
 							(setq id (completing-read
 												(format "ID (%s): " (dom-attr path 'id))
 												ids))
 							;; already exists, merge with existing element
-							(if-let ((old (dom-by-id dom id)))
+							(if-let* ((old (dom-by-id dom id)))
 									(progn
 										(dom-set-attribute
 										 old
@@ -13987,12 +15153,320 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 										(dom-remove-node dom path)
 										(setq id nil))
 								(dom-set-attribute path 'id id)
-								(add-to-list 'ids id))))
-				;; save the image just in case we get interrupted halfway through
-				(with-temp-file filename
-					(svg-print dom))))))
-#+end_src
+								(add-to-list 'ids id)))))
+			;; save the image just in case we get interrupted halfway through
+			(with-temp-file filename
+				(svg-print dom)))))
 
+(defun my-svg-identify-rects (filename)
+	(interactive (list (read-file-name "SVG: " nil nil
+																		 (lambda (f)
+																			 (or (string-match "\\.svg$" f)
+																					 (file-directory-p f))))))
+	(my-svg-identify-paths
+	 filename
+	 :selector
+	 (lambda (elem)
+		 (and (eq (dom-tag elem) 'rect)
+					(not (and (dom-attr elem 'class)
+										(string-match "\\<background\\>" (dom-attr elem 'class))))))))
+
+(defun my-org-links-from-file (filename)
+	"Return a list of (description . link) of the Org links in FILENAME."
+	(when (file-exists-p filename)
+		(let (results)
+			(with-temp-buffer
+				(insert-file-contents filename)
+				(goto-char (point-min))
+				(while (re-search-forward org-link-any-re nil t)
+					(push (cons (match-string-no-properties 3)
+											(or (match-string-no-properties 2)
+													(match-string-no-properties 0)))
+								results)))
+			(reverse results))))
+
+(defun my-svg-linkify-rects (filename)
+	(interactive (list (read-file-name "SVG: " nil nil
+																		 (lambda (f)
+																			 (or (string-match "\\.svg$" f)
+																					 (file-directory-p f))))))
+	(let ((dom (car (xml-parse-file filename)))
+				(links-from-text (my-org-links-from-file (concat (file-name-sans-extension filename) ".txt"))))
+		(my-svg-identify-paths
+		 filename
+		 :dom
+		 dom
+		 :selector
+		 (append
+			;; not yet linked
+			(dom-search dom
+									(lambda (elem)
+										(and (eq (dom-tag elem) 'rect)
+												 (not (and (dom-attr elem 'class)
+																	 (string-match "\\<background\\|link-rect\\>" (dom-attr elem 'class)))))))
+			;; linked
+			(dom-search dom
+									(lambda (elem)
+										(and (eq (dom-tag elem) 'rect)
+												 (string-match "\\<link-rect\\>" (or (dom-attr elem 'class) ""))))))
+
+		 :node-func
+		 (lambda (elem dom)
+			 (let* ((current-link-node (my-dom-closest dom elem 'a))
+							(current-title-node (or (dom-by-tag elem 'title)
+																			(dom-by-tag current-link-node 'title)))
+							(title (string-trim
+											(completing-read
+											"Title: "
+											(mapcar 'car links-from-text)
+											nil nil
+											(dom-text current-title-node))))
+							(link (string-trim
+										 (read-string
+											 "URL: "
+											 (or (dom-attr current-link-node 'href)
+													 (assoc-default title links-from-text 'string=)))
+										 )))
+				 (cond
+					((and current-link-node (not (string= link "")))
+					 (dom-set-attribute elem
+															'style
+															"stroke: blue; stroke-dasharray: 4; fill: #006fff; fill-opacity: 0.25")
+					 (dom-set-attribute current-link-node 'href link))
+					((and current-link-node (string= link ""))
+					 (dom-add-child-before
+						(dom-parent dom current-link-node)
+						elem)
+					 (dom-remove-node current-link-node))
+					((and (null current-link-node) (not (string= link "")))
+					 (setq current-link-node (dom-node
+																		'a
+																		`((href . ,link)
+																			(class . "link"))))
+					 (dom-add-child-before (dom-parent dom elem) current-link-node elem)
+					 (dom-remove-node dom elem)
+					 (dom-append-child current-link-node elem)
+					 (dom-remove-attribute elem 'fill)
+					 (dom-set-attribute elem
+															'style
+															"stroke: blue; stroke-dasharray: 4; fill: #006fff; fill-opacity: 0.25")
+					 (dom-set-attribute
+						elem
+						'class
+						(if (dom-attr elem 'class)
+								(concat (dom-attr elem 'class) " link-rect")
+							"link-rect"))))
+				 (cond
+					((and (string= title "") current-title-node)
+					 (dom-remove-node current-title-node))
+					((and (not (string= title "")) (not current-title-node))
+					 (dom-append-child current-link-node (dom-node 'title nil title)))
+					((and (not (string= title "")) current-title-node)
+					 (setf (car (dom-children current-title-node))
+								 title))))))))
+
+(defun my-svg-update-links-from-text (filename)
+	(interactive (list (read-file-name
+											"SVG: " nil
+											(if (file-exists-p (concat (file-name-sans-extension (buffer-file-name)) ".svg"))
+													(concat (file-name-sans-extension (buffer-file-name)) ".svg")
+												(cdr (my-embark-image)))
+											(lambda (f)
+												(or (string-match "\\.svg$" f)
+														(file-directory-p f))))))
+	(let ((dom (car (xml-parse-file filename)))
+				(links-from-text (my-org-links-from-file (concat (file-name-sans-extension filename) ".txt"))))
+		(dolist (link (dom-by-tag dom 'a))
+			(when (and
+						 (assoc-default (dom-text (dom-by-tag link 'title))
+														links-from-text)
+						 (not (string=
+									 (dom-attr link 'href)
+									 (assoc-default (dom-text (dom-by-tag link 'title))
+																	links-from-text))))
+				(dom-set-attribute
+				 link
+				 'href
+				 (assoc-default (dom-text (dom-by-tag link 'title))
+												links-from-text))))
+		(with-temp-file filename
+			(svg-print dom))))
+
+
+#+end_src
+***** Linking paths
+
+I may want to add hyperlinks around any path that has a title.
+
+#+begin_src emacs-lisp :lexical t
+(defun my-dom-closest (dom node tag)
+	(let ((current node))
+		(while (and current (not (eq (dom-tag current) tag)))
+			(setq current (dom-parent dom current)))
+		current))
+
+(defun my-svg-save-links (widget &rest ignore)
+	(let ((inputs (widget-get widget :inputs))
+				(dom (widget-get widget :dom)))
+		(dolist (input inputs)
+			(let ((link (xml-escape-string (string-trim (widget-value (cdr input)))))
+						(node (widget-get (cdr input) :node))
+						(link-node (widget-get (cdr input) :link-node))
+						parent)
+				(cond
+				 ;; remove link if linked
+				 ((string= link "")
+					(when link-node
+						(setq parent (dom-parent dom link-node))
+						(dolist (child (dom-children link-node))
+							;; move all the parent's children to the grandparent
+							(dom-add-child-before parent child link-node))
+						(dom-remove parent link-node)
+						(widget-put (cdr input) :link-node nil)))
+				 ;; update link
+				 (link-node
+					(dom-set-attribute link-node 'href link))
+				 ;; add a link
+				 (t
+					(let ((new-link (dom-node 'a `((href . ,link)))))
+						(setq parent (dom-parent dom node))
+						(dom-add-child-before parent new-link node)
+						(dom-remove-node parent node)
+						(dom-append-child new-link node)
+						(widget-put (cdr input) :link-node new-link))))))
+		(with-temp-file (widget-get widget :file)
+			(svg-print dom))
+		(find-file (widget-get widget :file))))
+
+(defvar-local original-styles nil)
+
+;; (defun
+;; 		my-svg-highlight-from-widget (widget)
+;; 	(let ((new-dom (copy-tree (widget-get widget :dom)))
+;; 				(image (widget-get widget :image)))
+;; 		(dom-by-id new-dom (dom-attr (widget-get widget :node) 'id))
+
+;; 		(put-text-property 0 (length image) 'display (svg-image new-dom))
+
+;; 		;; highlight the widget's node
+;; 		;; update the image being displayed
+
+;; 		)
+;; 	)
+
+
+(defun my-svg-link-rects (filename)
+	"Add links to rects in FILENAME.
+Exclude the background rect."
+	(interactive (list (read-file-name "SVG: " nil nil (lambda (f)
+																											 (or (string-match "\\.svg$" f)
+																													 (file-directory-p f))))))
+	(let* ((dom (car (xml-parse-file filename)))
+				 (rects (seq-remove (lambda (elem)
+															(and (dom-attr elem 'class)
+																	 (string-match "\\<background\\>" (dom-attr elem 'class))))
+														(dom-by-tag dom 'rect)))
+				 image
+				 inputs)
+		(with-current-buffer (get-buffer-create "*svg*")
+			(erase-buffer)
+			(setq image
+						(propertize "x" 'display (svg-image dom)))
+			(widget-insert image "\n")
+			(seq-map-indexed
+			 (lambda (node i)
+				 ;; save the original style for including later
+				 (push (cons (dom-attr node 'id) (dom-attr node 'style))
+							 original-styles)
+				 (let ((link (my-dom-closest dom node 'a)))
+					 (widget-insert (format "Rect %d: ") i)
+					 (push (list
+									title
+									(widget-create 'editable-field
+																 :image
+																 image
+																 :dom
+																 dom
+																 :node
+																 node
+																 :link-node
+																 link
+																 :help-echo
+																 #'my-svg-highlight-from-widget
+																 :format
+																 "Link: %v"
+																 :value
+																 (and link (dom-attr link 'href)))
+									(widget-create 'editable-field
+																 :image
+																 image
+																 :dom
+																 dom
+																 :node
+																 node
+																 :help-echo
+																 #'my-svg-highlight-from-widget
+																 :link-node
+																 link
+																 :format
+																 "Title: %v"
+																 :value
+																 (dom-text (or (dom-by-tag node 'title)
+																							 (and link (dom-by-tag link 'title))))))
+								 inputs)))
+			 rects)
+			(widget-create 'push-button
+										 :file filename
+										 :inputs inputs
+										 :dom dom
+										 :notify #'my-svg-save-links
+										 "Save")
+
+			(widget-setup)
+			(widget-minor-mode)
+			(goto-char (point-min))
+			(switch-to-buffer (current-buffer)))))
+
+(defun my-svg-link-groups-with-titles (filename)
+	"Add links to paths in FILENAME.
+Paths should have the title attribute."
+	(interactive (list (read-file-name "SVG: " nil nil (lambda (f)
+																											 (or (string-match "\\.svg$" f)
+																													 (file-directory-p f))))))
+	(let* ((dom (car (xml-parse-file filename)))
+				 (titles (dom-by-tag dom 'title))
+				 inputs)
+		(with-current-buffer (get-buffer-create "*svg*")
+			(erase-buffer)
+			(dolist (node titles)
+				(let ((title (dom-text node))
+							(group (my-dom-closest dom node 'g))
+							(link (my-dom-closest dom node 'a)))
+					(when (and group title (> (length title) 0))
+						(widget-insert title ": ")
+						(push (cons title
+												(widget-create 'editable-field
+																			 :node
+																			 node
+																			 :link-node
+																			 link
+																			 :title
+																			 title
+																			 :value
+																			 (and link (dom-attr link 'href))))
+									inputs))))
+			(widget-create 'push-button
+										 :file filename
+										 :inputs inputs
+										 :dom dom
+										 :notify #'my-svg-save-links
+										 "Save")
+			(widget-setup)
+			(widget-minor-mode)
+			(goto-char (point-min))
+			(switch-to-buffer (current-buffer)))))
+;; (my-svg-link-paths (my-latest-file "~/sync/sketches"))
+#+end_src
 ***** Sorting paths
 :PROPERTIES:
 :CUSTOM_ID: svg-sorting-paths
@@ -14314,19 +15788,10 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 #+begin_src emacs-lisp
 (defun my-sketch-rename (file)
 	(interactive "FFile: ")
-	(let ((data (my-image-recognize file))
-				new-id)
-		(when (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" data)
-			(setq new-id (match-string 0 data))
-			(rename-file file
-									 (expand-file-name
-										(concat new-id "." (file-name-extension file))
-										(file-name-directory file)))
-			(when (file-exists-p (concat (file-name-sans-extension file) ".json"))
-				(rename-file (concat (file-name-sans-extension file) ".json")
-										 (expand-file-name
-											(concat new-id ".json")
-											(file-name-directory file)))))))
+	(my-image-rename-set
+	 file
+	 (my-image-recognize-get-new-filename file)))
+
 (defun my-sketch-recolor-png (file &optional color-scheme)
 	(interactive (list (read-file-name "File: ")
 										 (completing-read "Scheme: " (mapcar (lambda (o) (symbol-name (car o)))
@@ -14342,7 +15807,8 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 																	color-scheme)
 																my-sketch-color-map)
 								 ",")
-								(expand-file-name file)))
+								(expand-file-name file))
+	file)
 (defalias 'my-image-recolor 'my-sketch-recolor-png)
 #+end_src
 *** TODO Interactively recolor a sketch
@@ -15752,24 +17218,44 @@ xdotool key Return
 #+begin_src emacs-lisp
 (defun my-insert-sketch-and-text (sketch)
 	(interactive (list (my-complete-sketch-filename)))
-	(insert (file-name-base sketch)
-					(format "\n\n[[sketchFull:%s][%s]]\n\n" (file-name-nondirectory sketch) (file-name-base sketch)))
-	(insert "#+begin_my_details Text from sketch\n")
-	(my-sketch-insert-text sketch)
-	(insert "\n#+end_my_details"))
+	(insert
+	 (if (string= (file-name-extension sketch) "svg")
+			 (format
+				"#+begin_panzoom\n%s\n#+end_panzoom\n\n"
+				(org-link-make-string (concat "file:" sketch)))
+		 (concat (org-link-make-string (concat "sketchFull:" (file-name-base sketch))) "\n\n")))
+	(let ((links (my-org-links-from-file (concat (file-name-sans-extension sketch) ".txt")))
+				(subheading-level (1+ (org-current-level))))
+		(insert (if links
+								"#+begin_my_details Text and links from sketch\n"
+							"#+begin_my_details Text from sketch\n"))
+		(my-sketch-insert-text sketch)
+		(unless (bolp) (insert "\n"))
+		(insert "#+end_my_details")
+		(dolist (section (seq-filter (lambda (entry) (string-match "^#" (cdr entry)))
+																 links))
+			(org-end-of-subtree)
+			(insert "\n\n")
+			(org-insert-heading nil nil subheading-level)
+			(insert (car section))
+			(org-entry-put (point) "CUSTOM_ID" (substring (cdr section) 1)))))
+
 (defun my-write-about-sketch (sketch)
   (interactive (list (my-complete-sketch-filename)))
-  (shell-command "make-sketch-thumbnails")
+  ;(shell-command "make-sketch-thumbnails")
   (find-file "~/sync/orgzly/posts.org")
-  (goto-char (point-max))
+  (goto-char (point-min))
+	(unless (org-at-heading-p) (outline-next-heading))
   (org-insert-heading nil nil t)
+	(insert (file-name-base sketch) "\n\n")
 	(my-insert-sketch-and-text sketch)
-  (my-org-11ty-prepare-subtree)
   (delete-other-windows)
   (save-excursion
     (with-selected-window (split-window-horizontally)
       (find-file sketch))))
+#+end_src
 
+#+begin_src emacs-lisp
 (defun my-write-about-half-page-scan (filename)
   (interactive (list (read-file-name (format "Sketch (%s): "
                                              (file-name-base (my-latest-file my-scan-directory)))
@@ -15797,32 +17283,67 @@ xdotool key Return
 :END:
 #+begin_src emacs-lisp
 (defvar my-supernote-export-dir "~/Dropbox/Supernote/EXPORT")
+(defvar my-dropbox-sketches-dir "~/Dropbox/sketches")
+(defun my-latest-sketch ()
+	(or (condition-case nil
+					 (my-supernote-download-latest-exported-file)
+				 (error nil))
+			(my-latest-file (list my-supernote-export-dir
+														my-dropbox-sketches-dir)
+											"png\\|svg\\|jpeg")))
 (defun my-supernote-process-latest ()
   (interactive)
-  (find-file (my-latest-file my-supernote-export-dir))
-  (my-supernote-process-sketch (read-string (format "New name for %s: " (file-name-base (buffer-file-name))))))
+	(let ((file (my-supernote-process-sketch (my-latest-sketch))))
+		(find-file file)
+		(find-file-other-window (concat (file-name-sans-extension file) ".txt"))))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun my-supernote-open-latest ()
+	(interactive)
+	(find-file-other-window
+	 (or (my-supernote-download-latest-exported-file)
+			 (my-latest-file (list my-supernote-export-dir
+														 my-dropbox-sketches-dir)
+											 "png\\|svg\\|jpe?g"))))
+
 (defun my-supernote-export-dired ()
   (interactive)
   (dired my-supernote-export-dir "-tl"))
-(defun my-supernote-process-sketch (new-name)
-  (interactive (list
-								(completing-read "New name: " (my-sketches))))
-  (unless (member (file-name-extension new-name) '("png" "jpg"))
-    (setq new-name (concat new-name "." (file-name-extension (buffer-file-name)))))
-	(let ((dest (if (string-match "#private" new-name)
-									"~/sync/private-sketches"
-								"~/sync/sketches")))
-		(when (string-match " #ccw" new-name)
-			(setq new-name (replace-match "" t t new-name))
-			(call-process "mogrify" nil nil nil "-rotate" "270" (buffer-file-name)))
-		(when (string-match " #cw" new-name)
-			(setq new-name (replace-match "" t t new-name))
-			(call-process "mogrify" nil nil nil "-rotate" "90" (buffer-file-name)))
-		(when (file-exists-p (expand-file-name (file-name-nondirectory new-name) dest))
-			(delete-file (expand-file-name (file-name-nondirectory new-name) dest)))
-		(rename-visited-file
-		 (expand-file-name (file-name-nondirectory new-name) dest))
-		(kill-buffer)))
+
+(defun my-image-autorotate (file)
+	(let ((tags (my-image-tags file)))
+		(cond
+		 ((member "ccw" tags)
+			(call-process "mogrify" nil nil nil "-rotate" "270" file)
+			(my-image-rename-set file file (delete "ccw" tags)))
+		 ((member "ccw" tags)
+			(call-process "mogrify" nil nil nil "-rotate" "90" file)
+			(my-image-rename-set file file (delete "cw" tags)))
+		 (t file))))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun my-supernote-process-sketch (file)
+  (interactive "FFile: ")
+	(my-image-recognize file)
+	(setq file (my-sketch-rename file))
+	(pcase (file-name-extension file)
+		((or "svg" "pdf")
+		 (setq file
+					 (my-image-store
+						(my-sketch-svg-prepare file))))
+		("png"
+		 (setq file
+					 (my-image-store
+						(my-image-autorotate
+						 (my-image-autocrop
+							(my-sketch-recolor-png
+							 file)))))))
+	file)
+#+end_src
+
+#+begin_src emacs-lisp
 (defun my-open-latest-export ()
   (interactive)
   (find-file (my-latest-file "~/Dropbox/Supernote/EXPORT")))
@@ -15835,7 +17356,6 @@ xdotool key Return
   (interactive)
   (call-process "sn" nil nil nil (my-latest-file "~/Downloads"))
 	(message "%s" (my-latest-file "~/Downloads")))
-
 #+end_src
 
 #+begin_src emacs-lisp
@@ -15972,12 +17492,16 @@ Here's how to upload:
 																				 (insert-file-contents-literally filename)
 																				 (buffer-substring-no-properties (point-min) (point-max)))))))
 					 boundary)))
-		(with-current-buffer
-				(url-retrieve-synchronously
-				 (format "http://%s:8089%s" my-supernote-ip-address supernote-path))
-			(re-search-backward "^$")
-			(prog1 (json-read)
-				(kill-buffer)))))
+		(condition-case nil
+				(with-current-buffer
+						(url-retrieve-synchronously
+						 (format "http://%s:8089%s" my-supernote-ip-address supernote-path))
+					(re-search-backward "^$")
+					(prog1 (json-read)
+						(kill-buffer)))
+			(error
+			 (copy-file filename (expand-file-name (file-name-nondirectory filename) my-supernote-inbox) t)
+			 (message "Copied %s to %s, please sync" (file-name-nondirectory filename) my-supernote-inbox)))))
 #+end_src
 
 HTML isn't supported. Text works, but it doesn't support annotation. PDF or EPUB could work.
@@ -16061,46 +17585,60 @@ I want to quickly get drawings from my Supernote A5X into Emacs so that I can in
 #+begin_src emacs-lisp
 (defvar my-supernote-ip-address "192.168.1.221")
 (defun my-supernote-get-exported-files ()
-	(let ((data (plz 'get (format "http://%s:8089/EXPORT" my-supernote-ip-address)))
-				(list))
-		(when (string-match "const json = '\\(.*\\)'" data)
-			(sort
-			 (alist-get 'fileList (json-parse-string (match-string 1 data) :object-type 'alist :array-type 'list))
-			 :key (lambda (o) (alist-get 'date o))
-			 :lessp 'string<
-			 :reverse t))))
+	(condition-case nil
+			(let ((data (plz 'get (format "http://%s:8089/EXPORT" my-supernote-ip-address)))
+						(list))
+				(when (string-match "const json = '\\(.*\\)'" data)
+					(sort
+					 (alist-get 'fileList (json-parse-string (match-string 1 data) :object-type 'alist :array-type 'list))
+					 :key (lambda (o) (alist-get 'date o))
+					 :lessp 'string<
+					 :reverse t)))
+		(error nil)))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun my-sketch-insert-latest-doodle ()
+	(interactive)
+	(let* ((file (my-latest-sketch)))
+		(insert
+		 (format
+			"#+begin_right-doodle
+,#+ATTR_HTML: :title
+%s
+,#+end_right-doodle"
+			(org-link-make-string (concat "file:" file))))))
 
 (defun my-supernote-download-latest-exported-file ()
 	"Save exported file in downloads dir."
 	(interactive)
 	(let* ((info (car (my-supernote-get-exported-files)))
 				 (dest-dir my-download-dir)
-				 (new-file (expand-file-name (file-name-nondirectory (alist-get 'name info)) dest-dir))
+				 (new-file (and info (expand-file-name (file-name-nondirectory (alist-get 'name info)) dest-dir)))
 				 renamed)
-		(copy-file
-		 (plz 'get (format "http://%s:8089%s" my-supernote-ip-address
-											 (alist-get 'uri info))
-			 :as 'file)
-		 new-file
-		 t)
-		;; recolor
-		(my-sketch-recolor-png new-file)
-		;; autocrop that image
-		(my-image-autocrop new-file)
-		;; possibly rename
-		(setq renamed (my-image-recognize-get-new-filename new-file))
-		(when renamed
-			(setq renamed (expand-file-name renamed (org-attach-dir)))
-			(rename-file new-file renamed t)
-			(my-image-store renamed) ; file it in my archive
-			(setq new-file renamed))
-		;; use a sketch link if it has an ID
-		(if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] "
-											(file-name-base renamed))
-				(org-insert-link nil (concat "sketchFull:" (file-name-base renamed)))
-			;; insert the link
-			(org-insert-link nil (concat "file:" new-file)))
-		(org-redisplay-inline-images)))
+		(when info
+			(copy-file
+			 (plz 'get (format "http://%s:8089%s" my-supernote-ip-address
+												 (alist-get 'uri info))
+				 :as 'file)
+			 new-file
+			 t)
+			new-file)))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun my-sketch-insert-latest ()
+	(interactive)
+	(let ((renamed (my-latest-sketch)))
+		(when (and renamed (derived-mode-p 'org-mode))
+			(if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] "
+												(file-name-base renamed))
+					(org-insert-link nil (concat "sketchFull:" (file-name-base renamed)))
+				;; insert the link
+				(org-insert-link nil (concat "file:" renamed)))
+			(org-redisplay-inline-images))))
+
+
 
 (defun my-supernote-org-attach-latest-exported-file ()
 	(interactive)
@@ -16138,6 +17676,7 @@ I want to quickly get drawings from my Supernote A5X into Emacs so that I can in
 			(org-insert-link nil (concat "attachment:" (replace-regexp-in-string "#" "%23" (file-name-nondirectory new-file)))))
 		(org-redisplay-inline-images)))
 #+end_src
+
 **** DONE Using Puppeteer to grab an image from the SuperNote's screen mirror :supernote:
 CLOSED: [2024-01-03 Wed 20:32]
 :PROPERTIES:
@@ -16224,11 +17763,98 @@ Likewise, I have a number of headings that deal with audio.
 - [[file:~/sync/emacs/Sacha.org::#transcripts-from-my-phone][Transcripts from my phone]]
 - [[file:~/sync/emacs/Sacha.org::#speech-recognition][Speech recognition]]
 - [[file:~/sync/emacs/Sacha.org::#subed][Subtitles with Subed]]
+** FFmpeg
 
+#+begin_src emacs-lisp
+(defun my-ffmpeg-save-last-frame-as-image (input-file output-image)
+	(interactive "FInput: \nFOutput: ")
+	(let ((args (list
+							 "-sseof" "-2"
+							 "-i"
+							 (expand-file-name input-file)
+							 "-update"
+							 "1"
+							 "-q:v"
+							 "1"
+							 "-y"
+							 (expand-file-name output-image))))
+		(with-current-buffer (get-buffer-create "*ffmpeg*")
+			(insert "\nffmpeg "
+							(mapconcat #'shell-quote-argument args " ") "\n")
+			(apply 'call-process "ffmpeg" nil t nil args))))
+#+end_src
 ** Subtitles with Subed                                              :audio:
     :PROPERTIES:
     :CUSTOM_ID: subed
     :END:
+
+*** Interleave images with transcript
+
+#+begin_src emacs-lisp
+(defun my-subed-interleave-image-links (dir &optional offset-ms)
+	(interactive (list (read-file-name "Directory: ")
+										 (if current-prefix-arg (read-number "Offset (ms): "))))
+	(setq offset-ms (or offset-ms 0))
+	(let* ((start-of-recording (my-filename-timestamp (buffer-file-name)))
+				 (subtitles (subed-subtitle-list))
+				 (end-of-recording
+					(time-add start-of-recording
+										(seconds-to-time
+										 (/
+											(elt (car (last subtitles)) 2)
+											1000.0))))
+				 (files
+					(sort
+					 (seq-keep
+						(lambda (f)
+							(let ((time (my-filename-timestamp f)))
+								(when (and
+											 (not (time-less-p time start-of-recording))
+											 (not (time-less-p end-of-recording time)))
+									(cons
+									 ;; ms
+									 (* 1000 (float-time (time-subtract time start-of-recording)))
+									 f))))
+						(directory-files dir t "20250123.*\\.\\(jpg\\|png\\|svg\\|webm\\)"))
+					 :key 'car)))
+		;; Now I have the cues and the file timestamps.
+		;; Do I want to add the comments to the current file or go streak to breaking it out?
+		;; Let's break it out into a different buffer.
+		(save-excursion
+			(goto-char (point-min))
+			(unless (subed-subtitle-msecs-start) (subed-forward-subtitle-time-start))
+			(dolist (cue subtitles)
+				(when (and files (>= (+ offset-ms (elt cue 1)) (caar files)))
+					(let ((link (org-link-make-string (concat "file:" (cdar files)))))
+						(setf (elt cue 4)
+									(if (elt cue 4)
+											(concat (elt cue 4) "\n" link)
+										link))
+						(subed-set-subtitle-comment (elt cue 4)))
+					(pop files))
+				(subed-forward-subtitle-time-start)))
+		(with-current-buffer (get-buffer-create "*interleaved*")
+			(erase-buffer)
+			(org-mode)
+			(insert (subed-subtitle-list-text subtitles t))
+			(goto-char (point-min))
+			(switch-to-buffer (current-buffer)))))
+
+(defun my-subed-interleave-calculate-offset (filename)
+	(interactive "FFile: ")
+	(let ((start-of-recording (my-filename-timestamp (buffer-file-name)))
+				(file-timestamp (my-filename-timestamp filename)))
+		(message "%d"
+						 (- (* 1000.0
+									 (time-to-seconds (time-subtract file-timestamp start-of-recording)))
+								(subed-subtitle-msecs-start)))))
+
+#+end_src
+
+#+RESULTS:
+:results:
+my-subed-interleave-image-links
+:end:
 
 *** TOBLOG Split a transcript into phrases for subtitles
 :PROPERTIES:
@@ -16913,7 +18539,8 @@ I used this command to get word-level timing data. ([[https://medium.com/@didier
 MAX_LINE_WIDTH="${MAX_LINE_WIDTH:-50}"
 MODEL="${MODEL:-large-v2}"
 for FILE in "$@"; do
-		~/vendor/whisperx/.venv/bin/whisperx --model "$MODEL" --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --compute_type int8 --print_progress True --max_line_width $MAX_LINE_WIDTH --segment_resolution chunk --max_line_count 1 --language en "$FILE"
+		~/vendor/whisperx/.venv/bin/whisperx --model "$MODEL" --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --compute_type int8 --print_progress True --max_line_width $MAX_LINE_WIDTH --segment_resolution chunk --max_line_count 1 --language en "$FILE" $WHISPER_FLAGS
+		rm -f *.srt
 done
 #+end_src
 
@@ -17084,7 +18711,7 @@ parts of my workflow.
 						 (read-char "(q)uit? " nil (/ my-subed-skim-msecs 1000.0))))
 				(when ch
 					(throw 'done t)))
-			(subed-forward-subtitle-time-start)
+			(subed-forward-subtitle-text)
 			(when (and subed-waveform-minor-mode
 								 (not subed-waveform-show-all))
 				(subed-waveform-refresh))
@@ -17717,6 +19344,56 @@ If threshold is 0, remove all gaps."
 				(goto-char (point-max))))))
 
 #+end_src
+*** Using scripts to correct transcripts
+
+I usually write my scripts
+with phrases that could be
+turned into the subtitles.
+I figured I might as well
+combine that information
+with the whisperX transcripts
+which I use to cut out
+my false starts and oopses.
+To do that, I use
+the ~string-distance~ function,
+which calculates how similar
+strings are, based on the
+Levenshtein algorithm.
+If I take each line of the script
+and compare it with the list of words
+in the transcription,
+I can add one transcribed word
+at a time, until I find the number
+with the minimum distance
+from my current script phrase.
+This lets me approximately match strings
+despite misrecognized words.
+I use oopses to signal mistakes.
+When I detect those, I look for
+the previous script line that is closest
+to the words I restart with.
+I can then skip the previous lines
+automatically.
+When the script and the transcript are close,
+I can automatically correct the words.
+If not, I can use comments
+to easily compare them at that point.
+Even though I haven't optimized anything,
+it runs well enough for my short videos.
+With these subtitles as a base,
+I can get timestamps with subed-align
+and then there's just the matter
+of tweaking the times
+and adding the visuals.
+
+#+begin_src emacs-lisp
+
+
+
+;;  (my-combine-script-and-transcript '("I have a script" "that's broken up" "into phrases.") (split-string "I have, oops, I have a script oops. I have a script that's broken up in to faces." " ") "\\<oops\\>")
+;;  (my-combine-script-and-transcript '("I already talk quickly," "so I'm not going to speed that up" "into phrases.") (split-string "I already talk pretty quickly. Oops. I already talk quickly, so I'm not going to speed that up, but I can trim the pauses in between phrases,"))
+;; (subed-word-data-find-approximate-match "I already talk quickly" (split-string "I already talk pretty quickly oops I already talk quickly" " "))
+#+end_src
 
 ** Creating
 :PROPERTIES:
@@ -17755,6 +19432,8 @@ See also [[dotemacs:subed]]
 #+begin_src emacs-lisp
 (defun my-youtube-prepare-for-shorts ()
 	(interactive)
+	(keycast-header-line-mode 1)
+	(modus-themes-load-theme 'modus-operandi-tinted)
 	(setq compile-media-output-video-width 1080
 				compile-media-output-video-height 1920
 				compile-media-output-video-fps 30)
@@ -17770,18 +19449,49 @@ See also [[dotemacs:subed]]
 	(shell-command "wmctrl -r :ACTIVE: -e 0,300,0,554,984")
 	))
 #+end_src
-** Renaming a set of files
+** Working with or renaming a set of files
 
 #+begin_src emacs-lisp
-(defun my-rename-fileset (new-prefix files &optional force)
-	(interactive (list
-								(read-file-name
-								 (format "New prefix (%s): "
-												 (file-name-base (car (dired-get-marked-files)))))
-								(dired-get-marked-files)
-								current-prefix-arg))
+(defun my-file-set (file)
+	(let ((base (file-name-base file)))
+	(seq-filter (lambda (o) (string= base (file-name-base o))) (directory-files (file-name-directory file) t))))
+
+(defun my-refresh-dired-buffers (dir)
+	(dolist (buf (match-buffers '(derived-mode . dired-mode)))
+		(when (string= default-directory dir)
+			(revert-buffer))))
+
+(defun my-delete-file-set (file)
+	(interactive (list (read-file-name
+											"File: "
+											nil
+											(if (derived-mode-p 'dired-mode)
+													(dired-get-filename)
+												(buffer-file-name)))))
+	(mapc #'delete-file (my-file-set file))
+	(when (and (buffer-file-name)
+						 (string= (file-name-base (buffer-file-name))
+											(file-name-base file)))
+		(let ((buffer-modified-p nil))
+			(kill-buffer)))
+	(my-refresh-dired-buffers (file-name-directory file)))
+
+
+(defun my-delete-current-file-set ()
+	(interactive)
+	(my-delete-file-set (if (derived-mode-p 'dired-mode)
+													(dired-get-filename)
+												(buffer-file-name))))
+
+(defun my-rename-file-set (file new-prefix &optional force)
+	(interactive (let ((file (read-file-name file)))
+								 (list
+									file
+									(read-file-name (format "New prefix (%s): "
+																					(file-name-base file)))
+									current-prefix-arg)))
 	(unless force
-		(dolist (file files)
+		(dolist (file (my-file-set file))
 			(let ((new-file (concat
 											 new-prefix
 											 "."
@@ -17789,16 +19499,45 @@ See also [[dotemacs:subed]]
 				(when (file-exists-p new-file)
 					(error "%s already exists."
 								 new-file)))))
-	(dolist (file files)
+	(dolist (file (my-file-set file))
 		(let ((new-file (expand-file-name
 										 (concat
 											new-prefix
 											"."
 											(file-name-extension file)))))
 			(rename-file file new-file t)))
-	(when (derived-mode-p 'dired-mode) (revert-buffer)))
+	(my-refresh-dired-buffers (file-name-directory file))
+	(concat
+	 new-prefix
+	 "."
+	 (file-name-extension file)))
+
+(defun my-rename-current-file-set (new-name)
+	(interactive (list (read-string "New name: "
+																	(file-name-base
+																	 (if (derived-mode-p 'dired-mode)
+																			 (dired-get-filename)
+																		 (buffer-file-name))))))
+	(my-rename-file-set (if (derived-mode-p 'dired-mode)
+													(dired-get-filename)
+												(buffer-file-name))
+											new-name))
 #+end_src
 ** Elfeed
+
+#+begin_src emacs-lisp
+(use-package elfeed)
+(use-package elfeed-protocol
+	:after elfeed
+	:custom
+	(elfeed-use-curl t)
+	(elfeed-curl-extra-arguments '("--insecure"))
+	(elfeed-protocol-enabled-protocols '(fever newsblur owncloud ttrss))
+	(elfeed-protocol-fever-update-unread-only t)
+	(elfeed-protocol-fever-fetch-category-as-tag t)
+	:config
+	(elfeed-protocol-enable))
+#+end_src
 #+begin_src emacs-lisp
 (use-package elfeed-tube
   :quelpa (elfeed-tube :fetcher github :repo "karthink/elfeed-tube")
@@ -17842,6 +19581,11 @@ See also [[dotemacs:subed]]
 :PROPERTIES:
 :CUSTOM_ID: coding
 :END:
+
+#+begin_src emacs-lisp
+(editorconfig-mode 1)
+#+end_src
+
 ** DONE Scan ~/bin and turn the scripts into interactive commands
 CLOSED: [2015-12-14 Mon 21:24]
 :PROPERTIES:
@@ -18028,9 +19772,8 @@ From [[https://themkat.net/2022/10/04/emacs_web_mode_mixed.html][Mixed content H
 	:mode
   (("\\.html?$" . themkat/setup-web-mode-mixed))
 	:bind
-  ([(control return)] . themkat/complete-web-mode)
-	("C-c C-r" my-copy-and-append))
-
+  ("C-c RET" . themkat/complete-web-mode)
+	("C-c C-r" . my-copy-and-append))
 #+end_src
 
 
@@ -18425,9 +20168,9 @@ qdbus org.kde.KWin /KWin reconfigure
   :if my-laptop-p
   :config
   (progn
-    ;(require 'smartparens-config)
-    ;(add-hook 'emacs-lisp-mode-hook 'smartparens-mode)
-    ;(add-hook 'emacs-lisp-mode-hook 'show-smartparens-mode)
+    (require 'smartparens-config)
+    (add-hook 'emacs-lisp-mode-hook 'smartparens-mode)
+    (add-hook 'emacs-lisp-mode-hook 'show-smartparens-mode)
 
       ;;;;;;;;;;;;;;;;;;;;;;;;
     ;; keybinding management
@@ -19641,6 +21384,7 @@ Prefix
 
   With PREFIX, execute command that number of times."
   (interactive "p")
+	(require 'dwim-shell-command)
   (let ((script (read-shell-command dwim-shell-command-prompt)))
     (unless (string-match "<<" script) (setq script (concat script " <<f>>")))
     (dwim-shell-command-on-marked-files
@@ -19820,7 +21564,112 @@ Based on http://yitang.uk/2024/01/14/atomic-habit-in-emacs-keep-git-repos-clean/
 - [[elisp:(magit-status "/home/sacha/proj/subed-record/")][subed-record]]
 - [[elisp:(magit-status "/home/sacha/proj/emacsconf/lisp/")][lisp]]
 :end:
+*** Use difftastic
 
+From [[https://tsdh.org/posts/2022-08-01-difftastic-diffing-with-magit.html][Difftastic diffing with Magit]], modified GIT_EXTERNAL_DIFF to difftastic (installed with ~snap install difftastic~, and with ~TMPDIR~ set to ~~/tmp~ because the snap can't access ~/tmp~):
+
+#+begin_src emacs-lisp
+(defun th/magit--with-difftastic (buffer command)
+  "Run COMMAND with GIT_EXTERNAL_DIFF=difftastic then show result in BUFFER."
+  (let ((process-environment
+         (cons (concat "TMPDIR=~/tmp GIT_EXTERNAL_DIFF=difftastic --width="
+                       (number-to-string (frame-width)))
+               process-environment)))
+    ;; Clear the result buffer (we might regenerate a diff, e.g., for
+    ;; the current changes in our working directory).
+    (with-current-buffer buffer
+      (setq buffer-read-only nil)
+      (erase-buffer))
+    ;; Now spawn a process calling the git COMMAND.
+    (make-process
+     :name (buffer-name buffer)
+     :buffer buffer
+     :command command
+     ;; Don't query for running processes when emacs is quit.
+     :noquery t
+     ;; Show the result buffer once the process has finished.
+     :sentinel (lambda (proc event)
+                 (when (eq (process-status proc) 'exit)
+                   (with-current-buffer (process-buffer proc)
+                     (goto-char (point-min))
+                     (ansi-color-apply-on-region (point-min) (point-max))
+                     (setq buffer-read-only t)
+                     (view-mode)
+                     (end-of-line)
+                     ;; difftastic diffs are usually 2-column side-by-side,
+                     ;; so ensure our window is wide enough.
+                     (let ((width (current-column)))
+                       (while (zerop (forward-line 1))
+                         (end-of-line)
+                         (setq width (max (current-column) width)))
+                       ;; Add column size of fringes
+                       (setq width (+ width
+                                      (fringe-columns 'left)
+                                      (fringe-columns 'right)))
+                       (goto-char (point-min))
+                       (pop-to-buffer
+                        (current-buffer)
+                        `(;; If the buffer is that wide that splitting the frame in
+                          ;; two side-by-side windows would result in less than
+                          ;; 80 columns left, ensure it's shown at the bottom.
+                          ,(when (> 80 (- (frame-width) width))
+                             #'display-buffer-at-bottom)
+                          (window-width
+                           . ,(min width (frame-width))))))))))))
+(defun th/magit-show-with-difftastic (rev)
+  "Show the result of \"git show REV\" with GIT_EXTERNAL_DIFF=difft."
+  (interactive
+   (list (or
+          ;; If REV is given, just use it.
+          (when (boundp 'rev) rev)
+          ;; If not invoked with prefix arg, try to guess the REV from
+          ;; point's position.
+          (and (not current-prefix-arg)
+               (or (magit-thing-at-point 'git-revision t)
+                   (magit-branch-or-commit-at-point)))
+          ;; Otherwise, query the user.
+          (magit-read-branch-or-commit "Revision"))))
+  (if (not rev)
+      (error "No revision specified")
+    (th/magit--with-difftastic
+     (get-buffer-create (concat "*git show difftastic " rev "*"))
+     (list "git" "--no-pager" "show" "--ext-diff" rev))))
+(defun th/magit-diff-with-difftastic (arg)
+  "Show the result of \"git diff ARG\" with GIT_EXTERNAL_DIFF=difft."
+  (interactive
+   (list (or
+          ;; If RANGE is given, just use it.
+          (when (boundp 'range) range)
+          ;; If prefix arg is given, query the user.
+          (and current-prefix-arg
+               (magit-diff-read-range-or-commit "Range"))
+          ;; Otherwise, auto-guess based on position of point, e.g., based on
+          ;; if we are in the Staged or Unstaged section.
+          (pcase (magit-diff--dwim)
+            ('unmerged (error "unmerged is not yet implemented"))
+            ('unstaged nil)
+            ('staged "--cached")
+            (`(stash . ,value) (error "stash is not yet implemented"))
+            (`(commit . ,value) (format "%s^..%s" value value))
+            ((and range (pred stringp)) range)
+            (_ (magit-diff-read-range-or-commit "Range/Commit"))))))
+  (let ((name (concat "*git diff difftastic"
+                      (if arg (concat " " arg) "")
+                      "*")))
+    (th/magit--with-difftastic
+     (get-buffer-create name)
+     `("git" "--no-pager" "diff" "--ext-diff" ,@(when arg (list arg))))))
+(transient-define-prefix th/magit-aux-commands ()
+  "My personal auxiliary magit commands."
+  ["Auxiliary commands"
+   ("d" "Difftastic Diff (dwim)" th/magit-diff-with-difftastic)
+	 ("s" "Difftastic Show" th/magit-show-with-difftastic)])
+
+(with-eval-after-load 'magit
+	(transient-append-suffix 'magit-dispatch "!"
+		'("#" "My Magit Cmds" th/magit-aux-commands))
+	(define-key magit-status-mode-map (kbd "#") #'th/magit-aux-commands))
+#+end_src
 ** Forge
 :PROPERTIES:
 :CUSTOM_ID: forge
@@ -20390,6 +22239,9 @@ IRC is a great way to hang out with other Emacs geeks.
 :END:
 
 #+begin_src emacs-lisp
+(use-package tp
+	:vc (:url "https://codeberg.org/martianh/tp.el")
+	)
 (use-package mastodon
   :if my-laptop-p
 	:load-path "~/vendor/mastodon.el/lisp"
@@ -20508,7 +22360,12 @@ This snippet makes it easier to store links to posts with
 :EXPORT_DATE: 2024-09-16T13:07:16-0400
 :EXPORT_ELEVENTY_PERMALINK: /blog/2024/09/collecting-emacs-news-from-mastodon/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2024/09/collecting-emacs-news-from-mastodon/
+:EXPORT_MODIFIED: 2025-03-06T13:13:39-0500
 :END:
+
+#+begin_update
+[2025-03-06]: Use ~my-org-link-url-from-string~.
+#+end_update
 
 One of the things I like about browsing Mastodon in Emacs using
 [[https://codeberg.org/martianh/mastodon.el][mastodon.el]] is that I can modify my workflow to make things easier.
@@ -20522,7 +22379,7 @@ defined elsewhere in [[https://sachachua.com/dotemacs/#mastodon][my config]].
 	:config
 	(add-to-list
 	 'org-capture-templates
-   '("w" "Emacs News" entry (file+headline "~/sync/orgzly/news.org" "Collect Emacs News")
+   '("📰" "Emacs News" entry (file+headline "~/sync/orgzly/news.org" "Collect Emacs News")
      "* %a  :news:
 
 #+begin_quote
@@ -20540,7 +22397,7 @@ defined elsewhere in [[https://sachachua.com/dotemacs/#mastodon][my config]].
 					 'boosted-p)
 		(mastodon-toot--toggle-boost-or-favourite 'boost))
 	;; store a link and capture the note
-	(org-capture nil "w"))
+	(org-capture nil "📰"))
 
 (use-package mastodon
 	:bind (:map mastodon-mode-map ("w" . my-mastodon-save-toot-for-emacs-news)))
@@ -20584,9 +22441,33 @@ Here's the code that makes that happen:
 														")")
 									"")
 								"\n")))))
+
+(defun my-match-groups (&optional object)
+	"Return the matching groups, good for debugging regexps."
+	(seq-map-indexed (lambda (entry i)
+										 (list i entry
+													 (and (car entry)
+																(if object
+																		(substring object (car entry) (cadr entry))
+																	(buffer-substring (car entry) (cadr entry))))))
+									 (seq-partition
+										(match-data t)
+										2)))
+
+(defun my-org-link-url-from-string (s)
+	"Return the link URL from S."
+	(if (string-match org-link-any-re s)
+			(or
+			 (match-string 7 s)
+			 (match-string 2 s))))
+
 (defun my-mastodon-get-note-info ()
 	"Return (:handle ... :url ... :links ... :text) for the current subtree."
-	(let ((url (org-entry-get (point) "ITEM"))
+	(let ((url (let ((title (org-entry-get (point) "ITEM")))
+							 (if (string-match org-link-any-re title)
+									 (or
+										(match-string 7 title)
+										(match-string 2 title)))))
 				beg end
 				handle)
 		(save-excursion
@@ -20594,10 +22475,15 @@ Here's the code that makes that happen:
 			(org-end-of-meta-data)
 			(setq beg (point))
 			(setq end (org-end-of-subtree))
-			(when (string-match "https://\\(.+?\\)/\\(@.+?\\)/" url)
+			(cond
+       ((string-match "\\[\\[https://bsky\\.app/.+?\\]\\[\\(.+\\)\\]\\]" url)
+				(setq handle (match-string 1 url)))
+			 ((string-match "https://\\(.+?\\)/\\(@.+?\\)/" url)
 				(setq handle (concat
 											(match-string 2 url) "@" (match-string 1 url))))
-
+			 ((string-match "https://\\(.+?\\)/\\(.+?\\)/p/[0-9]+\\.[0-9]+" url)
+				(setq handle (concat
+											"@" (match-string 2 url) "@" (match-string 1 url)))))
 			(list
 			 :handle handle
 			 :url (if (string-match org-link-bracket-re url) (match-string 1 url) url)
@@ -20976,6 +22862,19 @@ I want to be able to follow people if I specify their ID.
 				(mastodon-tl--do-user-action-function url name user-handle "follow")
 			(message "Cannot find a user with handle %S" user-handle))))
 #+end_src
+** Tooting a link to the current post
+
+#+begin_src emacs-lisp
+(defun my-mastodon-11ty-toot-post ()
+	(interactive)
+	(mastodon-toot--compose-buffer nil nil nil
+	 (concat (org-get-heading t t t t)
+					 " https://sachachua.com"
+					 (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK")
+					 " "
+					 (mapconcat (lambda (tag) (concat "#" tag))
+											(org-get-tags) " "))))
+#+end_src
 ** Compose a Mastodon toot with the current Org subtree
 :PROPERTIES:
 :CUSTOM_ID: mastodon-toot-subtree
@@ -21016,19 +22915,17 @@ Use consult to provide a preview."
 	(interactive
 	 (let ((filename
 					(if current-prefix-arg
-							(expand-file-name
-							 (consult--read
-								(reverse (directory-files my-screenshot-directory nil "\\.png$"))
-								:sort nil
-								:require-match t
-								:category 'file
-								:state (lambda (candidate state)
-												 (when candidate
-													 (with-current-buffer (find-file-noselect
-																								 (expand-file-name candidate my-screenshot-directory))
-														 (display-buffer (current-buffer))))))
-							 my-screenshot-directory)
-						(my-latest-file my-screenshot-directory))))
+							(consult--read
+							 (my-combined-screenshots)
+							 :sort nil
+							 :require-match t
+							 :category 'file
+							 :state (lambda (candidate state)
+												(when candidate
+													(with-current-buffer (find-file-noselect
+																								candidate)
+														(display-buffer (current-buffer))))))
+						(my-latest-screenshot))))
 		 (list
 			filename
 			(when (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]-[0-9][0-9]-[0-9][0-9]$" (file-name-base filename))
@@ -21393,10 +23290,23 @@ subtrees so that I can move them around easily.
 :PROPERTIES:
 :CUSTOM_ID: spookfox
 :END:
+*** Link to current webpage from Spookfox  :toblog:
+
+#+begin_src emacs-lisp
+(defun my-org-spookfox-complete ()
+	(spookfox-js-injection-eval-in-active-tab "window.location.href" t))
+(with-eval-after-load 'org
+	(org-link-set-parameters
+	 "spookfox"
+	 :complete #'my-org-spookfox-complete
+	 :insert-description #'my-org-link-insert-description))
+
+#+end_src
 *** STARTED Link to currently-selected text using Spookfox
 :PROPERTIES:
 :CREATED:  [2024-10-28 Mon 14:02]
 :Effort:   0:15
+:CUSTOM_ID: spookfox-fragment
 :END:
 :LOGBOOK:
 CLOCK: [2024-10-28 Mon 14:02]--[2024-10-28 Mon 14:48] =>  0:46
@@ -22384,6 +24294,14 @@ to see which items I'd planned ahead, and which ones were new tasks.
 #+begin_src emacs-lisp
 (defun my-quantified-compare (start1 end1 start2 end2 &optional categories label1 label2)
   "Return a table comparing the times for START1 - END1 and START2 - END2."
+	(interactive (list
+								(org-read-date "Start of period 1")
+								(org-read-date "End of period 1")
+								(org-read-date "Start of period 2")
+								(org-read-date "End of period 2")
+								'("Business" "Discretionary - Play" "Unpaid work"
+									"A-" "Discretionary - Family" "Discretionary - Social" "Sleep"
+									"Discretionary - Productive" "Personal")))
   (let* ((start2 (org-read-date nil nil (or start2 "-sat")))
          (end2 (org-read-date nil nil (or end2 "+1")))
          (start1 (org-read-date nil nil (or start1 "-4sat")))
@@ -22394,27 +24312,32 @@ to see which items I'd planned ahead, and which ones were new tasks.
          (label2 (or label2 "Period 2 %"))
          (total2 (* 0.01 (- (org-time-string-to-seconds end2) (org-time-string-to-seconds start2))))
          (total1 (* 0.01 (- (org-time-string-to-seconds end1) (org-time-string-to-seconds start1))))
-         (keys (or categories (-union (mapcar 'car time1) (mapcar 'car time2)))))
+         (keys (or categories (-union (mapcar 'car time1) (mapcar 'car time2))))
+				 result)
     ;; Build a list comparing the two
-    (append
-     `(("Category" ,label1 ,label2 "Diff %" "h/wk" "Diff h/wk") hline)
-     (sort
-      (mapcar (lambda (key)
-                (list
-                 key
-                 (format "%.1f" (/ (or (assoc-default key time1) 0) total1))
-                 (format "%.1f" (/ (or (assoc-default key time2) 0) total2))
-                 (format "%.1f" (- (/ (or (assoc-default key time2) 0) total2)
-                                   (/ (or (assoc-default key time1) 0) total1)))
-                 (format "%.1f" (* (/ (or (assoc-default key time2) 0) total1) 1.68))
-                 (format "%.1f"
-                         (* (- (/ (or (assoc-default key time2) 0) total2)
-                               (/ (or (assoc-default key time1) 0) total1)) 1.68))
-                 )) keys)
-      (lambda (a b)
-        (<
-         (string-to-number (car (last b)))
-         (string-to-number (car (last a)))))))))
+		(setq result
+					(append
+					 `(("Category" ,label1 ,label2 "Diff %" "h/wk" "Diff h/wk") hline)
+					 (sort
+						(mapcar (lambda (key)
+											(list
+											 key
+											 (format "%.1f" (/ (or (assoc-default key time1) 0) total1))
+											 (format "%.1f" (/ (or (assoc-default key time2) 0) total2))
+											 (format "%.1f" (- (/ (or (assoc-default key time2) 0) total2)
+																				 (/ (or (assoc-default key time1) 0) total1)))
+											 (format "%.1f" (* (/ (or (assoc-default key time2) 0) total1) 1.68))
+											 (format "%.1f"
+															 (* (- (/ (or (assoc-default key time2) 0) total2)
+																		 (/ (or (assoc-default key time1) 0) total1)) 1.68))
+											 )) keys)
+						(lambda (a b)
+							(<
+							 (string-to-number (car (last b)))
+							 (string-to-number (car (last a))))))))
+		(when (called-interactively-p 'any)
+			(insert (orgtbl-to-orgtbl result nil)))
+		result))
 #+end_src
 * Emacs and my phone
 :PROPERTIES:
@@ -22818,7 +24741,9 @@ program. We usually set mailing lists to moderated so that
 		(if (and (derived-mode-p 'notmuch-show-mode)
 						 (re-search-forward "\\(https://.+?/mailman/admindb/\\(.+\\)\\)" nil t))
 			 (match-string 2)
-		 (completing-read "List: " '("emacsconf-org" "emacsconf-org-private" "emacs-tangents" "emacsconf-submit")))))
+		 (completing-read "List: " '("emacsconf-org" "emacsconf-org-private" "emacs-tangents"
+																 "emacsconf-submit"
+																 "info-gnu-emacs")))))
 	(goto-char (point-min))
 	(browse-url (concat "https://lists.gnu.org/mailman/admindb/" list-id "?adminpw="
 												(url-hexify-string (string-trim (shell-command-to-string
@@ -23531,7 +25456,15 @@ Make it easier to review my credit card transactions
 
 (defun my-latest-file (path &optional filter)
   "Return the newest file in PATH. Optionally filter by FILTER."
-  (car (sort (seq-remove #'file-directory-p (directory-files path 'full filter t)) #'file-newer-than-file-p)))
+	(if (listp path)
+			(car
+			 (sort (mapcar (lambda (dir) (my-latest-file dir)) path)
+						 #'file-newer-than-file-p))
+		(car
+		 (sort (seq-remove #'file-directory-p
+											 (directory-files path 'full filter t))
+					 #'file-newer-than-file-p))))
+
 (defun my-ledger-change-account (account)
   (interactive (list (ledger-read-account-with-prompt (concat (ledger-xact-payee) ": "))))
   (beginning-of-line)

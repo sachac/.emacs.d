@@ -59,6 +59,14 @@
 (setq auto-save-file-name-transforms '((".*" "~/.config/emacs/auto-save-list/" t)))
 ;; Backups:2 ends here
 
+;; [[file:Sacha.org::#backups][Backups:3]]
+(use-package backup-walker
+	:vc (:url "https://github.com/lewang/backup-walker")
+	:init
+	(defalias 'string-to-int 'string-to-number)
+	(defalias 'display-buffer-other-window 'display-buffer))
+;; Backups:3 ends here
+
 ;; [[file:Sacha.org::#history][History:1]]
 (setq savehist-file "~/.config/emacs/savehist")
 (savehist-mode 1)
@@ -417,7 +425,7 @@ targets."
 ;; [[file:Sacha.org::#embark-image][Embark and images:2]]
 (defun my-embark-image ()
 	"Match images."
-	(let ((extensions "\\(png\\|jpg\\|svg\\|gif\\)\\'"))
+	(let ((extensions "\\(png\\|jpg\\|svg\\|gif\\|jpeg\\)\\'"))
 		(cond
 		 ((derived-mode-p 'org-mode)
 			(when-let* ((link (org-element-context)))
@@ -474,7 +482,9 @@ targets."
 											(list "+repage" (expand-file-name filename)))))
 		(apply #'call-process "mogrify" nil my-debug-buffer nil args)
 		filename))
+;; Embark and images:3 ends here
 
+;; [[file:Sacha.org::#keybindings-embark-converting-handwriting-to-text][Converting handwriting to text:1]]
 (defun my-image-recognize (file)
 	"Returns the text."
 	(interactive "FFile: ")
@@ -492,11 +502,13 @@ targets."
 								 (setq file (my-sketch-convert-pdf file)))
 							 (when (string= (file-name-extension file) "svg")
 								 (call-process "inkscape" nil my-debug-buffer nil "--export-type=png" "--export-dpi=96" "--export-background-opacity=1" "--pdf-poppler" (expand-file-name file)))
-							 (when (file-exists-p (concat (file-name-sans-extension file) ".png"))
-								 (with-temp-file (concat (file-name-sans-extension file) ".json")
-									 (call-process "gcloud" nil t nil "ml" "vision" "detect-document"
-																 (expand-file-name (concat (file-name-sans-extension file) ".png")))
-									 (buffer-string))))
+							 (catch 'done
+								 (dolist (ext '(".png" ".jpg" ".jpeg"))
+									 (when (file-exists-p (concat (file-name-sans-extension file) ext))
+										 (with-temp-file (concat (file-name-sans-extension file) ".json")
+											 (call-process "gcloud" nil t nil "ml" "vision" "detect-document"
+																		 (expand-file-name (concat (file-name-sans-extension file) ext)))
+											 (throw 'done (buffer-string)))))))
 						 :object-type 'alist))
 					 (text
 						(if (assoc-default 'responses data)
@@ -505,18 +517,34 @@ targets."
 			(with-temp-file (concat (file-name-sans-extension file) ".txt")
 				(insert text))
 			text)))
+;; Converting handwriting to text:1 ends here
 
+;; [[file:Sacha.org::#keybindings-embark-renaming-and-storing][Renaming and storing:1]]
 (defun my-image-rename-current-image-based-on-id (id)
-	(interactive "MID: ")
+	(interactive
+	 (let ((filename (if (derived-mode-p 'image-mode)
+											 (buffer-file-name)
+										 (dired-get-filename))))
+		 (list
+
+			(if (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" filename)
+					(match-string 0 filename)
+				(read-string "ID: ")))))
 	(let* ((data (my-journal-get-by-zidstring id))
-				 (old-file (buffer-file-name))
-				 (ext (file-name-extension (buffer-file-name)))
-				 (new-prefix (concat id " " (plist-get data :Note))))
-		(my-rename-file-set (buffer-file-name)
-												new-prefix)
-		(kill-buffer)
-		(find-file (expand-file-name (concat new-prefix "." ext)
-																 (file-name-directory old-file)))))
+				 (old-file (if (derived-mode-p 'image-mode)
+											 (buffer-file-name)
+										 (dired-get-filename)))
+				 (ext (file-name-extension old-file))
+				 (new-prefix (concat id " " (plist-get data :Note)))
+				 new-file)
+		(setq new-file
+					(my-image-store (my-rename-file-set old-file
+																							new-prefix t)
+													t))
+		(when (derived-mode-p 'image-mode)
+			(kill-buffer)
+			(find-file (expand-file-name (concat new-prefix "." ext)
+																	 (file-name-directory old-file))))))
 
 (defun my-image-recognize-get-new-filename (file)
 	(interactive "FFile: ")
@@ -535,7 +563,9 @@ targets."
 																		(file-name-directory file))))
 		(rename-file file new-name t)
 		new-name))
+;; Renaming and storing:1 ends here
 
+;; [[file:Sacha.org::#keybindings-embark-renaming-and-storing][Renaming and storing:2]]
 (defun my-image-tags (file)
 	(setq file (file-name-base file))
 	(cond
@@ -558,20 +588,22 @@ targets."
 														 " -- "
 														 (string-join tags " ")
 														 (file-name-extension new-name))))
-		(dolist (ext '(".png" ".svg" ".json" ".txt" ".pdf"))
-			(when (file-exists-p (concat (file-name-sans-extension old-name) ext))
-				(funcall
-				 (if do-copy
-						 'copy-file
-					 'rename-file)
-				 (concat (file-name-sans-extension old-name) ext)
-				 (concat (file-name-sans-extension new-name) ext)
-				 t))))
-		new-name)
+		(dolist (file (my-file-set old-name))
+			(funcall
+			 (if do-copy
+					 'copy-file
+				 'rename-file)
+			 file
+			 (concat (file-name-sans-extension new-name) "." (file-name-extension file))
+			 t)))
+	new-name)
 
 (defun my-image-store (file &optional do-move)
 	"Copy or move this image into public or private sketches as needed."
-	(interactive (list (buffer-file-name) t))
+	(interactive (list (if (derived-mode-p 'image-mode)
+												 (buffer-file-name)
+											 (dired-get-filename))
+										 t))
 	(unless (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] " (file-name-nondirectory file))
 		(setq file (my-image-recognize-and-rename file)))
 	(if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] " (file-name-nondirectory file))
@@ -641,7 +673,7 @@ targets."
 		"C" #'my-image-recolor
 		"d" #'my-image-insert-text-as-details)
 	(add-to-list 'embark-keymap-alist '(image . my-embark-image-actions)))
-;; Embark and images:3 ends here
+;; Renaming and storing:2 ends here
 
 ;; [[file:Sacha.org::#embark-subed][Embark and subed:1]]
 (defun my-subed-set-timestamp-to-mpv-position (&optional rest)
@@ -708,7 +740,7 @@ targets."
 		(keymap-set embark-symbol-map "z" #'casual-symbol-overlay-tmenu)))
 ;; Embark, symbols, and casual-symbol-overlay:1 ends here
 
-;; [[file:Sacha.org::*Embark and erefactor-rename-symbol-in-buffer][Embark and erefactor-rename-symbol-in-buffer:1]]
+;; [[file:Sacha.org::#keybindings-embark-embark-and-erefactor-rename-symbol-in-buffer][Embark and erefactor-rename-symbol-in-buffer:1]]
 (defun my-embark-erefactor-rename-symbol-in-buffer (old-name new-name)
 	(interactive (let* ((old-name (read-string "Symbol: "))
 											(new-name (read-string (format "%s -> New name: " old-name)
@@ -971,6 +1003,7 @@ invoking, give a prefix argument to `execute-extended-command'."
         (sit-for 0))))))
 
 (defun my-org-insert-link ()
+	"Insert link."
   (interactive)
   (when (org-in-regexp org-link-bracket-re 1)
     (goto-char (match-end 0))
@@ -979,8 +1012,15 @@ invoking, give a prefix argument to `execute-extended-command'."
 	 ((or (string-match (regexp-quote "*new toot*") (buffer-name))
 				(derived-mode-p 'markdown-mode))
 		(let ((url (read-string "URL: ")))
-			(insert (format "[%s](%s)"
-											(read-string "Title: " (my-page-title url))))))
+			(if (region-active-p)
+					(let ((s (buffer-substring (region-beginning) (region-end))))
+						(delete-region (region-beginning) (region-end))
+						(insert (format "[%s](%s)"
+														(read-string "Title: " s)
+														url)))
+				(insert (format "[%s](%s)"
+												(read-string "Title: " (my-page-title url))
+												url)))))
 	 (t (call-interactively 'org-insert-link))))
 ;; Hydra keyboard shortcuts:3 ends here
 
@@ -1140,6 +1180,8 @@ invoking, give a prefix argument to `execute-extended-command'."
 ;; Key chords:3 ends here
 
 ;; [[file:Sacha.org::#completion][Completion:1]]
+(global-completion-preview-mode 1)
+
 (use-package vertico
 	:config
 	(vertico-mode +1)
@@ -1487,12 +1529,15 @@ any directory proferred by `consult-dir'."
 	 candidates))
 
 (defvar my-consult--org-bookmark-history nil)
+(defun my-consult-org-bookmark-visit (o)
+	(browse-url (get-text-property 0 :url o)))
 (defvar my-consult--source-org-bookmark
 	`(:name "My Org bookmarks"
 					:narrow ?B
 					:category consult-omni
 					:face consult-bookmark
-					:items ,#'my-org-bookmarks-for-completion))
+					:items ,#'my-org-bookmarks-for-completion
+					:action #'my-consult-org-bookmark-visit))
 
 ;; (consult--multi (list my-consult--source-org-bookmark))
 (with-eval-after-load 'consult-omni
@@ -1502,6 +1547,7 @@ any directory proferred by `consult-dir'."
    :type 'sync
 	 :search-hist 'my-consult--org-bookmark-history
 	 :transform (quote 'my-consult-omni-org-bookmark-transform)
+	 :on-return 'my-consult-org-bookmark-visit
    :min-input 1
    :require-match t)
 
@@ -1901,6 +1947,16 @@ managers such as DWM, BSPWM refer to this state as 'monocle'."
   :bind (("s-m" . prot/window-single-toggle)
          ("s-k" . prot/kill-buffer-current)))
 ;; Focus on the current window:1 ends here
+
+;; [[file:Sacha.org::*Focus on the current window][Focus on the current window:2]]
+(advice-add 'delete-other-windows
+						:around (lambda (orig-fun &rest args)
+(when (called-interactively-p 'any)
+											(if (frame-root-window-p (selected-window))
+													(call-interactively 'winner-undo)
+												(let ((ignore-window-parameters t))
+													(apply orig-fun args))))))
+;; Focus on the current window:2 ends here
 
 ;; [[file:Sacha.org::*Get scroll-other-window to work with PDFs][Get scroll-other-window to work with PDFs:1]]
 (use-package scroll-other-window
@@ -4042,6 +4098,13 @@ If DIARIZE is non-nil, identify speakers."
 		(delete-file temp-file)))
 ;; Wdiff:1 ends here
 
+;; [[file:Sacha.org::*Denote][Denote:1]]
+(use-package denote
+	:config
+	(setopt denote-directory "~/sync/Notes")
+)
+;; Denote:1 ends here
+
 ;; [[file:Sacha.org::org-package-setup][org-package-setup]]
 (defvar my-org-inbox-file "~/sync/orgzly/Inbox.org")
 (use-package org
@@ -4053,6 +4116,61 @@ If DIARIZE is non-nil, identify speakers."
 	(org-export-with-sub-superscripts nil)
 	(org-fold-catch-invisible-edits 'smart))
 ;; org-package-setup ends here
+
+;; [[file:Sacha.org::#org-mode-writing-about-sketches-and-including-their-text][Writing about sketches and including their text:1]]
+(defun my-insert-sketch-and-text (sketch)
+	(interactive (list (my-complete-sketch-filename)))
+	(insert
+	 (if (string= (file-name-extension sketch) "svg")
+			 (format
+				"#+begin_panzoom\n%s\n#+end_panzoom\n\n"
+				(org-link-make-string (concat "file:" sketch)))
+		 (concat (org-link-make-string (concat "sketchFull:" (file-name-base sketch))) "\n\n")))
+	(let ((links (my-org-links-from-file (concat (file-name-sans-extension sketch) ".txt")))
+				(subheading-level (1+ (org-current-level))))
+		(insert (if links
+								"#+begin_my_details Text and links from sketch\n"
+							"#+begin_my_details Text from sketch\n"))
+		(my-sketch-insert-text sketch)
+		(unless (bolp) (insert "\n"))
+		(insert "#+end_my_details")
+		(dolist (section (seq-filter (lambda (entry) (string-match "^#" (cdr entry)))
+																 links))
+			(org-end-of-subtree)
+			(insert "\n\n")
+			(org-insert-heading nil nil subheading-level)
+			(insert (car section))
+			(org-entry-put (point) "CUSTOM_ID" (substring (cdr section) 1)))))
+
+(defun my-write-about-sketch (sketch)
+  (interactive (list (my-complete-sketch-filename)))
+  ;(shell-command "make-sketch-thumbnails")
+  (find-file "~/sync/orgzly/posts.org")
+  (goto-char (point-min))
+	(unless (org-at-heading-p) (outline-next-heading))
+  (org-insert-heading nil nil t)
+	(insert (file-name-base sketch) "\n\n")
+	(my-insert-sketch-and-text sketch)
+	(insert "\nFeel free to use this under the [[https://creativecommons.org/licenses/by/4.0/][Creative Commons Attribution License]].\n")
+  (delete-other-windows)
+  (save-excursion
+    (with-selected-window (split-window-horizontally)
+      (find-file sketch))))
+;; Writing about sketches and including their text:1 ends here
+
+;; [[file:Sacha.org::#org-mode-remove-open-org-mode-clock-entries][Remove open Org Mode clock entries:1]]
+(defun my-org-delete-open-clocks ()
+	(interactive)
+	(flush-lines
+	 (rx
+		line-start
+		(zero-or-more space)
+		"CLOCK:"
+		(one-or-more space)
+		(regexp org-ts-regexp-inactive)
+		(zero-or-more space)
+		line-end)))
+;; Remove open Org Mode clock entries:1 ends here
 
 ;; [[file:Sacha.org::#org-refile-insert-link][Insert a link to an Org Mode heading from an org-refile prompt:1]]
 (defun my-embark-org-insert-link-from-path (path)
@@ -4153,14 +4271,29 @@ If DIARIZE is non-nil, identify speakers."
   (bind-key "i" 'org-agenda-clock-in org-agenda-mode-map))
 ;; Keyboard shortcuts:3 ends here
 
-;; [[file:Sacha.org::#speed-commands][Speed commands:1]]
-(setq org-use-effective-time t)
-
+;; [[file:Sacha.org::#org-mode-keyboard-shortcuts-speed-commands-org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command][Org Mode: Cutting the current list item (including nested lists) with a speed command:1]]
 (defun my-org-use-speed-commands-for-headings-and-lists ()
   "Activate speed commands on list items too."
   (or (and (looking-at org-outline-regexp) (looking-back "^\**" nil))
       (save-excursion (and (looking-at (org-item-re)) (looking-back "^[ \t]*" nil)))))
 (setq org-use-speed-commands 'my-org-use-speed-commands-for-headings-and-lists)
+;; Org Mode: Cutting the current list item (including nested lists) with a speed command:1 ends here
+
+;; [[file:Sacha.org::#org-mode-keyboard-shortcuts-speed-commands-org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command][Org Mode: Cutting the current list item (including nested lists) with a speed command:2]]
+(defun my-org-cut-subtree-or-list-item (&optional n)
+	"Cut current subtree or list item."
+	(cond
+	 ((and (looking-at org-outline-regexp) (looking-back "^\**" nil))
+		(org-cut-subtree n))
+	 ((looking-at (org-item-re))
+		(kill-region (org-beginning-of-item) (org-end-of-item)))))
+(with-eval-after-load 'org
+	(setf (alist-get "k" org-speed-commands nil nil #'string=)
+				#'my-org-cut-subtree-or-list-item))
+;; Org Mode: Cutting the current list item (including nested lists) with a speed command:2 ends here
+
+;; [[file:Sacha.org::*Other speed commands][Other speed commands:1]]
+(setq org-use-effective-time t)
 
 (defun my-org-subtree-text ()
   (save-excursion
@@ -4181,13 +4314,13 @@ If DIARIZE is non-nil, identify speakers."
           (zid (org-entry-get (point) "ZIDSTRING"))
           (other (if current-prefix-arg (substring-no-properties (my-org-subtree-text))))
           (date (unless zid
-                         (format-time-string "%Y-%m-%d %H:%M"
-                                             (let ((base-date (org-read-date nil t (org-entry-get (point) "CREATED"))))
-                                               (if (string-match "Yesterday " title)
-                                                   (progn
-                                                     (setq title (replace-match "" nil nil title))
-                                                     (org-read-date nil t "--1" nil (org-time-string-to-time (org-entry-get (point) "CREATED"))))
-                                                 base-date))))))
+                  (format-time-string "%Y-%m-%d %H:%M"
+                                      (let ((base-date (org-read-date nil t (org-entry-get (point) "CREATED"))))
+                                        (if (string-match "Yesterday " title)
+                                            (progn
+                                              (setq title (replace-match "" nil nil title))
+                                              (org-read-date nil t "--1" nil (org-time-string-to-time (org-entry-get (point) "CREATED"))))
+                                          base-date))))))
      (if zid
          (my-journal-update (list :ZIDString zid :Note title :Category category :Other other))
        (org-entry-put (point) "ZIDSTRING"
@@ -4214,7 +4347,7 @@ If DIARIZE is non-nil, identify speakers."
     (add-to-list listvar '("o" call-interactively 'org-clock-out))
     (add-to-list listvar '("$" call-interactively 'org-archive-subtree)))
   (bind-key "!" 'my-org-clock-in-and-track org-agenda-mode-map))
-;; Speed commands:1 ends here
+;; Other speed commands:1 ends here
 
 ;; [[file:Sacha.org::#org-navigation][Org navigation:1]]
 (setq org-goto-interface 'outline-path-completion
@@ -4423,7 +4556,7 @@ If DIARIZE is non-nil, identify speakers."
              Assets:BDO
            ")
         ("B" "Book" entry
-         (file+datetree "~/personal/books.org" "Inbox")
+         (file+olp+datetree "~/personal/books.org" "Inbox")
          "* %^{Title}  %^g
            %i
            *Author(s):* %^{Author} \\\\
@@ -4899,6 +5032,8 @@ This function is heavily adapted from `org-between-regexps-p'."
                       "~/sync/orgzly/posts.org"
                       "~/sync/orgzly/crafts.org"
                       "~/sync/emacs/Sacha.org"
+                      "~/proj/emacsconf/wiki/2025/organizers-notebook/index.org"
+                      "~/proj/emacsconf/2025/private/conf.org"
                       "~/proj/stream/index.org"
                       "~/proj/plover-notes/README.org"
                       "~/personal/sewing.org"
@@ -5411,7 +5546,7 @@ This function is heavily adapted from `org-between-regexps-p'."
 ;; Projects:1 ends here
 
 ;; [[file:Sacha.org::#weekly-review][Weekly review:1]]
-(use-package quantified :ensure nil :load-path "~/sync/cloud/elisp" :unless my-phone-p)
+(use-package quantified :ensure nil :load-path "~/proj/quantified/lisp" :unless my-phone-p)
 (defvar my-weekly-review-line-regexp
   "^  \\([^:]+\\): +\\(Sched[^:]+: +\\)?TODO \\(.*?\\)\\(?:[      ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$"
   "Regular expression matching lines to include.")
@@ -5568,45 +5703,45 @@ This function is heavily adapted from `org-between-regexps-p'."
                                         ;(define-key org-mode-map (kbd "C-c t") 'my-org-add-line-item-task)
 
 (defun my-org-list-from-rss (url from-date &optional to-date)
-    "Convert URL to an Org list"
-    (with-current-buffer (url-retrieve-synchronously url)
-      (goto-char (point-min))
-      (re-search-forward "<\\?xml")
-      (goto-char (match-beginning 0))
-      (let* ((feed (xml-parse-region (point) (point-max)))
-             (is-rss (> (length (xml-get-children (car feed) 'entry)) 0)))
-        (mapconcat (lambda (link)
-                     (format "- %s\n"
-                             (org-link-make-string (car link) (cdr link))))
-                   (if is-rss
-                       (mapcar
-                        (lambda (entry)
-                          (cons
-                           (xml-get-attribute (car
-                                               (or
-                                                (seq-filter (lambda (x) (string= (xml-get-attribute x 'rel) "alternate"))
-                                                            (xml-get-children entry 'link))
-                                                (xml-get-children entry 'link))) 'href)
-                           (elt (car (xml-get-children entry 'title)) 2)))
-                        (-filter (lambda (entry)
-                                   (let ((entry-date (elt (car (xml-get-children entry 'updated)) 2)))
-                                     (and
-                                      (org-string<= from-date entry-date)
-                                      (or (null to-date) (string< entry-date to-date)))))
-                                 (xml-get-children (car feed) 'entry)))
-                     (mapcar (lambda (entry)
-                               (cons
-                                (caddr (car (xml-get-children entry 'link)))
-                                (caddr (car (xml-get-children entry 'title)))))
-                             (-filter (lambda (entry)
-                                        (let ((entry-time (format-time-string "%Y-%m-%d"
-                                                                              (date-to-time (elt (car (xml-get-children entry 'pubDate)) 2))
-                                                                              t)))
-                                          (and
-                                           (not (string< entry-time from-date))
-                                           (or (null to-date) (string< entry-time to-date)))))
-                                      (xml-get-children (car (xml-get-children (car feed) 'channel)) 'item))))
-                   ""))))
+  "Convert URL to an Org list"
+  (with-current-buffer (url-retrieve-synchronously url)
+    (goto-char (point-min))
+    (re-search-forward "<\\?xml")
+    (goto-char (match-beginning 0))
+    (let* ((feed (xml-parse-region (point) (point-max)))
+           (is-rss (> (length (xml-get-children (car feed) 'entry)) 0)))
+      (mapconcat (lambda (link)
+                   (format "- %s\n"
+                           (org-link-make-string (car link) (cdr link))))
+                 (if is-rss
+                     (mapcar
+                      (lambda (entry)
+                        (cons
+                         (xml-get-attribute (car
+                                             (or
+                                              (seq-filter (lambda (x) (string= (xml-get-attribute x 'rel) "alternate"))
+                                                          (xml-get-children entry 'link))
+                                              (xml-get-children entry 'link))) 'href)
+                         (elt (car (xml-get-children entry 'title)) 2)))
+                      (-filter (lambda (entry)
+                                 (let ((entry-date (elt (car (xml-get-children entry 'updated)) 2)))
+                                   (and
+                                    (org-string<= from-date entry-date)
+                                    (or (null to-date) (string< entry-date to-date)))))
+                               (xml-get-children (car feed) 'entry)))
+                   (mapcar (lambda (entry)
+                             (cons
+                              (caddr (car (xml-get-children entry 'link)))
+                              (caddr (car (xml-get-children entry 'title)))))
+                           (-filter (lambda (entry)
+                                      (let ((entry-time (format-time-string "%Y-%m-%d"
+                                                                            (date-to-time (elt (car (xml-get-children entry 'pubDate)) 2))
+                                                                            t)))
+                                        (and
+                                         (not (string< entry-time from-date))
+                                         (or (null to-date) (string< entry-time to-date)))))
+                                    (xml-get-children (car (xml-get-children (car feed) 'channel)) 'item))))
+                 ""))))
 ;; Weekly review:2 ends here
 
 ;; [[file:Sacha.org::#weekly-review][Weekly review:3]]
@@ -5643,17 +5778,17 @@ This function is heavily adapted from `org-between-regexps-p'."
        "\n\n#+begin_my_details Time\n"
        (orgtbl-to-orgtbl
         (my-quantified-compare prev start start end
-                               '("A-"
+                               '("A+"
                                  "Business"
                                  "Discretionary - Play"
                                  "Unpaid work"
-                                 "Discretionary - Social"
                                  "Discretionary - Family"
                                  "Sleep"
                                  "Discretionary - Productive"
                                  "Personal")
                                "The other week %" "Last week %")
         nil)
+			 (format "\n#+begin_src emacs-lisp :exports results :results file :file weekly.svg :output-dir /tmp\n(quantified-svg-to-text (quantified-svg-days \"%s\" 7))\n#+end_src\n\n" start)
        "\n#+end_my_details\n\n")))
 
   (defun my-prepare-missing-weekly-reviews ()
@@ -5838,11 +5973,11 @@ This function is heavily adapted from `org-between-regexps-p'."
           sketches (my-sketches-export-and-extract (substring start-date 0 10) (substring end-date 0 10) nil t))
     (calendar-increment-month month year -1)
     (setq previous-date (format "%4d-%02d-01 0:00" year month))
-    (setq time (my-quantified-compare previous-date start-date start-date end-date '("Business" "Discretionary - Play" "Unpaid work" "A-" "Discretionary - Family" "Discretionary - Social" "Sleep" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
+    (setq time (my-quantified-compare previous-date start-date start-date end-date '("Business" "Discretionary - Play" "Unpaid work" "A+" "Discretionary - Family" "Sleep" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
     (goto-char (line-end-position))
     (insert
      "\n\n** " title "  :monthly:review:\n"
-     (my-org-summarize-journal-csv start-date end-date "monthly-highlight" my-journal-category-map my-journal-categories) "\n\n"
+     (my-org-summarize-journal-csv start-date end-date nil my-journal-category-map my-journal-categories) "\n\n"
      "*Blog posts*\n"
      posts "\n\n"
      "*Sketches*\n\n"
@@ -5860,13 +5995,41 @@ This function is heavily adapted from `org-between-regexps-p'."
                            "\n")
                 )
          (sketches (my-sketches-export-and-extract (substring start-date 0 10) (substring end-date 0 10) nil t))
-         (time (my-quantified-compare previous-date start-date start-date end-date '("Business" "Discretionary - Play" "Unpaid work" "A-" "Discretionary - Family" "Discretionary - Social" "Sleep" "Discretionary - Productive" "Personal") "2020-2021 %" "2021-2022 %"))
+         (time (my-quantified-compare previous-date start-date start-date end-date '("Business" "Discretionary - Play" "Unpaid work" "A-" "Discretionary - Family" "Sleep" "Discretionary - Productive" "Personal") "2020-2021 %" "2021-2022 %"))
          )
     (insert
      "*Blog posts*\n\n" posts "\n\n"
      "*Sketches*\n\n" sketches
      "*Time*\n\n" (orgtbl-to-orgtbl time nil))))
 ;; Monthly reviews:2 ends here
+
+;; [[file:Sacha.org::#org-mode-reviews-emoji-summaries][Emoji summaries:1]]
+(defun my-org-emoji-summary (&optional label)
+	(let (results)
+		(save-excursion
+			(goto-char (org-find-property "EXPORT_ELEVENTY_PERMALINK" (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
+			(let ((end (save-excursion (org-end-of-subtree))))
+				(while (re-search-forward "^\\([0-9]+\\)\\. \\([^A-Za-z0-9]+\\) \\(.+?\\)\\(- weekly highlight\\)?\n" end t)
+					(let ((day (match-string 1))
+								(icon (match-string 2))
+								(text (match-string 3)))
+
+						(push
+						 (if (string-match org-link-bracket-re text)
+								 (format "<a href=\"%s\" title=\"%s - %s\">%s</a>"
+												 (match-string 1 text)
+												 (match-string 2 text)
+												 day
+												 icon)
+							 (format "<span title=\"%s - %s\">%s</span>"
+											 text
+											 day
+											 icon))
+						 results)))))
+		(format "<div class=\"emoji-summary\">%s%s</div>"
+						(if label (concat label ": ") "")
+						(string-join (nreverse results) ""))))
+;; Emoji summaries:1 ends here
 
 ;; [[file:Sacha.org::*Org Mode: Prompt for a heading and then refile it to point][Org Mode: Prompt for a heading and then refile it to point:1]]
 (defun my-org-refile-to-point (refloc)
@@ -6377,6 +6540,28 @@ Uses the info from `my-org-bookmark-file'."
   (advice-add #'org-edit-src-exit :before #'my/format-all-advice))
 ;; Format source:1 ends here
 
+;; [[file:Sacha.org::#execute-subtree-by-custom-id][Run source blocks in an Org Mode subtree by custom ID:1]]
+(defun my-org-execute-subtree-by-custom-id (id &optional filename)
+	"Prompt for a CUSTOM_ID value and execute the subtree with that ID.
+If called with \\[universal-argument], prompt for a file, and then prompt for the ID."
+  (interactive (if current-prefix-arg
+									 (let ((file (read-file-name "Filename: ")))
+										 (list
+											(with-current-buffer (find-file-noselect file)
+												(completing-read
+												 "Custom ID: "
+												 (org-property-values "CUSTOM_ID")))
+											file))
+								 (list
+									(completing-read "Custom ID: " (org-property-values "CUSTOM_ID")))))
+	(with-current-buffer (if filename (find-file-noselect filename) (current-buffer))
+		(let ((pos (org-find-property "CUSTOM_ID" id)))
+			(if pos
+					(org-babel-execute-subtree)
+				(if filename(error "Could not find %s in %s" id filename)
+					(error "Could not find %s" id))))))
+;; Run source blocks in an Org Mode subtree by custom ID:1 ends here
+
 ;; [[file:Sacha.org::test][test]]
 (defun my-org-execute-src-block-by-name (name)
   (interactive (list (completing-read "Block: "(org-babel-src-block-names))))
@@ -6458,7 +6643,7 @@ Uses the info from `my-org-bookmark-file'."
 ;; Copy Tasker task:1 ends here
 
 ;; [[file:Sacha.org::*Changing Org Mode underlines to the HTML mark element][Changing Org Mode underlines to the HTML mark element:1]]
-(with-eval-after-load 'org-html
+(with-eval-after-load 'ox-html
 	(setf (alist-get 'underline org-html-text-markup-alist)
 				"<mark>%s</mark>"))
 ;; Changing Org Mode underlines to the HTML mark element:1 ends here
@@ -6730,6 +6915,7 @@ of contents as a string, or nil if it is empty."
 													 (plist-get params :summary)
 													 body)))
 			(insert body)
+			(message "BODY: %s" body)
 			(org-export-as format nil nil t))))
 
 (defun my-include-complete ()
@@ -6862,15 +7048,19 @@ of contents as a string, or nil if it is empty."
 ;; [[file:Sacha.org::#copy-linked-file-and-change-link][Copy linked file and change link:1]]
 (defun my-org-copy-linked-file-and-change-link (destination)
 	(interactive (list
-								(if (and (not current-prefix-arg) (file-directory-p "images/"))
-										"images/"
+								(cond
+								 ((org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")
+									(expand-file-name
+										(org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")
+										(cadar (org-collect-keywords '("ELEVENTY_BASE_DIR")))))
+								 ((and (not current-prefix-arg) (file-directory-p "images/"))
+									"images/")
+								 (t
 									(read-file-name (format "Copy %s to: "
-																					(file-name-nondirectory (org-element-property :path (org-element-context))))))))
+																					(file-name-nondirectory (org-element-property :path (org-element-context)))))))))
 	(let* ((elem (org-element-context))
 				 (path (org-element-property :path elem))
-				 (description (buffer-substring
-											 (org-element-property :contents-begin elem)
-                       (org-element-property :contents-end elem))))
+				 (description (org-element-property :description elem)))
 		(copy-file path destination t)
 		(delete-region (org-element-begin elem) (org-element-end elem))
 		(insert (org-link-make-string
@@ -6902,8 +7092,9 @@ of contents as a string, or nil if it is empty."
 		(let* ((elem (org-element-context))
 					 (path (org-element-property :path elem))
 					 (description (org-element-property :description elem)))
-			(unless (string-match (concat "^" (regexp-quote (expand-file-name destination))) (expand-file-name path))
-				(my-org-copy-linked-file-and-change-link destination)))))
+			(when path
+				(unless (string-match (concat "^" (regexp-quote (expand-file-name destination))) (expand-file-name path))
+					(my-org-copy-linked-file-and-change-link destination))))))
 
 (with-eval-after-load 'embark-org
 	(keymap-set embark-org-link-map "r l" #'my-embark-org-copy-linked-file-and-change-link))
@@ -7000,6 +7191,7 @@ of contents as a string, or nil if it is empty."
   :if my-laptop-p
   :load-path "~/proj/ox-11ty"
 	:config
+	(setq org-html-toplevel-hlevel 3)
 	(advice-add 'org-11ty--front-matter :filter-return #'my-org-11ty-rewrite-tags))
 
 (defvar my-org-11ty-serve-process nil)
@@ -7017,18 +7209,41 @@ of contents as a string, or nil if it is empty."
 												 (plist-get info field)))))
 	info)
 
+(defvar my-11ty-remote-dir "/ssh:web:/var/www/static-blog")
+(defvar my-11ty-base-dir "~/proj/static-blog")
+(defvar my-11ty-site-dir (expand-file-name "_site" my-11ty-base-dir))
+(defvar my-11ty-local-dir (expand-file-name "_local" my-11ty-base-dir))
+
 (defun my-org-11ty-unpublish-current-post ()
 	(interactive)
-	(when (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
-		(delete-directory (expand-file-name (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
-																				my-11ty-base-dir)
-											t)
-		(delete-directory (expand-file-name (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
-																				(expand-file-name "_site" my-11ty-base-dir))
-											t)
-		(org-delete-property "EXPORT_ELEVENTY_FILE_NAME")
-		(org-delete-property "EXPORT_DATE")
-		(org-delete-property "EXPORT_ELEVENTY_PERMALINK")))
+	(cond
+	 ((derived-mode-p 'org-mode)
+		(when (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
+			(let ((filename (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")))
+				(dolist (dir (list my-11ty-site-dir my-11ty-local-dir my-11ty-remote-dir))
+					(when (and dir (file-directory-p (expand-file-name filename dir)))
+						(delete-directory (expand-file-name filename dir) t)))
+				(org-delete-property "EXPORT_ELEVENTY_FILE_NAME")
+				(org-delete-property "EXPORT_DATE")
+				(org-delete-property "EXPORT_ELEVENTY_PERMALINK"))))
+	 ((derived-mode-p '(html-mode web-mode))
+		;; called from an index.html or page.html, maybe?
+		(let* ((file (buffer-file-name))
+					 (json-file (concat (file-name-sans-extension (buffer-file-name))
+															".11tydata.json"))
+					 (json-data (and (file-exists-p json-file)
+													 (json-read-file json-file))))
+			;; delete the published files
+			(when (alist-get 'permalink json-data)
+				(dolist (dir (list my-11ty-site-dir my-11ty-local-dir my-11ty-remote-dir))
+					(when (and dir (file-directory-p
+													(expand-file-name (concat "." (alist-get 'permalink json-data)) dir)))
+						(delete-directory (expand-file-name (concat "." (alist-get 'permalink json-data)) dir) t))))
+			;; delete the .json and the .html file
+			(when (file-exists-p json-file)
+				(delete-file json-file))
+			(kill-buffer (current-buffer))
+			(delete-file file)))))
 
 (defalias 'my-org-11ty-delete-current-post #'my-org-11ty-unpublish-current-post)
 
@@ -7065,6 +7280,14 @@ of contents as a string, or nil if it is empty."
       (org-entry-put (point) "EXPORT_ELEVENTY_PERMALINK" (concat "/" path)))
     (unless (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
       (org-entry-put (point) "EXPORT_ELEVENTY_FILE_NAME" path))))
+
+(with-eval-after-load '11ty
+	(advice-add
+	 'org-11ty-export-to-11tydata-and-html
+	 :before
+	 (lambda (&optional _ subtreep &rest _)
+		 (when (and subtreep (not (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
+			 (my-org-11ty-prepare-subtree)))))
 
 (defun my-org-11ty-rename-subtree ()
 	(interactive)
@@ -7219,9 +7442,31 @@ This is extracted from lines like:
 					 (mapcar (lambda (o) (file-name-base o))
 									 (directory-files "~/sync/topics" "\\.org" nil)))))
 
+(defun my-org-topic-store ()
+	(when (and (derived-mode-p 'org-mode)
+						 (buffer-file-name)
+						 (string-match "/home/sacha/sync/topics/"
+													 (expand-file-name (buffer-file-name))))
+		(let ((props (org-collect-keywords '("TITLE")))
+					(id (org-entry-get-with-inheritance "CUSTOM_ID")))
+			(org-link-store-props
+			 :link
+			 (concat
+				"topic:" (file-name-base (buffer-file-name))
+				(if id
+						(concat "#" id)
+					""))
+			 :description
+			 (save-excursion
+				 (if id (progn
+									(goto-char (org-find-property "CUSTOM_ID" id))
+									(org-entry-get (point) "ITEM"))
+					 (car (assoc-default "TITLE" props #'string=))))))))
+
 (org-link-set-parameters
 	 "topic"
 	 :follow #'my-org-topic-open
+	 :store #'my-org-topic-store
 	 :insert-description #'my-org-link-insert-description
 	 :export #'my-org-topic-export
 	 :complete #'my-org-topic-complete)
@@ -7304,23 +7549,35 @@ This is extracted from lines like:
 	(unless description
 		(my-blog-title (my-org-link-as-url link))))
 
-(defun my-org-store-blog-post-link ()
-	(when (and (derived-mode-p 'org-mode)
-						 (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK"))
-		(let ((permalink (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
-			(org-link-store-props
-			 :link (concat (replace-regexp-in-string "/$" "" my-blog-base-url) permalink)
-			 :description
-			 (save-excursion
-				 (goto-char (org-find-property "EXPORT_ELEVENTY_PERMALINK" permalink))
-				 (org-entry-get (point) "ITEM"))))))
+(defun my-org-blog-store ()
+	(when (derived-mode-p 'org-mode)
+		(let* ((props (org-collect-keywords '("ELEVENTY_PERMALINK"
+																					"ELEVENTY_BASE_URL"
+																					"TITLE")))
+					 (permalink
+						(or (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")
+								(car (assoc-default "ELEVENTY_PERMALINK" props #'string=)))))
+			(when permalink
+				(org-link-store-props
+				 :link
+				 (concat
+					(replace-regexp-in-string "/$" "" my-blog-base-url) permalink
+					(if (org-entry-get-with-inheritance "CUSTOM_ID")
+							(concat "#" (org-entry-get-with-inheritance "CUSTOM_ID"))
+						""))
+				 :description
+				 (save-excursion
+					 (goto-char (or (org-find-property "EXPORT_ELEVENTY_PERMALINK" permalink)
+													(point-min)))
+					 (or (org-entry-get (point) "ITEM")
+							 (car (assoc-default "TITLE" props #'string=)))))))))
 
 (use-package org
 	:config
 	(org-link-set-parameters
 	 "blog"
 	 :follow #'my-org-blog-open
-	 :store #'my-org-store-blog-post-link
+	 :store #'my-org-blog-store
 	 :insert-description #'my-org-link-insert-description
 	 :export #'my-org-blog-export
 	 :complete #'my-org-blog-complete))
@@ -7580,8 +7837,16 @@ With prefix arg, move the subtree."
 
 ;; [[file:Sacha.org::#moving-my-org-post-subtree-to-the-11ty-directory][Moving my Org post subtree to the 11ty directory:3]]
 (defun my-org-11ty-export (&optional async subtreep visible-only body-only ext-plist)
+	(when (and subtreep (not (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
+		(my-org-11ty-prepare-subtree))
   (let* ((info (org-11ty--get-info subtreep visible-only))
-         (file (org-11ty--base-file-name subtreep visible-only)))
+         (file (org-11ty--base-file-name subtreep visible-only))
+				 (permalink-slug (my-make-slug (plist-get info :permalink)))
+				 (org-html-footnotes-section
+					(format
+					 "<div id=\"%s-footnotes\">\n<h3 class=\"footnotes\">%%s</h3>\n<div id=\"%s-text-footnotes\">\n%%s\n</div>\n</div>"
+					 permalink-slug
+					 permalink-slug)))
 		(unless (string= (plist-get info :input-file)
 										 (expand-file-name
 											"index.org"
@@ -7590,9 +7855,7 @@ With prefix arg, move the subtree."
 											 (plist-get info :base-dir))))
 			(save-window-excursion
 				(my-org-11ty-copy-subtree nil subtreep)))
-		(org-11ty-export-to-11tydata-and-html async subtreep visible-only body-only ext-plist)
-		;(my-org-11ty-find-file)
-		))
+		(org-11ty-export-to-11tydata-and-html async subtreep visible-only body-only ext-plist)))
 ;; Moving my Org post subtree to the 11ty directory:3 ends here
 
 ;; [[file:Sacha.org::#moving-my-org-post-subtree-to-the-11ty-directory][Moving my Org post subtree to the 11ty directory:4]]
@@ -7600,6 +7863,24 @@ With prefix arg, move the subtree."
 	(map-put (caddr (org-export-backend-menu (org-export-get-backend '11ty)))
 					 ?1 (list "To Org, 11tydata.json, HTML" 'my-org-11ty-export)))
 ;; Moving my Org post subtree to the 11ty directory:4 ends here
+
+;; [[file:Sacha.org::#org-mode-publishing-11ty-static-site-generation-include-mastodon-field-in-front-matter][Include Mastodon, HN, Reddit fields in front matter:1]]
+(defun my-org-11ty-add-mastodon-to-front-matter (front-matter info)
+	(plist-put front-matter :mastodon (plist-get info :mastodon))
+	(plist-put front-matter :hn (plist-get info :hn))
+	(plist-put front-matter :reddit (plist-get info :reddit)))
+(with-eval-after-load 'ox-11ty
+	(pushnew
+	 '(:mastodon "MASTODON" nil nil)
+	 (org-export-backend-options (org-export-get-backend '11ty)))
+	(pushnew
+	 '(:hn "HN" nil nil)
+	 (org-export-backend-options (org-export-get-backend '11ty)))
+	(pushnew
+	 '(:reddit "REDDIT" nil nil)
+	 (org-export-backend-options (org-export-get-backend '11ty)))
+	(add-hook 'org-11ty-front-matter-functions #'my-org-11ty-add-mastodon-to-front-matter))
+;; Include Mastodon, HN, Reddit fields in front matter:1 ends here
 
 ;; [[file:Sacha.org::org-clean-up-export][org-clean-up-export]]
 (setq org-html-doctype "html5")
@@ -7685,8 +7966,7 @@ With prefix arg, move the subtree."
   ;; Use short names like ‘defblock’ instead of the fully qualified name
   ;; ‘org-special-block-extras--defblock’
 	(setcdr org-special-block-extras-mode-map nil)
-	(org-defblock
-	 my_details (title "Details" title-color "Green" open "")
+	(org-defblock my_details (title "Details" title-color "Green" open "")
 	 "Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Enclose contents in a folded up box."
 	 (message "my_details %s %s %s" title title-color open)
    (cond
@@ -7711,6 +7991,7 @@ With prefix arg, move the subtree."
                   %s
                </details>"
       (if (string= open "") "" " open") title-color title contents))))
+	(defalias 'org-block/details #'org-block/my_details)
 
   (org-defblock columns nil nil
 								"Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
@@ -7762,7 +8043,7 @@ With prefix arg, move the subtree."
 									(concat "<div class=\"gallerylist\">" contents "</div>"))))
 ;; org-special-blocks ends here
 
-;; [[file:Sacha.org::#special-blocks][Special blocks:2]]
+;; [[file:Sacha.org::#special-blocks][Special blocks:3]]
 (defun my-org-convert-list-to-collapsible-details ()
 	(interactive)
 	(let ((list (org-list-to-lisp t)))
@@ -7777,12 +8058,62 @@ With prefix arg, move the subtree."
 									 (concat "- " (string-trim (org-ascii--indent-string (car s) 2)) "\n"))
 								 (cdr (cadr o)))))))
 					(cdr list))))
-;; Special blocks:2 ends here
+;; Special blocks:3 ends here
+
+;; [[file:Sacha.org::*Abbreviations][Abbreviations:1]]
+(defun my-org-abbr-export (path desc backend info)
+  "Export abbr links for Org mode.
+PATH is the expansion/title.
+DESC is the abbreviation text (optional).
+BACKEND is the export backend.
+INFO is a plist holding contextual information."
+  (pcase backend
+    ;; HTML export
+    ((or 'html '11ty)
+     (if desc
+         (format "<abbr title=\"%s\" tabindex=\"0\">%s</abbr>"
+                 (org-html-encode-plain-text path)
+                 (org-html-encode-plain-text desc))
+       (format "<abbr>%s</abbr>"
+               (org-html-encode-plain-text path))))
+
+    ;; LaTeX export
+    ('latex
+     (if desc
+         (format "\\abbr[%s]{%s}"
+                 (org-latex-encode-plain-text path)
+                 (org-latex-encode-plain-text desc))
+       (format "\\abbr{%s}"
+               (org-latex-encode-plain-text path))))
+
+    ;; ASCII/plain text export
+    ('ascii
+     (if desc
+         (format "%s (%s)" desc path)
+       path))
+
+    ;; Default for other backends
+    (_
+     (if desc
+         (format "%s (%s)" desc path)
+       path))))
+
+(use-package org
+	:config
+	(org-link-set-parameters
+	 "abbr"
+	 :export #'my-org-abbr-export))
+;; Abbreviations:1 ends here
 
 ;; [[file:Sacha.org::#adding-a-custom-header-argument-to-org-mode-source-blocks-and-using-that-argument-during-export][Adding a custom header argument to Org Mode source blocks and using that argument during export:1]]
 (setq org-babel-exp-code-template "#+begin_src %lang%switches%flags :summary %summary\n%body\n#+end_src")
 (defun my-org-html-src-block (src-block _contents info)
-	(let* ((result (org-html-src-block src-block _contents info))
+	(let* ((result
+					(org-html-src-block
+					 src-block
+					 ;; todo: apply filter functions
+					 _contents
+					 info))
 				 (block-info
 					(org-with-point-at (org-element-property :begin src-block)
 						(org-babel-get-src-block-info)))
@@ -7819,8 +8150,7 @@ With prefix arg, move the subtree."
 (setq org-html-head "
        <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/assets/css/style.css\"></link>
        <link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/assets/css/org-export.css\"></link>
-       <script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"></script>
-       <script src=\"https://sachachua.com/assets/js/misc.js\"></script>")
+       <script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"></script>")
 (setq org-html-htmlize-output-type 'css)
 (setq org-src-fontify-natively t)
 ;; org-styles ends here
@@ -7860,7 +8190,8 @@ With prefix arg, move the subtree."
                    jQuery('.back-to-top').fadeOut(duration);
                }
            });
-       </script>")
+       </script>
+       <script src=\"https://sachachua.com/assets/js/misc.js\"></script>")
 ;; Footer:1 ends here
 
 ;; [[file:Sacha.org::#copy-region][Copy region:1]]
@@ -7975,7 +8306,7 @@ With prefix arg, move the subtree."
       (package-initialize)
       (setq package-enable-at-startup nil)
       (require 'org)
-			(setq-default tab-width 2)
+			(setq-default tab-width 8)
 			(setq org-babel-default-header-args
 			      '((:session . "none")
 			        (:results . "drawer replace")
@@ -8016,7 +8347,17 @@ the mode, `toggle' toggles the state."
 
 (defun my-export-dotemacs ()
 	(interactive)
-	(org-export-to-file 'html "index.html"))
+	(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
+		(org-babel-tangle)
+		(async-start
+		 `(lambda ()
+				;; make async emacs aware of packages (for byte-compilation)
+				(package-initialize)
+				(setq my-exporting t)
+				(load-file "~/sync/emacs/Sacha.el")
+				(find-file "~/sync/emacs/Sacha.org")
+				(org-export-to-file 'html "index.html"))
+		 (lambda (&rest results) (message "Tangled and exported.")))))
 ;(use-package org
 ;  :hook ((org-mode . my-org-save-and-tangle-my-config)))
 ;; Org Mode: Asynchronous export and tangle of a large file:3 ends here
@@ -8391,6 +8732,7 @@ the mode, `toggle' toggles the state."
 (org-link-set-parameters
  "audio"
  :export #'my-org-audio-export
+ :follow #'my-org-video-follow
  :complete #'my-org-audio-complete)
 
 (defun my-org-audio-replace-with-permalink ()
@@ -8494,20 +8836,20 @@ the mode, `toggle' toggles the state."
 
 (defmacro my-org-project-link (type file-path git-url)
   `(progn
-		 (defun ,(intern (format "my-org-%s-complete" type)) ()
+		 (defun ,(intern (format "my-org-project-%s-complete" type)) ()
 			 ,(format "Complete a file from %s." type)
 			 (concat ,type ":" (completing-read "File: "
 																					(projectile-project-files ,file-path))))
-		 (defun ,(intern (format "my-org-%s-follow" type)) (link _)
+		 (defun ,(intern (format "my-org-project-%s-follow" type)) (link _)
 			 ,(format "Open a file from %s." type)
 			 (find-file
 				(expand-file-name
 				 link
 				 ,file-path)))
-		 (defun ,(intern (format "my-org-%s-export" type)) (link desc format _)
+		 (defun ,(intern (format "my-org-project-%s-export" type)) (link desc format _)
 			 "Export link to file."
 			 (setq desc (or desc link))
-			 (when ,git-url
+			 (when (and ,git-url link)
 				 (setq link (concat ,git-url (replace-regexp-in-string "^/" "" link))))
 			 (pcase format
 				 ((or 'html '11ty) (format "<a href=\"%s\">%s</a>"
@@ -8519,18 +8861,18 @@ the mode, `toggle' toggles the state."
 				 ('texinfo (format "@uref{%s,%s}" link desc))
 				 ('ascii (format "%s (%s)" desc link))
 				 (_ (format "%s (%s)" desc link))))
-		 (with-eval-after-load 'org
-			 (org-link-set-parameters
+		 (org-link-set-parameters
 				,type
-				:complete (quote ,(intern (format "my-org-%s-complete" type)))
-				:export (quote ,(intern (format "my-org-%s-export" type)))
-				:follow (quote ,(intern (format "my-org-%s-follow" type))))
-			 (cl-pushnew (cons (expand-file-name ,file-path) ,git-url)
-									 my-project-web-base-list
-									 :test 'equal))))
+				:complete (quote ,(intern (format "my-org-project-%s-complete" type)))
+				:export (quote ,(intern (format "my-org-project-%s-export" type)))
+				:follow (quote ,(intern (format "my-org-project-%s-follow" type))))
+		 (cl-pushnew (cons (expand-file-name ,file-path) ,git-url)
+								 my-project-web-base-list
+								 :test 'equal)))
 ;; org-project-link ends here
 
 ;; [[file:Sacha.org::#git-projects][Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search:2]]
+(with-eval-after-load 'org
 (my-org-project-link "subed"
 										 "~/proj/subed/subed/"
 										 "https://github.com/sachac/subed/blob/main/subed/"
@@ -8552,6 +8894,15 @@ the mode, `toggle' toggles the state."
 (my-org-project-link "ox-11ty"
 										 "~/proj/ox-11ty/"
 										 "https://github.com/sachac/ox-11ty/blob/master/")
+(my-org-project-link "11ty"
+										 "~/proj/static-blog/"
+										 "https://github.com/sachac/eleventy-blog-setup/blob/master/")
+(my-org-project-link "emacstv"
+										 "~/proj/emacstv.github.io/"
+										 "https://github.com/emacstv/emacstv.github.io/blob/master/")
+(my-org-project-link "quantified"
+										 "~/proj/quantified/"
+										 "https://github.com/sachac/quantified/blob/master/"))
 ;; Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search:2 ends here
 
 ;; [[file:Sacha.org::#git-projects][Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search:3]]
@@ -9128,6 +9479,7 @@ FORMAT."
                                           (or from "")
                                           (or to "")
                                           (or search "")))
+		(set-buffer-multibyte t)
     (goto-char (point-min))
     (delete-region (point-min) (search-forward "\n\n"))
     (cdr (pcsv-parse-buffer))))
@@ -9620,7 +9972,11 @@ FORMAT."
 (use-package org
   :config
   (add-hook 'org-babel-after-execute-hook 'org-display-inline-images)
-  (setq org-confirm-babel-evaluate nil)
+  (setq org-confirm-babel-evaluate (lambda (lang body)
+																		 (pcase (or (buffer-file-name) "")
+																			 ((rx (or "vendor" "emacstv")) t)
+																			 ((rx (or "proj" "orgzly" "sync")) nil)
+																			 (_ t))))
   (setq org-link-elisp-confirm-function
         (lambda (prompt)
           (if (and (buffer-file-name) (string-match "vendor" (buffer-file-name)))
@@ -9994,6 +10350,10 @@ If BLOCK-NAME is specified, use that block type instead."
 ;;  (my-reddit-list-upvoted "-mon")
 ;; Reddit:1 ends here
 
+;; [[file:Sacha.org::#reddit][Reddit:2]]
+(use-package reddigg :vc (:url "https://github.com/thanhvg/emacs-reddigg"))
+;; Reddit:2 ends here
+
 ;; [[file:Sacha.org::#sorting-org-mode-lists-using-a-sequence-of-regular-expressions][Sorting Org Mode lists using a sequence of regular expressions:1]]
 (defun my-org-sort-list-in-custom-order (order)
   "Sort the current Org list so that items are in the specified order.
@@ -10032,7 +10392,7 @@ If BLOCK-NAME is specified, use that block type instead."
                 (cond
 								 ((null package-source) link)
                  ((string= package-source "gnu") "https://elpa.gnu.org/packages/%s.html")
-                 ((string= package-source "melpa") "http://melpa.org/#/%s")
+                 ((string= package-source "melpa") "https://melpa.org/#/%s")
                  ((string= package-source "nongnu") "https://elpa.nongnu.org/nongnu/%s.html")
                  (t (error 'unknown-source)))
                 link))
@@ -10045,6 +10405,7 @@ If BLOCK-NAME is specified, use that block type instead."
 				 ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
 				 ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
 				 ((eq format 'ascii) (format "%s <%s>" desc path))
+				 ((eq format 'org) (org-link-make-string (concat "package:" link) description))
 				 (t path))
 			desc)))
 (defun my-org-package-complete ()
@@ -10147,6 +10508,31 @@ If BLOCK-NAME is specified, use that block type instead."
   "Convert clipboard contents from HTML to Org and then paste (yank)."
   (interactive)
   (insert (shell-command-to-string "xclip -o -selection clipboard -t text/html | pandoc -f html -t json | pandoc -f json -t org")))
+
+(defun my-org-insert-clipboard-without-data-images ()
+  "Convert clipboard contents from HTML to Org and then insert, but replace images with placeholders"
+  (interactive)
+	(insert
+	 (with-temp-buffer
+		 (shell-command "xclip -o -selection clipboard -t text/html" (current-buffer))
+		 (goto-char (point-min))
+		 (while (re-search-forward "<img src='data:image[^>]*?'>" nil t)
+			 (replace-match "{{{ image }}}"))
+		 (buffer-string))))
+
+(defun my-org-convert-clipboard-to-org-without-data-images ()
+  "Convert clipboard contents from HTML to Org and then insert, but replace images with placeholders"
+  (interactive)
+	(kill-new
+	 (with-temp-buffer
+		 (shell-command "xclip -o -selection clipboard -t text/html" (current-buffer))
+		 (goto-char (point-min))
+		 (while (re-search-forward "<img src='data:image[^>]*?'>" nil t)
+			 (replace-match "{{{ image }}}"))
+		 (goto-char (point-min))
+		 (while (re-search-forward "<\\(tr\\)>" nil t)
+			 (replace-match "{{{ image }}}"))
+		 (buffer-string))))
 ;; Clipboard:1 ends here
 
 ;; [[file:Sacha.org::#setting-properties][Setting properties:1]]
@@ -11769,7 +12155,7 @@ map-progression should be a list of lists with the following format:
   '("~/sync/sketches"
     "~/sync/private-sketches"))
 
-(defun my-get-sketch-filenames-between-dates (start end filter)
+(defun my-get-sketch-filenames-between-dates (start end &optional filter)
   "Returns index card filenames between START and END."
   (setq start (replace-regexp-in-string "[^0-9]" "" start))
   (setq end (replace-regexp-in-string "[^0-9]" "" end))
@@ -11794,7 +12180,7 @@ map-progression should be a list of lists with the following format:
                         "\\("
                         (if as-regexp base (regexp-quote base))
                         "\\)"
-                        ".*\\(\\.\\(png\\|psd\\|tiff\\|jpg\\|svg\\)\\)$"))))
+                        ".*\\(\\.\\(png\\|psd\\|tiff\\|jpe?g\\|svg\\)\\)$"))))
     (-filter
      (lambda (o) (not (string-match "\\.xmp" o)))
      (sort (-flatten
@@ -11803,7 +12189,7 @@ map-progression should be a list of lists with the following format:
                    (lambda (dir)
                      (and (file-directory-p dir)
                           (if (functionp base)
-                              (-filter base (directory-files dir t ".*\\.\\(png\\|psd\\|tiff\\|jpg\\|svg\\)?$"))
+                              (-filter base (directory-files dir t ".*\\.\\(png\\|psd\\|tiff\\|jpe?g\\|svg\\)?$"))
                             (directory-files
                              dir t
                              base-regexp))))
@@ -12957,46 +13343,6 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 ;; Other sketch-related functions:1 ends here
 
 ;; [[file:Sacha.org::#write-about-half-page-scans][Write about half-page scans:1]]
-(defun my-insert-sketch-and-text (sketch)
-	(interactive (list (my-complete-sketch-filename)))
-	(insert
-	 (if (string= (file-name-extension sketch) "svg")
-			 (format
-				"#+begin_panzoom\n%s\n#+end_panzoom\n\n"
-				(org-link-make-string (concat "file:" sketch)))
-		 (concat (org-link-make-string (concat "sketchFull:" (file-name-base sketch))) "\n\n")))
-	(let ((links (my-org-links-from-file (concat (file-name-sans-extension sketch) ".txt")))
-				(subheading-level (1+ (org-current-level))))
-		(insert (if links
-								"#+begin_my_details Text and links from sketch\n"
-							"#+begin_my_details Text from sketch\n"))
-		(my-sketch-insert-text sketch)
-		(unless (bolp) (insert "\n"))
-		(insert "#+end_my_details")
-		(dolist (section (seq-filter (lambda (entry) (string-match "^#" (cdr entry)))
-																 links))
-			(org-end-of-subtree)
-			(insert "\n\n")
-			(org-insert-heading nil nil subheading-level)
-			(insert (car section))
-			(org-entry-put (point) "CUSTOM_ID" (substring (cdr section) 1)))))
-
-(defun my-write-about-sketch (sketch)
-  (interactive (list (my-complete-sketch-filename)))
-  ;(shell-command "make-sketch-thumbnails")
-  (find-file "~/sync/orgzly/posts.org")
-  (goto-char (point-min))
-	(unless (org-at-heading-p) (outline-next-heading))
-  (org-insert-heading nil nil t)
-	(insert (file-name-base sketch) "\n\n")
-	(my-insert-sketch-and-text sketch)
-  (delete-other-windows)
-  (save-excursion
-    (with-selected-window (split-window-horizontally)
-      (find-file sketch))))
-;; Write about half-page scans:1 ends here
-
-;; [[file:Sacha.org::#write-about-half-page-scans][Write about half-page scans:2]]
 (defun my-write-about-half-page-scan (filename)
   (interactive (list (read-file-name (format "Sketch (%s): "
                                              (file-name-base (my-latest-file my-scan-directory)))
@@ -13017,15 +13363,48 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
                                          my-sketches-directory))
         (rename-file filename new-name)))
     (my-write-about-sketch new-name)))
-;; Write about half-page scans:2 ends here
+;; Write about half-page scans:1 ends here
+
+;; [[file:Sacha.org::*Doodles][Doodles:1]]
+(defun my-org-copy-as-doodle ()
+	(interactive)
+	(cond
+	 ((derived-mode-p 'dired-mode)
+		(kill-new
+		 (mapconcat
+			(lambda (s)
+				(format
+				 "#+begin_center-doodle\n#+ATTR_HTML: :title \n[[file:%s]]\n#+end_center-doodle"
+				 s))
+			(dired-get-marked-files) "\n\n")))
+	 ((derived-mode-p 'image-mode)
+		(kill-new
+		 (format
+				 "#+begin_center-doodle\n#+ATTR_HTML: :title \n%s\n#+end_center-doodle"
+				 (org-link-make-string (concat "file:" (buffer-file-name))))))
+	))
+;; Doodles:1 ends here
 
 ;; [[file:Sacha.org::#supernote][Supernote:1]]
 (defvar my-supernote-export-dir "~/Dropbox/Supernote/EXPORT")
-(defun my-supernote-process-latest ()
-  (interactive)
-	(let ((file (my-supernote-process-sketch
-							 (or (my-supernote-download-latest-exported-file)
-									 (my-latest-file my-supernote-export-dir)))))
+(defvar my-dropbox-sketches-dir "~/Dropbox/sketches")
+(defun my-dropbox-sketches-dired () (interactive) (dired my-dropbox-sketches-dir))
+(defun my-latest-sketch (&optional skip-download)
+	(interactive "P")
+	(let ((file
+				 (or (condition-case nil
+								 (and (not skip-download) (my-supernote-download-latest-exported-file))
+							 (error nil))
+						 (my-latest-file (list my-supernote-export-dir
+																	 my-dropbox-sketches-dir)
+														 "png\\|svg\\|jpe?g"))))
+		(when (called-interactively-p 'any)
+			(find-file file))
+		file))
+
+(defun my-supernote-process-latest (&optional skip-download)
+  (interactive "P")
+	(let ((file (my-supernote-process-sketch (my-latest-sketch skip-download))))
 		(find-file file)
 		(find-file-other-window (concat (file-name-sans-extension file) ".txt"))))
 ;; Supernote:1 ends here
@@ -13035,7 +13414,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 	(interactive)
 	(find-file-other-window
 	 (or (my-supernote-download-latest-exported-file)
-			 (my-latest-file my-supernote-export-dir))))
+			 (my-latest-file (list my-supernote-export-dir
+														 my-dropbox-sketches-dir)
+											 "png\\|svg\\|jpe?g"))))
 
 (defun my-supernote-export-dired ()
   (interactive)
@@ -13054,32 +13435,28 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 ;; Supernote:2 ends here
 
 ;; [[file:Sacha.org::#supernote][Supernote:3]]
-(defun my-image-convert-to-svg (file)
-
-	)
-;; Supernote:3 ends here
-
-;; [[file:Sacha.org::#supernote][Supernote:4]]
 (defun my-supernote-process-sketch (file)
   (interactive "FFile: ")
 	(my-image-recognize file)
 	(setq file (my-sketch-rename file))
 	(pcase (file-name-extension file)
-		("pdf"
+		((or "svg" "pdf")
 		 (setq file
 					 (my-image-store
 						(my-sketch-svg-prepare file))))
-		("png"
+		((or "png" "jpg" "jpeg")
 		 (setq file
 					 (my-image-store
 						(my-image-autorotate
 						 (my-image-autocrop
-							(my-sketch-recolor-png
-							 file)))))))
+							file
+							;; (my-sketch-recolor-png
+							;;  file)
+							))))))
 	file)
-;; Supernote:4 ends here
+;; Supernote:3 ends here
 
-;; [[file:Sacha.org::#supernote][Supernote:5]]
+;; [[file:Sacha.org::#supernote][Supernote:4]]
 (defun my-open-latest-export ()
   (interactive)
   (find-file (my-latest-file "~/Dropbox/Supernote/EXPORT")))
@@ -13092,9 +13469,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
   (interactive)
   (call-process "sn" nil nil nil (my-latest-file "~/Downloads"))
 	(message "%s" (my-latest-file "~/Downloads")))
-;; Supernote:5 ends here
+;; Supernote:4 ends here
 
-;; [[file:Sacha.org::#supernote][Supernote:6]]
+;; [[file:Sacha.org::#supernote][Supernote:5]]
 (defvar my-supernote-inbox "~/Dropbox/Supernote/INBOX")
 (defun my-save-manpage-to-supernote (path)
 	(interactive (list (woman-file-name nil)))
@@ -13111,9 +13488,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 		(call-process "ebook-convert" nil (get-buffer-create "*temp*") nil temp-html
 									(expand-file-name (concat base ".epub") my-supernote-inbox))
 		(delete-file temp-html)))
-;; Supernote:6 ends here
+;; Supernote:5 ends here
 
-;; [[file:Sacha.org::#supernote][Supernote:7]]
+;; [[file:Sacha.org::#supernote][Supernote:6]]
 (defun my-save-info-to-supernote (path)
 	(interactive (list (read-file-name "Texi: " nil nil
 																		 (and Info-current-file
@@ -13128,9 +13505,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 								"-o"
 								(expand-file-name (concat (file-name-base path) ".pdf")
 																															my-supernote-inbox)))
-;; Supernote:7 ends here
+;; Supernote:6 ends here
 
-;; [[file:Sacha.org::#supernote][Supernote:8]]
+;; [[file:Sacha.org::#supernote][Supernote:7]]
 (defvar my-supernote-css "~/proj/static-blog/assets/css/style.css")
 (defun my-save-to-supernote ()
 	(interactive)
@@ -13177,7 +13554,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 
 (setq htmlize-css-name-prefix "org-")
 (setq htmlize-head-tags "<link rel=\"stylesheet\" href=\"https://sachachua.com/assets/css/style.css\" />")
-;; Supernote:8 ends here
+;; Supernote:7 ends here
 
 ;; [[file:Sacha.org::#supernote-org-upload][Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access:1]]
 (defun my-supernote-upload (filename &optional supernote-path)
@@ -13251,6 +13628,17 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 ;; org-attaching the latest image from my Supernote via Browse and Access:1 ends here
 
 ;; [[file:Sacha.org::#supernote-browse][org-attaching the latest image from my Supernote via Browse and Access:2]]
+(defun my-sketch-insert-latest-doodle ()
+	(interactive)
+	(let* ((file (my-latest-sketch)))
+		(insert
+		 (format
+			"#+begin_right-doodle
+#+ATTR_HTML: :title
+%s
+#+end_right-doodle"
+			(org-link-make-string (concat "file:" file))))))
+
 (defun my-supernote-download-latest-exported-file ()
 	"Save exported file in downloads dir."
 	(interactive)
@@ -13269,10 +13657,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 ;; org-attaching the latest image from my Supernote via Browse and Access:2 ends here
 
 ;; [[file:Sacha.org::#supernote-browse][org-attaching the latest image from my Supernote via Browse and Access:3]]
-(defun my-supernote-insert-latest-exported-file ()
+(defun my-sketch-insert-latest ()
 	(interactive)
-	(let ((renamed
-				 (my-supernote-download-latest-exported-file)))
+	(let ((renamed (my-latest-sketch)))
 		(when (and renamed (derived-mode-p 'org-mode))
 			(if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] "
 												(file-name-base renamed))
@@ -14549,7 +14936,8 @@ If threshold is 0, remove all gaps."
 ;; [[file:Sacha.org::*Working with or renaming a set of files][Working with or renaming a set of files:1]]
 (defun my-file-set (file)
 	(let ((base (file-name-base file)))
-	(seq-filter (lambda (o) (string= base (file-name-base o))) (directory-files (file-name-directory file) t))))
+		(seq-filter (lambda (o) (string= base (file-name-base o)))
+								(directory-files (or (file-name-directory file) default-directory) t))))
 
 (defun my-refresh-dired-buffers (dir)
 	(dolist (buf (match-buffers '(derived-mode . dired-mode)))
@@ -14580,18 +14968,19 @@ If threshold is 0, remove all gaps."
 
 (defun my-rename-file-set (file new-prefix &optional force)
 	(interactive (let ((file (read-file-name file)))
-									(list
-									 file
-									 (read-file-name (format "New prefix (%s): "
-																					 (file-name-base file)))
-									 current-prefix-arg)))
+								 (list
+									file
+									(read-file-name (format "New prefix (%s): "
+																					(file-name-base file)))
+									current-prefix-arg)))
 	(unless force
 		(dolist (file (my-file-set file))
 			(let ((new-file (concat
 											 new-prefix
 											 "."
 											 (file-name-extension file))))
-				(when (file-exists-p new-file)
+				(when (and (not (=string= file new-file))
+									 (file-exists-p new-file))
 					(error "%s already exists."
 								 new-file)))))
 	(dolist (file (my-file-set file))
@@ -14600,8 +14989,13 @@ If threshold is 0, remove all gaps."
 											new-prefix
 											"."
 											(file-name-extension file)))))
-			(rename-file file new-file t)))
-	(my-refresh-dired-buffers (file-name-directory file)))
+			(when (not (string= file new-file))
+				(rename-file file new-file t))))
+	(my-refresh-dired-buffers (file-name-directory file))
+	(concat
+	 new-prefix
+	 "."
+	 (file-name-extension file)))
 
 (defun my-rename-current-file-set (new-name)
 	(interactive (list (read-string "New name: "
@@ -14616,6 +15010,23 @@ If threshold is 0, remove all gaps."
 ;; Working with or renaming a set of files:1 ends here
 
 ;; [[file:Sacha.org::*Elfeed][Elfeed:1]]
+(use-package elfeed)
+(use-package elfeed-protocol
+	:after elfeed
+	:custom
+	(elfeed-use-curl nil)
+	(elfeed-curl-extra-arguments '("--insecure"))
+	(elfeed-protocol-enabled-protocols '(fever newsblur owncloud ttrss))
+	(elfeed-protocol-fever-update-unread-only nil)
+	(elfeed-protocol-fever-fetch-category-as-tag t)
+	(elfeed-protocol-fever-maxsize 5)
+	(elfeed-protocol-log-trace t)
+	(elfeed-log-level 'debug)
+	:config
+	(elfeed-protocol-enable))
+;; Elfeed:1 ends here
+
+;; [[file:Sacha.org::*Elfeed][Elfeed:2]]
 (use-package elfeed-tube
   :quelpa (elfeed-tube :fetcher github :repo "karthink/elfeed-tube")
   :after elfeed
@@ -14637,9 +15048,9 @@ If threshold is 0, remove all gaps."
   :bind (:map elfeed-show-mode-map
               ("C-c C-f" . elfeed-tube-mpv-follow-mode)
               ("C-c C-w" . elfeed-tube-mpv-where)))
-;; Elfeed:1 ends here
+;; Elfeed:2 ends here
 
-;; [[file:Sacha.org::*Elfeed][Elfeed:2]]
+;; [[file:Sacha.org::*Elfeed][Elfeed:3]]
 (use-package emms
 	:config
 	(require 'emms-player-simple)
@@ -14653,7 +15064,7 @@ If threshold is 0, remove all gaps."
   (add-to-list 'emms-info-functions 'emms-info-exiftool)
 
   (setq emms-player-list '(emms-player-mpv)))
-;; Elfeed:2 ends here
+;; Elfeed:3 ends here
 
 ;; [[file:Sacha.org::#coding][Coding:1]]
 (editorconfig-mode 1)
@@ -14764,6 +15175,13 @@ If threshold is 0, remove all gaps."
 ;; Web development:2 ends here
 
 ;; [[file:Sacha.org::#web-development][Web development:3]]
+(defun my/replace-buffer-with-clipboard ()
+	(interactive)
+	(erase-buffer)
+	(insert (car kill-ring)))
+;; Web development:3 ends here
+
+;; [[file:Sacha.org::#web-development][Web development:4]]
 ;; from FAQ at http://web-mode.org/ for smartparens
 
 ;; Avoid lockfiles because they mess up React projects
@@ -14792,7 +15210,7 @@ If threshold is 0, remove all gaps."
 	:bind
   ("C-c RET" . themkat/complete-web-mode)
 	("C-c C-r" . my-copy-and-append))
-;; Web development:3 ends here
+;; Web development:4 ends here
 
 ;; [[file:Sacha.org::#lsp][LSP:1]]
 (use-package lsp-mode
@@ -15833,6 +16251,7 @@ Useful as `imenu-create-index-function'."
   :defer t
   :interpreter "node"
   :init (setq js-indent-level 2)
+	:mode "\\.[mc]?js\\'"
   :bind (:map js2-mode-map
               ("C-x C-e" . js-send-last-sexp)
               ("C-M-x" . js-send-last-sexp-and-go)
@@ -16603,24 +17022,35 @@ current buffer, killing it."
 (defun my-search-irc-logs ()
   (interactive)
   (let ((default-directory "~/backups/server/home/.znc/users/sachac/moddata/log"))
-    (call-interactively 'consult-ripgrep)))
+		(consult-ripgrep default-directory)))
 (defun my-irc-log-dired ()
   (interactive)
 	(dired "~/backups/server/home/.znc/users/sachac/moddata/log"))
 ;; Search logs:1 ends here
 
 ;; [[file:Sacha.org::#mastodon][Mastodon:1]]
+(use-package tp
+	:vc (:url "https://codeberg.org/martianh/tp.el")
+	)
 (use-package mastodon
   :if my-laptop-p
 	:load-path "~/vendor/mastodon.el/lisp"
+  :config
+  (require 'mastodon-tl)
   :bind
   (:map mastodon-mode-map
-        ("g" . mastodon-tl--update)
+        ("g" . mastodon-tl-update)
         ;; see org-capture-templates addition
-        ("o" . (lambda () (interactive) (org-capture nil "m"))))
-  :commands (mastodon-http--api mastodon-http--post mastodon-mode mastodon-http--get-search-json
-																mastodon-tl--get-local-timeline)
+        ("o" . (lambda () (interactive) (org-capture nil "m")))
+				:map mastodon-toot-mode-map
+				("C-c C-l" . my-org-insert-link))
+  :commands (mastodon-http--api
+						 mastodon-http--post
+						 mastodon-mode
+						 mastodon-http--get-search-json
+						 mastodon-tl-get-local-timeline)
 	:custom
+  (mastodon-tl--display-media-p nil)
 	(mastodon-instance-url "https://social.sachachua.com")
   (mastodon-active-user "sacha")
 	(mastodon-group-notifications nil))
@@ -16634,10 +17064,18 @@ current buffer, killing it."
 
 (defun my-mastodon-toot-public-string (message)
   (interactive "sMessage: ")
-  (let* ((endpoint (mastodon-http--api "statuses"))
-         (args `(("status" . ,message)
-                 ("visibility" . "public"))))
-    (mastodon-http--post endpoint args nil)))
+	(setq mastodon-toot-previous-window-config (list (current-window-configuration)
+																									 (point-marker)))
+	(with-temp-buffer
+		(mastodon-toot-mode)
+		(let ((inhibit-read-only t))
+			(mastodon-toot--display-docs-and-status-fields)
+			(goto-char (point-max))
+			(insert message))
+		(setq-local mastodon-toot--visibility "public")
+		(setq mastodon-toot--language
+          (mastodon-profile--get-preferences-pref 'posting:default:language))
+		(mastodon-toot-send)))
 
 (defun my-mastodon-show-my-followers ()
   (interactive)
@@ -16658,7 +17096,7 @@ current buffer, killing it."
                                          "@" (url-host url-parsed) "]]"))
      (t (insert url)))))
 
-(autoload 'mastodon-notifications--get-mentions "mastodon-notifications" nil t)
+(autoload 'mastodon-notifications-get-mentions "mastodon-notifications" nil t)
 ;; Mastodon:1 ends here
 
 ;; [[file:Sacha.org::#mastodon][Mastodon:2]]
@@ -16670,6 +17108,332 @@ current buffer, killing it."
 			(funcall browse-url-browser-function url)
 		(mastodon-url-lookup url)))
 ;; Mastodon:2 ends here
+
+;; [[file:Sacha.org::#mastodon-adding-mastodon-toots-as-comments-in-my-11ty-static-blog][Adding Mastodon toots as comments in my 11ty static blog:1]]
+(defun my-11ty-comment-file (url)
+	(interactive (list (my-complete-blog-post-url)))
+	(let* ((permalink (replace-regexp-in-string "^https?://[^/]+" "" url))
+				 (post (seq-find (lambda (o)
+														 (string= (alist-get 'permalink o)
+																			permalink))
+													 (json-read-file
+														(expand-file-name "_site/blog/all/index.json" my-11ty-base-dir))))
+				 (filename
+					(if post
+							(expand-file-name
+							 (concat
+								(file-name-sans-extension
+								 (alist-get 'inputPath
+														post
+														))
+								".json")
+							 my-11ty-base-dir)
+						(error "Could not find %s" permalink))))
+		(when (called-interactively-p 'any)
+			(find-file filename))
+		filename))
+;; (my-11ty-comment-file "https://sachachua.com/blog/2021/01/a-list-of-sharks-that-are-obligate-ram-ventilators/")
+;; Adding Mastodon toots as comments in my 11ty static blog:1 ends here
+
+;; [[file:Sacha.org::#mastodon-adding-mastodon-toots-as-comments-in-my-11ty-static-blog][Adding Mastodon toots as comments in my 11ty static blog:2]]
+(defun my-11ty-comments (url)
+  (let ((filename (my-11ty-comment-file url))
+        (json-array-type 'list)
+        (json-object-type 'alist))
+    (if (file-exists-p filename)
+        (json-read-file filename)
+      `((disqus
+         (path . ,(replace-regexp-in-string "^https?://[^/]+" "" url))
+         (commentCount . 0)
+         (comments . nil))))))
+
+;;(let-alist (my-11ty-comments "/blog/2021/01/a-list-of-sharks-that-are-obligate-ram-ventilators/") .disqus)
+;; Adding Mastodon toots as comments in my 11ty static blog:2 ends here
+
+;; [[file:Sacha.org::#mastodon-adding-mastodon-toots-as-comments-in-my-11ty-static-blog][Adding Mastodon toots as comments in my 11ty static blog:3]]
+(defun my-mastodon-toot-comment-json ()
+	(let* ((toot (mastodon-toot--base-toot-or-item-json)))
+		(unless (string= (alist-get 'visibility toot) "public")
+			(error "Not a public toot."))
+		`((parentPostId . ,(alist-get 'in_reply_to_id toot))
+			(postId . ,(alist-get 'id toot))
+			(author . ,(format "<a href=\"%s\">@%s</a>"
+												 (alist-get 'url (alist-get 'account toot))
+												 (alist-get 'acct (alist-get 'account toot))))
+			(date . ,(alist-get 'created_at toot))
+			(message . ,(format "<div class=\"mastodon-body\">%s</div><div class=\"mastodon-source\">From <a href=\"%s\">Mastodon</a></div>"
+													(alist-get 'content toot)
+													(alist-get 'url toot))))))
+;; Adding Mastodon toots as comments in my 11ty static blog:3 ends here
+
+;; [[file:Sacha.org::#mastodon-adding-mastodon-toots-as-comments-in-my-11ty-static-blog][Adding Mastodon toots as comments in my 11ty static blog:4]]
+(defun my-mastodon-toot-add-or-update-blog-comment (url)
+	(interactive (list (my-complete-blog-post-url)))
+	(let* ((filename (my-11ty-comment-file url))
+				 (comments (my-11ty-comments url))
+				 (comment-list (alist-get 'comments (alist-get 'disqus comments)))
+				 (new-comment (my-mastodon-toot-comment-json))
+				 (existing (seq-find (lambda (o)
+															 (string= (alist-get 'postId o)
+																				(alist-get 'postId new-comment)))
+															comment-list)))
+		(cond
+		 (existing
+			;; I think this is how you replace
+			(setcar (member existing comment-list)
+							new-comment))
+		 (comment-list
+			(push new-comment(alist-get 'comments (alist-get 'disqus comments)))
+			(cl-incf (alist-get 'commentCount (alist-get 'disqus comments))))
+		 (t
+			(map-put! (alist-get 'disqus comments)
+								'comments
+								(list new-comment))
+			(cl-incf (alist-get 'commentCount (alist-get 'disqus comments)))))
+		(with-temp-file filename
+			(insert
+			 (json-encode comments))
+			(json-pretty-print (point-min) (point-max)))
+			(find-file filename)))
+;; Adding Mastodon toots as comments in my 11ty static blog:4 ends here
+
+;; [[file:Sacha.org::#mastodon-mastodon-el-copy-toot-content-as-org-mode][mastodon.el: Copy toot content as Org Mode:1]]
+(defun my-mastodon-toot-at-url (&optional url)
+	"Return JSON toot object at URL.
+If URL is nil, return JSON toot object at point."
+	(if url
+			(let* ((search (format "%s/api/v2/search" mastodon-instance-url))
+						 (params `(("q" . ,url)
+											 ("resolve" . "t"))) ; webfinger
+						 (response (mastodon-http--get-json search params :silent)))
+				(car (alist-get 'statuses response)))
+		(mastodon-toot--base-toot-or-item-json)))
+
+(defun my-mastodon-org-copy-toot-content (&optional url)
+	"Copy the current toot's content as Org Mode.
+Use pandoc to convert.
+
+When called with \\[universal-argument], prompt for a URL."
+	(interactive (list
+								(when current-prefix-arg
+									(read-string "URL: "))))
+
+	(let ((toot (my-mastodon-toot-at-url url)))
+		(with-temp-buffer
+			(insert (alist-get 'content toot))
+			(call-process-region nil nil "pandoc" t t nil "-f" "html" "-t" "org")
+			(kill-new
+			 (concat
+				(org-link-make-string
+				 (alist-get 'url toot)
+				 (concat "@" (alist-get 'acct (alist-get 'account toot))))
+				":\n\n#+begin_quote\n"
+				(string-trim (buffer-string)) "\n#+end_quote\n"))
+			(message "Copied."))))
+;; mastodon.el: Copy toot content as Org Mode:1 ends here
+
+;; [[file:Sacha.org::#mastodon-mastodon-el-mention-people-based-on-regexp][mastodon.el: Mention people based on regexp:1]]
+(defvar my-org-contacts-file "~/sync/orgzly/people.org")
+(defun my-mastodon-insert-interested-handles (draft-text)
+	(interactive (list (mastodon-toot--remove-docs)))
+	(let (list)
+		(with-temp-buffer
+			(insert-file-contents my-org-contacts-file)
+			(org-mode)
+			(goto-char (point-min))
+			(org-map-entries
+			 (lambda ()
+				 (let ((handle (org-entry-get (point) "MASTODON")))
+					 (when (and (string-match (org-entry-get (point) "MENTION_REGEXP")
+																		draft-text)
+											(not (string-match
+														(rx
+														 word-start
+														 (literal handle)
+														 word-end)
+														draft-text)))
+						 (cl-pushnew handle list))))
+			 "MASTODON={.}+MENTION_REGEXP={.}"))
+		(when list
+			(save-excursion
+				(unless (looking-at " ") (insert " "))
+				(insert (string-join list " "))))))
+;; mastodon.el: Mention people based on regexp:1 ends here
+
+;; [[file:Sacha.org::#mastodon-mastodon-el-collect-handles-in-kill-ring][mastodon.el: Collect handles in clipboard (Emacs kill ring):1]]
+(defvar my-mastodon-handle "@sacha@social.sachachua.com")
+(defun my-mastodon-copy-handle (&optional start-new beg end)
+	"Append Mastodon handles to the kill ring.
+
+Use the handle at point or the author of the toot.  If called with a
+region, collect all handles in the region.
+
+Append to the current kill if it starts with @. If not, start a new
+kill. Call with \\[universal-argument] to always start a new list.
+
+Omit my own handle, as specified in `my-mastodon-handle'."
+	(interactive (list current-prefix-arg
+										 (when (region-active-p) (region-beginning))
+										 (when (region-active-p) (region-end))))
+	(let ((handle
+				 (if (and beg end)
+						 ;; collect handles in region
+						 (save-excursion
+               (goto-char beg)
+               (let (list)
+                 ;; Collect all handles from the specified region
+                 (while (< (point) end)
+                   (let ((mastodon-handle (get-text-property (point) 'mastodon-handle))
+                         (button (get-text-property (point) 'button)))
+                     (cond
+                      (mastodon-handle
+											 (when (and (string-match "@" mastodon-handle)
+																	(or (null my-mastodon-handle)
+																			(not (string= my-mastodon-handle mastodon-handle))))
+												 (cl-pushnew
+													(concat (if (string-match "^@" mastodon-handle) ""
+																		"@")
+																	mastodon-handle)
+													list
+													:test #'string=))
+											 (goto-char (next-single-property-change (point) 'mastodon-handle nil end)))
+                      ((and button (looking-at "@"))
+                       (let ((text-start (point))
+                             (text-end (or (next-single-property-change (point) 'button nil end) end)))
+												 (dolist (h (split-string (buffer-substring-no-properties text-start text-end) ", \n\t"))
+													 (unless (and my-mastodon-handle (string= my-mastodon-handle h))
+														 (cl-pushnew h list :test #'string=)))
+												 (goto-char text-end)))
+											(t
+											 ;; collect authors of toots too
+											 (when-let*
+													 ((toot (mastodon-toot--base-toot-or-item-json))
+														(author (and toot
+																				 (concat "@"
+																								 (alist-get
+																									'acct
+																									(alist-get 'account (mastodon-toot--base-toot-or-item-json)))))))
+												 (unless (and my-mastodon-handle (string= my-mastodon-handle author))
+													 (cl-pushnew
+														author
+														list
+														:test #'string=)))
+											 (goto-char (next-property-change (point) nil end))))))
+                 (setq handle (string-join (seq-uniq list #'string=) " "))))
+					 (concat "@"
+									 (or
+										(get-text-property (point) 'mastodon-handle)
+										(alist-get
+										 'acct
+										 (alist-get 'account (mastodon-toot--base-toot-or-item-json))))))))
+		(if (or start-new (null kill-ring) (not (string-match "^@" (car kill-ring))))
+				(kill-new handle)
+			(dolist (h (split-string handle " "))
+				(unless (member h (split-string " " (car kill-ring)))
+					(setf (car kill-ring) (concat (car kill-ring) " " h)))))
+		(message "%s" (car kill-ring))))
+;; mastodon.el: Collect handles in clipboard (Emacs kill ring):1 ends here
+
+;; [[file:Sacha.org::*mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty][mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:1]]
+(defvar my-mastodon-toot-posted-hook nil "Called with the item.")
+
+(defun my-mastodon-copy-toot-url (toot)
+	(interactive (list (my-mastodon-latest-toot)))
+	(kill-new (alist-get 'url toot)))
+(add-hook 'my-mastodon-toot-posted-hook #'my-mastodon-copy-toot-url)
+
+(defun my-mastodon-latest-toot ()
+	(interactive)
+	(require 'mastodon-http)
+	(let* ((json-array-type 'list)
+				 (json-object-type 'alist))
+		(car
+		 (mastodon-http--get-json
+			(mastodon-http--api
+			 (format "accounts/%s/statuses?count=1&limit=1&exclude_reblogs=t"
+							 (mastodon-auth--get-account-id)))
+			nil :silent))))
+
+(with-eval-after-load 'mastodon-toot
+	(when (functionp 'mastodon-toot-send)
+		(advice-add
+		 #'mastodon-toot-send
+		 :after
+		 (lambda (&rest _)
+			 (run-hook-with-args 'my-mastodon-toot-posted-hook (my-mastodon-latest-toot)))))
+	(when (functionp 'mastodon-toot--send)
+		(advice-add
+		 #'mastodon-toot--send
+		 :after
+		 (lambda (&rest _)
+			 (run-hook-with-args 'my-mastodon-toot-posted-hook (my-mastodon-latest-toot))))))
+;; mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:1 ends here
+
+;; [[file:Sacha.org::*mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty][mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:2]]
+(defun my-mastodon-org-maybe-set-toot-url (toot)
+	(cond
+	 ((derived-mode-p 'org-mode)
+		(let ((permalink (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
+			(when (and permalink
+								 (string-match (regexp-quote permalink) (alist-get 'content toot))
+								 (not (org-entry-get-with-inheritance "MASTODON")))
+				(save-excursion
+					(goto-char (org-find-property "EXPORT_ELEVENTY_PERMALINK"
+																				permalink))
+					(org-entry-put
+					 (point)
+					 "EXPORT_MASTODON"
+					 (alist-get 'url toot))
+					(message "Toot URL set: %s, republish if needed" toot)))))
+	 (t
+		(when (buffer-file-name)
+			(let (filename data)
+				(cond
+				 ((string-match "\\.11tydata\\.json" (buffer-file-name))
+					(setq data (json-parse-string (buffer-string) :object-type 'alist :array-type 'list)))
+				 ((and (buffer-file-name)
+							 (file-exists-p (concat (file-name-sans-extension (buffer-file-name)) ".11tydata.json")))
+					(let ((json-object-type 'alist)
+								(json-array-type 'list))
+						(setq
+						 filename (concat (file-name-sans-extension (buffer-file-name)) ".11tydata.json")
+						 data (json-read-file filename)))))
+				(when (and
+							 data
+							 (string-match (regexp-quote (alist-get 'permalink data)) (alist-get 'content toot))
+							 (not (alist-get 'mastodon data)))
+					(push (cons 'mastodon (alist-get 'url toot)) data)
+					(if filename
+							(with-temp-file filename
+								(insert (json-encode data)))
+						(erase-buffer)
+						(insert (json-encode data)))))))))
+(add-hook 'my-mastodon-toot-posted-hook #'my-mastodon-org-maybe-set-toot-url)
+;; mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:2 ends here
+
+;; [[file:Sacha.org::*mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty][mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:3]]
+(defun my-org-11ty-copy-just-this-post ()
+	(interactive)
+	(when (derived-mode-p 'org-mode)
+		(let* ((subtreep (not (org-before-first-heading-p)))
+					 (params (org-combine-plists
+										(org-export--get-export-attributes '11ty subtreep nil)
+										(org-export--get-buffer-attributes)
+										(org-export-get-environment '11ty subtreep)))
+					 (file (plist-get params :file-name))
+					 (permalink (plist-get params :permalink))
+					 (local (expand-file-name file (expand-file-name "_local" (plist-get params :base-dir))))
+					 (remote (concat "web:/var/www/static-blog/" file)))
+			(if (and permalink file (file-directory-p local))
+					(progn
+						(call-process "chmod" nil nil nil "ugo+rX" "-R" local)
+						(call-process "rsync" nil (get-buffer-create "*rsync*") nil "--chmod=ugo=rX" "-avzpe" "ssh"
+													local
+													remote)
+						(browse-url (concat (replace-regexp-in-string "/$" "" my-blog-base-url)
+																permalink)))
+				(error "Could not find %s" local)))))
+;; mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:3 ends here
 
 ;; [[file:Sacha.org::my-mastodon-store-link][my-mastodon-store-link]]
 (defun my-mastodon-store-link ()
@@ -16712,7 +17476,7 @@ current buffer, killing it."
 	:config
 	(add-to-list
 	 'org-capture-templates
-   '("w" "Emacs News" entry (file+headline "~/sync/orgzly/news.org" "Collect Emacs News")
+   '("📰" "Emacs News" entry (file+headline "~/sync/orgzly/news.org" "Collect Emacs News")
      "* %a  :news:
 
 #+begin_quote
@@ -16730,7 +17494,7 @@ current buffer, killing it."
 					 'boosted-p)
 		(mastodon-toot--toggle-boost-or-favourite 'boost))
 	;; store a link and capture the note
-	(org-capture nil "w"))
+	(org-capture nil "📰"))
 
 (use-package mastodon
 	:bind (:map mastodon-mode-map ("w" . my-mastodon-save-toot-for-emacs-news)))
@@ -16740,30 +17504,55 @@ current buffer, killing it."
 (defun my-emacs-news-summarize-mastodon-items ()
 	(interactive)
 	(while (not (eobp))
-		(let* ((info (my-mastodon-get-note-info))
-					 (title (when (car (plist-get info :links))
-										(my-page-title (car (plist-get info :links)))))
-					 (summary (read-string
-										 (if title
-												 (format "Summary (%s): " title)
-											 "Summary: ")
-										 title)))
-			(org-cut-subtree)
-			(unless (string= summary "")
-				(insert "- " (org-link-make-string
-											(or (car (plist-get info :links))
-													(plist-get info :url))
-											summary)
-								(if (and (car (plist-get info :links))
-												 (plist-get info :handle))
-										(concat " (" (org-link-make-string (plist-get info :url)
-																											 (plist-get info :handle))
-														")")
-									"")
-								"\n")))))
+		(atomic-change-group
+			(let* ((info (my-mastodon-get-note-info))
+						 (title (when (car (plist-get info :links))
+											(my-page-title (car (plist-get info :links)))))
+						 (summary (read-string
+											 (if title
+													 (format "Summary (%s): " title)
+												 "Summary: ")
+											 title)))
+				(org-cut-subtree)
+				(unless (string= summary "")
+					(insert "- " (org-link-make-string
+												(or (car (plist-get info :links))
+														(plist-get info :url))
+												summary)
+									(if (and (car (plist-get info :links))
+													 (plist-get info :handle))
+											(concat " (" (org-link-make-string (plist-get info :url)
+																												 (plist-get info :handle))
+															")")
+										"")
+									"\n"))))))
+
+(defun my-match-groups (&optional object)
+	"Return the matching groups, good for debugging regexps."
+	(seq-map-indexed (lambda (entry i)
+										 (list i entry
+													 (and (car entry)
+																(if object
+																		(substring object (car entry) (cadr entry))
+																	(buffer-substring (car entry) (cadr entry))))))
+									 (seq-partition
+										(match-data t)
+										2)))
+
+(defun my-org-link-url-from-string (s)
+	"Return the link URL from S."
+	(if (string-match org-link-any-re s)
+			(or
+			 (match-string 7 s)
+			 (match-string 2 s))))
+
 (defun my-mastodon-get-note-info ()
 	"Return (:handle ... :url ... :links ... :text) for the current subtree."
-	(let ((url (org-entry-get (point) "ITEM"))
+	(let ((url (let ((title (org-entry-get (point) "ITEM")))
+							 (if (string-match org-link-any-re title)
+									 (or
+										(match-string 7 title)
+										(match-string 2 title)))))
 				beg end
 				handle)
 		(save-excursion
@@ -16772,6 +17561,8 @@ current buffer, killing it."
 			(setq beg (point))
 			(setq end (org-end-of-subtree))
 			(cond
+       ((string-match "\\[\\[https://bsky\\.app/.+?\\]\\[\\(.+\\)\\]\\]" url)
+				(setq handle (match-string 1 url)))
 			 ((string-match "https://\\(.+?\\)/\\(@.+?\\)/" url)
 				(setq handle (concat
 											(match-string 2 url) "@" (match-string 1 url))))
@@ -16891,11 +17682,14 @@ If you can find there something you can use, then I'm happy to be useful to the 
 					(progn
 						(setq results (seq-concatenate 'vector filtered results)
 									url (concat base-url (if (string-match "\\?" base-url) "&" "?")
-															"max_id=" (number-to-string (1- (string-to-number (assoc-default 'id (elt (last page) 0)))))))
+															"max_id=" (assoc-default 'id (elt (last page) 0))))
 						(message "%s %s" (assoc-default 'created_at (elt (last page) 0)) url))
 				(setq url nil)))
 		results))
 
+(when (functionp 'memoize)
+	(unless (get #'my-mastodon-fetch-posts-after :memoize-original-function)
+		(memoize #'my-mastodon-fetch-posts-after)))
 (defun my-mastodon-combined-tag-timeline (later-than tag &optional servers)
 	"Display items after LATER-THAN about TAG from SERVERS and the current mastodon.el account."
 	(interactive (list
@@ -16910,15 +17704,17 @@ If you can find there something you can use, then I'm happy to be useful to the 
 			(setq later-than (org-read-date nil nil later-than)))
 	(setq tag (replace-regexp-in-string "#" "" tag))
 	(let* ((limit 40)
-				 (sources (cons (format "timelines/tag/%s?count=%d" tag limit)
+				 (sources (cons (format "timelines/tag/%s?limit=%d" tag limit)
 												(mapcar (lambda (s)
-																	(format "https://%s/api/v1/timelines/tag/%s?count=%d" s tag limit))
+																	(format "https://%s/api/v1/timelines/tag/%s?limit=%d" s tag limit))
 																servers)))
 				 (combined
 					(sort
 					 (seq-reduce (lambda (prev val)
 												 (seq-union prev
-																		(my-mastodon-fetch-posts-after val later-than)
+																		(condition-case nil
+																				(my-mastodon-fetch-posts-after val later-than)
+																			(error nil))
 																		(lambda (a b) (string= (assoc-default 'uri a)
 																													 (assoc-default 'uri b)))))
 											 sources [])
@@ -16977,19 +17773,73 @@ If you can find there something you can use, then I'm happy to be useful to the 
 (defun my-mastodon-follow-user (user-handle)
 	"Follow HANDLE."
 	(interactive "MHandle: ")
+	(require 'mastodon-profile)
 	(when (string-match "https?://\\(.+?\\)/\\(@.+\\)" user-handle)
 		(setq user-handle (concat (match-string 2 user-handle) "@" (match-string 1 user-handle))))
 	(let* ((account (mastodon-profile--search-account-by-handle
                    user-handle))
-				 (user-id (mastodon-profile--account-field account 'id))
-				 (name (if (not (string-empty-p (mastodon-profile--account-field account 'display_name)))
-                   (mastodon-profile--account-field account 'display_name)
-								 (mastodon-profile--account-field account 'username)))
+				 (user-id (alist-get 'id account))
+				 (name (if (not (string-empty-p (alist-get 'display_name account)))
+                   (alist-get 'display_name account)
+								 (alist-get 'username account)))
 				 (url (mastodon-http--api (format "accounts/%s/%s" user-id "follow"))))
 		(if account
 				(mastodon-tl--do-user-action-function url name user-handle "follow")
 			(message "Cannot find a user with handle %S" user-handle))))
 ;; Following people:1 ends here
+
+;; [[file:Sacha.org::#mastodon-tooting-a-link-to-the-current-post][Tooting a link to the current post:1]]
+(defun my-11ty-post-plist ()
+	(cond
+	 ((derived-mode-p 'org-mode)
+		(let* ((subtreep (not (org-before-first-heading-p)))
+					 (combined (org-combine-plists
+											(org-export--get-export-attributes '11ty subtreep nil)
+											(org-export--get-buffer-attributes)
+											(org-export-get-environment '11ty subtreep))))
+			(when (listp (plist-get combined :title))
+				(plist-put combined :title (car (plist-get combined :title))))
+			(plist-put combined :tags (org-get-tags))
+			combined))
+	 ((or (derived-mode-p 'js-mode)
+				(derived-mode-p 'jsonian-mode)) ; probably looking at .11tydata.json
+		(json-parse-string (buffer-string)
+											 :object-type 'plist
+											 :array-type 'list))
+	 ((and (derived-mode-p 'html-mode)
+				 (file-exists-p (concat (file-name-base (buffer-file-name)) ".11tydata.json")))
+		(let ((json-object-type 'plist)
+					(json-array-type 'list))
+			(json-read-file
+			 (concat (file-name-base (buffer-file-name)) ".11tydata.json"))))
+	 (t (error "Could not find info."))))
+
+(defun my-11ty-permalink ()
+	"Get permalink for current post."
+	(plist-get (my-11ty-post-plist) :permalink))
+
+(defun my-11ty-tags ()
+	"Get tags for current post."
+	(plist-get (my-11ty-post-plist) :tags))
+
+
+(defun my-mastodon-11ty-toot-post ()
+	"Compose a toot sharing this blog post on Mastodon."
+	(interactive)
+	(require 'mastodon)
+	(require 'mastodon-toot)
+	(let* ((info (my-11ty-post-plist))
+				 (url (concat "https://sachachua.com" (plist-get info :permalink)))
+				 (title (plist-get info :title)))
+		(mastodon-toot--compose-buffer
+		 nil nil nil
+		 (concat "[" (plist-get info :title) "]"
+						 "(" url ") "
+						 (mapconcat (lambda (tag) (concat "#" tag))
+												(seq-remove (lambda (tag) (string-match "^_" tag))
+																		(plist-get info :tags))
+												" ")))))
+;; Tooting a link to the current post:1 ends here
 
 ;; [[file:Sacha.org::#mastodon-toot-subtree][Compose a Mastodon toot with the current Org subtree:1]]
 (defun my-mastodon-toot-subtree ()
@@ -17085,7 +17935,7 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
     ("F" mastodon-tl--get-federated-timeline)
     ("V" mastodon-profile--view-favourites)
     ("#" mastodon-tl--get-tag-timeline)
-    ("@" (progn (require 'mastodon) (mastodon-notifications--get-mentions)))
+    ("@" (progn (require 'mastodon) (mastodon-notifications-get-mentions)))
     ("K" mastodon-profile--view-bookmarks)
     ("g" mastodon-search--trending-tags)
     ("u" mastodon-tl--update :exit nil)
@@ -17102,7 +17952,7 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 
     ("A" mastodon-profile--get-toot-author)
     ("P" mastodon-profile--show-user)
-    ("O" mastodon-profile--my-profile)
+    ("O" mastodon-profile-my-profile)
     ("U" mastodon-profile--update-user-profile-note)
 
     ("W" mastodon-tl--follow-user)
@@ -17250,14 +18100,27 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 (advice-add #'org-feed-add-items :after #'my-org-feed-sort)
 ;; Collect my recent toots in an Org file so that I can refile them:1 ends here
 
+;; [[file:Sacha.org::*Insert a single toot as Org Mode][Insert a single toot as Org Mode:1]]
+(defun my-mastodon-org-insert-toot-content (url)
+	(interactive "MURL: ")
+	;; fetch the toot using mastodon.el
+	;; convert it from HTML to Org Mode using pandoc
+	;; insert the content
+	;; insert a link to the toot using the handle of the author
+	)
+;; Insert a single toot as Org Mode:1 ends here
+
 ;; [[file:Sacha.org::#mastodon-insert-statuses][Archive toots on my blog:1]]
 (defun my-mastodon-format-my-toots-since (date)
 	(require 'mastodon-auth)
 	(format "#+begin_toot_archive\n%s\n#+end_toot_archive\n"
 					 (mapconcat
 						(lambda (o)
-							(format "- %s\n  #+begin_quote\n%s\n  #+end_quote\n\n"
-											(org-link-make-string (assoc-default 'url o) (assoc-default 'created_at o))
+							(format "- %s\n%s\n\n"
+											(org-link-make-string (assoc-default 'url o)
+																						"(toot)"
+																						;(assoc-default 'created_at o)
+																						)
 											(org-ascii--indent-string
 											 (string-trim (pandoc-convert-stdio (assoc-default 'content o) "html" "org"))
 											 2))
@@ -17315,6 +18178,82 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
    ("e" engine/search-emacswiki "emacswiki")))
 ;; Search:1 ends here
 
+;; [[file:Sacha.org::#web-parsing-rss-and-atom-feeds][Parsing RSS and Atom feeds:1]]
+(defun my-rss-get-entries (url)
+	"Return a list of the form ((:title ... :url ... :date ...) ...)."
+	(with-current-buffer (url-retrieve-synchronously url)
+		(set-buffer-multibyte t)
+    (goto-char (point-min))
+		(when (re-search-forward "<\\?xml\\|<rss" nil t)
+			(goto-char (match-beginning 0))
+			(sort
+			 (let* ((feed (xml-parse-region (point) (point-max)))
+							(is-rss (> (length (xml-get-children (car feed) 'entry)) 0)))
+				 (if is-rss
+						 (mapcar
+							(lambda (entry)
+								(list
+								 :url
+								 (or
+									(xml-get-attribute
+									 (car
+										(or
+										 (seq-filter (lambda (x) (string= (xml-get-attribute x 'rel) "alternate"))
+																 (xml-get-children entry 'link))
+										 (xml-get-children entry 'link)))
+									 'href)
+									(dom-text (dom-by-tag entry 'guid)))
+								 :title
+								 (elt (car (xml-get-children entry 'title)) 2)
+								 :date
+								 (date-to-time (elt (car (xml-get-children entry 'updated)) 2))))
+							(xml-get-children (car feed) 'entry))
+					 (mapcar (lambda (entry)
+										 (list
+											:url
+											(or (caddr (car (xml-get-children entry 'link)))
+													(dom-text (dom-by-tag entry 'guid)))
+											:title
+											(caddr (car (xml-get-children entry 'title)))
+											:date
+											(date-to-time (elt (car (xml-get-children entry 'pubDate)) 2))))
+									 (xml-get-children (car (xml-get-children (car feed) 'channel)) 'item))))
+			 :key (lambda (o) (plist-get o :date))
+			 :lessp #'time-less-p
+			 :reverse t))))
+;; Parsing RSS and Atom feeds:1 ends here
+
+;; [[file:Sacha.org::#web-parsing-rss-and-atom-feeds][Parsing RSS and Atom feeds:2]]
+(defun my-opml-table (xml)
+	(sort
+	 (mapcar
+		(lambda (o)
+			(let ((latest (car (condition-case nil (my-rss-get-entries (dom-attr o 'xmlUrl))
+													 (error nil)))))
+				(list
+				 (if latest
+						 (format-time-string "%Y-%m-%d" (plist-get latest :date))
+					 "")
+				 (org-link-make-string
+					(or (dom-attr o 'htmlUrl)
+							(dom-attr o 'xmlUrl))
+					(replace-regexp-in-string " *|" "" (dom-attr o 'text)))
+				 (if latest
+						 (org-link-make-string
+							(plist-get latest :url)
+							(or (plist-get latest :title) "(untitled)"))
+					 ""))))
+		(dom-search
+		 xml
+		 (lambda (o)
+			 (and
+				(eq (dom-tag o) 'outline)
+				(dom-attr o 'xmlUrl)
+				(dom-attr o 'text)))))
+	 :key #'car
+	 :reverse t))
+;; Parsing RSS and Atom feeds:2 ends here
+
 ;; [[file:Sacha.org::*Link to current webpage from Spookfox][Link to current webpage from Spookfox:1]]
 (defun my-org-spookfox-complete ()
 	(spookfox-js-injection-eval-in-active-tab "window.location.href" t))
@@ -17325,7 +18264,7 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 	 :insert-description #'my-org-link-insert-description))
 ;; Link to current webpage from Spookfox:1 ends here
 
-;; [[file:Sacha.org::*Link to currently-selected text using Spookfox][Link to currently-selected text using Spookfox:1]]
+;; [[file:Sacha.org::#spookfox-fragment][Link to currently-selected text using Spookfox:1]]
 (defun my-spookfox-link-to-fragment ()
 	(interactive)
 	(let ((url
@@ -18102,7 +19041,7 @@ See also:  http://ivan.kanis.fr/caly.el"
 								(org-read-date "Start of period 2")
 								(org-read-date "End of period 2")
 								'("Business" "Discretionary - Play" "Unpaid work"
-									"A-" "Discretionary - Family" "Discretionary - Social" "Sleep"
+									"A+" "Discretionary - Family" "Discretionary - Social" "Sleep"
 									"Discretionary - Productive" "Personal")))
   (let* ((start2 (org-read-date nil nil (or start2 "-sat")))
          (end2 (org-read-date nil nil (or end2 "+1")))
@@ -18435,6 +19374,216 @@ See also:  http://ivan.kanis.fr/caly.el"
   :load-path "~/vendor/crdt.el"
   :if my-laptop-p)
 ;; Collaboration:1 ends here
+
+;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-automating-buttons][Automating buttons:1]]
+(defun my-brigade-copy-signup-block ()
+	(interactive)
+	(let* ((newsletter-date (org-read-date nil nil "+Sun"))
+				 (current-week (org-read-date nil t "+Mon"))
+				 (current-week-end (org-read-date nil t "+2Sun"))
+				 (next-week (org-read-date nil t "+2Mon"))
+				 (next-week-end (org-read-date nil t "+3Sun")))
+		(kill-new
+		 (format
+			"<div style=\"background-color: #223f4d; text-align: center; max-width: 384px; margin: auto; margin-bottom: 12px;\"><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" target=\"_blank\" class=\"mceButtonLink\" style=\"background-color:#223f4d;border-radius:0;border:2px solid #223f4d;color:#ffffff;display:block;font-family:'Helvetica Neue', Helvetica, Arial, Verdana, sans-serif;font-size:16px;font-weight:normal;font-style:normal;padding:16px 28px;text-decoration:none;text-align:center;direction:ltr;letter-spacing:0px\" rel=\"noreferrer\">SIGN UP NOW TO DELIVER %s-%s</a>
+</div>
+<p style=\"text-align: center; font-family: 'Helvetica Neue', Helvetica, Arial, Verdana\"><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" style=\"color: #476584; margin-top: 12px; margin-bottom: 12px;\" target=\"_blank\">You can also sign up early to deliver %s-%s</a></p>"
+			(format-time-string "%Y-%m-%d" current-week)
+			(upcase (format-time-string "%b %e" current-week))
+			(format-time-string
+			 (if (string= (format-time-string "%m" current-week)
+										(format-time-string "%m" current-week-end))
+					 "%-e"
+				 "%b %-e")
+			 current-week-end)
+			(format-time-string "%Y-%m-%d" next-week)
+			(format-time-string "%b %e" next-week)
+			(format-time-string
+			 (if (string= (format-time-string "%m" next-week)
+										(format-time-string "%m" next-week-end))
+					 "%-e"
+				 "%b %-e")
+			 next-week-end)))
+		(shell-command "xdotool search  --onlyvisible --all Chrome windowactivate windowfocus")))
+;; Automating buttons:1 ends here
+
+;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html][Transforming HTML:1]]
+(defvar my-transform-html-clipboard-functions nil "List of functions to call with the clipboard contents.
+Each function should take a DOM node and return the resulting DOM node.")
+(defun my-transform-html-clipboard (&optional activate-app-afterwards functions text)
+	"Parse clipboard contents and transform it.
+This calls FUNCTIONS, defaulting to `my-transform-html-clipboard-functions'.
+If ACTIVATE-APP-AFTERWARDS is non-nil, use xdotool to try to activate that app's window."
+	(with-temp-buffer
+		(let ((text (or text (shell-command-to-string "unbuffer -p xclip -o -selection clipboard -t text/html 2>& /dev/null"))))
+			(if (string= text "")
+					(error "Clipboard does not contain HTML.")
+				(insert (concat "<div>"
+												text
+												"</div>"))))
+		(let ((dom (libxml-parse-html-region (point-min) (point-max))))
+			(erase-buffer)
+			(dom-print (seq-reduce
+									(lambda (prev val)
+										(funcall val prev))
+									(or functions my-transform-html-clipboard-functions)
+									dom)))
+		(shell-command-on-region
+		 (point-min) (point-max)
+		 "xclip -i -selection clipboard -t text/html -filter 2>& /dev/null"))
+		(when activate-app-afterwards
+			(call-process "xdotool" nil nil nil "search" "--onlyvisible" "--all" activate-app-afterwards "windowactivate" "windowfocus")))
+;; Transforming HTML:1 ends here
+
+;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-saving-images][Saving images:1]]
+(defun my-transform-html-save-images (dom dir &optional file-prefix transform-fn)
+	(let (last-image)
+		(dom-search dom
+								(lambda (node)
+									(pcase (dom-tag node)
+										('img
+										 (let ((data (dom-attr node 'src)))
+											 (with-temp-buffer
+												 (insert data)
+												 (goto-char (point-min))
+												 (when (looking-at "data:image/\\([^;]+?\\);base64,")
+													 (setq last-image (cons (match-string 1)
+																									(buffer-substring (match-end 0) (point-max))))))))
+										('h2
+										 (when last-image
+											 (with-temp-file
+													 (expand-file-name
+														(format "%s%s.%s"
+																		(or file-prefix "")
+																		(if transform-fn
+																				(funcall transform-fn (dom-texts node))
+																			(dom-texts node))
+																		(car last-image))
+														dir)
+												 (set-buffer-file-coding-system 'binary)
+												 (insert (base64-decode-string (cdr last-image)))))
+										 (setq last-image nil)))))
+		dom))
+;; Saving images:1 ends here
+
+;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-saving-images][Saving images:2]]
+(defvar my-brigade-newsletter-images-directory "~/proj/bike-brigade/newsletter/images")
+(defun my-brigade-save-newsletter-images (dom)
+	(my-transform-html-save-images
+	 dom
+	 my-brigade-newsletter-images-directory
+	 (concat (org-read-date nil nil "+Sun")
+					 "-news-")
+	 (lambda (heading)
+		 (replace-regexp-in-string
+			"[^-a-z0-9]" ""
+			(replace-regexp-in-string
+			 " +"
+			 "-"
+			 (string-trim (downcase heading)))))))
+;; Saving images:2 ends here
+
+;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-cleaning-up][Cleaning up:1]]
+(defun my-transform-html-remove-images (dom)
+	(dolist (img (dom-by-tag dom 'img))
+		(dom-remove-node dom img))
+	dom)
+;; Cleaning up:1 ends here
+
+;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-cleaning-up][Cleaning up:2]]
+(defun my-transform-html-remove-italics (dom)
+	(dolist (node (dom-by-tag dom 'i))
+		(dom-remove-node dom node))
+	dom)
+;; Cleaning up:2 ends here
+
+;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-removing-sections][Removing sections:1]]
+(defvar my-brigade-section nil)
+(defun my-brigade-remove-meta-recursively (node &optional recursing)
+	"Remove <h1>Meta</h1> headings in NODE and the elements that follow them.
+Resume at the next h1 heading."
+	(unless recursing (setq my-brigade-section nil))
+	(cond
+	 ((eq (dom-tag node) 'h1)
+		(setq my-brigade-section (string-trim (dom-texts node)))
+		(if (string= my-brigade-section "Meta")
+				nil
+			node))
+	 ((string= my-brigade-section "Meta")
+		nil)
+	 (t
+		(let ((processed
+					 (seq-keep
+						(lambda (child)
+							(if (stringp child)
+									(unless (string= my-brigade-section "Meta")
+										child)
+								(my-brigade-remove-meta-recursively child t)))
+						(dom-children node))))
+			`(,(dom-tag node) ,(dom-attributes node) ,@processed)))))
+;; Removing sections:1 ends here
+
+;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-formatting-calls-to-action][Formatting calls to action:1]]
+(defun my-brigade-format-buttons (dom)
+	(dolist (node (dom-by-tag dom 'a))
+		(let ((text (dom-texts node)))
+			(if (string-match "\\[ *\\(.+?\\) *\\]" text)
+					;; button, wrap in a table
+					(with-temp-buffer
+						(insert
+						 (format "<table align=\"center\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" data-block-id=\"627\" class=\"mceButtonContainer\" style=\"margin: auto; text-align: center\"><tbody><tr class=\"mceStandardButton\"><td style=\"background-color:#000000;border-radius:0;text-align:center\" valign=\"top\" class=\"mceButton\"><a href=\"%s\" target=\"_blank\" class=\"mceButtonLink\" style=\"background-color:#000000;border-radius:0;border:2px solid #000000;color:#ffffff;display:block;font-family:'Helvetica Neue', Helvetica, Arial, Verdana, sans-serif;font-size:16px;font-weight:normal;font-style:normal;padding:16px 28px;text-decoration:none;text-align:center;direction:ltr;letter-spacing:0px\" rel=\"noreferrer\">%s</a></td></tr></tbody></table>"
+										 (dom-attr node 'href)
+										 (match-string 1 text)))
+						(dom-add-child-before
+						 (dom-parent dom node)
+						 (car (dom-by-tag (libxml-parse-html-region (point-min) (point-max)) 'table)) node)
+						(dom-remove-node dom node)))))
+	dom)
+;; Formatting calls to action:1 ends here
+
+;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-changing-link-colours][Changing link colours:1]]
+(defvar my-brigade-community-text-style "color: #ffffff")
+(defvar my-brigade-community-link-style "color: #aed9ef")
+(defun my-brigade-recolor-recursively (node)
+	"Change the colors of links and text in NODE.
+Ignore links with the class mceButtonLink.
+Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
+	(pcase (dom-tag node)
+		('table node) ; pass through, don't recurse further
+		('a						; change the colour
+		 (unless (string= (or (dom-attr node 'class) "") "mceButtonLink")
+			 (dom-set-attribute node 'style my-brigade-community-link-style))
+		 node)
+		(_
+		 (let ((processed
+						(seq-map
+						 (lambda (child)
+							 (if (stringp child)
+									 (dom-node 'span `((style . ,my-brigade-community-text-style)) child)
+								 (my-brigade-recolor-recursively child)))
+						 (dom-children node))))
+			 `(,(dom-tag node) ,(dom-attributes node) ,@processed)))))
+;; Changing link colours:1 ends here
+
+;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-wrapping-it-up][Wrapping it up:1]]
+(defun my-brigade-transform-html (&optional recolor file)
+	(interactive (list nil (when current-prefix-arg (read-file-name "File: "))))
+	(my-transform-html-clipboard
+  "Chrome"
+	(append
+	 '(my-brigade-save-newsletter-images
+		 my-transform-html-remove-images
+		 my-transform-html-remove-italics
+		 my-brigade-remove-meta-recursively
+		 my-brigade-format-buttons)
+	 (if recolor '(my-brigade-recolor-recursively)))
+	(when file
+		(with-temp-buffer (insert-file-contents file) (buffer-string)))))
+
+(defun my-brigade-transform-community-html (&optional file)
+	(interactive (list (when current-prefix-arg (read-file-name "File: "))))
+	(my-brigade-transform-html t file))
+;; Wrapping it up:1 ends here
 
 ;; [[file:Sacha.org::#simple-streaming][Simple streaming with FFmpeg:4]]
 (defvar my-stream-process nil)
@@ -18941,7 +20090,15 @@ See also:  http://ivan.kanis.fr/caly.el"
 
 (defun my-latest-file (path &optional filter)
   "Return the newest file in PATH. Optionally filter by FILTER."
-  (car (sort (seq-remove #'file-directory-p (directory-files path 'full filter t)) #'file-newer-than-file-p)))
+	(if (listp path)
+			(car
+			 (sort (mapcar (lambda (dir) (my-latest-file dir)) path)
+						 #'file-newer-than-file-p))
+		(car
+		 (sort (seq-remove #'file-directory-p
+											 (directory-files path 'full filter t))
+					 #'file-newer-than-file-p))))
+
 (defun my-ledger-change-account (account)
   (interactive (list (ledger-read-account-with-prompt (concat (ledger-xact-payee) ": "))))
   (beginning-of-line)
@@ -18978,12 +20135,10 @@ See also:  http://ivan.kanis.fr/caly.el"
 ;; Encryption:1 ends here
 
 ;; [[file:Sacha.org::#emacspeak][Emacspeak:1]]
-;(setq emacspeak-prefix "\C-E")
+(setq emacspeak-prefix (kbd "s-e"))
   (defun my-emacspeak ()
     (interactive)
     (load-file "/home/sacha/vendor/emacspeak/lisp/emacspeak-setup.el")
-		(keymap-global-set "s-e" 'emacspeak-prefix-command)
-		(keymap-global-set "C-e" 'end-of-line)
     (setq emacspeak-use-auditory-icons t)
     (setq-default emacspeak-use-auditory-icons t)
     (setq-default dtk-quiet nil)
@@ -20276,7 +21431,7 @@ loaded."
 					 (call-interactively #'projectile-find-file)))
 		("o"
 		 (progn
-			 (find-file (expand-file-name "2024/organizers-notebook/index.org" emacsconf-directory))
+			 (find-file (expand-file-name "organizers-notebook/index.org" (expand-file-name emacsconf-year emacsconf-directory)))
 			 (call-interactively #'consult-org-heading))
 		 "org notes")
 		("a" (let ((default-directory emacsconf-ansible-directory))
@@ -20700,7 +21855,7 @@ Ex: (my-cubing-last-layer-with-sides \"ORRBOOGGGRBB\" \"YYYYYYYYY\" '((3 1 t) (2
               (cons 'image (if (stringp .image) .image (concat "https:" .product.featured_image)))
               (cons 'price (/ .product.price 100.0)))))
      ((and (re-search-forward "<script type=\"application/ld\\+json\">" nil t)
-           (null (re-search-forward "Fabric Fabric" nil t))) ; Carter's, Columbia?
+           (null (re-search-forward "Fabric Fabric\\|angryballerinafabrics" nil t))) ; Carter's, Columbia?
       (setq data (json-read))
       (if (vectorp data) (setq data (elt data 0)))
       (if (assoc-default '@graph data)
@@ -20756,11 +21911,11 @@ Ex: (my-cubing-last-layer-with-sides \"ORRBOOGGGRBB\" \"YYYYYYYYY\" '((3 1 t) (2
 						(json-parse-string
 						 (spookfox-js-injection-eval-in-active-tab
 							"JSON.stringify({
-name: rawData?.Product?.Name || document.querySelector('meta[property=\"og:title\"]')?.getAttribute('content'),
+name: window.rawData?.Product?.Name || document.querySelector('meta[property=\"og:title\"]')?.getAttribute('content'),
 image: document.querySelector('meta[property=\"og:image\"]')?.getAttribute('content'),
-description: rawData?.Product?.Description || document.querySelector('meta[property=\"og:description\"]')?.getAttribute('content'),
+description: window.rawData?.Product?.Description || document.querySelector('meta[property=\"og:description\"]')?.getAttribute('content'),
 url: document.querySelector('link[rel=\"canonical\"]')?.getAttribute('href') || window.location.href,
-price: rawData?.Product?.MinPrice || document.querySelector('.nl-price--total')?.textContent?.replace(/^\s*$/, '')
+price: window.rawData?.Product?.MinPrice || document.querySelector('.nl-price--total')?.textContent?.replace(/^\s*$/, '')
 })"
 							t)
 						 :object-type 'alist))))

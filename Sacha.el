@@ -8,6 +8,10 @@
 (setq use-package-always-ensure t)
 (load custom-file t)
 
+;; [[file:Sacha.org::#starting-up][Starting up:2]]
+(use-package memoize)
+;; Starting up:2 ends here
+
 ;; [[file:Sacha.org::#add-package-sources][Add package sources:1]]
 (unless (assoc-default "melpa" package-archives)
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
@@ -536,15 +540,20 @@ targets."
 										 (dired-get-filename)))
 				 (ext (file-name-extension old-file))
 				 (new-prefix (concat id " " (plist-get data :Note)))
+				 (text (plist-get data :Other))
 				 new-file)
+		(when (and text (not (string= (string-trim text) "")))
+			(with-temp-file (concat (file-name-sans-extension old-file) ".txt")
+				(insert text)))
+		(when (derived-mode-p 'image-mode)
+			(kill-buffer))
 		(setq new-file
 					(my-image-store (my-rename-file-set old-file
 																							new-prefix t)
 													t))
 		(when (derived-mode-p 'image-mode)
-			(kill-buffer)
-			(find-file (expand-file-name (concat new-prefix "." ext)
-																	 (file-name-directory old-file))))))
+			(find-file new-file))
+		(find-file (concat (file-name-sans-extension new-file) ".txt"))))
 
 (defun my-image-recognize-get-new-filename (file)
 	(interactive "FFile: ")
@@ -753,7 +762,7 @@ targets."
 	(keymap-set embark-symbol-map "r" #'my-embark-erefactor-rename-symbol-in-buffer))
 ;; Embark and erefactor-rename-symbol-in-buffer:1 ends here
 
-;; [[file:Sacha.org::*Extended command list][Extended command list:2]]
+;; [[file:Sacha.org::#keybindings-extended-command-list][Extended command list:2]]
 ;;; Mostly the same as my/read-extended-command-from-list
 (defun my-read-extended-command-from-list (list)
   "Read command name to invoke in `execute-extended-command'."
@@ -1002,26 +1011,7 @@ invoking, give a prefix argument to `execute-extended-command'."
         (insert (org-link-make-string link description))
         (sit-for 0))))))
 
-(defun my-org-insert-link ()
-	"Insert link."
-  (interactive)
-  (when (org-in-regexp org-link-bracket-re 1)
-    (goto-char (match-end 0))
-    (insert "\n"))
-	(cond
-	 ((or (string-match (regexp-quote "*new toot*") (buffer-name))
-				(derived-mode-p 'markdown-mode))
-		(let ((url (read-string "URL: ")))
-			(if (region-active-p)
-					(let ((s (buffer-substring (region-beginning) (region-end))))
-						(delete-region (region-beginning) (region-end))
-						(insert (format "[%s](%s)"
-														(read-string "Title: " s)
-														url)))
-				(insert (format "[%s](%s)"
-												(read-string "Title: " (my-page-title url))
-												url)))))
-	 (t (call-interactively 'org-insert-link))))
+(defalias 'my-org-insert-link 'my-org-insert-link-dwim)
 ;; Hydra keyboard shortcuts:3 ends here
 
 ;; [[file:Sacha.org::#hydras][Hydra keyboard shortcuts:4]]
@@ -1490,9 +1480,16 @@ any directory proferred by `consult-dir'."
   (require 'consult-omni-embark)
   (setq consult-omni-sources-modules-to-load (list 'consult-omni-wikipedia 'consult-omni-google))
   (consult-omni-sources-load-modules)
+	(setq consult-omni-dynamic-input-debounce 1.0)
+	(setq consult-omni-dynamic-refresh-delay consult-omni-dynamic-input-debounce)
   (setq consult-omni-default-interactive-command #'consult-omni-multi)
+	(setq consult-omni-multi-sources
+				'(consult-omni--source-google
+					consult-omni--source-my-org-bookmarks
+					consult-omni--source-blog))
 	:bind
 	(("M-g w" . consult-omni)
+	 ("M-g f" . consult-omni-my-org-bookmarks)
 	 :map consult-omni-embark-general-actions-map
 	 ("i l" .  #'my-consult-omni-embark-insert-link)
 	 ("i u" .  #'my-consult-omni-embark-insert-url)
@@ -1501,61 +1498,181 @@ any directory proferred by `consult-dir'."
 	 ("w t" . #'my-consult-omni-embark-copy-title-as-kill)))
 ;; consult-omni:1 ends here
 
-;; [[file:Sacha.org::#consult-omni][consult-omni:2]]
-(defun my-consult-omni-bookmarks (&optional input)
-	(let ((quoted (when input (regexp-quote input))))
-		(mapcar
-		 (lambda (o)
-			 (propertize
-				(concat (plist-get o :title) "\s"
-								(plist-get o :url))
-				:title (plist-get o :title)
-				:url (plist-get o :url)))
-		 (seq-filter
-			(lambda (o)
-				;; TODO: Someday use regular completion matching, so I can use orderless
-				(if quoted
-						(string-match quoted (concat (plist-get o :title) " - " (plist-get o :title)))
-					t))
-			(my-org-bookmarks)))))
+;; [[file:Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode:1]]
+(defun my-org-set-link-target-with-search ()
+	"Replace the current link's target with a web search.
+Assume the target is actually supposed to be the description.  For
+example, if the link is [[some text]], do a web search for 'some text',
+prompt for the link to use as the target, and move 'some text' to the
+description."
+	(interactive)
+	(let* ((bracket-pos (org-in-regexp org-link-bracket-re))
+				 (bracket-target (match-string 1))
+				 (bracket-desc (match-string 2))
+				 result)
+		(when (and bracket-pos bracket-target
+							 (null bracket-desc)
+							 ;; try to trigger only when the target is plain text and doesn't have a protocol
+							 (not (string-match ":" bracket-target)))
+			;; we're in a bracketed link with no description and the target doesn't look like a link;
+			;; likely I've actually added the text for the description and now we need to include the link
+			(let ((link (consult-omni bracket-target nil nil t)))
+				(cond
+				 ((get-text-property 0 :url link)
+					(setq result (org-link-make-string (get-text-property 0 :url link)
+																						 bracket-target)))
+				 ((string-match ":" link) 			; might be a URL
+					(setq result (org-link-make-string link bracket-target))))
+				(when result
+					(delete-region (car bracket-pos) (cdr bracket-pos))
+					(insert result)
+					result)))))
+;; Using web searches and bookmarks to quickly link placeholders in Org Mode:1 ends here
 
-(defun my-consult-omni-org-bookmark-transform (candidates &optional query)
-	(mapcar
-	 (lambda (cand)
-		 (propertize
-			cand
-			:url (and (get-text-property 0 :title cand) (get-text-property 0 :url (get-text-property 0 :title cand)))
-			:title (and (get-text-property 0 :title cand) (get-text-property 0 :title (get-text-property 0 :title cand)))))
-	 candidates))
+;; [[file:Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode:2]]
+(defun my-org-set-link-target-with-org-completion ()
+	"Replace the current link's target with `org-insert-link' completion.
+Assume the target is actually supposed to be the description.  For
+example, if the link is [[some text]], do a web search for 'some text',
+prompt for the link to use as the target, and move 'some text' to the
+description."
+	(interactive)
+	(let* ((bracket-pos (org-in-regexp org-link-bracket-re))
+				 (bracket-target (match-string 1))
+				 (bracket-desc (match-string 2))
+				 result)
+		(when (and bracket-pos bracket-target
+							 (null bracket-desc)
+							 ;; try to trigger only when the target is plain text and doesn't have a protocol
+							 (not (string-match ":" bracket-target))
+							 (org-element-lineage (org-element-context) '(link) t)) ; ignore text in code blocks, etc.
+			;; we're in a bracketed link with no description and the target doesn't look like a link;
+			;; likely I've actually added the text for the description and now we need to include the link.
+			;; This is a hack so that we don't have to delete the link until the new link has been inserted
+			;; since org-insert-link doesn' tbreak out the link prompting code into a smaller function.
+			(let ((org-link-bracket-re "{{{}}}"))
+				(goto-char (cdr bracket-pos))
+				(org-insert-link nil nil bracket-target))
+			(delete-region (car bracket-pos) (cdr bracket-pos)))))
+;; Using web searches and bookmarks to quickly link placeholders in Org Mode:2 ends here
 
-(defvar my-consult--org-bookmark-history nil)
+;; [[file:Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode:3]]
+(defun my-org-set-link-target-dwim ()
+	(interactive)
+	(or (my-org-set-link-target-with-search)
+			(my-org-set-link-target-with-org-completion)))
+;; Using web searches and bookmarks to quickly link placeholders in Org Mode:3 ends here
+
+;; [[file:Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode:4]]
+(defun my-org-scan-for-untargeted-links ()
+	"Look for [[some text]] and prompt for the actual targets."
+	(interactive)
+	(while (re-search-forward org-link-bracket-re nil t)
+		(when (and
+					 (not (match-string 2))
+					 (and (match-string 1) (not (string-match ":" (match-string 1))))
+					 (org-element-lineage (org-element-context) '(link) t)) ; ignore text in code blocks, etc.
+			(undo-boundary)
+			(my-org-set-link-target-dwim))))
+;; Using web searches and bookmarks to quickly link placeholders in Org Mode:4 ends here
+
+;; [[file:Sacha.org::#completion-consult-consult-omni-bookmarks][Bookmarks:1]]
+(defun my-consult-omni-bookmarks-builder (input &rest args &key callback &allow-other-keys)
+	(let* ((quoted (when input (regexp-quote input)))
+				 (list (my-org-bookmarks))
+				 (candidates
+					(mapcar
+					 (lambda (o)
+						 (propertize
+							(concat (plist-get o :title) "\s"
+											(plist-get o :url))
+							:source "Bookmarks"
+							:on-callback 'my-consult-org-bookmark-visit
+							:title (plist-get o :title)
+							:url (plist-get o :url)))
+					 (if quoted
+							 (seq-filter
+								(lambda (o)
+									(string-match quoted (concat (plist-get o :title) " - " (plist-get o :title))))
+								list)
+						 list))))
+		(when callback (funcall callback candidates))
+		candidates))
+
 (defun my-consult-org-bookmark-visit (o)
 	(browse-url (get-text-property 0 :url o)))
-(defvar my-consult--source-org-bookmark
-	`(:name "My Org bookmarks"
-					:narrow ?B
-					:category consult-omni
-					:face consult-bookmark
-					:items ,#'my-org-bookmarks-for-completion
-					:action #'my-consult-org-bookmark-visit))
 
 ;; (consult--multi (list my-consult--source-org-bookmark))
 (with-eval-after-load 'consult-omni
-  (consult-omni--make-source-from-consult-source
-   'my-consult--source-org-bookmark
+  (consult-omni-define-source
+	 "My Org bookmarks"
    :narrow-char ?b
    :type 'sync
-	 :search-hist 'my-consult--org-bookmark-history
-	 :transform (quote 'my-consult-omni-org-bookmark-transform)
+	 :request #'my-consult-omni-bookmarks-builder
 	 :on-return 'my-consult-org-bookmark-visit
+	 :group #'consult-omni--group-function
    :min-input 1
-   :require-match t)
+   :require-match t))
+;; Bookmarks:1 ends here
 
-	(setq consult-omni-multi-sources '(consult-omni--source-google consult-omni--source-my-org-bookmarks))
+;; [[file:Sacha.org::#completion-consult-consult-omni-blog-posts][Finding my blog posts with consult-omni:1]]
+(defun my-consult-omni-blog-data ()
+	(let ((base (replace-regexp-in-string "/$" "" my-blog-base-url))
+				(json-object-type 'alist)
+				(json-array-type 'list))
+		(mapcar
+		 (lambda (o)
+			 (list :url (concat base (alist-get 'permalink o))
+						 :title (alist-get 'title o)
+						 :date (alist-get 'date o)))
+		 (sort (json-read-file "~/sync/static-blog/_site/blog/all/index.json")
+					 (lambda (a b)
+						 (string< (or (alist-get 'date b) "")
+											(or (alist-get 'date a) "")))))))
+(unless (get 'my-consult-omni-blog-data :memoize-original-function)
+	(memoize #'my-consult-omni-blog-data "5 minutes"))
 
-	;;(consult-omni--multi-dynamic (list consult-omni--source-my-org-bookmarks))
-  )
-;; consult-omni:2 ends here
+(defun my-consult-omni-blog-titles-builder (input &rest args &key callback &allow-other-keys)
+	(let* ((quoted (when input (regexp-quote input)))
+				 (list
+					(if quoted
+							(seq-filter
+							 (lambda (o)
+								 ;; TODO: Someday figure out orderless?
+								 (string-match quoted (concat (plist-get o :title) " - " (plist-get o :title))))
+							 (my-consult-omni-blog-data))
+						(my-consult-omni-blog-data)))
+				 (candidates
+					(mapcar
+					 (lambda (o)
+						 (propertize
+							(concat (plist-get o :title))
+							:source "Blog"
+							:date (plist-get o :date)
+							:title (plist-get o :title)
+							:url (plist-get o :url)))
+					 (if quoted (seq-take list 3) list))))
+		(when callback (funcall callback candidates))
+		candidates))
+
+(defun my-consult-omni-blog-annotation (s)
+	(format " (%s)"
+					(propertize (substring (or (get-text-property 0 :date s) "") 0 4)
+											'face 'completions-annotations)))
+
+(with-eval-after-load 'consult-omni
+  (consult-omni-define-source
+	 "Blog"
+	 :narrow-char ?b
+   :type 'sync
+	 :request #'my-consult-omni-blog-titles-builder
+	 :on-return 'my-consult-org-bookmark-visit
+   :group #'consult-omni--group-function
+	 :annotate #'my-consult-omni-blog-annotation
+   :min-input 3
+	 :sort nil
+   :require-match t))
+;; Finding my blog posts with consult-omni:1 ends here
 
 ;; [[file:Sacha.org::#searching-my-blog][Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:1]]
 (defun my-search-notes ()
@@ -1866,7 +1983,13 @@ any directory proferred by `consult-dir'."
                 (buffer-list))))
 ;; Navigation:1 ends here
 
-;; [[file:Sacha.org::*Copy and append string][Copy and append string:1]]
+;; [[file:Sacha.org::*Expand region][Expand region:1]]
+(use-package expand-region
+  :bind ("C-=" . er/expand-region)
+	)
+;; Expand region:1 ends here
+
+;; [[file:Sacha.org::#navigation-copy-and-append-string][Copy and append string:1]]
 (defvar my-copy-append-string nil "String to append when copying.")
 (defun my-copy-and-append (beg end append)
 	(interactive
@@ -1896,11 +2019,11 @@ any directory proferred by `consult-dir'."
 		(when text (save-excursion (insert text)))))
 ;; Copy text from current PDFview page in other window:1 ends here
 
-;; [[file:Sacha.org::*Links][Links:1]]
+;; [[file:Sacha.org::#navigation-links][Links:1]]
 (use-package ace-link)
 ;; Links:1 ends here
 
-;; [[file:Sacha.org::*Jumping between windows][Jumping between windows:1]]
+;; [[file:Sacha.org::#navigation-jumping-between-windows][Jumping between windows:1]]
 (use-package ace-window
 	:config
 	(setq aw-keys '(?a ?o ?e ?u ?h ?t ?n ?s))
@@ -1910,11 +2033,11 @@ any directory proferred by `consult-dir'."
 	)
 ;; Jumping between windows:1 ends here
 
-;; [[file:Sacha.org::*Get the hang of using vundo][Get the hang of using vundo:1]]
+;; [[file:Sacha.org::#navigation-get-the-hang-of-using-vundo][Get the hang of using vundo:1]]
 (use-package vundo)
 ;; Get the hang of using vundo:1 ends here
 
-;; [[file:Sacha.org::*Focus on the current window][Focus on the current window:1]]
+;; [[file:Sacha.org::#navigation-focus-on-the-current-window][Focus on the current window:1]]
 ;; `prot/window-single-toggle' is based on `windower' by Pierre
 ;; Neidhardt (ambrevar on GitLab)
 (use-package emacs
@@ -1948,17 +2071,18 @@ managers such as DWM, BSPWM refer to this state as 'monocle'."
          ("s-k" . prot/kill-buffer-current)))
 ;; Focus on the current window:1 ends here
 
-;; [[file:Sacha.org::*Focus on the current window][Focus on the current window:2]]
+;; [[file:Sacha.org::#navigation-focus-on-the-current-window][Focus on the current window:2]]
+(defun my-maybe-restore-other-windows (orig-fun &rest args)
+	(when (called-interactively-p 'any)
+		(if (frame-root-window-p (selected-window))
+				(call-interactively 'winner-undo)
+			(let ((ignore-window-parameters t))
+				(apply orig-fun args)))))
 (advice-add 'delete-other-windows
-						:around (lambda (orig-fun &rest args)
-(when (called-interactively-p 'any)
-											(if (frame-root-window-p (selected-window))
-													(call-interactively 'winner-undo)
-												(let ((ignore-window-parameters t))
-													(apply orig-fun args))))))
+						:around #'my-maybe-restore-other-windows)
 ;; Focus on the current window:2 ends here
 
-;; [[file:Sacha.org::*Get scroll-other-window to work with PDFs][Get scroll-other-window to work with PDFs:1]]
+;; [[file:Sacha.org::#navigation-get-scroll-other-window-to-work-with-pdfs][Get scroll-other-window to work with PDFs:1]]
 (use-package scroll-other-window
 	:vc (:url "https://gist.github.com/politza/3f46785742e6e12ba0d1a849f853d0b9")
 	:commands sow-mode
@@ -2045,7 +2169,7 @@ Otherwise call FUN with STRING, PRED and ACTION as arguments."
 (advice-add 'completion-file-name-table :around #'ad-completion-file-name-table)
 ;; Sort files in read-file-name:1 ends here
 
-;; [[file:Sacha.org::*Downloaded files][Downloaded files:1]]
+;; [[file:Sacha.org::#navigation-downloaded-files][Downloaded files:1]]
 (defvar my-download-dir "~/Downloads")
 (defun my-open-latest-download ()
   (interactive)
@@ -2123,7 +2247,7 @@ Otherwise call FUN with STRING, PRED and ACTION as arguments."
 (define-key isearch-mode-map [(meta z)] 'zap-to-isearch)
 ;; Deleting things:1 ends here
 
-;; [[file:Sacha.org::*Transient for isearch][Transient for isearch:1]]
+;; [[file:Sacha.org::#navigation-searching-transient-for-isearch][Transient for isearch:1]]
 (require 'transient)
 (transient-define-prefix cc/isearch-menu ()
   "isearch Menu"
@@ -2204,12 +2328,12 @@ Otherwise call FUN with STRING, PRED and ACTION as arguments."
 (define-key isearch-mode-map (kbd "M-S") 'cc/isearch-menu)
 ;; Transient for isearch:1 ends here
 
-;; [[file:Sacha.org::*Search invisible text][Search invisible text:1]]
+;; [[file:Sacha.org::#navigation-searching-search-invisible-text][Search invisible text:1]]
 (setq isearch-invisible t
 			search-invisible t)
 ;; Search invisible text:1 ends here
 
-;; [[file:Sacha.org::*Occur][Occur:1]]
+;; [[file:Sacha.org::#navigation-searching-occur][Occur:1]]
 (with-eval-after-load 'occur
 	(keymap-set occur-mode-map "C-x C-q" #'occur-edit-mode))
 ;; Occur:1 ends here
@@ -2768,6 +2892,7 @@ The DWIM behaviour of this command is as follows:
 (keymap-global-set "M-c" #'capitalize-dwim)
 (setq-default fill-column 50)
 (keymap-global-set "M-o" #'join-line)
+(keymap-global-set "M-T" #'transpose-sentences)  ; https://www.matem.unam.mx/~omar/apropos-emacs.html#writing-experience
 ;; Writing and editing:1 ends here
 
 ;; [[file:Sacha.org::#gif-screencast][gif-screencast:1]]
@@ -4114,6 +4239,7 @@ If DIARIZE is non-nil, identify speakers."
         ("C-M-<return>" . org-insert-subheading))
 	:custom
 	(org-export-with-sub-superscripts nil)
+	(org-footnote-section nil)
 	(org-fold-catch-invisible-edits 'smart))
 ;; org-package-setup ends here
 
@@ -4149,9 +4275,9 @@ If DIARIZE is non-nil, identify speakers."
   (goto-char (point-min))
 	(unless (org-at-heading-p) (outline-next-heading))
   (org-insert-heading nil nil t)
-	(insert (file-name-base sketch) "\n\n")
+	(insert (string-trim (replace-regexp-in-string "^[-0-9]+ *" "" (file-name-base sketch))) "\n\n")
 	(my-insert-sketch-and-text sketch)
-	(insert "\nFeel free to use this under the [[https://creativecommons.org/licenses/by/4.0/][Creative Commons Attribution License]].\n")
+	(insert "\n/Feel free to use this sketch under the [[https://creativecommons.org/licenses/by/4.0/][Creative Commons Attribution License]]./\n")
   (delete-other-windows)
   (save-excursion
     (with-selected-window (split-window-horizontally)
@@ -4256,7 +4382,6 @@ If DIARIZE is non-nil, identify speakers."
   (bind-key "C-c v" 'org-show-todo-tree org-mode-map)
   (bind-key "C-c C-r" 'org-refile org-mode-map)
   (bind-key "C-c R" 'org-reveal org-mode-map)
-  (bind-key "C-c o" 'my-org-follow-entry-link org-mode-map)
   (bind-key "C-c d" 'my-org-move-line-to-destination org-mode-map)
   (bind-key "C-c t s"  'my-split-sentence-and-capitalize org-mode-map)
   (bind-key "C-c t -"  'my-split-sentence-delete-word-and-capitalize org-mode-map)
@@ -4354,6 +4479,7 @@ If DIARIZE is non-nil, identify speakers."
       org-goto-max-level 10)
 (require 'imenu)
 (setq org-startup-folded nil)
+(setq org-startup-with-inline-images nil)
 (bind-key "C-c j" 'org-clock-goto) ;; jump to current task from anywhere
 (bind-key "C-c C-w" 'org-refile)
 (setq org-cycle-include-plain-lists 'integrate)
@@ -4512,7 +4638,7 @@ If DIARIZE is non-nil, identify speakers."
          :prepend t)
 				("s" "Selection from browser" entry
 				 (file ,my-org-inbox-file)
-				 "* %a :website:\n:PROPERTIES:\n:CREATED: %U\n:END:\n%i%?\n"
+				 "* %a :website:\n:PROPERTIES:\n:CREATED: %U\n:END:\n#+begin_quote\n%i\n#+end_quote\n\n%?\n"
 				 :prepend t)
 				("S" "Screenshot" entry
 				 (file ,my-org-inbox-file)
@@ -5025,6 +5151,7 @@ This function is heavily adapted from `org-between-regexps-p'."
       (delq nil
             (mapcar (lambda (x) (and x (file-exists-p x) x))
                     `("~/sync/orgzly/organizer.org"
+											"~/sync/orgzly/ipad.org"
                       "~/sync/orgzly/Inbox.org"
                       "~/sync/orgzly/garden.org"
                       "~/sync/orgzly/decisions.org"
@@ -5554,6 +5681,45 @@ This function is heavily adapted from `org-between-regexps-p'."
   "^  \\([^:]+\\): +.*?\\(?:Clocked\\|Closed\\):.*?\\(TODO\\|DONE\\) \\(.*?\\)\\(?:[       ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$"
   "Regular expression matching lines to include as completed tasks.")
 
+(defun my-quantified-sum (start end cat)
+	"Return the number of hours from START to END in CAT."
+	(quantified-parse-json
+   (quantified-request
+    (concat "records.json?start=" (or start "") "&end=" (or end "")
+						"&order=newest&display_type=time&split=keep&category=" (url-hexify-string cat))
+    (list (cons 'auth_token (quantified-token))) "GET")))
+
+(defvar my-quantified-categories nil)
+(defun my-quantified-read-category ()
+	(setq my-quantified-categories
+				(or my-quantified-categories
+						(quantified-parse-json
+						 (quantified-request "/record_categories.json?all=1"
+																 (list (cons 'auth_token (quantified-token)))
+																 "GET"))))
+	(completing-read
+	 "Category: "
+	 (mapcar (lambda (o)
+						 (cons
+							(alist-get 'full_name o)
+							o))
+					 my-quantified-categories)))
+
+(defun my-quantified-sum (start end cat)
+	"Return the number of hours from START to END in CAT."
+	(interactive (list (org-read-date nil nil nil "Start: ")
+										 (org-read-date nil nil nil "End: ")
+										 (my-quantified-read-category)))
+	(let* ((records
+					(quantified-parse-json
+					 (quantified-request
+						(concat "records.json?start=" (or start "") "&end=" (or end "")
+										"&order=newest&display_type=time&filter_string=" (url-hexify-string cat))
+						(list (cons 'auth_token (quantified-token))) "GET")))
+				 (duration (apply '+ (mapcar (lambda (o) (alist-get 'duration o 0)) records)))
+				 (hours (/ duration 3600.0)))
+		(message "%s: %.1f hour(s) in %d entries" cat hours (length records))))
+
 (defun my-quantified-get-hours (category time-summary)
   "Return the number of hours based on the time summary."
   (if (stringp category)
@@ -5747,7 +5913,7 @@ This function is heavily adapted from `org-between-regexps-p'."
 ;; [[file:Sacha.org::#weekly-review][Weekly review:3]]
   (defun my-org-prepare-weekly-review (&optional date skip-urls)
     "Prepare weekly review template."
-    (interactive (list (org-read-date nil nil nil "Ending on Fri: " nil "-fri")))
+    (interactive (list (org-read-date nil nil nil "Ending on Sun: " nil "-sun")))
     (let* ((post-date (current-time))
 	   (base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
 	   start end links prev
@@ -5776,19 +5942,16 @@ This function is heavily adapted from `org-between-regexps-p'."
 			 "\n\n*Toots*\n\n"
 			 (my-mastodon-format-my-toots-since start)
        "\n\n#+begin_my_details Time\n"
+			 (format "#+begin_src emacs-lisp :results table :exports results
+(my-quantified-compare \"%s\" \"%s\" \"%s\" \"%s\" my-quantified-summary-categories \"The other week %%\" \"Last week %%\")
+#+end_src
+
+:results:\n"  prev start start end)
        (orgtbl-to-orgtbl
-        (my-quantified-compare prev start start end
-                               '("A+"
-                                 "Business"
-                                 "Discretionary - Play"
-                                 "Unpaid work"
-                                 "Discretionary - Family"
-                                 "Sleep"
-                                 "Discretionary - Productive"
-                                 "Personal")
-                               "The other week %" "Last week %")
+        (my-quantified-compare prev start start end my-quantified-summary-categories "The other week %" "Last week %")
         nil)
-			 (format "\n#+begin_src emacs-lisp :exports results :results file :file weekly.svg :output-dir /tmp\n(quantified-svg-to-text (quantified-svg-days \"%s\" 7))\n#+end_src\n\n" start)
+			 ":end:\"\""
+			 (format "\n#+begin_src emacs-lisp :exports results :results file :file time-graph.svg :output-dir /tmp\n(quantified-svg-to-text (quantified-svg-days \"%s\" \"%s\"))\n#+end_src\n\n" start end)
        "\n#+end_my_details\n\n")))
 
   (defun my-prepare-missing-weekly-reviews ()
@@ -5902,7 +6065,9 @@ This function is heavily adapted from `org-between-regexps-p'."
       (while (re-search-forward org-link-any-re nil t)
         (save-excursion
           (backward-char)
-					(browse-url (match-string 0)))))))
+					(let ((url (match-string 0)))
+						(unless (string-match "permalink.gmane.org" url)
+							(browse-url url))))))))
 ;; Link-related convenience functions:1 ends here
 
 ;; [[file:Sacha.org::#monthly-reviews][Monthly reviews:1]]
@@ -5944,6 +6109,28 @@ This function is heavily adapted from `org-between-regexps-p'."
      (format "%4d-%02d-01" (elt date 5) (elt date 4))
      (format "%4d-%02d-01" year month))))
 
+(defvar my-quantified-summary-categories '("Business" "Discretionary - Play" "Unpaid work" "A+" "Discretionary - Family" "Sleep" "Discretionary - Productive" "Personal"))
+(defun my-quantified-summarize-time-table-month (month)
+	"Insert or return the table summarizing the month's time, compared with the previous month."
+	(interactive (list (org-read-date nil t)))
+	(let* ((date (decode-time (if (stringp month) (date-to-time month) month)))
+				 (month (elt date 4))
+         (year (elt date 5))
+				 start-date
+				 end-date
+				 previous-date
+				 results)
+		(calendar-increment-month month year -1)
+		(setq start-date (format "%4d-%02d-01 0:00" year month)
+          end-date (format "%4d-%02d-01 0:00" (elt date 5) (elt date 4)))
+		(calendar-increment-month month year -1)
+		(setq previous-date (format "%4d-%02d-01 0:00" year month))
+		(setq results (orgtbl-to-orgtbl (my-quantified-compare previous-date start-date start-date end-date my-quantified-summary-categories "Previous month %" "This month %")
+																		nil))
+		(when (called-interactively-p 'any)
+			(insert results))
+		results))
+
 (defun my-org-prepare-monthly-review (time)
   (interactive (list (org-read-date nil t)))
   (let* ((date (decode-time time))
@@ -5957,10 +6144,10 @@ This function is heavily adapted from `org-between-regexps-p'."
          previous-date
          posts
          sketches
-         org-date
-         time)
+				 time-comparison
+         org-date)
     (calendar-increment-month month year -1)
-    (setq start-date (format "%4d-%02d-01 0:00" year month)
+		(setq start-date (format "%4d-%02d-01 0:00" year month)
           end-date (format "%4d-%02d-01 0:00" (elt date 5) (elt date 4))
           title (format-time-string "Monthly review: %B %Y" (encode-time 0 0 0 1 month year))
           post-location (concat (format-time-string "%Y/%m/" post-date) (my-make-slug title))
@@ -5973,34 +6160,60 @@ This function is heavily adapted from `org-between-regexps-p'."
           sketches (my-sketches-export-and-extract (substring start-date 0 10) (substring end-date 0 10) nil t))
     (calendar-increment-month month year -1)
     (setq previous-date (format "%4d-%02d-01 0:00" year month))
-    (setq time (my-quantified-compare previous-date start-date start-date end-date '("Business" "Discretionary - Play" "Unpaid work" "A+" "Discretionary - Family" "Sleep" "Discretionary - Productive" "Personal") "Previous month %" "This month %"))
+    (setq time-comparison (my-quantified-compare previous-date start-date start-date end-date my-quantified-summary-categories "Previous month %" "This month %"))
     (goto-char (line-end-position))
     (insert
      "\n\n** " title "  :monthly:review:\n"
-     (my-org-summarize-journal-csv start-date end-date nil my-journal-category-map my-journal-categories) "\n\n"
+		 (my-quantified-summarize-time-table-month (format-time-string "%Y-%m-%d" time)) "\n\n"
      "*Blog posts*\n"
      posts "\n\n"
      "*Sketches*\n\n"
      sketches
-     "*Time*\n\n"
-     (orgtbl-to-orgtbl time nil))
+     (format "*Time*\n\n#+begin_src emacs-lisp :results table :exports results\n(my-quantified-compare \"%s\" \"%s\" \"%s\" \"%s\" my-quantified-summary-categories \"Previous month %%\" \"This month %%\")\n#+end_src\n\n"
+						 previous-date start-date start-date end-date)
+     (orgtbl-to-orgtbl time-comparison nil)
+		 (format "\n#+begin_src emacs-lisp :exports results :results file :file monthly-%s.svg :output-dir /tmp\n(quantified-svg-to-text (quantified-svg-days \"%s\" \"%s\" 'horizontal))\n#+end_src\n\n"
+						 start-date
+						 start-date end-date))
     (my-org-11ty-prepare-subtree)))
 
-(defun my-org-prepare-yearly-review (previous-date start-date end-date)
-  (let* ((posts (mapconcat (lambda (o) (concat "- " (org-link-make-string (concat "https://sachachua.com" (plist-get o :permalink))
-                                                                          (plist-get o :title))))
-                           (my-list-blog-posts
-                            (substring start-date 0 10)
-                            (substring end-date 0 10))
-                           "\n")
-                )
-         (sketches (my-sketches-export-and-extract (substring start-date 0 10) (substring end-date 0 10) nil t))
-         (time (my-quantified-compare previous-date start-date start-date end-date '("Business" "Discretionary - Play" "Unpaid work" "A-" "Discretionary - Family" "Sleep" "Discretionary - Productive" "Personal") "2020-2021 %" "2021-2022 %"))
-         )
+(defun my-org-prepare-yearly-review (year-end)
+	(interactive (list (org-read-date nil t nil "Year end (exclusive): ")))
+  (let* ((date (decode-time year-end))
+         (month (elt date 4))
+         (year (elt date 5))
+				 (end-date (format-time-string "%Y-%m-%d" year-end))
+				 (start-date (progn
+											 (setf (elt date 5) (1- (elt date 5)))
+											 (format-time-string "%Y-%m-%d" (encode-time date))))
+				 (previous-date (progn
+													(setf (elt date 5) (1- (elt date 5)))
+													(format-time-string "%Y-%m-%d" (encode-time date))))
+				 (posts (mapconcat (lambda (o)
+														 (concat "- " (org-link-make-string
+																					 (concat my-blog-base-url (plist-get o :permalink))
+																					 (plist-get o :title))))
+													 (my-list-blog-posts
+														(substring start-date 0 10)
+														(substring end-date 0 10))
+													 "\n"))
+				 (sketches (my-sketches-export-and-extract
+										(substring start-date 0 10) (substring end-date 0 10) nil t))
+				 (time (my-quantified-compare
+								previous-date start-date start-date end-date my-quantified-summary-categories
+								"The other year %"
+								"Last year %")))
     (insert
      "*Blog posts*\n\n" posts "\n\n"
      "*Sketches*\n\n" sketches
-     "*Time*\n\n" (orgtbl-to-orgtbl time nil))))
+     "*Time*\n\n"
+		 (format "#+begin_src emacs-lisp :results table :exports results
+(my-quantified-compare \"%s\" \"%s\" \"%s\" \"%s\" my-quantified-summary-categories \"The other year %%\" \"Last year %%\")
+#+end_src
+
+:results:\n"  previous-date start-date start-date end-date)
+		 (orgtbl-to-orgtbl time nil)
+		 (format "\n#+begin_src emacs-lisp :exports results :results file :file time-graph.svg :output-dir /tmp\n(quantified-svg-to-text (quantified-svg-days \"%s\" \"%s\" 'horizontal))\n#+end_src\n\n" start-date end-date))))
 ;; Monthly reviews:2 ends here
 
 ;; [[file:Sacha.org::#org-mode-reviews-emoji-summaries][Emoji summaries:1]]
@@ -6408,7 +6621,26 @@ and indent it one level."
 ;; [[file:Sacha.org::#org-contacts][Contacts:1]]
 (use-package org-contacts
 	:config
-	(setq org-contacts-files '("~/sync/orgzly/people.org")))
+	(setq org-contacts-files '("~/sync/orgzly/people.org"))
+	:hook
+	(message-setup-hook . 'my-message-greet-contacts))
+
+(defun my-message-greet-contacts ()
+	(interactive)
+	(let* ((emails
+					(mapcar 'car
+									(append
+									 (mail-header-parse-addresses (message-fetch-field "To"))
+									 (mail-header-parse-addresses (message-fetch-field "Cc")))))
+				 (people
+					(seq-keep
+					 (lambda (email)
+						 (cdr (assoc-string "NAME_SHORT"
+																(caddr (car (org-contacts-filter nil nil (cons "EMAIL" email)))))))
+					 emails)))
+		(when people
+			(message-goto-body)
+			(insert "Hi, " (string-join people ",") "!\n\n"))))
 ;; Contacts:1 ends here
 
 ;; [[file:Sacha.org::#inserting-code][Inserting code:1]]
@@ -13374,13 +13606,13 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 		 (mapconcat
 			(lambda (s)
 				(format
-				 "#+begin_center-doodle\n#+ATTR_HTML: :title \n[[file:%s]]\n#+end_center-doodle"
+				 "#+begin_center-doodle\n#+ATTR_HTML: :style max-height:100px :alt \n[[file:%s]]\n#+end_center-doodle"
 				 s))
 			(dired-get-marked-files) "\n\n")))
 	 ((derived-mode-p 'image-mode)
 		(kill-new
 		 (format
-				 "#+begin_center-doodle\n#+ATTR_HTML: :title \n%s\n#+end_center-doodle"
+				 "#+begin_center-doodle\n#+ATTR_HTML: :style max-height:100px :alt \n%s\n#+end_center-doodle"
 				 (org-link-make-string (concat "file:" (buffer-file-name))))))
 	))
 ;; Doodles:1 ends here
@@ -13404,9 +13636,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 
 (defun my-supernote-process-latest (&optional skip-download)
   (interactive "P")
-	(let ((file (my-supernote-process-sketch (my-latest-sketch skip-download))))
-		(find-file file)
-		(find-file-other-window (concat (file-name-sans-extension file) ".txt"))))
+	(my-sketch-process (my-latest-sketch skip-download)))
 ;; Supernote:1 ends here
 
 ;; [[file:Sacha.org::#supernote][Supernote:2]]
@@ -13435,24 +13665,30 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 ;; Supernote:2 ends here
 
 ;; [[file:Sacha.org::#supernote][Supernote:3]]
-(defun my-supernote-process-sketch (file)
+(defun my-sketch-process (file)
   (interactive "FFile: ")
-	(my-image-recognize file)
-	(setq file (my-sketch-rename file))
-	(pcase (file-name-extension file)
-		((or "svg" "pdf")
-		 (setq file
-					 (my-image-store
-						(my-sketch-svg-prepare file))))
-		((or "png" "jpg" "jpeg")
-		 (setq file
-					 (my-image-store
-						(my-image-autorotate
-						 (my-image-autocrop
-							file
-							;; (my-sketch-recolor-png
-							;;  file)
-							))))))
+	(condition-case nil
+			(progn
+				(my-image-recognize file)
+				(setq file (my-sketch-rename file))
+
+				(pcase (file-name-extension file)
+					((or "svg" "pdf")
+					 (setq file
+								 (my-image-store
+									(my-sketch-svg-prepare file))))
+					((or "png" "jpg" "jpeg")
+					 (setq file
+								 (my-image-store
+									(my-image-autorotate
+									 (my-image-autocrop
+										file
+										;; (my-sketch-recolor-png
+										;;  file)
+										)))))))
+		(error nil))
+	(find-file file)
+	(find-file-other-window (concat (file-name-sans-extension file) ".txt"))
 	file)
 ;; Supernote:3 ends here
 
@@ -15320,10 +15556,6 @@ If threshold is 0, remove all gaps."
 ;; Emacs Lisp:1 ends here
 
 ;; [[file:Sacha.org::#emacs-lisp][Emacs Lisp:2]]
-(use-package memoize)
-;; Emacs Lisp:2 ends here
-
-;; [[file:Sacha.org::#emacs-lisp][Emacs Lisp:3]]
 (setq eval-expression-print-length nil)
 (setq print-length nil)
 (setq edebug-print-length nil)
@@ -15331,7 +15563,7 @@ If threshold is 0, remove all gaps."
 	(setq-local sentence-end-double-space t))
 (add-hook 'emacs-lisp-mode-hook
 					'my-set-sentence-end-double-space)
-;; Emacs Lisp:3 ends here
+;; Emacs Lisp:2 ends here
 
 ;; [[file:Sacha.org::#easily-override-existing-functions][Easily override existing functions:1]]
 (defun my-override-function (symbol)
@@ -17064,18 +17296,11 @@ current buffer, killing it."
 
 (defun my-mastodon-toot-public-string (message)
   (interactive "sMessage: ")
-	(setq mastodon-toot-previous-window-config (list (current-window-configuration)
-																									 (point-marker)))
-	(with-temp-buffer
-		(mastodon-toot-mode)
-		(let ((inhibit-read-only t))
-			(mastodon-toot--display-docs-and-status-fields)
-			(goto-char (point-max))
-			(insert message))
-		(setq-local mastodon-toot--visibility "public")
-		(setq mastodon-toot--language
-          (mastodon-profile--get-preferences-pref 'posting:default:language))
-		(mastodon-toot-send)))
+	(mastodon-toot--compose-buffer
+	 nil nil nil
+	 message)
+	(condition-case nil (mastodon-toot-send)
+		(error nil)))
 
 (defun my-mastodon-show-my-followers ()
   (interactive)
@@ -17234,6 +17459,25 @@ When called with \\[universal-argument], prompt for a URL."
 
 ;; [[file:Sacha.org::#mastodon-mastodon-el-mention-people-based-on-regexp][mastodon.el: Mention people based on regexp:1]]
 (defvar my-org-contacts-file "~/sync/orgzly/people.org")
+(defun my-mastodon-insert-handle-from-contacts ()
+	(interactive)
+	(let ((collection
+				 (with-temp-buffer
+					 (insert-file-contents my-org-contacts-file)
+					 (org-mode)
+					 (goto-char (point-min))
+					 (org-map-entries
+						(lambda ()
+							(let ((handle (org-entry-get (point) "MASTODON"))
+										(name (org-entry-get (point) "ITEM")))
+								(cons (format "%s (%s)" name handle)
+											handle)))
+						"MASTODON={.}"))))
+		(insert (assoc-default (completing-read "Name: " collection)
+													 collection #'string= ""))))
+;; mastodon.el: Mention people based on regexp:1 ends here
+
+;; [[file:Sacha.org::#mastodon-mastodon-el-mention-people-based-on-regexp][mastodon.el: Mention people based on regexp:2]]
 (defun my-mastodon-insert-interested-handles (draft-text)
 	(interactive (list (mastodon-toot--remove-docs)))
 	(let (list)
@@ -17258,7 +17502,7 @@ When called with \\[universal-argument], prompt for a URL."
 			(save-excursion
 				(unless (looking-at " ") (insert " "))
 				(insert (string-join list " "))))))
-;; mastodon.el: Mention people based on regexp:1 ends here
+;; mastodon.el: Mention people based on regexp:2 ends here
 
 ;; [[file:Sacha.org::#mastodon-mastodon-el-collect-handles-in-kill-ring][mastodon.el: Collect handles in clipboard (Emacs kill ring):1]]
 (defvar my-mastodon-handle "@sacha@social.sachachua.com")
@@ -17423,10 +17667,13 @@ Omit my own handle, as specified in `my-mastodon-handle'."
 					 (file (plist-get params :file-name))
 					 (permalink (plist-get params :permalink))
 					 (local (expand-file-name file (expand-file-name "_local" (plist-get params :base-dir))))
-					 (remote (concat "web:/var/www/static-blog/" file)))
+					 (remote (concat "web:/var/www/static-blog/" file))
+					 (remote-tramp (concat "/ssh:" remote)))
 			(if (and permalink file (file-directory-p local))
 					(progn
 						(call-process "chmod" nil nil nil "ugo+rX" "-R" local)
+						(unless (file-directory-p (file-name-directory remote-tramp))
+							(make-directory (file-name-directory remote-tramp) t))
 						(call-process "rsync" nil (get-buffer-create "*rsync*") nil "--chmod=ugo=rX" "-avzpe" "ssh"
 													local
 													remote)
@@ -17487,14 +17734,14 @@ Omit my own handle, as specified in `my-mastodon-handle'."
      :prepend t :immediate-finish t)))
 (defun my-mastodon-save-toot-for-emacs-news ()
 	(interactive)
+	;; store a link and capture the note
+	(org-capture nil "📰")
 	;; boost if not already boosted
 	(unless (get-text-property
 					 (car
 						(mastodon-tl--find-property-range 'byline (point)))
 					 'boosted-p)
-		(mastodon-toot--toggle-boost-or-favourite 'boost))
-	;; store a link and capture the note
-	(org-capture nil "📰"))
+		(mastodon-toot--toggle-boost-or-favourite 'boost)))
 
 (use-package mastodon
 	:bind (:map mastodon-mode-map ("w" . my-mastodon-save-toot-for-emacs-news)))
@@ -17709,18 +17956,21 @@ If you can find there something you can use, then I'm happy to be useful to the 
 																	(format "https://%s/api/v1/timelines/tag/%s?limit=%d" s tag limit))
 																servers)))
 				 (combined
-					(sort
-					 (seq-reduce (lambda (prev val)
-												 (seq-union prev
-																		(condition-case nil
-																				(my-mastodon-fetch-posts-after val later-than)
-																			(error nil))
-																		(lambda (a b) (string= (assoc-default 'uri a)
-																													 (assoc-default 'uri b)))))
-											 sources [])
-					 (lambda (a b)
-						 (string< (assoc-default 'created_at b)
-											(assoc-default 'created_at a))))))
+					(seq-map
+					 ;; remove edited_at
+					 (lambda (o) (assoc-delete-all 'edited_at o))
+					 (sort
+						(seq-reduce (lambda (prev val)
+													(seq-union prev
+																		 (condition-case nil
+																				 (my-mastodon-fetch-posts-after val later-than)
+																			 (error nil))
+																		 (lambda (a b) (string= (assoc-default 'uri a)
+																														(assoc-default 'uri b)))))
+												sources [])
+						(lambda (a b)
+							(string< (assoc-default 'created_at b)
+											 (assoc-default 'created_at a)))))))
 		(with-current-buffer (get-buffer-create "*Combined*")
 			(let ((inhibit-read-only t))
 				(erase-buffer)
@@ -18147,6 +18397,73 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 		(insert "Wednesday weblog: Toots ending " start " :review:weblog:\n\n")
 		(my-mastodon-insert-my-toots-since start)))
 ;; Archive toots on my blog:1 ends here
+
+;; [[file:Sacha.org::*Emacs: Open URLs or search the web, plus browse-url-handlers][Emacs: Open URLs or search the web, plus browse-url-handlers:1]]
+(defcustom my-search-web-handler "https://duckduckgo.com/html/?q="
+	"How to search. Could be a string that accepts the search query at the end (URL-encoded)
+or a function that accepts the text (unencoded)."
+	:type '(choice (string :tag "Prefix URL to search engine.")
+								 (function :tag "Handler function.")))
+
+(defun my-open-url-or-search-web (&optional text-or-url)
+	(interactive (list (if (region-active-p)
+												 (buffer-substring (region-beginning) (region-end))
+											 (or
+												(and (derived-mode-p 'org-mode)
+														 (let ((elem (org-element-context)))
+															 (and (eq (org-element-type elem) 'link)
+																		(buffer-substring-no-properties
+																		 (org-element-begin elem)
+																		 (org-element-end elem)))))
+												(thing-at-point 'url)
+												(thing-at-point 'email)
+												(thing-at-point 'filename)
+												(thing-at-point 'word)))))
+		(catch 'done
+			(let (links)
+				(with-temp-buffer
+					(insert text-or-url)
+					(org-mode)
+					(goto-char (point-min))
+					;; We add all the links to a list first because following them may change the point
+					(while (re-search-forward org-any-link-re nil t)
+						(cl-pushnew (match-string-no-properties 0) links))
+					(when links
+						(dolist (link links)
+							(org-link-open-from-string link))
+						(throw 'done links))
+					;; Try emails
+					(while (re-search-forward thing-at-point-email-regexp nil t)
+						(cl-pushnew (match-string-no-properties 0) links))
+					(when links
+						(compose-mail (string-join links ", "))
+						(throw 'done links)))
+				;; Open filename if specified, or do a web search
+				(cond
+				 ((ffap-guesser) (find-file-at-point))
+				 ((functionp my-search-web-handler)
+					(funcall my-search-web-handler text-or-url))
+				 ((stringp my-search-web-handler)
+					(browse-url (concat my-search-web-handler (url-hexify-string text-or-url))))))))
+;; Emacs: Open URLs or search the web, plus browse-url-handlers:1 ends here
+
+;; [[file:Sacha.org::*Emacs: Open URLs or search the web, plus browse-url-handlers][Emacs: Open URLs or search the web, plus browse-url-handlers:2]]
+(setopt my-search-web-handler #'consult-omni)
+;; Emacs: Open URLs or search the web, plus browse-url-handlers:2 ends here
+
+;; [[file:Sacha.org::*Emacs: Open URLs or search the web, plus browse-url-handlers][Emacs: Open URLs or search the web, plus browse-url-handlers:3]]
+(keymap-global-set "C-c o" #'my-open-url-or-search-web)
+;; Emacs: Open URLs or search the web, plus browse-url-handlers:3 ends here
+
+;; [[file:Sacha.org::*Emacs: Open URLs or search the web, plus browse-url-handlers][Emacs: Open URLs or search the web, plus browse-url-handlers:4]]
+(setopt browse-url-handlers
+				'(("https?://?medium\\.com" . ignore)
+					("https?://[^/]+/@[^/]+/.*" . mastodon-url-lookup)
+					("https?://mailchimp\\.com" . browse-url-chrome)
+					("https?://bbb\\.emacsverse\\.org" . browse-url-chrome)
+					("https?://emacswiki.org" . eww)))
+(setopt browse-url-browser-function 'browse-url-firefox)
+;; Emacs: Open URLs or search the web, plus browse-url-handlers:4 ends here
 
 ;; [[file:Sacha.org::#checking-urls][Checking URLs:1]]
 (defun my-test-urls (urls)
@@ -19271,6 +19588,44 @@ See also:  http://ivan.kanis.fr/caly.el"
 	)
 ;; Act on current message with Embark:1 ends here
 
+;; [[file:Sacha.org::*Add comment to blog post][Add comment to blog post:1]]
+(defun my-message-add-blog-comment (url)
+	(interactive (list (my-complete-blog-post-url)))
+	(save-excursion
+		(goto-char (point-min))
+		(let* ((filename (my-11ty-comment-file url))
+					 (comments (my-11ty-comments url))
+					 (comment-list (alist-get 'comments (alist-get 'disqus comments)))
+					 (author (when (re-search-forward "Name you want.+?: \\(.+\\)" nil t)
+										 (match-string 1)))
+					 (message (when (re-search-forward "Message: " nil t)
+											(buffer-substring (match-end 0)
+																				(if (re-search-forward "Can I share your comment" nil t)
+																						(match-beginning 0)
+																					(point-max)))))
+					 (date (format-time-string "%FT%T%z" (date-to-time (message-field-value "Date"))))
+					 (new-comment
+						`((author . ,author)
+							(date . ,date)
+							(message . ,(format "<div class=\"email-body\">%s</div>"
+																	(org-export-string-as message 'html t)
+																	)))))
+			(cond
+			 (comment-list
+				(push new-comment(alist-get 'comments (alist-get 'disqus comments)))
+				(cl-incf (alist-get 'commentCount (alist-get 'disqus comments))))
+			 (t
+				(map-put! (alist-get 'disqus comments)
+									'comments
+									(list new-comment))
+				(cl-incf (alist-get 'commentCount (alist-get 'disqus comments)))))
+			(with-temp-file filename
+				(insert
+				 (json-encode comments))
+				(json-pretty-print (point-min) (point-max)))
+			(find-file filename))))
+;; Add comment to blog post:1 ends here
+
 ;; [[file:Sacha.org::#gnus][Gnus:1]]
 (setq gnus-select-method '(nnnil ""))
 (setq gnus-secondary-select-methods
@@ -19382,9 +19737,9 @@ See also:  http://ivan.kanis.fr/caly.el"
 				 (current-week (org-read-date nil t "+Mon"))
 				 (current-week-end (org-read-date nil t "+2Sun"))
 				 (next-week (org-read-date nil t "+2Mon"))
-				 (next-week-end (org-read-date nil t "+3Sun")))
-		(kill-new
-		 (format
+				 (next-week-end (org-read-date nil t "+3Sun"))
+				 result)
+		(setq result (format
 			"<div style=\"background-color: #223f4d; text-align: center; max-width: 384px; margin: auto; margin-bottom: 12px;\"><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" target=\"_blank\" class=\"mceButtonLink\" style=\"background-color:#223f4d;border-radius:0;border:2px solid #223f4d;color:#ffffff;display:block;font-family:'Helvetica Neue', Helvetica, Arial, Verdana, sans-serif;font-size:16px;font-weight:normal;font-style:normal;padding:16px 28px;text-decoration:none;text-align:center;direction:ltr;letter-spacing:0px\" rel=\"noreferrer\">SIGN UP NOW TO DELIVER %s-%s</a>
 </div>
 <p style=\"text-align: center; font-family: 'Helvetica Neue', Helvetica, Arial, Verdana\"><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" style=\"color: #476584; margin-top: 12px; margin-bottom: 12px;\" target=\"_blank\">You can also sign up early to deliver %s-%s</a></p>"
@@ -19404,65 +19759,105 @@ See also:  http://ivan.kanis.fr/caly.el"
 					 "%-e"
 				 "%b %-e")
 			 next-week-end)))
-		(shell-command "xdotool search  --onlyvisible --all Chrome windowactivate windowfocus")))
+		(when (called-interactively-p 'any)
+			(kill-new result)
+			(shell-command "xdotool search  --onlyvisible --all Chrome windowactivate windowfocus"))
+		result))
 ;; Automating buttons:1 ends here
 
 ;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html][Transforming HTML:1]]
-(defvar my-transform-html-clipboard-functions nil "List of functions to call with the clipboard contents.
-Each function should take a DOM node and return the resulting DOM node.")
-(defun my-transform-html-clipboard (&optional activate-app-afterwards functions text)
-	"Parse clipboard contents and transform it.
-This calls FUNCTIONS, defaulting to `my-transform-html-clipboard-functions'.
-If ACTIVATE-APP-AFTERWARDS is non-nil, use xdotool to try to activate that app's window."
+(defun my-transform-html (functions text)
+	"Apply FUNCTIONS to TEXT, which is parsed as HTML.
+Each function is called with the DOM and should return a DOM.
+Return the resulting HTML as a string."
 	(with-temp-buffer
-		(let ((text (or text (shell-command-to-string "unbuffer -p xclip -o -selection clipboard -t text/html 2>& /dev/null"))))
-			(if (string= text "")
-					(error "Clipboard does not contain HTML.")
+		(when (stringp text)
 				(insert (concat "<div>"
 												text
-												"</div>"))))
-		(let ((dom (libxml-parse-html-region (point-min) (point-max))))
+												"</div>")))
+		(let ((dom (if (stringp text) (libxml-parse-html-region (point-min) (point-max))
+								 text))) ; might already be a DOM
 			(erase-buffer)
-			(dom-print (seq-reduce
+			(svg-print (seq-reduce
 									(lambda (prev val)
 										(funcall val prev))
 									(or functions my-transform-html-clipboard-functions)
-									dom)))
-		(shell-command-on-region
-		 (point-min) (point-max)
-		 "xclip -i -selection clipboard -t text/html -filter 2>& /dev/null"))
-		(when activate-app-afterwards
-			(call-process "xdotool" nil nil nil "search" "--onlyvisible" "--all" activate-app-afterwards "windowactivate" "windowfocus")))
+									dom))
+			(buffer-string))))
+
+(defvar my-transform-html-clipboard-functions nil "List of functions to call with the clipboard contents.
+Each function should take a DOM node and return the resulting DOM node.")
+;; Rich text can sometimes be finicky to paste, so maybe I'll default to working with plain text
+;; if there's a code view I can use to paste in the HTML.
+(defvar my-transform-html-clipboard-rich-text nil
+	"Non-nil means copy as rich text instead of plain HTML.")
+(defun my-transform-html-clipboard (&optional activate-app-afterwards functions text
+																							as-rich-text)
+	"Parse clipboard contents and transform it.
+This calls FUNCTIONS, defaulting to `my-transform-html-clipboard-functions'.
+If ACTIVATE-APP-AFTERWARDS is non-nil, use xdotool to try to activate that app's window."
+	(when (region-active-p) (setq text (buffer-substring (region-beginning) (region-end))))
+	(unless text
+		(setq text (shell-command-to-string "unbuffer -p xclip -o -selection clipboard -t text/html 2>& /dev/null")))
+	(when (string= text "") (error "Clipboard does not contain HTML."))
+	(with-temp-buffer
+		(insert (my-transform-html functions text))
+		(if (or as-rich-text my-transform-html-clipboard-rich-text)
+				(shell-command-on-region
+					 (point-min) (point-max)
+					 "xclip -i -selection clipboard -t text/html -filter 2>& /dev/null")
+			(kill-new (buffer-substring-no-properties (point-min) (point-max)))))
+	(when activate-app-afterwards
+		(call-process "xdotool" nil nil nil "search" "--onlyvisible" "--all" activate-app-afterwards "windowactivate" "windowfocus")))
 ;; Transforming HTML:1 ends here
 
 ;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-saving-images][Saving images:1]]
 (defun my-transform-html-save-images (dom dir &optional file-prefix transform-fn)
-	(let (last-image)
+	(let (last-image last-image-filename)
 		(dom-search dom
 								(lambda (node)
 									(pcase (dom-tag node)
 										('img
 										 (let ((data (dom-attr node 'src)))
-											 (with-temp-buffer
-												 (insert data)
-												 (goto-char (point-min))
-												 (when (looking-at "data:image/\\([^;]+?\\);base64,")
-													 (setq last-image (cons (match-string 1)
-																									(buffer-substring (match-end 0) (point-max))))))))
+											 (cond
+												((string-match "^images/" data)
+												 (setq last-image nil
+															 last-image-filename data))
+												((string-match "^data:image/" data)
+												 (with-temp-buffer
+													 (insert data)
+													 (goto-char (point-min))
+													 (when (looking-at "data:image/\\([^;]+?\\);base64,")
+														 (setq last-image (cons (match-string 1)
+																										(buffer-substring (match-end 0) (point-max)))
+																	 last-image-filename nil)))))))
 										('h2
-										 (when last-image
-											 (with-temp-file
-													 (expand-file-name
-														(format "%s%s.%s"
-																		(or file-prefix "")
-																		(if transform-fn
-																				(funcall transform-fn (dom-texts node))
-																			(dom-texts node))
-																		(car last-image))
-														dir)
-												 (set-buffer-file-coding-system 'binary)
-												 (insert (base64-decode-string (cdr last-image)))))
-										 (setq last-image nil)))))
+										 (when (not (string= (string-trim (dom-texts node)) ""))
+											 (cond
+												(last-image
+												 (with-temp-file
+														 (expand-file-name
+															(format "%s%s.%s"
+																			(or file-prefix "")
+																			(if transform-fn
+																					(funcall transform-fn (dom-texts node))
+																				(dom-texts node))
+																			(car last-image))
+															dir)
+													 (set-buffer-file-coding-system 'binary)
+													 (insert (base64-decode-string (cdr last-image)))))
+												(last-image-filename
+												 (call-process "convert" nil nil nil last-image-filename
+																			 (expand-file-name
+																				(format "%s%s.%s"
+																								(or file-prefix "")
+																								(if transform-fn
+																										(funcall transform-fn (dom-texts node))
+																									(dom-texts node))
+																								"jpg")
+																				dir))))
+											 (setq last-image nil
+														 last-image-filename nil))))))
 		dom))
 ;; Saving images:1 ends here
 
@@ -19497,6 +19892,13 @@ If ACTIVATE-APP-AFTERWARDS is non-nil, use xdotool to try to activate that app's
 	dom)
 ;; Cleaning up:2 ends here
 
+;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-cleaning-up][Cleaning up:3]]
+(defun my-transform-html-remove-italics (dom)
+	(dolist (node (dom-by-tag dom 'i))
+		(dom-remove-node dom node))
+	dom)
+;; Cleaning up:3 ends here
+
 ;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-removing-sections][Removing sections:1]]
 (defvar my-brigade-section nil)
 (defun my-brigade-remove-meta-recursively (node &optional recursing)
@@ -19522,6 +19924,38 @@ Resume at the next h1 heading."
 						(dom-children node))))
 			`(,(dom-tag node) ,(dom-attributes node) ,@processed)))))
 ;; Removing sections:1 ends here
+
+;; [[file:Sacha.org::#collaboration-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-removing-unneeded-styles][Removing unneeded styles:1]]
+(defun my-brigade-simplify-html (dom)
+	(dolist (tag '(li b ul span p a h2 div))
+		(dolist (node (dom-by-tag dom tag))
+			(dolist (attr '(style class id))
+				(when (dom-attr node attr)
+					(dom-remove-attribute node attr)))))
+	;; unwrap spans
+	(dolist (span (dom-by-tag dom 'span))
+		(let ((parent (dom-parent dom span)))
+      (when parent
+        ;; Get the children of the span
+        (let ((children (dom-children span)))
+          ;; Remove the span from its parent
+          ;; Add each child to the parent where the span was
+          (dolist (child children)
+            (dom-add-child-before parent child span))
+					(dom-remove-node parent span)))))
+	;; remove empty elements
+	(dolist (tag '(a h2 p))
+		(dolist (node (dom-by-tag dom tag))
+			(when (string= (string-trim (dom-texts node)) "")
+				(dom-remove-node dom node))))
+	;; fix links
+	(dolist (node (dom-by-tag dom 'a))
+		(when (string-match "https://www\\.google\\.com\\/url" (dom-attr node 'href))
+			(let ((args (url-parse-query-string
+									 (cdr (url-path-and-query (url-generic-parse-url (dom-attr node 'href)))))))
+				(dom-set-attribute node 'href (car (assoc-default "q" args 'string=))))))
+	dom)
+;; Removing unneeded styles:1 ends here
 
 ;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-formatting-calls-to-action][Formatting calls to action:1]]
 (defun my-brigade-format-buttons (dom)
@@ -19565,25 +19999,137 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 			 `(,(dom-tag node) ,(dom-attributes node) ,@processed)))))
 ;; Changing link colours:1 ends here
 
+;; [[file:Sacha.org::*Just the headings][Just the headings:1]]
+(defun my-brigade-just-headings (dom)
+	(let ((entries
+				 (dom-node 'ul)))
+		(dolist (tag (dom-by-tag dom 'h2))
+			(let ((text (string-trim (dom-texts tag))))
+				(unless (string= text "")
+					(dom-append-child entries (dom-node 'li nil text)))))
+		entries))
+;; Just the headings:1 ends here
+
 ;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-wrapping-it-up][Wrapping it up:1]]
-(defun my-brigade-transform-html (&optional recolor file)
+(defun my-brigade-transform-html (&optional recolor file as-rich-text)
 	(interactive (list nil (when current-prefix-arg (read-file-name "File: "))))
 	(my-transform-html-clipboard
-  "Chrome"
-	(append
-	 '(my-brigade-save-newsletter-images
-		 my-transform-html-remove-images
-		 my-transform-html-remove-italics
-		 my-brigade-remove-meta-recursively
-		 my-brigade-format-buttons)
-	 (if recolor '(my-brigade-recolor-recursively)))
-	(when file
-		(with-temp-buffer (insert-file-contents file) (buffer-string)))))
+   "Chrome"
+	 (append
+		'(my-brigade-save-newsletter-images
+			my-transform-html-remove-images
+			my-transform-html-remove-italics
+			my-brigade-remove-meta-recursively
+			my-brigade-remove-styles
+			my-brigade-format-buttons)
+		(if recolor '(my-brigade-recolor-recursively)))
+	 (when file
+		 (with-temp-buffer (insert-file-contents file) (buffer-string)))
+	 as-rich-text))
 
-(defun my-brigade-transform-community-html (&optional file)
+(defun my-brigade-transform-community-html (&optional file as-rich-text)
 	(interactive (list (when current-prefix-arg (read-file-name "File: "))))
-	(my-brigade-transform-html t file))
+	(my-brigade-transform-html t file as-rich-text))
+
+(defun my-brigade-transform-just-headings (&optional file as-rich-text)
+	(interactive (list (when current-prefix-arg (read-file-name "File: "))))
+	(my-transform-html-clipboard
+   "Chrome"
+	 '(my-brigade-just-headings)
+	 (when file
+		 (with-temp-buffer (insert-file-contents file) (buffer-string)))
+	as-rich-text))
 ;; Wrapping it up:1 ends here
+
+;; [[file:Sacha.org::*Bike Brigade: Extract information from Google Docs export as zipped HTML][Bike Brigade: Extract information from Google Docs export as zipped HTML:1]]
+(defun my-html-group-by-tag (tag dom-list)
+	"Return an alist of (section . children)."
+	(let (section-name current-section results)
+		(dolist (node dom-list)
+			(if (and (eq (dom-tag node) tag)
+							 (not (string= (string-trim (dom-texts node)) "")))
+					(progn
+						(when current-section
+							(push (cons section-name (nreverse current-section))  results)
+							(setq current-section nil))
+						(setq section-name (string-trim (dom-texts node))))
+				(when section-name
+					(push node current-section))))
+		(when current-section
+			(push (cons section-name (reverse current-section))  results)
+			(setq current-section nil))
+		(nreverse results)))
+
+(defun my-html-last-link-href (node)
+	(dom-attr (car (last (dom-by-tag node 'a))) 'href))
+
+(defun my-brigade-process-latest-sketchpad ()
+	"Create an Org file with the HTML for different blocks."
+	(interactive)
+	(let ((default-directory "~/Downloads/newsletter")
+				file
+				dom
+				sections
+				)
+		(call-process "unzip" nil nil nil "-o" (my-latest-file "~/Downloads" "\\.zip$"))
+		(setq file (my-latest-file default-directory))
+		(with-temp-buffer
+			(insert-file-contents-literally file)
+			(goto-char (point-min))
+			(my-transform-html '(my-brigade-save-newsletter-images) (buffer-string))
+			(setq dom (my-brigade-simplify-html (libxml-parse-html-region (point-min) (point-max))))
+			(setq sections
+						(my-html-group-by-tag
+						 'h1
+						 (dom-children
+							(dom-by-tag
+							 dom'body)))))
+		(with-current-buffer (get-buffer-create "*newsletter*")
+			(erase-buffer)
+			(org-mode)
+			(insert "* In this e-mail\n#+begin_export html\n"
+							"<p>Hi Bike Brigaders! Here’s what's happening this week, with quick signup links. In this e-mail:</p>"
+							(my-transform-html
+							 '(my-brigade-remove-meta-recursively
+								 my-brigade-just-headings)
+							 (copy-tree dom))
+							"\n#+end_export\n\n")
+			(insert "* Sign-up block\n\n#+begin_export html\n"
+							(my-brigade-copy-signup-block)
+							"\n#+end_export\n\n")
+			(dolist (sec '("Bike Brigade" "In our community"))
+				(insert "* " sec "\n"
+								(mapconcat
+								 (lambda (group)
+									 (let ((item (apply 'dom-node 'div nil
+																			(append
+																			 (list (dom-node 'h2 nil (car group)))
+																			 (cdr group)))))
+										 (format "** %s\n\n%s\n\n#+begin_export html\n%s\n#+end_export\n\n"
+														 (car group)
+														 (or (my-html-last-link-href item) "")
+														 (my-transform-html
+															(delq nil
+																		(list
+																		 'my-transform-html-remove-images
+																		 'my-transform-html-remove-italics
+																		 'my-brigade-simplify-html
+																		 'my-brigade-format-buttons
+																		 (when (string= sec "In our community")
+																			 'my-brigade-recolor-recursively)))
+															item))))
+								 (my-html-group-by-tag 'h2 (cdr (assoc sec sections 'string=)))
+								 "")))
+			(insert "* Other updates\n"
+							(format "#+begin_export html\n%s\n#+end_export\n\n"
+											(my-transform-html
+											 '(my-transform-html-remove-images
+												 my-transform-html-remove-italics
+												 my-brigade-simplify-html)
+											 (car (cdr (assoc "Other updates" sections 'string=))))))
+			(goto-char (point-min))
+			(display-buffer (current-buffer)))))
+;; Bike Brigade: Extract information from Google Docs export as zipped HTML:1 ends here
 
 ;; [[file:Sacha.org::#simple-streaming][Simple streaming with FFmpeg:4]]
 (defvar my-stream-process nil)
@@ -20133,6 +20679,23 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 (setq epa-pinentry-mode 'loopback)
 (setq epg-pinentry-mode 'loopback)
 ;; Encryption:1 ends here
+
+;; [[file:Sacha.org::#miscellaneous-stardew-valley][Stardew Valley:1]]
+(defun my-stardew-install-mod (file)
+	(interactive (list (read-file-name "Zip: " "~/Downloads/")))
+	(call-process "unzip"
+
+								nil (get-buffer-create "*mods*") nil
+								"-uo"
+								file
+								"-d" (expand-file-name "/home/sacha/.local/share/Steam/steamapps/common/Stardew Valley/Mods/"))
+	(message "Installed %s" (file-name-base file))
+	)
+
+(defun my-stardew-install-latest-mod ()
+	(interactive)
+	(my-stardew-install-mod (my-latest-file "~/Downloads")))
+;; Stardew Valley:1 ends here
 
 ;; [[file:Sacha.org::#emacspeak][Emacspeak:1]]
 (setq emacspeak-prefix (kbd "s-e"))
@@ -21496,6 +22059,8 @@ loaded."
   :load-path "~/vendor/oddmuse-el"
   :ensure nil
   :config (oddmuse-mode-initialize)
+	:commands oddmuse-edit
+	:bind ("C-c C-l" . my-org-insert-link)
   :hook (oddmuse-mode-hook .
                            (lambda ()
                              (unless (string-match "question" oddmuse-post)

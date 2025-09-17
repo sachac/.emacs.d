@@ -202,7 +202,8 @@ in a directory in my =load-path=, Emacs can find them.
 This is one of the things people usually want to change right away. By default, Emacs saves backup files in the current directory. These are the files ending in =~= that are cluttering up your directory lists. The following code stashes them all in =~/.config/emacs/backups=, where I can find them with =C-x C-f= (=find-file=) if I really need to.
 
 #+BEGIN_SRC emacs-lisp
-(setq backup-directory-alist '(("." . "~/.config/emacs/backups")))
+(setq backup-directory-alist '(("\\.env$" . nil)
+															 ("." . "~/.config/emacs/backups")))
 (with-eval-after-load 'tramp
 	(setq tramp-backup-directory-alist nil))
 #+END_SRC
@@ -215,16 +216,177 @@ Disk space is cheap. Save lots.
 (setq vc-make-backup-files t)
 (setq auto-save-file-name-transforms '((".*" "~/.config/emacs/auto-save-list/" t)))
 #+END_SRC
+*** Obscure Emacs package appreciation: backup-walker
+:PROPERTIES:
+:EXPORT_DATE: 2025-09-17T13:52:03-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2025/09/obscure-emacs-package-appreciation-backup-walker/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2025/09/obscure-emacs-package-appreciation-backup-walker/
+:END:
 
-I'm trying out the [[https://github.com/lewang/backup-walker][backup-walker]] package for navigating through backups.
+The [[https://www.emacswiki.org/emacs/Carnival][Emacs Carnival]] theme for September is [[https://goritskov.com/posts/obscure_packages.html][obscure
+packages]], and today the [[https://github.com/lewang/backup-walker][backup-walker]] package
+saved my bacon. There had been some odd mishap
+with editing my config in Org Mode. I probably
+accidentally deleted a subtree due to
+over-enthusiastic speed commands. (... Maybe I
+should make my ~k~ shortcut for
+~my-org-cut-subtree-or-list-item~ only work in my
+Inbox.org and news.org files.) A chunk of my
+[[https://sachachua.com/dotemacs/index.html][literate Emacs configuration]] had silently
+disappeared, including the code that defined
+[[dotemacs:my-org-insert-link-dwim][~my-org-insert-link-dwim~]]. Before I noticed, I'd
+already tangled my Emacs configuration file and
+restarted Emacs, so I couldn't recover the
+definition from memory using [[dotemacs:inserting-code][~symbol-function~]] or
+use [[package:vundo][vundo]] to browse the Emacs undo tree. I often
+neglect to commit my config changes to Git, so I
+couldn't restore a previous version. Oops.
+
+Fortunately, I had other backups. I have a 2 TB
+SSD in my laptop, and I've long since configured
+Emacs to neatly save numbered backups in a
+separate directory.
+
+#+begin_src emacs-lisp
+(setq backup-directory-alist '(("\\.env$" . nil)
+															 ("." . "~/.config/emacs/backups")))
+(with-eval-after-load 'tramp
+	(setq tramp-backup-directory-alist nil))
+(setq delete-old-versions -1)
+(setq version-control t)
+(setq auto-save-file-name-transforms '((".*" "~/.config/emacs/auto-save-list/" t)))
+#+end_src
+
+At the moment, there are about 12,633 files adding
+up to 3 GB, which is totally worth it for peace of
+mind. One of those files might have my missing
+code. I could probably use grep to search for the
+function, but then there might be matches in other
+files, and it's not easy to see what changed
+between versions.
+
+I had learned about backup-walker in the process
+of writing about [[https://sachachua.com/blog/2025/06/thinking-about-time-travel-with-the-emacs-text-editor-and-org-mode/][Thinking about time travel with
+the Emacs text editor, Org Mode, and backups]]. So I
+used [[https://github.com/lewang/backup-walker][backup-walker]] to flip through my file's
+numbered backups in much the same way that
+[[package:git-timemachine][git-timemachine]] lets you flip through Git versions
+of a file. After ~M-x backup-walker-start~, I
+tapped ~p~ to go through the previous backups. It
+showed me the diff, so it was easy to check with
+~C-s~ (~isearch-forward~) if this was the version
+I was looking for. When I found the change, I
+pressed RET to load the version with the function
+in it. It turned out I accidentally deleted it on
+Sept 15. Once I found it, it was easy to restore
+that section. I also restored a couple of other
+sections that I'd accidentally deleted too. Hooray
+for backup-walker!
+
+Note that the backup-walker diff was the other way
+around from what I expected. It goes "diff new
+old" instead of "diff old new", so ~+~ indicates
+stuff that was removed by the new version and ~-~
+indicates stuff that was added. This is good if
+you live backwards in time, kind of like the [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Antinews.html][Emacs
+Antinews]] file, but my mind doesn't quite work that
+way. I wanted it to look like a regular diff, with
+the additions in newer versions marked with ~+~.
+Emacs being Emacs, I changed it. This is what it
+looks like now:
+
+#+CAPTION: backup-walker diffs going the direction I want them to (older vs newer)
+[[file:~/recordings/2025-09-17_13-46-12.png]]
+
+The following code makes it behave the way I
+expect:
+
+#+begin_src emacs-lisp
+(defun my-backup-walker-refresh ()
+  (let* ((index (cdr (assq :index backup-walker-data-alist)))
+         (suffixes (cdr (assq :backup-suffix-list backup-walker-data-alist)))
+         (prefix (cdr (assq :backup-prefix backup-walker-data-alist)))
+         (right-file (concat prefix (nth index suffixes)))
+         (right-version (format "%i" (backup-walker-get-version right-file)))
+         diff-buff left-file left-version)
+    (if (eq index 0)
+        (setq left-file (cdr (assq :original-file backup-walker-data-alist))
+              left-version "orig")
+      (setq left-file (concat prefix (nth (1- index) suffixes))
+            left-version (format "%i" (backup-walker-get-version left-file))))
+		;; we change this to go the other way here
+    (setq diff-buf (diff-no-select right-file left-file nil 'noasync))
+    (setq buffer-read-only nil)
+    (delete-region (point-min) (point-max))
+    (insert-buffer diff-buf)
+    (set-buffer-modified-p nil)
+    (setq buffer-read-only t)
+    (force-mode-line-update)
+    (setq header-line-format
+          (concat (format "{{ ~%s~ → ~%s~ }} "
+                          (propertize left-version 'face 'font-lock-variable-name-face)
+                          (propertize right-version 'face 'font-lock-variable-name-face))
+                  (if (nth (1+ index) suffixes)
+                      (concat (propertize "<p>" 'face 'italic)
+                              " ~"
+                              (propertize (int-to-string
+                                           (backup-walker-get-version (nth (1+ index) suffixes)))
+                                          'face 'font-lock-keyword-face)
+                              "~ ")
+                    "")
+                  (if (eq index 0)
+                      ""
+                    (concat (propertize "<n>" 'face 'italic)
+                            " ~"
+                            (propertize (int-to-string (backup-walker-get-version (nth (1- index) suffixes)))
+                                        'face 'font-lock-keyword-face)
+                            "~ "))
+                  (propertize "<return>" 'face 'italic)
+                  " open ~"
+                  (propertize (propertize (int-to-string (backup-walker-get-version right-file))
+                                          'face 'font-lock-keyword-face))
+                  "~"))
+    (kill-buffer diff-buf)))
+(with-eval-after-load 'backup-walker
+	(advice-add 'backup-walker-refresh :override #'my-backup-walker-refresh))
+#+end_src
+
+~backup-walker~ is not actually a real package in
+the sense of being in a package archive, but
+fortunately, recent Emacs makes it easier to
+install a library from a repository. I needed to
+install it from
+[[https://github.com/lewang/backup-walker]]. The was
+written so long ago that I also needed to
+~defalias~ some functions that were removed in
+Emacs 26.1. Here's the use-package snippet from my
+configuration:
 
 #+begin_src emacs-lisp
 (use-package backup-walker
 	:vc (:url "https://github.com/lewang/backup-walker")
+	:commands backup-walker-start
 	:init
-	(defalias 'string-to-int 'string-to-number)
+	(defalias 'string-to-int 'string-to-number)  ; removed in 26.1
 	(defalias 'display-buffer-other-window 'display-buffer))
 #+end_src
+
+So there's an obscure package recommendation:
+[[https://github.com/lewang/backup-walker][backup-walker]]. This thing that has been untouched
+for more than a decade is still chugging along
+pretty nicely. It might be nice to dust it off,
+switch out the obsolete functions, add an option
+for the diff direction, and maybe sort things out
+so that you can reverse the diff, split hunks, and
+apply hunks to your original file. And maybe a way
+to walk the backup history for changes in a
+specific region? I suppose someone could make a
+spiffy [[https://github.com/magit/transient][Transient]]-based user interface to modernize
+it. But it's fine, it works. I should really be
+saving things in proper version control, but this
+was a good backup. May backup-walker save you from
+a future oops!
+
 ** History
 :PROPERTIES:
 :CUSTOM_ID: history
@@ -439,6 +601,8 @@ from [[dotemacs:web-link]] so that I can get the regular
 			(display-buffer buf))))
 
 (use-package qrencode
+	:defer t
+	:commands qrencode--encode-to-buffer
 	:config
 	(with-eval-after-load 'embark-org
 		(define-key embark-org-link-map (kbd "q") #'my-org-link-qr)))
@@ -582,8 +746,7 @@ If called interactively, copy to the kill ring."
 :END:
 
 #+NAME: embark
-#+begin_src emacs-lisp :var foo="bar"
-(let ((foo '"bar"))
+#+begin_src emacs-lisp
 (defun my-embark-org-element ()
   "Target an Org Mode element at point."
   (save-window-excursion
@@ -602,17 +765,16 @@ If called interactively, copy to the kill ring."
                  (value (org-element-property :value context)))
             (cond ((eq type 'headline)
                    (cons 'org-heading (org-element-property :title context)))
-                  ((eq type 'src-block)
-                   (cons 'org-src-block (org-element-property :name context)))
-                  ((eq type 'link)
-                   (cons 'url (org-element-property :raw-link context))))))))))
+									;; src-block and link can be handled by embark-org
+                )))))))
 
 (defun my-embark-org-src-block-copy-noweb-reference (element)
   (kill-new (if (org-element-property element :parameters)
                 (format "<<%s(%s)>>" (org-element-property element :name)
                         (org-element-property element :parameters))
               (format "<<%s>>" (org-element-property element :parameters)))))
-)
+(with-eval-after-load 'embark-org
+	(keymap-set embark-org-src-block-map "N" #'my-embark-org-src-block-copy-noweb-reference))
 #+end_src
 *** Whichkey and Embark
 :PROPERTIES:
@@ -1340,6 +1502,7 @@ package:hydra offers customizable shortcuts. package:transient is another option
 (use-package use-package-hydra)
 (if my-laptop-p
     (use-package hydra-posframe
+			:defer t
 			:if my-laptop-p :after hydra
 			:vc (:url "https://github.com/Ladicle/hydra-posframe")
 			))
@@ -1973,6 +2136,8 @@ I also needed to create a Google custom search JSON API key at https://developer
 		(my-insert-or-replace-link url title)))
 
 (use-package consult-omni
+	:defer t
+	:commands consult-omni
 	:load-path "~/vendor/consult-omni"
   :after (consult embark)
   :custom
@@ -2142,6 +2307,9 @@ Here's how that works:
 If ~my-org-scan-for-untargeted-links~ doesn't find anything, then the post is probably ready to go (at least in terms of links). That might help avoid accidentally posting placeholders. I'm going to experiment with going back to the default of having ~org-export-with-broken-links~ be ~nil~ again, so that's another safety net that should catch placeholders before they get published.
 
 ***** Next steps
+:PROPERTIES:
+:CUSTOM_ID: completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode-next-steps
+:END:
 
 I can look at the code for the web search and add the same kind of preview function for my bookmarks and blog posts.
 
@@ -2499,6 +2667,7 @@ The following code annotates journal entries with their categories.
 (use-package keycast
   :if my-laptop-p
   :after embark
+	:defer t
   :config (dolist (cmd '(embark-act embark-act-noexit embark-become))
             (advice-add cmd
                         :before #'my-force-keycast-update)))
@@ -2779,6 +2948,9 @@ repeating just the last keystroke.
                 (buffer-list))))
 #+end_src
 ** Expand region
+:PROPERTIES:
+:CUSTOM_ID: navigation-expand-region
+:END:
 #+begin_src emacs-lisp
 (use-package expand-region
   :bind ("C-=" . er/expand-region)
@@ -3496,6 +3668,9 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
   ("C-c f" . #'my-file-shortcuts/body))
   #+end_src
 ** C-g improvement
+:PROPERTIES:
+:CUSTOM_ID: navigation-c-g-improvement
+:END:
 
 From https://protesilaos.com/codelog/2024-11-28-basic-emacs-configuration/
 #+begin_src emacs-lisp
@@ -4089,6 +4264,7 @@ From Xah Lee:
   (pdf-tools-install)
   (setq pdf-view-resize-factor 1.1)
   (setq-default pdf-view-display-size 'fit-page)
+	:defer t
   )
 #+end_src
 * Writing and editing
@@ -4195,7 +4371,8 @@ Someday it could be pretty cool to have an SVG where I can see the frames on a t
 	(setq gif-screencast-output-directory my-recordings-dir))
 
 (use-package giffy
-	:quelpa (giffy :fetcher github :repo "larsmagne/giffy"))
+	:quelpa (giffy :fetcher github :repo "larsmagne/giffy")
+	:defer t)
 #+end_src
 
 
@@ -4217,6 +4394,8 @@ sentence navigation commands work for me.
 
 #+begin_src emacs-lisp
 (use-package writeroom-mode
+	:defer t
+	:commands writeroom-mode
 	:config
 	(setq writeroom-global-effects (remove 'writeroom-set-fullscreen
 																				 writeroom-global-effects)))
@@ -4989,6 +5168,7 @@ CLOSED: [2024-11-19 Tue 09:08] SCHEDULED: <2024-11-19 Tue>
 :EXPORT_DATE: 2024-11-19T08:33:59-0500
 :EXPORT_ELEVENTY_PERMALINK: /blog/2024/11/updating-my-audio-braindump-workflow-to-take-advantage-of-whisperx/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2024/11/updating-my-audio-braindump-workflow-to-take-advantage-of-whisperx/
+:CUSTOM_ID: writing-and-editing-updating-my-audio-braindump-workflow-to-take-advantage-of-whisperx
 :END:
 :LOGBOOK:
 - State "DONE"       from              [2024-11-19 Tue 09:08]
@@ -5908,6 +6088,9 @@ This uses the [[https://www.gnu.org/software/wdiff/][wdiff]] tool for word-based
 #+end_src
 
 ** Denote
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-denote
+:END:
 
 #+begin_src emacs-lisp
 (use-package denote
@@ -5935,6 +6118,27 @@ stuff.
 	(org-export-with-sub-superscripts nil)
 	(org-footnote-section nil)
 	(org-fold-catch-invisible-edits 'smart))
+#+end_src
+** Find first common Org Mode heading
+:PROPERTIES:
+:CUSTOM_ID: org-mode-find-first-common-org-mode-heading
+:END:
+
+#+begin_src emacs-lisp
+(defun my-org-find-first-common-heading (other-buffer)
+	"Go to the first top-level heading in common with OTHER-BUFFER.
+This is helpful when resolving sync conflicts."
+	(interactive (list (read-buffer)))
+	(let ((other-headings (with-current-buffer (get-buffer other-buffer)
+													(org-map-entries (lambda () (org-entry-get (point) "ITEM")) "LEVEL=1"))))
+		(goto-char
+		 (catch 'done
+			 (org-map-entries
+				(lambda ()
+					(when (member (org-entry-get (point) "ITEM") other-headings)
+						(throw 'done (point))))
+				"LEVEL=1")))
+		))
 #+end_src
 ** Writing about sketches and including their text
 :PROPERTIES:
@@ -6238,7 +6442,12 @@ I don't use the diary, but I do use the clock a lot.
 :EXPORT_DATE: 2025-03-29T13:14:24-0400
 :EXPORT_ELEVENTY_PERMALINK: /blog/2025/03/org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2025/03/org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command/
+:EXPORT_MODIFIED: 2025-09-17T13:14:33-0400
 :END:
+
+#+begin_update
+[2025-09-17]: Limited ~my-org-cut-subtree-or-list-item~ to Inbox.org and news.org.
+#+end_update
 
 Defining shortcuts in ~org-speed-commands~ is
 handy because you can use these single-key
@@ -6265,6 +6474,10 @@ I no longer need. By default, ~k~ is mapped to
 (defun my-org-cut-subtree-or-list-item (&optional n)
 	"Cut current subtree or list item."
 	(cond
+	 ; limit this to only Inbox.org and news.org
+	 ((not (string-match (regexp-opt '("Inbox.org" "news.org"))
+											 (or (buffer-file-name) "")))
+		(message "Let's only cut things in Inbox.org or news.org")) ; do nothing
 	 ((and (looking-at org-outline-regexp) (looking-back "^\**" nil))
 		(org-cut-subtree n))
 	 ((looking-at (org-item-re))
@@ -6293,6 +6506,9 @@ it will turn into:
 You can find out a little more about [[https://orgmode.org/manual/Speed-Keys.html][Org Mode speed commands]] in the Org manual: ~(info "(org) Speed Keys")~.
 
 *** Other speed commands
+:PROPERTIES:
+:CUSTOM_ID: org-mode-keyboard-shortcuts-other-speed-commands
+:END:
 #+begin_src emacs-lisp
 
 (setq org-use-effective-time t)
@@ -6690,7 +6906,7 @@ able to clock in on them.
 From https://takeonrules.com/2022/10/16/adding-another-function-to-my-workflow/
 
 #+begin_src emacs-lisp
-(use-package git-link)
+(use-package git-link :defer t)
 (bind-key "C-c c" 'jf/capture-region-contents-with-metadata)
 (defun jf/capture-region-contents-with-metadata (start end parg)
   "Write selected text between START and END to currently clocked `org-mode' entry.
@@ -6790,6 +7006,7 @@ I'm curious about how fast I type some things.
 :CREATED: [2024-10-24 Thu 10:42]
 :Effort:   0:15
 :QUANTIFIED: Emacs
+:CUSTOM_ID: org-mode-tasks-managing-tasks-get-things-to-be-set-to-todo-when-they-repeat
 :END:
 :LOGBOOK:
 - State "DONE"       from "STARTED"    [2024-10-24 Thu 10:58]
@@ -7093,6 +7310,9 @@ still need to do. This [[http://lists.gnu.org/archive/html/emacs-orgmode/2007-03
 #+end_src
 
 *** Checklists
+:PROPERTIES:
+:CUSTOM_ID: org-mode-tasks-checklists
+:END:
 
 https://orgmode.org/worg/org-contrib/org-checklist.html
 
@@ -7731,6 +7951,7 @@ hang of using these more!
 :EXPORT_DATE: 2024-10-20T19:00:22-0400
 :EXPORT_ELEVENTY_PERMALINK: /blog/2024/10/shuffling-my-org-mode-unscheduled-tasks/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2024/10/shuffling-my-org-mode-unscheduled-tasks/
+:CUSTOM_ID: org-mode-org-agenda-shuffling-my-org-mode-unscheduled-tasks
 :END:
 
 I enjoyed listening to [[https://www.artofmanliness.com/character/advice/podcast-1029-treat-your-to-do-list-like-a-river-and-other-mindset-shifts-for-making-better-use-of-your-time/][Podcast #1,029: Treat Your To-Do List Like a River, and Other Mindset Shifts for Making Better Use of Your Time | The Art of Manliness]] (thanks [[https://mastodon.social/@ctietze/113300034618623731][@ctietze@mastodon.social]] for the recommendation) and checking out the [[https://www.artofmanliness.com/character/behavior/autofocus-the-productivity-system-that-treats-your-to-do-list-like-a-river/][Autofocus method]] ([[http://markforster.squarespace.com/autofocus-system/][main website with translations]]) for reviewing your TODO list without worrying too much about prioritization. I also had an opportunity to reflect on similar topics in a conversation with John Wiegley and Adam Porter about personal information management (which I'll be blogging about once John has a chance to review the draft).
@@ -8597,6 +8818,7 @@ CLOSED: [2024-10-31 Thu 10:56]
 :EXPORT_DATE: 2024-10-31T10:42:20-0400
 :EXPORT_ELEVENTY_PERMALINK: /blog/2024/10/org-mode-prompt-for-a-heading-and-then-refile-it-to-point/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2024/10/org-mode-prompt-for-a-heading-and-then-refile-it-to-point/
+:CUSTOM_ID: org-mode-filing-org-mode-prompt-for-a-heading-and-then-refile-it-to-point
 :END:
 :LOGBOOK:
 - State "DONE"       from "STARTED"    [2024-10-31 Thu 10:56]
@@ -9124,10 +9346,11 @@ shortcuts when I'm at headings.
 :END:
 #+begin_src emacs-lisp
 (use-package org-contacts
+	:commands org-contacts-filter
 	:config
-	(setq org-contacts-files '("~/sync/orgzly/people.org"))
+	(setq org-contacts-files '("~/sync/orgzly/people.org" "~/proj/emacsconf/2025/private/conf.org"))
 	:hook
-	(message-setup-hook . 'my-message-greet-contacts))
+	(message-setup . my-message-greet-contacts))
 
 (defun my-message-greet-contacts ()
 	(interactive)
@@ -9320,7 +9543,7 @@ custom link types.
 [[https://apps.bram85.nl/git/bram/gists/src/commit/118c5a579a231862f4d1a548afe071e450af4e03/gists/format-org-mode-source-blocks.el][gists/format-org-mode-source-blocks.el at 118c5a579a231862f4d1a548afe071e450af4e03 - gists - Forgejo]]
 
 #+begin_src emacs-lisp
-(use-package format-all :if my-laptop-p)
+(use-package format-all :if my-laptop-p :defer t)
 
 (use-package org
   :config
@@ -9457,6 +9680,7 @@ From https://isamert.net/2022/01/04/dealing-with-apis-jsons-and-databases-in-org
 #+begin_src emacs-lisp
 (use-package jq-mode
 	:vc (:url "https://github.com/ljos/jq-mode")
+	:defer t
 	:config
 	(org-babel-do-load-languages 'org-babel-load-languages
 															 '((jq . t))))
@@ -9479,7 +9703,7 @@ From https://isamert.net/2022/01/04/dealing-with-apis-jsons-and-databases-in-org
 :END:
 
 #+begin_src emacs-lisp
-(use-package literate-elisp :if my-laptop-p)
+(use-package literate-elisp :if my-laptop-p :defer t)
 #+end_src
 
 Then I should be able to use =literate-elisp-load-file= and still be able to jump to functions by definition.
@@ -9489,6 +9713,9 @@ Then I should be able to use =literate-elisp-load-file= and still be able to jum
 :CUSTOM_ID: publishing
 :END:
 *** TODO Copy Tasker task
+:PROPERTIES:
+:CUSTOM_ID: org-mode-publishing-copy-tasker-task
+:END:
 
 #+begin_src emacs-lisp
 (defun my-tasker-org-insert (url)
@@ -9532,6 +9759,7 @@ Then I should be able to use =literate-elisp-load-file= and still be able to jum
 :ARCHIVE_CATEGORY: Inbox
 :ARCHIVE_TODO: STARTED
 :EXPORT_MODIFIED: 2025-03-19T18:20:24-0400
+:CUSTOM_ID: org-mode-publishing-changing-org-mode-underlines-to-the-html-mark-element
 :END:
 :LOGBOOK:
 CLOCK: [2024-11-17 Sun 16:30]--[2024-11-17 Sun 17:09] =>  0:39
@@ -9648,6 +9876,7 @@ CLOSED: [2024-10-25 Fri 10:17]
 :CREATED:  [2024-10-24 Thu 13:08]
 :Effort:   0:30
 :QUANTIFIED: Emacs
+:CUSTOM_ID: org-mode-publishing-remove-heading-from-toc
 :END:
 :LOGBOOK:
 - State "DONE"       from "STARTED"    [2024-10-25 Fri 10:17]
@@ -9827,6 +10056,9 @@ to include SVGs.
 #+end_src
 
 *** Counting words without blocks
+:PROPERTIES:
+:CUSTOM_ID: org-mode-publishing-counting-words-without-blocks
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-subtree-text-without-blocks ()
@@ -10110,6 +10342,7 @@ This code displays the images inline.
 #+begin_src emacs-lisp
 (use-package ox-epub
   :if my-laptop-p
+	:defer t
   :config
 	(setq org-epub-style-default (concat org-epub-style-default "\n  p.my-verse { white-space: pre }\n")))
 
@@ -10561,6 +10794,7 @@ CLOSED: [2024-10-18 Fri 17:55]
 :PROPERTIES:
 :Effort:   0:30
 :QUANTIFIED: Emacs
+:CUSTOM_ID: org-mode-publishing-11ty-static-site-generation-linking-to-blog-topics
 :END:
 :LOGBOOK:
 - State "DONE"       from "STARTED"    [2024-10-18 Fri 17:55]
@@ -10763,6 +10997,7 @@ CLOSED: [2024-10-25 Fri 11:02]
 :CREATED: [2024-10-25 Fri 10:48]
 :Effort:   0:30
 :QUANTIFIED: Emacs
+:CUSTOM_ID: org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-list-all-blog-posts-that-match-a-category-or-title-search
 :END:
 :LOGBOOK:
 - State "DONE"       from "STARTED"    [2024-10-25 Fri 11:02]
@@ -10788,6 +11023,7 @@ CLOCK: [2024-10-25 Fri 10:48]--[2024-10-25 Fri 11:02] =>  0:14
 :PROPERTIES:
 :Effort:   0:30
 :QUANTIFIED: Coding
+:CUSTOM_ID: org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-making-it-easier-to-add-a-category-to-a-blog-post
 :END:
 :LOGBOOK:
 CLOCK: [2024-10-16 Wed 10:07]--[2024-10-16 Wed 10:22] =>  0:15
@@ -11109,6 +11345,42 @@ Now to figure out how to override the export menu. Totally messy hack!
 	 (org-export-backend-options (org-export-get-backend '11ty)))
 	(add-hook 'org-11ty-front-matter-functions #'my-org-11ty-add-mastodon-to-front-matter))
 #+end_src
+**** Comments
+:PROPERTIES:
+:CUSTOM_ID: org-mode-publishing-11ty-static-site-generation-comments
+:END:
+#+begin_src emacs-lisp
+(defun my-11ty-add-blog-comment (new-comment url)
+	"Add COMMENT to URL.
+COMMENT should be an alist with author, date (ISO8901 format), and message (HTML)."
+	(let* ((filename (my-11ty-comment-file url))
+				 (comments (my-11ty-comments url))
+				 (comment-list (alist-get 'comments (alist-get 'disqus comments)))
+				 (existing (and
+										(alist-get 'postId new-comment)
+										(seq-find (lambda (o)
+																(string= (alist-get 'postId o)
+																				 (alist-get 'postId new-comment)))
+															comment-list))))
+		(cond
+		 (existing
+			;; I think this is how you replace
+			(setcar (member existing comment-list)
+							new-comment))
+		 (comment-list
+			(push new-comment (alist-get 'comments (alist-get 'disqus comments)))
+			(cl-incf (alist-get 'commentCount (alist-get 'disqus comments))))
+		 (t
+			(map-put! (alist-get 'disqus comments)
+								'comments
+								(list new-comment))
+			(cl-incf (alist-get 'commentCount (alist-get 'disqus comments)))))
+		(with-temp-file filename
+			(insert
+			 (json-encode comments))
+			(json-pretty-print (point-min) (point-max)))
+		filename))
+#+end_src
 *** Cleaning up export
 :PROPERTIES:
 :CUSTOM_ID: cleaning-up-export
@@ -11322,6 +11594,9 @@ And here's a little thing to convert a two-level list into my collapsible sectio
 					(cdr list))))
                                         #+end_src
 *** Abbreviations
+:PROPERTIES:
+:CUSTOM_ID: org-mode-publishing-abbreviations
+:END:
 
 There's an ~abbr~ HTML tag that I can use to provide inline abbreviations and definitions.
 
@@ -11649,6 +11924,7 @@ don't need this any more...
  #+begin_src emacs-lisp
 (use-package ox-hugo
   :ensure t            ;Auto-install the package from Melpa (optional)
+	:defer t
   :after ox)
  #+end_src
 *** Org Mode: Asynchronous export and tangle of a large file           :org:
@@ -11775,6 +12051,78 @@ the mode, `toggle' toggles the state."
 #+end_src
 
 Let's see if this makes it easier for me to tweak things.
+*** Plain text
+:PROPERTIES:
+:CUSTOM_ID: org-mode-publishing-plain-text
+:END:
+
+For Emacs News, I want to export links without punctuation, and I want to indent lists by 4 spaces instead of 2.
+This makes my Emacs News export like this:
+
+#+begin_example
+- Org Mode:
+    - Stop renting your life - own it https://curtismchale.ca/2025/08/23/stop-renting-your-life-own-it/ - Org Mode and tasks
+    - TIL: Org Mode Can Sort Lists Automatically! https://www.reddit.com/r/emacs/comments/1musbn8/til_org_mode_can_sort_lists_automatically/ C-c ^ (org-sort)
+    - Randy Ridenour: Creating Attendance Sheets with Org Mode https://randyridenour.net/posts/2025-08-23-creating-attendance-sheets-with-org-mode.html
+#+end_example
+
+instead of:
+
+#+begin_example
+- Org Mode:
+  - [Stop renting your life - own it] (<https://curtismchale.ca/2025/08/23/stop-renting-your-life-own-it/>) - Org Mode and tasks
+  - [TIL: Org Mode Can Sort Lists Automatically!] (<https://www.reddit.com/r/emacs/comments/1musbn8/til_org_mode_can_sort_lists_automatically/>) C-c ^ (org-sort)
+  - [Randy Ridenour: Creating Attendance Sheets with Org Mode] (<https://randyridenour.net/posts/2025-08-23-creating-attendance-sheets-with-org-mode.html>)
+#+end_example
+
+#+begin_src emacs-lisp
+(defun my-plain-text-link (link contents info)
+  "Export LINK in 'description URL' format."
+  (let* ((type (org-element-property :type link))
+         (path (org-element-property :path link))
+         (raw-link (org-element-property :raw-link link))
+         (description (or contents
+													(and (string= type "fuzzy") path)
+													path))
+         (url (cond
+               ((member type '("http" "https"))
+                (concat type ":" path))
+               ((string= type "file") path)
+               (t raw-link))))
+		(cond
+     ((org-export-custom-protocol-maybe link description 'my-plain-text info))
+     (t
+			(if description
+					(format "%s %s" description url)
+				url)))))
+
+(defun my-plain-text-item (item contents info)
+  "Transcode an ITEM element with 4-space indentation."
+	(replace-regexp-in-string "^\\(  \\)+" "\\1\\1"
+														(org-ascii-item item contents info)))
+
+(defun my-plain-text-export-to-buffer (&optional async subtreep visible-only body-only ext-plist)
+  "Export current buffer to plain text buffer."
+  (interactive)
+  (org-export-to-buffer 'my-plain-text "*My Plain Text Export*"
+    async subtreep visible-only body-only ext-plist))
+
+(defun my-plain-text-export-to-file (&optional async subtreep visible-only body-only ext-plist)
+  "Export current buffer to plain text file."
+  (interactive)
+  (let ((file (org-export-output-file-name ".txt" subtreep)))
+    (org-export-to-file 'my-plain-text file
+      async subtreep visible-only body-only ext-plist)))
+(with-eval-after-load 'org
+	(org-export-define-derived-backend 'my-plain-text 'ascii
+  :translate-alist '((link . my-plain-text-link)
+                     (item . my-plain-text-item))
+  :menu-entry '(?p "Export to custom plain text"
+									 ((?p "As plain text buffer" my-plain-text-export-to-buffer)
+										(?P "As plain text file" my-plain-text-export-to-file))))
+	(add-to-list 'org-export-backends 'my-plain-text))
+#+end_src
+
 *** PDF
 :PROPERTIES:
 :CUSTOM_ID: pdf
@@ -11924,6 +12272,217 @@ https://so.nwalsh.com/2020/01/05-latex , but I use letter paper instead of A4.
 :PROPERTIES:
 :CUSTOM_ID: org-links
 :END:
+*** Inserting from clipboard or around text
+:PROPERTIES:
+:CUSTOM_ID: my-org-insert-link-dwim
+:END:
+
+Based on https://xenodium.com/emacs-dwim-do-what-i-mean/
+#+begin_src emacs-lisp
+(defun my-page-title (url)
+	(condition-case nil
+			(with-current-buffer (url-retrieve-synchronously url)
+				(string-trim
+				 (replace-regexp-in-string
+					"[ \n]+" " "
+					(replace-regexp-in-string
+					 "\\(^Github - \\|:: Sacha Chua\\)" ""
+					 (or
+						(dom-text (car
+											 (dom-by-tag (libxml-parse-html-region
+																		(point-min)
+																		(point-max))
+																	 'title)))
+						"")))))
+		(error nil)))
+
+;; we're in a bracketed link with no description and the target doesn't look like a link;
+;; likely I've actually added the text for the description and now we need to include the link
+(defun my-org-in-bracketed-text-link-p ()
+	(when (and (derived-mode-p 'org-mode) org-link-bracket-re)
+		(let* ((bracket-pos (org-in-regexp org-link-bracket-re))
+					 (bracket-target (match-string 1))
+					 (bracket-desc (match-string 2)))
+			(and bracket-pos bracket-target
+					 (null bracket-desc)
+					 ;; try to trigger only when the target is plain text and doesn't have a protocol
+					 (not (string-match ":" bracket-target))))))
+
+(defun my-org-set-link-target-with-search ()
+	"Replace the current link's target with a web search.
+Assume the target is actually supposed to be the description.  For
+example, if the link is [[some text]], do a web search for 'some text',
+prompt for the link to use as the target, and move 'some text' to the
+description."
+	(interactive)
+	(let* ((bracket-pos (org-in-regexp org-link-bracket-re))
+				 (bracket-target (match-string 1))
+				 (bracket-desc (match-string 2))
+				 result)
+		(when (my-org-in-bracketed-text-link-p)
+			(let ((link (consult-omni bracket-target nil nil t)))
+				(delete-region (car bracket-pos) (cdr bracket-pos))
+				(setq result (org-link-make-string (or (get-text-property 0 :url link)
+																							 (replace-regexp-in-string
+																								"^#"
+																								""
+																								link)) ; might be a URL
+																					 bracket-target))
+				(insert result)
+				result))))
+
+(defun my-org-link-default-description (link desc)
+	"Return the default description for an Org Mode LINK.
+This uses :insert-description if defined."
+	(let* ((abbrevs org-link-abbrev-alist-local)
+				 (all-prefixes (append (mapcar #'car abbrevs)
+															 (mapcar #'car org-link-abbrev-alist)
+															 (org-link-types)))
+				 (type
+          (cond
+           ((and all-prefixes
+                 (string-match (rx-to-string `(: string-start (submatch (or ,@all-prefixes)) ":")) link))
+            (match-string 1 link))
+           ((file-name-absolute-p link) "file")
+           ((string-match "\\`\\.\\.?/" link) "file"))))
+		(when (org-link-get-parameter type :insert-description)
+			(let ((def (org-link-get-parameter type :insert-description)))
+				(condition-case nil
+						(cond
+						 ((stringp def) def)
+						 ((functionp def)
+							(funcall def link desc)))
+					(error
+					 nil))))))
+
+;; (consult-omni "https://gregnewman.io/blog/emacs-carnival-2025-07-writing-experience/" nil nil t)
+;; It would be nice to someday get the usual link completions when reading the URL.
+(defun my-org-read-link ()
+	"Act like `org-insert-link'. Return link."
+	(let* ((wcf (current-window-configuration))
+				 (origbuf (current-buffer))
+				 (abbrevs org-link-abbrev-alist-local)
+				 (all-prefixes (append (mapcar #'car abbrevs)
+															 (mapcar #'car org-link-abbrev-alist)
+															 (org-link-types)))
+
+				 link)
+		(unwind-protect
+				;; Fake a link history, containing the stored links.
+				(let ((org-link--history
+							 (append (mapcar #'car org-stored-links)
+											 org-link--insert-history)))
+					(setq link
+								(org-completing-read
+								 (org-format-prompt "Insert link" (caar org-stored-links))
+								 (append
+									(mapcar (lambda (x) (concat x ":")) all-prefixes)
+									(mapcar #'car org-stored-links)
+									;; Allow description completion.  Avoid "nil" option
+									;; in the case of `completing-read-default' when
+									;; some links have no description.
+									(delq nil (mapcar 'cadr org-stored-links)))
+								 nil nil nil
+								 'org-link--history
+								 (caar org-stored-links)))
+					(unless (org-string-nw-p link) (user-error "No link selected"))
+					(dolist (l org-stored-links)
+						(when (equal link (cadr l))
+							(setq link (car l))))
+					(when (or (member link all-prefixes)
+										(and (equal ":" (substring link -1))
+												 (member (substring link 0 -1) all-prefixes)
+												 (setq link (substring link 0 -1))))
+						(setq link (with-current-buffer origbuf
+												 (org-link--try-special-completion link)))))
+			(when-let* ((window (get-buffer-window "*Org Links*" t)))
+				(quit-window 'kill window))
+			(set-window-configuration wcf)
+			(when (get-buffer "*Org Links*")
+				(kill-buffer "*Org Links*")))
+		link))
+
+(defun my-org-insert-link-dwim (&optional use-clipboard)
+	"Like `org-insert-link' but with personal dwim preferences."
+	(interactive (list (equal current-prefix-arg '(4))))
+	(let* ((point-in-link (and (derived-mode-p 'org-mode) (org-in-regexp org-link-any-re 1)))
+				 (clipboard-url (and use-clipboard
+														 (when (string-match-p "^http" (current-kill 0))
+															 (current-kill 0))))
+				 (url (cond
+							 ((and use-clipboard (string-match-p "^http" (current-kill 0)))
+								(current-kill 0))
+							 ((my-org-in-bracketed-text-link-p) nil)
+							 ((not point-in-link) (my-org-read-link))))
+				 (region-content (when (region-active-p)
+													 (buffer-substring-no-properties (region-beginning)
+																													 (region-end)))))
+		(cond
+		 ((or (string-match (regexp-quote "*new toot*") (buffer-name))
+					(derived-mode-p 'markdown-mode))
+			(if (region-active-p)
+					(let ((s (buffer-substring (region-beginning) (region-end))))
+						(delete-region (region-beginning) (region-end))
+						(insert (format "[%s](%s)"
+														(read-string "Title: " s)
+														url)))
+				(insert (format "[%s](%s)"
+												(read-string "Title: " (my-page-title url))
+												url))))
+		 ((derived-mode-p 'oddmuse-mode)
+			(if (region-active-p)
+					(let ((s (buffer-substring (region-beginning) (region-end))))
+						(delete-region (region-beginning) (region-end))
+						(insert (format "[%s %s]"
+														url
+														(read-string "Title: " s))))
+				(insert (format "[%s %s]"
+												url
+												(read-string "Title: " (my-page-title url))))))
+		 ((and (derived-mode-p 'org-mode)
+					 (let ((elem (org-element-context)))
+						 (and (eq (org-element-type elem) 'export-block)
+									(string= (org-element-property :type elem) "HTML"))))
+			(if (region-active-p)
+					(let ((s (buffer-substring (region-beginning) (region-end))))
+						(delete-region (region-beginning) (region-end))
+						(insert (format "<a href=\"%s\">%s</a>"
+														url
+														(read-string "Title: " s))))
+				(insert (format "<a href=\"%s\">%s</a>"
+												url
+												(read-string "Title: " (my-page-title url))))))
+		 ((and region-content url (not point-in-link))
+			(delete-region (region-beginning) (region-end))
+			(insert (org-link-make-string url region-content)))
+		 ((and url (not point-in-link))
+			(insert (org-link-make-string
+							 url
+							 (read-string "Title: "
+														(or (my-org-link-default-description url nil)
+																(my-page-title clipboard-url))))))
+		 (t
+			(or
+			 (my-org-set-link-target-with-search)
+			 (call-interactively 'org-insert-link))))))
+
+(use-package org :bind (:map org-mode-map ("C-c C-l" . my-org-insert-link-dwim)))
+(with-eval-after-load 'markdown-mode
+	(define-key markdown-mode-map (kbd "C-c C-l") #'my-org-insert-link-dwim))
+
+(defun my-org-link-https-insert-description (link desc)
+	"Default to the page title."
+	(unless desc
+		(pcase link
+			((rx "reddit.com") "Reddit")
+			((rx "news.ycombinator.com") "HN")
+			((rx "lobste.rs") "lobste.rs")
+			(_ (my-page-title link)))))
+
+(with-eval-after-load 'org
+	(org-link-set-parameters "https" :insert-description #'my-org-link-https-insert-description))
+#+end_src
+
 *** IDs
 :PROPERTIES:
 :CUSTOM_ID: ids
@@ -12014,6 +12573,7 @@ With prefix argument, also display headlines without a TODO keyword."
 **** TODO add dotemacs completion
 :PROPERTIES:
 :CREATED:  [2024-01-03 Wed 19:03]
+:CUSTOM_ID: org-mode-links-links-to-my-config-add-dotemacs-completion
 :END:
 
 *** YouTube
@@ -12220,7 +12780,28 @@ With prefix argument, also display headlines without a TODO keyword."
 	"Complete video reference."
 	(interactive)
 	(concat "video:" (read-file-name "File: ")))
+#+end_src
+*** Linking to a specific time in a video
+#+begin_src emacs-lisp
+(org-link-set-parameters
+ "vtime"
+ :export #'my-org-video-time-export
+ :follow #'my-org-video-time-follow)
+(defun my-org-video-time-follow (path _)
+;; TODO: Look for the previous video and jump to the specified time
+	)
 
+(defun my-org-video-time-export (link desc format info)
+	"Export PATH to FORMAT using the specified wrap parameter."
+	(pcase format
+		((or 'html '11ty 'md)
+		 (when (string-match "[0-9]+:[0-9]+:[0-9]+" link)
+			 (format "<span class=\"media-time\" data-start=\"%.3f\">%s</span>"
+							 (save-match-data
+								 (/ (compile-media-timestamp-to-msecs
+										 (match-string 0 link)) 1000.0))
+							 (match-string 0 link))))
+		('org link)))
 #+end_src
 *** Audio
 :PROPERTIES:
@@ -12637,6 +13218,9 @@ If LINK is specified, use that instead."
 We'll see which one I end up using. I think both approaches might come in handy.
 
 **** Quickly search my code
+:PROPERTIES:
+:CUSTOM_ID: org-mode-links-using-an-emacs-lisp-macro-to-define-quick-custom-org-mode-links-to-project-files-plus-urls-and-search-quickly-search-my-code
+:END:
 
 Since ~my-project-web-base-list~ is a list of projects I often think
 about or write about, I can also make something that searches through
@@ -12699,6 +13283,9 @@ a link to something right from the consult-ripgrep interface. In the
 meantime, I can always jump to it and get the link.
 
 ***** Tip from Omar: embark-around-action-hooks
+:PROPERTIES:
+:CUSTOM_ID: org-mode-links-using-an-emacs-lisp-macro-to-define-quick-custom-org-mode-links-to-project-files-plus-urls-and-search-quickly-search-my-code-tip-from-omar-embark-around-action-hooks
+:END:
 
 [2024-01-07 Sun] I modified oantolin's suggestion from the comments to work with ~consult-ripgrep~, since ~consult-ripgrep~ gives me ~consult-grep~ targets instead of ~consult-location~:
 
@@ -12726,6 +13313,9 @@ In general, I don't want to have to think about where something is on
 my laptop or where it's published on the Web, I just want to write
 about it. One step closer, yay Emacs!
 *** Linking to headings that match a tag
+:PROPERTIES:
+:CUSTOM_ID: org-mode-links-linking-to-headings-that-match-a-tag
+:END:
  #+begin_src emacs-lisp :eval no-export
 (defun my-org-insert-matching-heading-links (match)
 	(interactive "MMatch: ")
@@ -13619,6 +14209,9 @@ This lets me define a custom link type.
     (if (called-interactively-p 'any) (insert result) result)))
 #+end_src
 *** Moments
+:PROPERTIES:
+:CUSTOM_ID: org-mode-journal-moments
+:END:
 
 #+begin_src emacs-lisp
 (defun my-journal-moments (date)
@@ -13626,6 +14219,9 @@ This lets me define a custom link type.
 	(my-journal-post (concat "Moments starting " date " #moment") :Date (concat date " 23:00") :Category "Thoughts"))
 #+end_src
 *** Slicing and dicing the journal entries
+:PROPERTIES:
+:CUSTOM_ID: org-mode-journal-slicing-and-dicing-the-journal-entries
+:END:
 #+begin_src emacs-lisp
 (defun my-journal-filter-by-category (category list)
 	(reverse (seq-filter (lambda (o) (string= (my-journal-category o) "Eating"))
@@ -13692,7 +14288,7 @@ Org lets you attach files to an Org file. Haven't gotten the hang of this yet, b
 :END:
 
 #+begin_src emacs-lisp
-(use-package ob-http)
+(use-package ob-http :defer t)
 #+end_src
 
 ** Lilypond
@@ -13722,6 +14318,7 @@ The ~pikchr-cli~ package in Ubuntu 24 is version 0.1.2 and does not have the ~--
 #+begin_src emacs-lisp
 ;also includes Org Babel support
 (use-package pikchr-mode
+	:defer t
 	:config
 	(setq pikchr-executable "/home/sacha/vendor/pikchr/pikchr"))
 #+end_src
@@ -13771,6 +14368,90 @@ The ~pikchr-cli~ package in Ubuntu 24 is version 0.1.2 and does not have the ~--
 	(add-to-list 'org-src-lang-modes '("html" . web))
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot)))
 #+end_src
+*** Treemap visualization
+
+[[https://sachachua.com/blog/2025/01/treemap-visualization-of-an-org-mode-file/][Treemap visualization of an Org Mode file]]
+
+#+begin_src emacs-lisp :eval never-export  :results none
+(defvar my-org-treemap-temp-file "~/Downloads/treemap.html") ; Firefox inside Snap can't access /tmp
+(defvar my-org-treemap-command "treemap" "Executable to generate a treemap.")
+
+(defun my-org-treemap-include-p (node)
+	(not (or (eq (org-element-property :todo-type node) 'done)
+					 (member "notree" (org-element-property :tags node))
+					 (org-element-property-inherited :archivedp node 'with-self))))
+
+(defun my-org-treemap-data (node &optional path)
+	"Output the size of headings underneath this one."
+	(let ((sub
+				 (apply
+					'append
+					(org-element-map
+							(org-element-contents node)
+							'(headline)
+						(lambda (child)
+							(if (my-org-treemap-include-p child)
+									(my-org-treemap-data
+									 child
+									 (append path
+													 (list
+														(org-no-properties
+														 (org-element-property :raw-value node)))))
+								(list
+								 (list
+									(-
+									 (org-element-end child)
+									 (org-element-begin child))
+									(string-join
+									 (cdr
+										(append path
+														(list
+														 (org-no-properties
+															(org-element-property :raw-value node))
+														 (org-no-properties
+															(org-element-property :raw-value child)))))
+									 "/")
+									nil))))
+						nil nil 'headline))))
+		(append
+		 (list
+			(list
+			 (-
+				(org-element-end node)
+				(org-element-begin node)
+				(apply '+ (mapcar 'car sub))
+				)
+			 (string-join
+				(cdr
+				 (append path
+								 (list
+									(org-no-properties (org-element-property :raw-value node)))))
+				"/")
+			 (my-org-treemap-include-p node)))
+		 sub)))
+
+(defun my-org-treemap ()
+	"Generate a treemap."
+	(interactive)
+	(save-excursion
+		(goto-char (point-min))
+		(let ((file (expand-file-name (expand-file-name my-org-treemap-temp-file)))
+					(data (cdr (my-org-treemap-data (org-element-parse-buffer)))))
+			(with-temp-file file
+				(call-process-region
+				 (mapconcat
+					(lambda (entry)
+						(if (elt entry 2)
+								(format "%d %s\n" (car entry)
+												(replace-regexp-in-string org-link-bracket-re "\\2" (cadr entry)))
+							""))
+					data
+					"")
+				 nil
+				 my-org-treemap-command nil t t))
+			(browse-url (concat "file://" (expand-file-name my-org-treemap-temp-file))))))
+#+end_src
+
 ** Org Babel, Mermaid JS, and fixing "Failed to launch the browser process" on Ubuntu 24 :org:
 :PROPERTIES:
 :CUSTOM_ID: mermaid
@@ -14049,8 +14730,10 @@ I don't want to get distracted by the same code in the other window, so I want o
 (use-package org-re-reveal
 	:config
 	(setq org-re-reveal-revealjs-version "4")
-	(setq org-re-reveal-history t))
+	(setq org-re-reveal-history t)
+	:defer t)
 (use-package oer-reveal
+	:defer t
 	:config
 	(setq oer-reveal-plugin-4-config
 				"audioslideshow RevealAudioSlideshow plugin/audio-slideshow/plugin.js
@@ -14138,6 +14821,9 @@ If BLOCK-NAME is specified, use that block type instead."
 (use-package org :hook (org-mode . my-org-add-dashes-to-tag-regexps))
 #+end_src
 ** Convert from Markdown
+:PROPERTIES:
+:CUSTOM_ID: org-mode-convert-from-markdown
+:END:
 
 ChatGPT likes to output Markdown. I like to think in Org Mode.
 
@@ -14258,7 +14944,7 @@ https://www.reddit.com/prefs/feeds/ .
 Trying out reddigg:
 
 #+begin_src emacs-lisp
-(use-package reddigg :vc (:url "https://github.com/thanhvg/emacs-reddigg"))
+(use-package reddigg :vc (:url "https://github.com/thanhvg/emacs-reddigg") :commands reddigg)
 #+end_src
 *** Sorting Org Mode lists using a sequence of regular expressions :emacs:org:
 :PROPERTIES:
@@ -14406,73 +15092,6 @@ and turn it into:
 (use-package org
   :config
   (add-function :after after-focus-change-function 'my-org-save-all-org-buffers))
-#+end_src
-
-*** Org links
-:PROPERTIES:
-:CUSTOM_ID: org-links
-:END:
-
-Based on https://xenodium.com/emacs-dwim-do-what-i-mean/
-#+begin_src emacs-lisp
-(defun my-page-title (url)
-	(with-current-buffer (url-retrieve-synchronously url)
-		(string-trim
-		 (replace-regexp-in-string
-			"[ \n]+" " "
-			(replace-regexp-in-string
-			 "\\(^Github - \\|:: Sacha Chua\\)" ""
-			 (or
-				(dom-text (car
-									 (dom-by-tag (libxml-parse-html-region
-																(point-min)
-																(point-max))
-															 'title)))
-				""))))))
-
-(defun ar/org-insert-link-dwim (use-clipboard)
-  "Like `org-insert-link' but with personal dwim preferences."
-  (interactive (list (equal current-prefix-arg '(4))))
-  (let* ((point-in-link (org-in-regexp org-link-any-re 1))
-         (clipboard-url (and use-clipboard
-                          (when (string-match-p "^http" (current-kill 0))
-                            (current-kill 0))))
-         (region-content (when (region-active-p)
-                           (buffer-substring-no-properties (region-beginning)
-                                                           (region-end)))))
-    (cond
-		 ((and (derived-mode-p 'markdown-mode) region-content clipboard-url)
-			(delete-region (region-beginning) (region-end))
-      (insert (format "[%s](%s)" region-content clipboard-url)))
-		 ((and (derived-mode-p 'markdown-mode) clipboard-url)
-      (insert (format "[%s](%s)" (my-page-title clipboard-url) clipboard-url)))
-		 ((derived-mode-p 'markdown-mode)
-      (insert (format "[%s](%s)" (read-string "Text: ") (read-string "Link: "))))
-		 ((and region-content clipboard-url (not point-in-link))
-      (delete-region (region-beginning) (region-end))
-      (insert (org-link-make-string clipboard-url region-content)))
-     ((and clipboard-url (not point-in-link))
-      (insert (org-link-make-string
-               clipboard-url
-               (read-string "title: "
-														(my-page-title clipboard-url)))))
-     (t
-      (call-interactively 'org-insert-link)))))
-(use-package org :bind (:map org-mode-map ("C-c C-l" . ar/org-insert-link-dwim)))
-(with-eval-after-load 'markdown-mode
-	(define-key markdown-mode-map (kbd "C-c C-l") #'ar/org-insert-link-dwim))
-
-(defun my-org-link-https-insert-description (link desc)
-	"Default to the page title."
-	(unless desc
-		(let ((title (my-page-title link)))
-			(cond
-			 ((string-match "Reddit - " title)
-				"Reddit")
-			 (t title)))))
-
-(with-eval-after-load 'org
-	(org-link-set-parameters "https" :insert-description #'my-org-link-https-insert-description))
 #+end_src
 
 ** Clipboard
@@ -14690,6 +15309,7 @@ I can pull in the definition of ~emacsconf-prep-agenda~ from
 *** Still allow linking to the file
 :PROPERTIES:
 :ID:       20240108T074407.456930
+:CUSTOM_ID: org-mode-linking-to-and-exporting-function-definitions-in-org-mode-still-allow-linking-to-the-file
 :END:
 
 Sometimes I want to link to a defun and sometimes I want to link to
@@ -14819,6 +15439,7 @@ Handy for collecting items together.
 :EXPORT_DATE: 2024-11-02T17:48:03-0400
 :EXPORT_ELEVENTY_PERMALINK: /blog/2024/11/org-mode-format-libby-book-highlights-exported-as-json/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2024/11/org-mode-format-libby-book-highlights-exported-as-json/
+:CUSTOM_ID: org-mode-org-mode-format-libby-book-highlights-exported-as-json
 :END:
 :LOGBOOK:
 CLOCK: [2024-10-28 Mon 13:45]--[2024-10-28 Mon 14:00] =>  0:15
@@ -14939,6 +15560,7 @@ Luhmann’s only real help was a housekeeper who cooked for him and his children
 :Effort:   0:30
 :QUANTIFIED: Emacs
 :ID:       20241123T091738.333004
+:CUSTOM_ID: org-mode-validation
 :END:
 :LOGBOOK:
 :END:
@@ -14955,6 +15577,9 @@ Luhmann’s only real help was a housekeeper who cooked for him and his children
 #+end_src
 
 *** Keep only unique headings
+:PROPERTIES:
+:CUSTOM_ID: org-mode-validation-keep-only-unique-headings
+:END:
 
 #+begin_src emacs-lisp :eval never-export
 (defun my-compare-org-headings (file)
@@ -14974,6 +15599,7 @@ Luhmann’s only real help was a housekeeper who cooked for him and his children
 *** TODO No blank titles, no duplicate paths
 :PROPERTIES:
 :CREATED:  [2024-11-18 Mon 14:49]
+:CUSTOM_ID: org-mode-validation-no-blank-titles-no-duplicate-paths
 :END:
 
 #+begin_src emacs-lisp
@@ -15030,12 +15656,18 @@ Luhmann’s only real help was a housekeeper who cooked for him and his children
 :CUSTOM_ID: multimedia
 :END:
 ** Emacs.tv
+:PROPERTIES:
+:CUSTOM_ID: multimedia-emacs-tv
+:END:
 
 #+begin_src emacs-lisp
 (use-package emacstv
 	:load-path "~/proj/emacstv.github.io")
 #+end_src
 ** Timestamps
+:PROPERTIES:
+:CUSTOM_ID: multimedia-timestamps
+:END:
 
 #+begin_src emacs-lisp
 (defun my-filename-timestamp (file)
@@ -15062,6 +15694,9 @@ Luhmann’s only real help was a housekeeper who cooked for him and his children
 					"test-2024-09-20-13:18:08-024"))
 #+end_src
 ** Images
+:PROPERTIES:
+:CUSTOM_ID: multimedia-images
+:END:
 :CUSTOM_ID: drawing
 
 My sketch- and image-related code is scattered throughout my config. Here are some other headings:
@@ -15079,6 +15714,9 @@ My sketch- and image-related code is scattered throughout my config. Here are so
 
 
 *** Save edited text for sketch post                     :images:dotemacs:
+:PROPERTIES:
+:CUSTOM_ID: multimedia-images-save-edited-text-for-sketch-post
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-sketch-open-text-file (sketch)
@@ -15095,6 +15733,7 @@ My sketch- and image-related code is scattered throughout my config. Here are so
 *** TODO Make header for Mastodon                                :drawing:
 :PROPERTIES:
 :CREATED:  [2024-09-30 Mon 20:58]
+:CUSTOM_ID: multimedia-images-make-header-for-mastodon
 :END:
 
 *** Imagemagick
@@ -15107,6 +15746,9 @@ https://xenodium.com/emacs-viewing-webp-images/
 (setq image-use-external-converter t)
 #+end_src
 **** Rotate clockwise or counterclockwise
+:PROPERTIES:
+:CUSTOM_ID: multimedia-images-imagemagick-rotate-clockwise-or-counterclockwise
+:END:
 
 #+begin_src emacs-lisp
 (defun my-image-rotate-counterclockwise (image)
@@ -15285,9 +15927,12 @@ are available:
 
 #+begin_src emacs-lisp
 (with-eval-after-load 'image
-	(keymap-set image-mode-map "i w" #'my-image-write-region))
+	(keymap-set image-map "i w" #'my-image-write-region))
 #+end_src
 **** TODO Make an image square
+:PROPERTIES:
+:CUSTOM_ID: multimedia-images-imagemagick-make-an-image-square
+:END:
 
 #+begin_src emacs-lisp
 (defun my-image-square (filename &optional output-filename)
@@ -15318,6 +15963,9 @@ are available:
 #+end_src
 
 **** TODO Animate highlighting part of an image
+:PROPERTIES:
+:CUSTOM_ID: multimedia-images-imagemagick-animate-highlighting-part-of-an-image
+:END:
 
 #+begin_src emacs-lisp
 (defun my-image-get-coordinates ()
@@ -15518,6 +16166,9 @@ output.webm
 Detailed notes are at [[https://sachachua.com/blog/2024/01/animating-svg-topic-maps-with-inkscape-emacs-ffmpeg-and-reveal-js/][Animating SVG topic maps with Inkscape, Emacs, FFmpeg, and Reveal.js]].
 
 *****  Breaking up a PDF from Supernote
+:PROPERTIES:
+:CUSTOM_ID: multimedia-images-svg-animating-svgs-breaking-up-a-pdf-from-supernote
+:END:
 
 #+begin_src emacs-lisp :lexical t
 (defvar my-debug-buffer (get-buffer-create "*temp*"))
@@ -16105,6 +16756,9 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 
 #+end_src
 ***** Linking paths
+:PROPERTIES:
+:CUSTOM_ID: multimedia-images-svg-animating-svgs-linking-paths
+:END:
 
 I may want to add hyperlinks around any path that has a title.
 
@@ -18047,6 +18701,9 @@ xdotool key Return
     (my-write-about-sketch new-name)))
 #+end_src
 *** Doodles
+:PROPERTIES:
+:CUSTOM_ID: multimedia-images-doodles
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-copy-as-doodle ()
@@ -18252,6 +18909,7 @@ And in general:
 **** https://www.reddit.com/r/Supernote/s/OakRsLxmT7 simple heuristic for reflowing text
 :PROPERTIES:
 :CREATED:  [2024-10-03 Thu 07:25]
+:CUSTOM_ID: multimedia-images-supernote-https-www-reddit-com-r-supernote-s-oakrslxmt7-simple-heuristic-for-reflowing-text
 :END:
 
 **** Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access :supernote:org:emacs:
@@ -18559,6 +19217,9 @@ Then I can call that from Emacs Lisp and run it through my usual [[dotemacs:org-
 Also, OpenAI supports multimodal requests, so I've been thinking about using AI to recognize text and diagrams like in [[https://www.reddit.com/r/Supernote/s/5cINfAEIAA][this Supernote to Markdown example]]. Fun fun fun!
 
 ** Audio
+:PROPERTIES:
+:CUSTOM_ID: multimedia-audio
+:END:
 
 Likewise, I have a number of headings that deal with audio.
 
@@ -18567,6 +19228,9 @@ Likewise, I have a number of headings that deal with audio.
 - [[file:images/Sacha.org]]
 - [[file:images/Sacha.org]]
 ** FFmpeg
+:PROPERTIES:
+:CUSTOM_ID: multimedia-ffmpeg
+:END:
 
 #+begin_src emacs-lisp
 (defun my-ffmpeg-save-last-frame-as-image (input-file output-image)
@@ -18592,6 +19256,9 @@ Likewise, I have a number of headings that deal with audio.
     :END:
 
 *** Interleave images with transcript
+:PROPERTIES:
+:CUSTOM_ID: multimedia-subtitles-with-subed-interleave-images-with-transcript
+:END:
 
 #+begin_src emacs-lisp
 (defun my-subed-interleave-image-links (dir &optional offset-ms)
@@ -18663,6 +19330,7 @@ my-subed-interleave-image-links
 :PROPERTIES:
 :Effort:   0:30
 :QUANTIFIED: Emacs
+:CUSTOM_ID: multimedia-subtitles-with-subed-split-a-transcript-into-phrases-for-subtitles
 :END:
 :LOGBOOK:
 CLOCK: [2024-10-21 Mon 12:13]--[2024-10-21 Mon 13:12] =>  0:59
@@ -19764,13 +20432,14 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
 
 You can get these from https://github.com/sachac
 #+begin_src emacs-lisp
-(use-package waveform :load-path "~/proj/waveform-el" :if my-laptop-p)
-(use-package compile-media :load-path "~/proj/compile-media" :if my-laptop-p)
+(use-package waveform :load-path "~/proj/waveform-el" :if my-laptop-p :defer t)
+(use-package compile-media :load-path "~/proj/compile-media" :if my-laptop-p :defer t)
 #+end_src
 *** DONE Working with sections defined by NOTE comments
 CLOSED: [2024-12-12 Thu 19:50] SCHEDULED: <2024-12-13 Fri>
 :PROPERTIES:
 :CREATED:  [024-05-31 Fri 15:1]
+:CUSTOM_ID: multimedia-subtitles-with-subed-working-with-sections-defined-by-note-comments
 :END:
 :LOGBOOK:
 - State "DONE"       from "TODO"       [2024-12-12 Thu 19:50]
@@ -20077,6 +20746,9 @@ my-subed-record-wpm
    # /home/sacha/screenshots/Screenshot_20210401_234041.png https://sachachua.com/blog/wp-content/uploads/2021/04/Screenshot_20210401_234041.png
    # /home/sacha/screenshots/Screenshot_20210401_234956.png
 *** Export transcript as list
+:PROPERTIES:
+:CUSTOM_ID: multimedia-subtitles-with-subed-export-transcript-as-list
+:END:
 
 #+begin_src emacs-lisp
   (cl-defun my-subed-as-org-list-with-times (file &key from to)
@@ -20148,6 +20820,9 @@ If threshold is 0, remove all gaps."
 
 #+end_src
 *** Using scripts to correct transcripts
+:PROPERTIES:
+:CUSTOM_ID: multimedia-subtitles-with-subed-using-scripts-to-correct-transcripts
+:END:
 
 I usually write my scripts
 with phrases that could be
@@ -20253,6 +20928,9 @@ See also [[dotemacs:subed]]
 	))
 #+end_src
 ** Working with or renaming a set of files
+:PROPERTIES:
+:CUSTOM_ID: multimedia-working-with-or-renaming-a-set-of-files
+:END:
 
 #+begin_src emacs-lisp
 (defun my-file-set (file)
@@ -20330,15 +21008,19 @@ See also [[dotemacs:subed]]
 											new-name))
 #+end_src
 ** Elfeed
+:PROPERTIES:
+:CUSTOM_ID: multimedia-elfeed
+:END:
 
 Haven't quite figured out how to get this working.
 I have ~elfeed-protocol-feeds~ set in my
 .emacs.secrets file.
 
 #+begin_src emacs-lisp
-(use-package elfeed)
+(use-package elfeed :defer t)
 (use-package elfeed-protocol
 	:after elfeed
+	:defer t
 	:custom
 	(elfeed-use-curl nil)
 	(elfeed-curl-extra-arguments '("--insecure"))
@@ -20353,9 +21035,9 @@ I have ~elfeed-protocol-feeds~ set in my
 #+end_src
 #+begin_src emacs-lisp
 (use-package elfeed-tube
+	:defer t
   :quelpa (elfeed-tube :fetcher github :repo "karthink/elfeed-tube")
   :after elfeed
-  :demand t
   :commands
   (elfeed-tube-fetch)
   :config
@@ -20377,6 +21059,7 @@ I have ~elfeed-protocol-feeds~ set in my
 
 #+begin_src emacs-lisp
 (use-package emms
+	:defer t
 	:config
 	(require 'emms-player-simple)
   (require 'emms-source-file)
@@ -20465,7 +21148,7 @@ Let's see how that goes!
 :END:
 
 #+begin_src emacs-lisp
-(use-package pcsv)
+(use-package pcsv :defer t)
 #+end_src
 ** Whitespace
 :PROPERTIES:
@@ -20483,6 +21166,7 @@ Let's see how that goes!
 :END:
 #+begin_src emacs-lisp
 (use-package elpy
+	:defer t
 	:config
 	(elpy-enable)
 	(setq python-shell-interpreter "ipython3"
@@ -20514,8 +21198,8 @@ Let's see how that goes!
 
 From [[https://themkat.net/2022/10/04/emacs_web_mode_mixed.html][Mixed content HTML files in Emacs web-mode with context-aware completion and documentation]]:
 #+begin_src emacs-lisp
-(use-package tide)
-(use-package css-eldoc)
+(use-package tide :defer t)
+(use-package css-eldoc :defer t)
 (defun themkat/activate-tide ()
   (interactive)
   (tide-setup)
@@ -20749,7 +21433,8 @@ Autocompile, but don't interrupt me with native compilation warnings.
 #+begin_src emacs-lisp
   (use-package auto-compile
     :if my-laptop-p
-    :config (auto-compile-on-load-mode))
+    :config (auto-compile-on-load-mode)
+		:defer t)
   (setq native-comp-async-report-warnings-errors nil)
 #+end_src
 
@@ -21199,7 +21884,7 @@ From https://xenodium.com/inline-previous-result-and-why-you-should-edebug/
 (use-package buttercup
 	:hook '(buttercup-minor-mode . my-buttercup-set-up-imenu))
 
-(use-package package-lint)
+(use-package package-lint :defer t)
 #+end_src
 **** ERT
 :PROPERTIES:
@@ -21225,6 +21910,8 @@ From https://www.reddit.com/r/emacs/comments/1fub66z/comment/lpyv8no/:
 
 #+begin_src emacs-lisp
 (use-package ert
+	:defer t
+	:commands ert
 	:config
 	;; handle truncated lists
 	(advice-add 'ert--pp-with-indentation-and-newline
@@ -21451,8 +22138,9 @@ Useful as `imenu-create-index-function'."
 #+begin_src emacs-lisp
 (use-package undercover
 	:quelpa (undercover :fetcher github :repo "undercover-el/undercover.el")
+	:defer t
 	)
-(use-package coverage)
+(use-package coverage :efer t)
 #+end_src
 *** Eldoc
 :PROPERTIES:
@@ -21745,11 +22433,17 @@ button to add more examples. My diff: https://github.com/xuchunyang/elisp-demos/
 	elisp-demos-user-files '("~/sync/orgzly/elisp-demos.org"))
 #+end_src
 *** JSON
+:PROPERTIES:
+:CUSTOM_ID: coding-emacs-lisp-json
+:END:
 #+begin_src emacs-lisp
 (setq json-object-type 'alist
 			json-array-type 'list)
 #+end_src
 *** Useful libraries
+:PROPERTIES:
+:CUSTOM_ID: coding-emacs-lisp-useful-libraries
+:END:
 #+begin_src emacs-lisp
 (use-package plz)
 (use-package tzc)
@@ -22035,9 +22729,13 @@ And the rest of the js2 config:
 
 #+begin_src emacs-lisp
 (use-package rjsx-mode
+	:defer t
   :if my-laptop-p)
 #+end_src
 ** Typescript
+:PROPERTIES:
+:CUSTOM_ID: coding-typescript
+:END:
 
 #+begin_src emacs-lisp
 (use-package typescript-mode
@@ -22112,7 +22810,7 @@ https://amitp.blogspot.com/2023/10/emacs-and-shellcheck.html
 (use-package sh-script
   :hook (sh-mode . flymake-mode))
 
-(use-package flymake-shellcheck)
+(use-package flymake-shellcheck :defer t)
 (use-package flymake
   :bind (("S-e" . my-consult-flymake-project))
   :preface
@@ -22333,6 +23031,9 @@ options to add at the end of the command, but that can wait for another time (or
 :CUSTOM_ID: make-this-better-by-adding-a-post-command-options-variable
 :END:
 *** Finding repos with uncommitted changes
+:PROPERTIES:
+:CUSTOM_ID: coding-magit-nice-git-interface-finding-repos-with-uncommitted-changes
+:END:
 
 Based on http://yitang.uk/2024/01/14/atomic-habit-in-emacs-keep-git-repos-clean/
 
@@ -22391,6 +23092,9 @@ Based on http://yitang.uk/2024/01/14/atomic-habit-in-emacs-keep-git-repos-clean/
 - [[elisp:(magit-status "/home/sacha/proj/emacsconf/lisp/")][lisp]]
 :end:
 *** Use difftastic
+:PROPERTIES:
+:CUSTOM_ID: coding-magit-nice-git-interface-use-difftastic
+:END:
 
 From [[https://tsdh.org/posts/2022-08-01-difftastic-diffing-with-magit.html][Difftastic diffing with Magit]], modified GIT_EXTERNAL_DIFF to difftastic (installed with ~snap install difftastic~, and with ~TMPDIR~ set to ~~/tmp~ because the snap can't access ~/tmp~):
 
@@ -22610,6 +23314,7 @@ tree instead.
 ;; Call with C-c p m m
 (use-package makefile-executor
   :if my-laptop-p
+  :defer t
   :config
   (add-hook 'makefile-mode-hook 'makefile-executor-mode))
 (defun my-projectile-open-notes ()
@@ -22617,11 +23322,14 @@ tree instead.
 	(find-file-other-window (expand-file-name "notes.org" (projectile-project-root))))
 #+end_src
 *** Capturing notes to per-project files
+:PROPERTIES:
+:CUSTOM_ID: coding-projects-and-projectile-capturing-notes-to-per-project-files
+:END:
 
 Based on [[https://shreyas.ragavan.co/post/8f702ce2-8bb7-40a3-b44b-a47222c02909/][Juggling multiple projects and leveraging org-projectile | Shreyas Ragavan]]
 
 #+begin_src emacs-lisp
-(use-package org-project-capture)
+(use-package org-project-capture :defer t)
 (use-package org-projectile
 	:after org-project-capture
 	:config
@@ -22697,6 +23405,7 @@ SASS
 
 #+begin_src emacs-lisp
 (use-package inf-ruby
+	:defer t
 	:config
 	(setq inf-ruby-prompt-format
 			(concat
@@ -22822,13 +23531,16 @@ Maybe =multiple-cursors= will be an even better way. Looks promising!
    ("C-c m p" . mc/mark-previous-like-this)
    ("C-c m s" . mc/mark-sgml-tag-pair)
    ("C-c m d" . mc/mark-all-like-this-in-defun)))
-(use-package phi-search)
-(use-package phi-search-mc :config (phi-search-mc/setup-keys))
-(use-package mc-extras :config (define-key mc/keymap (kbd "C-. =") 'mc/compare-chars))
+(use-package phi-search :defer t)
+(use-package phi-search-mc :config (phi-search-mc/setup-keys) :defer t)
+(use-package mc-extras :config (define-key mc/keymap (kbd "C-. =") 'mc/compare-chars) :defer t)
 #+end_src
 
 Thanks to [[http://irreal.org/blog/?p=1733][Irreal]] and [[http://planet.emacsen.org/][Planet Emacsen]] for the link!
 *** iedit
+:PROPERTIES:
+:CUSTOM_ID: coding-automation-iedit
+:END:
 https://www.reddit.com/r/emacs/comments/19ec8v5/comment/kjhuyrq/?utm_source=reddit&utm_medium=web2x&context=3
 
 #+begin_src emacs-lisp
@@ -22869,6 +23581,9 @@ https://www.reddit.com/r/emacs/comments/b6n3t8/what_would_it_take_to_get_termina
 
 #+end_src
 *** Eshell completion
+:PROPERTIES:
+:CUSTOM_ID: coding-eshell-eshell-completion
+:END:
 
 [[https://www.emacs.dyerdwelling.family/emacs/20240827210257-emacs--enhancing-eshell-to-be-more-fishy/][Source]]
 
@@ -22945,6 +23660,9 @@ From https://www.n16f.net/blog/eshell-key-bindings-and-completion/
 										 completions))))))))
 #+end_src
 ** SQLite
+:PROPERTIES:
+:CUSTOM_ID: coding-sqlite
+:END:
 
 From https://christiantietze.de/posts/2024/01/emacs-sqlite-mode-open-sqlite-files-automatically/
 #+begin_src emacs-lisp
@@ -22995,6 +23713,8 @@ dash-docs-search
 IRC is a great way to hang out with other Emacs geeks.
 #+begin_src emacs-lisp
 (use-package erc
+	:defer t
+	:commands erc-select
   :if my-laptop-p
   :config
   (setq erc-track-remove-disconnected-buffers t)
@@ -23238,32 +23958,7 @@ I'm not going to worry about threading for now. I just want to add or update the
 #+begin_src emacs-lisp
 (defun my-mastodon-toot-add-or-update-blog-comment (url)
 	(interactive (list (my-complete-blog-post-url)))
-	(let* ((filename (my-11ty-comment-file url))
-				 (comments (my-11ty-comments url))
-				 (comment-list (alist-get 'comments (alist-get 'disqus comments)))
-				 (new-comment (my-mastodon-toot-comment-json))
-				 (existing (seq-find (lambda (o)
-															 (string= (alist-get 'postId o)
-																				(alist-get 'postId new-comment)))
-															comment-list)))
-		(cond
-		 (existing
-			;; I think this is how you replace
-			(setcar (member existing comment-list)
-							new-comment))
-		 (comment-list
-			(push new-comment(alist-get 'comments (alist-get 'disqus comments)))
-			(cl-incf (alist-get 'commentCount (alist-get 'disqus comments))))
-		 (t
-			(map-put! (alist-get 'disqus comments)
-								'comments
-								(list new-comment))
-			(cl-incf (alist-get 'commentCount (alist-get 'disqus comments)))))
-		(with-temp-file filename
-			(insert
-			 (json-encode comments))
-			(json-pretty-print (point-min) (point-max)))
-			(find-file filename)))
+	(find-file (my-11ty-add-blog-comment (my-mastodon-toot-comment-json))))
 #+end_src
 
 #+RESULTS:
@@ -23475,6 +24170,7 @@ Another perk of tooting from Emacs using [[https://codeberg.org/martianh/mastodo
     :EXPORT_ELEVENTY_PERMALINK: /blog/2025/03/mastodon-el-copy-toot-url-after-posting-also-copying-just-this-post-with-11ty/
     :EXPORT_ELEVENTY_FILE_NAME: blog/2025/03/mastodon-el-copy-toot-url-after-posting-also-copying-just-this-post-with-11ty/
     :EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01JQ2TC154Z4YXG35A52NQPKG8
+    :CUSTOM_ID: mastodon-mastodon-el-copy-toot-url-after-posting-also-copying-just-this-post-with-11ty
     :END:
 
 I often want to copy the toot URL after posting a
@@ -23592,7 +24288,8 @@ of the blog, which takes a number of minutes.
 #+begin_src emacs-lisp
 (defun my-org-11ty-copy-just-this-post ()
 	(interactive)
-	(when (derived-mode-p 'org-mode)
+	(cond
+	 ((derived-mode-p 'org-mode)
 		(let* ((subtreep (not (org-before-first-heading-p)))
 					 (params (org-combine-plists
 										(org-export--get-export-attributes '11ty subtreep nil)
@@ -23613,7 +24310,18 @@ of the blog, which takes a number of minutes.
 													remote)
 						(browse-url (concat (replace-regexp-in-string "/$" "" my-blog-base-url)
 																permalink)))
-				(error "Could not find %s" local)))))
+				(error "Could not find %s" local))))
+	 ((derived-mode-p 'html-mode)
+		(let* ((json-object-type 'alist)
+					 (permalink
+						(alist-get 'permalink (json-read-file (concat (file-name-sans-extension (buffer-file-name)) ".11tydata.json"))))
+					 (local (expand-file-name (concat "." permalink) (expand-file-name "_local" my-11ty-base-dir)))
+					 (remote (concat "web:/var/www/static-blog" permalink)))
+			(call-process "rsync" nil (get-buffer-create "*rsync*") nil "--chmod=ugo=rX" "-avzpe" "ssh"
+										local
+										remote)
+			(browse-url (concat (replace-regexp-in-string "/$" "" my-blog-base-url)
+													permalink))))))
 #+end_src
 
 The proper blog updates (index page, RSS/ATOM
@@ -24523,6 +25231,9 @@ post if specified.
 													#'my-mastodon-complete-contact nil t)))))
 #+end_src
 ** Copy Mastodon toot URL as author link
+:PROPERTIES:
+:CUSTOM_ID: mastodon-copy-mastodon-toot-url-as-author-link
+:END:
 
 #+begin_src emacs-lisp
 (defun my-mastodon-copy-toot-as-author-link ()
@@ -24553,7 +25264,7 @@ to link to them or refile them to other parts of my Org files so that
 I can build up my notes.
 
 #+begin_src emacs-lisp
-(use-package pandoc)
+(use-package pandoc :defer t)
 (defun my-mastodon-org-feed-formatter (entry)
 	(concat "* " (pandoc-convert-stdio
 								(dom-text (dom-by-tag
@@ -24580,6 +25291,9 @@ I can build up my notes.
 
 Now I can use ~org-feed-update-all~ (~C-c C-x g~) to pull things into my toots.org file.
 ** Insert a single toot as Org Mode
+:PROPERTIES:
+:CUSTOM_ID: mastodon-insert-a-single-toot-as-org-mode
+:END:
 
 #+begin_src emacs-lisp
 (defun my-mastodon-org-insert-toot-content (url)
@@ -24649,6 +25363,7 @@ subtrees so that I can move them around easily.
 :EXPORT_ELEVENTY_PERMALINK: /blog/2025/07/emacs-open-urls-or-search-the-web-plus-browse-url-handlers/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2025/07/emacs-open-urls-or-search-the-web-plus-browse-url-handlers/
 :EXPORT_MODIFIED: 2025-07-14T13:11:07-0400
+:CUSTOM_ID: web-emacs-open-urls-or-search-the-web-plus-browse-url-handlers
 :END:
 
 #+begin_update
@@ -24833,6 +25548,7 @@ this might be handy for other people too!
 
 #+begin_src emacs-lisp
 (use-package engine-mode
+	:defer t
   :config
   (defengine my-blog "https://www.google.ca/search?q=site:sachachua.com+%s" :keybinding "b")
   (defengine mail "https://mail.google.com/mail/u/0/#search/%s" :keybinding "m")
@@ -24937,6 +25653,9 @@ Making an OPML table:
 :CUSTOM_ID: spookfox
 :END:
 *** Link to current webpage from Spookfox  :toblog:
+:PROPERTIES:
+:CUSTOM_ID: web-spookfox-link-to-current-webpage-from-spookfox
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-spookfox-complete ()
@@ -25345,6 +26064,9 @@ This uses ~my-spookfox-complete-link~ from [[dotemacs:spookfox]].
 (require 'quantified nil t)
 #+end_src
 *** Child time!
+:PROPERTIES:
+:CUSTOM_ID: self-tracking-statistics-and-other-data-transformations-quantified-awesome-child-time
+:END:
 
 #+begin_src emacs-lisp
 (defun my-childcare ()
@@ -26229,22 +26951,23 @@ I use Notmuch with [[https://github.com/gauteh/lieer][Lieer]] to fetch my mail f
 
 #+end_src
 *** Add comment to blog post
+:PROPERTIES:
+:CUSTOM_ID: mail-and-news-notmuch-add-comment-to-blog-post
+:END:
 
 #+begin_src emacs-lisp
 (defun my-message-add-blog-comment (url)
 	(interactive (list (my-complete-blog-post-url)))
 	(save-excursion
 		(goto-char (point-min))
-		(let* ((filename (my-11ty-comment-file url))
-					 (comments (my-11ty-comments url))
-					 (comment-list (alist-get 'comments (alist-get 'disqus comments)))
-					 (author (when (re-search-forward "Name you want.+?: \\(.+\\)" nil t)
+		(let* ((author (when (re-search-forward "Name you want.+?: \\(.+\\)" nil t)
 										 (match-string 1)))
-					 (message (when (re-search-forward "Message: " nil t)
-											(buffer-substring (match-end 0)
-																				(if (re-search-forward "Can I share your comment" nil t)
-																						(match-beginning 0)
-																					(point-max)))))
+					 (message (when (re-search-forward "Message: *\n?" nil t)
+											(read-string "Message: "
+																	 (buffer-substring (match-end 0)
+																										 (if (re-search-forward "Can I share your comment" nil t)
+																												 (match-beginning 0)
+																											 (point-max))))))
 					 (date (format-time-string "%FT%T%z" (date-to-time (message-field-value "Date"))))
 					 (new-comment
 						`((author . ,author)
@@ -26252,20 +26975,7 @@ I use Notmuch with [[https://github.com/gauteh/lieer][Lieer]] to fetch my mail f
 							(message . ,(format "<div class=\"email-body\">%s</div>"
 																	(org-export-string-as message 'html t)
 																	)))))
-			(cond
-			 (comment-list
-				(push new-comment(alist-get 'comments (alist-get 'disqus comments)))
-				(cl-incf (alist-get 'commentCount (alist-get 'disqus comments))))
-			 (t
-				(map-put! (alist-get 'disqus comments)
-									'comments
-									(list new-comment))
-				(cl-incf (alist-get 'commentCount (alist-get 'disqus comments)))))
-			(with-temp-file filename
-				(insert
-				 (json-encode comments))
-				(json-pretty-print (point-min) (point-max)))
-			(find-file filename))))
+			(find-file (my-11ty-add-blog-comment new-comment url)))))
 #+end_src
 
 ** Gnus
@@ -26333,6 +27043,8 @@ I still use Gnus so that I can use [[http://gmane.org][Gmane]] to read mailing l
 
         #+begin_src emacs-lisp
 (use-package gnus
+	:defer t
+	:commands gnus
   :config
   (require 'mm-decode)
   (setq mm-discouraged-alternatives
@@ -26466,14 +27178,19 @@ don't get the theme applied. This fixes that:
   :if my-laptop-p)
 
    #+end_src
-** TODO Transforming HTML clipboard contents with Emacs to smooth out Mailchimp annoyances: dates, images, comments, colours :emacs:
+** Transforming HTML clipboard contents with Emacs to smooth out Mailchimp annoyances: dates, images, comments, colours :emacs:
 :PROPERTIES:
 :CUSTOM_ID: areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours
 :EXPORT_DATE: 2025-06-20T19:26:47-0400
 :EXPORT_ELEVENTY_PERMALINK: /blog/2025/06/transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2025/06/transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours/
 :EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01JY8274M6CQC98Q64KYFTJE3C
+:EXPORT_MODIFIED: 2025-09-17T10:11:16-0400
 :END:
+
+#+begin_update
+[2025-09-17]: Minor tweaks to get it to work better with [[dotemacs:collaboration-bike-brigade-extract-information-from-google-docs-export-as-zipped-html][Getting a Google Docs draft ready for Mailchimp via Emacs]].
+#+end_update
 
 I've recently started handling the [[https://www.bikebrigade.ca/][Bike Brigade]]
 newsletter, so now I'm itching to solve the little
@@ -26550,13 +27267,15 @@ code uses [[https://github.com/jordansissel/xdotool][xdotool]] (a Linux command-
 switch to Google Chrome so that I can paste it in.
 
 #+begin_src emacs-lisp :results replace :exports both
-(defun my-brigade-copy-signup-block ()
-	(interactive)
-	(let* ((newsletter-date (org-read-date nil nil "+Sun"))
-				 (current-week (org-read-date nil t "+Mon"))
-				 (current-week-end (org-read-date nil t "+2Sun"))
-				 (next-week (org-read-date nil t "+2Mon"))
-				 (next-week-end (org-read-date nil t "+3Sun"))
+(defun my-brigade-copy-signup-block (date)
+	(interactive (list (if current-prefix-arg (org-read-date nil t nil "Date: ")
+											 (org-read-date nil t "+Sun"))))
+	(when (stringp date) (setq date (date-to-time date)))
+	(let* ((newsletter-date (format-time-string "%Y-%m-%d" date))
+				 (current-week (org-read-date nil t "++Mon" nil date))
+				 (current-week-end (org-read-date nil t "++2Sun" nil date))
+				 (next-week (org-read-date nil t "+2Mon" nil date))
+				 (next-week-end (org-read-date nil t "+3Sun" nil date))
 				 result)
 		(setq result (format
 			"<div style=\"background-color: #223f4d; text-align: center; max-width: 384px; margin: auto; margin-bottom: 12px;\"><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" target=\"_blank\" class=\"mceButtonLink\" style=\"background-color:#223f4d;border-radius:0;border:2px solid #223f4d;color:#ffffff;display:block;font-family:'Helvetica Neue', Helvetica, Arial, Verdana, sans-serif;font-size:16px;font-weight:normal;font-style:normal;padding:16px 28px;text-decoration:none;text-align:center;direction:ltr;letter-spacing:0px\" rel=\"noreferrer\">SIGN UP NOW TO DELIVER %s-%s</a>
@@ -26743,19 +27462,20 @@ newsletter-specific processing:
 
 #+begin_src emacs-lisp
 (defvar my-brigade-newsletter-images-directory "~/proj/bike-brigade/newsletter/images")
+(defun my-brigade-newsletter-heading-to-image-file-name (heading)
+	(replace-regexp-in-string
+	 "[^-a-z0-9]" ""
+	 (replace-regexp-in-string
+		" +"
+		"-"
+		(string-trim (downcase heading)))))
 (defun my-brigade-save-newsletter-images (dom)
 	(my-transform-html-save-images
 	 dom
 	 my-brigade-newsletter-images-directory
 	 (concat (org-read-date nil nil "+Sun")
 					 "-news-")
-	 (lambda (heading)
-		 (replace-regexp-in-string
-			"[^-a-z0-9]" ""
-			(replace-regexp-in-string
-			 " +"
-			 "-"
-			 (string-trim (downcase heading)))))))
+	 #'my-brigade-newsletter-heading-to-image-file-name))
 #+end_src
 
 For easier testing, I used ~xclip -o -selection
@@ -27004,6 +27724,9 @@ I can add that to the sequence:
  (with-temp-buffer (insert-file-contents "~/Downloads/test.html") (buffer-string)))
 #+end_src
 *** Just the headings
+:PROPERTIES:
+:CUSTOM_ID: collaboration-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-just-the-headings
+:END:
 
 #+begin_src emacs-lisp
 (defun my-brigade-just-headings (dom)
@@ -27093,11 +27816,124 @@ get xclip to work more reliably from within Emacs
 by adding ~-filter 2>& /dev/null~ to the end of my
 xclip call so it didn't hang.)
 
-** Bike Brigade: Extract information from Google Docs export as zipped HTML
+** Getting a Google Docs draft ready for Mailchimp via Emacs and Org Mode  :emacs:org:
+:PROPERTIES:
+:CUSTOM_ID: collaboration-bike-brigade-extract-information-from-google-docs-export-as-zipped-html
+:EXPORT_DATE: 2025-09-17T10:07:10-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2025/09/getting-a-google-docs-draft-ready-for-mailchimp-via-emacs/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2025/09/getting-a-google-docs-draft-ready-for-mailchimp-via-emacs/
+:EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01K5C0MFBEMCMVK59ACGSM7KP2
+:END:
 
-#+begin_src emacs-lisp
+I've been volunteering to help with the [[https://www.bikebrigade.ca/][Bike Brigade]] newsletter. I like that there are people who are out there helping improve food security by delivering food bank hampers to recipients. Collecting information for the newsletter also helps me feel more appreciation for the lively Toronto biking scene, even though I still can't make it out to most events. The general workflow is:
+1. collect info
+2. draft the newsletter somewhere other volunteers can give feedback on
+3. convert the newsletter to Mailchimp
+4. send a test message
+5. make any edits requested
+6. schedule the email campaign
+
+We have the [[https://mailchimp.com/][Mailchimp]] Essentials plan, so I can't just export HTML for the whole newsletter. Someday I should experiment with services that might let me generate the whole newsletter from Emacs. That would be neat. Anyway, with Mailchimp's block-based editor, at least I can paste in HTML code for the text/buttons. That way, I don't have to change colours or define links by hand.
+
+The logistics volunteers coordinate via [[https://slack.com][Slack]], so a Slack Canvas seemed like a good way to draft the newsletter. I've previously written about my workflow for [[https://sachachua.com/blog/2025/06/transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours/][copying blocks from a Slack Canvas and then using Emacs to transform the rich text]], including recolouring the links in the section with light text on a dark background. However, copying rich text from a Slack Canvas turned out to be unreliable. Sometimes it would copy what I wanted, and sometimes nothing would get copied. There was no way to export HTML from the Slack Canvas, either.
+
+I switched to using [[https://docs.google.com][Google Docs]] for the drafts. It was a little less convenient to add items from Slack messages and I couldn't easily right-click to download the images that I pasted in. It was more reliable in terms of copying, but only if I used [[https://github.com/astrand/xclip][xclip]] to save the clipboard into a file instead of trying to do the whole thing in memory.
+
+I finally got to spend a little time automating a new workflow. This time I exported the Google Doc as a zip that had the HTML file and all the images in a subdirectory. The HTML source is not very pleasant to work with. It has lots of extra markup I don't need. Here's what an entry looks like:
+
+#+CAPTION: Exported HTML for an entry
+[[file:images/2025-09-17_09-22-35.png]]
+
+Things I wanted to do with the HTML:
+
+- Remove the google.com/url redirection for the links. Mailchimp will add its own redirection for click-tracking, but at least the links can look simpler when I paste them in.
+- Remove all the extra classes and styles.
+- Turn [ call to action ] into fancier Mailchimp buttons.
+
+Also, instead of transforming one block at a time, I decided to make an Org Mode document with all the different blocks I needed. That way, I could copy and paste things in quick succession.
+
+Here's what the result looks like. It makes a table of contents, adds the sign-up block, and adds the different links and blocks I need to paste into Mailchimp.
+
+#+CAPTION: Screenshot of newsletter Org file with blocks for easy copying
+[[file:images/2025-09-17_10-03-27.png]]
+
+I need to copy and paste the image filenames into the upload dialog on Mailchimp, so I use my [[https://sachachua.com/blog/2024/01/org-mode-custom-link-copy-to-clipboard/][custom Org Mode link type for copying to the clipboard]]. For the HTML code, I use ~#+begin_src html ... #+end_src~ instead of ~#+begin_export html ... #+end_export~ so that I can use [[https://github.com/oantolin/embark][Embark]] and [[https://github.com/oantolin/embark/blob/master/embark-org.el][embark-org]] to quickly copy the contents of the source block. (That doesn't work for export blocks yet.) I have ~C-.~ bound to ~embark-act~, the source block is detected by the functions that ~embark-org.el~ added to ~embark-target-finders~, and the ~c~ binding in ~embark-org-src-block-map~ calls ~embark-org-copy-block-contents~. So all I need to do is ~C-. c~ in a block to copy its contents.
+
+#+begin_src emacs-lisp :results silent :summary Here's the code to process the newsletter draft
+(defun my-brigade-process-latest-newsletter-draft (date)
+	"Create an Org file with the HTML for different blocks."
+	(interactive (list (if current-prefix-arg (org-read-date nil t nil "Date: ")
+											 (org-read-date nil t "+Sun"))))
+	(when (stringp date) (setq date (date-to-time date)))
+	(let ((default-directory "~/Downloads/newsletter")
+				file
+				dom
+				sections)
+		(call-process "unzip" nil nil nil "-o" (my-latest-file "~/Downloads" "\\.zip$"))
+		(setq file (my-latest-file default-directory))
+		(with-temp-buffer
+			(insert-file-contents-literally file)
+			(goto-char (point-min))
+			(my-transform-html '(my-brigade-save-newsletter-images) (buffer-string))
+			(setq dom (my-brigade-simplify-html (libxml-parse-html-region (point-min) (point-max))))
+			(setq sections
+						(my-html-group-by-tag
+						 'h1
+						 (dom-children
+							(dom-by-tag
+							 dom'body)))))
+		(with-current-buffer (get-buffer-create "*newsletter*")
+			(erase-buffer)
+			(org-mode)
+			(insert
+			 (format-time-string "%B %-e, %Y" date) "\n"
+			 "* In this e-mail\n#+begin_src html\n"
+			 "<p>Hi Bike Brigaders! Here’s what's happening this week, with quick signup links. In this e-mail:</p>"
+			 (my-transform-html
+				'(my-brigade-remove-meta-recursively
+					my-brigade-just-headings)
+				(copy-tree dom))
+			 "\n#+end_src\n\n")
+			(insert "* Sign-up block\n\n#+begin_src html\n"
+							(my-brigade-copy-signup-block date)
+							"\n#+end_src\n\n")
+			(dolist (sec '("Bike Brigade" "In our community"))
+				(insert "* " sec "\n"
+								(mapconcat
+								 (lambda (group)
+									 (let* ((item (apply 'dom-node 'div nil
+																			 (append
+																				(list (dom-node 'h2 nil (car group)))
+																				(cdr group))))
+													(image (my-brigade-image (car group))))
+										 (format "** %s\n\n%s\n%s\n\n#+begin_src html\n%s\n#+end_src\n\n"
+														 (car group)
+														 (if image (org-link-make-string (concat "copy:" image)) "")
+														 (or (my-html-last-link-href item) "")
+														 (my-transform-html
+															(delq nil
+																		(list
+																		 'my-transform-html-remove-images
+																		 'my-transform-html-remove-italics
+																		 'my-brigade-simplify-html
+																		 'my-brigade-format-buttons
+																		 (when (string= sec "In our community")
+																			 'my-brigade-recolor-recursively)))
+															item))))
+								 (my-html-group-by-tag 'h2 (cdr (assoc sec sections 'string=)))
+								 "")))
+			(insert "* Other updates\n"
+							(format "#+begin_src html\n%s\n#+end_src\n\n"
+											(my-transform-html
+											 '(my-transform-html-remove-images
+												 my-transform-html-remove-italics
+												 my-brigade-simplify-html)
+											 (car (cdr (assoc "Other updates" sections 'string=))))))
+			(goto-char (point-min))
+			(display-buffer (current-buffer)))))
+
 (defun my-html-group-by-tag (tag dom-list)
-	"Return an alist of (section . children)."
+	"Use TAG to divide DOM-LIST into sections. Return an alist of (section . children)."
 	(let (section-name current-section results)
 		(dolist (node dom-list)
 			(if (and (eq (dom-tag node) tag)
@@ -27115,80 +27951,29 @@ xclip call so it didn't hang.)
 		(nreverse results)))
 
 (defun my-html-last-link-href (node)
+	"Return the last link HREF in NODE."
 	(dom-attr (car (last (dom-by-tag node 'a))) 'href))
 
-(defun my-brigade-process-latest-sketchpad ()
-	"Create an Org file with the HTML for different blocks."
-	(interactive)
-	(let ((default-directory "~/Downloads/newsletter")
-				file
-				dom
-				sections
-				)
-		(call-process "unzip" nil nil nil "-o" (my-latest-file "~/Downloads" "\\.zip$"))
-		(setq file (my-latest-file default-directory))
-		(with-temp-buffer
-			(insert-file-contents-literally file)
-			(goto-char (point-min))
-			(my-transform-html '(my-brigade-save-newsletter-images) (buffer-string))
-			(setq dom (my-brigade-simplify-html (libxml-parse-html-region (point-min) (point-max))))
-			(setq sections
-						(my-html-group-by-tag
-						 'h1
-						 (dom-children
-							(dom-by-tag
-							 dom'body)))))
-		(with-current-buffer (get-buffer-create "*newsletter*")
-			(erase-buffer)
-			(org-mode)
-			(insert "* In this e-mail\n#+begin_export html\n"
-							"<p>Hi Bike Brigaders! Here’s what's happening this week, with quick signup links. In this e-mail:</p>"
-							(my-transform-html
-							 '(my-brigade-remove-meta-recursively
-								 my-brigade-just-headings)
-							 (copy-tree dom))
-							"\n#+end_export\n\n")
-			(insert "* Sign-up block\n\n#+begin_export html\n"
-							(my-brigade-copy-signup-block)
-							"\n#+end_export\n\n")
-			(dolist (sec '("Bike Brigade" "In our community"))
-				(insert "* " sec "\n"
-								(mapconcat
-								 (lambda (group)
-									 (let ((item (apply 'dom-node 'div nil
-																			(append
-																			 (list (dom-node 'h2 nil (car group)))
-																			 (cdr group)))))
-										 (format "** %s\n\n%s\n\n#+begin_export html\n%s\n#+end_export\n\n"
-														 (car group)
-														 (or (my-html-last-link-href item) "")
-														 (my-transform-html
-															(delq nil
-																		(list
-																		 'my-transform-html-remove-images
-																		 'my-transform-html-remove-italics
-																		 'my-brigade-simplify-html
-																		 'my-brigade-format-buttons
-																		 (when (string= sec "In our community")
-																			 'my-brigade-recolor-recursively)))
-															item))))
-								 (my-html-group-by-tag 'h2 (cdr (assoc sec sections 'string=)))
-								 "")))
-			(insert "* Other updates\n"
-							(format "#+begin_export html\n%s\n#+end_export\n\n"
-											(my-transform-html
-											 '(my-transform-html-remove-images
-												 my-transform-html-remove-italics
-												 my-brigade-simplify-html)
-											 (car (cdr (assoc "Other updates" sections 'string=))))))
-			(goto-char (point-min))
-			(display-buffer (current-buffer)))))
+(defun my-brigade-image (heading)
+	"Find the latest image related to HEADING."
+	(car
+	 (nreverse
+		(directory-files my-brigade-newsletter-images-directory
+												t (regexp-quote (my-brigade-newsletter-heading-to-image-file-name heading))))))
+
 #+end_src
 
-#+RESULTS:
-:results:
-my-brigade-process-latest-sketchpad
-:end:
+Some of the functions it uses are in my config, particularly the section on [[dotemacs:areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours][Transforming HTML clipboard contents with Emacs to smooth out Mailchimp annoyances: dates, images, comments, colours]].
+
+Along the way, I learned that ~svg-print~ is a good way to [[https://sachachua.com/blog/2025/09/emacs-and-dom-el-quick-notes-on-parsing-html-and-turning-doms-back-into-html/][turn document object models back into HTML]].
+
+When I saw two more events and one additional link that I wanted to include, I was glad I already had this code sorted out. It made it easy to paste the images and details into the Google Doc, reformat it slightly, and get the info through the process so that it ended up in the newsletter with a usefully-named image and correctly-coloured links.
+
+I think this is a good combination of Google Docs for getting other people's feedback and letting them edit, and Org Mode for keeping myself sane as I turn it into whatever Mailchimp wants.
+
+My next step for improving this workflow might be to check out other e-mail providers in case I can get Emacs to make the whole template. That way, I don't have to keep switching between applications and using the mouse to duplicate blocks and edit the code.
+
+
 * Streaming
    :PROPERTIES:
    :CUSTOM_ID: streaming
@@ -27403,6 +28188,8 @@ this more random-sounding someday.
 (use-package selectric-mode
   :if my-laptop-p
   :diminish ""
+	:defer t
+	:commands selectric-mode
   :config
   (fset #'selectric-type-sound #'my-selectric-type-sound))
 #+end_src
@@ -27554,6 +28341,9 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
 (keymap-global-set "s-SPC" #'my-stream/body)
 #+end_src
 ** Stream message
+:PROPERTIES:
+:CUSTOM_ID: streaming-stream-message
+:END:
 
 #+begin_src emacs-lisp
 (defun my-stream-message (message)
@@ -27569,7 +28359,7 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
 :END:
 
     #+begin_src emacs-lisp
-(use-package mpv :if my-laptop-p)
+(use-package mpv :if my-laptop-p :defer t :commands mpv)
 (defvar my-recordings-dir "~/recordings/")
 (defun my-delete-latest-recording ()
 	(interactive)
@@ -28157,7 +28947,7 @@ references.
 		(my-geeqie-next)
 		(delete-file file t)))
 
-(use-package ewmctrl)
+(use-package ewmctrl :defer t)
 (defun my-geeqie-setup ()
   (interactive)
   (shell-command "wmctrl -r :ACTIVE: -b remove,maximized_vert,maximized_horz; xdotool getactivewindow windowsize 50% 100%")
@@ -28229,6 +29019,7 @@ https://github.com/sachac/plover-websocket-el
   :load-path "~/proj/plover-websocket-el"
   :after websocket
   :if my-laptop-p
+	:defer t
   :config (setq plover-websocket-plover-command "cd ~/vendor/plover; tox -e launch")
   :hydra
   (my-plover (:exit t)
@@ -29133,6 +29924,7 @@ ATD
   (insert (symbol-value (intern symbol-name))))
 
 (defun my-insert-function (symbol-name)
+	"Insert function name."
   (interactive (list
                 (completing-read
                  "Insert function: "
@@ -29524,6 +30316,7 @@ with open("/home/sacha/.config/plover/annotated.txt", "w") as f:
 #+begin_src emacs-lisp
 (use-package gptel
 	:commands (gptel gptel-send gptel-set-topic gptel-menu)
+	:defer t
 	:config
 	(setq gptel-model 'gemma:2b
 				gptel-backend
@@ -29838,6 +30631,7 @@ easier to discover commands.
 *** TODO Make memes from Emacs
 :PROPERTIES:
 :CREATED:  [2024-01-16 Tue 17:48]
+:CUSTOM_ID: inactive-infrequent-things-fun-and-games-make-memes-from-emacs
 :END:
 
 #+begin_src emacs-lisp
@@ -29845,6 +30639,8 @@ easier to discover commands.
 	;:quelpa (meme :fetcher github :repo "larsmagne/meme")
 	:load-path "~/vendor/meme"
 	:init (provide 'imgur)  ; fake this
+	:defer t
+	:commands meme
 	:config
 	(setq meme-dir "~/vendor/meme/images")
 	(setq meme-font "Roboto"))
@@ -29861,10 +30657,12 @@ easier to discover commands.
 #+begin_src emacs-lisp
 (use-package eagle
 	:quelpa (eagle :fetcher git
-								 :url "https://codeberg.org/akib/emacs-eagle.git"))
+								 :url "https://codeberg.org/akib/emacs-eagle.git")
+	:defer t)
 (use-package cube
 	:quelpa (cube :fetcher git
-								:url "https://codeberg.org/akib/emacs-cube.git"))
+								:url "https://codeberg.org/akib/emacs-cube.git")
+	:defer t)
 #+end_src
 **** Diagrams
 :PROPERTIES:

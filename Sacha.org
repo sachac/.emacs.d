@@ -218,34 +218,41 @@ Disk space is cheap. Save lots.
 #+END_SRC
 *** Obscure Emacs package appreciation: backup-walker
 :PROPERTIES:
-:EXPORT_DATE: 2025-09-17T13:52:03-0400
+:EXPORT_DATE: 2025-09-18T09:19:03-0400
 :EXPORT_ELEVENTY_PERMALINK: /blog/2025/09/obscure-emacs-package-appreciation-backup-walker/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2025/09/obscure-emacs-package-appreciation-backup-walker/
+:EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01K5EHNVSHPHMAXFQPZYWJ1D1H
 :END:
 
 The [[https://www.emacswiki.org/emacs/Carnival][Emacs Carnival]] theme for September is [[https://goritskov.com/posts/obscure_packages.html][obscure
-packages]], and today the [[https://github.com/lewang/backup-walker][backup-walker]] package
-saved my bacon. There had been some odd mishap
-with editing my config in Org Mode. I probably
-accidentally deleted a subtree due to
+packages]], which made me think of how the
+[[https://github.com/lewang/backup-walker][backup-walker]] package saved me from having to
+write some code all over again. Something went
+wrong when I was editing my config in Org Mode. I
+probably accidentally deleted a subtree due to
 over-enthusiastic speed commands. (... Maybe I
 should make my ~k~ shortcut for
-~my-org-cut-subtree-or-list-item~ only work in my
-Inbox.org and news.org files.) A chunk of my
-[[https://sachachua.com/dotemacs/index.html][literate Emacs configuration]] had silently
-disappeared, including the code that defined
-[[dotemacs:my-org-insert-link-dwim][~my-org-insert-link-dwim~]]. Before I noticed, I'd
-already tangled my Emacs configuration file and
-restarted Emacs, so I couldn't recover the
-definition from memory using [[dotemacs:inserting-code][~symbol-function~]] or
-use [[package:vundo][vundo]] to browse the Emacs undo tree. I often
-neglect to commit my config changes to Git, so I
-couldn't restore a previous version. Oops.
+[[dotemacs:org-mode-keyboard-shortcuts-speed-commands-org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command][~my-org-cut-subtree-or-list-item~]] only work in my
+Inbox.org and news.org files.) Chunks of my
+[[https://sachachua.com/dotemacs/index.html][literate Emacs configuration]] were gone, including
+the code that defined [[dotemacs:my-org-insert-link-dwim][~my-org-insert-link-dwim~]].
+Before I noticed, I'd already exported my (now
+slightly shorter) Emacs configuration file with
+~org-babel-tangle~ and restarted Emacs. I couldn't
+recover the definition from memory using
+[[dotemacs:inserting-code][~symbol-function~]]. I couldn't use [[package:vundo][vundo]] to browse
+the Emacs undo tree. As usual, I'd been neglecting
+to commit my config changes to Git, so I couldn't
+restore a previous version. Oops.
 
-Fortunately, I had other backups. I have a 2 TB
-SSD in my laptop, and I've long since configured
-Emacs to neatly save numbered backups in a
-separate directory.
+Well, not the first time I've needed to rewrite
+code from scratch because of a brain hiccup. I
+started to reimplement the function. Then I
+remembered that I had other backups. I have a 2 TB
+SSD in my laptop, and I had configured Emacs to
+neatly save numbered backups in a separate
+directory, keeping all the versions without
+deleting any of the old ones.
 
 #+begin_src emacs-lisp
 (setq backup-directory-alist '(("\\.env$" . nil)
@@ -258,11 +265,9 @@ separate directory.
 #+end_src
 
 At the moment, there are about 12,633 files adding
-up to 3 GB, which is totally worth it for peace of
-mind. One of those files might have my missing
-code. I could probably use grep to search for the
-function, but then there might be matches in other
-files, and it's not easy to see what changed
+up to 3 GB. Totally worth it for peace of
+mind. I could probably use grep to search for the
+function, but it wasn't easy to see what changed
 between versions.
 
 I had learned about backup-walker in the process
@@ -272,31 +277,36 @@ used [[https://github.com/lewang/backup-walker][backup-walker]] to flip through 
 numbered backups in much the same way that
 [[package:git-timemachine][git-timemachine]] lets you flip through Git versions
 of a file. After ~M-x backup-walker-start~, I
-tapped ~p~ to go through the previous backups. It
-showed me the diff, so it was easy to check with
-~C-s~ (~isearch-forward~) if this was the version
-I was looking for. When I found the change, I
-pressed RET to load the version with the function
-in it. It turned out I accidentally deleted it on
-Sept 15. Once I found it, it was easy to restore
-that section. I also restored a couple of other
-sections that I'd accidentally deleted too. Hooray
-for backup-walker!
+tapped ~p~ to go through the previous backups. The
+diff it showed me made it easy to check with ~C-s~
+(~isearch-forward~) if this was the version I was
+looking for. When I found the change, I pressed
+RET to load the version with the function in it.
+Once I found it, it was easy to restore that
+section. I also restored a couple of other
+sections that I'd accidentally deleted too, like
+the custom [[dotemacs:org-mode-publishing-plain-text][plain text publishing backend]] I use to
+export Emacs News with less punctuation. It took
+maybe 5 minutes to figure this out. Hooray for
+backup-walker!
 
 Note that the backup-walker diff was the other way
 around from what I expected. It goes "diff new
-old" instead of "diff old new", so ~+~ indicates
-stuff that was removed by the new version and ~-~
-indicates stuff that was added. This is good if
-you live backwards in time, kind of like the [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Antinews.html][Emacs
-Antinews]] file, but my mind doesn't quite work that
-way. I wanted it to look like a regular diff, with
-the additions in newer versions marked with ~+~.
-Emacs being Emacs, I changed it. This is what it
+old" instead of "diff old new", so the green
+regions marked with ~+~ indicate stuff that was
+*removed* by the newer version (compared to the
+one a little older than it) and the red regions
+marked with ~-~ indicate stuff that was added.
+This could be useful if you think backwards in
+time, kind of like the [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Antinews.html][Emacs Antinews]] file, but my
+mind doesn't quite work that way. I wanted it to
+look like a regular diff, with the additions in
+newer versions marked with ~+~. Emacs being Emacs,
+I changed it. Here's an example showing what it
 looks like now:
 
-#+CAPTION: backup-walker diffs going the direction I want them to (older vs newer)
-[[file:~/recordings/2025-09-17_13-46-12.png]]
+#+CAPTION: backup-walker diffs going the direction I want them to: additions (+) marked in green, deletions (-) in red
+[[file:images/2025-09-17_13-46-12.png]]
 
 The following code makes it behave the way I
 expect:
@@ -352,12 +362,12 @@ expect:
 #+end_src
 
 ~backup-walker~ is not actually a real package in
-the sense of being in a package archive, but
+the sense of ~M-x package-install~, but
 fortunately, recent Emacs makes it easier to
-install a library from a repository. I needed to
+install from a repository. I needed to
 install it from
-[[https://github.com/lewang/backup-walker]]. The was
-written so long ago that I also needed to
+[[https://github.com/lewang/backup-walker]]. It was
+written so long ago that I needed to
 ~defalias~ some functions that were removed in
 Emacs 26.1. Here's the use-package snippet from my
 configuration:
@@ -372,21 +382,48 @@ configuration:
 #+end_src
 
 So there's an obscure package recommendation:
-[[https://github.com/lewang/backup-walker][backup-walker]]. This thing that has been untouched
-for more than a decade is still chugging along
-pretty nicely. It might be nice to dust it off,
-switch out the obsolete functions, add an option
-for the diff direction, and maybe sort things out
-so that you can reverse the diff, split hunks, and
-apply hunks to your original file. And maybe a way
-to walk the backup history for changes in a
-specific region? I suppose someone could make a
-spiffy [[https://github.com/magit/transient][Transient]]-based user interface to modernize
-it. But it's fine, it works. I should really be
-saving things in proper version control, but this
-was a good backup. May backup-walker save you from
-a future oops!
+[[https://github.com/lewang/backup-walker][backup-walker]]. It hasn't been updated for more
+than a decade, and it's not even installable the
+regular way, but it's still handy.
 
+I can imagine all sorts of ways this workflow
+could be even better. It might be nice to dust off
+backup-walker off, switch out the obsolete
+functions, add an option for the diff direction,
+and maybe sort things out so that you can reverse
+the diff, split hunks, and apply hunks to your
+original file. And maybe a way to walk the backup
+history for changes in a specific region? I
+suppose someone could make a spiffy
+[[https://github.com/magit/transient][Transient]]-based user interface to modernize it.
+But it's fine, it works. Maybe there's a more
+modern equivalent, but I didn't see anything in a
+quick search of ~M-x list-packages~ ~/ N~
+(~package-menu-filter-by-name-or-description~) for
+"backup~, except maybe [[https://elpa.gnu.org/packages/vc-backup.html][vc-backup]].[fn:vc-backup-repo:vc-backup: The [[https://git.sr.ht/~pkal/vc-backup][original
+repo]] is missing, but you can read it via [[https://gitweb.git.savannah.gnu.org/gitweb/?p=emacs/elpa.git;a=blob_plain;f=vc-backup.el;hb=refs/heads/externals/vc-backup][ELPA's
+copy]]. Update: It's over on [[https://codeberg.org/pkal/vc-backup.el][Codeberg]] now, and presumably the info on ELPA will be updated soon.] Is there a general-purpose VC equivalent to
+git-timemachine? That might be useful.
+
+I should really be saving things in proper version
+control, but this was a good backup. That reminds
+me: I should backup my backup backups. I had
+initially excluded my ~~/.config~ directory from
+[[https://www.borgbackup.org/][borgbackup]] because of the extra bits and bobs that
+I wouldn't need when restoring from backup (like
+all the Emacs packages I'd just re-download). But
+my file backups... Yeah, that's worth it. I
+changed my ~--exclude-from~ to ~--patterns-from~
+and changing my [[https://manpages.debian.org/testing/borgbackup/borg-patterns.1.en.html][borg-patterns]] file to look like
+this:
+
+#+begin_example
++ /home/sacha/.config/emacs/backups
+- /home/sacha/.config/*
+# ... other rules
+#+end_example
+
+May backup-walker save you from a future oops!
 ** History
 :PROPERTIES:
 :CUSTOM_ID: history
@@ -20433,7 +20470,9 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
 You can get these from https://github.com/sachac
 #+begin_src emacs-lisp
 (use-package waveform :load-path "~/proj/waveform-el" :if my-laptop-p :defer t)
-(use-package compile-media :load-path "~/proj/compile-media" :if my-laptop-p :defer t)
+(use-package compile-media :load-path "~/proj/compile-media" :if my-laptop-p :defer t
+	:autoload compile-media-timestamp-to-msecs
+	)
 #+end_src
 *** DONE Working with sections defined by NOTE comments
 CLOSED: [2024-12-12 Thu 19:50] SCHEDULED: <2024-12-13 Fri>
@@ -27278,7 +27317,7 @@ switch to Google Chrome so that I can paste it in.
 				 (next-week-end (org-read-date nil t "+3Sun" nil date))
 				 result)
 		(setq result (format
-			"<div style=\"background-color: #223f4d; text-align: center; max-width: 384px; margin: auto; margin-bottom: 12px;\"><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" target=\"_blank\" class=\"mceButtonLink\" style=\"background-color:#223f4d;border-radius:0;border:2px solid #223f4d;color:#ffffff;display:block;font-family:'Helvetica Neue', Helvetica, Arial, Verdana, sans-serif;font-size:16px;font-weight:normal;font-style:normal;padding:16px 28px;text-decoration:none;text-align:center;direction:ltr;letter-spacing:0px\" rel=\"noreferrer\">SIGN UP NOW TO DELIVER %s-%s</a>
+			"<div style=\"background-color: #223f4d; text-align: center; margin: auto; margin-bottom: 12px;\"><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" target=\"_blank\" class=\"mceButtonLink\" style=\"background-color:#223f4d;border-radius:0;border:2px solid #223f4d;color:#ffffff;display:block;font-family:'Helvetica Neue', Helvetica, Arial, Verdana, sans-serif;font-size:16px;font-weight:normal;font-style:normal;padding:16px 28px;text-decoration:none;text-align:center;direction:ltr;letter-spacing:0px\" rel=\"noreferrer\">SIGN UP NOW TO DELIVER %s-%s</a>
 </div>
 <p style=\"text-align: center; font-family: 'Helvetica Neue', Helvetica, Arial, Verdana\"><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" style=\"color: #476584; margin-top: 12px; margin-bottom: 12px;\" target=\"_blank\">You can also sign up early to deliver %s-%s</a></p>"
 			(format-time-string "%Y-%m-%d" current-week)
@@ -27409,7 +27448,7 @@ this:
 
 #+begin_src emacs-lisp
 (defun my-transform-html-save-images (dom dir &optional file-prefix transform-fn)
-	(let (last-image last-image-filename)
+	(let (last-image last-image-filename last-image-alt results)
 		(dom-search dom
 								(lambda (node)
 									(pcase (dom-tag node)
@@ -27418,7 +27457,8 @@ this:
 											 (cond
 												((string-match "^images/" data)
 												 (setq last-image nil
-															 last-image-filename data))
+															 last-image-filename data
+															 last-image-alt (dom-attr node 'alt)))
 												((string-match "^data:image/" data)
 												 (with-temp-buffer
 													 (insert data)
@@ -27426,35 +27466,44 @@ this:
 													 (when (looking-at "data:image/\\([^;]+?\\);base64,")
 														 (setq last-image (cons (match-string 1)
 																										(buffer-substring (match-end 0) (point-max)))
-																	 last-image-filename nil)))))))
+																	 last-image-filename nil
+																	 last-image-alt (dom-attr node 'alt))))))))
 										('h2
 										 (when (not (string= (string-trim (dom-texts node)) ""))
 											 (cond
 												(last-image
-												 (with-temp-file
-														 (expand-file-name
-															(format "%s%s.%s"
-																			(or file-prefix "")
-																			(if transform-fn
-																					(funcall transform-fn (dom-texts node))
-																				(dom-texts node))
-																			(car last-image))
-															dir)
+												 (setq last-image-filename
+															 (expand-file-name
+																(format "%s%s.%s"
+																				(or file-prefix "")
+																				(if transform-fn
+																						(funcall transform-fn (dom-texts node))
+																					(dom-texts node))
+																				(car last-image))
+																dir))
+												 (with-temp-file last-image-filename
 													 (set-buffer-file-coding-system 'binary)
 													 (insert (base64-decode-string (cdr last-image)))))
 												(last-image-filename
-												 (call-process "convert" nil nil nil last-image-filename
-																			 (expand-file-name
-																				(format "%s%s.%s"
-																								(or file-prefix "")
-																								(if transform-fn
-																										(funcall transform-fn (dom-texts node))
-																									(dom-texts node))
-																								"jpg")
-																				dir))))
+												 (let ((new-filename
+																(expand-file-name
+																 (format "%s%s.%s"
+																				 (or file-prefix "")
+																				 (if transform-fn
+																						 (funcall transform-fn (dom-texts node))
+																					 (dom-texts node))
+																				 "jpg")
+																 dir)))
+													 (call-process "convert" nil nil nil last-image-filename
+																				 new-filename)
+													 (setq last-image-filename new-filename))))
+											 (push (cons (string-trim (dom-texts node))
+																	 `((filename . ,last-image-filename)
+																		 (alt . ,last-image-alt)))
+														 results)
 											 (setq last-image nil
 														 last-image-filename nil))))))
-		dom))
+		(nreverse results)))
 #+end_src
 
 I wrapped this in a small function for
@@ -27484,10 +27533,8 @@ save the clipboard. To run the code with the saved
 clipboard, I can call it like this:
 
 #+begin_src emacs-lisp :eval no :tangle no
-(my-transform-html-clipboard
- nil
- '(my-brigade-save-newsletter-images)
- (with-temp-buffer (insert-file-contents "~/Downloads/test.html") (buffer-string)))
+(my-brigade-save-newsletter-images
+ (with-temp-buffer (insert-file-contents "~/Downloads/test.html") (libxml-parse-html-region)))
 #+end_src
 *** Cleaning up
 :PROPERTIES:
@@ -27526,8 +27573,7 @@ Here's how I can test it:
 #+begin_src emacs-lisp :eval no :tangle no
 (my-transform-html-clipboard
  nil
- '(my-brigade-save-newsletter-images
-	 my-transform-html-remove-images
+ '(my-transform-html-remove-images
 	 my-transform-html-remove-italics)
  (with-temp-buffer (insert-file-contents "~/Downloads/test.html") (buffer-string)))
 #+end_src
@@ -27570,8 +27616,7 @@ Let's try it out:
 #+begin_src emacs-lisp :eval no :tangle no
 (my-transform-html-clipboard
  nil
- '(my-brigade-save-newsletter-images
-	 my-transform-html-remove-images
+ '(my-transform-html-remove-images
 	 my-transform-html-remove-italics
 	 my-brigade-remove-meta-recursively)
  (with-temp-buffer (insert-file-contents "~/Downloads/test.html") (buffer-string)))
@@ -27633,12 +27678,12 @@ those into centered buttons?
 					;; button, wrap in a table
 					(with-temp-buffer
 						(insert
-						 (format "<table align=\"center\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" data-block-id=\"627\" class=\"mceButtonContainer\" style=\"margin: auto; text-align: center\"><tbody><tr class=\"mceStandardButton\"><td style=\"background-color:#000000;border-radius:0;text-align:center\" valign=\"top\" class=\"mceButton\"><a href=\"%s\" target=\"_blank\" class=\"mceButtonLink\" style=\"background-color:#000000;border-radius:0;border:2px solid #000000;color:#ffffff;display:block;font-family:'Helvetica Neue', Helvetica, Arial, Verdana, sans-serif;font-size:16px;font-weight:normal;font-style:normal;padding:16px 28px;text-decoration:none;text-align:center;direction:ltr;letter-spacing:0px\" rel=\"noreferrer\">%s</a></td></tr></tbody></table>"
+						 (format "<div style=\"margin-top: 12px\"><table align=\"center\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" data-block-id=\"627\" class=\"mceButtonContainer\" style=\"margin-top: 24px; margin: auto; text-align: center\"><tbody><tr class=\"mceStandardButton\"><td style=\"background-color:#000000;border-radius:0;text-align:center\" valign=\"top\" class=\"mceButton\"><a href=\"%s\" target=\"_blank\" class=\"mceButtonLink\" style=\"background-color:#000000;border-radius:0;border:2px solid #000000;color:#ffffff;display:block;font-family:'Helvetica Neue', Helvetica, Arial, Verdana, sans-serif;font-size:16px;font-weight:normal;font-style:normal;padding:16px 28px;text-decoration:none;text-align:center;direction:ltr;letter-spacing:0px\" rel=\"noreferrer\">%s</a></td></tr></tbody></table></p></div>"
 										 (dom-attr node 'href)
 										 (match-string 1 text)))
 						(dom-add-child-before
 						 (dom-parent dom node)
-						 (car (dom-by-tag (libxml-parse-html-region (point-min) (point-max)) 'table)) node)
+						 (car (dom-by-tag (libxml-parse-html-region (point-min) (point-max)) 'div)) node)
 						(dom-remove-node dom node)))))
 	dom)
 #+end_src
@@ -27648,8 +27693,7 @@ Now I can test those functions in combination:
 #+begin_src emacs-lisp :eval no :tangle no
 (my-transform-html-clipboard
  nil
- '(my-brigade-save-newsletter-images
-	 my-transform-html-remove-images
+ '(my-transform-html-remove-images
 	 my-transform-html-remove-italics
 	 my-brigade-remove-meta-recursively
 	 my-brigade-format-buttons)
@@ -27715,8 +27759,7 @@ I can add that to the sequence:
 #+begin_src emacs-lisp :eval no :tangle no
 (my-transform-html-clipboard
  nil
- '(my-brigade-save-newsletter-images
-	 my-transform-html-remove-images
+ '(my-transform-html-remove-images
 	 my-transform-html-remove-italics
 	 my-brigade-remove-meta-recursively
 	 my-brigade-format-buttons
@@ -27751,8 +27794,7 @@ Now that I've made all those little pieces, I can put them together in two inter
 	(my-transform-html-clipboard
    "Chrome"
 	 (append
-		'(my-brigade-save-newsletter-images
-			my-transform-html-remove-images
+		'(my-transform-html-remove-images
 			my-transform-html-remove-italics
 			my-brigade-remove-meta-recursively
 			my-brigade-remove-styles
@@ -27823,7 +27865,12 @@ xclip call so it didn't hang.)
 :EXPORT_ELEVENTY_PERMALINK: /blog/2025/09/getting-a-google-docs-draft-ready-for-mailchimp-via-emacs/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2025/09/getting-a-google-docs-draft-ready-for-mailchimp-via-emacs/
 :EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01K5C0MFBEMCMVK59ACGSM7KP2
+:EXPORT_MODIFIED: 2025-09-18T10:51:02-0400
 :END:
+
+#+begin_update
+[2025-09-18]: Got it to include the dates in the TOC as well
+#+end_update
 
 I've been volunteering to help with the [[https://www.bikebrigade.ca/][Bike Brigade]] newsletter. I like that there are people who are out there helping improve food security by delivering food bank hampers to recipients. Collecting information for the newsletter also helps me feel more appreciation for the lively Toronto biking scene, even though I still can't make it out to most events. The general workflow is:
 1. collect info
@@ -27874,14 +27921,14 @@ I need to copy and paste the image filenames into the upload dialog on Mailchimp
 		(with-temp-buffer
 			(insert-file-contents-literally file)
 			(goto-char (point-min))
-			(my-transform-html '(my-brigade-save-newsletter-images) (buffer-string))
 			(setq dom (my-brigade-simplify-html (libxml-parse-html-region (point-min) (point-max))))
+			(my-brigade-save-newsletter-images dom)
 			(setq sections
 						(my-html-group-by-tag
 						 'h1
 						 (dom-children
 							(dom-by-tag
-							 dom'body)))))
+							 dom 'body)))))
 		(with-current-buffer (get-buffer-create "*newsletter*")
 			(erase-buffer)
 			(org-mode)
@@ -27889,14 +27936,19 @@ I need to copy and paste the image filenames into the upload dialog on Mailchimp
 			 (format-time-string "%B %-e, %Y" date) "\n"
 			 "* In this e-mail\n#+begin_src html\n"
 			 "<p>Hi Bike Brigaders! Here’s what's happening this week, with quick signup links. In this e-mail:</p>"
-			 (my-transform-html
-				'(my-brigade-remove-meta-recursively
-					my-brigade-just-headings)
-				(copy-tree dom))
+			 (replace-regexp-in-string
+				"<li>" "\n<li>"
+				(with-temp-buffer
+					(svg-print
+					 (apply 'dom-node
+									'ul nil
+									(append
+									 (my-brigade-toc-items (assoc-default "Bike Brigade" sections 'string=))
+									 (my-brigade-toc-items (assoc-default "In our community" sections 'string=)))))
+					(buffer-string)))
+			 "\n<br />\n"
+			 (my-brigade-copy-signup-block date)
 			 "\n#+end_src\n\n")
-			(insert "* Sign-up block\n\n#+begin_src html\n"
-							(my-brigade-copy-signup-block date)
-							"\n#+end_src\n\n")
 			(dolist (sec '("Bike Brigade" "In our community"))
 				(insert "* " sec "\n"
 								(mapconcat
@@ -27923,7 +27975,7 @@ I need to copy and paste the image filenames into the upload dialog on Mailchimp
 								 (my-html-group-by-tag 'h2 (cdr (assoc sec sections 'string=)))
 								 "")))
 			(insert "* Other updates\n"
-							(format "#+begin_src html\n%s\n#+end_src\n\n"
+							(format "#+begin_src html\n<h2>Other updates</h2>%s\n#+end_src\n\n"
 											(my-transform-html
 											 '(my-transform-html-remove-images
 												 my-transform-html-remove-italics
@@ -27931,6 +27983,20 @@ I need to copy and paste the image filenames into the upload dialog on Mailchimp
 											 (car (cdr (assoc "Other updates" sections 'string=))))))
 			(goto-char (point-min))
 			(display-buffer (current-buffer)))))
+
+(defun my-brigade-toc-items (section-children)
+	"Return a list of <li /> nodes."
+	(mapcar
+	 (lambda (group)
+		 (let* ((text (dom-texts (cadr group)))
+						(regexp (format "^%s \\([A-Za-z]+ [0-9]+\\)"
+														(regexp-opt '("Mon" "Tue" "Wed" "Thu" "Fri" "Sat" "Sun"))))
+						(match (when (string-match regexp text) (match-string 1 text))))
+			 (dom-node 'li nil
+								 (if match
+										 (format "%s: %s" match (car group))
+									 (car group)))))
+	 (my-html-group-by-tag 'h2 section-children)))
 
 (defun my-html-group-by-tag (tag dom-list)
 	"Use TAG to divide DOM-LIST into sections. Return an alist of (section . children)."
@@ -27972,7 +28038,141 @@ When I saw two more events and one additional link that I wanted to include, I w
 I think this is a good combination of Google Docs for getting other people's feedback and letting them edit, and Org Mode for keeping myself sane as I turn it into whatever Mailchimp wants.
 
 My next step for improving this workflow might be to check out other e-mail providers in case I can get Emacs to make the whole template. That way, I don't have to keep switching between applications and using the mouse to duplicate blocks and edit the code.
+** Bike Brigade: working with Mailchimp images
 
+All right, let's try uploading the files ourselves. This uses https://github.com/sachac/mailchimp-el .
+
+#+begin_src emacs-lisp
+(defun my-brigade-reuse-or-upload-images (images)
+	"Return an alist of (SECTION . URL)"
+	(let ((recent-files (assoc-default 'files (mailchimp-get-recent-files 100))))
+		(mapcar
+		 (lambda (img)
+			 (let* ((base (regexp-quote
+										 (replace-regexp-in-string "^.+?-news-" "" (file-name-nondirectory (assoc-default 'filename (cdr img))))))
+							(existing (seq-find (lambda (o) (string-match base (assoc-default 'name o)))
+																	recent-files)))
+				 (push (cons 'url
+										 (if existing
+												 (assoc-default 'full_size_url existing)
+											 (alist-get 'full_size_url (mailchimp-upload-file (assoc-default 'filename (cdr img))))))
+							 (cdr img))
+				 img))
+		 images)))
+
+(defun my-brigade-toc (sections)
+	(replace-regexp-in-string
+	 "<li>" "\n<li>"
+	 (with-temp-buffer
+		 (svg-print
+			(apply 'dom-node
+						 'ul nil
+						 (append
+							(my-brigade-toc-items (assoc-default "Bike Brigade" sections 'string=))
+							(my-brigade-toc-items (assoc-default "In our community" sections 'string=)))))
+		 (buffer-string))))
+
+(defun my-brigade-format-section (section &optional recolor)
+	(mapconcat
+	 (lambda (group)
+		 (let* ((item (apply 'dom-node 'div nil
+												 (append
+													(list (dom-node 'h2 nil (car group)))
+													(cdr group))))
+						(image (assoc-default (car group) images 'string=))
+						(call-to-action (dom-attr (dom-search item (lambda (o)
+																												 (and (eq (dom-tag o) 'a)
+																															(string-match "^\\[ .+ \\]" (dom-texts o)))))
+																			'href)))
+			 (format "<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\" style=\"margin-top: 12px; margin-bottom: 12px;\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover\" valign=\"top\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"12\" rowspan=\"1\" valign=\"top\" width=\"100%%\" class=\"mceColumn\" id=\"mceColumnId--38\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0\" valign=\"top\" id=\"b812\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover;padding-top:0px;padding-bottom:0px\" valign=\"top\"><table style=\"table-layout:fixed\" width=\"100%%\" border=\"0\" cellspacing=\"24\" cellpadding=\"0\"><tbody><tr><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-809\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"background-color:transparent;border:0;border-radius:0\" valign=\"top\" class=\"mceImageBlockContainer\" id=\"b808\"><table style=\"border-collapse:separate;margin:0;vertical-align:top;max-width:100%%;width:100%%;height:auto\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0;margin:0\" valign=\"top\">
+  <p>%s</p>
+</td></tr></tbody></table></td></tr></tbody></table></td><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-811\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0\" valign=\"top\" class=\"mceGutterContainer\" id=\"gutterContainerId-810\"><table style=\"border-collapse:separate\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0;border:0;border-radius:0\" valign=\"top\" id=\"b810\"><table style=\"border:0;background-color:transparent;border-radius:0;border-collapse:separate\" width=\"100%%\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-left:24px;padding-right:24px;\" class=\"mceTextBlockContainer\">
+%s
+</td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table>"
+							 (if call-to-action
+									 (format "<a href=\"%s\" tabindex=\"-1\" style=\"display: block;\"><span style=\"background-color: transparent\"><img src=\"%s\" alt=\"%s\" style=\"padding-top: 12px; display:block;max-width:100%%;height:auto;border-radius:0\" width=\"306\" height=\"auto\" class=\"imageDropZone mceImage\"></span></a>"
+													 call-to-action
+													 (assoc-default 'url image)
+													 (if (not (string= (assoc-default 'alt image) ""))
+															 (assoc-default 'alt image)
+														 (car group)))
+								 (format "<img src=\"%s\" alt=\"%s\" style=\"display:block; padding-top: 12px; max-width:100%%;height:auto;border-radius:0\" width=\"306\" height=\"auto\" class=\"imageDropZone mceImage\">"
+												 (assoc-default 'url image)
+												 (if (not (string= (assoc-default 'alt image) ""))
+														 (assoc-default 'alt image)
+													 (car group))))
+							 (my-transform-html
+								(delq nil
+											(list
+											 'my-transform-html-remove-images
+											 'my-transform-html-remove-italics
+											 'my-brigade-simplify-html
+											 'my-brigade-format-buttons
+											 (when recolor
+												 'my-brigade-recolor-recursively)))
+								item))))
+	 (my-html-group-by-tag 'h2 section)
+	 "\n"))
+
+(cl-defun my-brigade-block (text &key (bg "#223f4d")
+																 (style "padding-left:24px;padding-right:24px;padding-top:12px;padding-bottom:12px"))
+	(format
+	 "<table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%%\" style=\"border-collapse:separate\" role=\"presentation\"><tbody><tr><td style= \"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0;border:0;border-radius:0\" valign=\"top\"><table width=\"100%%\" style= \"border:0;background-color:%s;border-radius:0;border-collapse:separate\"><tbody><tr><td style=\"%s\" class=\"mceTextBlockContainer\"><div data-block-id=\"738\" class=\"mceText\" style= \"width:100%%\">%s</div></td></tr></tbody></table></td></tr></tbody></table>"
+	 bg
+	 style
+	 text))
+
+(defun my-brigade-process-latest-newsletter-draft-with-images (date)
+	"Create an Org file with the HTML for different blocks."
+	(interactive (list (if current-prefix-arg (org-read-date nil t nil "Date: ")
+											 (org-read-date nil t "+Sun"))))
+	(when (stringp date) (setq date (date-to-time date)))
+	(let ((default-directory "~/Downloads/newsletter")
+				file
+				images
+				dom
+				sections)
+		(call-process "unzip" nil nil nil "-o" (my-latest-file "~/Downloads" "\\.zip$"))
+		(setq file (my-latest-file default-directory))
+		(with-temp-buffer
+			(insert-file-contents-literally file)
+			(goto-char (point-min))
+			(setq dom (libxml-parse-html-region (point-min) (point-max)))
+			(setq images (my-brigade-reuse-or-upload-images (my-brigade-save-newsletter-images dom)))
+			(setq dom (my-brigade-simplify-html dom))
+			(setq sections
+						(my-html-group-by-tag
+						 'h1
+						 (dom-children
+							(dom-by-tag
+							 dom 'body)))))
+		(kill-new
+		 (concat
+			(my-brigade-block (format "<table style=\"margin: auto\"><tbody><tr><td style=\"text-align: center; color: #f3f3f3\"><div style=\"text-align: center; color: #f3f3f3\">%s</div></td></tr></table>"
+																(format-time-string "%B %-e, %Y" date))
+												:bg "#16232a"
+												:style "padding: 0px 24px 12px 24px")
+			"<table><tbody><tr><td style=\"padding: 12px 24px 12px 24px\"><p>Hi Bike Brigaders! Here’s what's happening this week, with quick signup links. In this e-mail:</p>"
+			(my-brigade-toc sections)
+			"\n<br />\n"
+			(my-brigade-copy-signup-block date)
+			(my-brigade-format-section (assoc-default "Bike Brigade" sections #'string=))
+			"</td></tr></tbody></table><table style=\"background-color:#223f4d;\"><tbody><tr><td style=\"padding-left: 24px; padding-right: 24px\">"
+			(my-brigade-block "<h1 style=\"text-align: center;\"><span style= \"color:#ffffff;\">In our community</span></h1>")
+			(my-brigade-format-section (assoc-default "In our community" sections #'string=) t)
+			"</td></tr></tbody></table>"
+
+			(if (assoc-default "Other updates" sections #'string=)
+					(format "<table><tbody><tr><td style=\"padding: 12px 24px 12px 24px\"><h2>Other updates</h2>%s</td></tr></tbody></table>"
+									(my-transform-html
+									 '(my-transform-html-remove-images
+										 my-transform-html-remove-italics
+										 my-brigade-simplify-html)
+									 (car (assoc-default "Other updates" sections #'string=))))
+				"")
+			"\n"))))
+
+#+end_src
 
 * Streaming
    :PROPERTIES:

@@ -27322,12 +27322,12 @@ switch to Google Chrome so that I can paste it in.
 <p style=\"text-align: center; font-family: 'Helvetica Neue', Helvetica, Arial, Verdana\"><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" style=\"color: #476584; margin-top: 12px; margin-bottom: 12px;\" target=\"_blank\">You can also sign up early to deliver %s-%s</a></p>"
 			(format-time-string "%Y-%m-%d" current-week)
 			(upcase (format-time-string "%b %e" current-week))
-			(format-time-string
+			(upcase (format-time-string
 			 (if (string= (format-time-string "%m" current-week)
 										(format-time-string "%m" current-week-end))
 					 "%-e"
 				 "%b %-e")
-			 current-week-end)
+			 current-week-end))
 			(format-time-string "%Y-%m-%d" next-week)
 			(format-time-string "%b %e" next-week)
 			(format-time-string
@@ -27678,13 +27678,15 @@ those into centered buttons?
 					;; button, wrap in a table
 					(with-temp-buffer
 						(insert
-						 (format "<div style=\"margin-top: 12px\"><table align=\"center\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" data-block-id=\"627\" class=\"mceButtonContainer\" style=\"margin-top: 24px; margin: auto; text-align: center\"><tbody><tr class=\"mceStandardButton\"><td style=\"background-color:#000000;border-radius:0;text-align:center\" valign=\"top\" class=\"mceButton\"><a href=\"%s\" target=\"_blank\" class=\"mceButtonLink\" style=\"background-color:#000000;border-radius:0;border:2px solid #000000;color:#ffffff;display:block;font-family:'Helvetica Neue', Helvetica, Arial, Verdana, sans-serif;font-size:16px;font-weight:normal;font-style:normal;padding:16px 28px;text-decoration:none;text-align:center;direction:ltr;letter-spacing:0px\" rel=\"noreferrer\">%s</a></td></tr></tbody></table></p></div>"
+						 (format "<table><tbody><tr><td style=\"padding: 12px 0 12px 0\"><div style=\"margin-top: 12px\"><table align=\"center\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" class=\"mceButtonContainer\" style=\"padding-top: 24px; margin: auto; margin-top: 12px; text-align: center\"><tbody><tr class=\"mceStandardButton\"><td style=\"background-color:#000000;border-radius:0;margin-top:12px;text-align:center\" valign=\"top\" class=\"mceButton\"><a href=\"%s\" target=\"_blank\" class=\"mceButtonLink\" style=\"background-color:#000000;border-radius:0;border:2px solid #000000;color:#ffffff;display:block;font-family:'Helvetica Neue', Helvetica, Arial, Verdana, sans-serif;font-size:16px;font-weight:normal;font-style:normal;padding:16px 28px;text-decoration:none;text-align:center;direction:ltr;letter-spacing:0px\" rel=\"noreferrer\">%s</a></td></tr></tbody></table></td></tr></table>"
 										 (dom-attr node 'href)
 										 (match-string 1 text)))
-						(dom-add-child-before
-						 (dom-parent dom node)
-						 (car (dom-by-tag (libxml-parse-html-region (point-min) (point-max)) 'div)) node)
-						(dom-remove-node dom node)))))
+						(let ((parent-paragraph (my-dom-closest dom node 'p)))
+							(dom-add-child-before
+							 (dom-parent dom parent-paragraph)
+							 (car (dom-by-tag (libxml-parse-html-region (point-min) (point-max)) 'div))
+							 parent-paragraph)
+							(dom-remove-node dom parent-paragraph))))))
 	dom)
 #+end_src
 
@@ -28084,11 +28086,7 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 																												 (and (eq (dom-tag o) 'a)
 																															(string-match "^\\[ .+ \\]" (dom-texts o)))))
 																			'href)))
-			 (format "<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\" style=\"margin-top: 12px; margin-bottom: 12px;\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover\" valign=\"top\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"12\" rowspan=\"1\" valign=\"top\" width=\"100%%\" class=\"mceColumn\" id=\"mceColumnId--38\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0\" valign=\"top\" id=\"b812\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover;padding-top:0px;padding-bottom:0px\" valign=\"top\"><table style=\"table-layout:fixed\" width=\"100%%\" border=\"0\" cellspacing=\"24\" cellpadding=\"0\"><tbody><tr><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-809\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"background-color:transparent;border:0;border-radius:0\" valign=\"top\" class=\"mceImageBlockContainer\" id=\"b808\"><table style=\"border-collapse:separate;margin:0;vertical-align:top;max-width:100%%;width:100%%;height:auto\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0;margin:0\" valign=\"top\">
-  <p>%s</p>
-</td></tr></tbody></table></td></tr></tbody></table></td><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-811\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0\" valign=\"top\" class=\"mceGutterContainer\" id=\"gutterContainerId-810\"><table style=\"border-collapse:separate\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0;border:0;border-radius:0\" valign=\"top\" id=\"b810\"><table style=\"border:0;background-color:transparent;border-radius:0;border-collapse:separate\" width=\"100%%\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-left:24px;padding-right:24px;\" class=\"mceTextBlockContainer\">
-%s
-</td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table>"
+			 (format "<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\" style=\"margin-top: 12px; margin-bottom: 12px;\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover\" valign=\"top\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"12\" rowspan=\"1\" valign=\"top\" width=\"100%%\" class=\"mceColumn\" id=\"mceColumnId--38\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0\" valign=\"top\" id=\"b812\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover;padding-top:0px;padding-bottom:0px\" valign=\"top\"><table style=\"table-layout:fixed\" width=\"100%%\" border=\"0\" cellspacing=\"24\" cellpadding=\"0\"><tbody><tr><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-809\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"background-color:transparent;border:0;border-radius:0\" valign=\"top\" class=\"mceImageBlockContainer\" id=\"b808\"><table style=\"border-collapse:separate;margin:0;vertical-align:top;max-width:100%%;width:100%%;height:auto\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0;margin:0\" valign=\"top\">%s</td></tr></tbody></table></td></tr></tbody></table></td><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-811\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0\" valign=\"top\" class=\"mceGutterContainer\" id=\"gutterContainerId-810\"><table style=\"border-collapse:separate\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0;border:0;border-radius:0\" valign=\"top\" id=\"b810\"><table style=\"border:0;background-color:transparent;border-radius:0;border-collapse:separate\" width=\"100%%\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-left:24px;padding-right:24px;\" class=\"mceTextBlockContainer\">%s</td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table>"
 							 (if call-to-action
 									 (format "<a href=\"%s\" tabindex=\"-1\" style=\"display: block;\"><span style=\"background-color: transparent\"><img src=\"%s\" alt=\"%s\" style=\"padding-top: 12px; display:block;max-width:100%%;height:auto;border-radius:0\" width=\"306\" height=\"auto\" class=\"imageDropZone mceImage\"></span></a>"
 													 call-to-action
@@ -28112,7 +28110,7 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 												 'my-brigade-recolor-recursively)))
 								item))))
 	 (my-html-group-by-tag 'h2 section)
-	 "\n"))
+	 ""))
 
 (cl-defun my-brigade-block (text &key (bg "#223f4d")
 																 (style "padding-left:24px;padding-right:24px;padding-top:12px;padding-bottom:12px"))
@@ -28154,7 +28152,7 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 												:style "padding: 0px 24px 12px 24px")
 			"<table><tbody><tr><td style=\"padding: 12px 24px 12px 24px\"><p>Hi Bike Brigaders! Here’s what's happening this week, with quick signup links. In this e-mail:</p>"
 			(my-brigade-toc sections)
-			"\n<br />\n"
+			""
 			(my-brigade-copy-signup-block date)
 			(my-brigade-format-section (assoc-default "Bike Brigade" sections #'string=))
 			"</td></tr></tbody></table><table style=\"background-color:#223f4d;\"><tbody><tr><td style=\"padding-left: 24px; padding-right: 24px\">"
@@ -28170,7 +28168,7 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 										 my-brigade-simplify-html)
 									 (car (assoc-default "Other updates" sections #'string=))))
 				"")
-			"\n"))))
+			""))))
 
 #+end_src
 

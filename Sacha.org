@@ -12777,6 +12777,22 @@ With prefix argument, also display headlines without a TODO keyword."
 :CUSTOM_ID: org-mode-links-links-to-my-config-add-dotemacs-completion
 :END:
 
+***** Config
+:PROPERTIES:
+:CUSTOM_ID: config
+:END:
+
+#+NAME: org-config-link
+    #+begin_src emacs-lisp
+(use-package org
+  :config
+  (org-link-set-parameters
+   "config"
+   :follow (lambda (id) (org-open-link-from-string (format "[[~/sync/emacs/Sacha.org::%s]]" id)))
+   :export (lambda (link description format)
+             (format "<a href=\"https://sachachua.com/dotemacs#%s\">%s</a>" link description))))
+
+    #+end_src
 *** YouTube
 :PROPERTIES:
 :CUSTOM_ID: youtube
@@ -17841,22 +17857,6 @@ Hello world
 On my computer, the numbers become links that I
 can click and copy. Another little shortcut thanks
 to Emacs and Org Mode!
-*** Config
-:PROPERTIES:
-:CUSTOM_ID: config
-:END:
-
-#+NAME: org-config-link
-    #+begin_src emacs-lisp
-(use-package org
-  :config
-  (org-link-set-parameters
-   "config"
-   :follow (lambda (id) (org-open-link-from-string (format "[[~/sync/emacs/Sacha.org::%s]]" id)))
-   :export (lambda (link description format)
-             (format "<a href=\"https://sachachua.com/dotemacs#%s\">%s</a>" link description))))
-
-    #+end_src
 *** Helm completion with my-helm-org-sketches
 :PROPERTIES:
 :CUSTOM_ID: helm-completion-with-my-helm-org-sketches

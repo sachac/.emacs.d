@@ -1994,9 +1994,9 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
   (when (and my-sketch-preview candidate) (my-geeqie-view (list candidate)))
   nil)
 
-(defun my-complete-sketch-filename ()
+(defun my-complete-sketch-filename (&optional filter)
   (interactive)
-  (consult--read (my-sketches)
+  (consult--read (my-sketches filter)
   		 :sort nil
   		 :state 'my-preview-image
   		 :prompt "Sketch: "
@@ -2009,15 +2009,21 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
       nil)))
 
 (defvar my-sketches nil "Cache for sketch filenames.")
-(defun my-sketches ()
+(defun my-sketches (&optional filter)
   (interactive)
-  (sort
-   (apply 'append (mapcar (lambda (dir)
-                            (directory-files dir t "\\.\\(jpe?g\\|png\\|svg\\)$"))
-                          my-sketch-directories))
-   (lambda (a b)
-     (string< (concat (or (my-date-from-filename b) "0") (file-name-nondirectory b))
-              (concat (or (my-date-from-filename a) "0") (file-name-nondirectory a))))))
+	(let (results)
+		(setq results
+					(apply 'append (mapcar (lambda (dir)
+																	 (directory-files dir t "\\.\\(jpe?g\\|png\\|svg\\)$"))
+																 my-sketch-directories)))
+		(when filter
+			(setq results (seq-filter (lambda (o) (string-match filter o))
+																results)))
+		(sort
+		 results
+		 (lambda (a b)
+			 (string< (concat (or (my-date-from-filename b) "0") (file-name-nondirectory b))
+								(concat (or (my-date-from-filename a) "0") (file-name-nondirectory a)))))))
 
 (defvar my-sketch-preview nil "Non-nil means preview images.")
 (defun my-find-sketch (file)

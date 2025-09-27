@@ -18075,6 +18075,188 @@ This makes a buffer with big buttons so that I can easily tap them with my stylu
 
 
 #+end_src
+*** Dot-grid box templates
+
+#+begin_src emacs-lisp
+(require 'svg)
+
+(defvar my-svg-dot-grid-params '(
+																 :num-rows 5
+																 :num-cols 7
+																 :dot-size 3
+																 :line-width 3
+																 :dot-spacing 60
+																 :grid-color "#a6d2ff"
+																 :row-size 6
+																 :col-size 6
+																 :text-size 50
+																 :margin-top 2))
+(cl-defun my-svg-make-dot-grid-boxes-template (&key (num-rows 5)
+                                                    (num-cols 7)
+                                                    (dot-size 3)
+																										(line-width 3)
+                                                    (dot-spacing 60)
+                                                    (grid-color "#a6d2ff")
+                                                    (row-size 6)
+                                                    (col-size 6)
+																										(text-size 50)
+                                                    (margin-top 2))
+  "Prepare an SVG with a dot grid within a table with solid gridlines.
+Each dot is a solid circle of DOT-SIZE filled with GRID-COLOR spaced DOT-SPACING apart.
+The gridlines are also GRID-COLOR. They should divide the image into ROWS and COLUMNS, which are ROW-SIZE * DOT-SPACING and COL-SIZE * DOT-SPACING apart.
+The table has a top margin with the dot grid, and this is MARGIN-TOP * DOT-SPACING tall.
+All dots are centered on their x, y coordinates.
+The rest of the image's background is white."
+  (let* ((width (* num-cols col-size dot-spacing))
+         (height (* dot-spacing (+ margin-top (* num-rows row-size))))
+         (margin-top-height (* margin-top dot-spacing))
+				 (svg (svg-create width height)))
+		(dotimes (row (+ (* num-rows row-size) margin-top))
+      (dotimes (col (1+ (* num-cols col-size)))
+        (let ((x (* col dot-spacing))
+              (y (* row dot-spacing)))
+          (svg-circle svg x y dot-size
+											:fill-color grid-color
+											:stroke-width 0))))
+
+		(when (> text-size 0)
+			(dotimes (i (* num-rows num-cols))
+        (let ((x (* (% i num-cols) col-size dot-spacing))
+              (y (+ margin-top-height (* (/ i num-cols) row-size dot-spacing))))
+          (svg-text svg
+										(number-to-string (1+ i))
+										:x x :y (+ y text-size)
+										:fill-color grid-color
+										:font-size text-size
+										:stroke-width 0))))
+    (dotimes (col (1+ num-cols))
+      (let ((x (* col col-size dot-spacing)))
+        (svg-line svg x margin-top-height x height
+									:stroke-color grid-color
+									:stroke-width line-width)))
+
+    (dotimes (row (1+ num-rows))
+      (let ((y (+ margin-top-height (* row row-size dot-spacing))))
+        (svg-line svg 0 y width y
+									:stroke-color grid-color
+									:stroke-width line-width)))
+		svg))
+
+#+end_src
+
+#+RESULTS:
+:results:
+my-svg-make-dot-grid-boxes-template
+:end:
+
+#+begin_src emacs-lisp :tangle no :eval no
+(with-temp-file "~/Downloads/grid.svg"
+	(svg-print
+	 (my-svg-make-dot-grid-boxes-template)))
+#+end_src
+
+#+begin_src emacs-lisp
+(cl-defun my-dot-grid-boxes-list (&key (num-rows 5)
+																			 (num-cols 7)
+																			 (dot-spacing 60)
+																			 (row-size 6)
+																			 (col-size 6)
+																			 (text-bottom 1)
+																			 (margin-top 2)
+																			 filename
+																			 &allow-other-keys)
+	(let* ((margin-top-height (* margin-top dot-spacing))
+				 (size (image-size (create-image filename) t))
+				 (ratio (/ (car size) (* num-cols col-size dot-spacing 1.0)))
+				 results)
+		(dotimes (i (* num-rows num-cols))
+			(let* ((r (/ i num-cols))
+						 (c (% i num-cols))
+						 (y (* (+ margin-top-height (* r col-size dot-spacing)) ratio))
+						 (x (* c row-size dot-spacing ratio))
+						 (width (* col-size dot-spacing ratio))
+						 (height (* (- row-size text-bottom) dot-spacing ratio)))
+				(setq results (cons
+											 `((r . ,r)
+												 (c . ,c)
+												 (i . ,i)
+												 (x . ,(floor x))
+												 (y . ,(floor y))
+												 (w . ,(floor width))
+												 (h . ,(floor height))
+												 (x2 . ,(floor (+ x width)))
+												 (y2 . ,(floor (+ y height))))
+											 results))))
+		(nreverse results)))
+
+(cl-defun my-dot-grid-boxes-extract (&rest args &key filename labels output-dir &allow-other-keys)
+	(let* ((list (apply #'my-dot-grid-boxes-list args))
+				 (base (file-name-base filename))
+				 (ext (concat "." (file-name-extension filename)))
+				 (id
+					(if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" base)
+							(match-string 0 base)
+						""))
+				 args)
+		(dolist (icon list)
+			(let-alist icon
+				(setq args
+							(list (expand-file-name filename)
+										"-crop"
+										(format "%dx%d+%d+%d" .w .h .x .y)
+										"+repage"
+										(expand-file-name
+										 (concat (my-make-slug (elt labels .i)) "--"
+														 id
+														 (format "-%d-%d"
+																		 .r .c)
+														 ext)
+										 output-dir)
+										)))
+			(kill-new (concat "convert " (mapconcat #'shell-quote-argument args " ")))
+			(apply #'call-process "convert" nil nil nil args))))
+;; (cl-defun my-dot-grid-boxes-annotate (&rest args &key filename &allow-other-keys)
+;; 	(let ((list (apply #'my-dot-grid-boxes-list args)))
+;; 		(with-current-buffer (get-buffer-create "*Image*")
+;; 			(let* ((inhibit-read-only t)
+;; 						 (image (create-image filename))
+;; 						 (size (image-size image t))
+;; 						 (svg (svg-create (car size) (cdr size))))
+;; 				(svg-embed svg filename (format "image/%s" (image-type filename))
+;; 									 nil :x 0 :y 0 :width (car size) :height (cdr size))
+;; 				(erase-buffer)
+;; 				(svg-insert-image svg)
+;; 				(display-buffer (current-buffer))))))
+
+
+;; (my-dot-grid-boxes-list :num-rows 4 :filename  "/home/sacha/sync/sketches/2025-09-25-01 Drawing practice -- drawing.jpeg")
+;; (my-dot-grid-boxes-annotate :num-rows 4 :filename  "/home/sacha/sync/sketches/2025-09-25-01 Drawing practice -- drawing.jpeg")
+
+(defun my-dot-grid-boxes-labels (id)
+	(with-temp-buffer
+		(insert-file-contents (concat (file-name-sans-extension (my-get-sketch-filename id)) ".txt"))
+		(goto-char (point-min))
+		(re-search-forward "^ *$")
+		(split-string (string-trim (buffer-substring (point) (point-max))) "\n")))
+
+(defun my-dot-grid-boxes-process (id)
+	(interactive
+	 (list
+		(my-complete-sketch-filename "drawing")))
+	(let* ((labels (my-dot-grid-boxes-labels id)))
+		(cl-assert (= (% (length labels) 7) 0))
+		(cl-assert (> (length labels) 1))
+		(my-dot-grid-boxes-extract :output-dir "~/proj/icons"
+															 :num-rows (/ (length labels) 7)
+															 :filename (my-get-sketch-filename id)
+															 :labels labels)))
+#+end_src
+#+RESULTS:
+:results:
+nil
+:end:
+
+
 *** Easily backfill my journal
 CLOSED: [2015-07-19 Sun 11:53]
 :PROPERTIES:

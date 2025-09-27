@@ -233,7 +233,7 @@ probably accidentally deleted a subtree due to
 over-enthusiastic speed commands. (... Maybe I
 should make my ~k~ shortcut for
 [[dotemacs:org-mode-keyboard-shortcuts-speed-commands-org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command][~my-org-cut-subtree-or-list-item~]] only work in my
-Inbox.org and news.org files.) Chunks of my
+Inbox.org, posts.org, and news.org files.) Chunks of my
 [[https://sachachua.com/dotemacs/index.html][literate Emacs configuration]] were gone, including
 the code that defined [[dotemacs:my-org-insert-link-dwim][~my-org-insert-link-dwim~]].
 Before I noticed, I'd already exported my (now
@@ -2212,11 +2212,12 @@ I also needed to create a Google custom search JSON API key at https://developer
 :ID:       20250722T195840.414416
 :CUSTOM_ID: completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode
 :EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01K0TJXVX3W9QY2RYZ8XPD2FRR
-:EXPORT_MODIFIED: 2025-07-23T13:29:02-0400
+:EXPORT_MODIFIED: 2025-09-22T15:03:54-0400
 :END:
 
 #+begin_update
-[2025-07-23]: Handle Org link updates from the middle of a link.
+- [2025-09-22]: Fix bug in ~my-org-in-bracketed-text-link-p~.
+- [2025-07-23]: Handle Org link updates from the middle of a link.
 #+end_update
 
 I want to make it easy to write with more hyperlinks. This lets me [[https://sachachua.com/blog/2013/12/update-developing-thoughts-further/][develop thoughts over time]], building them out of small chunks that I can squeeze into my day. It also makes it easy for you to dig into things that pique your curiosity without wading through lots of irrelevant details. Looking up the right URLs as I go along tends to disrupt my train of thought. I want to make it easier to write down my thoughts first and then go back and add the URLs. I might have 5 links in a post. I might have 15. Sounds like an automation opportunity.
@@ -2226,6 +2227,18 @@ If I use double square brackets around text to indicate where I want to add link
 Most of my targets can be found with a web search. I can do that with [[https://github.com/armindarvish/consult-omni][consult-omni]] with a default search based on the link text, prioritizing my [[dotemacs:completion-consult-consult-omni-bookmarks][bookmarks]] and [[https://sachachua.com/blog/2025/07/finding-my-blog-posts-with-consult-omni/][blog posts]]. Then I don't even have to retype the search keywords.
 
 #+begin_src emacs-lisp
+;; we're in a bracketed link with no description and the target doesn't look like a link;
+;; likely I've actually added the text for the description and now we need to include the link
+(defun my-org-in-bracketed-text-link-p ()
+	(when (and (derived-mode-p 'org-mode) org-link-bracket-re)
+		(let* ((bracket-pos (org-in-regexp org-link-bracket-re))
+					 (bracket-target (and bracket-pos (match-string 1)))
+					 (bracket-desc (and bracket-pos (match-string 2))))
+			(and bracket-pos bracket-target
+					 (null bracket-desc)
+					 ;; try to trigger only when the target is plain text and doesn't have a protocol
+					 (not (string-match ":" bracket-target))))))
+
 (defun my-org-set-link-target-with-search ()
 	"Replace the current link's target with a web search.
 Assume the target is actually supposed to be the description.  For
@@ -2234,15 +2247,10 @@ prompt for the link to use as the target, and move 'some text' to the
 description."
 	(interactive)
 	(let* ((bracket-pos (org-in-regexp org-link-bracket-re))
-				 (bracket-target (match-string 1))
+				 (bracket-target (and bracket-pos (match-string 1)))
 				 (bracket-desc (match-string 2))
 				 result)
-		(when (and bracket-pos bracket-target
-							 (null bracket-desc)
-							 ;; try to trigger only when the target is plain text and doesn't have a protocol
-							 (not (string-match ":" bracket-target)))
-			;; we're in a bracketed link with no description and the target doesn't look like a link;
-			;; likely I've actually added the text for the description and now we need to include the link
+		(when (my-org-in-bracketed-text-link-p)
 			(let ((link (consult-omni bracket-target nil nil t)))
 				(cond
 				 ((get-text-property 0 :url link)
@@ -5367,47 +5375,131 @@ Saves to a temp file and puts the filename in the kill ring."
     ;; out my own jargon
     (setq artbollocks-jargon nil)))
 #+END_SRC
-** Unfill paragraph
+** Emacs: Cycle through different paragraph formats: all on one line, wrapped, max one sentence per line, one sentence per line
 :PROPERTIES:
 :CUSTOM_ID: unfill-paragraph
+:CREATED:  [2025-09-22 Mon 10:49]
+:EXPORT_DATE: 2025-09-22T10:58:21-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2025/09/emacs-cycle-through-different-paragraph-formats-all-on-one-line-wrapped-max-one-sentence-per-line-one-sentence-per-line/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2025/09/emacs-cycle-through-different-paragraph-formats-all-on-one-line-wrapped-max-one-sentence-per-line-one-sentence-per-line/
+:EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01K5S0MCXC3084BA8TF56JSAAY
+:END:
+:LOGBOOK:
+- Note taken on [2025-09-22 Mon 10:49] \\
+  test
 :END:
 
-I unfill paragraphs a lot because Wordpress likes adding extra =<br>= tags if I don't. (I should probably just tweak my Wordpress installation.)
+I came across [[https://schauderbasis.de/posts/reformat_paragraph/][Schauderbasis - reformat paragraph]] via [[https://mastodon.social/@EFLS/115213084454613209][@EFLS@mastodon.social]]. Now I want ~M-q~ to cycle through different ways of wrapping text:
+- all on one line
+- according to ~fill-column~
+- at most one sentence per line (although still wrapping at ~fill-column~)
+- at most one sentence per line (don't even try to keep it within ~fill-column~).
+
+[[video:images/my-reformat-paragraph-or-region.webm?caption=Screencast cycling through different paragraph formats]]
+
+Now that [[https://cgit.git.savannah.gnu.org/cgit/emacs.git/commit?id=1682a6b606097d24050efc318f74d738c3881fb4][semantic linefeeds are part of core Emacs]] (as of 2025-06-14), the code for cycling through different paragraph formats can be pretty short. Most of it is actually just the logic for cycling through different commands. That might come in handy elsewhere. There's an [[package:unfill][unfill]] package as well, but since the code for unfilling a paragraph is very simple, I'll just include that part.
+
+Note that ~fill-paragraph-semlf~ pays attention to ~sentence-end-double-space~, and it doesn't handle comments yet. I also have some code to check if I'm in a comment and skip those filling methods if needed.
+
+This might encourage me to write shorter sentences.
+I can move sentences around with ~M-Shift-up~ and ~M-Shift-down~ in Org Mode, which is pretty handy.
+Also, one sentence per line makes diffs easier to read.
+But wrapped text is annoying to edit in Orgzly Revived on my phone, because the wrapping makes a very ragged edge on a narrow screen.
+I might unwrap things that I want to edit there.
+With a little bit of tweaking to skip source blocks, I can narrow to the subtree, select my whole buffer, and cycle the formatting however I like.
 
 #+BEGIN_SRC emacs-lisp
-(defun my-unfill-paragraph (&optional region)
-  "Takes a multi-line paragraph and makes it into a single line of text."
-  (interactive (progn
-                 (barf-if-buffer-read-only)
-                 (list t)))
-  (let ((fill-column (point-max)))
-    (fill-paragraph nil region)))
-(bind-key "M-Q" 'my-unfill-paragraph)
+(defvar my-repeat-counter '()
+  "How often `my-repeat-next' was called in a row using the same command.
+This is an alist of (cat count list) so we can use it for different functions.")
+
+(defun my-unfill-paragraph ()
+  "Replace newline chars in current paragraph by single spaces.
+This command does the inverse of `fill-paragraph'."
+  (interactive)
+  (let ((fill-column most-positive-fixnum))
+    (fill-paragraph)))
+
+(defun my-fill-paragraph-semlf-long ()
+	(interactive)
+	(let ((fill-column most-positive-fixnum))
+		(fill-paragraph-semlf)))
+
+(defun my-repeat-next (category &optional element-list reset)
+	"Return the next element for CATEGORY.
+Initialize with ELEMENT-LIST if this is the first time."
+	(let* ((counter
+					(or (assoc category my-repeat-counter)
+							(progn
+								(push (list category -1 element-list)
+											my-repeat-counter)
+								(assoc category my-repeat-counter)))))
+		(setf (elt (cdr counter) 0)
+					(mod
+					 (if reset 0 (1+ (elt (cdr counter) 0)))
+					 (length (elt (cdr counter) 1))))
+		(elt (elt (cdr counter) 1) (elt (cdr counter) 0))))
+
+(defun my-in-prefixed-comment-p ()
+  (or (member 'font-lock-comment-delimiter-face (face-at-point nil t))
+			(member 'font-lock-comment-face (face-at-point nil t))
+			(save-excursion
+				(beginning-of-line)
+				(comment-search-forward (line-end-position) t))))
+
+;; It might be nice to figure out what state we're
+;; in and then cycle to the next one if we're just
+;; working with a single paragraph. In the
+;; meantime, just going by repeats is fine.
+(defun my-reformat-paragraph-or-region ()
+  "Cycles the paragraph between three states: filled/unfilled/fill-sentences.
+If a region is selected, handle all paragraphs within that region."
+  (interactive)
+	(let ((func (my-repeat-next 'my-reformat-paragraph
+															'(fill-paragraph my-unfill-paragraph fill-paragraph-semlf
+																							 my-fill-paragraph-semlf-long)
+															(not (eq this-command last-command))))
+				(deactivate-mark nil))
+		(if (region-active-p)
+				(save-restriction
+					(save-excursion
+						(narrow-to-region (region-beginning) (region-end))
+						(goto-char (point-min))
+						(while (not (eobp))
+							(skip-syntax-forward " ")
+							(let ((elem (and (derived-mode-p 'org-mode)
+															 (org-element-context))))
+								(cond
+								 ((eq (org-element-type elem) 'headline)
+									(org-forward-paragraph))
+								 ((member (org-element-type elem)
+													'(src-block export-block headline property-drawer))
+									(goto-char
+									 (org-element-end (org-element-context))))
+								 (t
+									(funcall func)
+									(if fill-forward-paragraph-function
+											(funcall fill-forward-paragraph-function)
+										(forward-paragraph)))))
+							)))
+			(funcall func))))
+
+(keymap-global-set "M-q" #'my-reformat-paragraph-or-region)
 #+END_SRC
 
-I never actually justify text, so I might as well change the way
-=fill-paragraph= works. With the code below, =M-q= will fill the
-paragraph normally, and =C-u M-q= will unfill it.
+Sometimes I use [[https://github.com/joostkremers/writeroom-mode][writeroom-mode]] to make the lines look even narrower, with lots of margin on the side.
 
-#+BEGIN_SRC emacs-lisp
-(defun my-fill-or-unfill-paragraph (&optional unfill region)
-  "Fill paragraph (or REGION).
-        With the prefix argument UNFILL, unfill it instead."
-  (interactive (progn
-                 (barf-if-buffer-read-only)
-                 (list (if current-prefix-arg 'unfill) t)))
-  (let ((fill-column (if unfill (point-max) fill-column)))
-    (fill-paragraph nil region)))
-(bind-key "M-q" 'my-fill-or-unfill-paragraph)
-#+END_SRC
+Related:
 
-Also, =visual-line-mode= is so much better than =auto-fill-mode=. It doesn't actually break the text into multiple lines - it only looks that way.
+- [[https://chrismaiorana.com/one-sentence-per-line/][Text Editor Judo: One Sentence Per Line - The Daily Macro]] - in Org Mode, one sentence pe line lets you drag sentences around with M-Shift-up and M-Shift-down
+- [[https://sive.rs/1s][Writing one sentence per line | Derek Sivers]] ([[https://news.ycombinator.com/item?id=31808093][HN]])
+- [[https://rhodesmill.org/brandon/2012/one-sentence-per-line/][Semantic Linefeeds]]
+- [[https://lists.gnu.org/archive/html/emacs-devel/2025-03/msg00035.html][Fill paragraph using semantic linefeeds]]
+** Visual line
 
-#+BEGIN_SRC emacs-lisp
-(remove-hook 'text-mode-hook #'turn-on-auto-fill)
-(add-hook 'text-mode-hook 'turn-on-visual-line-mode)
-#+END_SRC
-
+#+begin_src emacs-lisp
+(global-visual-line-mode)
+#+end_src
 ** Unicode
 :PROPERTIES:
 :CUSTOM_ID: unicode
@@ -6483,7 +6575,7 @@ I don't use the diary, but I do use the clock a lot.
 :END:
 
 #+begin_update
-[2025-09-17]: Limited ~my-org-cut-subtree-or-list-item~ to Inbox.org and news.org.
+[2025-09-17]: Limited ~my-org-cut-subtree-or-list-item~ to Inbox.org, posts.org, news.org.
 #+end_update
 
 Defining shortcuts in ~org-speed-commands~ is
@@ -6512,7 +6604,7 @@ I no longer need. By default, ~k~ is mapped to
 	"Cut current subtree or list item."
 	(cond
 	 ; limit this to only Inbox.org and news.org
-	 ((not (string-match (regexp-opt '("Inbox.org" "news.org"))
+	 ((not (string-match (regexp-opt '("Inbox.org" "posts.org" "news.org"))
 											 (or (buffer-file-name) "")))
 		(message "Let's only cut things in Inbox.org or news.org")) ; do nothing
 	 ((and (looking-at org-outline-regexp) (looking-back "^\**" nil))
@@ -6616,6 +6708,7 @@ From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-comm
 (require 'imenu)
 (setq org-startup-folded nil)
 (setq org-startup-with-inline-images nil)
+(setq org-startup-with-link-previews nil)
 (bind-key "C-c j" 'org-clock-goto) ;; jump to current task from anywhere
 (bind-key "C-c C-w" 'org-refile)
 (setq org-cycle-include-plain-lists 'integrate)
@@ -9389,22 +9482,33 @@ shortcuts when I'm at headings.
 	:hook
 	(message-setup . my-message-greet-contacts))
 
+(defvar my-message-greet-contacts t "Non-nil means say hi.")
+
+(defun my-message-greet-contacts-skip (fn &rest args)
+	(let ((my-message-greet-contacts nil))
+		(apply fn args)))
+
+(with-eval-after-load 'emacsconf-mail
+	(advice-add #'emacsconf-mail-prepare :around #'my-message-greet-contacts-skip))
+
 (defun my-message-greet-contacts ()
 	(interactive)
-	(let* ((emails
-					(mapcar 'car
-									(append
-									 (mail-header-parse-addresses (message-fetch-field "To"))
-									 (mail-header-parse-addresses (message-fetch-field "Cc")))))
-				 (people
-					(seq-keep
-					 (lambda (email)
-						 (cdr (assoc-string "NAME_SHORT"
-																(caddr (car (org-contacts-filter nil nil (cons "EMAIL" email)))))))
-					 emails)))
-		(when people
-			(message-goto-body)
-			(insert "Hi, " (string-join people ",") "!\n\n"))))
+	(when my-message-greet-contacts
+		(let* ((emails
+						(mapcar 'car
+										(append
+										 (mail-header-parse-addresses (message-fetch-field "To"))
+										 (mail-header-parse-addresses (message-fetch-field "Cc")))))
+					 (people
+						(seq-keep
+						 (lambda (email)
+							 (cdr (assoc-string "NAME_SHORT"
+																	(caddr (car (org-contacts-filter nil nil (cons "EMAIL" email)))))))
+						 emails)))
+			(when people
+				(message-goto-body)
+				(unless (re-search-forward "^Hi, " nil t)
+					(insert "Hi, " (string-join people ",") "!\n\n"))))))
 
 #+end_src
 ** Inserting code
@@ -10479,7 +10583,7 @@ This code displays the images inline.
 								(if (region-active-p) (region-beginning) (point-min))
 								(if (region-active-p) (region-end) (point-max))))
 	(goto-char beg)
-	(while (re-search-forward "file:" end t)
+	(while (re-search-forward "\\(file\\):" end t)
 		(let* ((elem (org-element-context))
 					 (path (org-element-property :path elem))
 					 (description (org-element-property :description elem)))
@@ -12309,65 +12413,185 @@ https://so.nwalsh.com/2020/01/05-latex , but I use letter paper instead of A4.
 :PROPERTIES:
 :CUSTOM_ID: org-links
 :END:
-*** Inserting from clipboard or around text
+*** Adding Org Mode link awesomeness elsewhere: my-org-insert-link-dwim  :org:
 :PROPERTIES:
 :CUSTOM_ID: my-org-insert-link-dwim
+:EXPORT_DATE: 2025-09-21T15:11:16-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2025/09/adding-org-mode-link-awesomeness-elsewhere-my-org-insert-link-dwim/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2025/09/adding-org-mode-link-awesomeness-elsewhere-my-org-insert-link-dwim/
+:EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01K5PY2YJ57735N9JM2S3VSDNA
+:EXPORT_MODIFIED: 2025-09-23T14:31:51-0400
 :END:
 
-Based on https://xenodium.com/emacs-dwim-do-what-i-mean/
+#+begin_update
+[2025-09-23]: Changed my mind, I want the clipboard URL to be used by default. More bugfixes.
+[2025-09-22]: Fix bug in ~my-page-title~. Add ~mastodon-toot-mode-map~.
+#+end_update
+
+I love so many things about [[https://orgmode.org/][Org Mode]]'s links. I can use ~C-c C-l~ (~org-insert-link~) to insert a link. If I've selected some text, ~C-c C-l~ turns the text into the link's description. I can define my own custom link types with interactive completion, default descriptions, and export formats. This is so nice, I want it in all the different places I write links in:
+
+- Markdown, like on the [[https://emacsconf.org][EmacsConf wiki]]; then I don't have to remember Markdown's syntax for links
+- [[https://codeberg.org/martianh/mastodon.el][mastodon.el]] toots
+- Oddmuse, like on [[https://emacswiki.org][EmacsWiki]]
+- HTML/Web mode
+- Org Mode HTML export blocks
+
+Some considerations inspired by [[https://xenodium.com/emacs-dwim-do-what-i-mean/][Emacs DWIM: do what ✨I✨ mean]], which I used as a starting point:
+
+- I want Emacs to use the URL from the clipboard.
+- If I haven't already selected some text, I want to use the page title or the custom link description as a default description.
+- I want to be able to use my custom link types for completion, but I want it to insert the external web links if I'm putting the link into a non-Org Mode buffer (or in a source or export block that isn't Org Mode). For example, let's say I select ~dotemacs:my-org-insert-link-dwim~ with completion. In Org Mode, it should use that as the link target so that I can follow the link to my config and have it exported as an HTML link. In Markdown, it should be inserted as ~[Adding Org Mode niceties elsewhere: my-org-insert-link-dwim](https://sachachua.com/dotemacs#my-org-insert-link-dwim)~.
+
+Mostly, this is motivated by my annoyance with having to work with different link syntaxes:
+
+| HTML       | ~<a href="https://example.com">title</a>~ |
+| Org        | ~[[https://example.com][title]]~          |
+| Plain text | ~title https://example.com~               |
+| Markdown   | ~[https://example.com](title)~            |
+| Oddmuse    | ~[https://example.com title]~             |
+
+I want things to Just Work.
+
+#+begin_media-post
+
+[[video:images/my-org-insert-link-dwim.webm?caption=Screencast showing how I insert links]]
+
+Play by play:
+
+1. vtime:0:00:00 inserting a custom dotemacs link with completion
+2. vtime:0:00:11 inserting a link to a blog post
+3. vtime:0:00:28 selecting text in an HTML export block and adding a link to it
+4. vtime:0:00:48 adding a bookmark link as a plain text link in a Python src block
+#+end_media-post
+
+Here's the ~my-org-insert-link-dwim~ function, using ~my-org-link-as-url~ from [[dotemacs:web-link][Copy web link]] and ~my-org-set-link-target-with-search~ from [[dotemacs:completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode]]:
+
+#+begin_src emacs-lisp
+(defun my-org-insert-link-dwim ()
+	"Like `org-insert-link' but with personal dwim preferences."
+	(interactive)
+	(let* ((point-in-link (and (derived-mode-p 'org-mode) (org-in-regexp org-link-any-re 1)))
+				 (point-in-html-block (and (derived-mode-p 'org-mode)
+																	 (let ((elem (org-element-context)))
+																		 (and (eq (org-element-type elem) 'export-block)
+																					(string= (org-element-property :type elem) "HTML")))))
+				 (point-in-src-or-export-block
+					(and (derived-mode-p 'org-mode)
+							 (let ((elem (org-element-context)))
+								 (and (member (org-element-type elem) '(src-block export-block))
+											(not (string= (org-element-property :type elem) "Org"))))))
+				 (url (cond
+							 ((my-org-in-bracketed-text-link-p) nil)
+							 ((not point-in-link) (my-org-read-link
+																		 ;; clipboard
+																		 (when (string-match-p "^http" (current-kill 0))
+																			 (current-kill 0))
+																		 ))))
+				 (region-content (when (region-active-p)
+													 (buffer-substring-no-properties (region-beginning)
+																													 (region-end))))
+				 (title (or region-content
+										(when (or (string-match (regexp-quote "*new toot*") (buffer-name))
+															(derived-mode-p '(markdown-mode web-mode oddmuse-mode))
+															point-in-html-block
+															point-in-src-or-export-block
+															(not (and (derived-mode-p 'org-mode)
+																				point-in-link)))
+											(read-string "Title: "
+																	 (or (my-org-link-default-description url nil)
+																			 (my-page-title url)))))))
+		;; resolve the links; see my-org-link-as-url in  https://sachachua.com/dotemacs#web-link
+		(unless (and (derived-mode-p 'org-mode)
+								 (not (or point-in-html-block point-in-src-or-export-block)))
+			(setq url (my-org-link-as-url url)))
+		(when (region-active-p) (delete-region (region-beginning) (region-end)))
+		(cond
+		 ((or (string-match (regexp-quote "*new toot*") (buffer-name))
+					(derived-mode-p 'markdown-mode))
+			(insert (format "[%s](%s)" title url)))
+		 ((or (derived-mode-p '(web-mode html-mode)) point-in-html-block)
+			(insert (format "<a href=\"%s\">%s</a>" url title)))
+		 ((derived-mode-p 'oddmuse-mode)
+			(insert (format "[%s %s]" url title)))
+		 ((or point-in-src-or-export-block
+					(not (derived-mode-p 'org-mode)))
+			(insert title " " url))
+		 ((and region-content url (not point-in-link))
+			(insert (org-link-make-string url region-content)))
+		 ((and url (not point-in-link))
+			(insert (org-link-make-string
+							 url
+							 (or title
+									 (read-string "Title: "
+																(or (my-org-link-default-description url nil)
+																		(my-page-title url)))))))
+		 ;; bracketed [[plain text]]; see Using web searches and bookmarks to quickly link placeholders in Org Mode https://sachachua.com/dotemacs#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode
+		 ((my-org-set-link-target-with-search))
+		 ;; In Org Mode, edit the link
+		 ((call-interactively 'org-insert-link)))))
+#+end_src
+
+Consistent keybindings mean less thinking.
+
+#+begin_src emacs-lisp
+(dolist (group '((org . org-mode-map)
+								 (markdown-mode . markdown-mode-map)
+								 (mastodon-toot . mastodon-toot-mode-map)
+								 (web-mode . web-mode-map)
+								 (oddmuse-mode . oddmuse-mode-map)
+								 (text-mode . text-mode-map)
+								 (html-mode . html-mode-map)))
+	(with-eval-after-load (car group)
+		(keymap-set (symbol-value (cdr group))  "C-c C-l" #'my-org-insert-link-dwim)))
+#+end_src
+
+All right, let's dig into the details. This code
+gets the page title so that we can use it as the
+link's description. I like to simplify some page
+titles. For example, when I link to Reddit or HN
+discussions, I just want to use "Reddit" or "HN".
+
 #+begin_src emacs-lisp
 (defun my-page-title (url)
+	"Get the page title for URL. Simplify some titles."
 	(condition-case nil
-			(with-current-buffer (url-retrieve-synchronously url)
-				(string-trim
-				 (replace-regexp-in-string
-					"[ \n]+" " "
-					(replace-regexp-in-string
-					 "\\(^Github - \\|:: Sacha Chua\\)" ""
-					 (or
-						(dom-text (car
-											 (dom-by-tag (libxml-parse-html-region
-																		(point-min)
-																		(point-max))
-																	 'title)))
-						"")))))
+			(pcase url
+				((rx "reddit.com") "Reddit")
+				((rx "news.ycombinator.com") "HN")
+				((rx "lobste.rs") "lobste.rs")
+				(_
+				 (with-current-buffer (url-retrieve-synchronously url)
+					 (string-trim
+						(replace-regexp-in-string
+						 "[ \n]+" " "
+						 (replace-regexp-in-string
+							"\\(^Github - \\|:: Sacha Chua\\)" ""
+							(or
+							 (dom-texts (car
+													 (dom-by-tag (libxml-parse-html-region
+																				(point-min)
+																				(point-max))
+																			 'title)))
+							 "")))))))
 		(error nil)))
+#+end_src
 
-;; we're in a bracketed link with no description and the target doesn't look like a link;
-;; likely I've actually added the text for the description and now we need to include the link
-(defun my-org-in-bracketed-text-link-p ()
-	(when (and (derived-mode-p 'org-mode) org-link-bracket-re)
-		(let* ((bracket-pos (org-in-regexp org-link-bracket-re))
-					 (bracket-target (match-string 1))
-					 (bracket-desc (match-string 2)))
-			(and bracket-pos bracket-target
-					 (null bracket-desc)
-					 ;; try to trigger only when the target is plain text and doesn't have a protocol
-					 (not (string-match ":" bracket-target))))))
+Let's use that as the default for ~https:~ links too.
 
-(defun my-org-set-link-target-with-search ()
-	"Replace the current link's target with a web search.
-Assume the target is actually supposed to be the description.  For
-example, if the link is [[some text]], do a web search for 'some text',
-prompt for the link to use as the target, and move 'some text' to the
-description."
-	(interactive)
-	(let* ((bracket-pos (org-in-regexp org-link-bracket-re))
-				 (bracket-target (match-string 1))
-				 (bracket-desc (match-string 2))
-				 result)
-		(when (my-org-in-bracketed-text-link-p)
-			(let ((link (consult-omni bracket-target nil nil t)))
-				(delete-region (car bracket-pos) (cdr bracket-pos))
-				(setq result (org-link-make-string (or (get-text-property 0 :url link)
-																							 (replace-regexp-in-string
-																								"^#"
-																								""
-																								link)) ; might be a URL
-																					 bracket-target))
-				(insert result)
-				result))))
+#+begin_src emacs-lisp
+(defun my-org-link-https-insert-description (link desc)
+	"Default to the page title."
+	(unless desc (my-page-title link)))
 
+(with-eval-after-load 'org
+	(org-link-set-parameters "https" :insert-description #'my-org-link-https-insert-description))
+#+end_src
+
+I want to get the default description for a link,
+even if it uses a custom link type. I extracted
+this code from ~org-insert-link~.
+
+#+begin_src emacs-lisp my-org-link-default-description, extracted from org-read-link
 (defun my-org-link-default-description (link desc)
 	"Return the default description for an Org Mode LINK.
 This uses :insert-description if defined."
@@ -12391,10 +12615,12 @@ This uses :insert-description if defined."
 							(funcall def link desc)))
 					(error
 					 nil))))))
+#+end_src
 
-;; (consult-omni "https://gregnewman.io/blog/emacs-carnival-2025-07-writing-experience/" nil nil t)
-;; It would be nice to someday get the usual link completions when reading the URL.
-(defun my-org-read-link ()
+Now I want an Emacs Lisp function that interactively reads a link with completion, but doesn't actually insert it. I extracted this logic from ~org-read-link~.
+
+#+begin_src emacs-lisp :summary my-org-read-link, extracted from org-read-link
+(defun my-org-read-link (&optional default)
 	"Act like `org-insert-link'. Return link."
 	(let* ((wcf (current-window-configuration))
 				 (origbuf (current-buffer))
@@ -12411,7 +12637,7 @@ This uses :insert-description if defined."
 											 org-link--insert-history)))
 					(setq link
 								(org-completing-read
-								 (org-format-prompt "Insert link" (caar org-stored-links))
+								 (org-format-prompt "Insert link" (or default (caar org-stored-links)))
 								 (append
 									(mapcar (lambda (x) (concat x ":")) all-prefixes)
 									(mapcar #'car org-stored-links)
@@ -12421,7 +12647,7 @@ This uses :insert-description if defined."
 									(delq nil (mapcar 'cadr org-stored-links)))
 								 nil nil nil
 								 'org-link--history
-								 (caar org-stored-links)))
+								 (or default (caar org-stored-links))))
 					(unless (org-string-nw-p link) (user-error "No link selected"))
 					(dolist (l org-stored-links)
 						(when (equal link (cadr l))
@@ -12438,88 +12664,18 @@ This uses :insert-description if defined."
 			(when (get-buffer "*Org Links*")
 				(kill-buffer "*Org Links*")))
 		link))
-
-(defun my-org-insert-link-dwim (&optional use-clipboard)
-	"Like `org-insert-link' but with personal dwim preferences."
-	(interactive (list (equal current-prefix-arg '(4))))
-	(let* ((point-in-link (and (derived-mode-p 'org-mode) (org-in-regexp org-link-any-re 1)))
-				 (clipboard-url (and use-clipboard
-														 (when (string-match-p "^http" (current-kill 0))
-															 (current-kill 0))))
-				 (url (cond
-							 ((and use-clipboard (string-match-p "^http" (current-kill 0)))
-								(current-kill 0))
-							 ((my-org-in-bracketed-text-link-p) nil)
-							 ((not point-in-link) (my-org-read-link))))
-				 (region-content (when (region-active-p)
-													 (buffer-substring-no-properties (region-beginning)
-																													 (region-end)))))
-		(cond
-		 ((or (string-match (regexp-quote "*new toot*") (buffer-name))
-					(derived-mode-p 'markdown-mode))
-			(if (region-active-p)
-					(let ((s (buffer-substring (region-beginning) (region-end))))
-						(delete-region (region-beginning) (region-end))
-						(insert (format "[%s](%s)"
-														(read-string "Title: " s)
-														url)))
-				(insert (format "[%s](%s)"
-												(read-string "Title: " (my-page-title url))
-												url))))
-		 ((derived-mode-p 'oddmuse-mode)
-			(if (region-active-p)
-					(let ((s (buffer-substring (region-beginning) (region-end))))
-						(delete-region (region-beginning) (region-end))
-						(insert (format "[%s %s]"
-														url
-														(read-string "Title: " s))))
-				(insert (format "[%s %s]"
-												url
-												(read-string "Title: " (my-page-title url))))))
-		 ((and (derived-mode-p 'org-mode)
-					 (let ((elem (org-element-context)))
-						 (and (eq (org-element-type elem) 'export-block)
-									(string= (org-element-property :type elem) "HTML"))))
-			(if (region-active-p)
-					(let ((s (buffer-substring (region-beginning) (region-end))))
-						(delete-region (region-beginning) (region-end))
-						(insert (format "<a href=\"%s\">%s</a>"
-														url
-														(read-string "Title: " s))))
-				(insert (format "<a href=\"%s\">%s</a>"
-												url
-												(read-string "Title: " (my-page-title url))))))
-		 ((and region-content url (not point-in-link))
-			(delete-region (region-beginning) (region-end))
-			(insert (org-link-make-string url region-content)))
-		 ((and url (not point-in-link))
-			(insert (org-link-make-string
-							 url
-							 (read-string "Title: "
-														(or (my-org-link-default-description url nil)
-																(my-page-title clipboard-url))))))
-		 (t
-			(or
-			 (my-org-set-link-target-with-search)
-			 (call-interactively 'org-insert-link))))))
-
-(use-package org :bind (:map org-mode-map ("C-c C-l" . my-org-insert-link-dwim)))
-(with-eval-after-load 'markdown-mode
-	(define-key markdown-mode-map (kbd "C-c C-l") #'my-org-insert-link-dwim))
-
-(defun my-org-link-https-insert-description (link desc)
-	"Default to the page title."
-	(unless desc
-		(pcase link
-			((rx "reddit.com") "Reddit")
-			((rx "news.ycombinator.com") "HN")
-			((rx "lobste.rs") "lobste.rs")
-			(_ (my-page-title link)))))
-
-(with-eval-after-load 'org
-	(org-link-set-parameters "https" :insert-description #'my-org-link-https-insert-description))
 #+end_src
 
+So now the ~my-org-insert-link-dwim~ function can read a link with completion (unless I'm getting it from the clipboard), get the default description from the link (using custom links' ~:insert-description~ or the webpage's title), and either wrap the link around the region or insert it in whatever syntax makes sense.
+
+On a related note, you might also enjoy:
+- [[dotemacs:org-bookmarks][Bookmarks]] - my custom link type for bookmark: that offers completion from resources.org
+- [[dotemacs:linking-to-blog-posts][Linking to blog posts]] - my custom link type for blog posts
+- [[dotemacs:git-projects][Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search]]
+
+And elsewhere:
+- [[https://takeonrules.com/2025/09/20/generating-descriptions-of-org-insert-link/][Generating Descriptions of org-insert-link // Take on Rules]]
+- [[https://takeonrules.com/2025/09/21/adding-more-link-description-defaults/][Adding More Link Description Defaults // Take on Rules]]
 *** IDs
 :PROPERTIES:
 :CUSTOM_ID: ids
@@ -12581,12 +12737,14 @@ With prefix argument, also display headlines without a TODO keyword."
 	(unless description
 		(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
 			(save-restriction
-				(widen)
-				(org-entry-get (org-find-property "CUSTOM_ID" link) "ITEM")))))
+				(save-excursion
+					(widen)
+					(goto-char (org-find-property "CUSTOM_ID" (replace-regexp-in-string "^dotemacs:" "" link)))
+					(org-entry-get (point) "ITEM"))))))
 
 (defun my-org-dotemacs-open (path)
 	(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
-		(when-let ((pos (org-find-property "CUSTOM_ID" path)))
+		(when-let ((pos (org-find-property "CUSTOM_ID" (replace-regexp-in-string "^dotemacs:" "" path))))
 			(switch-to-buffer (current-buffer))
 			(goto-char pos))))
 
@@ -14362,8 +14520,6 @@ The ~pikchr-cli~ package in Ubuntu 24 is version 0.1.2 and does not have the ~--
 
 #+begin_src emacs-lisp
 (setq org-ditaa-jar-path "c:/sacha/Dropbox/bin/ditaa.jar")
-
-(setq org-startup-with-inline-images t)
 (use-package org-contrib)
 (use-package org
   :config
@@ -20931,7 +21087,7 @@ See also [[dotemacs:subed]]
 	(modus-themes-load-theme 'modus-operandi)
 	(my-hl-sexp-update-overlay)
 	(set-face-attribute 'default nil :height 170)
-	(keycast-mode))
+	(keycast-header-line-mode))
 
 (defun my-emacsconf-back-to-normal ()
 	(interactive)
@@ -20939,7 +21095,7 @@ See also [[dotemacs:subed]]
 	(modus-themes-load-theme 'modus-vivendi)
 	(my-hl-sexp-update-overlay)
 	(set-face-attribute 'default nil :height 115)
-	(keycast-mode -1))
+	(keycast-header-line-mode -1))
 #+end_src
 *** Preparing to record YouTube shorts
 :PROPERTIES:
@@ -22446,7 +22602,7 @@ From https://ag91.github.io/blog/2020/12/31/top-down-elisping-a-simple-snippet-t
   ([remap describe-key] . helpful-key)
   ([remap describe-command] . helpful-command)
   ([remap describe-variable] . helpful-variable)
-  ([remap describe-function] . helpful-callable))
+  ([remap describe-function] . helpful-function))
 #+end_src
 *** elisp-demos
 :PROPERTIES:
@@ -23837,8 +23993,7 @@ IRC is a great way to hang out with other Emacs geeks.
         ("g" . mastodon-tl-update)
         ;; see org-capture-templates addition
         ("o" . (lambda () (interactive) (org-capture nil "m")))
-				:map mastodon-toot-mode-map
-				("C-c C-l" . my-org-insert-link))
+				:map mastodon-toot-mode-map)
   :commands (mastodon-http--api
 						 mastodon-http--post
 						 mastodon-mode
@@ -24085,8 +24240,7 @@ I haven't quite figured out handle autocompletion that works well for me.
 #+end_src
 
 #+begin_src emacs-lisp
-(defun my-mastodon-insert-interested-handles (draft-text)
-	(interactive (list (mastodon-toot--remove-docs)))
+(defun my-mastodon-interested-handles (text)
 	(let (list)
 		(with-temp-buffer
 			(insert-file-contents my-org-contacts-file)
@@ -24096,19 +24250,23 @@ I haven't quite figured out handle autocompletion that works well for me.
 			 (lambda ()
 				 (let ((handle (org-entry-get (point) "MASTODON")))
 					 (when (and (string-match (org-entry-get (point) "MENTION_REGEXP")
-																		draft-text)
+																		text)
 											(not (string-match
 														(rx
 														 word-start
 														 (literal handle)
 														 word-end)
-														draft-text)))
+														text)))
 						 (cl-pushnew handle list))))
 			 "MASTODON={.}+MENTION_REGEXP={.}"))
-		(when list
-			(save-excursion
-				(unless (looking-at " ") (insert " "))
-				(insert (string-join list " "))))))
+		list))
+
+(defun my-mastodon-insert-interested-handles (text)
+	(interactive (list (mastodon-toot--remove-docs)))
+	(when-let* ((handles (my-mastodon-interested-handles text)))
+		(save-excursion
+			(unless (looking-at " ") (insert " "))
+			(insert (string-join handles " ")))))
 #+end_src
 
 
@@ -24985,6 +25143,12 @@ I want to be able to follow people if I specify their ID.
 	"Get tags for current post."
 	(plist-get (my-11ty-post-plist) :tags))
 
+(defun my-11ty-post-text ()
+	(save-excursion
+		(goto-char (org-find-property "EXPORT_ELEVENTY_PERMALINK"
+																	(org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
+		(org-end-of-meta-data)
+		(buffer-substring (point) (org-end-of-subtree))))
 
 (defun my-mastodon-11ty-toot-post ()
 	"Compose a toot sharing this blog post on Mastodon."
@@ -24993,6 +25157,8 @@ I want to be able to follow people if I specify their ID.
 	(require 'mastodon-toot)
 	(let* ((info (my-11ty-post-plist))
 				 (url (concat "https://sachachua.com" (plist-get info :permalink)))
+				 (blog-text (my-11ty-post-text))
+
 				 (title (plist-get info :title)))
 		(mastodon-toot--compose-buffer
 		 nil nil nil
@@ -25001,7 +25167,9 @@ I want to be able to follow people if I specify their ID.
 						 (mapconcat (lambda (tag) (concat "#" tag))
 												(seq-remove (lambda (tag) (string-match "^_" tag))
 																		(plist-get info :tags))
-												" ")))))
+												" ")))
+		(unless (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] Emacs News" title)
+			(my-mastodon-insert-interested-handles (concat title "\n" blog-text)))))
 #+end_src
 ** Compose a Mastodon toot with the current Org subtree
 :PROPERTIES:
@@ -27317,8 +27485,7 @@ switch to Google Chrome so that I can paste it in.
 				 (next-week-end (org-read-date nil t "+3Sun" nil date))
 				 result)
 		(setq result (format
-			"<div style=\"background-color: #223f4d; text-align: center; margin: auto; margin-bottom: 12px;\"><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" target=\"_blank\" class=\"mceButtonLink\" style=\"background-color:#223f4d;border-radius:0;border:2px solid #223f4d;color:#ffffff;display:block;font-family:'Helvetica Neue', Helvetica, Arial, Verdana, sans-serif;font-size:16px;font-weight:normal;font-style:normal;padding:16px 28px;text-decoration:none;text-align:center;direction:ltr;letter-spacing:0px\" rel=\"noreferrer\">SIGN UP NOW TO DELIVER %s-%s</a>
-</div>
+			"<table class=\"sign-up\" style=\"background-color: #223f4d; text-align: center; margin: auto; margin-top: 24px; margin-bottom: 12px;\"><tbody><tr><td><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" target=\"_blank\" class=\"sign-up mceButtonLink\" style=\"background-color:#223f4d;border-radius:0;border:2px solid #223f4d;color:#ffffff;display:block;font-family:'Helvetica Neue', Helvetica, Arial, Verdana, sans-serif;font-size:16px;font-weight:normal;font-style:normal;padding:16px 28px;text-decoration:none;text-align:center;direction:ltr;letter-spacing:0px\" rel=\"noreferrer\">SIGN UP NOW TO DELIVER %s-%s</a></td></tr></table>
 <p style=\"text-align: center; font-family: 'Helvetica Neue', Helvetica, Arial, Verdana\"><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" style=\"color: #476584; margin-top: 12px; margin-bottom: 12px;\" target=\"_blank\">You can also sign up early to deliver %s-%s</a></p>"
 			(format-time-string "%Y-%m-%d" current-week)
 			(upcase (format-time-string "%b %e" current-week))
@@ -27510,6 +27677,13 @@ I wrapped this in a small function for
 newsletter-specific processing:
 
 #+begin_src emacs-lisp
+(defun my-transform-html-slugify (s)
+	(downcase
+	 (replace-regexp-in-string
+		"^-+\\|-$" ""
+		(replace-regexp-in-string
+		 "[^A-Za-z0-9]+" "-"
+		 (string-trim s)))))
 (defvar my-brigade-newsletter-images-directory "~/proj/bike-brigade/newsletter/images")
 (defun my-brigade-newsletter-heading-to-image-file-name (heading)
 	(replace-regexp-in-string
@@ -27524,7 +27698,7 @@ newsletter-specific processing:
 	 my-brigade-newsletter-images-directory
 	 (concat (org-read-date nil nil "+Sun")
 					 "-news-")
-	 #'my-brigade-newsletter-heading-to-image-file-name))
+	 #'my-transform-html-slugify))
 #+end_src
 
 For easier testing, I used ~xclip -o -selection
@@ -27627,37 +27801,62 @@ Let's try it out:
 :END:
 
 #+begin_src emacs-lisp
-(defun my-brigade-simplify-html (dom)
-	(dolist (tag '(li b ul span p a h2 div))
-		(dolist (node (dom-by-tag dom tag))
-			(dolist (attr '(style class id))
-				(when (dom-attr node attr)
-					(dom-remove-attribute node attr)))))
-	;; unwrap spans
-	(dolist (span (dom-by-tag dom 'span))
-		(let ((parent (dom-parent dom span)))
-      (when parent
-        ;; Get the children of the span
-        (let ((children (dom-children span)))
-          ;; Remove the span from its parent
-          ;; Add each child to the parent where the span was
-          (dolist (child children)
-            (dom-add-child-before parent child span))
-					(dom-remove-node parent span)))))
-	;; remove empty elements
-	(dolist (tag '(a h2 p))
-		(dolist (node (dom-by-tag dom tag))
-			(when (string= (string-trim (dom-texts node)) "")
-				(dom-remove-node dom node))))
-	;; fix links
-	(dolist (node (dom-by-tag dom 'a))
-		(when (string-match "https://www\\.google\\.com\\/url" (dom-attr node 'href))
-			(let ((args (url-parse-query-string
-									 (cdr (url-path-and-query (url-generic-parse-url (dom-attr node 'href)))))))
-				(dom-set-attribute node 'href (car (assoc-default "q" args 'string=))))))
-	dom)
-#+end_src
+(defun my-html-extract-css-rules (dom)
+  "Extract CSS rules and return a hash table mapping class names to properties."
+  (let* ((css-rules (make-hash-table :test 'equal))
+				 (css-content (dom-texts (car (dom-by-tag dom 'style))))
+				 (len (length css-content))
+				 (start 0))
+    (while (and (< start len)
+								(string-match "\\([^{]+\\){\\([^}]+\\)}" css-content start))
+      (let ((selector (match-string 1 css-content))
+            (properties (match-string 2 css-content)))
+        (puthash selector properties css-rules)
+        (setq start (match-end 0))))
+    css-rules))
 
+(defun my-brigade-convert-span-style (node rules)
+	(when (and (dom-attr node 'class)
+						 (not (string= (string-trim (dom-texts node)) "")))
+		(let ((styles
+					 (when (dom-attr node 'class)
+						 (string-join
+							(seq-keep (lambda (class-name)
+													(let ((prop (gethash (concat "." class-name) rules)))
+														(when (and prop
+																			 (string-match "font-weight:700\\|font-style:italic" prop))
+															prop)))
+												(split-string (dom-attr node 'class)))
+							";"))))
+			(unless (or (null styles) (string= styles ""))
+				(dom-set-attribute node 'style styles)
+				(dom-remove-attribute node 'class)
+				node))))
+
+(defun my-brigade-simplify-html (dom)
+	(let ((css-rules (my-html-extract-css-rules dom)))
+		(dolist (tag '(li b ul span p a h2 div))
+			(dolist (node (dom-by-tag dom tag))
+				(or (my-brigade-convert-span-style node css-rules)
+						(dolist (attr '(style class id))
+							(when (dom-attr node attr)
+								(dom-remove-attribute node attr))))))
+		;; remove blank paragraphs
+		(dom-search
+		 dom
+		 (lambda (node)
+			 (when (eq (dom-tag node) 'p))
+			 (when (and (string= (string-trim (dom-texts node)) "")
+									(not (dom-by-tag node 'img)))
+				 (dom-remove-node (dom-parent dom node) node))))
+		;; fix links
+		(dolist (node (dom-by-tag dom 'a))
+			(when (string-match "https://www\\.google\\.com\\/url" (dom-attr node 'href))
+				(let ((args (url-parse-query-string
+										 (cdr (url-path-and-query (url-generic-parse-url (dom-attr node 'href)))))))
+					(dom-set-attribute node 'href (car (assoc-default "q" args 'string=))))))
+		dom))
+#+end_src
 *** Formatting calls to action
 :PROPERTIES:
 :CUSTOM_ID: areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-formatting-calls-to-action
@@ -27768,6 +27967,7 @@ I can add that to the sequence:
 	 my-brigade-recolor-recursively)
  (with-temp-buffer (insert-file-contents "~/Downloads/test.html") (buffer-string)))
 #+end_src
+
 *** Just the headings
 :PROPERTIES:
 :CUSTOM_ID: collaboration-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-just-the-headings
@@ -27969,7 +28169,6 @@ I need to copy and paste the image filenames into the upload dialog on Mailchimp
 																		(list
 																		 'my-transform-html-remove-images
 																		 'my-transform-html-remove-italics
-																		 'my-brigade-simplify-html
 																		 'my-brigade-format-buttons
 																		 (when (string= sec "In our community")
 																			 'my-brigade-recolor-recursively)))
@@ -27980,8 +28179,7 @@ I need to copy and paste the image filenames into the upload dialog on Mailchimp
 							(format "#+begin_src html\n<h2>Other updates</h2>%s\n#+end_src\n\n"
 											(my-transform-html
 											 '(my-transform-html-remove-images
-												 my-transform-html-remove-italics
-												 my-brigade-simplify-html)
+												 my-transform-html-remove-italics)
 											 (car (cdr (assoc "Other updates" sections 'string=))))))
 			(goto-char (point-min))
 			(display-buffer (current-buffer)))))
@@ -27995,9 +28193,10 @@ I need to copy and paste the image filenames into the upload dialog on Mailchimp
 														(regexp-opt '("Mon" "Tue" "Wed" "Thu" "Fri" "Sat" "Sun"))))
 						(match (when (string-match regexp text) (match-string 1 text))))
 			 (dom-node 'li nil
-								 (if match
-										 (format "%s: %s" match (car group))
-									 (car group)))))
+								 (org-html-encode-plain-text
+									(if match
+											(format "%s: %s" match (car group))
+										(car group))))))
 	 (my-html-group-by-tag 'h2 section-children)))
 
 (defun my-html-group-by-tag (tag dom-list)
@@ -28045,9 +28244,10 @@ My next step for improving this workflow might be to check out other e-mail prov
 All right, let's try uploading the files ourselves. This uses https://github.com/sachac/mailchimp-el .
 
 #+begin_src emacs-lisp
+(use-package mailchimp :load-path "~/proj/mailchimp-el" :vc (:url "https://github.com/sachac/mailchimp-el"))
 (defun my-brigade-reuse-or-upload-images (images)
 	"Return an alist of (SECTION . URL)"
-	(let ((recent-files (assoc-default 'files (mailchimp-get-recent-files 100))))
+	(let ((recent-files (assoc-default 'files (mailchimp-recent-files 100))))
 		(mapcar
 		 (lambda (img)
 			 (let* ((base (regexp-quote
@@ -28074,7 +28274,7 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 							(my-brigade-toc-items (assoc-default "In our community" sections 'string=)))))
 		 (buffer-string))))
 
-(defun my-brigade-format-section (section &optional recolor)
+(defun my-brigade-format-section (section images &optional recolor)
 	(mapconcat
 	 (lambda (group)
 		 (let* ((item (apply 'dom-node 'div nil
@@ -28104,7 +28304,6 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 											(list
 											 'my-transform-html-remove-images
 											 'my-transform-html-remove-italics
-											 'my-brigade-simplify-html
 											 'my-brigade-format-buttons
 											 (when recolor
 												 'my-brigade-recolor-recursively)))
@@ -28115,7 +28314,7 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 (cl-defun my-brigade-block (text &key (bg "#223f4d")
 																 (style "padding-left:24px;padding-right:24px;padding-top:12px;padding-bottom:12px"))
 	(format
-	 "<table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%%\" style=\"border-collapse:separate\" role=\"presentation\"><tbody><tr><td style= \"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0;border:0;border-radius:0\" valign=\"top\"><table width=\"100%%\" style= \"border:0;background-color:%s;border-radius:0;border-collapse:separate\"><tbody><tr><td style=\"%s\" class=\"mceTextBlockContainer\"><div data-block-id=\"738\" class=\"mceText\" style= \"width:100%%\">%s</div></td></tr></tbody></table></td></tr></tbody></table>"
+	 "<table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%%\" style=\"border-collapse:collapse\" role=\"presentation\"><tbody><tr><td style= \"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0;border:0;border-radius:0\" valign=\"top\"><table width=\"100%%\" style= \"border:0;background-color:%s;border-radius:0\"><tbody><tr><td style=\"%s\" class=\"mceTextBlockContainer\"><div data-block-id=\"738\" class=\"mceText\" style= \"width:100%%\">%s</div></td></tr></tbody></table></td></tr></tbody></table>"
 	 bg
 	 style
 	 text))
@@ -28129,7 +28328,8 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 				file
 				images
 				dom
-				sections)
+				sections
+				html)
 		(call-process "unzip" nil nil nil "-o" (my-latest-file "~/Downloads" "\\.zip$"))
 		(setq file (my-latest-file default-directory))
 		(with-temp-buffer
@@ -28144,31 +28344,33 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 						 (dom-children
 							(dom-by-tag
 							 dom 'body)))))
-		(kill-new
-		 (concat
-			(my-brigade-block (format "<table style=\"margin: auto\"><tbody><tr><td style=\"text-align: center; color: #f3f3f3\"><div style=\"text-align: center; color: #f3f3f3\">%s</div></td></tr></table>"
-																(format-time-string "%B %-e, %Y" date))
-												:bg "#16232a"
-												:style "padding: 0px 24px 12px 24px")
-			"<table><tbody><tr><td style=\"padding: 12px 24px 12px 24px\"><p>Hi Bike Brigaders! Here’s what's happening this week, with quick signup links. In this e-mail:</p>"
-			(my-brigade-toc sections)
-			""
-			(my-brigade-copy-signup-block date)
-			(my-brigade-format-section (assoc-default "Bike Brigade" sections #'string=))
-			"</td></tr></tbody></table><table style=\"background-color:#223f4d;\"><tbody><tr><td style=\"padding-left: 24px; padding-right: 24px\">"
-			(my-brigade-block "<h1 style=\"text-align: center;\"><span style= \"color:#ffffff;\">In our community</span></h1>")
-			(my-brigade-format-section (assoc-default "In our community" sections #'string=) t)
-			"</td></tr></tbody></table>"
-
-			(if (assoc-default "Other updates" sections #'string=)
-					(format "<table><tbody><tr><td style=\"padding: 12px 24px 12px 24px\"><h2>Other updates</h2>%s</td></tr></tbody></table>"
-									(my-transform-html
-									 '(my-transform-html-remove-images
-										 my-transform-html-remove-italics
-										 my-brigade-simplify-html)
-									 (car (assoc-default "Other updates" sections #'string=))))
-				"")
-			""))))
+		(setq html
+					(replace-regexp-in-string "<p><span></span></p>" ""
+					(concat
+					 "<table class=\"newsletter\" margin=0 cellpadding=0 cellspacing=0 style=\"border-collapse:collapse\"><tbody><tr><td>"
+					 (my-brigade-block (format "<table style=\"margin: auto\"><tbody><tr><td style=\"text-align: center; color: #f3f3f3\"><div style=\"text-align: center; color: #f3f3f3\">%s</div></td></tr></table>"
+																		 (format-time-string "%B %-e, %Y" date))
+														 :bg "#16232a"
+														 :style "padding: 0px 24px 12px 24px")
+					 "<base href=\"\"><style>table { border-collapse: collapse !important } table.newsletter { border-collapse: collapse} .mceStandardButton a, table.sign-up a { text-decoration: none }</style><table><tbody><tr><td style=\"padding: 12px 24px 12px 24px\"><p>Hi Bike Brigaders! Here’s what's happening this week, with quick signup links. In this e-mail:</p>"
+					 (my-brigade-toc sections)
+					 ""
+					 (my-brigade-copy-signup-block date)
+					 (my-brigade-format-section (assoc-default "Bike Brigade" sections #'string=) images)
+					 "</td></tr></tbody></table><table style=\"background-color:#223f4d;\"><tbody><tr><td style=\"padding-left: 24px; padding-right: 24px\">"
+					 (my-brigade-block "<h1 style=\"text-align: center;\"><span style= \"color:#ffffff;\">In our community</span></h1>")
+					 (my-brigade-format-section (assoc-default "In our community" sections #'string=) images t)
+					 "</td></tr></tbody></table>"
+					 (if (assoc-default "Other updates" sections #'string=)
+							 (format "<table><tbody><tr><td style=\"padding: 12px 24px 12px 24px\"><h2>Other updates</h2>%s</td></tr></tbody></table>"
+											 (my-transform-html
+												nil
+												(car (assoc-default "Other updates" sections #'string=))))
+						 "")
+					 "</td></tr></tbody></table>")))
+		(when (called-interactively-p 'any)
+			(kill-new html))
+		html))
 
 #+end_src
 
@@ -30568,7 +30770,6 @@ Tip from zaeph. Might not use this much yet, as I don't spend that much time in 
   :ensure nil
   :config (oddmuse-mode-initialize)
 	:commands oddmuse-edit
-	:bind ("C-c C-l" . my-org-insert-link)
   :hook (oddmuse-mode-hook .
                            (lambda ()
                              (unless (string-match "question" oddmuse-post)

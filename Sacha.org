@@ -4,7 +4,7 @@
 #+SETUPFILE: ~/vendor/org-html-themes/org/theme-readtheorg-sachac.setup
 #+STARTUP: showeverything
 #+PROPERTY: header-args+   :results silent :exports code :eval never-export
-#+PROPERTY: header-args:emacs-lisp+   :tangle yes :results silent :exports code :eval never-export
+#+PROPERTY: header-args:emacs-lisp+   :tangle yes :results silent :exports code :eval never-export :lexical t
 #+ELEVENTY_COLLECTIONS: _posts
 #+ELEVENTY_BASE_DIR: ~/proj/static-blog/
 #+FILETAGS: :emacs:
@@ -222,6 +222,7 @@ Disk space is cheap. Save lots.
 :EXPORT_ELEVENTY_PERMALINK: /blog/2025/09/obscure-emacs-package-appreciation-backup-walker/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2025/09/obscure-emacs-package-appreciation-backup-walker/
 :EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01K5EHNVSHPHMAXFQPZYWJ1D1H
+:CUSTOM_ID: about-this-file-backups-obscure-emacs-package-appreciation-backup-walker
 :END:
 
 The [[https://www.emacswiki.org/emacs/Carnival][Emacs Carnival]] theme for September is [[https://goritskov.com/posts/obscure_packages.html][obscure
@@ -1748,7 +1749,6 @@ Sometimes ~C-h~ gets weird and calls ~which-key-C-h-dispatch~, probably from a t
 	(interactive)
 	(setq overriding-terminal-local-map nil))
 #+end_src
-
 ** Key chords
 :PROPERTIES:
 :CUSTOM_ID: key-chord
@@ -1837,6 +1837,15 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
 (bind-key "C-t" 'my-key-chord-commands/body)
 #+end_src
 
+** Casual
+:PROPERTIES:
+:CUSTOM_ID: keybindings-casual
+:END:
+
+#+begin_src emacs-lisp
+(use-package casual
+	:load-path "~/vendor/casual/lisp")
+#+end_src
 * Completion
 :PROPERTIES:
 :CUSTOM_ID: completion
@@ -3855,8 +3864,7 @@ error when you do this (I need to send a patch
 		(seq-mapcat (lambda (dir)
 									(directory-files-recursively dir "^[0-9][0-9][0-9][0-9]-.*\\.\\(png\\|webm\\)"))
 								my-screenshot-dirs)
-		:key #'file-name-base
-		:lessp #'string<
+		:key (lambda (o) (file-attribute-modification-time (file-attributes o)))
 		:reverse t)
 	 (or limit my-recent-screenshot-limit)))
 
@@ -4290,6 +4298,7 @@ From https://kitchingroup.cheme.cmu.edu/blog/2014/08/31/Using-Mac-gestures-in-Em
 (keymap-global-set "<triple-wheel-right>" 'my-previous-buffer)
 (keymap-global-set "<triple-wheel-left>" 'my-next-buffer)
 #+end_src
+
 * Reading
 :PROPERTIES:
 :CUSTOM_ID: reading
@@ -5389,17 +5398,22 @@ Saves to a temp file and puts the filename in the kill ring."
 :EXPORT_ELEVENTY_PERMALINK: /blog/2025/09/emacs-cycle-through-different-paragraph-formats-all-on-one-line-wrapped-max-one-sentence-per-line-one-sentence-per-line/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2025/09/emacs-cycle-through-different-paragraph-formats-all-on-one-line-wrapped-max-one-sentence-per-line-one-sentence-per-line/
 :EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01K5S0MCXC3084BA8TF56JSAAY
+:EXPORT_MODIFIED: 2025-09-30T13:54:53-0400
 :END:
 :LOGBOOK:
 - Note taken on [2025-09-22 Mon 10:49] \\
   test
 :END:
 
+#+begin_update
+[2025-09-30]: Add ~move-to-left-margin~ to work around bug when using ~fill-paragraph-semlf~ at the end of a paragraph.
+#+end_update
+
 I came across [[https://schauderbasis.de/posts/reformat_paragraph/][Schauderbasis - reformat paragraph]] via [[https://mastodon.social/@EFLS/115213084454613209][@EFLS@mastodon.social]]. Now I want ~M-q~ to cycle through different ways of wrapping text:
 - all on one line
-- according to ~fill-column~
-- at most one sentence per line (although still wrapping at ~fill-column~)
 - at most one sentence per line (don't even try to keep it within ~fill-column~).
+- at most one sentence per line (although still wrapping at ~fill-column~)
+- according to ~fill-column~
 
 [[video:images/my-reformat-paragraph-or-region.webm?caption=Screencast cycling through different paragraph formats]]
 
@@ -5462,8 +5476,10 @@ Initialize with ELEMENT-LIST if this is the first time."
 If a region is selected, handle all paragraphs within that region."
   (interactive)
 	(let ((func (my-repeat-next 'my-reformat-paragraph
-															'(fill-paragraph my-unfill-paragraph fill-paragraph-semlf
-																							 my-fill-paragraph-semlf-long)
+															'(my-fill-paragraph-semlf-long
+                                fill-paragraph-semlf
+                                fill-paragraph
+                                my-unfill-paragraph)
 															(not (eq this-command last-command))))
 				(deactivate-mark nil))
 		(if (region-active-p)
@@ -5486,9 +5502,10 @@ If a region is selected, handle all paragraphs within that region."
 									(funcall func)
 									(if fill-forward-paragraph-function
 											(funcall fill-forward-paragraph-function)
-										(forward-paragraph)))))
-							)))
-			(funcall func))))
+										(forward-paragraph))))))))
+			(save-excursion
+				(move-to-left-margin)
+				(funcall func)))))
 
 (keymap-global-set "M-q" #'my-reformat-paragraph-or-region)
 #+END_SRC
@@ -5502,6 +5519,9 @@ Related:
 - [[https://rhodesmill.org/brandon/2012/one-sentence-per-line/][Semantic Linefeeds]]
 - [[https://lists.gnu.org/archive/html/emacs-devel/2025-03/msg00035.html][Fill paragraph using semantic linefeeds]]
 ** Visual line
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-visual-line
+:END:
 
 #+begin_src emacs-lisp
 (global-visual-line-mode)
@@ -6263,7 +6283,7 @@ stuff.
 (defun my-org-find-first-common-heading (other-buffer)
 	"Go to the first top-level heading in common with OTHER-BUFFER.
 This is helpful when resolving sync conflicts."
-	(interactive (list (read-buffer)))
+	(interactive (list (read-buffer "Other buffer: ")))
 	(let ((other-headings (with-current-buffer (get-buffer other-buffer)
 													(org-map-entries (lambda () (org-entry-get (point) "ITEM")) "LEVEL=1"))))
 		(goto-char
@@ -6609,10 +6629,10 @@ I no longer need. By default, ~k~ is mapped to
 (defun my-org-cut-subtree-or-list-item (&optional n)
 	"Cut current subtree or list item."
 	(cond
-	 ; limit this to only Inbox.org and news.org
-	 ((not (string-match (regexp-opt '("Inbox.org" "posts.org" "news.org"))
+	 ; limit this to certain files
+	 ((not (string-match (regexp-opt '("Inbox.org" "posts.org" "news.org" "ipad.org"))
 											 (or (buffer-file-name) "")))
-		(message "Let's only cut things in Inbox.org or news.org")) ; do nothing
+		(message "Let's only cut things in inboxes")) ; do nothing
 	 ((and (looking-at org-outline-regexp) (looking-back "^\**" nil))
 		(org-cut-subtree n))
 	 ((looking-at (org-item-re))
@@ -8382,9 +8402,11 @@ then breaking it down into previous/next week.
 						(concat "records.json?start=" (or start "") "&end=" (or end "")
 										"&order=newest&display_type=time&filter_string=" (url-hexify-string cat))
 						(list (cons 'auth_token (quantified-token))) "GET")))
-				 (duration (apply '+ (mapcar (lambda (o) (alist-get 'duration o 0)) records)))
+				 (duration (apply '+ (delq nil (mapcar (lambda (o) (alist-get 'duration o 0)) records))))
 				 (hours (/ duration 3600.0)))
-		(message "%s: %.1f hour(s) in %d entries" cat hours (length records))))
+    (when (called-interactively-p 'any)
+		  (message "%s: %.1f hour(s) in %d entries" cat hours (length records)))
+    hours))
 
 (defun my-quantified-get-hours (category time-summary)
   "Return the number of hours based on the time summary."
@@ -8858,7 +8880,6 @@ Here's a function like =my-org-prepare-weekly-review=:
     (goto-char (line-end-position))
     (insert
      "\n\n** " title "  :monthly:review:\n"
-		 (my-quantified-summarize-time-table-month (format-time-string "%Y-%m-%d" time)) "\n\n"
      "*Blog posts*\n"
      posts "\n\n"
      "*Sketches*\n\n"
@@ -9601,12 +9622,15 @@ Uses the info from `my-org-bookmark-file'."
 						'url (plist-get o :url))))
 	 (my-org-bookmarks)))
 
-(defun my-org-bookmark-complete ()
+(defun my-org-bookmark-complete (&optional initial-text)
 	"Complete a bookmark."
+  (when (region-active-p)
+    (setq initial-text (or initial-text (buffer-substring (region-beginning)
+                                                          (region-end)))))
 	(let ((bookmarks (my-org-bookmarks-for-completion)))
 		(assoc-default
 		 (completing-read
-			"Bookmark: " bookmarks)
+			"Bookmark: " bookmarks nil nil initial-text)
 		 bookmarks
 		 #'string=)))
 
@@ -10283,6 +10307,7 @@ prompt.
 (org-link-set-parameters
  "my-include"
  :follow #'my-include-open
+ :store #'my-include-store
  :export #'my-include-export
  :complete #'my-include-complete)
 
@@ -10324,6 +10349,16 @@ prompt.
 			(when (or (not (= start (point-min)))
 								(not (= end (point-max))))
 				(narrow-to-region start end)))))
+
+(defun my-include-store ()
+  "Store a link to Org Babel named blocks."
+  (when-let ((elem (and (derived-mode-p 'org-mode) (org-element-at-point))))
+    (when (and (org-element-type-p elem 'src-block)
+               (org-element-property :name elem))
+      (org-link-store-props :type "my-include"
+                            :link (concat "my-include:" (buffer-file-name) "?name="
+                                          (org-element-property :name elem))
+                            :text (org-entry-get (point) "ITEM")))))
 
 (defun my-include-export (path _ format _)
 	"Export PATH to FORMAT using the specified wrap parameter."
@@ -10746,7 +10781,7 @@ This uses the ~my-combined-screenshots~ and ~my-latest-screenshot~ functions fro
 	 ((derived-mode-p 'org-mode)
 		(when (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
 			(let ((filename (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")))
-				(dolist (dir (list my-11ty-site-dir my-11ty-local-dir my-11ty-remote-dir))
+				(dolist (dir (list my-11ty-site-dir my-11ty-local-dir my-11ty-remote-dir my-11ty-base-dir))
 					(when (and dir (file-directory-p (expand-file-name filename dir)))
 						(delete-directory (expand-file-name filename dir) t)))
 				(org-delete-property "EXPORT_ELEVENTY_FILE_NAME")
@@ -11031,18 +11066,11 @@ CLOCK: [2024-10-18 Fri 17:43]--[2024-10-18 Fri 17:51] =>  0:08
 (defvar my-blog-base-url "https://sachachua.com/")
 
 (defun my-org-blog-complete ()
-	(let ((base (replace-regexp-in-string "/$" "" my-blog-base-url)))
-		(completing-read
-		 "Post: "
-		 (mapcar
-			(lambda (o)
-				(concat base (alist-get 'permalink o)))
-			(let* ((json-object-type 'alist)
-						 (json-array-type 'list))
-				(json-read-file "~/sync/static-blog/_site/blog/all/index.json"))))))
+  "Select a blog post and return its URL."
+  (my-blog-url (my-consult-blog-posts-by-title)))
 
 (defun my-org-blog-export (link desc format _)
-	(let ((path (concat (if (eq format '11ty) "/" "https://sachachua.com/")
+	(let ((path (concat (if (eq format '11ty) "/" my-blog-base-url)
 											(replace-regexp-in-string "\\.html$" "/"
 																								(replace-regexp-in-string "^/\\|index.html$" ""
 																																					link)))))
@@ -11055,37 +11083,26 @@ CLOCK: [2024-10-18 Fri 17:43]--[2024-10-18 Fri 17:51] =>  0:08
 
 (defun my-11ty-html-filename (link)
 	"Return the HTML file for LINK."
-	(setq link (replace-regexp-in-string "^blog:\\|https://sachachua.com/" "" link))
-	(if (file-exists-p link)
+  (when (listp link) (setq link (assoc-default 'permalink link)))
+	(setq link (replace-regexp-in-string (concat "^blog:\\|" (regexp-opt my-blog-base-url)) "" link))
+	(when (string-match "^/" link) (setq link (concat "." link)))
+  (if (file-exists-p link)
 			link
 		(or (catch 'found
 					(dolist (f
 									 (list
 										(expand-file-name "index.html"
 																			(expand-file-name
-																			 (if (string-match "^/" link)
-																					 (concat "." link)
-																				 link)
+																			 link
 																			 my-11ty-base-dir))
 										(expand-file-name "index.html"
 																			(expand-file-name
-																			 (if (string-match "^/" link)
-																					 (concat "." link)
-																				 link)
+																			 link
 																			 (expand-file-name "blog" my-11ty-base-dir)))
 										(replace-regexp-in-string
 										 "/$" ".html"
 										 (expand-file-name
-											(if (string-match "^/" link)
-													(concat "." link)
-												link)
-											my-11ty-base-dir))
-										(replace-regexp-in-string
-										 "/$" ".html"
-										 (expand-file-name
-											(if (string-match "^/" link)
-													(concat "." link)
-												link)
+											link
 											my-11ty-base-dir))))
 						(if (and f (file-exists-p f))
 								(throw 'found f))))
@@ -11244,7 +11261,7 @@ I want to be able to quickly add a category to a post when I'm looking at the fi
 
 Then it makes sense to be able to work with blog URLs from an Embark action:
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :lexical t
 (defun my-embark-org-blog-target ()
 	"Identify when we're looking at a blog link."
 	(cond
@@ -11267,19 +11284,150 @@ Then it makes sense to be able to work with blog URLs from an Embark action:
 					 (my-11ty-post-categories (my-11ty-html-filename blog)))))
 	(my-11ty-add-category-to-post (my-11ty-html-filename blog) category))
 
+(defun my-blog-url (path)
+  (concat my-blog-base-url
+          (replace-regexp-in-string (concat "^" (regexp-quote my-blog-base-url))
+                                    ""
+                                    (replace-regexp-in-string "^\\(blog:\\)?/" ""
+                                                              (if (stringp path)
+                                                                  path
+                                                                (assoc-default 'permalink path))))))
+
 (defun my-embark-org-blog-open-in-browser (path)
-	(interactive (list (my-org-blog-complete)))
-	(browse-url (concat "https://sachachua.com/"
-											(replace-regexp-in-string "^\\(blog:\\)?/" "" path))))
+	(interactive (list (my-consult-blog-posts-by-title)))
+  (browse-url (my-blog-url path)))
+
+(defun my-embark-blog-insert-link (post)
+  (interactive (list (my-consult-blog-posts-by-title)))
+  (when (looking-back "\\]\\]")         ; end of a link, add a space
+    (insert ", "))
+  (my-org-insert-link-dwim (my-blog-url post)
+                           (and (listp post) (assoc-default 'title post))))
+
+(defun my-11ty-exported-org-filename (info)
+  "Return the exported .org file for INFO, or nil if there isn't any."
+  (when (stringp info) (setq info (my-blog-post-info-for-url info)))
+  (let-alist info
+    (let* ((org (and .permalink (expand-file-name "index.org" (expand-file-name (concat "." .permalink) my-11ty-base-dir)))))
+      (cond
+       ((and org (file-exists-p org))
+        org)
+       (.inputPath
+        (expand-file-name .inputPath my-11ty-base-dir))))))
+
+(defun my-blog-post--position (info &optional find-file)
+  "Return the file position marker for a blog post INFO.
+FIND-FILE is the file open function, defaulting to `consult--file-action'."
+  (when (stringp info) (setq info (my-blog-post-info-for-url info)))
+  (let (pos
+        (line-number (alist-get 'line_number info 0)))
+    (when-let* ((source-path
+                 (or
+                  ;; check posts.org or Sacha.org
+                  (catch 'found
+				            (dolist (file '("~/sync/emacs/Sacha.org"
+												            "~/sync/orgzly/posts.org"))
+					            (with-current-buffer (find-file-noselect file)
+						            (setq pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" (assoc-default 'permalink info)))
+						            (when pos
+                          (goto-char pos)
+                          (when line-number
+                            (forward-line line-number))
+                          (setq line-number (line-number-at-pos nil t))
+							            (throw 'found (buffer-file-name))))))
+                  (alist-get 'source_path info)
+                  (my-11ty-exported-org-filename info))))
+      (consult--marker-from-line-column
+       (funcall (or find-file #'consult--file-action) (file-truename source-path))
+       line-number 0))))
+
+(defun my-blog-post-info-for-url (url &optional all-posts)
+  "Return the alist for URL."
+  (if (listp url)
+      url
+    (setq url (replace-regexp-in-string
+               (concat "^" (regexp-quote my-11ty-base-dir)
+                       "\\|^"
+                       (regexp-quote (expand-file-name my-11ty-base-dir))
+                       "\\|^"
+                       (regexp-quote (file-truename my-11ty-base-dir))
+                       "\\|index\\.org$\\|\\.org$") "" url))
+    (when (string-match (regexp-quote my-blog-base-url) url)
+      (setq url (substring url (match-end 0))))
+    (when (string-match "\\?" url)
+      (setq url (substring url 0 (match-beginning 0))))
+    (unless (string-match "^/" url)
+      (setq url (concat "/" url)))
+    (seq-find (lambda (o) (string= (alist-get 'permalink o) url))
+              (or all-posts (my-blog-posts)))))
+
+(ert-deftest my-blog-post-info-for-url ()
+  (should
+   (equal
+    (my-blog-post-info-for-url
+     "https://sachachua.com/blog/2025/10/added-multiple-timezone-support-to-casual-timezone-planner/"
+     )
+    '((permalink . "/blog/2025/10/added-multiple-timezone-support-to-casual-timezone-planner/")
+      (date . "2025-10-08T13:53:11.000Z")
+      (title . "Added multiple timezone support to casual-timezone-planner")
+      (categories "emacs")
+      (inputPath . "./blog/2025/10/added-multiple-timezone-support-to-casual-timezone-planner/index.html"))))
+  (should
+   (equal
+    (my-blog-post-info-for-url
+     "/blog/2021/03/org2blog-add-a-note-to-the-bottom-of-blog-posts-exported-from-my-config-file/")
+    '((permalink . "/blog/2021/03/org2blog-add-a-note-to-the-bottom-of-blog-posts-exported-from-my-config-file/") (date . "2021-03-25T00:00:00.000Z") (title . "Add a note to the bottom of blog posts exported from my config file") (categories "emacs" "org") (inputPath . "./blog/2021/03/org2blog-add-a-note-to-the-bottom-of-blog-posts-exported-from-my-config-file.html")))))
+
+(defun my-blog-post--state ()
+  "Blog post RAG search state function, managing preview window and cleanup."
+  ;; These functions are closures captured when the state is initialized by consult--read
+  (let ((preview (consult--jump-preview))
+        (open (consult--temporary-files))
+        (jump (consult--jump-state)))
+    ;; The returned lambda is the actual preview function called by Consult
+    (lambda (action cand)
+      (unless cand
+        (funcall open))
+      (funcall preview action
+               (and (or (eq action 'preview))
+                    (my-blog-post--position cand (and (not (eq action 'return)) open)))))))
+
+(defun my-consult-blog-posts-by-title (&optional query)
+  (interactive)
+  (consult--read
+   (mapcar
+    #'my-blog-format-for-completion
+    (sort (my-blog-posts) :key (lambda (o) (alist-get 'date o)) :lessp #'string< :reverse t))
+   :lookup #'consult--lookup-cdr
+   :prompt "Search blog posts (exact): "
+   :category 'my-blog
+   :sort nil
+   :require-match t
+   :state (my-blog-post--state)
+   :initial query))
+
+(defun my-blog-format-for-completion (result)
+  (let-alist result
+    (let* ((title (or .title "No Title"))
+           (date (or .date "2000-01-01"))
+           (year (substring date 0 4))
+           (categories (string-join .categories ", "))
+           (final-display
+            (format "%-5s %s [%s]"
+                    (propertize year 'face 'font-lock-comment-face) title categories)))
+      (put-text-property 0 1 'consult--candidate result final-display)
+      (cons final-display result))))
 
 (with-eval-after-load 'embark
 	(add-to-list 'embark-target-finders #'my-embark-org-blog-target)
 	(defvar-keymap embark-my-blog-actions
+    :parent embark-general-map
 		:doc "Shortcuts for my blog"
 		"h" #'my-blog-edit-html
 		"j" #'my-blog-edit-json
-		"e" #'my-embark-11ty-find-org
+		"e" #'my-blog-find-org
 		"c" #'my-embark-org-blog-add-category
+    "i" #'my-embark-blog-insert-link
 		"b" #'my-embark-org-blog-open-in-browser)
 	(add-to-list 'embark-keymap-alist '(my-blog . embark-my-blog-actions)))
 #+end_src
@@ -11304,29 +11452,11 @@ Then I want to be able to add a category to all the blog posts in a region:
 
 #+begin_src emacs-lisp
 (defvar my-11ty-base-dir "~/proj/static-blog/")
-(defun my-embark-11ty-find-org (url)
-	(interactive (list (my-complete-blog-post-url)))
-	(setq url (my-org-link-as-url url))
-	(when (string-match "https://sachachua\\.com\\(/blog/.*\\)" url)
-		(let ((path (match-string 1 url))
-					pos)
-			;; check my config
-			(catch 'found
-				(dolist (file '("~/sync/emacs/Sacha.org"
-												"~/sync/orgzly/posts.org"))
-					(with-current-buffer (find-file-noselect file)
-						(setq pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" path))
-						(when pos
-							(switch-to-buffer (current-buffer))
-							(goto-char pos)
-							(throw 'found (buffer-file-name)))))
-				(when (file-exists-p
-							 (expand-file-name "index.org"
-																 (concat my-11ty-base-dir path)))
-					(find-file
-					 (expand-file-name "index.org" (concat my-11ty-base-dir path)))
-					(throw 'found (buffer-file-name)))))))
-(defalias 'my-blog-edit-org #'my-embark-11ty-find-org)
+(defun my-blog-edit-org (info)
+	(interactive (list (my-consult-blog-posts-by-title)))
+  (unless (listp info) (setq info (my-blog-post-info-for-url info)))
+  (my-blog-post--position info))
+
 (defun my-embark-11ty-find-html (url)
 	(interactive (list (my-complete-blog-post-url)))
 	(when (string-match "https://sachachua\\.com\\(/blog/.*\\)" (my-org-link-as-url url))
@@ -11349,8 +11479,8 @@ Then I want to be able to add a category to all the blog posts in a region:
 					 (expand-file-name "index.org" (concat my-11ty-base-dir path)))
 					(throw 'found (buffer-file-name)))))))
 (with-eval-after-load 'embark
-	(define-key embark-url-map "v" #'my-embark-11ty-find-org)
-	(define-key embark-org-link-map "v" #'my-embark-11ty-find-org))
+	(define-key embark-url-map "v" #'my-blog-find-org)
+	(define-key embark-org-link-map "v" #'my-blog-find-org))
 #+end_src
 **** Moving my Org post subtree to the 11ty directory :11ty:org:emacs:blogging:
 :PROPERTIES:
@@ -11470,6 +11600,46 @@ Now to figure out how to override the export menu. Totally messy hack!
 	(map-put (caddr (org-export-backend-menu (org-export-get-backend '11ty)))
 					 ?1 (list "To Org, 11tydata.json, HTML" 'my-org-11ty-export)))
 #+end_src
+
+**** Listing exported Org posts  :11ty:org:emacs:blogging:
+:PROPERTIES:
+:CUSTOM_ID: org-mode-publishing-11ty-static-site-generation-listing-exported-org-posts
+:END:
+
+Sometimes I want to process those exported files, but exclude some posts that are mostly long lists of links (Emacs News, monthly/weekly/yearly posts). This function returns a list of possibly-relevant filenames.
+
+#+NAME: my-blog-org-files-except-reviews
+#+begin_src emacs-lisp
+(defun my-blog-org-files-except-reviews (after-date)
+  "Return a list of recent .org files except for Emacs News and weekly/monthly/yearly reviews.
+AFTER-DATE is in the form yyyy, yyyy-mm, or yyyy-mm-dd."
+  (setq after-date (or after-date "2020"))
+  (let ((after-month (substring after-date 0 7))
+        (posts (my-blog-posts)))
+    (seq-keep
+     (lambda (filename)
+       (when (not (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-emacs-news" filename))
+         (when (string-match "/blog/\\([0-9]+\\)/\\([0-9]+\\)/" filename)
+           (let ((month (match-string 2 filename))
+                 (year (match-string 1 filename)))
+             (unless (string> after-month
+                              (concat year "-" month))
+               (let ((info (my-blog-post-info-for-url (replace-regexp-in-string "~/proj/static-blog\\|index\\.org$\\|\\.org$" "" filename) posts)))
+                 (let-alist info
+
+                   (when (and
+                          info
+                          (string> .date after-date)
+                          (not (seq-intersection .categories
+                                                 '("emacs-news" "weekly" "monthly" "yearly")
+                                                 'string=)))
+                     filename))))))))
+     (sort
+      (directory-files-recursively "~/proj/static-blog/blog" "\\.org$")
+      :lessp #'string<
+      :reverse t))))
+#+end_src
+
 **** Include Mastodon, HN, Reddit fields in front matter
 :PROPERTIES:
 :CUSTOM_ID: org-mode-publishing-11ty-static-site-generation-include-mastodon-field-in-front-matter
@@ -12419,6 +12589,25 @@ https://so.nwalsh.com/2020/01/05-latex , but I use letter paper instead of A4.
 :PROPERTIES:
 :CUSTOM_ID: org-links
 :END:
+*** Convert an inline link into a side note/footnote
+
+#+begin_src emacs-lisp
+(defun my-org-convert-link-to-footnote (label)
+  "Convert the link at point into a footnote."
+  (interactive (list (read-string "Footnote label: ")))
+  ;; Get the Org link path at point
+  (when (org-in-regexp org-link-bracket-re 1)
+    (let ((url (match-string 1)))
+      (replace-match (match-string 2) 0)
+      (skip-syntax-forward ".")
+      (insert (format "[fn:%s]" label))
+      (goto-char (org-footnote-create-definition label))
+      (goto-char (line-end-position))
+      (insert (org-link-make-string (org-link-unescape url)
+                                    (my-org-link-default-description url nil))))))
+#+end_src
+
+
 *** Adding Org Mode link awesomeness elsewhere: my-org-insert-link-dwim  :org:
 :PROPERTIES:
 :CUSTOM_ID: my-org-insert-link-dwim
@@ -12473,7 +12662,7 @@ Play by play:
 Here's the ~my-org-insert-link-dwim~ function, using ~my-org-link-as-url~ from [[dotemacs:web-link][Copy web link]] and ~my-org-set-link-target-with-search~ from [[dotemacs:completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode]]:
 
 #+begin_src emacs-lisp
-(defun my-org-insert-link-dwim ()
+(defun my-org-insert-link-dwim (&optional url title)
 	"Like `org-insert-link' but with personal dwim preferences."
 	(interactive)
 	(let* ((point-in-link (and (derived-mode-p 'org-mode) (org-in-regexp org-link-any-re 1)))
@@ -12487,6 +12676,7 @@ Here's the ~my-org-insert-link-dwim~ function, using ~my-org-link-as-url~ from [
 								 (and (member (org-element-type elem) '(src-block export-block))
 											(not (string= (org-element-property :type elem) "Org"))))))
 				 (url (cond
+               (url url)
 							 ((my-org-in-bracketed-text-link-p) nil)
 							 ((not point-in-link) (my-org-read-link
 																		 ;; clipboard
@@ -12496,7 +12686,8 @@ Here's the ~my-org-insert-link-dwim~ function, using ~my-org-link-as-url~ from [
 				 (region-content (when (region-active-p)
 													 (buffer-substring-no-properties (region-beginning)
 																													 (region-end))))
-				 (title (or region-content
+				 (title (or title
+                    region-content
 										(when (or (string-match (regexp-quote "*new toot*") (buffer-name))
 															(derived-mode-p '(markdown-mode web-mode oddmuse-mode))
 															point-in-html-block
@@ -12999,6 +13190,9 @@ With prefix argument, also display headlines without a TODO keyword."
 	(concat "video:" (read-file-name "File: ")))
 #+end_src
 *** Linking to a specific time in a video
+:PROPERTIES:
+:CUSTOM_ID: org-mode-links-linking-to-a-specific-time-in-a-video
+:END:
 #+begin_src emacs-lisp
 (org-link-set-parameters
  "vtime"
@@ -14584,6 +14778,9 @@ The ~pikchr-cli~ package in Ubuntu 24 is version 0.1.2 and does not have the ~--
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot)))
 #+end_src
 *** Treemap visualization
+:PROPERTIES:
+:CUSTOM_ID: org-mode-diagrams-and-graphics-treemap-visualization
+:END:
 
 [[https://sachachua.com/blog/2025/01/treemap-visualization-of-an-org-mode-file/][Treemap visualization of an Org Mode file]]
 
@@ -15866,6 +16063,186 @@ Luhmann’s only real help was a housekeeper who cooked for him and his children
 	(when (directory-files default-directory nil "sync-conflict.*\\.org")
 		(message "Syncthing conflicts exist.")))
 #+end_src
+
+** Vector search
+:PROPERTIES:
+:CUSTOM_ID: org-mode-vector-search
+:END:
+
+John Kitchin just posted a different project - org-db-v3. Let's see if I can figure that out...
+[[https://www.youtube.com/watch?v=t879-fipgtg][Fulltext, semantic text and image search in Emacs - YouTube]]
+
+#+NAME: org-db-v3
+#+begin_src emacs-lisp
+(use-package org-db-v3
+  :load-path "~/vendor/org-db-v3/elisp"
+  :init
+  (setq org-db-v3-auto-enable nil))
+
+(defun my-org-db-v3-to-emacs-rag-search (query &optional limit filename-pattern)
+  "Search org-db-v3 and transform the data to look like emacs-rag-search's output."
+  (org-db-v3-ensure-server)
+  (setq limit (or limit 100))
+  (mapcar (lambda (o)
+            `((source_path . ,(assoc-default 'filename o))
+              (line_number . ,(assoc-default 'begin_line o))))
+          (assoc-default 'results
+                         (plz 'post (concat (org-db-v3-server-url) "/api/search/semantic")
+                           :headers '(("Content-Type" . "application/json"))
+                           :body (json-encode `((query . ,query)
+                                                (limit . ,limit)
+                                                (filename_pattern . ,filename-pattern)))
+                           :as #'json-read))))
+#+end_src
+
+Sample code for indexing my main files:
+
+#+begin_src emacs-lisp :tangle no :eval no
+(dolist (file '("~/sync/orgzly/organizer.org"
+                "~/sync/orgzly/posts.org"
+                "~/sync/orgzly/reading.org"
+                "~/sync/orgzly/resources.org"))
+  (org-db-v3-index-file-async file))
+#+end_src
+
+Sample code for indexing the Org copies of my blog posts:
+
+#+begin_src emacs-lisp :tangle no :eval no
+(mapc #'org-db-v3-index-file-async
+      (my-blog-org-files-except-reviews))
+#+end_src
+
+Consult-based interface for searching:
+
+#+NAME: my-blog-similar-link
+#+begin_src emacs-lisp
+(defun my-blog-similar-link (link)
+  "Vector-search blog posts using `emacs-rag-search' and insert a link.
+If called with \\[universal-argument\], use the current post's text.
+If a region is selected, use that as the default QUERY.
+HIDE-INITIAL means hide the initial query, which is handy if the query is very long."
+  (interactive (list
+                (if embark--command
+                    (read-string "Link: ")
+                  (my-blog-similar
+                   (cond
+                    (current-prefix-arg (my-11ty-post-text))
+                    ((region-active-p)
+                     (buffer-substring (region-beginning)
+                                       (region-end))))
+                   current-prefix-arg))))
+  (my-embark-blog-insert-link link))
+
+(defun my-embark-blog--inject-target-url (&rest args)
+  "Replace the completion text with the URL."
+  (delete-minibuffer-contents)
+  (insert (my-blog-url (get-text-property 0 'consult--candidate (plist-get args :target)))))
+
+(with-eval-after-load 'embark
+  (add-to-list 'embark-target-injection-hooks '(my-blog-similar-link my-embark-blog--inject-target-url)))
+
+(defun my-blog-similar (&optional query hide-initial)
+  "Vector-search blog posts using `emacs-rag-search' and present results via Consult.
+If called with \\[universal-argument\], use the current post's text.
+If a region is selected, use that as the default QUERY.
+HIDE-INITIAL means hide the initial query, which is handy if the query is very long."
+  (interactive (list (cond
+                      (current-prefix-arg (my-11ty-post-text))
+                      ((region-active-p)
+                       (buffer-substring (region-beginning)
+                                         (region-end))))
+                     current-prefix-arg))
+  (consult--read
+   (if hide-initial
+       (my-org-db-v3-blog-post--collection query)
+     (consult--dynamic-collection
+         #'my-org-db-v3-blog-post--collection
+       :min-input 3 :debounce 1))
+   :lookup #'consult--lookup-cdr
+   :prompt "Search blog posts (approx): "
+   :category 'my-blog
+   :sort nil
+   :require-match t
+   :state (my-blog-post--state)
+   :initial (unless hide-initial query)))
+
+(defvar my-blog-semantic-search-source 'org-db-v3)
+(defun my-org-db-v3-blog-post--collection (input)
+  "Perform the RAG search and format the results for Consult.
+Returns a list of cons cells (DISPLAY-STRING . PLIST)."
+  (let ((posts (my-blog-posts)))
+    (mapcar (lambda (o)
+              (my-blog-format-for-completion
+               (append o
+                       (my-blog-post-info-for-url (alist-get 'source_path o)
+                                                  posts))))
+            (seq-uniq
+               (my-org-db-v3-to-emacs-rag-search input 100 "%static-blog%")
+               (lambda (a b) (string= (alist-get 'source_path a)
+                                      (alist-get 'source_path b)))))))
+#+end_src
+**** Index automatically
+smaller topic pages, but not the big one?
+exported blog posts
+
+*** emacs-rag-search?
+:PROPERTIES:
+:CUSTOM_ID: org-mode-vector-search-emacs-rag-search
+:END:
+
+
+[[https://www.youtube.com/watch?v=FwP3HQkrP28][Emacs RAG with LibSQL - Enabling semantic search of org-mode headings with Claude Code - YouTube]].
+
+#+NAME: emacs-rag-search
+#+begin_src emacs-lisp
+(use-package emacs-rag
+  :load-path "~/vendor/emacs-rag-libsql/emacs-rag"
+  :commands (emacs-rag-menu emacs-rag--request)
+  :config
+  (setq emacs-rag-server-working-directory "~/vendor/emacs-rag-libsql/emacs-rag-server")
+  (setq emacs-rag-server-command '("~/.local/bin/uv" "run" "emacs-rag-server" "serve"))
+  (setq emacs-rag-indexed-extensions '("org" "txt" "md"))
+  (setq emacs-rag-auto-index-on-save nil))
+
+(defun my-emacs-rag-search (query limit)
+  (assoc-default 'results
+                 (emacs-rag--request "GET" "/search/vector" nil
+                                     `((query . ,query)
+                                       (limit . ,limit)
+                                       (rerank . ,emacs-rag-search-enable-rerank)))))
+
+(defun my-emacs-rag-search-blog-posts-hybrid (query &optional vector-weight limit)
+  "Use hybrid search to search for QUERY.
+Tune with VECTOR-WEIGHT
+Start with LIMIT results and keep only unique blog posts."
+  (interactive (list (if (region-active-p)
+                         (buffer-substring (region-beginning)
+                                           (region-end))
+                       (read-string "Search: "))))
+  (setq limit (or limit 100))
+  (setq vector-weight (or vector-weight 0.5))
+  (let* ((blog-posts (my-blog-posts))
+         (results
+          (seq-uniq
+           (assoc-default 'results
+                          (emacs-rag--request "GET" "/search/hybrid" nil
+                                              `((query . ,query)
+                                                (limit . ,limit)
+                                                (vector_weight . ,vector-weight)
+                                                (rerank . ,emacs-rag-search-enable-rerank))))
+           (lambda (a b)
+             (string= (assoc-default 'source_path a nil "")
+                      (assoc-default 'source_path b nil ""))))))
+    (seq-keep
+     (lambda (o)
+       (when (string-match "/blog/" (alist-get 'source_path o))
+         (append
+          o
+          (my-blog-post-info-for-url (alist-get 'source_path o) blog-posts)
+          nil)))
+     results)))
+#+end_src
+
 * Multimedia
 :PROPERTIES:
 :CUSTOM_ID: multimedia
@@ -18076,31 +18453,36 @@ This makes a buffer with big buttons so that I can easily tap them with my stylu
 
 #+end_src
 *** Dot-grid box templates
+:PROPERTIES:
+:CUSTOM_ID: multimedia-images-dot-grid-box-templates
+:END:
 
-#+begin_src emacs-lisp
+Related: [[https://sachachua.com/blog/2025/10/doodling-icons-in-a-grid/][Doodling icons in a grid]]
+
+#+NAME: my-dot-grid-boxes-template
+#+begin_src emacs-lisp :results silent
 (require 'svg)
-
-(defvar my-svg-dot-grid-params '(
-																 :num-rows 5
-																 :num-cols 7
-																 :dot-size 3
-																 :line-width 3
-																 :dot-spacing 60
-																 :grid-color "#a6d2ff"
-																 :row-size 6
-																 :col-size 6
-																 :text-size 50
-																 :margin-top 2))
-(cl-defun my-svg-make-dot-grid-boxes-template (&key (num-rows 5)
-                                                    (num-cols 7)
-                                                    (dot-size 3)
-																										(line-width 3)
-                                                    (dot-spacing 60)
-                                                    (grid-color "#a6d2ff")
-                                                    (row-size 6)
-                                                    (col-size 6)
-																										(text-size 50)
-                                                    (margin-top 2))
+(defvar my-dot-grid-boxes-params
+	'(:num-rows 5
+		:num-cols 7
+		:dot-size 3
+		:line-width 3
+		:dot-spacing 60
+		:grid-color "#a6d2ff"
+		:row-size 6
+		:col-size 6
+		:text-size 50
+		:margin-top 2))
+(cl-defun my-dot-grid-boxes-template (&key (num-rows 5)
+                                           (num-cols 7)
+                                           (dot-size 3)
+																					 (line-width 3)
+                                           (dot-spacing 60)
+                                           (grid-color "#a6d2ff")
+                                           (row-size 6)
+                                           (col-size 6)
+																					 (text-size 50)
+                                           (margin-top 2))
   "Prepare an SVG with a dot grid within a table with solid gridlines.
 Each dot is a solid circle of DOT-SIZE filled with GRID-COLOR spaced DOT-SPACING apart.
 The gridlines are also GRID-COLOR. They should divide the image into ROWS and COLUMNS, which are ROW-SIZE * DOT-SPACING and COL-SIZE * DOT-SPACING apart.
@@ -18118,7 +18500,6 @@ The rest of the image's background is white."
           (svg-circle svg x y dot-size
 											:fill-color grid-color
 											:stroke-width 0))))
-
 		(when (> text-size 0)
 			(dotimes (i (* num-rows num-cols))
         (let ((x (* (% i num-cols) col-size dot-spacing))
@@ -18134,28 +18515,23 @@ The rest of the image's background is white."
         (svg-line svg x margin-top-height x height
 									:stroke-color grid-color
 									:stroke-width line-width)))
-
     (dotimes (row (1+ num-rows))
       (let ((y (+ margin-top-height (* row row-size dot-spacing))))
         (svg-line svg 0 y width y
 									:stroke-color grid-color
 									:stroke-width line-width)))
 		svg))
-
 #+end_src
 
-#+RESULTS:
-:results:
-my-svg-make-dot-grid-boxes-template
-:end:
 
-#+begin_src emacs-lisp :tangle no :eval no
-(with-temp-file "~/Downloads/grid.svg"
+#+begin_src emacs-lisp :tangle no :eval no :results silent
+(with-temp-file "~/Dropbox/sketches/icon-grid.svg"
 	(svg-print
-	 (my-svg-make-dot-grid-boxes-template)))
+	 (my-dot-grid-boxes-template)))
 #+end_src
 
-#+begin_src emacs-lisp
+#+NAME: my-dot-grid-boxes-extract
+#+begin_src emacs-lisp :results silent
 (cl-defun my-dot-grid-boxes-list (&key (num-rows 5)
 																			 (num-cols 7)
 																			 (dot-spacing 60)
@@ -18165,10 +18541,15 @@ my-svg-make-dot-grid-boxes-template
 																			 (margin-top 2)
 																			 filename
 																			 &allow-other-keys)
+	"Return a list of boxes."
 	(let* ((margin-top-height (* margin-top dot-spacing))
-				 (size (image-size (create-image filename) t))
+				 (max-image-size nil)
+				 (size (image-size (create-image filename nil nil :scale 1) t))
 				 (ratio (/ (car size) (* num-cols col-size dot-spacing 1.0)))
 				 results)
+		(message "Expected adjusted height %f actual height %f"
+						 (* (+ margin-top (* num-rows row-size)) dot-spacing ratio)
+						 (cdr size))
 		(dotimes (i (* num-rows num-cols))
 			(let* ((r (/ i num-cols))
 						 (c (% i num-cols))
@@ -18189,7 +18570,9 @@ my-svg-make-dot-grid-boxes-template
 											 results))))
 		(nreverse results)))
 
-(cl-defun my-dot-grid-boxes-extract (&rest args &key filename labels output-dir &allow-other-keys)
+(defvar my-sketch-icon-directory "~/sync/sketches/icons")
+(cl-defun my-dot-grid-boxes-extract (&rest args &key filename labels
+																					 (output-dir my-sketch-icon-directory) force &allow-other-keys)
 	(let* ((list (apply #'my-dot-grid-boxes-list args))
 				 (base (file-name-base filename))
 				 (ext (concat "." (file-name-extension filename)))
@@ -18197,40 +18580,31 @@ my-svg-make-dot-grid-boxes-template
 					(if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" base)
 							(match-string 0 base)
 						""))
+				 results
 				 args)
 		(dolist (icon list)
 			(let-alist icon
-				(setq args
-							(list (expand-file-name filename)
-										"-crop"
-										(format "%dx%d+%d+%d" .w .h .x .y)
-										"+repage"
-										(expand-file-name
-										 (concat (my-make-slug (elt labels .i)) "--"
-														 id
-														 (format "-%d-%d"
-																		 .r .c)
-														 ext)
-										 output-dir)
-										)))
-			(kill-new (concat "convert " (mapconcat #'shell-quote-argument args " ")))
-			(apply #'call-process "convert" nil nil nil args))))
-;; (cl-defun my-dot-grid-boxes-annotate (&rest args &key filename &allow-other-keys)
-;; 	(let ((list (apply #'my-dot-grid-boxes-list args)))
-;; 		(with-current-buffer (get-buffer-create "*Image*")
-;; 			(let* ((inhibit-read-only t)
-;; 						 (image (create-image filename))
-;; 						 (size (image-size image t))
-;; 						 (svg (svg-create (car size) (cdr size))))
-;; 				(svg-embed svg filename (format "image/%s" (image-type filename))
-;; 									 nil :x 0 :y 0 :width (car size) :height (cdr size))
-;; 				(erase-buffer)
-;; 				(svg-insert-image svg)
-;; 				(display-buffer (current-buffer))))))
-
-
-;; (my-dot-grid-boxes-list :num-rows 4 :filename  "/home/sacha/sync/sketches/2025-09-25-01 Drawing practice -- drawing.jpeg")
-;; (my-dot-grid-boxes-annotate :num-rows 4 :filename  "/home/sacha/sync/sketches/2025-09-25-01 Drawing practice -- drawing.jpeg")
+				(let ((new-filename (expand-file-name
+														 (concat (my-make-slug (elt labels .i)) "--"
+																		 id
+																		 (format "-%d-%d"
+																						 .r .c)
+																		 ext)
+														 output-dir)))
+					(push `((term . ,(elt labels .i))
+									(icon . ,(file-name-nondirectory new-filename))
+									(source . ,(file-name-nondirectory filename)))
+								results)
+					(when (or force (not (file-exists-p new-filename)))
+						(setq args
+									(list (expand-file-name filename)
+												"-crop"
+												(format "%dx%d+%d+%d" .w .h .x .y)
+												"+repage"
+												new-filename))
+						(message "%s" (concat "convert " (mapconcat #'shell-quote-argument args " ")))
+						(apply #'call-process "convert" nil nil nil args)))))
+		(nreverse results)))
 
 (defun my-dot-grid-boxes-labels (id)
 	(with-temp-buffer
@@ -18238,23 +18612,56 @@ my-svg-make-dot-grid-boxes-template
 		(goto-char (point-min))
 		(re-search-forward "^ *$")
 		(split-string (string-trim (buffer-substring (point) (point-max))) "\n")))
+#+end_src
 
-(defun my-dot-grid-boxes-process (id)
+This updates the index.
+
+#+NAME: my-dot-grid-boxes-process
+#+begin_src emacs-lisp :results silent
+(defun my-sketch-icon-update-index (list)
+	(let (data
+				(index-file (expand-file-name "index.json" my-sketch-icon-directory)))
+		(with-temp-file index-file
+			(setq data
+						(if (file-exists-p index-file)
+								(json-read-file index-file)
+							'()))
+			(dolist (entry list)
+				;; Remove current entry
+				(setq data (seq-remove (lambda (o)
+																 (and (string-match (regexp-quote (alist-get 'source o)) (alist-get 'source entry))
+																			(string= (alist-get 'term o) (alist-get 'term entry))
+                                      (string= (alist-get 'icon o) (alist-get 'icon entry))))
+															 data))
+				;; Add a new entry
+				(push
+				 `((term . ,(alist-get 'term entry))
+					 (icon . ,(alist-get 'icon entry))
+					 (source . ,(alist-get 'source entry)))
+				 data))
+			(insert (json-encode (sort data :key (lambda (o) (alist-get 'term o)) :lessp #'string<))))))
+
+(defun my-dot-grid-boxes-process (id &optional force)
 	(interactive
 	 (list
-		(my-complete-sketch-filename "drawing")))
-	(let* ((labels (my-dot-grid-boxes-labels id)))
+		(my-complete-sketch-filename "drawing")
+		current-prefix-arg))
+	(let* ((labels (my-dot-grid-boxes-labels id))
+				 list)
 		(cl-assert (= (% (length labels) 7) 0))
 		(cl-assert (> (length labels) 1))
-		(my-dot-grid-boxes-extract :output-dir "~/proj/icons"
-															 :num-rows (/ (length labels) 7)
-															 :filename (my-get-sketch-filename id)
-															 :labels labels)))
+		(setq list
+					(my-dot-grid-boxes-extract :output-dir my-sketch-icon-directory
+																		 :num-rows (/ (length labels) 7)
+																		 :filename (my-get-sketch-filename id)
+																		 :labels labels
+																		 :force force))
+		(my-sketch-icon-update-index list)))
+
+(defun my-dot-grid-boxes-process-all-icons ()
+	(interactive)
+	(dolist (source (my-sketches "icons")) (my-dot-grid-boxes-process source)))
 #+end_src
-#+RESULTS:
-:results:
-nil
-:end:
 
 
 *** Easily backfill my journal
@@ -19157,8 +19564,8 @@ xdotool key Return
 #+end_src
 
 #+begin_src emacs-lisp
-(defun my-sketch-process (file)
-  (interactive "FFile: ")
+(defun my-sketch-process (file &optional do-crop)
+  (interactive (list (read-file-name "File: ")))
 	(condition-case nil
 			(progn
 				(my-image-recognize file)
@@ -19173,11 +19580,12 @@ xdotool key Return
 					 (setq file
 								 (my-image-store
 									(my-image-autorotate
-									 (my-image-autocrop
-										file
+									 (if do-crop
+											 (my-image-autocrop file
 										;; (my-sketch-recolor-png
 										;;  file)
-										)))))))
+																					)
+										 file)))))))
 		(error nil))
 	(find-file file)
 	(find-file-other-window (concat (file-name-sans-extension file) ".txt"))
@@ -21361,7 +21769,7 @@ See also [[dotemacs:subed]]
 											 new-prefix
 											 "."
 											 (file-name-extension file))))
-				(when (and (not (=string= file new-file))
+				(when (and (not (string= file new-file))
 									 (file-exists-p new-file))
 					(error "%s already exists."
 								 new-file)))))
@@ -21463,6 +21871,7 @@ I have ~elfeed-protocol-feeds~ set in my
 
 #+begin_src emacs-lisp
 (editorconfig-mode 1)
+(add-to-list 'exec-path "~/.local/bin")
 #+end_src
 
 ** DONE Scan ~/bin and turn the scripts into interactive commands
@@ -22790,7 +23199,7 @@ From https://ag91.github.io/blog/2020/12/31/top-down-elisping-a-simple-snippet-t
   ([remap describe-key] . helpful-key)
   ([remap describe-command] . helpful-command)
   ([remap describe-variable] . helpful-variable)
-  ([remap describe-function] . helpful-function))
+  ([remap describe-function] . helpful-callable))
 #+end_src
 *** elisp-demos
 :PROPERTIES:
@@ -22815,6 +23224,23 @@ button to add more examples. My diff: https://github.com/xuchunyang/elisp-demos/
 	:custom
 	elisp-demos-user-files '("~/sync/orgzly/elisp-demos.org"))
 #+end_src
+*** Democratize
+:PROPERTIES:
+:CUSTOM_ID: coding-emacs-lisp-democratize
+:END:
+
+Democratize is similar to elisp-demos. I found out about it from [[https://flandrew.srht.site/listful/sw-emacs-democratize.html][Democratize — Populate your help buffers with usage examples (Emacs package) — Listful Andrew]], and I want to give it a try.
+
+#+begin_src emacs-lisp
+(use-package xht
+	:vc (:url "https://git.sr.ht/~flandrew/xht"))
+(use-package democratize
+	:vc (:url "https://git.sr.ht/~flandrew/democratize")
+  :config
+  (democratize-enable-examples-in-helpful)
+  (democratize-enable-examples-in-help))
+#+end_src
+
 *** JSON
 :PROPERTIES:
 :CUSTOM_ID: coding-emacs-lisp-json
@@ -24428,26 +24854,37 @@ I haven't quite figured out handle autocompletion that works well for me.
 #+end_src
 
 #+begin_src emacs-lisp
+(defun my-org-contacts-all-alist ()
+  "Return a list of all contacts in `org-contacts-files'.
+Each element has the form (NAME . (FILE . POSITION))."
+  (seq-mapcat
+   (lambda (file)
+     (unless (buffer-live-p (get-buffer (file-name-nondirectory file)))
+       (find-file-noselect file))
+     (with-current-buffer (find-file-noselect file)
+       (org-map-entries
+        (lambda ()
+          (let* ((name (substring-no-properties (org-get-heading t t t t)))
+                 (file (buffer-file-name))
+                 (position (point))
+                 (entry-properties (org-entry-properties position 'standard)))
+            `(("NAME" . ,name)
+              ("FILE" . ,file)
+              ("POSITION" . ,position)
+              ,@entry-properties))))))
+   (org-contacts-files)))
+
+(defun my-org-contacts-to-mention (text)
+  (seq-filter
+   (lambda (o) (and (assoc-default "MENTION_REGEXP" o #'string=)
+                    (string-match (assoc-default "MENTION_REGEXP" o #'string=) text)))
+   (my-org-contacts-all-alist)))
+
 (defun my-mastodon-interested-handles (text)
-	(let (list)
-		(with-temp-buffer
-			(insert-file-contents my-org-contacts-file)
-			(org-mode)
-			(goto-char (point-min))
-			(org-map-entries
-			 (lambda ()
-				 (let ((handle (org-entry-get (point) "MASTODON")))
-					 (when (and (string-match (org-entry-get (point) "MENTION_REGEXP")
-																		text)
-											(not (string-match
-														(rx
-														 word-start
-														 (literal handle)
-														 word-end)
-														text)))
-						 (cl-pushnew handle list))))
-			 "MASTODON={.}+MENTION_REGEXP={.}"))
-		list))
+  (seq-keep
+   (lambda (o)
+     (assoc-default "MASTODON" o #'string=))
+   (my-org-contacts-to-mention text)))
 
 (defun my-mastodon-insert-interested-handles (text)
 	(interactive (list (mastodon-toot--remove-docs)))
@@ -24457,6 +24894,60 @@ I haven't quite figured out handle autocompletion that works well for me.
 			(insert (string-join handles " ")))))
 #+end_src
 
+Let's generalize this.
+
+#+begin_src emacs-lisp
+(defun my-org-contacts-best-contact (rec)
+  (seq-find
+   (lambda (type)
+     (when (assoc-default type rec #'string=)
+       type))
+   '("MASTODON" "EMAIL" "X")))
+
+(defun my-org-contacts-collect-context (contact text)
+  "Return the list of links or keywords matching MENTION_REGEXP for CONTACT in TEXT."
+  (with-temp-buffer
+    (insert text)
+    (goto-char (point-min))
+    (org-mode)
+    (let ((regexp (assoc-default "MENTION_REGEXP" contact #'string=))
+          results)
+      (while (re-search-forward regexp nil t)
+        (let ((elem (org-element-context)))
+          (if (eq (org-element-type elem) 'link)
+              (push (org-element-property :raw-link elem)
+                    results)
+            (push (sentence-at-point) results))))
+      (nreverse results))))
+
+(defun my-org-contacts-suggest-mentions (text url)
+  (interactive (list (if (region-active-p) (buffer-substring (region-beginning) (region-end))
+                       (my-11ty-post-text))
+                     (my-11ty-post-url)))
+
+  (when-let* ((people (seq-group-by #'my-org-contacts-best-contact (my-org-contacts-to-mention text))))
+    (with-current-buffer (get-buffer-create "*mentions*")
+      (erase-buffer)
+      (org-mode)
+      (dolist (type '("MASTODON" "EMAIL" "X"))
+        (when (assoc-default type people #'string=)
+          (insert "* " type "\n\n"
+                  (mapconcat (lambda (o)
+                               (assoc-default type o #'string=))
+                             (assoc-default type people #'string=) ", ")
+                  "\n"
+                  (string-join
+                   (seq-mapcat
+                    (lambda (o)
+                      (my-org-contacts-collect-context o text))
+                    (assoc-default type people #'string=))
+                   "\n")
+                  (if url (concat " " url) "")
+                  "\n\n")))
+      (goto-char (point-min))
+      ;; collect the links
+      (pop-to-buffer (current-buffer)))))
+#+end_src
 
 ** mastodon.el: Collect handles in clipboard (Emacs kill ring) :mastodon:emacs:
 :PROPERTIES:
@@ -25280,7 +25771,7 @@ I want to be able to follow people if I specify their ID.
 	(interactive "MHandle: ")
 	(require 'mastodon-profile)
 	(when (string-match "https?://\\(.+?\\)/\\(@.+\\)" user-handle)
-		(setq user-handle (concat (match-string 2 user-handle) "@" (match-string 1 user-handle))))
+		(setq user-handle (concat (match-string user-handle) "@" (match-string 1 user-handle))))
 	(let* ((account (mastodon-profile--search-account-by-handle
                    user-handle))
 				 (user-id (alist-get 'id account))
@@ -25331,12 +25822,23 @@ I want to be able to follow people if I specify their ID.
 	"Get tags for current post."
 	(plist-get (my-11ty-post-plist) :tags))
 
+(defun my-11ty-post-url ()
+  (when (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")
+    (concat (replace-regexp-in-string "/$" "" my-blog-base-url)
+            (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK"))))
+
 (defun my-11ty-post-text ()
 	(save-excursion
-		(goto-char (org-find-property "EXPORT_ELEVENTY_PERMALINK"
-																	(org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
-		(org-end-of-meta-data)
-		(buffer-substring (point) (org-end-of-subtree))))
+		(goto-char
+     (cond
+      ((org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")
+       (org-find-property "EXPORT_ELEVENTY_PERMALINK"
+												  (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
+      (t (org-back-to-heading-or-point-min))))
+    (if (org-before-first-heading-p)
+        (buffer-string)
+		  (org-end-of-meta-data)
+		  (buffer-substring (point) (org-end-of-subtree)))))
 
 (defun my-mastodon-11ty-toot-post ()
 	"Compose a toot sharing this blog post on Mastodon."
@@ -27170,6 +27672,10 @@ In termux, you also need to =pkg install diffutils=.
   (interactive)
   (ibizaman/syncthing-resolve-conflicts "~/sync/orgzly"))
 
+(defun my-resolve-orgzly-ipad-syncthing ()
+  (interactive)
+  (ibizaman/syncthing-resolve-conflicts "~/sync/orgzly-ipad"))
+
 (defun ibizaman/syncthing-resolve-conflicts (directory)
   "Resolve all conflicts under given DIRECTORY."
   (interactive "D")
@@ -28428,6 +28934,9 @@ I think this is a good combination of Google Docs for getting other people's fee
 
 My next step for improving this workflow might be to check out other e-mail providers in case I can get Emacs to make the whole template. That way, I don't have to keep switching between applications and using the mouse to duplicate blocks and edit the code.
 ** Bike Brigade: working with Mailchimp images
+:PROPERTIES:
+:CUSTOM_ID: collaboration-bike-brigade-working-with-mailchimp-images
+:END:
 
 All right, let's try uploading the files ourselves. This uses https://github.com/sachac/mailchimp-el .
 
@@ -28462,6 +28971,12 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 							(my-brigade-toc-items (assoc-default "In our community" sections 'string=)))))
 		 (buffer-string))))
 
+(defun my-brigade-remove-section-images (item)
+  ;; remove the last image, because that's the image for the next section
+  (when-let* ((last-image (car (last (dom-by-tag item 'img)))))
+    (dom-remove-node item last-image))
+  item)
+
 (defun my-brigade-format-section (section images &optional recolor)
 	(mapconcat
 	 (lambda (group)
@@ -28473,7 +28988,10 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 						(call-to-action (dom-attr (dom-search item (lambda (o)
 																												 (and (eq (dom-tag o) 'a)
 																															(string-match "^\\[ .+ \\]" (dom-texts o)))))
-																			'href)))
+																			'href))
+            (extra-images (dom-by-tag item 'img))
+
+            )
 			 (format "<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\" style=\"margin-top: 12px; margin-bottom: 12px;\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover\" valign=\"top\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"12\" rowspan=\"1\" valign=\"top\" width=\"100%%\" class=\"mceColumn\" id=\"mceColumnId--38\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0\" valign=\"top\" id=\"b812\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover;padding-top:0px;padding-bottom:0px\" valign=\"top\"><table style=\"table-layout:fixed\" width=\"100%%\" border=\"0\" cellspacing=\"24\" cellpadding=\"0\"><tbody><tr><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-809\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"background-color:transparent;border:0;border-radius:0\" valign=\"top\" class=\"mceImageBlockContainer\" id=\"b808\"><table style=\"border-collapse:separate;margin:0;vertical-align:top;max-width:100%%;width:100%%;height:auto\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0;margin:0\" valign=\"top\">%s</td></tr></tbody></table></td></tr></tbody></table></td><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-811\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0\" valign=\"top\" class=\"mceGutterContainer\" id=\"gutterContainerId-810\"><table style=\"border-collapse:separate\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0;border:0;border-radius:0\" valign=\"top\" id=\"b810\"><table style=\"border:0;background-color:transparent;border-radius:0;border-collapse:separate\" width=\"100%%\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-left:24px;padding-right:24px;\" class=\"mceTextBlockContainer\">%s</td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table>"
 							 (if call-to-action
 									 (format "<a href=\"%s\" tabindex=\"-1\" style=\"display: block;\"><span style=\"background-color: transparent\"><img src=\"%s\" alt=\"%s\" style=\"padding-top: 12px; display:block;max-width:100%%;height:auto;border-radius:0\" width=\"306\" height=\"auto\" class=\"imageDropZone mceImage\"></span></a>"

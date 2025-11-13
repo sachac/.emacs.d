@@ -12,8 +12,6 @@
 #+ELEVENTY_LAYOUT: layouts/post
 #+ELEVENTY_BASE_URL: https://sachachua.com
 
-
-
 Last exported:  {{{time(%Y-%m-%d)}}}
 
 #+TOC: headlines 4
@@ -1079,12 +1077,11 @@ I want to:
 											 (buffer-file-name)
 										 (dired-get-filename))))
 		 (list
-
 			(if (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" filename)
 					(match-string 0 filename)
 				(read-string "ID: ")))))
 	(let* ((data (my-journal-get-by-zidstring id))
-				 (old-file (if (derived-mode-p 'image-mode)
+				 (gzold-file (if (derived-mode-p 'image-mode)
 											 (buffer-file-name)
 										 (dired-get-filename)))
 				 (ext (file-name-extension old-file))
@@ -1997,19 +1994,52 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
 :CUSTOM_ID: completing-sketches
 :END:
 
-#+begin_src emacs-lisp
+#+name: my-image--state
+#+begin_src emacs-lisp :lexical t
 (declare-function 'my-geeqie-view "Sacha.el")
-(defun my-preview-image (candidate state)
-  (when (and my-sketch-preview candidate) (my-geeqie-view (list candidate)))
-  nil)
 
+(defvar my-sketch-preview 'text
+  "*Preview sketches.
+'text means show the associated text.
+'geeqie means open image in Geeqie.
+t means open image in Emacs.")
+
+(defun my-image--state ()
+  "Manage preview window and cleanup."
+  ;; These functions are closures captured when the state is initialized by consult--read
+  (let ((preview (consult--buffer-preview))
+        (open (consult--temporary-files)))
+    ;; The returned lambda is the actual preview function called by Consult
+    (lambda (action cand)
+      (unless cand
+        (funcall open))
+      (when my-sketch-preview
+        (let ((filename (cond
+                         ((and (eq my-sketch-preview 'text)
+                               (listp cand)
+                               (alist-get 'source_path cand))
+                          (alist-get 'source_path cand))
+                         ((and (listp cand)
+                               (alist-get 'source_path cand))
+                          (my-image-filename (file-name-base (alist-get 'source_path cand))))
+                         (t cand))))
+          (when filename
+            (pcase my-sketch-preview
+              ('geeqie (my-geeqie-view (list filename)))
+              (_ (funcall preview action
+                          (and cand
+                               (eq action 'preview)
+                               (funcall open filename)))))))))))
+#+end_src
+
+#+begin_src emacs-lisp :lexical t
 (defun my-complete-sketch-filename (&optional filter)
   (interactive)
   (consult--read (my-sketches filter)
-  		 :sort nil
-  		 :state 'my-preview-image
-  		 :prompt "Sketch: "
-  		 :category 'sketch))
+  		           :sort nil
+  		           :state (my-image--state)
+  		           :prompt "Sketch: "
+  		           :category 'sketch))
 
 (defun my-date-from-filename (filename)
   (let ((f (file-name-nondirectory filename)))
@@ -2034,7 +2064,6 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
 			 (string< (concat (or (my-date-from-filename b) "0") (file-name-nondirectory b))
 								(concat (or (my-date-from-filename a) "0") (file-name-nondirectory a)))))))
 
-(defvar my-sketch-preview nil "Non-nil means preview images.")
 (defun my-find-sketch (file)
   (interactive (list (my-complete-sketch-filename)))
   (find-file file))
@@ -5342,7 +5371,7 @@ Ideas for next steps:
 
 Based on https://www.reddit.com/r/emacs/comments/idz35e/emacs_27_can_take_svg_screenshots_of_itself/
 #+begin_src emacs-lisp
-(defun screenshot-svg ()
+(defun my-screenshot-svg ()
   "Save a screenshot of the current frame as an SVG image.
 Saves to a temp file and puts the filename in the kill ring."
   (interactive)
@@ -6313,6 +6342,8 @@ insert the image and the text for me.
 #+begin_src emacs-lisp
 (defun my-insert-sketch-and-text (sketch)
 	(interactive (list (my-complete-sketch-filename)))
+  (when (and (listp sketch) (alist-get 'source_path sketch))
+    (setq sketch (my-get-image-filename (file-name-base (alist-get 'source_path sketch)))))
 	(insert
 	 (if (string= (file-name-extension sketch) "svg")
 			 (format
@@ -11084,7 +11115,7 @@ CLOCK: [2024-10-18 Fri 17:43]--[2024-10-18 Fri 17:51] =>  0:08
 (defun my-11ty-html-filename (link)
 	"Return the HTML file for LINK."
   (when (listp link) (setq link (assoc-default 'permalink link)))
-	(setq link (replace-regexp-in-string (concat "^blog:\\|" (regexp-opt my-blog-base-url)) "" link))
+	(setq link (replace-regexp-in-string (concat "^blog:\\|" (regexp-quote my-blog-base-url)) "" link))
 	(when (string-match "^/" link) (setq link (concat "." link)))
   (if (file-exists-p link)
 			link
@@ -11320,21 +11351,26 @@ Then it makes sense to be able to work with blog URLs from an Embark action:
 FIND-FILE is the file open function, defaulting to `consult--file-action'."
   (when (stringp info) (setq info (my-blog-post-info-for-url info)))
   (let (pos
+        (files '("~/sync/emacs/Sacha.org"
+								 "~/sync/orgzly/posts.org"))
         (line-number (alist-get 'line_number info 0)))
     (when-let* ((source-path
                  (or
-                  ;; check posts.org or Sacha.org
-                  (catch 'found
-				            (dolist (file '("~/sync/emacs/Sacha.org"
-												            "~/sync/orgzly/posts.org"))
-					            (with-current-buffer (find-file-noselect file)
-						            (setq pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" (assoc-default 'permalink info)))
-						            (when pos
-                          (goto-char pos)
-                          (when line-number
-                            (forward-line line-number))
-                          (setq line-number (line-number-at-pos nil t))
-							            (throw 'found (buffer-file-name))))))
+                  (while files
+                    (with-current-buffer (find-file-noselect (car files))
+                      (save-excursion
+                        (save-restriction
+                          (widen)
+						              (setq pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" (assoc-default 'permalink info)))
+						              (if pos
+                              (progn
+                                (goto-char pos)
+                                (when line-number
+                                  (forward-line line-number))
+                                (setq line-number (line-number-at-pos nil t))
+                                (setq files nil)
+							                  (buffer-file-name))
+                            (setq files (cdr files)))))))
                   (alist-get 'source_path info)
                   (my-11ty-exported-org-filename info))))
       (consult--marker-from-line-column
@@ -11392,12 +11428,41 @@ FIND-FILE is the file open function, defaulting to `consult--file-action'."
                (and (or (eq action 'preview))
                     (my-blog-post--position cand (and (not (eq action 'return)) open)))))))
 
+(defun my-11ty-current-post ()
+  "Return the current blog post info if any."
+  (cond
+	 ((derived-mode-p 'org-mode)
+		(when (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")
+			(let ((filename (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")))
+        `((filename . ,filename)
+          (permalink . ,(org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK"))
+          (title . ,(save-excursion
+                      (save-restriction
+                        (widen)
+                        (goto-char (org-find-property "EXPORT_ELEVENTY_FILE_NAME" (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")))
+                        (org-entry-get (point) "ITEM"))))
+          (date . ,(org-entry-get-with-inheritance "EXPORT_DATE"))))))
+	 ((derived-mode-p '(html-mode web-mode))
+		;; called from an index.html or page.html, maybe?
+		(let* ((file (buffer-file-name))
+					 (json-file (concat (file-name-sans-extension (buffer-file-name))
+															".11tydata.json"))
+					 (json-data (and (file-exists-p json-file)
+													 (json-read-file json-file))))
+      (cons
+       (cons 'filename file)
+       json-data)))))
+
 (defun my-consult-blog-posts-by-title (&optional query)
   (interactive)
   (consult--read
    (mapcar
     #'my-blog-format-for-completion
-    (sort (my-blog-posts) :key (lambda (o) (alist-get 'date o)) :lessp #'string< :reverse t))
+    (append
+     (list (my-11ty-current-post))
+                                        ;todo: make a function to get the current blog post context
+     (sort (my-blog-posts) :key (lambda (o) (alist-get 'date o)) :lessp #'string< :reverse t)
+     nil))
    :lookup #'consult--lookup-cdr
    :prompt "Search blog posts (exact): "
    :category 'my-blog
@@ -11582,12 +11647,13 @@ Then I want to wrap the whole thing up in an export function:
 					 "<div id=\"%s-footnotes\">\n<h3 class=\"footnotes\">%%s</h3>\n<div id=\"%s-text-footnotes\">\n%%s\n</div>\n</div>"
 					 permalink-slug
 					 permalink-slug)))
-		(unless (string= (plist-get info :input-file)
-										 (expand-file-name
-											"index.org"
-											(expand-file-name
-											 (plist-get info :file-name)
-											 (plist-get info :base-dir))))
+		(unless (or (string= (plist-get info :input-file)
+										     (expand-file-name
+											    "index.org"
+											    (expand-file-name
+											     (plist-get info :file-name)
+											     (plist-get info :base-dir))))
+                (plist-get (org-11ty--front-matter info) :no_source))
 			(save-window-excursion
 				(my-org-11ty-copy-subtree nil subtreep)))
 		(org-11ty-export-to-11tydata-and-html async subtreep visible-only body-only ext-plist)))
@@ -12590,6 +12656,9 @@ https://so.nwalsh.com/2020/01/05-latex , but I use letter paper instead of A4.
 :CUSTOM_ID: org-links
 :END:
 *** Convert an inline link into a side note/footnote
+:PROPERTIES:
+:CUSTOM_ID: org-mode-links-convert-an-inline-link-into-a-side-note-footnote
+:END:
 
 #+begin_src emacs-lisp
 (defun my-org-convert-link-to-footnote (label)
@@ -12600,11 +12669,16 @@ https://so.nwalsh.com/2020/01/05-latex , but I use letter paper instead of A4.
     (let ((url (match-string 1)))
       (replace-match (match-string 2) 0)
       (skip-syntax-forward ".")
-      (insert (format "[fn:%s]" label))
-      (goto-char (org-footnote-create-definition label))
-      (goto-char (line-end-position))
-      (insert (org-link-make-string (org-link-unescape url)
-                                    (my-org-link-default-description url nil))))))
+      (my-org-footnote-add (org-link-make-string (org-link-unescape url)
+                                                 (my-org-link-default-description url nil))))))
+
+(defun my-org-footnote-add (label &optional text)
+  (interactive "MLabel: \n")
+  (insert (format "[fn:%s]" label))
+  (goto-char (org-footnote-create-definition label))
+  (goto-char (line-end-position))
+  (when text
+    (insert text)))
 #+end_src
 
 
@@ -13151,7 +13225,7 @@ With prefix argument, also display headlines without a TODO keyword."
 							body)
 				 (setq body
 							 (format
-								"<video%s%s src=\"%s\" %stype=\"%s\">%s%s<a href=\"%s\">Download the video</a>%s</video>"
+								"<video%s%s src=\"%s\" %stype=\"%s\">%s%s<a href=\"%s\">Download the video</a></video>%s"
 								(if (string= (or (car (assoc-default "controls" params 'string= '("1"))) "1") "0")
 										""
 									" controls=\"1\"")
@@ -13166,7 +13240,9 @@ With prefix argument, also display headlines without a TODO keyword."
 								(mailcap-file-name-to-mime-type (car path-and-query))
 								(if (assoc-default "captions" params)
 										(format "<track kind=\"subtitles\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
-														(expand-file-name (car (assoc-default "captions" params))))
+                            (if (string= (car (assoc-default "captions" params)) "t")
+                                (concat (file-name-sans-extension url) ".vtt")
+														  (expand-file-name (car (assoc-default "captions" params)))))
 									"")
 								(if (assoc-default "thumbnail" params)
 										(format "<div>Video not supported. Thumbnail:<br /><img src=\"%s\" alt=\"Thumbnail\" /></div>"
@@ -13239,40 +13315,39 @@ With prefix argument, also display headlines without a TODO keyword."
 
 (defun my-org-audio-export (link desc format _)
 	"Export PATH to FORMAT using the specified wrap parameter."
-	(if desc
-			(org-export-string-as (org-link-make-string link desc) format)
-		(pcase format
-			((or 'html '11ty 'md)
-			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
-							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query))))
-							(element (or (assoc-default "element" params #'string=) "audio")))
-				 (format
-					"<div class=\"audio\"><%s%s%s%s preload=\"metadata\" src=\"%s\" type=\"%s\"><a href=\"%s\">Download the audio</a>%s</%s>%s</div>"
-					element
-					(if (string= (or (assoc-default "controls" params 'string= "1") "1") "0")
-							""
-						" controls=\"1\"")
-					(if (string= (or (assoc-default "autoplay" params 'string= "0") "0") "0")
-							""
-						" autoplay=\"1\"")
-					(if (assoc-default "id" params)
-							(format " id=\"%s\"" (car (assoc-default "id" params)))
-						"")
-					(car path-and-query)
-					(mailcap-file-name-to-mime-type (car path-and-query))
-					(car path-and-query)
-					(if (assoc-default "captions" params)
-							(format "<track kind=\"captions\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
-											(car (assoc-default "captions" params)))
-						"")
-					element
-					(if (and (assoc-default "captions" params)
-									 (assoc-default "id" params))
-							(format  "<div class=\"captions\" style=\"display: none\"></div>"
-											 (car (assoc-default "id" params)))
-						"")
-					)))
-			(_ path))))
+	(pcase format
+		((or 'html '11ty 'md)
+		 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
+						(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query))))
+						(element (or (assoc-default "element" params #'string=) "audio")))
+			 (format
+				"<div class=\"audio\">%s<%s%s%s%s preload=\"metadata\" src=\"%s\" type=\"%s\"><a href=\"%s\">Download the audio</a>%s</%s>%s</div>"
+        (if desc (concat desc " ") "")
+				element
+				(if (string= (or (assoc-default "controls" params 'string= "1") "1") "0")
+						""
+					" controls=\"1\"")
+				(if (string= (or (assoc-default "autoplay" params 'string= "0") "0") "0")
+						""
+					" autoplay=\"1\"")
+				(if (assoc-default "id" params)
+						(format " id=\"%s\"" (car (assoc-default "id" params)))
+					"")
+				(car path-and-query)
+				(mailcap-file-name-to-mime-type (car path-and-query))
+				(car path-and-query)
+				(if (assoc-default "captions" params)
+						(format "<track kind=\"captions\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
+										(car (assoc-default "captions" params)))
+					"")
+				element
+				(if (and (assoc-default "captions" params)
+								 (assoc-default "id" params))
+						(format  "<div class=\"captions\" style=\"display: none\"></div>"
+										 (car (assoc-default "id" params)))
+					"")
+				)))
+		(_ path)))
 (ert-deftest my-org-audio-export ()
  (should
 	(string-match
@@ -13984,9 +14059,10 @@ With a description:
   #+begin_src emacs-lisp
 (defun my-make-slug (s)
   (thread-last s
-    (downcase)
-    (replace-regexp-in-string "[^a-z0-9]+" "-")
-    (replace-regexp-in-string "^-\\|-$" "")))
+               (my-translate-unaccented)
+               (downcase)
+               (replace-regexp-in-string "[^a-z0-9]+" "-")
+               (replace-regexp-in-string "^-\\|-$" "")))
 (defun my-org-set-custom-id (id)
   "Set the CUSTOM_ID property to ID at point."
   (interactive (list
@@ -14216,6 +14292,7 @@ The following code lets me complete journal entries and get their ZIDs.
   (let ((json-object-type 'plist)
         (url-request-extra-headers (cons '("Content-Type" . "application/json") url-request-extra-headers)))
     (with-current-buffer (url-retrieve-synchronously url)
+      (set-buffer-multibyte t)
       (goto-char (point-min))
       (re-search-forward "^$" nil t)
       (json-read))))
@@ -16069,6 +16146,8 @@ Luhmann’s only real help was a housekeeper who cooked for him and his children
 :CUSTOM_ID: org-mode-vector-search
 :END:
 
+https://github.com/jkitchin/org-db-v3
+
 John Kitchin just posted a different project - org-db-v3. Let's see if I can figure that out...
 [[https://www.youtube.com/watch?v=t879-fipgtg][Fulltext, semantic text and image search in Emacs - YouTube]]
 
@@ -16085,16 +16164,23 @@ John Kitchin just posted a different project - org-db-v3. Let's see if I can fig
   (setq limit (or limit 100))
   (mapcar (lambda (o)
             `((source_path . ,(assoc-default 'filename o))
-              (line_number . ,(assoc-default 'begin_line o))))
-          (assoc-default 'results
-                         (plz 'post (concat (org-db-v3-server-url) "/api/search/semantic")
-                           :headers '(("Content-Type" . "application/json"))
-                           :body (json-encode `((query . ,query)
-                                                (limit . ,limit)
-                                                (filename_pattern . ,filename-pattern)))
-                           :as #'json-read))))
+              (line_number . ,(assoc-default 'begin_line o))
+              ,@o))
+          (sort
+           (assoc-default 'results
+                          (plz 'post (concat (org-db-v3-server-url) "/api/search/semantic")
+                            :headers '(("Content-Type" . "application/json"))
+                            :body (json-encode `((query . ,query)
+                                                 (limit . ,limit)
+                                                 (filename_pattern . ,filename-pattern)))
+                            :as #'json-read))
+           :key (lambda (o) (alist-get 'similarity_score o))
+           :reverse t)))
 #+end_src
-
+*** Indexing-related code
+:PROPERTIES:
+:CUSTOM_ID: org-mode-vector-search-indexing-related-code
+:END:
 Sample code for indexing my main files:
 
 #+begin_src emacs-lisp :tangle no :eval no
@@ -16112,7 +16198,53 @@ Sample code for indexing the Org copies of my blog posts:
       (my-blog-org-files-except-reviews))
 #+end_src
 
-Consult-based interface for searching:
+Fixing the index
+#+begin_src emacs-lisp
+;; Based on org-db-v3-reindex-database
+(defun my-org-db-v3-remove-missing-files ()
+  "Remove missing files currently in the database.
+Fetches the list of files from the server and reindexes each one.
+Also removes files that no longer exist from the database.
+Uses non-blocking queue processing to keep Emacs responsive.
+Skips remote Tramp files."
+  (interactive)
+  (org-db-v3-ensure-server)
+  (plz 'get (concat (org-db-v3-server-url) "/api/files")
+    :as #'json-read
+    :then (lambda (response)
+            (let* ((files (alist-get 'files response))
+                   (count (length files))
+                   (missing-files nil)
+                   (existing-files nil)
+                   (remote-files nil))
+
+              ;; Classify files as existing, missing, or remote
+              (dotimes (i count)
+                (let ((filename (alist-get 'filename (elt files i))))
+                  (cond
+                   ((file-remote-p filename)
+                    (push filename remote-files))
+                   ((file-exists-p filename)
+                    (push filename existing-files))
+                   (t
+                    (push filename missing-files)))))
+              (if (zerop count)
+                  (message "No files found in database")
+                (when missing-files
+                  (message "Removing %d missing file%s from database..."
+                           (length missing-files)
+                           (if (= (length missing-files) 1) "" "s"))
+                  (dolist (filename missing-files)
+                    (org-db-v3-delete-file-async filename)))
+                )))
+    :else (lambda (error)
+            (message "Error fetching file list: %s" (plz-error-message error)))))
+#+end_src
+*** Consult-based interface for searching blog posts
+:PROPERTIES:
+:CUSTOM_ID: org-mode-vector-search-consult-based-interface-for-searching-blog-posts
+:END:
+
 
 #+NAME: my-blog-similar-link
 #+begin_src emacs-lisp
@@ -16141,17 +16273,24 @@ HIDE-INITIAL means hide the initial query, which is handy if the query is very l
 (with-eval-after-load 'embark
   (add-to-list 'embark-target-injection-hooks '(my-blog-similar-link my-embark-blog--inject-target-url)))
 
+(defun my-11ty-interactive-context (use-post)
+  "Returns (query hide-initial) for use in interactive arguments.
+If USE-POST is non-nil, query is the current post text and hide-initial is t.
+If the region is active, returns that as the query."
+  (list (cond
+         (embark--command (read-string "Input: "))
+         (use-post (my-11ty-post-text))
+         ((region-active-p)
+          (buffer-substring (region-beginning)
+                            (region-end))))
+        use-post))
+
 (defun my-blog-similar (&optional query hide-initial)
-  "Vector-search blog posts using `emacs-rag-search' and present results via Consult.
+  "Vector-search blog posts using org-db-v3 and present results via Consult.
 If called with \\[universal-argument\], use the current post's text.
 If a region is selected, use that as the default QUERY.
 HIDE-INITIAL means hide the initial query, which is handy if the query is very long."
-  (interactive (list (cond
-                      (current-prefix-arg (my-11ty-post-text))
-                      ((region-active-p)
-                       (buffer-substring (region-beginning)
-                                         (region-end))))
-                     current-prefix-arg))
+  (interactive (my-11ty-interactive-context current-prefix-arg))
   (consult--read
    (if hide-initial
        (my-org-db-v3-blog-post--collection query)
@@ -16182,8 +16321,149 @@ Returns a list of cons cells (DISPLAY-STRING . PLIST)."
                                       (alist-get 'source_path b)))))))
 #+end_src
 **** Index automatically
+:PROPERTIES:
+:CUSTOM_ID: org-mode-vector-search-consult-based-interface-for-searching-blog-posts-index-automatically
+:END:
 smaller topic pages, but not the big one?
 exported blog posts
+**** Handle sketches too
+:PROPERTIES:
+:ID:       20251029T143217.411782
+:CUSTOM_ID: org-mode-vector-search-consult-based-interface-for-searching-blog-posts-handle-sketches-too
+:END:
+
+#+NAME: my-org-db-v3-index-recent-sketches
+#+begin_src emacs-lisp :eval no
+(defun my-org-db-v3-index-recent-sketches (after)
+  (interactive (list
+                (when current-prefix-arg
+                  (org-read-date nil nil nil "After: " nil "-2w"))))
+  (setq after (or after (org-read-date nil nil "-2w")))
+  (mapcar #'org-db-v3-index-file-async
+          (seq-remove
+           (lambda (o) (string> after (file-name-base o)))
+           (directory-files "~/sync/sketches" t "\\.txt$"))))
+#+end_src
+
+#+NAME: org-db-v3-sketches
+#+begin_src emacs-lisp
+(defun my-org-db-v3-sketch--collection (input)
+  "Perform the RAG search and format the results for Consult.
+Returns a list of cons cells (DISPLAY-STRING . PLIST)."
+  (mapcar
+   (lambda (o)
+     (cons (file-name-base (alist-get 'source_path o)) o))
+   (seq-uniq
+    (my-org-db-v3-to-emacs-rag-search input 100 "%sync/sketches%")
+    (lambda (a b) (string= (alist-get 'source_path a)
+                           (alist-get 'source_path b))))))
+
+(defun my-sketch-similar (&optional query hide-initial)
+  "Vector-search blog posts using `emacs-rag-search' and present results via Consult.
+If called with \\[universal-argument\], use the current post's text.
+If a region is selected, use that as the default QUERY.
+HIDE-INITIAL means hide the initial query, which is handy if the query is very long."
+  (interactive (my-11ty-interactive-context current-prefix-arg))
+  (consult--read
+   (if hide-initial
+       (my-org-db-v3-sketch--collection query)
+     (consult--dynamic-collection
+         #'my-org-db-v3-sketch--collection
+       :min-input 3 :debounce 1))
+   :lookup #'consult--lookup-cdr
+   :prompt "Search sketches (approx): "
+   :category 'sketch
+   :sort nil
+   :require-match t
+   :state (my-image--state)
+   :initial (unless hide-initial query)))
+
+(defun my-sketch-similar-insert (link)
+  "Vector-search sketches and insert a link.
+If called with \\[universal-argument\], use the current post's text.
+If a region is selected, use that as the default QUERY.
+HIDE-INITIAL means hide the initial query, which is handy if the query is very long."
+  (interactive (list
+                (if embark--command
+                    (read-string "Sketch: ")
+                  (apply #'my-sketch-similar
+                         (my-11ty-interactive-context current-prefix-arg)))))
+  (my-insert-sketch-and-text link))
+
+(defun my-sketch-similar-link (link)
+  "Vector-search sketches and insert a link.
+If called with \\[universal-argument\], use the current post's text.
+If a region is selected, use that as the default QUERY.
+HIDE-INITIAL means hide the initial query, which is handy if the query is very long."
+  (interactive (list
+                (if embark--command
+                    (read-string "Sketch: ")
+                  (apply #'my-sketch-similar
+                         (my-11ty-interactive-context current-prefix-arg)))))
+  (when (and (listp link) (alist-get 'source_path link))
+    (setq link (my-image-filename (file-name-base link))))
+  (insert (org-link-make-string (concat "sketchLink:" link) (file-name-base link))))
+#+end_src
+
+**** Multiple sources
+:PROPERTIES:
+:ID:       20251029T142407.998483
+:CUSTOM_ID: org-mode-vector-search-consult-based-interface-for-searching-blog-posts-multiple-sources
+:END:
+
+#+NAME: my-consult-similar
+#+begin_src emacs-lisp :lexical t
+(with-eval-after-load 'consult
+  (defvar my-consult-source-similar-blog-posts
+    (list :name "Blog posts"
+          :narrow ?b
+          :category 'my-blog
+          :state #'my-blog-post--state
+          :async (consult--dynamic-collection
+                     (lambda (input)
+                       (seq-take
+                        (my-org-db-v3-blog-post--collection input)
+                        5)))
+          :action #'my-embark-blog-insert-link))
+
+  (defvar my-consult-source-similar-sketches
+    (list :name "Sketches"
+          :narrow ?s
+          :category 'sketch
+          :async (consult--dynamic-collection
+                     (lambda (input)
+                       (seq-take (my-org-db-v3-sketch--collection input) 5)))
+          :state #'my-image--state
+          :action #'my-insert-sketch-and-text)))
+
+(defun my-consult-similar (query hide-initial)
+  (interactive (my-11ty-interactive-context current-prefix-arg))
+  (require 'consult)
+  (if hide-initial
+      (let ((new-sources
+             (list
+              (append
+               (copy-sequence my-consult-source-similar-blog-posts)
+               (list :items (seq-take (my-org-db-v3-blog-post--collection query) 5)))
+              (append
+               (copy-sequence my-consult-source-similar-sketches)
+               (list :items (seq-take (my-org-db-v3-sketch--collection query) 5))))))
+        (dolist (source new-sources)
+          (cl-remf source :async))
+        (consult--multi new-sources))
+    (consult--multi '(my-consult-source-similar-blog-posts
+                      my-consult-source-similar-sketches)
+                    :initial query)))
+
+(defun my-org-db-v3-index-recent-public (after)
+  (interactive (list
+                (when current-prefix-arg
+                  (org-read-date nil nil nil "After: " nil "-2w"))))
+  (setq after (or after (org-read-date nil nil "-2w")))
+  (mapc #'org-db-v3-index-file-async
+        (my-blog-org-files-except-reviews after))
+  (my-org-db-v3-index-recent-sketches after))
+#+end_src
 
 *** emacs-rag-search?
 :PROPERTIES:
@@ -16247,6 +16527,21 @@ Start with LIMIT results and keep only unique blog posts."
 :PROPERTIES:
 :CUSTOM_ID: multimedia
 :END:
+** whisper
+:PROPERTIES:
+:CUSTOM_ID: multimedia-whisper
+:END:
+
+#+begin_src emacs-lisp
+(use-package whisper
+  :bind
+  (("<f9>" . whisper-run)))
+(defun my-whisper-replay ()
+  "Replay the last temporary recording."
+  (interactive)
+  (mpv-play whisper--temp-file))
+
+#+end_src
 ** Emacs.tv
 :PROPERTIES:
 :CUSTOM_ID: multimedia-emacs-tv
@@ -17813,15 +18108,19 @@ map-progression should be a list of lists with the following format:
                    (or directories my-image-directories))))
            'string<))))
 
-(defun my-get-image-filename (base &optional as-regexp directories)
+(defun my-image-filename (base &optional as-regexp directories)
   "Check several directories for files matching BASE.
 Return the first matching filename, if any.
 If AS-REGEXP is non-nil, treat BASE as a regular expression."
+  (when (and (listp base) (alist-get 'source_path base))
+    (setq base (file-name-base (alist-get 'source_path base))))
   (if (file-exists-p base)
       base
     (car (my-get-image-filenames base as-regexp directories))))
-(defun my-get-sketch-filename (base &optional as-regexp)
-  (my-get-image-filename base as-regexp my-sketch-directories))
+(defun my-sketch-filename (base &optional as-regexp)
+  (my-image-filename base as-regexp my-sketch-directories))
+(defalias 'my-get-image-filename 'my-image-filename)
+(defalias 'my-get-sketch-filename 'my-sketch-filename)
 
 (defun my-list-sketches (regexp &optional full-filename directories)
   "Return a list of sketch filenames matching REGEXP."
@@ -18028,7 +18327,9 @@ for it. It would be extra cool if I could use this
     (cond ((eq backend 'md)
            (format "[%s](%s)" desc link))
           ((eq backend '11ty)
-           (format "{%% sketchLink \"%s\", \"%s\" %%}" (file-name-base link) desc))
+           (format "{%% sketchLink \"%s\", \"%s\" %%}"
+                   (replace-regexp-in-string "\"" "\\\"" (file-name-base link) nil t)
+                   (replace-regexp-in-string "\"" "\\\"" desc nil t)))
           ((eq backend 'html)
            (format "<a href=\"https://sketches.sachachua.com/filename/%s\">%s</a>" (file-name-nondirectory link) desc))
           (t (format "[[%s][%s]]" link desc)))))
@@ -20799,7 +21100,7 @@ I used this command to get word-level timing data. ([[https://medium.com/@didier
 MAX_LINE_WIDTH="${MAX_LINE_WIDTH:-50}"
 MODEL="${MODEL:-large-v2}"
 for FILE in "$@"; do
-		~/vendor/whisperx/.venv/bin/whisperx --model "$MODEL" --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --compute_type int8 --print_progress True --max_line_width $MAX_LINE_WIDTH --segment_resolution chunk --max_line_count 1 --language en "$FILE" $WHISPER_FLAGS
+		~/vendor/whisperx/.venv/bin/whisperx --model "$MODEL" --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --compute_type int8 --print_progress True --max_line_width $MAX_LINE_WIDTH --segment_resolution chunk --max_line_count 1  "$FILE" $WHISPER_FLAGS
 		rm -f *.srt
 done
 #+end_src
@@ -21797,6 +22098,14 @@ See also [[dotemacs:subed]]
 													(dired-get-filename)
 												(buffer-file-name))
 											new-name))
+
+(defun my-move-current-file-set (new-dir)
+  (interactive (list (read-file-name "Destination: " "~/proj/" nil t nil 'file-directory-p)))
+	(dolist (file (my-file-set
+	               (if (derived-mode-p 'dired-mode)
+										 (dired-get-filename)
+									 (buffer-file-name))))
+    (rename-file file (expand-file-name (file-name-nondirectory file) new-dir))))
 #+end_src
 ** Elfeed
 :PROPERTIES:
@@ -21864,6 +22173,274 @@ I have ~elfeed-protocol-feeds~ set in my
 
   (setq emms-player-list '(emms-player-mpv)))
 #+end_src
+** Learning French
+:PROPERTIES:
+:CUSTOM_ID: multimedia-learning-french
+:END:
+
+
+#+begin_src emacs-lisp
+(setq search-default-mode 'char-fold-to-regexp)
+;; https://emacs.stackexchange.com/questions/75521/convert-accented-characters-to-non-accented-counterparts-character-folding
+(defun my-translate-unaccented (s)
+  (mapconcat
+   (lambda (c)
+     (char-to-string
+      (car (get-char-code-property c 'decomposition))))
+   s ""))
+
+(defvar my-practice-dir "~/proj/french/audio")
+(defvar my-practice-temp (expand-file-name "temp.wav" my-practice-dir))
+(defun my-practice-line ()
+  (interactive)
+  (sit-for 1)
+  (let* ((date (format-time-string "%Y-%m-%d-%H-%M-%S"))
+         (filename
+          (expand-file-name
+           (concat date " "
+                   (string-trim
+                    (buffer-substring (line-beginning-position)
+                                      (line-end-position)))
+                   ".webm")
+           my-practice-dir))
+         (process (start-process "arecord"
+                                 (get-buffer-create "*record*")
+                                 "arecord" "-D" "hw:2,0" "-t" "wav" "-f" "cd"
+                                 my-practice-temp)))
+    (read-key "Press a key")
+    (kill-process process)
+    (call-process "ffmpeg" nil (get-buffer-create "*record*") nil
+                  "-y"
+                  "-i"
+                  my-practice-temp
+                  "-af" "silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,loudnorm=I=-16:LRA=11:TP=-1.5"
+                  filename)
+    (mpv-play filename)))
+
+(defun my-practice-replay ()
+  (interactive)
+  (mpv-play (my-latest-file my-practice-dir)))
+
+
+(defun my-practice-record-loop (&optional extra)
+  (interactive (list (when (region-active-p)
+                       (concat
+                           " "
+                           (string-trim
+                            (buffer-substring (region-beginning) (region-end)))))))
+  (let* ((date (format-time-string "%Y-%m-%d-%H-%M-%S"))
+         (filename
+          (expand-file-name
+           (concat date
+                   (if extra
+                       (concat " "
+                               (string-trim (replace-regexp-in-string
+                                             "[\\?\n]+" " "
+                                             extra)))
+                     "")
+
+                   ".webm")
+           my-practice-dir))
+         done
+         char
+         (count 0)
+         process)
+    (while (not done)
+      (setq count (1+ count))
+      (setq process (start-process "arecord"
+                                   (get-buffer-create "*record*")
+                                   "arecord" "-D" "hw:2,0" "-t" "wav" "-f" "cd"
+                                   my-practice-temp))
+      (setq char
+            (read-key (format "%d (SPC to accept, RET get feedback, q to quit, any other key to retry"
+                              count)))
+      (pcase char
+        (?\ (setq done 'keep))
+        (13 (setq done 'feedback))
+        (?q (setq done 'ignore)))
+      (kill-process process))
+    (when (member done '(keep feedback))
+      (call-process "ffmpeg" nil (get-buffer-create "*record*") nil
+                    "-y"
+                    "-i"
+                    my-practice-temp
+                    "-af" "silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,loudnorm=I=-16:LRA=11:TP=-1.5"
+                    filename)
+      (mpv-play filename)
+      (when (eq done 'feedback)
+        (my-french-get-audio-feedback filename extra t)))))
+#+end_src
+
+#+begin_src emacs-lisp
+(defvar my-french-gemini-api-key nil)
+
+(defun my-french-review-writing (input)
+  (interactive (list
+                (if (region-active-p)
+                    (buffer-substring (region-beginning) (region-end))
+                  (org--paragraph-at-point))))
+  (let* ((text
+          (concat "Check this beginner French and give me feedback/suggestions in English. I am female. Do input and output in Org Mode syntax.
+Do not put it in a code block, just return Org Mode text. For example, *bold*. Use subheading level two or more (**, ***, and so on).
+
+Example output:
+
+- Ensuite, j'ai returné chez moi.
+- *Ensuite, je suis returnée chez moi.*
+  - /Retourner/ is a verb of movement and takes être as its auxiliary.
+- La météo a dit qu'il peut-être neigera le dimanche
+- *La météo a dit qu'il pourrait neiger dimanche*
+  - Modal verb/Future tense: Peut-être is an adverb that means \"maybe\" and must be separated from the verb. Using the conditionnel (pourrait) or an adverb like peut-être + futur simple (il neigera peut-être) is correct, but il pourrait neiger (\"it might snow\") is very natural. Remove 'le' before the day of the week if you mean \"this coming Sunday.\"
+
+Input:
+
+"
+                  input))
+         (json-array-type 'vector)
+         (json-object-type 'alist)
+         (body (json-encode
+                `(("contents"
+                   (("parts" .
+                     ((("text" . ,text)))))))))
+         result)
+    (setq
+     result
+     (plz 'post "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+       :headers
+       `(("Content-Type" . "application/json")
+         ("X-goog-api-key" . ,my-french-gemini-api-key))
+       :as #'json-read
+       :body body
+       ))
+    (when (called-interactively-p 'any)
+      (with-current-buffer (get-buffer-create "*Feedback*")
+        (org-mode)
+        (goto-char (point-min))
+        (save-excursion
+          (insert "* Feedback\n\n"
+                  (map-nested-elt result '(candidates 0 content parts 0 text))
+                  "\n\n"))
+        (display-buffer (current-buffer))))
+    (map-nested-elt result '(candidates 0 content parts 0 text)))
+  )
+
+(defun my-french-get-audio-feedback (filename &optional extra-text display)
+  (interactive (list (if current-prefix-arg
+                         (read-file-name "File: " my-practice-dir nil t nil
+                                         (lambda (filename) (string-match "\\.m4a$" filename)))
+                       (my-latest-file my-practice-dir "\\(\\.m4a\\|\\.webm\\)$"))
+                     (if (region-active-p)
+                         (buffer-substring (region-beginning) (region-end)))
+                     (called-interactively-p 'any)))
+  (let* ((data
+          (replace-regexp-in-string
+           "\n" ""
+           (shell-command-to-string (concat "base64 " (shell-quote-argument filename)))))
+         (text
+          (concat "Give me feedback in English on this recording of beginner French practice. I am a female A0/A1 speaker. If I give you audio, I want you to focus only on that segment instead of repeating feedback on previous segments. Return your response using Org Mode syntax. Do not put it in a code block, just return Org Mode text. For example, *bold*. Score it out of 10.
+
+Example response:
+
+- Pronunciation (7.5 / 10)
+  - *Déjeuner* sounds more like *déjeuné*. Pay attention to the nasal *é* sound at the end.
+  - *Café* is good.
+  - *Allez* - the *e* sound is a bit unclear. Try for a more open *eh* sound.
+  - *De temps en temps* - be careful not to drop the *s* in *temps*. It sounds a bit like *de tom en tom* at the beginning.
+  - *Seulement* - the *e* sound is a bit muted. Try to pronounce it a little more clearly.
+
+- Intonation (8 / 10)
+  - The intonation is generally good. Try to keep a natural rhythm while speaking. The slight hesitancy affects the flow a little.
+
+- Overall
+  - You are doing well! Just focus on cleaning up those minor pronunciation points. Keep practicing!
+
+"
+                  (if extra-text
+                      (concat "\n\n###\n\n" extra-text)
+                    "")))
+         (json-array-type 'vector)
+         (json-object-type 'alist)
+         (body (json-encode
+                `(("contents"
+                   (("parts" .
+                     ((("text" . ,text))
+                      (("inline_data" .
+                        (("mime_type" . "audio/mp4")
+                         ("data" . ,data))))
+                      )))))))
+         result)
+    (setq
+     result
+     (plz 'post "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+       :headers
+       `(("Content-Type" . "application/json")
+         ("X-goog-api-key" . ,my-french-gemini-api-key))
+       :as #'json-read
+       :body body))
+    (when display
+      (with-current-buffer (get-buffer-create "*Feedback*")
+        (org-mode)
+        (goto-char (point-min))
+        (insert "* " (org-link-make-string
+                      (concat "audio:"
+                              (replace-regexp-in-string
+                               (rx line-start
+                                   (literal (getenv "HOME")))
+                               "~"
+                               filename))
+                      "me:") "\n"
+                      (map-nested-elt result '(candidates 0 content parts 0 text))
+                      "\n\n")
+        (display-buffer (current-buffer))
+        (with-selected-window (get-buffer-window (current-buffer))
+          (goto-char (point-min))
+          (recenter-top-bottom 0))))
+    (map-nested-elt result '(candidates 0 content parts 0 text))))
+
+(defun my-audio-clip (source start-time end-time destination text)
+  (interactive
+   (let ((s (and (region-active-p) (buffer-substring (region-beginning) (region-end)))))
+     (if (and s
+              (string-match "\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)[ \n\t]+\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)" s))
+         (let ((start (match-string 1 s))
+               (end (match-string 2 s)))
+           (list
+            (read-file-name "Source: " nil nil t)
+            start
+            end
+            (read-file-name "Destination: ")
+            (read-string "Text: ")))
+       (list (read-file-name "Source: " nil nil t)
+             (read-string "Start time: ")
+             (read-string "End time: ")
+             (read-file-name "Destination: ")
+             (read-string "Text: ")))))
+  (let ((result (call-process "ffmpeg" nil (get-buffer-create "*ffmpeg*") nil
+                              "-y" ; Overwrite output file without asking
+                              "-i" (expand-file-name source) ; Input file
+                              "-ss" start-time ; Start time (e.g., 00:00:10)
+                              "-to" end-time ; End time/Stop time
+                              (expand-file-name destination))))
+    (when result
+      (when (region-active-p) (delete-region (region-beginning) (region-end)))
+      (insert (org-link-make-string
+               (concat "audio:" (replace-regexp-in-string (getenv "HOME") "~" destination))
+               text)))))
+#+end_src
+
+
+#+begin_src emacs-lisp
+(defun my-french-show-conjugations (word)
+  (interactive (list (word-at-point)))
+  (browse-url (concat "https://www.wordreference.com/conj/frverbs.aspx?v=" (url-hexify-string word))))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun my-french-en-to-fr (word)
+  (interactive "MWord: ")
+  (browse-url (concat "https://www.wordreference.com/conj/frverbs.aspx?v=" (url-hexify-string word))))
+#+end_src
+
 * Coding
 :PROPERTIES:
 :CUSTOM_ID: coding
@@ -28041,7 +28618,7 @@ program. We usually set mailing lists to moderated so that
 						 (re-search-forward "\\(https://.+?/mailman/admindb/\\(.+\\)\\)" nil t))
 			 (match-string 2)
 		 (completing-read "List: " '("emacsconf-org" "emacsconf-org-private" "emacs-tangents"
-																 "emacsconf-submit"
+																 "emacsconf-submit" "emacsconf-discuss"
 																 "info-gnu-emacs")))))
 	(goto-char (point-min))
 	(browse-url (concat "https://lists.gnu.org/mailman/admindb/" list-id "?adminpw="
@@ -28315,6 +28892,43 @@ this:
 									(pcase (dom-tag node)
 										('img
 										 (let ((data (dom-attr node 'src)))
+                       (when (or last-image last-image-filename)
+                         (cond
+                          ;; this image is after another image, so the previous image must be an extra one
+												  (last-image
+												   (setq last-image-filename
+															   (expand-file-name
+																  (format "%s%s-extra.%s"
+																				  (or file-prefix "")
+																				  (if transform-fn
+																						  (funcall transform-fn (caar results))
+																					  (caar results))
+																				  (car last-image))
+																  dir))
+												   (with-temp-file last-image-filename
+													   (set-buffer-file-coding-system 'binary)
+													   (insert (base64-decode-string (cdr last-image)))))
+												  ;; this image is after another image, so the previous image must be an extra one
+												  (last-image-filename
+												   (let ((new-filename
+																  (expand-file-name
+																   (format "%s%s-extra.%s"
+																				   (or file-prefix "")
+																				   (if transform-fn
+																						   (funcall transform-fn (caar results))
+																					   (caar results))
+																	         "jpg")
+																   dir)))
+													   (call-process "convert" nil nil nil last-image-filename
+																				   new-filename)
+													   (setq last-image-filename new-filename))))
+                         (push
+                          (cons 'extra last-image-filename)
+                          (cdr (car results)))
+                         (push
+                          (cons 'alt last-image-alt)
+                          (cdr (car results)))
+                         (setq last-image nil last-image-filename nil))
 											 (cond
 												((string-match "^images/" data)
 												 (setq last-image nil
@@ -28390,7 +29004,7 @@ newsletter-specific processing:
 	(my-transform-html-save-images
 	 dom
 	 my-brigade-newsletter-images-directory
-	 (concat (org-read-date nil nil "+Sun")
+	 (concat (substring (org-read-date nil nil "+Sun") 0 10)
 					 "-news-")
 	 #'my-transform-html-slugify))
 #+end_src
@@ -28943,13 +29557,19 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 #+begin_src emacs-lisp
 (use-package mailchimp :load-path "~/proj/mailchimp-el" :vc (:url "https://github.com/sachac/mailchimp-el"))
 (defun my-brigade-reuse-or-upload-images (images)
-	"Return an alist of (SECTION . URL)"
-	(let ((recent-files (assoc-default 'files (mailchimp-recent-files 100))))
+	"Return an alist of (ID . URL)"
+	(let* ((base-regexp "^.+?-news-\\|\\(\\.[0-9][0-9]\\)?\\.\\(jpg\\||png\\)$")
+         (recent-files
+          (mapcar (lambda (o)
+                    (cons (cons 'base (replace-regexp-in-string base-regexp ""
+                                                                (file-name-nondirectory (assoc-default 'name o))))
+                          o))
+                  (assoc-default 'files (mailchimp-recent-files 100)))))
 		(mapcar
 		 (lambda (img)
-			 (let* ((base (regexp-quote
-										 (replace-regexp-in-string "^.+?-news-" "" (file-name-nondirectory (assoc-default 'filename (cdr img))))))
-							(existing (seq-find (lambda (o) (string-match base (assoc-default 'name o)))
+			 (let* ((base (replace-regexp-in-string base-regexp ""
+                                              (file-name-base (assoc-default 'filename (cdr img)))))
+							(existing (seq-find (lambda (o) (string= base (assoc-default 'base o)))
 																	recent-files)))
 				 (push (cons 'url
 										 (if existing
@@ -28957,7 +29577,22 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 											 (alist-get 'full_size_url (mailchimp-upload-file (assoc-default 'filename (cdr img))))))
 							 (cdr img))
 				 img))
-		 images)))
+		 images)
+    (mapcar
+		 (lambda (img)
+       (when (assoc-default 'extra (cdr img))
+		     (let* ((base (replace-regexp-in-string base-regexp ""
+                                                (file-name-base (assoc-default 'extra (cdr img)))))
+							  (existing (seq-find (lambda (o) (string= base (assoc-default 'base o)))
+																	  recent-files)))
+				   (push (cons 'extra
+										   (if existing
+												   (assoc-default 'full_size_url existing)
+											   (alist-get 'full_size_url (mailchimp-upload-file (assoc-default 'extra (cdr img))))))
+							   (cdr img))
+				   img)))
+		 images)
+    images))
 
 (defun my-brigade-toc (sections)
 	(replace-regexp-in-string
@@ -28988,11 +29623,8 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 						(call-to-action (dom-attr (dom-search item (lambda (o)
 																												 (and (eq (dom-tag o) 'a)
 																															(string-match "^\\[ .+ \\]" (dom-texts o)))))
-																			'href))
-            (extra-images (dom-by-tag item 'img))
-
-            )
-			 (format "<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\" style=\"margin-top: 12px; margin-bottom: 12px;\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover\" valign=\"top\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"12\" rowspan=\"1\" valign=\"top\" width=\"100%%\" class=\"mceColumn\" id=\"mceColumnId--38\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0\" valign=\"top\" id=\"b812\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover;padding-top:0px;padding-bottom:0px\" valign=\"top\"><table style=\"table-layout:fixed\" width=\"100%%\" border=\"0\" cellspacing=\"24\" cellpadding=\"0\"><tbody><tr><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-809\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"background-color:transparent;border:0;border-radius:0\" valign=\"top\" class=\"mceImageBlockContainer\" id=\"b808\"><table style=\"border-collapse:separate;margin:0;vertical-align:top;max-width:100%%;width:100%%;height:auto\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0;margin:0\" valign=\"top\">%s</td></tr></tbody></table></td></tr></tbody></table></td><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-811\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0\" valign=\"top\" class=\"mceGutterContainer\" id=\"gutterContainerId-810\"><table style=\"border-collapse:separate\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0;border:0;border-radius:0\" valign=\"top\" id=\"b810\"><table style=\"border:0;background-color:transparent;border-radius:0;border-collapse:separate\" width=\"100%%\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-left:24px;padding-right:24px;\" class=\"mceTextBlockContainer\">%s</td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table>"
+																			'href)))
+			 (format "<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\" style=\"margin-top: 12px; margin-bottom: 12px;\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover\" valign=\"top\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"12\" rowspan=\"1\" valign=\"top\" width=\"100%%\" class=\"mceColumn\" id=\"mceColumnId--38\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0\" valign=\"top\" id=\"b812\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover;padding-top:0px;padding-bottom:0px\" valign=\"top\"><table style=\"table-layout:fixed\" width=\"100%%\" border=\"0\" cellspacing=\"24\" cellpadding=\"0\"><tbody><tr><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-809\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"background-color:transparent;border:0;border-radius:0\" valign=\"top\" class=\"mceImageBlockContainer\" id=\"b808\"><table style=\"border-collapse:separate;margin:0;vertical-align:top;max-width:100%%;width:100%%;height:auto\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0;margin:0\" valign=\"top\">%s</td></tr></tbody></table></td></tr></tbody></table></td><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-811\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0\" valign=\"top\" class=\"mceGutterContainer\" id=\"gutterContainerId-810\"><table style=\"border-collapse:separate\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0;border:0;border-radius:0\" valign=\"top\" id=\"b810\"><table style=\"border:0;background-color:transparent;border-radius:0;border-collapse:separate\" width=\"100%%\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-left:24px;padding-right:24px;\" class=\"mceTextBlockContainer\">%s</td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr>%s</tbody></table>"
 							 (if call-to-action
 									 (format "<a href=\"%s\" tabindex=\"-1\" style=\"display: block;\"><span style=\"background-color: transparent\"><img src=\"%s\" alt=\"%s\" style=\"padding-top: 12px; display:block;max-width:100%%;height:auto;border-radius:0\" width=\"306\" height=\"auto\" class=\"imageDropZone mceImage\"></span></a>"
 													 call-to-action
@@ -29013,7 +29645,12 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 											 'my-brigade-format-buttons
 											 (when recolor
 												 'my-brigade-recolor-recursively)))
-								item))))
+								item)
+               ;; extra images?
+               (if (assoc-default 'extra image)
+                   (format "<tr><td colspan=\"2\" style=\"padding-top: 12px\"><img src=\"%s\" alt=\"%s\"></td></tr>" (assoc-default 'extra image) (assoc-default 'extra-alt image nil ""))
+                 "")
+               )))
 	 (my-html-group-by-tag 'h2 section)
 	 ""))
 
@@ -29959,20 +30596,28 @@ references.
   (interactive)
   (insert (org-link-make-string (concat "file:" (string-trim (shell-command-to-string "geeqie --remote --tell"))))))
 (use-package org :config (require 'org-attach))
+#+end_src
 
-
+#+NAME: my-geeqie-view
+#+begin_src emacs-lisp
 (defun my-geeqie-view (filenames)
   (interactive "f")
-  (start-process-shell-command "geeqie" nil
-															 (concat "geeqie --remote "
-																			 (mapconcat (lambda (f)
-																										(concat "file:" (shell-quote-argument f)))
-																									(cond
-																									 ((listp filenames) filenames)
-																									 ((file-directory-p filenames)
-																										(list (car (seq-filter #'file-regular-p (directory-files filenames t)))))
-																									 (t (list filenames)))
-																									" "))))
+  (start-process-shell-command
+   "geeqie" nil
+	 (concat
+    "geeqie --remote "
+    (mapconcat
+     (lambda (f)
+       (concat "file:" (shell-quote-argument f)))
+     (cond
+      ((listp filenames) filenames)
+      ((file-directory-p filenames)
+       (list (car (seq-filter #'file-regular-p (directory-files filenames t)))))
+      (t (list filenames)))
+     " "))))
+#+end_src
+
+#+begin_src emacs-lisp
 
 (defvar my-rotate-jpeg-using-exiftran nil)
 

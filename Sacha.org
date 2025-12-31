@@ -1081,7 +1081,7 @@ I want to:
 					(match-string 0 filename)
 				(read-string "ID: ")))))
 	(let* ((data (my-journal-get-by-zidstring id))
-				 (gzold-file (if (derived-mode-p 'image-mode)
+				 (old-file (if (derived-mode-p 'image-mode)
 											 (buffer-file-name)
 										 (dired-get-filename)))
 				 (ext (file-name-extension old-file))
@@ -3736,7 +3736,8 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
     ("C" "~/proj/emacs-calendar/README.org" "Emacs calendar")
     ("e" "~/sync/emacs/Sacha.org" "Config")
     ("E" "~/sync/emacs-news/index.org" "Emacs News")
-    ("f" "~/proj/font/README.org" "Font")
+    ("f" "~/sync/orgzly/journal-fr.org" "French journal")
+    ("F" "~/sync/orgzly/french.org" "French")
     ("I" "~/sync/orgzly/computer-inbox.org" "Computer inbox")
     ("i" "~/sync/orgzly/Inbox.org" "Phone inbox")
     ("o" "~/sync/orgzly/organizer.org" "Main org file")
@@ -4293,6 +4294,14 @@ cool. On Windows, these things help a little.
   (setq tramp-default-method "plink")
   (setq tramp-auto-save-directory "c:\\sacha\\tmp"))
 #+end_src
+
+tramp-hlo is a new package that might improve TRAMP performance by using shell scripts instead of lots of little TRAMP calls.
+#+begin_src emacs-lisp
+(use-package tramp-hlo
+    :ensure t
+    :config
+    (tramp-hlo-setup))
+#+end_src
 ** Touch gestures
 :PROPERTIES:
 :CUSTOM_ID: touch
@@ -4366,9 +4375,828 @@ From Xah Lee:
 (setq-default fill-column 50)
 (keymap-global-set "M-o" #'join-line)
 (keymap-global-set "M-T" #'transpose-sentences)  ; https://www.matem.unam.mx/~omar/apropos-emacs.html#writing-experience
+
+(defun my-copy-filename ()
+  (interactive)
+  (cond
+   ((derived-mode-p 'dired-mode) (dired-copy-filename-as-kill 0))
+   (t (kill-new (buffer-file-name)))))
+#+end_src
+** Learning French
+:PROPERTIES:
+:CUSTOM_ID: multimedia-learning-french
+:END:
+
+#+begin_src emacs-lisp
+(setq search-default-mode 'char-fold-to-regexp)
+;; https://emacs.stackexchange.com/questions/75521/convert-accented-characters-to-non-accented-counterparts-character-folding
+(defun my-translate-unaccented (s)
+  (mapconcat
+   (lambda (c)
+     (char-to-string
+      (car (get-char-code-property c 'decomposition))))
+   s ""))
+#+end_src
+
+*** gtts-cli
+libsox-fmt-mp3
+gtts-cli "rendez-vous" -l fr | play -t mp3 -
+
+#+begin_src emacs-lisp
+(defvar my-french-tts-process nil)
+(defun my-french-tts-stop ()
+  (interactive)
+  (when (process-live-p my-french-tts-process)
+    (stop-process my-french-tts-process)))
+
+(defun my-french-say (s &optional sentinel)
+  (interactive (list (if (region-active-p)
+                         (buffer-substring (region-beginning)
+                                           (region-end))
+                       (symbol-name (symbol-at-point)))))
+  (unless s
+    (setq s (symbol-name (symbol-at-point))))
+  (my-french-tts-stop)
+  (setq my-french-tts-process
+        (make-process
+         :name "gtts"
+         :command (list "sh" "-c"
+                        (format "gtts-cli -l fr %s | play -t mp3 -"
+                                (shell-quote-argument s)))
+         :sentinel sentinel)))
+
+(defun my-french-say-sentence-at-point ()
+  (interactive)
+  (my-french-say (sentence-at-point)))
+
+(defun my-french-say-forward-sentence ()
+  (interactive)
+  (org-forward-sentence)
+  (my-french-say (sentence-at-point)))
+
+(defun my-french-say-next-new-word ()
+  (interactive)
+  (when-let ((word (my-french-find-next-new-word)))
+    (my-french-say word)))
+
+(defun my-french-find-next-new-word ()
+  (interactive)
+  (let ((pos (point))
+        (found nil))
+    (while (and (not found)
+                (< pos (point-max)))
+      (setq pos (next-overlay-change pos))
+      (dolist (ov (overlays-at pos))
+        (when (overlay-get ov 'my-french-highlight)
+          (setq found (overlay-get ov 'word))
+          (goto-char (overlay-start ov)))))
+    (if found
+        found
+      (message "No more highlights found.")
+      nil)))
+
+(defun my-french-say-overlay ()
+  (interactive)
+  (message "hello %s" (word-at-point))
+  )
+
+(defvar-keymap my-french-overlay-map
+  "<down-mouse-1>" #'my-french-say-overlay
+  "<mouse-1>" #'my-french-say-overlay)
+
+(defvar-keymap my-french-shadow-map
+  "w" #'my-french-say
+  "n" #'my-french-say-next-new-word
+  "'" #'my-french-say-sentence-at-point
+  "<left>" #'my-french-say-sentence-at-point
+  "<up>" #'my-french-say-sentence-at-point
+  "," #'my-french-say-forward-sentence
+  "<right>" #'my-french-say-forward-sentence
+  "<down>" #'my-french-say-forward-sentence
+  "q" #'my-french-tts-stop)
+(defun my-french-shadow ()
+  (interactive)
+  (set-transient-map my-french-shadow-map t))
+
+
+#+end_src
+
+#+RESULTS:
+:results:
+my-french-shadow
+:end:
+
+*** Practice pronunciation
+#+begin_src emacs-lisp
+
+(defvar my-practice-dir "~/proj/french/audio")
+(defvar my-practice-temp (expand-file-name "temp.wav" my-practice-dir))
+(defun my-practice-line ()
+  (interactive)
+  (sit-for 1)
+  (let* ((date (format-time-string "%Y-%m-%d-%H-%M-%S"))
+         (filename
+          (expand-file-name
+           (concat date " "
+                   (string-trim
+                    (buffer-substring (line-beginning-position)
+                                      (line-end-position)))
+                   ".opus")
+           my-practice-dir))
+         (process (start-process "arecord"
+                                 (get-buffer-create "*record*")
+                                 "arecord" "-D" "hw:2,0" "-t" "wav" "-f" "cd"
+                                 my-practice-temp)))
+    (read-key "Press a key")
+    (kill-process process)
+    (call-process "ffmpeg" nil (get-buffer-create "*record*") nil
+                  "-y"
+                  "-i"
+                  my-practice-temp
+                  "-af" "silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,loudnorm=I=-16:LRA=11:TP=-1.5"
+                  filename)
+    (mpv-play filename)))
+
+(defun my-practice-replay ()
+  (interactive)
+  (mpv-play (my-latest-file my-practice-dir)))
+
+(defun my-practice-transcribe ()
+  (interactive)
+  (let* ((default-directory my-practice-dir)
+         (file (my-latest-file my-practice-dir "\\.opus\\|\\.m4a\\|\\.webm")))
+    ;; (call-process "/bin/bash" nil nil nil "/home/sacha/bin/whisperx" (expand-file-name file))
+    (message "%s"
+             (with-temp-buffer
+               (insert-file-contents (concat (file-name-sans-extension file) ".txt"))
+               (string-trim (buffer-string))))))
+
+(defun my-practice-play-current-reference (&optional beg end)
+  "Play the current segment."
+  (interactive)
+  (when (derived-mode-p 'subed-mode)
+    (let ((start
+           (if beg (save-excursion
+                     (goto-char beg)
+                     (subed-subtitle-msecs-start))
+             (subed-subtitle-msecs-start))
+           )
+          (stop
+           (if beg (save-excursion
+                     (goto-char end)
+                     (subed-subtitle-msecs-stop))
+             (subed-subtitle-msecs-stop))))
+      (call-process "mpv" nil nil nil (subed-media-file)
+                    (format "--start=%.3f" (/ start 1000.0))
+                    (format "--end=%.3f" (/ stop 1000.0))))))
+
+(defun my-practice-record-loop (&optional extra)
+  (interactive
+   (list (cond
+          ((and (derived-mode-p 'subed-mode)
+                (region-active-p))
+           (subed-subtitle-list-text
+            (subed-subtitle-list
+             (region-beginning)
+             (region-end))))
+          ((region-active-p)
+           (concat
+            " "
+            (string-trim
+             (buffer-substring (region-beginning) (region-end)))))
+          ((derived-mode-p 'subed-mode)
+           (concat " " (subed-subtitle-text))))))
+  (let* ((date (format-time-string "%Y-%m-%d-%H-%M-%S"))
+         (key-prompt "%d (SPC to review, RET get feedback, q to quit, any other key to retry")
+         (filename
+          (expand-file-name
+           (concat date
+                   (if extra
+                       (concat " "
+                               (string-trim (replace-regexp-in-string
+                                             "[\\?]+" " "
+                                             (car
+                                              (split-string
+                                               extra "\n")))))
+                     "")
+
+                   ".opus")
+           my-practice-dir))
+         done
+         char
+         (count 0)
+         process)
+    (while (not done)
+      (when (derived-mode-p 'subed-mode)
+        (if (region-active-p)
+            (my-practice-play-current-reference (region-beginning) (region-end))
+          (my-practice-play-current-reference)))
+      (setq count (1+ count))
+      (setq process (start-process "ffmpeg"
+                                   (get-buffer-create "*record*")
+                                   "ffmpeg" "-y" "-f" "pulse" "-i" "alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo"
+                                   my-practice-temp))
+      (setq char
+            (read-key (format key-prompt
+                              count)))
+      (while char
+        (pcase char
+          (?\  (when (process-live-p process)
+                 (sit-for 1)
+                 (kill-process process))
+               (my-practice-play-current-reference)
+               (call-process "mpv" nil nil nil my-practice-temp)
+               (setq char
+                     (read-key (format "%d (SPC to review, RET get feedback, q to quit, any other key to retry"
+                                       count))))
+          (13 (when (process-live-p process)
+                (sit-for 1)
+                (kill-process process))
+              (setq done 'feedback)
+              (setq char nil))
+          (?w            ; transcribe with Whisper
+           (my-practice-transcribe))
+          (?q
+           (when (process-live-p process) (kill-process process))
+           (setq done 'ignore)
+           (setq char nil))
+          (_
+           (when (process-live-p process) (kill-process process))
+           (setq char nil)))))
+      (when (member done '(keep feedback))
+        (call-process "ffmpeg" nil (get-buffer-create "*record*") nil
+                      "-y"
+                      "-i"
+                      my-practice-temp
+                      "-af" "loudnorm=I=-16:LRA=11:TP=-1.5"
+                      ;; "-af" "silenceremove=start_periods=1:start_duration=0:start_threshold=-100dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-100dB,areverse,loudnorm=I=-16:LRA=11:TP=-1.5"
+                      filename)
+        (when (eq done 'feedback)
+          (my-french-get-audio-feedback filename extra t)))))
+#+end_src
+*** AI feedback
+#+begin_src emacs-lisp
+(defvar my-gemini-api-key nil)
+
+(defun my-french-review-writing (input)
+  (interactive (list
+                (if (region-active-p)
+                    (buffer-substring (region-beginning) (region-end))
+                  (org--paragraph-at-point))))
+  (let* ((text
+          (concat "Check this beginner French and give me feedback/suggestions in English. I am female. Do input and output in Org Mode syntax.
+Do not put it in a code block, just return Org Mode text. Show additions using *text* and deletions using +text+. Use subheading level two or more (**, ***, and so on). Show only the smallest part needed to show the context of the change.
+
+Example output:
+
+- J'ai réfléchi *à* +sur+ l'aide : comment aider quelqu'un, comment recevoir *de l'aide* +d'aide+.
+  - *Réfléchi à* is more common than \"refléchi sur\".
+  - *Recevoir de l'aide* is better than \"d'aide\".
+
+Input:
+
+"
+                  input))
+         (json-array-type 'vector)
+         (json-object-type 'alist)
+         (body (json-encode
+                `(("contents"
+                   (("parts" .
+                     ((("text" . ,text)))))))))
+         result)
+    (setq
+     result
+     (plz 'post "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+       :headers
+       `(("Content-Type" . "application/json")
+         ("X-goog-api-key" . ,my-gemini-api-key))
+       :as #'json-read
+       :body body
+       ))
+    (when (called-interactively-p 'any)
+      (with-current-buffer (get-buffer-create "*Feedback*")
+        (org-mode)
+        (goto-char (point-min))
+        (save-excursion
+          (insert "* Feedback\n\n"
+                  (map-nested-elt result '(candidates 0 content parts 0 text))
+                  "\n\n"))
+        (display-buffer (current-buffer))))
+    (map-nested-elt result '(candidates 0 content parts 0 text)))
+  )
+
+(defun my-french-get-audio-feedback (filename &optional extra-text display)
+  (interactive (list (if current-prefix-arg
+                         (read-file-name "File: " my-practice-dir nil t nil
+                                         (lambda (filename) (string-match "\\.m4a$" filename)))
+                       (my-latest-file my-practice-dir "\\(\\.m4a\\|\\.webm\\)$"))
+                     (if (region-active-p)
+                         (buffer-substring (region-beginning) (region-end)))
+                     t))
+  (let* ((data
+          (replace-regexp-in-string
+           "\n" ""
+           (shell-command-to-string (concat "base64 " (shell-quote-argument filename)))))
+         (text
+          (concat "Give me feedback in English on this recording of beginner French practice. I am a female A0/A1 speaker. Focus first on major mispronunciations, and provide English phonetic transcriptions for those words using italicized parenthetical notes.
+
+Return your response using Org Mode syntax using only list items, not headings. Do not put it in a code block, just return Org Mode text. For example, *bold*. Score it out of 10.
+
+Example output:
+
+- Pronunciation (7 /10)
+  - travaillé /(trah vay yay)/
+"
+                  (if extra-text
+                      (concat "\n\n###\n\n" extra-text)
+                    "")))
+         (json-array-type 'vector)
+         (json-object-type 'alist)
+         (body (json-encode
+                `(("contents"
+                   (("parts" .
+                     ((("text" . ,text))
+                      (("inline_data" .
+                        (("mime_type" . "audio/mp4")
+                         ("data" . ,data))))
+                      )))))))
+         result)
+    (setq
+     result
+     (plz 'post "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+       :headers
+       `(("Content-Type" . "application/json")
+         ("X-goog-api-key" . ,my-gemini-api-key))
+       :as #'json-read
+       :body body))
+    (when display
+      (with-current-buffer (get-buffer-create "*Feedback*")
+        (org-mode)
+        (goto-char (point-min))
+        (let* ((text (map-nested-elt result '(candidates 0 content parts 0 text)))
+               (score (when (string-match "Pronunciation (\\(.+\\))" text) (match-string 1 text))))
+          (insert "* " (org-link-make-string
+                        (concat "audio:"
+                                (replace-regexp-in-string
+                                 (rx line-start
+                                     (literal (getenv "HOME")))
+                                 "~"
+                                 filename))
+                        "me:") "  "
+                        (or score "")
+                        "\n"
+                        text
+                        "\n\n"))
+        (display-buffer (current-buffer))
+        (with-selected-window (get-buffer-window (current-buffer))
+          (goto-char (point-min))
+          (recenter-top-bottom 0))))
+    (map-nested-elt result '(candidates 0 content parts 0 text))))
 #+end_src
 
 
+#+NAME: my-org-copy-clean-version
+#+begin_src emacs-lisp :lexical t :eval t
+(defun my-org-copy-clean-version (text)
+  "Copy BEG to END without strike-throughs."
+  (interactive (list (if (region-active-p) (buffer-substring (region-beginning) (region-end))
+                       (sentence-at-point))))
+  (let ((result
+         (mapconcat (lambda (o)
+                             (if (stringp o)
+                                 o
+                               (car (org-element-contents o))))
+                           (seq-remove (lambda (o)
+                                         (and (listp o)
+                                              (member (org-element-type o)
+                                                      '(strike-through macro))))
+                                       (org-element-parse-secondary-string
+                                        text '(paragraph bold strike-through macro)))
+                           " ")))
+           (setq result
+             (replace-regexp-in-string
+              "  +" " "
+              (replace-regexp-in-string " [\\.,]" "\\1" result)))
+    (when (called-interactively-p 'any)
+      (message "%s" result)
+      (kill-new result))
+    result))
+#+end_src
+*** Process audio files
+#+begin_src emacs-lisp
+(defun my-audio-clip (source start-time end-time destination text)
+  (interactive
+   (let ((s (and (region-active-p) (buffer-substring (region-beginning) (region-end)))))
+     (if (and s
+              (string-match "\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)[ \n\t]+\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)" s))
+         (let ((start (match-string 1 s))
+               (end (match-string 2 s)))
+           (list
+            (read-file-name "Source: " nil nil t)
+            start
+            end
+            (read-file-name "Destination: ")
+            (read-string "Text: ")))
+       (list (read-file-name "Source: " nil nil t)
+             (read-string "Start time: ")
+             (read-string "End time: ")
+             (read-file-name "Destination: ")
+             (read-string "Text: ")))))
+  (let ((result (call-process "ffmpeg" nil (get-buffer-create "*ffmpeg*") nil
+                              "-y" ; Overwrite output file without asking
+                              "-i" (expand-file-name source) ; Input file
+                              "-ss" start-time ; Start time (e.g., 00:00:10)
+                              "-to" end-time ; End time/Stop time
+                              (expand-file-name destination))))
+    (when result
+      (when (region-active-p) (delete-region (region-beginning) (region-end)))
+      (insert (org-link-make-string
+               (concat "audio:" (replace-regexp-in-string (getenv "HOME") "~" destination))
+               text)))))
+#+end_src
+*** Save journal entries for analysis
+#+begin_src emacs-lisp
+(defun my-french-write-journal-entries-for-subtree ()
+  (interactive)
+  (org-map-entries
+   (lambda ()
+     (when (org-entry-get (point) "DATE")
+       (let ((text (my-org-subtree-text)))
+
+         (with-temp-file (expand-file-name (concat (org-entry-get (point) "DATE") ".txt")
+                                           "~/proj/french/journal")
+           (insert text)))))
+   nil 'tree))
+#+end_src
+*** TODO Load en-fr dictionary
+:PROPERTIES:
+:CREATED: [2025-12-27 Sat 15:21]
+:END:
+
+https://github.com/thierryvolpiatto/dic-en-fr-fr-en
+
+#+begin_src emacs-lisp
+(defvar my-french-en-fr-dictionary-file "~/proj/french/dic-en-fr.iso")
+(defvar my-french-dictionary nil)
+(defun my-french-load-dict ()
+  (interactive)
+  (with-temp-buffer
+    (insert-file-contents my-french-en-fr-dictionary-file)
+    (goto-char (point-min))
+    (while (looking-at "^# ") (forward-line 1))
+    (setq my-french-dictionary
+          (seq-keep (lambda (s)
+                      (when (string-match "^\\(.+?\\) {\\(.+?\\)}\\(?: /\\(.+?\\)/\\)?\\(?: (\\(.+?\\))\\)?\\( SEE: .+?\\)? ::\\(?: \\(.+?\\) *\\({.+}.*\\)?\\)?$" s)
+                        (let ((headword (match-string 1 s))
+                              (def (match-string 4 s))
+                              (see (match-string 5 s))
+                              (translation (match-string 6 s))
+                              (types (match-string 7 s)))
+                          (cons
+                           (propertize (format "%s - %s :: %s %s"
+                                               headword
+                                               (or def "")
+                                               (or see translation)
+                                               (or types ""))
+                                       'face
+                                       (cond
+                                        ((null types) nil)
+                                        ((string-match "^{m}" types) 'modus-themes-subtle-blue)
+                                        ((string-match "^{f}" types) 'modus-themes-subtle-magenta)))
+                           translation))))
+                    (split-string (buffer-substring (point) (point-max)) "\n")))
+    (seq-take my-french-dictionary 10)))
+
+(defun my-french-consult-en-fr ()
+  (interactive)
+  (unless my-french-dictionary (my-french-load-dict))
+  (insert
+   (consult--read
+    (consult--dynamic-collection
+        (lambda (input)
+          (let (match-start
+                match-any
+                exact
+                (search (regexp-quote input)))
+            (seq-map (lambda (o)
+                       (cond
+                        ((string-match (concat "^" search " - ") (car o))
+                         (push o exact))
+                        ((string-match (concat "^" search) (car o))
+                         (push o match-start))
+                        ((string-match search (car o))
+                         (push o match-any))))
+                     my-french-dictionary)
+            (append
+             (nreverse exact)
+             (nreverse match-start)
+             (nreverse match-any)
+             nil))))
+    :sort nil
+    :lookup #'consult--lookup-cdr)))
+#+end_src
+
+#+RESULTS:
+:results:
+my-french-consult-en-fr
+:end:
+
+https://github.com/emacsmirror/wordreference
+
+*** Looking up words via wordreference
+
+There's also a package:wordreference.
+
+#+begin_src emacs-lisp
+(defvar my-french-wordreference-cache nil)
+
+(defun my-french-wordreference-completing-read ()
+  (interactive)
+  (consult--read
+   (consult--dynamic-collection
+       (lambda (input)
+         (message "input: %s" input)
+         (with-current-buffer
+             (url-retrieve-synchronously
+              (concat "https://www.wordreference.com/autocomplete?dict=enfr&query="
+                      (url-hexify-string input)))
+			     (set-buffer-multibyte t)
+           (goto-char (point-min))
+           (re-search-forward "^$" nil t)
+           (prog1
+               (mapcar (lambda (row)
+                         (let ((fields (split-string row "\t")))
+                           (propertize
+                            (format "%s (%s)"
+                                    (car fields)
+                                    (cadr fields))
+                            'consult--candidate
+                            fields)))
+                       (split-string
+                        (string-trim (buffer-substring (point) (point-max))) "\n"))
+             (kill-buffer (current-buffer))))))
+   :sort nil
+   :add-history (list (word-at-point))
+   :history 'my-french-wordreference-lookup-history
+   :prompt "Word: "
+   :category 'word))
+
+(defvar-keymap my-french-wordreference-keymap
+  "v" #'my-spookfox-scroll-down
+  "V" #'my-spookfox-scroll-up
+  "c" #'my-french-conjugate-last-word
+  "l" #'my-french-wordreference-lookup)
+
+(defvar my-french-wordreference-lookup-history nil)
+(defun my-french-wordreference-lookup (word)
+  (interactive (list (my-french-wordreference-completing-read)))
+  (let (language)
+    (if (string-match " (\\(en\\|fr\\))" word)
+        (setq language (match-string 1 word)
+              word (replace-match "" nil t word 0)))
+    (setq word (replace-regexp-in-string "^#" "" word))
+    (browse-url
+     (format "https://www.wordreference.com/%s/%s"
+             (if (string= language "fr")
+                 "fren"
+               "enfr")
+             (url-hexify-string word))))
+  (set-transient-map my-french-wordreference-keymap t))
+
+(defun my-french-conjugate-last-word ()
+  (interactive)
+  (grammalecte-conjugate-verb
+   (replace-regexp-in-string " (.+)" ""
+                             (car my-french-wordreference-lookup-history))))
+
+(defun my-french-wordreference-conjugate (word)
+  (interactive (list (my-french-wordreference-completing-read)))
+  (browse-url (concat "https://www.wordreference.com/conj/frverbs.aspx?v="
+                      (url-hexify-string (if (listp word) (car word) word)))))
+
+(defun my-french-reverso (s)
+  (interactive (list (if (region-active-p)
+                         (buffer-substring (region-beginning) (region-end))
+                       (word-at-point))))
+  (browse-url (concat "https://www.reverso.net/text-translation#sl=fra&tl=eng&text="
+                      (url-hexify-string s))))
+#+end_src
+*** Lexique
+http://www.lexique.org/databases/Lexique383/
+
+#+begin_src emacs-lisp
+(defvar my-french-lexique-db "~/proj/french/lexique.db" "SQLite3 DB")
+#+end_src
+
+How to load the TSV into SQLite:
+
+#+begin_src python :tangle no :eval no
+import pandas as pd
+import sqlite3
+df = pd.read_csv('lexique383.tsv', sep='\t')
+conn = sqlite3.connect('lexique.db')
+df.to_sql('lexique', conn, if_exists='replace', index=False)
+conn.close()
+#+end_src
+
+Adding an unaccented version for easier lookup:
+
+#+begin_src sql
+ALTER TABLE lexique ADD COLUMN ortho_flat TEXT;
+
+-- Update it (you can use your Python logic to strip accents)
+-- Or use SQLite's built-in REPLACE for common French chars:
+UPDATE lexique SET ortho_flat =
+  REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(ortho), 'é', 'e'), 'è', 'e'), 'ê', 'e'), 'à', 'a'), 'ç', 'c');
+
+-- Index the flat column
+CREATE INDEX idx_ortho_flat ON lexique(ortho_flat);
+#+end_src
+
+Emacs Lisp functions for finding things:
+
+#+begin_src emacs-lisp
+(defvar my-french-csv-path "/home/sacha/proj/french/french_vocabulary_list.csv")
+(defvar my-french-known-lemmas nil)
+(defun my-french-lexique-lookup-db-exact (input)
+  "Query the Lexique SQLite database for INPUT."
+  (let ((db (sqlite-open my-french-lexique-db)))
+    (prog1 (sqlite-select db
+                          "SELECT ortho, lemme, genre, nombre, phon, syll FROM lexique
+                    WHERE ortho=? ORDER BY freqfilms2 DESC LIMIT 1"
+                          (list input))
+      (sqlite-close db))))
+
+(defun my-french-lexique-lookup-db-flat (input)
+  "Query the Lexique SQLite database for INPUT."
+  (let ((db (sqlite-open my-french-lexique-db)))
+    (prog1 (sqlite-select db
+                          "SELECT ortho, lemme, genre, nombre, phon, syll FROM lexique
+                    WHERE ortho_flat LIKE ? ORDER BY freqfilms2 DESC LIMIT 50"
+                          (list (concat input "%")))
+      (sqlite-close db))))
+
+(defun my-french-lexique-complete-word ()
+  (interactive)
+  (let* ((selection
+          (consult--read
+           (consult--dynamic-collection
+               (lambda (input)
+                 (mapcar (lambda (row)
+                           (let ((word (nth 0 row))
+                                 (gender (nth 1 row))
+                                 (number (nth 2 row))
+                                 (ipa (nth 3 row)))
+                             ;; Format the string for the completion buffer
+                             (cons
+                              (propertize
+                               (format "%-20s [%s] (%s, %s)" word ipa gender number)
+                               'consult--candidate word
+                               'face
+                               (pcase gender
+                                 ("m" 'modus-themes-subtle-blue)
+                                 ("f" 'modus-themes-subtle-magenta)))
+                              word)))
+                         (my-french-lexique-lookup-db-flat input))))
+           :prompt "French word: "
+           :initial (word-at-point)
+           :sort nil
+           :lookup #'consult--lookup-cdr
+           :category 'french-word)))
+    (when selection
+      (when (word-at-point)
+        (delete-region (save-excursion
+                         (skip-syntax-backward "w")
+                         (point))
+                       (save-excursion
+                         (skip-syntax-forward "w")
+                         (point))))
+      (insert selection))))
+#+end_src
+*** Highlight and count new words in journal entries
+#+begin_src emacs-lisp
+(defun my-french-load-known-lemmas ()
+  "Parse the CSV and return a hash table of lemma -> info."
+  (let* ((known (make-hash-table :test 'equal))
+         (data (cdr (pcsv-parse-file my-french-csv-path))))
+    (mapc
+     (lambda (o)
+       (unless (gethash (elt o 2) known)
+         (puthash (elt o 2) o known))
+       (unless (gethash (elt o 0) known)
+         (puthash (elt o 0) o known)))
+     data)
+    (setq my-french-known-lemmas known)))
+
+(defvar my-french-ignore '("des" "les" "ma" "elle" "la" "une" "mes" "cette" "du" "puis" "ces"))
+
+(defun my-french-lexique-to-ipa (s)
+  (mapconcat (lambda (c)
+               (pcase c
+                 (?O "ɔ")
+                 (?E "ɛ")
+                 (?° "ə")
+                 (?2 "ø")
+                 (?9 "œ")
+                 (?S "ʃ")
+                 (?5 "ɛ̃")
+                 (?Z "ʒ")
+                 (?@ "ɑ̃")
+                 (?1 "œ̃")
+                 (?§ "ɔ̃")
+                 (?8 "ɥ")
+                 (?R "ʁ")
+                 (_ (char-to-string c))))
+               s ""))
+
+(defvar my-french-show-pronunciation t "*Non-nil means show pronunciation.")
+
+(defun my-french-highlight-new-words-in-subtree ()
+  "Highlight words in the current subtree based on lexique.db and CSV data."
+  (interactive)
+  (save-excursion
+    (my-french-remove-new-word-highlights)
+    (if (org-entry-get-with-inheritance "DATE")
+        (let* ((subtree-date (org-entry-get-with-inheritance "DATE"))
+               (known-lemmas (or my-french-known-lemmas (my-french-load-known-lemmas)))
+               (seen-so-far (make-hash-table :test 'equal))
+               (beg (save-excursion (org-back-to-heading t) (org-end-of-meta-data) (point)))
+               (end (save-excursion (org-end-of-subtree t) (point)))
+               (count-new 0)
+               (count-words 0))
+          (save-excursion
+            (goto-char beg)
+            (while (re-search-forward "\\b[[:alpha:]-]+\\b" end t)
+              (let* ((word (match-string 0))
+                     (info (and (or
+                                 (not (car (gethash (downcase word) known-lemmas)))
+                                 (not (string>
+                                       subtree-date
+                                       (car (gethash (downcase word) known-lemmas)))))
+                                (car (my-french-lexique-lookup-db-exact (downcase word))))))
+                (setq count-words (1+ count-words))
+                (when info
+                  (let* ((lemma (elt info 1))
+                         (gender (elt info 2))
+                         (syll (propertize (concat " (" (elt info 5) ")")
+                                           'face
+                                           'modus-themes-fg-cyan-faint
+                                           'keymap
+                                           my-french-overlay-map
+                                           ))
+                         (csv-date (car (gethash lemma known-lemmas)))
+                         (is-new (and (or (null csv-date)
+                                          (and subtree-date (not (string> subtree-date
+                                                                          csv-date))))
+                                      (not (gethash lemma seen-so-far))
+                                      (not (member lemma my-french-ignore)))))
+                    (when is-new
+                      (puthash lemma (list subtree-date word lemma) seen-so-far)
+                      (puthash lemma (list subtree-date word lemma) my-french-known-lemmas)
+                      (puthash word (list subtree-date word lemma) my-french-known-lemmas)
+                      (setq count-new (1+ count-new))
+                      (let ((ov (make-overlay (match-beginning 0) (match-end 0)))
+                            (face (cond
+                                   ((string-equal gender "m") 'modus-themes-subtle-blue)
+                                   ((string-equal gender "f") 'modus-themes-subtle-magenta)
+                                   (t 'modus-themes-subtle-green))))
+                        (overlay-put ov 'my-french-highlight t)
+                        (overlay-put ov 'word word)
+                        (when my-french-show-pronunciation
+                          (overlay-put ov 'after-string (my-french-lexique-to-ipa syll)))
+                        (overlay-put ov 'face face)))))))
+            (org-back-to-heading)
+            (let ((ov (make-overlay (line-beginning-position) (line-end-position))))
+              (overlay-put ov 'after-string (format " + %d = %d" count-new count-words))
+              (overlay-put ov 'my-french-highlight t))
+            (when (called-interactively-p 'any)
+              (message "%d total words, %d new lemmas" count-words count-new))
+            (cons count-new count-words)))
+      (let ((data (org-map-entries #'my-french-highlight-new-words-in-subtree "DATE={.}" 'tree)))
+        (org-back-to-heading)
+        (let ((ov (make-overlay (line-beginning-position) (line-end-position))))
+          (overlay-put ov 'after-string
+                       (format " + %d = %d"
+                               (apply '+ (mapcar 'car data))
+                               (apply '+ (mapcar 'cdr data))))
+          (overlay-put ov 'my-french-highlight t))))))
+
+  (defun my-french-remove-new-word-highlights ()
+    "Remove all word highlights created by `my-french-highlight-new-words-in-subtree'."
+    (interactive)
+    (let ((beg (save-excursion (org-back-to-heading t) (point)))
+          (end (save-excursion (org-end-of-subtree t) (point))))
+      (remove-overlays beg end 'my-french-highlight t)))
+#+end_src
+
+
+** Spellcheck
+
+#+begin_export emacs-lisp
+(use-package flyspell
+:bind (:map flyspell-mode-map
+     ("C-." . embark-act)))
+#+end_export
 
 ** gif-screencast
 :PROPERTIES:
@@ -5554,6 +6382,7 @@ Related:
 
 #+begin_src emacs-lisp
 (global-visual-line-mode)
+(add-hook 'minibuffer-mode-hook (lambda () (visual-line-mode -1)))
 #+end_src
 ** Unicode
 :PROPERTIES:
@@ -6269,6 +7098,36 @@ This uses the [[https://www.gnu.org/software/wdiff/][wdiff]] tool for word-based
 			(insert s))
 		(my-wdiff (buffer-file-name) temp-file)
 		(delete-file temp-file)))
+
+(defun my-wdiff-find-at-point ()
+  (interactive)
+  (unless (looking-at "\\[-")
+    (re-search-backward "\\[-" nil t)
+    (when (looking-at "\\[-\\(.+?\\)-\\] {\\+\\(.+?\\)\\+}")
+      (let ((s (match-string 1))
+            (rep (match-string 2)))
+        (goto-char (match-end 0))
+        (other-window 1)
+        (if (re-search-forward (regexp-quote s) nil t)
+            (progn
+              (save-match-data (pulse-momentary-highlight-region (match-beginning 0)
+                                                                 (match-end 0)))
+              (when (save-match-data (y-or-n-p (format "Change %s to %s: " s rep)))
+                (replace-match rep t t)
+                t))
+          (message "Could not find %s to change to %s" s rep)
+          nil)))))
+
+(defun my-wdiff-next ()
+  (interactive)
+  (other-window 1)
+  (re-search-forward "{\\+\\(.+?\\)\\+}")
+  (pulse-momentary-highlight-region (match-beginning 0) (match-end 0))
+  (my-wdiff-find-at-point))
+
+(defun my-wdiff-next-loop ()
+  (interactive)
+  (while (my-wdiff-next)))
 #+end_src
 
 ** Denote
@@ -7714,7 +8573,7 @@ only a few of them them for faster scanning.
                       "~/sync/orgzly/crafts.org"
                       "~/sync/emacs/Sacha.org"
                       "~/proj/emacsconf/wiki/2025/organizers-notebook/index.org"
-                      "~/proj/emacsconf/2025/private/conf.org"
+                      "~/proj/emacsconf/wiki/organizers-notebook/index.org"
                       "~/proj/stream/index.org"
                       "~/proj/plover-notes/README.org"
                       "~/personal/sewing.org"
@@ -8804,6 +9663,11 @@ Now we put it all together...
 					(let ((url (match-string 0)))
 						(unless (string-match "permalink.gmane.org" url)
 							(browse-url url))))))))
+
+(add-to-list 'browse-url-handlers '("https?://yhetil.org/.*/raw" . my-browse-yhetil))
+(defun my-browse-yhetil (url &rest _)
+  (when (string-match "\\(https?://yhetil.org/.*\\)/raw$" url)
+    (funcall browse-url-browser-function (match-string 1 url))))
 #+end_src
 
 *** Monthly reviews
@@ -10046,7 +10910,7 @@ themes:
 
 So now my style.css has:
 
-#+begin_src css
+#+begin_src css :eval no
 /* Based on Modus Operandi by Protesilaos Stavrou */
 :root {
    // ...
@@ -12503,7 +13367,8 @@ instead of:
   :menu-entry '(?p "Export to custom plain text"
 									 ((?p "As plain text buffer" my-plain-text-export-to-buffer)
 										(?P "As plain text file" my-plain-text-export-to-file))))
-	(add-to-list 'org-export-backends 'my-plain-text))
+	(add-to-list 'org-export-backends 'my-plain-text)
+  (provide 'ox-my-plain-text))
 #+end_src
 
 *** PDF
@@ -13944,7 +14809,7 @@ FORMAT."
 :CUSTOM_ID: org-dired
 :END:
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :lexical t
 (setq dired-dwim-target t)
 
 (defun my-org-get-links-in-region (beg end)
@@ -14833,6 +15698,7 @@ The ~pikchr-cli~ package in Ubuntu 24 is version 0.1.2 and does not have the ~--
    '((dot . t)
      (ditaa . t)
 		 (pikchr . t)
+     (forth . t)
 		 (gnuplot . t)
 		 (mermaid . t)
      (emacs-lisp . t)
@@ -15719,10 +16585,9 @@ blog post, navigate back to the function, and export HTML.
 			(my-org-defun-open symbol)
 			(let ((function-body
 						 ;; get the whole babel block instead of the sexp at point
-						 (nth 2 (org-src--contents-area (org-element-at-point)))
-						 ;; (buffer-substring (point)
-						 ;; 									 (progn (forward-sexp) (point)))
-						 )
+             (if (derived-mode-p 'org-mode)
+						     (nth 2 (org-src--contents-area (org-element-at-point)))
+               (thing-at-point 'defun)))
 						body)
 				(pcase format
 					((or '11ty 'html)
@@ -16534,6 +17399,10 @@ Start with LIMIT results and keep only unique blog posts."
 
 #+begin_src emacs-lisp
 (use-package whisper
+  :config
+  (setq whisper--ffmpeg-input-device "alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo")
+  (setq whisper-language "auto")
+  (setq whisper-use-threads (1- (num-processors)))
   :bind
   (("<f9>" . whisper-run)))
 (defun my-whisper-replay ()
@@ -18524,9 +19393,9 @@ myself according to the [[https://www.canada.ca/en/revenue-agency/services/tax/b
 
 #+RESULTS:
 :results:
-| box-10 | 1234.00 |
-| box-11 | 1419.10 |
-| box-12 |  128.15 |
+| box-10 | [[copy:1234.00][1234.00]] |
+| box-11 | [[copy:1419.10][1419.10]] |
+| box-12 | [[copy:128.15][128.15]]  |
 :end:
 
 [[copy:Hello world]]
@@ -20946,6 +21815,9 @@ falling back to the proportional method if the data is not available.
    'avy-dispatch-alist
    (cons ?, 'subed-split-subtitle)))
 
+(defun my-subed-maybe-save-place ()
+  (when buffer-file-name (save-place-local-mode 1)))
+
 (use-package subed
   :if my-laptop-p
   :load-path "~/proj/subed/subed"
@@ -20968,7 +21840,7 @@ falling back to the proportional method if the data is not available.
         ("M-." . subed-merge-dwim))
 	:config
 	;; Remember cursor position between sessions
-	(add-hook 'subed-mode-hook 'save-place-local-mode)
+	(add-hook 'subed-mode-hook 'my-subed-maybe-save-place)
 	;; Some reasonable defaults
 	;; Replay subtitles as you adjust their start or stop time with M-[, M-], M-{, or M-}
 	(add-hook 'subed-mode-hook 'subed-enable-replay-adjusted-subtitle)
@@ -20976,7 +21848,6 @@ falling back to the proportional method if the data is not available.
 	(add-hook 'subed-mode-hook 'subed-enable-loop-over-current-subtitle)
 	;; Show characters per second
 	(add-hook 'subed-mode-hook 'subed-enable-show-cps)
-  (add-hook 'subed-mode-hook (lambda () (remove-hook 'before-save-hook 'subed-sort t)))
 	(with-eval-after-load 'consult
 		(advice-add 'consult-buffer :around
 								(lambda (f &rest r)
@@ -21100,8 +21971,13 @@ I used this command to get word-level timing data. ([[https://medium.com/@didier
 MAX_LINE_WIDTH="${MAX_LINE_WIDTH:-50}"
 MODEL="${MODEL:-large-v2}"
 for FILE in "$@"; do
-		~/vendor/whisperx/.venv/bin/whisperx --model "$MODEL" --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --compute_type int8 --print_progress True --max_line_width $MAX_LINE_WIDTH --segment_resolution chunk --max_line_count 1  "$FILE" $WHISPER_FLAGS
-		rm -f *.srt
+    text="${FILE%.*}.txt"
+    if [  -f "$text" ]; then
+       echo "Skipping $FILE as it's already been transcribed."
+    else
+    		~/vendor/whisperx/.venv/bin/whisperx --model "$MODEL" --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --compute_type int8 --print_progress True --max_line_width $MAX_LINE_WIDTH --segment_resolution chunk --max_line_count 1  "$FILE" $WHISPER_FLAGS
+		    rm -f "${FILE%.*}.srt
+    fi
 done
 #+end_src
 
@@ -22058,7 +22934,7 @@ See also [[dotemacs:subed]]
 												(buffer-file-name))))
 
 (defun my-rename-file-set (file new-prefix &optional force)
-	(interactive (let ((file (read-file-name file)))
+	(interactive (let ((file (read-file-name "File: ")))
 								 (list
 									file
 									(read-file-name (format "New prefix (%s): "
@@ -22173,274 +23049,6 @@ I have ~elfeed-protocol-feeds~ set in my
 
   (setq emms-player-list '(emms-player-mpv)))
 #+end_src
-** Learning French
-:PROPERTIES:
-:CUSTOM_ID: multimedia-learning-french
-:END:
-
-
-#+begin_src emacs-lisp
-(setq search-default-mode 'char-fold-to-regexp)
-;; https://emacs.stackexchange.com/questions/75521/convert-accented-characters-to-non-accented-counterparts-character-folding
-(defun my-translate-unaccented (s)
-  (mapconcat
-   (lambda (c)
-     (char-to-string
-      (car (get-char-code-property c 'decomposition))))
-   s ""))
-
-(defvar my-practice-dir "~/proj/french/audio")
-(defvar my-practice-temp (expand-file-name "temp.wav" my-practice-dir))
-(defun my-practice-line ()
-  (interactive)
-  (sit-for 1)
-  (let* ((date (format-time-string "%Y-%m-%d-%H-%M-%S"))
-         (filename
-          (expand-file-name
-           (concat date " "
-                   (string-trim
-                    (buffer-substring (line-beginning-position)
-                                      (line-end-position)))
-                   ".webm")
-           my-practice-dir))
-         (process (start-process "arecord"
-                                 (get-buffer-create "*record*")
-                                 "arecord" "-D" "hw:2,0" "-t" "wav" "-f" "cd"
-                                 my-practice-temp)))
-    (read-key "Press a key")
-    (kill-process process)
-    (call-process "ffmpeg" nil (get-buffer-create "*record*") nil
-                  "-y"
-                  "-i"
-                  my-practice-temp
-                  "-af" "silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,loudnorm=I=-16:LRA=11:TP=-1.5"
-                  filename)
-    (mpv-play filename)))
-
-(defun my-practice-replay ()
-  (interactive)
-  (mpv-play (my-latest-file my-practice-dir)))
-
-
-(defun my-practice-record-loop (&optional extra)
-  (interactive (list (when (region-active-p)
-                       (concat
-                           " "
-                           (string-trim
-                            (buffer-substring (region-beginning) (region-end)))))))
-  (let* ((date (format-time-string "%Y-%m-%d-%H-%M-%S"))
-         (filename
-          (expand-file-name
-           (concat date
-                   (if extra
-                       (concat " "
-                               (string-trim (replace-regexp-in-string
-                                             "[\\?\n]+" " "
-                                             extra)))
-                     "")
-
-                   ".webm")
-           my-practice-dir))
-         done
-         char
-         (count 0)
-         process)
-    (while (not done)
-      (setq count (1+ count))
-      (setq process (start-process "arecord"
-                                   (get-buffer-create "*record*")
-                                   "arecord" "-D" "hw:2,0" "-t" "wav" "-f" "cd"
-                                   my-practice-temp))
-      (setq char
-            (read-key (format "%d (SPC to accept, RET get feedback, q to quit, any other key to retry"
-                              count)))
-      (pcase char
-        (?\ (setq done 'keep))
-        (13 (setq done 'feedback))
-        (?q (setq done 'ignore)))
-      (kill-process process))
-    (when (member done '(keep feedback))
-      (call-process "ffmpeg" nil (get-buffer-create "*record*") nil
-                    "-y"
-                    "-i"
-                    my-practice-temp
-                    "-af" "silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,loudnorm=I=-16:LRA=11:TP=-1.5"
-                    filename)
-      (mpv-play filename)
-      (when (eq done 'feedback)
-        (my-french-get-audio-feedback filename extra t)))))
-#+end_src
-
-#+begin_src emacs-lisp
-(defvar my-french-gemini-api-key nil)
-
-(defun my-french-review-writing (input)
-  (interactive (list
-                (if (region-active-p)
-                    (buffer-substring (region-beginning) (region-end))
-                  (org--paragraph-at-point))))
-  (let* ((text
-          (concat "Check this beginner French and give me feedback/suggestions in English. I am female. Do input and output in Org Mode syntax.
-Do not put it in a code block, just return Org Mode text. For example, *bold*. Use subheading level two or more (**, ***, and so on).
-
-Example output:
-
-- Ensuite, j'ai returné chez moi.
-- *Ensuite, je suis returnée chez moi.*
-  - /Retourner/ is a verb of movement and takes être as its auxiliary.
-- La météo a dit qu'il peut-être neigera le dimanche
-- *La météo a dit qu'il pourrait neiger dimanche*
-  - Modal verb/Future tense: Peut-être is an adverb that means \"maybe\" and must be separated from the verb. Using the conditionnel (pourrait) or an adverb like peut-être + futur simple (il neigera peut-être) is correct, but il pourrait neiger (\"it might snow\") is very natural. Remove 'le' before the day of the week if you mean \"this coming Sunday.\"
-
-Input:
-
-"
-                  input))
-         (json-array-type 'vector)
-         (json-object-type 'alist)
-         (body (json-encode
-                `(("contents"
-                   (("parts" .
-                     ((("text" . ,text)))))))))
-         result)
-    (setq
-     result
-     (plz 'post "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
-       :headers
-       `(("Content-Type" . "application/json")
-         ("X-goog-api-key" . ,my-french-gemini-api-key))
-       :as #'json-read
-       :body body
-       ))
-    (when (called-interactively-p 'any)
-      (with-current-buffer (get-buffer-create "*Feedback*")
-        (org-mode)
-        (goto-char (point-min))
-        (save-excursion
-          (insert "* Feedback\n\n"
-                  (map-nested-elt result '(candidates 0 content parts 0 text))
-                  "\n\n"))
-        (display-buffer (current-buffer))))
-    (map-nested-elt result '(candidates 0 content parts 0 text)))
-  )
-
-(defun my-french-get-audio-feedback (filename &optional extra-text display)
-  (interactive (list (if current-prefix-arg
-                         (read-file-name "File: " my-practice-dir nil t nil
-                                         (lambda (filename) (string-match "\\.m4a$" filename)))
-                       (my-latest-file my-practice-dir "\\(\\.m4a\\|\\.webm\\)$"))
-                     (if (region-active-p)
-                         (buffer-substring (region-beginning) (region-end)))
-                     (called-interactively-p 'any)))
-  (let* ((data
-          (replace-regexp-in-string
-           "\n" ""
-           (shell-command-to-string (concat "base64 " (shell-quote-argument filename)))))
-         (text
-          (concat "Give me feedback in English on this recording of beginner French practice. I am a female A0/A1 speaker. If I give you audio, I want you to focus only on that segment instead of repeating feedback on previous segments. Return your response using Org Mode syntax. Do not put it in a code block, just return Org Mode text. For example, *bold*. Score it out of 10.
-
-Example response:
-
-- Pronunciation (7.5 / 10)
-  - *Déjeuner* sounds more like *déjeuné*. Pay attention to the nasal *é* sound at the end.
-  - *Café* is good.
-  - *Allez* - the *e* sound is a bit unclear. Try for a more open *eh* sound.
-  - *De temps en temps* - be careful not to drop the *s* in *temps*. It sounds a bit like *de tom en tom* at the beginning.
-  - *Seulement* - the *e* sound is a bit muted. Try to pronounce it a little more clearly.
-
-- Intonation (8 / 10)
-  - The intonation is generally good. Try to keep a natural rhythm while speaking. The slight hesitancy affects the flow a little.
-
-- Overall
-  - You are doing well! Just focus on cleaning up those minor pronunciation points. Keep practicing!
-
-"
-                  (if extra-text
-                      (concat "\n\n###\n\n" extra-text)
-                    "")))
-         (json-array-type 'vector)
-         (json-object-type 'alist)
-         (body (json-encode
-                `(("contents"
-                   (("parts" .
-                     ((("text" . ,text))
-                      (("inline_data" .
-                        (("mime_type" . "audio/mp4")
-                         ("data" . ,data))))
-                      )))))))
-         result)
-    (setq
-     result
-     (plz 'post "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
-       :headers
-       `(("Content-Type" . "application/json")
-         ("X-goog-api-key" . ,my-french-gemini-api-key))
-       :as #'json-read
-       :body body))
-    (when display
-      (with-current-buffer (get-buffer-create "*Feedback*")
-        (org-mode)
-        (goto-char (point-min))
-        (insert "* " (org-link-make-string
-                      (concat "audio:"
-                              (replace-regexp-in-string
-                               (rx line-start
-                                   (literal (getenv "HOME")))
-                               "~"
-                               filename))
-                      "me:") "\n"
-                      (map-nested-elt result '(candidates 0 content parts 0 text))
-                      "\n\n")
-        (display-buffer (current-buffer))
-        (with-selected-window (get-buffer-window (current-buffer))
-          (goto-char (point-min))
-          (recenter-top-bottom 0))))
-    (map-nested-elt result '(candidates 0 content parts 0 text))))
-
-(defun my-audio-clip (source start-time end-time destination text)
-  (interactive
-   (let ((s (and (region-active-p) (buffer-substring (region-beginning) (region-end)))))
-     (if (and s
-              (string-match "\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)[ \n\t]+\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)" s))
-         (let ((start (match-string 1 s))
-               (end (match-string 2 s)))
-           (list
-            (read-file-name "Source: " nil nil t)
-            start
-            end
-            (read-file-name "Destination: ")
-            (read-string "Text: ")))
-       (list (read-file-name "Source: " nil nil t)
-             (read-string "Start time: ")
-             (read-string "End time: ")
-             (read-file-name "Destination: ")
-             (read-string "Text: ")))))
-  (let ((result (call-process "ffmpeg" nil (get-buffer-create "*ffmpeg*") nil
-                              "-y" ; Overwrite output file without asking
-                              "-i" (expand-file-name source) ; Input file
-                              "-ss" start-time ; Start time (e.g., 00:00:10)
-                              "-to" end-time ; End time/Stop time
-                              (expand-file-name destination))))
-    (when result
-      (when (region-active-p) (delete-region (region-beginning) (region-end)))
-      (insert (org-link-make-string
-               (concat "audio:" (replace-regexp-in-string (getenv "HOME") "~" destination))
-               text)))))
-#+end_src
-
-
-#+begin_src emacs-lisp
-(defun my-french-show-conjugations (word)
-  (interactive (list (word-at-point)))
-  (browse-url (concat "https://www.wordreference.com/conj/frverbs.aspx?v=" (url-hexify-string word))))
-#+end_src
-
-#+begin_src emacs-lisp
-(defun my-french-en-to-fr (word)
-  (interactive "MWord: ")
-  (browse-url (concat "https://www.wordreference.com/conj/frverbs.aspx?v=" (url-hexify-string word))))
-#+end_src
-
 * Coding
 :PROPERTIES:
 :CUSTOM_ID: coding
@@ -25064,7 +25672,49 @@ current buffer, killing it."
       (sqlite-mode-open-file file-name)))
   (add-to-list 'magic-mode-alist '("SQLite format 3\x00" . ct/sqlite-view-file-magically)))
 #+end_src
+** Crontab
 
+** TODO Write a function to help with crontab entries
+
+#+begin_src emacs-lisp
+(defun my-bbb-insert-translated-crontab-entries (time-zone start-time end-time)
+  "Insert crontab entries.
+Convert START-TIME and END-TIME from TIME-ZONE.
+(Assume END-TIME is after START-TIME.)
+Create a pair of crontab entries for the start (converted to local time)
+and end."
+  (interactive
+   (progn
+     (require 'tzc)
+     (let* ((time-zone (completing-read "Timezone: " tzc-time-zones))
+            (start-time
+             (org-read-date t t nil "Start date and time: "))
+            (end-time
+             (org-read-date t t nil "End time: " start-time)))
+       (list time-zone start-time end-time))))
+  (when (stringp start-time)
+    (setq start-time (org-read-date t t start-time)))
+  (when (stringp end-time)
+    (setq end-time (org-read-date t t end-time nil start-time)))
+  (let ((tz-offset (format-time-string "%z" start-time time-zone))
+         text)
+     (setq start-time (date-to-time (concat (format-time-string "%Y-%m-%dT%H:%M:%S.000" start-time) tz-offset)))
+     (setq end-time (date-to-time (concat (format-time-string "%Y-%m-%dT%H:%M:%S.000" end-time) tz-offset)))
+     (setq text (concat
+                 (format-time-string "%-M %-H %-d %-m * \n" start-time)
+                 (format-time-string "%-M %-H %-d %-m * " end-time)))
+     (when (called-interactively-p 'any)
+       (insert text))
+     text))
+
+(ert-deftest my-bbb-insert-translated-crontab-entries ()
+  (should (string= (my-bbb-insert-translated-crontab-entries
+                    "Europe/Berlin"
+                    "2025-11-12T07:00:00"
+                    "2025-11-12T10:30:00")
+                   "0 1 12 11 *
+30 4 12 11 * ")))
+#+end_src
 ** Documentation
 :PROPERTIES:
 :CUSTOM_ID: documentation
@@ -28751,7 +29401,7 @@ switch to Google Chrome so that I can paste it in.
 	(when (stringp date) (setq date (date-to-time date)))
 	(let* ((newsletter-date (format-time-string "%Y-%m-%d" date))
 				 (current-week (org-read-date nil t "++Mon" nil date))
-				 (current-week-end (org-read-date nil t "++2Sun" nil date))
+				 (current-week-end (org-read-date nil t "++Sun" nil date))
 				 (next-week (org-read-date nil t "+2Mon" nil date))
 				 (next-week-end (org-read-date nil t "+3Sun" nil date))
 				 result)
@@ -29556,6 +30206,7 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 
 #+begin_src emacs-lisp
 (use-package mailchimp :load-path "~/proj/mailchimp-el" :vc (:url "https://github.com/sachac/mailchimp-el"))
+
 (defun my-brigade-reuse-or-upload-images (images)
 	"Return an alist of (ID . URL)"
 	(let* ((base-regexp "^.+?-news-\\|\\(\\.[0-9][0-9]\\)?\\.\\(jpg\\||png\\)$")
@@ -29565,20 +30216,23 @@ All right, let's try uploading the files ourselves. This uses https://github.com
                                                                 (file-name-nondirectory (assoc-default 'name o))))
                           o))
                   (assoc-default 'files (mailchimp-recent-files 100)))))
-		(mapcar
+		(mapc
 		 (lambda (img)
-			 (let* ((base (replace-regexp-in-string base-regexp ""
-                                              (file-name-base (assoc-default 'filename (cdr img)))))
-							(existing (seq-find (lambda (o) (string= base (assoc-default 'base o)))
-																	recent-files)))
-				 (push (cons 'url
-										 (if existing
-												 (assoc-default 'full_size_url existing)
-											 (alist-get 'full_size_url (mailchimp-upload-file (assoc-default 'filename (cdr img))))))
-							 (cdr img))
+			 (let* ((base
+               (and (assoc-default 'filename (cdr img))
+                    (replace-regexp-in-string base-regexp ""
+                                              (file-name-base (assoc-default 'filename (cdr img))))))
+              (existing (and base (seq-find (lambda (o) (string= base (assoc-default 'base o)))
+                                            recent-files))))
+         (when base
+				   (push (cons 'url
+										   (if existing
+												   (assoc-default 'full_size_url existing)
+											   (alist-get 'full_size_url (mailchimp-upload-file (assoc-default 'filename (cdr img))))))
+							   (cdr img)))
 				 img))
 		 images)
-    (mapcar
+    (mapc
 		 (lambda (img)
        (when (assoc-default 'extra (cdr img))
 		     (let* ((base (replace-regexp-in-string base-regexp ""
@@ -29624,33 +30278,51 @@ All right, let's try uploading the files ourselves. This uses https://github.com
 																												 (and (eq (dom-tag o) 'a)
 																															(string-match "^\\[ .+ \\]" (dom-texts o)))))
 																			'href)))
-			 (format "<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\" style=\"margin-top: 12px; margin-bottom: 12px;\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover\" valign=\"top\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"12\" rowspan=\"1\" valign=\"top\" width=\"100%%\" class=\"mceColumn\" id=\"mceColumnId--38\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0\" valign=\"top\" id=\"b812\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover;padding-top:0px;padding-bottom:0px\" valign=\"top\"><table style=\"table-layout:fixed\" width=\"100%%\" border=\"0\" cellspacing=\"24\" cellpadding=\"0\"><tbody><tr><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-809\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"background-color:transparent;border:0;border-radius:0\" valign=\"top\" class=\"mceImageBlockContainer\" id=\"b808\"><table style=\"border-collapse:separate;margin:0;vertical-align:top;max-width:100%%;width:100%%;height:auto\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0;margin:0\" valign=\"top\">%s</td></tr></tbody></table></td></tr></tbody></table></td><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-811\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0\" valign=\"top\" class=\"mceGutterContainer\" id=\"gutterContainerId-810\"><table style=\"border-collapse:separate\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0;border:0;border-radius:0\" valign=\"top\" id=\"b810\"><table style=\"border:0;background-color:transparent;border-radius:0;border-collapse:separate\" width=\"100%%\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-left:24px;padding-right:24px;\" class=\"mceTextBlockContainer\">%s</td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr>%s</tbody></table>"
-							 (if call-to-action
-									 (format "<a href=\"%s\" tabindex=\"-1\" style=\"display: block;\"><span style=\"background-color: transparent\"><img src=\"%s\" alt=\"%s\" style=\"padding-top: 12px; display:block;max-width:100%%;height:auto;border-radius:0\" width=\"306\" height=\"auto\" class=\"imageDropZone mceImage\"></span></a>"
-													 call-to-action
-													 (assoc-default 'url image)
-													 (if (not (string= (assoc-default 'alt image) ""))
-															 (assoc-default 'alt image)
-														 (car group)))
-								 (format "<img src=\"%s\" alt=\"%s\" style=\"display:block; padding-top: 12px; max-width:100%%;height:auto;border-radius:0\" width=\"306\" height=\"auto\" class=\"imageDropZone mceImage\">"
-												 (assoc-default 'url image)
-												 (if (not (string= (assoc-default 'alt image) ""))
-														 (assoc-default 'alt image)
-													 (car group))))
-							 (my-transform-html
-								(delq nil
-											(list
-											 'my-transform-html-remove-images
-											 'my-transform-html-remove-italics
-											 'my-brigade-format-buttons
-											 (when recolor
-												 'my-brigade-recolor-recursively)))
-								item)
-               ;; extra images?
-               (if (assoc-default 'extra image)
-                   (format "<tr><td colspan=\"2\" style=\"padding-top: 12px\"><img src=\"%s\" alt=\"%s\"></td></tr>" (assoc-default 'extra image) (assoc-default 'extra-alt image nil ""))
-                 "")
-               )))
+       (if (assoc-default 'filename image)
+			     (format "<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\" style=\"margin-top: 12px; margin-bottom: 12px;\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover\" valign=\"top\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"12\" rowspan=\"1\" valign=\"top\" width=\"100%%\" class=\"mceColumn\" id=\"mceColumnId--38\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0\" valign=\"top\" id=\"b812\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover;padding-top:0px;padding-bottom:0px\" valign=\"top\"><table style=\"table-layout:fixed\" width=\"100%%\" border=\"0\" cellspacing=\"24\" cellpadding=\"0\"><tbody><tr><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-809\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"background-color:transparent;border:0;border-radius:0\" valign=\"top\" class=\"mceImageBlockContainer\" id=\"b808\"><table style=\"border-collapse:separate;margin:0;vertical-align:top;max-width:100%%;width:100%%;height:auto\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0;margin:0\" valign=\"top\">%s</td></tr></tbody></table></td></tr></tbody></table></td><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-811\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding:12px\" valign=\"top\" class=\"mceGutterContainer\"><table style=\"border-collapse:separate\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0;border:0;border-radius:0\" valign=\"top\" id=\"b810\"><table style=\"border:0;background-color:transparent;border-radius:0;border-collapse:separate\" width=\"100%%\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" qqstyle=\"padding-left:24px;padding-right:24px;\" class=\"mceTextBlockContainer\">%s</td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr>%s</tbody></table>"
+							     (if call-to-action
+									     (format "<a href=\"%s\" tabindex=\"-1\" style=\"display: block;\"><span style=\"background-color: transparent\"><img src=\"%s\" alt=\"%s\" style=\"padding-top: 12px; display:block;max-width:100%%;height:auto;border-radius:0\" width=\"306\" height=\"auto\" class=\"imageDropZone mceImage\"></span></a>"
+													     call-to-action
+													     (assoc-default 'url image)
+													     (if (not (string= (assoc-default 'alt image) ""))
+															     (assoc-default 'alt image)
+														     (car group)))
+								     (format "<img src=\"%s\" alt=\"%s\" style=\"display:block; padding-top: 12px; max-width:100%%;height:auto;border-radius:0\" width=\"306\" height=\"auto\" class=\"imageDropZone mceImage\">"
+												     (assoc-default 'url image)
+												     (if (not (string= (assoc-default 'alt image) ""))
+														     (assoc-default 'alt image)
+													     (car group))))
+							     (my-transform-html
+								    (delq nil
+											    (list
+											     'my-transform-html-remove-images
+											     'my-transform-html-remove-italics
+											     'my-brigade-format-buttons
+											     (when recolor
+												     'my-brigade-recolor-recursively)))
+								    item)
+                   ;; extra images?
+                   (if (assoc-default 'extra image)
+                       (format "<tr><td colspan=\"2\" style=\"padding-top: 12px\"><img src=\"%s\" style=\"max-width: 100%%\" alt=\"%s\"></td></tr>" (assoc-default 'extra image) (assoc-default 'extra-alt image nil ""))
+                     ""))
+         ;; No images
+         (format "<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\" style=\"margin-top: 12px; margin-bottom: 12px;\"><tbody>%s%s</tbody></table>"
+                 (format "<tr><td colspan=\"2\" style=\"padding-top: 12px\">%s</td></tr>"
+                         (my-transform-html
+								          (delq nil
+											          (list
+											           'my-transform-html-remove-images
+											           'my-transform-html-remove-italics
+											           'my-brigade-format-buttons
+											           (when recolor
+												           'my-brigade-recolor-recursively)))
+								          item))
+                 ;; extra images?
+                 (if (assoc-default 'extra image)
+                     (format "<tr><td colspan=\"2\" style=\"padding-top: 12px\"><img src=\"%s\" alt=\"%s\" style=\"max-width: 100%%\"></td></tr>" (assoc-default 'extra image) (assoc-default 'extra-alt image nil ""))
+                   "")
+                 ))
+       ))
 	 (my-html-group-by-tag 'h2 section)
 	 ""))
 
@@ -32015,6 +32687,7 @@ with open("/home/sacha/.config/plover/annotated.txt", "w") as f:
 	:hook
 	(message-send . emacsconf-mail-check-for-zzz-before-sending)
 	:config
+  (setq emacsconf-refresh-schedule-from-org t)
 	(defhydra emacsconf
 		(:exit t)
 		("t" emacsconf-go-to-talk "talk")
@@ -32026,11 +32699,7 @@ with open("/home/sacha/.config/plover/annotated.txt", "w") as f:
 					 (call-interactively #'projectile-find-file)) "org dir")
 		("w" (let ((default-directory emacsconf-directory))
 					 (call-interactively #'projectile-find-file)))
-		("o"
-		 (progn
-			 (find-file (expand-file-name "organizers-notebook/index.org" (expand-file-name emacsconf-year emacsconf-directory)))
-			 (call-interactively #'consult-org-heading))
-		 "org notes")
+		("o" emacsconf-main-org-notebook-heading "org notes")
 		("a" (let ((default-directory emacsconf-ansible-directory))
 					 (call-interactively #'projectile-find-file)) "ansible")
 		("A" emacsconf-prep-agenda "agenda")

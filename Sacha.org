@@ -2312,7 +2312,7 @@ description."
 This is what that looks like:
 
 #+begin_media-post
-[[video:images/2025-07-21_23.58.10.webm?caption=Screencast: filling in a link URL based on the text]]
+[[video:https://sachachua.com/blog/2025/07/finding-unlinked-text/2025-07-21_23.58.10.webm?caption=Screencast: filling in a link URL based on the text]]
 #+end_media-post
 
 consult-omni shows me the title, first part of the URL, and a few words from the page. ~C-o~ in consult-omni previews search results, which could be handy.
@@ -2349,7 +2349,7 @@ description."
 Here's an example:
 
 #+begin_media-post
-[[video:images/2025-07-21_23.59.47.webm?caption=Screencast showing how to specify a link with completion]]
+[[video:https://sachachua.com/blog/2025/07/finding-unlinked-text/2025-07-21_23.59.47.webm?caption=Screencast showing how to specify a link with completion]]
 #+end_media-post
 
 If I decide a web search isn't the best way to find the target, I can use ~<up>~ and ~RET~ to get out of the consult-omni web search and then go to the usual Org link completion interface.
@@ -2381,7 +2381,7 @@ I can now look for untargeted links and process each one. The ~(undo-boundary)~ 
 #+begin_media-post
 Here's how that works:
 
-[[video:images/2025-07-22_07.55.26.webm?caption=Screencast showing how I can scan through the text for untargeted links and update them]]
+[[video:https://sachachua.com/blog/2025/07/finding-unlinked-text/2025-07-22_07.55.26.webm?caption=Screencast showing how I can scan through the text for untargeted links and update them]]
 
 #+begin_my_details Play by play
 1. vtime:0:00:00 I started with a search for "build thoughts out of smaller chunks" and deleted the default text to put in "developing" so that I could select my post on developing thoughts further.
@@ -6764,7 +6764,7 @@ I came across [[https://schauderbasis.de/posts/reformat_paragraph/][Schauderbasi
 - at most one sentence per line (although still wrapping at ~fill-column~)
 - according to ~fill-column~
 
-[[video:images/my-reformat-paragraph-or-region.webm?caption=Screencast cycling through different paragraph formats]]
+[[video:https://sachachua.com/blog/2025/09/emacs-cycle-through-different-paragraph-formats-all-on-one-line-wrapped-max-one-sentence-per-line-one-sentence-per-line/my-reformat-paragraph-or-region.webm?caption=Screencast cycling through different paragraph formats]]
 
 Now that [[https://cgit.git.savannah.gnu.org/cgit/emacs.git/commit?id=1682a6b606097d24050efc318f74d738c3881fb4][semantic linefeeds are part of core Emacs]] (as of 2025-06-14), the code for cycling through different paragraph formats can be pretty short. Most of it is actually just the logic for cycling through different commands. That might come in handy elsewhere. There's an [[package:unfill][unfill]] package as well, but since the code for unfilling a paragraph is very simple, I'll just include that part.
 

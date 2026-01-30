@@ -9271,6 +9271,7 @@ currently experimenting with.
                     org-mouse
                     org-protocol
                     org-annotate-file
+                    ol-info
                     org-expiry
                     org-interactive-query
                     org-collector

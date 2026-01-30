@@ -26390,6 +26390,18 @@ Democratize is similar to elisp-demos. I found out about it from [[https://fland
   (yas-global-mode 1)
   (bind-key "\t" 'hippie-expand yas-minor-mode-map)
 )
+
+(defun my-use-yasnippet-capf () (add-to-list 'completion-at-point-functions #'yasnippet-capf))
+
+(use-package yasnippet-capf
+  :after cape
+  :config
+  (add-to-list 'completion-at-point-functions #'yasnippet-capf)
+  :hook
+  (emacs-lisp-mode . my-use-yasnippet-capf)
+  (lisp-interaction-mode . my-use-yasnippet-capf)
+  (org-mode . my-use-yasnippet-capf)
+  )
 ;;        (global-set-key (kbd "C-c y") (lambda () (interactive)
 ;;                                         (yas/load-directory "~/elisp/snippets")))
 #+end_src

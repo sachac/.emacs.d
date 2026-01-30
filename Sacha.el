@@ -64,7 +64,7 @@
 (setq auto-save-file-name-transforms '((".*" "~/.config/emacs/auto-save-list/" t)))
 ;; Backups:2 ends here
 
-;; [[file:Sacha.org::*Obscure Emacs package appreciation: backup-walker][Obscure Emacs package appreciation: backup-walker:1]]
+;; [[file:Sacha.org::#about-this-file-backups-obscure-emacs-package-appreciation-backup-walker][Obscure Emacs package appreciation: backup-walker:1]]
 (setq backup-directory-alist '(("\\.env$" . nil)
 															 ("." . "~/.config/emacs/backups")))
 (with-eval-after-load 'tramp
@@ -74,7 +74,7 @@
 (setq auto-save-file-name-transforms '((".*" "~/.config/emacs/auto-save-list/" t)))
 ;; Obscure Emacs package appreciation: backup-walker:1 ends here
 
-;; [[file:Sacha.org::*Obscure Emacs package appreciation: backup-walker][Obscure Emacs package appreciation: backup-walker:2]]
+;; [[file:Sacha.org::#about-this-file-backups-obscure-emacs-package-appreciation-backup-walker][Obscure Emacs package appreciation: backup-walker:2]]
 (defun my-backup-walker-refresh ()
   (let* ((index (cdr (assq :index backup-walker-data-alist)))
          (suffixes (cdr (assq :backup-suffix-list backup-walker-data-alist)))
@@ -124,7 +124,7 @@
 	(advice-add 'backup-walker-refresh :override #'my-backup-walker-refresh))
 ;; Obscure Emacs package appreciation: backup-walker:2 ends here
 
-;; [[file:Sacha.org::*Obscure Emacs package appreciation: backup-walker][Obscure Emacs package appreciation: backup-walker:3]]
+;; [[file:Sacha.org::#about-this-file-backups-obscure-emacs-package-appreciation-backup-walker][Obscure Emacs package appreciation: backup-walker:3]]
 (use-package backup-walker
 	:vc (:url "https://github.com/lewang/backup-walker")
 	:commands backup-walker-start
@@ -590,7 +590,6 @@ targets."
 											 (buffer-file-name)
 										 (dired-get-filename))))
 		 (list
-
 			(if (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" filename)
 					(match-string 0 filename)
 				(read-string "ID: ")))))
@@ -1230,6 +1229,11 @@ invoking, give a prefix argument to `execute-extended-command'."
 (bind-key "C-t" 'my-key-chord-commands/body)
 ;; Key chords:3 ends here
 
+;; [[file:Sacha.org::#keybindings-casual][Casual:1]]
+(use-package casual
+	:load-path "~/vendor/casual/lisp")
+;; Casual:1 ends here
+
 ;; [[file:Sacha.org::#completion][Completion:1]]
 (global-completion-preview-mode 1)
 
@@ -1362,19 +1366,51 @@ invoking, give a prefix argument to `execute-extended-command'."
 		(insert url)))
 ;; Completing blog posts:1 ends here
 
-;; [[file:Sacha.org::#completing-sketches][Completing sketches:1]]
+;; [[file:Sacha.org::my-image--state][my-image--state]]
 (declare-function 'my-geeqie-view "Sacha.el")
-(defun my-preview-image (candidate state)
-  (when (and my-sketch-preview candidate) (my-geeqie-view (list candidate)))
-  nil)
 
-(defun my-complete-sketch-filename ()
+(defvar my-sketch-preview 'text
+  "*Preview sketches.
+'text means show the associated text.
+'geeqie means open image in Geeqie.
+t means open image in Emacs.")
+
+(defun my-image--state ()
+  "Manage preview window and cleanup."
+  ;; These functions are closures captured when the state is initialized by consult--read
+  (let ((preview (consult--buffer-preview))
+        (open (consult--temporary-files)))
+    ;; The returned lambda is the actual preview function called by Consult
+    (lambda (action cand)
+      (unless cand
+        (funcall open))
+      (when my-sketch-preview
+        (let ((filename (cond
+                         ((and (eq my-sketch-preview 'text)
+                               (listp cand)
+                               (alist-get 'source_path cand))
+                          (alist-get 'source_path cand))
+                         ((and (listp cand)
+                               (alist-get 'source_path cand))
+                          (my-image-filename (file-name-base (alist-get 'source_path cand))))
+                         (t cand))))
+          (when filename
+            (pcase my-sketch-preview
+              ('geeqie (my-geeqie-view (list filename)))
+              (_ (funcall preview action
+                          (and cand
+                               (eq action 'preview)
+                               (funcall open filename)))))))))))
+;; my-image--state ends here
+
+;; [[file:Sacha.org::#completing-sketches][Completing sketches:2]]
+(defun my-complete-sketch-filename (&optional filter)
   (interactive)
-  (consult--read (my-sketches)
-  		 :sort nil
-  		 :state 'my-preview-image
-  		 :prompt "Sketch: "
-  		 :category 'sketch))
+  (consult--read (my-sketches filter)
+  		           :sort nil
+  		           :state (my-image--state)
+  		           :prompt "Sketch: "
+  		           :category 'sketch))
 
 (defun my-date-from-filename (filename)
   (let ((f (file-name-nondirectory filename)))
@@ -1383,17 +1419,22 @@ invoking, give a prefix argument to `execute-extended-command'."
       nil)))
 
 (defvar my-sketches nil "Cache for sketch filenames.")
-(defun my-sketches ()
+(defun my-sketches (&optional filter)
   (interactive)
-  (sort
-   (apply 'append (mapcar (lambda (dir)
-                            (directory-files dir t "\\.\\(jpe?g\\|png\\|svg\\)$"))
-                          my-sketch-directories))
-   (lambda (a b)
-     (string< (concat (or (my-date-from-filename b) "0") (file-name-nondirectory b))
-              (concat (or (my-date-from-filename a) "0") (file-name-nondirectory a))))))
+	(let (results)
+		(setq results
+					(apply 'append (mapcar (lambda (dir)
+																	 (directory-files dir t "\\.\\(jpe?g\\|png\\|svg\\)$"))
+																 my-sketch-directories)))
+		(when filter
+			(setq results (seq-filter (lambda (o) (string-match filter o))
+																results)))
+		(sort
+		 results
+		 (lambda (a b)
+			 (string< (concat (or (my-date-from-filename b) "0") (file-name-nondirectory b))
+								(concat (or (my-date-from-filename a) "0") (file-name-nondirectory a)))))))
 
-(defvar my-sketch-preview nil "Non-nil means preview images.")
 (defun my-find-sketch (file)
   (interactive (list (my-complete-sketch-filename)))
   (find-file file))
@@ -1420,7 +1461,7 @@ invoking, give a prefix argument to `execute-extended-command'."
   (interactive "FFile: ")
   (let ((text (my-sketch-text file)))
     (insert (or text ""))))
-;; Completing sketches:1 ends here
+;; Completing sketches:2 ends here
 
 ;; [[file:Sacha.org::#consult-directory-navigation][Consult directory navigation:1]]
 (use-package consult-dir
@@ -2577,7 +2618,8 @@ Otherwise call FUN with STRING, PRED and ACTION as arguments."
     ("C" "~/proj/emacs-calendar/README.org" "Emacs calendar")
     ("e" "~/sync/emacs/Sacha.org" "Config")
     ("E" "~/sync/emacs-news/index.org" "Emacs News")
-    ("f" "~/proj/font/README.org" "Font")
+    ("f" "~/sync/orgzly/journal-fr.org" "French journal")
+    ("F" "~/sync/orgzly/french.org" "French")
     ("I" "~/sync/orgzly/computer-inbox.org" "Computer inbox")
     ("i" "~/sync/orgzly/Inbox.org" "Phone inbox")
     ("o" "~/sync/orgzly/organizer.org" "Main org file")
@@ -2669,10 +2711,9 @@ The DWIM behaviour of this command is as follows:
 	(seq-take
 	 (sort
 		(seq-mapcat (lambda (dir)
-									(directory-files-recursively dir "^[0-9][0-9][0-9][0-9]-.*\\.\\(png\\|webm\\)"))
+									(directory-files-recursively dir "[0-9][0-9][0-9][0-9]-.*\\.\\(png\\|webm\\|gif\\|svg\\)"))
 								my-screenshot-dirs)
-		:key #'file-name-base
-		:lessp #'string<
+		:key (lambda (o) (file-attribute-modification-time (file-attributes o)))
 		:reverse t)
 	 (or limit my-recent-screenshot-limit)))
 
@@ -2910,6 +2951,13 @@ The DWIM behaviour of this command is as follows:
   (setq tramp-auto-save-directory "c:\\sacha\\tmp"))
 ;; Network: TRAMP and editing files over SSH:1 ends here
 
+;; [[file:Sacha.org::#network-tramp-and-editing-files-over-ssh][Network: TRAMP and editing files over SSH:2]]
+(use-package tramp-hlo
+    :ensure t
+    :config
+    (tramp-hlo-setup))
+;; Network: TRAMP and editing files over SSH:2 ends here
+
 ;; [[file:Sacha.org::#touch][Touch gestures:1]]
 (defvar *my-previous-buffer* t
   "can we switch?")
@@ -2965,7 +3013,1178 @@ The DWIM behaviour of this command is as follows:
 (setq-default fill-column 50)
 (keymap-global-set "M-o" #'join-line)
 (keymap-global-set "M-T" #'transpose-sentences)  ; https://www.matem.unam.mx/~omar/apropos-emacs.html#writing-experience
+
+(defun my-copy-filename ()
+  (interactive)
+  (cond
+   ((derived-mode-p 'dired-mode) (dired-copy-filename-as-kill 0))
+   (t (kill-new (buffer-file-name)))))
 ;; Writing and editing:1 ends here
+
+;; [[file:Sacha.org::#multimedia-learning-french][Learning French:1]]
+(setq search-default-mode 'char-fold-to-regexp)
+;; https://emacs.stackexchange.com/questions/75521/convert-accented-characters-to-non-accented-counterparts-character-folding
+(defun my-translate-unaccented (s)
+  (mapconcat
+   (lambda (c)
+     (char-to-string
+      (car (get-char-code-property c 'decomposition))))
+   s ""))
+
+(defvar-keymap my-french-map
+  "l" #'my-french-lexique-complete-word
+  "w" #'my-french-wordreference-lookup
+  "c" #'my-french-conjugate
+  "f" #'my-french-consult-en-fr
+  "s" #'my-french-say-word-at-point)
+
+(with-eval-after-load 'org
+  (keymap-set org-mode-map "C-," my-french-map)
+  (keymap-set org-mode-map "C-c u" my-french-map)
+  )
+
+(with-eval-after-load 'flyspell
+  (keymap-set flyspell-mode-map "C-," my-french-map))
+
+(use-package wiktionary-bro
+  :config
+  (setq wiktionary-bro-language "fr")
+  )
+
+(defun my-french-chrome-speech-new-session ()
+  (interactive)
+  (my-chrome-speech-new-session "french" "fr-FR"))
+
+(use-package flycheck-grammalecte
+  :config
+  (setq flycheck-grammalecte-report-apos nil)
+  (setq flycheck-grammalecte-report-nbsp nil)
+  (setq flycheck-grammalecte-report-esp nil)
+  (with-eval-after-load 'flycheck
+    (flycheck-grammalecte-setup)))
+;; Learning French:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-gtts-cli][gtts-cli:1]]
+(defvar my-french-tts-process nil)
+(defun my-french-tts-stop ()
+  (interactive)
+  (when (process-live-p my-french-tts-process)
+    (stop-process my-french-tts-process)))
+
+(defun my-french-say (s &optional sentinel)
+  (interactive (list (if (region-active-p)
+                         (buffer-substring (region-beginning)
+                                           (region-end))
+                       (symbol-name (symbol-at-point)))))
+  (unless s
+    (setq s (symbol-name (symbol-at-point))))
+  (my-french-tts-stop)
+  (setq my-french-tts-process
+        (make-process
+         :name "gtts"
+         :command (list "sh" "-c"
+                        (format "gtts-cli -l fr %s | play -t mp3 -"
+                                (shell-quote-argument s)))
+         :sentinel sentinel)))
+
+(defun my-french-say-word-at-point ()
+  (interactive)
+  (my-french-say (word-at-point)))
+
+(defun my-french-say-sentence-at-point ()
+  (interactive)
+  (my-french-say (sentence-at-point)))
+
+(defun my-french-say-forward-sentence ()
+  (interactive)
+  (org-forward-sentence)
+  (my-french-say (sentence-at-point)))
+
+(defun my-french-say-next-new-word ()
+  (interactive)
+  (when-let ((word (my-french-find-next-new-word)))
+    (my-french-say word)))
+
+(defun my-french-find-next-new-word ()
+  (interactive)
+  (let ((pos (point))
+        (found nil))
+    (while (and (not found)
+                (< pos (point-max)))
+      (setq pos (next-overlay-change pos))
+      (dolist (ov (overlays-at pos))
+        (when (overlay-get ov 'my-french-highlight)
+          (setq found (overlay-get ov 'word))
+          (goto-char (overlay-start ov)))))
+    (if found
+        found
+      (message "No more highlights found.")
+      nil)))
+
+(defun my-french-say-overlay ()
+  (interactive)
+  (message "hello %s" (word-at-point))
+  )
+
+(defvar-keymap my-french-overlay-map
+  "<down-mouse-1>" #'my-french-say-overlay
+  "<mouse-1>" #'my-french-say-overlay)
+
+(defvar-keymap my-french-shadow-map
+  "w" #'my-french-say
+  "n" #'my-french-say-next-new-word
+  "'" #'my-french-say-sentence-at-point
+  "<left>" #'my-french-say-sentence-at-point
+  "<up>" #'my-french-say-sentence-at-point
+  "," #'my-french-say-forward-sentence
+  "<right>" #'my-french-say-forward-sentence
+  "<down>" #'my-french-say-forward-sentence
+  "q" #'my-french-tts-stop)
+(defun my-french-shadow ()
+  (interactive)
+  (set-transient-map my-french-shadow-map t))
+;; gtts-cli:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-add-shadowing-with-tts-to-subed-record][Add shadowing with tts to subed-record:1]]
+(defun my-french-prepare-subed-record ()
+  (interactive)
+  (let ((filename (expand-file-name (concat (org-entry-get (point) "DATE") ".vtt")
+                                    "~/proj/french/recordings/")))
+    (if (file-exists-p filename)
+        (find-file filename)
+      (my-subed-convert-sentences
+       (save-excursion
+         (org-back-to-heading)
+         (org-end-of-meta-data)
+         (point))
+       (save-excursion
+         (org-end-of-subtree))
+       filename
+       (concat (file-name-base filename) ".opus")))))
+
+(defun my-subed-convert-sentences (beg end filename &optional output)
+  (interactive (cond
+                ((region-active-p)
+                 (list (region-beginning)
+                       (region-end)
+                       (read-file-name)))
+                ((derived-mode-p 'org-mode)
+                 (list
+                  (save-excursion
+                    (org-back-to-heading)
+                    (org-end-of-meta-data)
+                    (point))
+                  (save-excursion
+                    (org-end-of-subtree)))
+                 (read-file-name))))
+  (let (lines pos)
+    (save-excursion
+      (goto-char beg)
+      (while (< (point) end)
+        (setq pos (point))
+        (forward-sentence)
+        (when (> (point) end) (goto-char end))
+        (push (string-trim (buffer-substring-no-properties pos (point))) lines))
+      (setq lines (nreverse lines)))
+    (with-current-buffer (find-file-noselect filename)
+      (subed-auto-insert)
+      (subed-append-subtitle-list
+       (seq-map-indexed
+        (lambda (line i)
+          (list nil 0 0 line
+                (when (= i 0)
+                  (format "#+OUTPUT: %s"
+                          (or output
+                              (concat (file-name-base filename)
+                                      ".opus"))))))
+          lines))
+      (goto-char (point-min))
+      (save-buffer)
+      (switch-to-buffer (current-buffer)))))
+
+(defun my-french-say-current-subtitle (&optional callback)
+  (interactive)
+  (my-french-say
+   (subed-subtitle-text)
+   callback))
+
+(defun my-french-say-word-at-click (event)
+  (interactive "e")
+  (mouse-set-point event)
+  (my-french-say (word-at-point)))
+
+(defun my-french-say-current-subtitle-and-reset-subed-record ()
+  (interactive)
+  (my-french-say
+   (replace-regexp-in-string "^- +" "" (subed-subtitle-text))
+   (lambda (&rest _)
+     (subed-record-retry))))
+
+(with-eval-after-load 'subed-record
+  (keymap-set subed-record-minor-mode-map "s" #'my-french-say-current-subtitle-and-reset-subed-record)
+  (keymap-set subed-mode-map "<mouse-1>" #'my-french-say-word-at-click)
+  (add-hook 'subed-record-accept-segment-hook #'my-french-say-current-subtitle-and-reset-subed-record))
+
+
+(define-minor-mode my-lang-shadow-mode "Language learning")
+(defvar-keymap my-lang-shadow-mode-map
+  "<mouse-1>" #'my-french-say-word-at-click)
+;; Add shadowing with tts to subed-record:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-practice-pronunciation][Practice pronunciation:1]]
+(defvar my-practice-dir "~/proj/french/audio")
+(defvar my-practice-temp (expand-file-name "temp.wav" my-practice-dir))
+(defun my-practice-line ()
+  (interactive)
+  (sit-for 1)
+  (let* ((date (format-time-string "%Y-%m-%d-%H-%M-%S"))
+         (filename
+          (expand-file-name
+           (concat date " "
+                   (string-trim
+                    (buffer-substring (line-beginning-position)
+                                      (line-end-position)))
+                   ".opus")
+           my-practice-dir))
+         (process (start-process "arecord"
+                                 (get-buffer-create "*record*")
+                                 "arecord" "-D" "hw:2,0" "-t" "wav" "-f" "cd"
+                                 my-practice-temp)))
+    (read-key "Press a key")
+    (kill-process process)
+    (call-process "ffmpeg" nil (get-buffer-create "*record*") nil
+                  "-y"
+                  "-i"
+                  my-practice-temp
+                  "-af" "silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,loudnorm=I=-16:LRA=11:TP=-1.5"
+                  filename)
+    (mpv-play filename)))
+
+(defun my-practice-replay ()
+  (interactive)
+  (mpv-play (my-latest-file my-practice-dir)))
+
+(defun my-practice-transcribe ()
+  (interactive)
+  (let* ((default-directory my-practice-dir)
+         (file (my-latest-file my-practice-dir "\\.opus\\|\\.m4a\\|\\.webm")))
+    ;; (call-process "/bin/bash" nil nil nil "/home/sacha/bin/whisperx" (expand-file-name file))
+    (message "%s"
+             (with-temp-buffer
+               (insert-file-contents (concat (file-name-sans-extension file) ".txt"))
+               (string-trim (buffer-string))))))
+
+(defun my-practice-play-current-reference (&optional beg end)
+  "Play the current segment."
+  (interactive)
+  (when (derived-mode-p 'subed-mode)
+    (let ((start
+           (if beg (save-excursion
+                     (goto-char beg)
+                     (subed-subtitle-msecs-start))
+             (subed-subtitle-msecs-start))
+           )
+          (stop
+           (if beg (save-excursion
+                     (goto-char end)
+                     (subed-subtitle-msecs-stop))
+             (subed-subtitle-msecs-stop))))
+      (call-process "mpv" nil nil nil (subed-media-file)
+                    (format "--start=%.3f" (/ start 1000.0))
+                    (format "--end=%.3f" (/ stop 1000.0))))))
+
+(defun my-practice-record-loop (&optional extra)
+  (interactive
+   (list (cond
+          ((and (derived-mode-p 'subed-mode)
+                (region-active-p))
+           (subed-subtitle-list-text
+            (subed-subtitle-list
+             (region-beginning)
+             (region-end))))
+          ((region-active-p)
+           (concat
+            " "
+            (string-trim
+             (buffer-substring (region-beginning) (region-end)))))
+          ((derived-mode-p 'subed-mode)
+           (concat " " (subed-subtitle-text))))))
+  (let* ((date (format-time-string "%Y-%m-%d-%H-%M-%S"))
+         (key-prompt "%d (SPC to review, RET get feedback, q to quit, any other key to retry")
+         (filename
+          (expand-file-name
+           (concat date
+                   (if extra
+                       (concat " "
+                               (string-trim (replace-regexp-in-string
+                                             "[\\?]+" " "
+                                             (car
+                                              (split-string
+                                               extra "\n")))))
+                     "")
+
+                   ".opus")
+           my-practice-dir))
+         done
+         char
+         (count 0)
+         process)
+    (while (not done)
+      (when (derived-mode-p 'subed-mode)
+        (if (region-active-p)
+            (my-practice-play-current-reference (region-beginning) (region-end))
+          (my-practice-play-current-reference)))
+      (setq count (1+ count))
+      (setq process (start-process "ffmpeg"
+                                   (get-buffer-create "*record*")
+                                   "ffmpeg" "-y" "-f" "pulse" "-i" "alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo"
+                                   my-practice-temp))
+      (setq char
+            (read-key (format key-prompt
+                              count)))
+      (while char
+        (pcase char
+          (?\  (when (process-live-p process)
+                 (sit-for 1)
+                 (kill-process process))
+               (my-practice-play-current-reference)
+               (call-process "mpv" nil nil nil my-practice-temp)
+               (setq char
+                     (read-key (format "%d (SPC to review, RET get feedback, q to quit, any other key to retry"
+                                       count))))
+          (13 (when (process-live-p process)
+                (sit-for 1)
+                (kill-process process))
+              (setq done 'feedback)
+              (setq char nil))
+          (?w            ; transcribe with Whisper
+           (my-practice-transcribe))
+          (?q
+           (when (process-live-p process) (kill-process process))
+           (setq done 'ignore)
+           (setq char nil))
+          (_
+           (when (process-live-p process) (kill-process process))
+           (setq char nil)))))
+      (when (member done '(keep feedback))
+        (call-process "ffmpeg" nil (get-buffer-create "*record*") nil
+                      "-y"
+                      "-i"
+                      my-practice-temp
+                      "-af" "loudnorm=I=-16:LRA=11:TP=-1.5"
+                      ;; "-af" "silenceremove=start_periods=1:start_duration=0:start_threshold=-100dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-100dB,areverse,loudnorm=I=-16:LRA=11:TP=-1.5"
+                      filename)
+        (when (eq done 'feedback)
+          (my-french-get-audio-feedback filename extra t)))))
+;; Practice pronunciation:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-ai-feedback][AI feedback:1]]
+(defvar my-gemini-api-key nil)
+
+(defun my-french-review-writing (input)
+  (interactive (list
+                (if (region-active-p)
+                    (buffer-substring (region-beginning) (region-end))
+                  (org--paragraph-at-point))))
+  (let* ((text
+          (concat "Check this beginner French and give me feedback/suggestions in English. I am female. Do input and output in Org Mode syntax.
+Do not put it in a code block, just return Org Mode text. Show additions using *text* and deletions using +text+. Use subheading level two or more (**, ***, and so on). Show only the smallest part needed to show the context of the change.
+
+Example output:
+
+- J'ai réfléchi *à* +sur+ l'aide : comment aider quelqu'un, comment recevoir *de l'aide* +d'aide+.
+  - *Réfléchi à* is more common than \"refléchi sur\".
+  - *Recevoir de l'aide* is better than \"d'aide\".
+
+Input:
+
+"
+                  input))
+         (json-array-type 'vector)
+         (json-object-type 'alist)
+         (body (json-encode
+                `(("contents"
+                   (("parts" .
+                     ((("text" . ,text)))))))))
+         result)
+    (setq
+     result
+     (plz 'post "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+       :headers
+       `(("Content-Type" . "application/json")
+         ("X-goog-api-key" . ,my-gemini-api-key))
+       :as #'json-read
+       :body body
+       ))
+    (when (called-interactively-p 'any)
+      (with-current-buffer (get-buffer-create "*Feedback*")
+        (org-mode)
+        (goto-char (point-min))
+        (save-excursion
+          (insert "* Feedback\n\n"
+                  (map-nested-elt result '(candidates 0 content parts 0 text))
+                  "\n\n"))
+        (display-buffer (current-buffer))))
+    (map-nested-elt result '(candidates 0 content parts 0 text)))
+  )
+
+(defun my-french-get-audio-feedback (filename &optional extra-text display)
+  (interactive (list (if current-prefix-arg
+                         (read-file-name "File: " my-practice-dir nil t nil
+                                         (lambda (filename) (string-match "\\.m4a$" filename)))
+                       (my-latest-file my-practice-dir "\\(\\.m4a\\|\\.webm\\)$"))
+                     (if (region-active-p)
+                         (buffer-substring (region-beginning) (region-end)))
+                     t))
+  (let* ((data
+          (replace-regexp-in-string
+           "\n" ""
+           (shell-command-to-string (concat "base64 " (shell-quote-argument filename)))))
+         (text
+          (concat "Give me feedback in English on this recording of beginner French practice. I am a female A0/A1 speaker. Focus first on major mispronunciations, and provide English phonetic transcriptions for those words using italicized parenthetical notes.
+
+Return your response using Org Mode syntax using only list items, not headings. Do not put it in a code block, just return Org Mode text. For example, *bold*. Score it out of 10.
+
+Example output:
+
+- Pronunciation (7 /10)
+  - travaillé /(trah vay yay)/
+"
+                  (if extra-text
+                      (concat "\n\n###\n\n" extra-text)
+                    "")))
+         (json-array-type 'vector)
+         (json-object-type 'alist)
+         (body (json-encode
+                `(("contents"
+                   (("parts" .
+                     ((("text" . ,text))
+                      (("inline_data" .
+                        (("mime_type" . "audio/mp4")
+                         ("data" . ,data))))
+                      )))))))
+         result)
+    (setq
+     result
+     (plz 'post "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+       :headers
+       `(("Content-Type" . "application/json")
+         ("X-goog-api-key" . ,my-gemini-api-key))
+       :as #'json-read
+       :body body))
+    (when display
+      (with-current-buffer (get-buffer-create "*Feedback*")
+        (org-mode)
+        (goto-char (point-min))
+        (let* ((text (map-nested-elt result '(candidates 0 content parts 0 text)))
+               (score (when (string-match "Pronunciation (\\(.+\\))" text) (match-string 1 text))))
+          (insert "* " (org-link-make-string
+                        (concat "audio:"
+                                (replace-regexp-in-string
+                                 (rx line-start
+                                     (literal (getenv "HOME")))
+                                 "~"
+                                 filename))
+                        "me:") "  "
+                        (or score "")
+                        "\n"
+                        text
+                        "\n\n"))
+        (display-buffer (current-buffer))
+        (with-selected-window (get-buffer-window (current-buffer))
+          (goto-char (point-min))
+          (recenter-top-bottom 0))))
+    (map-nested-elt result '(candidates 0 content parts 0 text))))
+;; AI feedback:1 ends here
+
+;; [[file:Sacha.org::my-org-copy-clean-version][my-org-copy-clean-version]]
+(defun my-org-copy-clean-version (text)
+  "Copy BEG to END without strike-throughs."
+  (interactive (list (if (region-active-p) (buffer-substring (region-beginning) (region-end))
+                       (sentence-at-point))))
+  (let ((result
+         (mapconcat (lambda (o)
+                             (if (stringp o)
+                                 o
+                               (car (org-element-contents o))))
+                           (seq-remove (lambda (o)
+                                         (and (listp o)
+                                              (member (org-element-type o)
+                                                      '(strike-through macro))))
+                                       (org-element-parse-secondary-string
+                                        text '(paragraph bold strike-through macro)))
+                           " ")))
+           (setq result
+             (replace-regexp-in-string
+              "  +" " "
+              (replace-regexp-in-string " [\\.,]" "\\1" result)))
+    (when (called-interactively-p 'any)
+      (message "%s" result)
+      (kill-new result))
+    result))
+;; my-org-copy-clean-version ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-ai-feedback][AI feedback:3]]
+(defun my-french-send-subtree-to-web-gemini ()
+  (interactive)
+  (my-spookfox-send-subtree-to-gemini-textarea)
+  (with-current-buffer "*gemini*"
+    (goto-char (point-min))
+    (re-search-forward "{")
+    (goto-char (match-beginning 0))
+    (setq my-french-feedback (json-read)))
+  (my-french-find-next-correction))
+;; AI feedback:3 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-using-flycheck-to-display-ai-grammar-feedback-from-gptel-as-i-learn-french][Using flycheck to display AI grammar feedback from gptel as I learn French:1]]
+(defvar-local my-lang-current-errors nil
+  "Stores the parsed JSON corrections for the current buffer.")
+
+(defun my-lang-flycheck (_checker callback)
+  (let (errors (end-pos (point-max)))
+    (save-restriction
+      (save-excursion
+        (when (derived-mode-p 'org-mode)
+          (org-narrow-to-subtree))
+        (goto-char (point-min))
+        (dolist (corr (alist-get 'corrections my-lang-current-errors))
+          (let ((case-fold-search t)
+                (match-re (alist-get 'match corr)))
+            (when (re-search-forward (concat "\\<" match-re "\\>") nil t)
+              (let* ((beg (or (match-beginning 1) (match-beginning 0)))
+                     (end (or (match-end 1) (match-end 0))))
+                (push (flycheck-error-new
+                       :line (line-number-at-pos beg t)
+                       :column (- beg (save-excursion (goto-char beg)
+                                                      (line-beginning-position)) -1)
+                       :end-line (line-number-at-pos end t)
+                       :end-column (- end (save-excursion
+                                            (goto-char end)
+                                            (line-beginning-position)) -1)
+                       :level 'error
+                       :message (format "%s: %s"
+                                        (alist-get 'suggested corr)
+                                        (alist-get 'explanation corr))
+                       :checker 'lang-gpt-checker
+                       :buffer (current-buffer))
+                      errors)))))
+        (let ((line-num (line-number-at-pos (point-min) t)))
+          (mapc
+           (lambda (note)
+             (push
+              (flycheck-error-new
+               :line line-num
+               :column 1
+               :level 'info
+               :message note
+               :checker 'lang-gpt-checker
+               :buffer (current-buffer))
+              errors))
+           (alist-get 'notes my-lang-current-errors)))))
+    (funcall callback 'finished errors)))
+
+(with-eval-after-load 'flycheck
+  (flycheck-define-generic-checker 'lang-gpt-checker
+    "Use LLM results."
+    :start #'my-lang-flycheck
+    :modes '(org-mode text-mode)
+    :predicate (lambda () (bound-and-true-p my-lang-current-errors)))
+  (add-to-list 'flycheck-checkers 'lang-gpt-checker))
+
+(defun my-lang-handle-feedback-flycheck (result)
+  "Update the local error list and trigger Flycheck."
+  (setq-local my-lang-current-errors result)
+  (setq-local flycheck-check-syntax-automatically '(save newline mode-enabled))
+  (unless flycheck-mode (flycheck-mode 1))
+  (flycheck-select-checker 'lang-gpt-checker)
+  (flycheck-buffer)
+  (flycheck-list-errors))
+;; Using flycheck to display AI grammar feedback from gptel as I learn French:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-using-flycheck-to-display-ai-grammar-feedback-from-gptel-as-i-learn-french][Using flycheck to display AI grammar feedback from gptel as I learn French:2]]
+(defvar my-lang-gptel-prompt
+  "Check this beginner French and give me feedback/suggestions in English. Input may be in Org Mode syntax. Ignore the use of \"le\" and spelled out numbers in the date header (ex: lundi, le dix novembre) since that's how my tutor wants to do it. Also, I tend to spell numbers out for practice. Don't include the full revised text or encouragement/acknowledgement unless I ask for it explicitly, just focus on the parts that need correction.
+
+Score it from 1 to 10. I prefer a casual tone, and I am female.
+
+Format the results as a JSON file like this, using Emacs Lisp regular expression syntax. The match field should be a large enough regular expression to capture context and avoid ambiguity, and it should have a single capture group \\(...\\) highlighting what specifically needs to be changed. The suggested field should have just the words that replace the capture group in the match field.
+
+```js
+{\"score\": 8,
+ \"corrections\": [
+   {\"match\": \"ou \\\\(peut-être j'ai\\\\) juste besoin\",
+    \"suggested\": \"peut-être que j'ai\",
+    \"explanation\": \"When starting a clause with 'peut-être que', the 'que' is generally required if it's followed by a subject and verb in this context.\"},
+   {\"match\": \"Petit à petit \\\\(j'améliore\\\\).\",
+    \"suggested\": \"je m'améliore\",
+    \"explanation\": \"To improve (yourself) is reflexive in French: *s'améliorer*.\"},
+   {\"match\": \"apprendre à \\\\(demander l'aide\\\\)\",
+    \"suggested\": \"demander de l'aide\",
+    \"explanation\": \"When asking for 'some' help (indefinite quantity), use the partitive article 'de l'aide' rather than the definite 'l'aide'.\"},
+   {\"match\": \"D'autre part, \\\\(a\\\\) moins\",
+    \"suggested\": \"au\",
+    \"explanation\": \"The expression is *au moins*.\"},
+   {\"match\": \"\\\\(donner la priorité à moi\\\\)\",
+    \"suggested\": \"me donner la priorité\",
+    \"explanation\": \"In French, we use the indirect object pronoun 'me' before the verb instead of 'à moi' at the end.\"}
+ ],
+ \"notes\": [
+   \"You mentioned: \\\"Mon sous-objectif n'est pas de lui enseigner.\\\" If you mean you don't want to \\\"lecture\\\" her or \\\"play the teacher,\\\" a very natural way to say that in French is: \\\"Mon but n'est pas de lui faire la leçon\\\" (literally: to give her the lesson).\"
+ ]
+}
+```
+Return just the JSON.
+###
+")
+
+(defun my-lang-gptel-send-subtree (text &rest params)
+  (interactive (list (if (region-active-p)
+                         (buffer-substring (region-beginning)
+                                           (region-end))
+                       (my-org-subtree-text))))
+  (setq my-lang-current-errors nil)
+  (message "Sending to %s..." gptel-model)
+  (let ((extra-callback (plist-get params :callback)))
+    (setq params (org-plist-delete params :callback))
+    (apply
+     'gptel-request
+     (append (list (concat my-lang-gptel-prompt text)
+                   :callback
+                   (lambda (text info)
+                     (with-current-buffer (plist-get info :buffer)
+                       (if text
+                           (let ((json-data (with-temp-buffer
+                                              (insert text)
+                                              (goto-char (point-min))
+                                              (when (re-search-forward "```json" nil t)
+                                                (goto-char (match-end 0)))
+                                              (condition-case nil
+                                                  (json-read)
+                                                (error nil
+                                                       (message "%s" (buffer-string)))))))
+                             (message "Feedback received.")
+                             (my-lang-handle-feedback-flycheck json-data))
+                         (message "GPTel error: No response"))
+                       (when extra-callback (funcall extra-callback text info)))))
+             params))))
+;; Using flycheck to display AI grammar feedback from gptel as I learn French:2 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-using-flycheck-to-display-ai-grammar-feedback-from-gptel-as-i-learn-french][Using flycheck to display AI grammar feedback from gptel as I learn French:3]]
+(defvar my-lang-gptel-clarify-prompt
+  "You are a French tutor. Answer the following question and tell me how to rephrase things.:\n\n")
+(defun my-lang-gptel-clarify (extra &optional context previous-feedback)
+  (interactive (list
+                (read-string "Text: ")
+                (if (region-active-p)
+                    (concat " " (buffer-substring (region-beginning)
+                                                  (region-end)))
+                  (sentence-at-point))
+                (when-let* ((errors
+                             (flycheck-overlay-errors-in
+                              (if (region-active-p)
+                                  (region-beginning)
+                                (car (bounds-of-thing-at-point 'sentence)))
+                              (if (region-active-p)
+                                  (region-end)
+                                (cdr (bounds-of-thing-at-point 'sentence))))))
+                   (concat "Previous feedback:\n"
+                           (mapconcat (lambda (o) (plist-get o :message))
+                                      errors "\n")
+                           "\n\n"))))
+  (with-current-buffer (get-buffer-create "*gptel*")
+    (erase-buffer)
+    (gptel-request
+        (concat
+         my-lang-gptel-clarify-prompt
+         "<context>"
+         context
+         "</context>\n<previous-feedback>\n"
+         (or previous-feedback "")
+         "</previous-feedback><question>\n"
+         extra
+         "\n</question>")
+      :callback (lambda (response info)
+                  (with-current-buffer (plist-get info :buffer)
+                    (insert response)
+                    (goto-char (point-min))
+                    (display-buffer-other-window
+                     (current-buffer)))))))
+;; Using flycheck to display AI grammar feedback from gptel as I learn French:3 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-process-audio-files][Process audio files:1]]
+(defun my-audio-clip (source start-time end-time destination text)
+  (interactive
+   (let ((s (and (region-active-p) (buffer-substring (region-beginning) (region-end)))))
+     (if (and s
+              (string-match "\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)[ \n\t]+\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)" s))
+         (let ((start (match-string 1 s))
+               (end (match-string 2 s)))
+           (list
+            (read-file-name "Source: " nil nil t)
+            start
+            end
+            (read-file-name "Destination: ")
+            (read-string "Text: ")))
+       (list (read-file-name "Source: " nil nil t)
+             (read-string "Start time: ")
+             (read-string "End time: ")
+             (read-file-name "Destination: ")
+             (read-string "Text: ")))))
+  (let ((result (call-process "ffmpeg" nil (get-buffer-create "*ffmpeg*") nil
+                              "-y" ; Overwrite output file without asking
+                              "-i" (expand-file-name source) ; Input file
+                              "-ss" start-time ; Start time (e.g., 00:00:10)
+                              "-to" end-time ; End time/Stop time
+                              (expand-file-name destination))))
+    (when result
+      (when (region-active-p) (delete-region (region-beginning) (region-end)))
+      (insert (org-link-make-string
+               (concat "audio:" (replace-regexp-in-string (getenv "HOME") "~" destination))
+               text)))))
+;; Process audio files:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-save-journal-entries-for-analysis][Save journal entries for analysis:1]]
+(defun my-french-write-journal-entries-for-subtree ()
+  (interactive)
+  (org-map-entries
+   (lambda ()
+     (when (org-entry-get (point) "DATE")
+       (let ((text (my-org-subtree-text)))
+
+         (with-temp-file (expand-file-name (concat (org-entry-get (point) "DATE") ".txt")
+                                           "~/proj/french/journal")
+           (insert text)))))
+   nil 'tree))
+;; Save journal entries for analysis:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-load-en-fr-dictionary][Load en-fr dictionary:1]]
+(defvar my-french-en-fr-dictionary-file "~/proj/french/dic-en-fr.iso")
+(defvar my-french-dictionary nil)
+(defun my-french-load-dict ()
+  (interactive)
+  (with-temp-buffer
+    (insert-file-contents my-french-en-fr-dictionary-file)
+    (goto-char (point-min))
+    (while (looking-at "^# ") (forward-line 1))
+    (setq my-french-dictionary
+          (seq-keep (lambda (s)
+                      (when (string-match "^\\(.+?\\) {\\(.+?\\)}\\(?: /\\(.+?\\)/\\)?\\(?: (\\(.+?\\))\\)?\\( SEE: .+?\\)? ::\\(?: \\(.+?\\) *\\({.+}.*\\)?\\)?$" s)
+                        (let ((headword (match-string 1 s))
+                              (head-type (match-string 2 s))
+                              (def (match-string 4 s))
+                              (see (match-string 5 s))
+                              (translation (match-string 6 s))
+                              (types (match-string 7 s)))
+                          (cons
+                           (propertize (format "%s {%s} - %s - %s :: %s"
+                                               headword
+                                               head-type
+                                               (or see translation)
+                                               (or def "")
+                                               (or types ""))
+                                       'face
+                                       (cond
+                                        ((null types) nil)
+                                        ((string-match "^{m}" types) 'modus-themes-subtle-blue)
+                                        ((string-match "^{f}" types) 'modus-themes-subtle-magenta)))
+                           translation))))
+                    (split-string (buffer-substring (point) (point-max)) "\n")))
+    (seq-take my-french-dictionary 10)))
+
+(defun my-french-consult-en-fr ()
+  (interactive)
+  (unless my-french-dictionary (my-french-load-dict))
+  (insert
+   (consult--read
+    (consult--dynamic-collection
+        (lambda (input)
+          (let (match-start
+                match-any
+                exact
+                (search (regexp-quote input)))
+            (seq-map (lambda (o)
+                       (cond
+                        ((string-match (concat "^" search " - ") (car o))
+                         (push o exact))
+                        ((string-match (concat "^" search) (car o))
+                         (push o match-start))
+                        ((string-match search (car o))
+                         (push o match-any))))
+                     my-french-dictionary)
+            (append
+             (nreverse exact)
+             (nreverse match-start)
+             (nreverse match-any)
+             nil))))
+    :sort nil
+    :lookup #'consult--lookup-cdr)))
+;; Load en-fr dictionary:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-conjugation][Conjugation:1]]
+(defun my-french-conjugate-grammalecte (input)
+  "Query Grammalecte for INPUT."
+  (interactive (list (my-french-lexique-complete-word)))
+  (grammalecte-conjugate-verb input))
+
+(defvar my-french-verbe-db "~/vendor/verbe-conjugaison-academie-francaise/output/verbs.db")
+
+(defun my-french-conjugate (input &optional all-forms)
+  (interactive (list (my-french-lexique-complete-word)
+                     (null current-prefix-arg)))
+  (let* ((db (sqlite-open my-french-verbe-db))
+         (value
+          (consult--read
+           (if all-forms
+               (mapcar (lambda (row)
+                         (cons (string-join
+                                (list
+                                 (elt row 0)
+                                 (elt row 1)
+                                 (elt row 2)
+                                 (elt row 4)
+                                 (elt row 3))
+                                " - ")
+                               (elt row 0)))
+
+                       (sqlite-select db
+                                      "SELECT
+    conjugaison, voix, mode, temps, personne
+FROM verbes v
+JOIN conjugaisons c
+ON v.id = c.verbe_id WHERE v.infinitif = ?
+ORDER BY temps, mode, personne" (list input)))
+             (mapcar (lambda (row)
+                         (cons (string-join
+                                (list
+                                 (elt row 0)
+                                 (elt row 4)
+                                 (elt row 3))
+                                " - ")
+                               (elt row 0)))
+
+                       (sqlite-select db
+                                      "SELECT
+    conjugaison, voix, mode, temps, personne
+FROM verbes v
+JOIN conjugaisons c
+ON v.id = c.verbe_id WHERE v.infinitif = ?
+AND temps in (?, ?)
+AND mode=?
+ORDER BY temps, mode, personne"
+                                      (list input "present" "passe_compose"  "indicatif"))))
+           :prompt "Verbe: "
+           :lookup 'consult--lookup-cdr)))
+    (sqlite-close db)
+    (when (called-interactively-p 'any)
+      (when (word-at-point)
+          (delete-region (save-excursion
+                           (skip-syntax-backward "w")
+                           (point))
+                         (save-excursion
+                           (skip-syntax-forward "w")
+                           (point))))
+      (insert value))
+    value))
+;; Conjugation:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-looking-up-words-via-wordreference][Looking up words via wordreference:1]]
+(defvar my-french-wordreference-cache nil)
+
+(defun my-french-wordreference-completing-read ()
+  (interactive)
+  (consult--read
+   (consult--dynamic-collection
+       (lambda (input)
+         (message "input: %s" input)
+         (with-current-buffer
+             (url-retrieve-synchronously
+              (concat "https://www.wordreference.com/autocomplete?dict=enfr&query="
+                      (url-hexify-string input)))
+			     (set-buffer-multibyte t)
+           (goto-char (point-min))
+           (re-search-forward "^$" nil t)
+           (prog1
+               (mapcar (lambda (row)
+                         (let ((fields (split-string row "\t")))
+                           (propertize
+                            (format "%s (%s)"
+                                    (car fields)
+                                    (cadr fields))
+                            'consult--candidate
+                            fields)))
+                       (split-string
+                        (string-trim (buffer-substring (point) (point-max))) "\n"))
+             (kill-buffer (current-buffer))))))
+   :sort nil
+   :add-history (list (word-at-point))
+   :history 'my-french-wordreference-lookup-history
+   :prompt "Word: "
+   :category 'word))
+
+(defvar-keymap my-french-wordreference-keymap
+  "v" #'my-spookfox-scroll-down
+  "V" #'my-spookfox-scroll-up
+  "c" #'my-french-conjugate-last-word
+  "l" #'my-french-wordreference-lookup)
+
+(defvar my-french-wordreference-lookup-history nil)
+(defun my-french-wordreference-lookup (word)
+  (interactive (list (my-french-wordreference-completing-read)))
+  (let (language)
+    (if (string-match " (\\(en\\|fr\\))" word)
+        (setq language (match-string 1 word)
+              word (replace-match "" nil t word 0)))
+    (setq word (replace-regexp-in-string "^#" "" word))
+    (browse-url
+     (format "https://www.wordreference.com/%s/%s"
+             (if (string= language "fr")
+                 "fren"
+               "enfr")
+             (url-hexify-string word))))
+  (set-transient-map my-french-wordreference-keymap t))
+
+(defun my-french-conjugate-last-word ()
+  (interactive)
+  (grammalecte-conjugate-verb
+   (replace-regexp-in-string " (.+)" ""
+                             (car my-french-wordreference-lookup-history))))
+
+(defun my-french-wordreference-conjugate (word)
+  (interactive (list (my-french-wordreference-completing-read)))
+  (browse-url (concat "https://www.wordreference.com/conj/frverbs.aspx?v="
+                      (url-hexify-string (if (listp word) (car word) word)))))
+
+(defun my-french-reverso (s)
+  (interactive (list (if (region-active-p)
+                         (buffer-substring (region-beginning) (region-end))
+                       (word-at-point))))
+  (browse-url (concat "https://www.reverso.net/text-translation#sl=fra&tl=eng&text="
+                      (url-hexify-string s))))
+;; Looking up words via wordreference:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-lexique][Lexique:1]]
+(defvar my-french-lexique-db "~/proj/french/lexique.db" "SQLite3 DB")
+;; Lexique:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-lexique][Lexique:4]]
+(defvar my-french-csv-path "/home/sacha/proj/french/french_vocabulary_list.csv")
+(defvar my-french-known-lemmas nil)
+(defun my-french-lexique-lookup-db-exact (input)
+  "Query the Lexique SQLite database for INPUT."
+  (let ((db (sqlite-open my-french-lexique-db)))
+    (prog1 (sqlite-select db
+                          "SELECT ortho, lemme, genre, nombre, phon, syll, infover FROM lexique
+                    WHERE ortho=? ORDER BY freqfilms2 DESC LIMIT 1"
+                          (list input))
+      (sqlite-close db))))
+
+(defun my-french-lexique-lookup-db-flat (input)
+  "Query the Lexique SQLite database for INPUT."
+  (let ((db (sqlite-open my-french-lexique-db)))
+    (prog1 (sqlite-select db
+                          "SELECT ortho, lemme, genre, nombre, phon, syll, infover FROM lexique
+                    WHERE ortho_flat LIKE ? OR ortho LIKE ? ORDER BY freqfilms2 DESC LIMIT 50"
+                          (list (concat (downcase input) "%")
+                                (concat (downcase input) "%")))
+      (sqlite-close db))))
+
+(defun my-french-lexique-lookup-db-lemma (input)
+  "Query the Lexique SQLite database for INPUT."
+  (let ((db (sqlite-open my-french-lexique-db)))
+    (prog1 (sqlite-select db
+                          "SELECT ortho, lemme, genre, nombre, infover, phon, syll, ortho_flat FROM lexique
+                    WHERE lemme LIKE ? ORDER BY freqfilms2 DESC LIMIT 50"
+                          (list (concat input "%")))
+      (sqlite-close db))))
+
+(defun my-french-lexique-complete-word ()
+  (interactive)
+  (let* ((selection
+          (consult--read
+           (consult--dynamic-collection
+               (lambda (input)
+                 (mapcar (lambda (row)
+                           (let ((word (nth 0 row))
+                                 (gender (nth 2 row))
+                                 (number (nth 3 row))
+                                 (ipa (my-french-lexique-to-ipa (nth 5 row)))
+                                 (infover (nth 6 row)))
+                             ;; Format the string for the completion buffer
+                             (cons
+                              (propertize
+                               (format "%-20s [%s] (%s)" word ipa
+                                       (string-join
+                                        (delq nil (list gender number infover))
+                                        ", "))
+                               'consult--candidate word
+                               'face
+                               (pcase gender
+                                 ("m" 'modus-themes-subtle-blue)
+                                 ("f" 'modus-themes-subtle-magenta)))
+                              word)))
+                         (my-french-lexique-lookup-db-flat input))))
+           :prompt "French word: "
+           :initial (word-at-point)
+           :sort nil
+           :lookup #'consult--lookup-cdr
+           :category 'french-word)))
+    (when selection
+      (when (called-interactively-p 'any)
+        (when (word-at-point)
+          (delete-region (save-excursion
+                           (skip-syntax-backward "w")
+                           (point))
+                         (save-excursion
+                           (skip-syntax-forward "w")
+                           (point))))
+        (insert selection))
+      selection)))
+;; Lexique:4 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-write-a-completion-at-point-function-for-french][Write a completion-at-point function for French:1]]
+(defun my-french-lexique-completion-at-point ()
+  (let ((bounds (bounds-of-thing-at-point 'word)))
+    (when bounds
+      (list (car bounds)
+            (cdr bounds)
+            (mapcar (lambda (row)
+                      (let ((word (nth 0 row))
+                            (gender (nth 2 row))
+                            (number (nth 3 row))
+                            (ipa (my-french-lexique-to-ipa (nth 5 row)))
+                            (infover (nth 6 row)))
+                        word))
+                    (my-french-lexique-lookup-db-flat
+                     (buffer-substring-no-properties
+                      (car bounds)
+                      (cdr bounds))))
+            :exclusive 'no))))
+(with-eval-after-load 'org
+  (add-hook 'org-mode-hook
+            (lambda ()
+              (when (and (buffer-file-name) (string-match "journal-fr\\|french" (buffer-file-name)))
+                (add-hook 'completion-at-point-functions 'my-french-lexique-completion-at-point)))))
+;; Write a completion-at-point function for French:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-learning-french-highlight-and-count-new-words-in-journal-entries][Highlight and count new words in journal entries:1]]
+(defun my-french-load-known-lemmas ()
+  "Parse the CSV and return a hash table of lemma -> info."
+  (let* ((known (make-hash-table :test 'equal))
+         (data (cdr (pcsv-parse-file my-french-csv-path))))
+    (mapc
+     (lambda (o)
+       (unless (gethash (elt o 2) known)
+         (puthash (elt o 2) o known))
+       (unless (gethash (elt o 0) known)
+         (puthash (elt o 0) o known)))
+     data)
+    (setq my-french-known-lemmas known)))
+
+(defvar my-french-ignore
+  (with-temp-buffer
+    (insert-file-contents "~/proj/french/ignored.txt")
+    (split-string (string-trim (buffer-string)) "\n")))
+
+(defun my-french-lexique-to-ipa (s)
+  (mapconcat (lambda (c)
+               (pcase c
+                 (?O "ɔ")
+                 (?E "ɛ")
+                 (?° "ə")
+                 (?2 "ø")
+                 (?9 "œ")
+                 (?S "ʃ")
+                 (?5 "ɛ̃")
+                 (?Z "ʒ")
+                 (?@ "ɑ̃")
+                 (?1 "œ̃")
+                 (?§ "ɔ̃")
+                 (?8 "ɥ")
+                 (?R "ʁ")
+                 (_ (char-to-string c))))
+               s ""))
+
+(defvar my-french-show-pronunciation t "*Non-nil means show pronunciation.")
+
+(defun my-french-highlight-new-words-in-subtree ()
+  "Highlight words in the current subtree based on lexique.db and CSV data."
+  (interactive)
+  (save-excursion
+    (my-french-remove-new-word-highlights)
+    (if (org-entry-get-with-inheritance "DATE")
+        (let* ((subtree-date (org-entry-get-with-inheritance "DATE"))
+               (known-lemmas (or my-french-known-lemmas (my-french-load-known-lemmas)))
+               (seen-so-far (make-hash-table :test 'equal))
+               (beg (save-excursion (org-back-to-heading t) (org-end-of-meta-data) (point)))
+               (end (save-excursion (org-end-of-subtree t) (point)))
+               (count-new 0)
+               (count-words 0))
+          (save-excursion
+            (goto-char beg)
+            (while (and (< (point) end) (re-search-forward "\\b[[:alpha:]-]+\\b" end t))
+              (let* ((word (match-string 0))
+                     (info (and (or
+                                 (not (car (gethash (downcase word) known-lemmas)))
+                                 (not (string>
+                                       subtree-date
+                                       (car (gethash (downcase word) known-lemmas)))))
+                                (car (my-french-lexique-lookup-db-exact (downcase word))))))
+                (setq count-words (1+ count-words))
+                (when info
+                  (let* ((lemma (elt info 1))
+                         (gender (elt info 2))
+                         (syll (propertize (concat " (" (elt info 5) ")")
+                                           'face
+                                           'modus-themes-fg-cyan-faint
+                                           'keymap
+                                           my-french-overlay-map
+                                           ))
+                         (csv-date (car (gethash lemma known-lemmas)))
+                         (is-new (and (or (null csv-date)
+                                          (and subtree-date (not (string> subtree-date
+                                                                          csv-date))))
+                                      (not (gethash lemma seen-so-far))
+                                      (not (member lemma my-french-ignore)))))
+                    (when is-new
+                      (puthash lemma (list subtree-date word lemma) seen-so-far)
+                      (puthash lemma (list subtree-date word lemma) my-french-known-lemmas)
+                      (puthash word (list subtree-date word lemma) my-french-known-lemmas)
+                      (setq count-new (1+ count-new))
+                      (let ((ov (make-overlay (match-beginning 0) (match-end 0)))
+                            (face (cond
+                                   ((string-equal gender "m") 'modus-themes-subtle-blue)
+                                   ((string-equal gender "f") 'modus-themes-subtle-magenta)
+                                   (t 'modus-themes-subtle-green))))
+                        (overlay-put ov 'my-french-highlight t)
+                        (overlay-put ov 'word word)
+                        (overlay-put ov 'evaporate t)
+                        (when my-french-show-pronunciation
+                          (overlay-put ov 'after-string (my-french-lexique-to-ipa syll)))
+                        (overlay-put ov 'face face)))))))
+            (org-back-to-heading)
+            (let ((ov (make-overlay (line-beginning-position) (line-end-position))))
+              (overlay-put ov 'after-string (format " + %d = %d" count-new count-words))
+              (overlay-put ov 'my-french-highlight t))
+            (when (called-interactively-p 'any)
+              (message "%d total words, %d new lemmas" count-words count-new))
+            (cons count-new count-words)))
+      (let ((data (org-map-entries #'my-french-highlight-new-words-in-subtree "DATE={.}" 'tree)))
+        (org-back-to-heading)
+        (let ((ov (make-overlay (line-beginning-position) (line-end-position))))
+          (overlay-put ov 'evaporate t)
+          (overlay-put ov 'after-string
+                       (format " + %d = %d"
+                               (apply '+ (mapcar 'car data))
+                               (apply '+ (mapcar 'cdr data))))
+          (overlay-put ov 'my-french-highlight t))))))
+
+  (defun my-french-remove-new-word-highlights ()
+    "Remove all word highlights created by `my-french-highlight-new-words-in-subtree'."
+    (interactive)
+    (let ((beg (save-excursion (org-back-to-heading t) (point)))
+          (end (save-excursion (org-end-of-subtree t) (point))))
+      (remove-overlays beg end 'my-french-highlight t)))
+;; Highlight and count new words in journal entries:1 ends here
 
 ;; [[file:Sacha.org::#gif-screencast][gif-screencast:1]]
 (defun my-gif-screencast-start-or-stop-and-choose-thumbnail ()
@@ -3053,6 +4272,7 @@ The DWIM behaviour of this command is as follows:
 	(interactive "r")
 	(let ((overlay (make-overlay beg end)))
 		(overlay-put overlay 'redact t)
+    (overlay-put overlay 'evaporate t)
 		(overlay-put overlay 'display
 								 (cond
 									((functionp func)
@@ -3665,19 +4885,36 @@ more text")))
 ;; Markdown:1 ends here
 
 ;; [[file:Sacha.org::#screenshot][Screenshot:1]]
-(defun screenshot-svg ()
+(defun my-screenshot-svg (&optional filename)
   "Save a screenshot of the current frame as an SVG image.
 Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   (let* ((filename
-					(expand-file-name
-					 (format-time-string "%Y-%m-%d-%H-%M-%S.svg")
-					 my-recordings-dir))
+          (or filename
+					    (expand-file-name
+					     (format-time-string "%Y-%m-%d-%H-%M-%S.svg")
+					     my-recordings-dir)))
          (data (x-export-frames nil 'svg)))
     (with-temp-file filename
       (insert data))
-    (kill-new filename)
-    (message filename)))
+    (when (called-interactively-p 'any)
+      (kill-new filename)
+      (message filename))
+    filename))
+
+(defun my-screenshot-current-screen (&optional filename)
+  (interactive)
+  (let ((new-file
+         (or filename
+             (expand-file-name
+              (format-time-string "%Y-%m-%d-%H-%M-%S.png")
+              my-recordings-dir))))
+    (make-process
+     :name "spectacle"
+     :command
+     (list "spectacle" "-b" "-m" "-n" "-o" new-file))
+    new-file))
+
 (keymap-global-set "C-c s" #'screenshot-svg)
 ;; Screenshot:1 ends here
 
@@ -3758,8 +4995,10 @@ Initialize with ELEMENT-LIST if this is the first time."
 If a region is selected, handle all paragraphs within that region."
   (interactive)
 	(let ((func (my-repeat-next 'my-reformat-paragraph
-															'(fill-paragraph my-unfill-paragraph fill-paragraph-semlf
-																							 my-fill-paragraph-semlf-long)
+															'(my-fill-paragraph-semlf-long
+                                fill-paragraph-semlf
+                                fill-paragraph
+                                my-unfill-paragraph)
 															(not (eq this-command last-command))))
 				(deactivate-mark nil))
 		(if (region-active-p)
@@ -3782,15 +5021,17 @@ If a region is selected, handle all paragraphs within that region."
 									(funcall func)
 									(if fill-forward-paragraph-function
 											(funcall fill-forward-paragraph-function)
-										(forward-paragraph)))))
-							)))
-			(funcall func))))
+										(forward-paragraph))))))))
+			(save-excursion
+				(move-to-left-margin)
+				(funcall func)))))
 
 (keymap-global-set "M-q" #'my-reformat-paragraph-or-region)
 ;; Emacs: Cycle through different paragraph formats: all on one line, wrapped, max one sentence per line, one sentence per line:1 ends here
 
-;; [[file:Sacha.org::*Visual line][Visual line:1]]
+;; [[file:Sacha.org::#writing-and-editing-visual-line][Visual line:1]]
 (global-visual-line-mode)
+(add-hook 'minibuffer-mode-hook (lambda () (visual-line-mode -1)))
 ;; Visual line:1 ends here
 
 ;; [[file:Sacha.org::#unicode][Unicode:1]]
@@ -3872,6 +5113,1021 @@ If a region is selected, handle all paragraphs within that region."
 	(dired my-audio-braindump-dir "-lt"))
 (defalias 'my-phone-dired #'my-audio-braindump-dired)
 ;; Transcripts from my phone:1 ends here
+
+;; [[file:Sacha.org::#speech-recognition][Speech recognition:1]]
+(use-package caser
+  :bind
+  ("M-D" . caser-dashcase-dwim))
+;; Speech recognition:1 ends here
+
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:1]]
+(use-package whisper
+  :vc (:url "https://github.com/natrys/whisper.el")
+  :load-path "~/vendor/whisper.el"
+  :config
+  (setq whisper--mode-line-recording-indicator "⏺")
+  (setq whisper-quantize "q4_0")
+  (setq whisper-install-directory "~/vendor")
+  (setq whisper--install-path (concat
+     (expand-file-name (file-name-as-directory whisper-install-directory))
+     "whisper.cpp/"))
+  ;; Get it running with whisper-server-mode set to nil first before you switch to 'local.
+  ;; If you change models,
+  ;; (whisper-install-whispercpp (whisper--check-install-and-run nil "whisper-start"))
+  (setq whisper-server-mode 'local)
+  (setq whisper-model "base")
+  (setq whisper-return-cursor-to-start nil)
+  ;(setq whisper--ffmpeg-input-device "alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo")
+  (setq whisper--ffmpeg-input-device "VirtualMicSink.monitor")
+  (setq whisper-language "en")
+  (setq whisper-recording-timeout 3000)
+  (setq whisper-before-transcription-hook nil)
+  (setq whisper-use-threads (1- (num-processors)))
+  (setq whisper-transcription-buffer-name-function 'whisper--simple-transcription-buffer-name)
+  (add-hook 'whisper-after-transcription-hook 'my-subed-fix-common-errors-from-start -100)
+  :bind
+  (("<f9>" . whisper-run)
+   ("C-<f9>" . my-whisper-run)
+   ("S-<f9>" . my-whisper-replay)
+   ("M-<f9>" . my-whisper-toggle-language)))
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:1 ends here
+
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:2]]
+(defvar my-whisper-org-reminder-template "t")
+
+(defun my-whisper-org-process-reminder ()
+  (let ((text (buffer-string))
+        reminder)
+    (when (string-match "computer[,\.]? reminds? me to \\(.+\\)" text)
+      (setq reminder (match-string 1 text))
+      (save-window-excursion
+        (with-current-buffer (if (markerp whisper--marker) (marker-buffer whisper--marker) (current-buffer))
+          (when (markerp whisper--marker) (goto-char whisper--marker))
+          (org-capture nil my-whisper-org-reminder-template)
+          (insert reminder)
+          (org-capture-finalize)))
+      (erase-buffer))))
+
+(with-eval-after-load 'whisper
+  (add-hook 'whisper-after-transcription-hook 'my-whisper-org-process-reminder 50))
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:2 ends here
+
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:3]]
+(defvar my-whisper-dir "~/recordings/whisper/")
+(defun my-whisper-set-temp-filename ()
+  (setq whisper--temp-file (expand-file-name
+                            (format-time-string "%Y-%m-%d-%H-%M-%S.wav")
+                            my-whisper-dir)))
+
+(with-eval-after-load 'whisper
+  (add-hook 'whisper-before-transcription-hook #'my-whisper-set-temp-filename))
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:3 ends here
+
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:4]]
+(defun my-whisper-replay (&optional file)
+  "Replay the last temporary recording."
+  (interactive (list
+                (when current-prefix-arg
+                  (read-file-name "File: " my-whisper-dir))))
+  (setq whisper--temp-file (or file whisper--temp-file))
+  (mpv-play whisper--temp-file))
+
+(defun my-whisper-insert-retry (&optional file)
+  (interactive (list
+                (when current-prefix-arg
+                  (read-file-name "File: " my-whisper-dir))))
+  (whisper--cleanup-transcription)
+  (setq whisper--marker (point-marker)
+        whisper--temp-file (or file whisper--temp-file))
+  (whisper--transcribe-audio))
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:4 ends here
+
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:5]]
+(defun my-whisper-toggle-language ()
+  "Set the language explicitly, since sometimes auto doesn't figure out the right one."
+  (interactive)
+  (setq whisper-language (if (string= whisper-language "en") "fr" "en"))
+  ;; If using a server, we need to restart for the language
+  (when (process-live-p whisper--server-process) (kill-process whisper--server-process))
+  (message "%s" whisper-language))
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:5 ends here
+
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:6]]
+(defun my-whisper-reset (text)
+  (setq my-whisper-skip-annotation nil)
+  (remove-hook 'whisper-insert-text-at-point #'my-whisper-org-save-to-clocked-task)
+  text)
+
+;; Only works with my tweaks to whisper.el
+;; https://github.com/sachac/whisper.el/tree/whisper-insert-text-at-point-function
+(with-eval-after-load 'whisper
+  (setq whisper-insert-text-at-point
+        '(my-whisper-handle-commands
+          my-whisper-save-text
+          my-whisper-save-to-file
+          my-whisper-maybe-type
+          my-whisper-insert
+          my-whisper-reset)))
+
+(defvar my-whisper-last-annotation nil "Last annotation so we can skip duplicates.")
+(defvar my-whisper-skip-annotation nil)
+(defvar my-whisper-target-markers nil "List of markers to send text to.")
+
+(defun my-whisper-insert (text)
+  (let ((markers
+         (cond
+          ((null my-whisper-target-markers)
+           (list whisper--marker)) ; current point where whisper was started
+          ((listp my-whisper-target-markers)
+           my-whisper-target-markers)
+          ((markerp my-whisper-target-markers)
+           (list my-whisper-target-markers))))
+        (orig-point (point))
+        (orig-buffer (current-buffer)))
+    (when text
+      (mapcar (lambda (marker)
+                (with-current-buffer (marker-buffer marker)
+                  (save-restriction
+                    (widen)
+
+                    (when (markerp marker) (goto-char marker))
+                    (when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
+                      (insert "\n"))
+                    (whisper--insert-text
+                     (concat
+                      (if (looking-back "[ \t\n]\\|^")
+                          ""
+                        " ")
+                      (string-trim text)))
+                    ;; Move the marker forward here
+                    (move-marker marker (point)))))
+              markers)
+      (when my-whisper-target-markers
+        (goto-char orig-point))
+      nil)))
+
+(defun my-whisper-maybe-type (text)
+  (when text
+    (if (frame-focus-state)
+        text
+      (make-process :name "xdotool" :command
+                    (list "xdotool" "type"
+                          text))
+      nil)))
+
+(defun my-whisper-clear-markers ()
+  (interactive)
+  (setq my-whisper-target-markers nil))
+
+(defun my-whisper-use-current-point (&optional add)
+  (interactive (list current-prefix-arg))
+  (if add
+      (push (point-marker) my-whisper-target-markers)
+    (setq my-whisper-target-markers (list (point-marker)))))
+
+(defun my-whisper-run-at-point (&optional add)
+  (interactive (list current-prefix-arg))
+  (my-whisper-clear-markers)
+  (whisper-run))
+
+(keymap-global-set "<f9>" #'my-whisper-run-at-point)
+(keymap-global-set "<kp-1>" #'whisper-run)
+
+(defun my-whisper-jump-to-marker ()
+  (interactive)
+  (with-current-buffer (marker-buffer (car my-whisper-target-markers))
+    (goto-char (car my-whisper-target-markers))))
+
+(defun my-whisper-use-currently-clocked-task (&optional add)
+  (interactive (list current-prefix-arg))
+  (save-window-excursion
+    (save-restriction
+      (save-excursion
+        (org-clock-goto)
+        (org-end-of-meta-data)
+        (org-end-of-subtree)
+        (if add
+            (push (point-marker) my-whisper-target-markers)
+          (setq my-whisper-target-markers (list (point-marker))))))))
+
+(defun my-whisper-run (&optional skip-annotation)
+  (interactive (list current-prefix-arg))
+  (require 'whisper)
+  (add-hook 'whisper-insert-text-at-point #'my-whisper-org-save-to-clocked-task -10)
+  (whisper-run)
+  (when skip-annotation
+    (setq my-whisper-skip-annotation t)))
+
+(defun my-whisper-save-text (text)
+  "Save TEXT beside `whisper--temp-file'."
+  (when text
+    (let ((link (org-store-link nil)))
+      (with-temp-file (concat (file-name-sans-extension whisper--temp-file) ".txt")
+        (when link
+          (insert link "\n"))
+        (insert text)))
+    text))
+
+(defun my-whisper-org-save-to-clocked-task (text)
+  (when text
+    (save-window-excursion
+      (with-current-buffer (if (markerp whisper--marker) (marker-buffer whisper--marker) (current-buffer))
+        (when (markerp whisper--marker) (goto-char whisper--marker))
+        ;; Take a screenshot maybe
+        (let* ((link (and (not my-whisper-skip-annotation)
+                          (org-store-link nil)))
+               (region (and (region-active-p) (buffer-substring (region-beginning) (region-end))))
+               (screenshot-filename
+                (when (or
+                       (null link)
+                       (not (string= my-whisper-last-annotation link))
+                       (not (frame-focus-state))) ; not in focus, take a screenshot
+                  (my-screenshot-current-screen (concat (file-name-sans-extension whisper--temp-file) ".png")))))
+          (if (org-clocking-p)
+              (save-window-excursion
+                (save-restriction
+                  (save-excursion
+                    (org-clock-goto)
+                    (org-end-of-subtree)
+                    (unless (bolp)
+                      (insert "\n"))
+                    (insert "\n")
+                    (if (and link (not (string= my-whisper-last-annotation link)))
+                        (insert
+                         (if screenshot-filename
+                             (concat "(" (org-link-make-string
+                                          (concat "file:" screenshot-filename)
+                                          "screenshot") ") ")
+                           "")
+                         link
+                         "\n")
+                      (when screenshot-filename
+                        (insert (org-link-make-string
+                                 (concat "file:" screenshot-filename)
+                                 "screenshot")
+                                "\n")))
+                    (when region
+                      (insert "#+begin_example\n" region "\n#+end_example\n"))
+                    (insert text "\n")
+                    (setq my-whisper-last-annotation link)))
+                (run-at-time 0.5 nil (lambda (text) (message "Added clock note: %s" text)) text))
+            ;; No clocked task, prompt for a place to capture it
+            (kill-new text)
+            (setq org-capture-initial text)
+            (call-interactively 'org-capture)
+            ;; Delay the window configuration
+            (let ((config (current-window-configuration)))
+              (run-at-time 0.5 nil
+                           (lambda (text config)
+                             (set-window-configuration config)
+                             (message "Copied: %s" text))
+                           text config))))))))
+
+(with-eval-after-load 'org
+  (add-hook 'org-clock-in-hook #'my-whisper-org-clear-saved-annotation))
+
+(defun my-whisper-org-clear-saved-annotation ()
+  (setq my-whisper-org-last-annotation nil))
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:6 ends here
+
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:7]]
+(defvar my-whisper-notes "~/sync/stream/narration.org")
+(defun my-whisper-save-to-file (text)
+  (when text
+    (let ((link (org-store-link nil)))
+      (with-current-buffer (find-file-noselect my-whisper-notes)
+        (goto-char (point-max))
+        (insert "\n\n" (format-time-string "%H:%M ") text "\n" (if link (concat link "\n") ""))
+        (save-buffer)
+        (run-at-time 0.5 nil (lambda (text) (message "Saved to file: %s" text)) text)))
+    text))
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:7 ends here
+
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:8]]
+(defun my-whisper-redo ()
+  (interactive)
+  (setq whisper--marker (point-marker))
+  (whisper--transcribe-audio))
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:8 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models][Emacs and whisper.el: Trying out different speech-to-text backends and models:1]]
+(defvar my-whisper-url-format "http://%s:%d/transcribe")
+(defun my-whisper--transcribe-via-local-server ()
+  "Transcribe audio using the local whisper server."
+  (message "[-] Transcribing via local server")
+  (whisper--setup-mode-line :show 'transcribing)
+  (whisper--ensure-server)
+  (setq whisper--transcribing-process
+        (whisper--process-curl-request
+         (format my-whisper-url-format whisper-server-host whisper-server-port)
+         (list "Content-Type: multipart/form-data")
+         (list (concat "file=@" whisper--temp-file)
+               "temperature=0.0"
+               "temperature_inc=0.2"
+               "response_format=json"
+               (concat "model=" whisper-model)
+               (concat "language=" whisper-language)))))
+(defun my-whisper--check-model-consistency () t)
+(defun my-whisper--ensure-server () t)
+
+(with-eval-after-load 'whisper
+  (advice-add 'whisper--transcribe-via-local-server :override #'my-whisper--transcribe-via-local-server)
+  (advice-add 'whisper--check-model-consistency :override #'my-whisper--check-model-consistency)
+  (advice-add 'whisper--ensure-server :override #'my-whisper--ensure-server)
+  )
+;; Emacs and whisper.el: Trying out different speech-to-text backends and models:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models][Emacs and whisper.el: Trying out different speech-to-text backends and models:2]]
+(defun my-test-whisper-api (url &optional args)
+  (with-temp-buffer
+    (apply #'call-process "curl" nil t nil "-s"
+           url
+         (append (mapcan
+                  (lambda (h) (list "-H" h))
+                  (list "Content-Type: multipart/form-data"))
+                 (mapcan
+                  (lambda (h) (list "-F" h))
+                  (list (concat "file=@" whisper--temp-file)
+                        "temperature=0.0"
+                        "temperature_inc=0.2"
+                        "response_format=verbose_json"
+                        (concat "language=" whisper-language)))
+                 args))
+    (message "%s %s" (buffer-string) url)))
+;; Emacs and whisper.el: Trying out different speech-to-text backends and models:2 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models][Emacs and whisper.el: Trying out different speech-to-text backends and models:4]]
+(setq whisper-server-port 8001 whisper-model "Systran/faster-whisper-base.en"
+      my-whisper-url-format "http://%s:%d/v1/audio/transcriptions")
+;; Emacs and whisper.el: Trying out different speech-to-text backends and models:4 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-queue-multiple-transcriptions-with-whisper-el-speech-recognition][Queuing multiple transcriptions with whisper.el speech recognition:1]]
+(defvar my-whisper--queue nil)
+(defun my-whisper-continue (&optional arg)
+  "Send what we've got so far for transcription and then continue recording.
+Call with \\[universal-argument] to signal that we can stop."
+  (interactive "P")
+  (require 'whisper)
+  (if arg
+      (my-whisper-done)
+    (setq whisper--marker (point-marker) whisper--point-buffer (current-buffer))
+    (when (process-live-p whisper--recording-process)
+      ;; queue only if the last one is not asking for the same file
+      (unless
+          (string=
+           (plist-get
+            (car
+             (last my-whisper--queue))
+            :file)
+           whisper--temp-file)
+        (add-to-list
+         'my-whisper--queue
+         (list :file whisper--temp-file
+               :buffer
+               (format "*result: %s*" (file-name-base whisper--temp-file)))
+         t))
+      ;; Remove the sentinel; handle results ourselves
+      (set-process-sentinel whisper--recording-process
+                            (lambda (process event)
+                              (my-whisper-process-queue)))
+      (interrupt-process whisper--recording-process))
+    (run-hooks 'whisper-before-transcription-hook)
+    (whisper--setup-mode-line :show 'recording)
+    (whisper--record-audio)))
+
+(defun my-whisper-discard ()
+ "Ignore the previous recording."
+  (interactive)
+  (when (process-live-p whisper--recording-process)
+    ;; Remove the sentinel; handle results ourselves
+    (set-process-sentinel whisper--recording-process
+                          (lambda (process event)
+                            (when (file-exists-p whisper--temp-file)
+                              (delete-file whisper--temp-file))
+                            (my-whisper-process-queue)))
+    (interrupt-process whisper--recording-process)))
+
+(defun my-whisper-discard-and-continue ()
+ "Ignore the previous recording and continue."
+  (interactive)
+  (if (process-live-p whisper--recording-process)
+      (progn
+        ;; Remove the sentinel; handle results ourselves
+        (set-process-sentinel whisper--recording-process
+                              (lambda (process event)
+                                (my-whisper-process-queue)
+                                (my-whisper-continue)))
+        (interrupt-process whisper--recording-process))
+    (my-whisper-continue)))
+
+(defun my-whisper-done ()
+  (interactive)
+  (when (process-live-p whisper--recording-process)
+    (add-to-list
+     'my-whisper--queue
+     (list :file whisper--temp-file
+           :buffer
+           (format "*result: %s*" (file-name-base whisper--temp-file)))
+     t)
+    ;; Remove the sentinel; handle results ourselves
+    (set-process-sentinel whisper--recording-process
+                          (lambda (process event)
+                            (my-whisper-process-queue)))
+    (whisper--setup-mode-line :hide 'recording)
+    (interrupt-process whisper--recording-process)))
+
+(defun my-whisper-process-queue-result ()
+  "Process the first part of the queue that already has results."
+  (while (plist-get (car my-whisper--queue) :results)
+    (let ((o (pop my-whisper--queue)))
+      (unless my-whisper-target-markers
+        (setq whisper--marker (point-marker)
+              whisper--point-buffer (current-buffer)))
+      (with-current-buffer (plist-get o :buffer)
+        (erase-buffer)
+        (insert (plist-get o :results)))
+      ;; Only works with my fork: https://github.com/sachac/whisper.el/tree/whisper-insert-text-at-point-function
+      (whisper--handle-transcription-output nil (plist-get o :buffer)))))
+
+(defun my-whisper-process-queue ()
+  (let (o)
+    (while (setq o (seq-find (lambda (o) (and (plist-get o :file)
+                                              (not (plist-get o :process))
+                                              (not (plist-get o :results))))
+                             my-whisper--queue))
+      (let* ((headers (list "Content-Type: multipart/form-data"))
+             (params (list (concat "file=@"
+                                   (plist-get o :file))
+                           "temperature=0.0"
+                           "temperature_inc=0.2"
+                           "response_format=json"
+                           (concat "model=" whisper-model)
+                           (concat "language=" whisper-language)))
+             (url (format my-whisper-url-format whisper-server-host whisper-server-port))
+             (command `("curl" "-s"
+                        ,url
+                        ,@(mapcan (lambda (h) (list "-H" h)) headers)
+                        ,@(mapcan (lambda (p) (list "-F" p)) params))))
+        (with-current-buffer (get-buffer-create (plist-get o :buffer))
+          (erase-buffer))
+        (plist-put
+         o :process
+         (make-process
+          :name "whisper-curl"
+          :command command
+          :buffer (plist-get o :buffer)
+          :coding 'utf-8
+          :sentinel
+          (lambda (process event)
+            (with-current-buffer (process-buffer process)
+              (let ((current my-whisper--queue-item))
+                (when (and (get-buffer (plist-get current :buffer))
+                           (string-equal "finished\n" event))
+                  (with-current-buffer (plist-get current :buffer)
+                    (goto-char (point-min))
+                    (plist-put current :results
+                               (or
+                                (condition-case nil
+                                    (gethash "text" (json-parse-buffer))
+                                  (error ""))
+                                "(error)"))))))
+            (my-whisper-process-queue-result))))
+        (plist-put o :command (string-join command " "))
+        (with-current-buffer (process-buffer (plist-get o :process))
+          (setq-local my-whisper--queue-item o))))))
+(defvar-local my-whisper--queue-item nil)
+
+(defun my-whisper-reprocess-queue ()
+  (interactive)
+  (setq whisper--marker (point-marker) whisper--point-buffer (current-buffer))
+  (mapc (lambda (o)
+          (when (process-live-p (plist-get o :process))
+            (kill-process (plist-get o :process)))
+          (when (get-buffer (plist-get o :buffer))
+            (kill-buffer (plist-get o :buffer)))
+          (plist-put o :process nil)
+          (plist-put o :results nil))
+        my-whisper--queue)
+  (my-whisper-process-queue))
+
+(defun my-whisper-clear-queue ()
+  (interactive)
+  (mapc (lambda (o)
+          (when (process-live-p (plist-get o :process))
+            (kill-process (plist-get o :process)))
+          (when (get-buffer (plist-get o :buffer))
+            (kill-buffer (plist-get o :buffer)))
+          (plist-put o :process nil)
+          (plist-put o :results nil))
+        my-whisper--queue)
+  (setq my-whisper--queue nil))
+
+(keymap-global-set "<kp-9>" #'my-whisper-continue)
+(keymap-global-set "<kp-8>" #'my-whisper-discard-and-continue)
+(keymap-global-set "C-<kp-9>" #'my-whisper-done)
+;; Queuing multiple transcriptions with whisper.el speech recognition:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-using-silero-voice-activity-detection-to-automatically-queue-multiple-transcriptions-with-natrys-whisper-el][Using Silero voice activity detection to automatically queue multiple transcriptions with natrys/whisper.el:1]]
+(defvar my-vad-events-process nil)
+(defvar my-vad-events-dir "~/proj/speech/")
+(defvar my-vad-events-command `(,(expand-file-name ".venv/bin/python" my-vad-events-dir)
+                                "vad-events.py"))
+
+(defun my-vad-events-filter (proc string)
+  (when (and (string-match "^END" string)
+             (process-live-p whisper--recording-process))
+    (message "Noticed speech turn: %s" string)
+    (my-whisper-continue)))
+
+(defun my-vad-events-ensure ()
+  "Start the process if it's not already running."
+  (interactive)
+  (unless (process-live-p my-vad-events-process)
+    (let ((default-directory my-vad-events-dir)
+          (process-environment
+           (cons
+            (format
+             "PULSE_PROP=node.description='%s' media.name='%s' node.name='%s'"
+             "vad" "vad" "vad")
+            process-environment)))
+      (setq my-vad-events-process
+            (make-process
+             :name "vad-events"
+             :command my-vad-events-command
+             :buffer (get-buffer-create "*vad-events*")
+             :stderr (get-buffer-create "*vad-events-err*")
+             :filter #'my-vad-events-filter)))))
+;; Using Silero voice activity detection to automatically queue multiple transcriptions with natrys/whisper.el:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-slowly-building-speech-based-commands-for-emacs][Slowly building speech-based commands for Emacs:1]]
+(defvar my-whisper-commands
+  '(("scroll up" . scroll-down-command)
+    ("scrolling up" . scroll-down-command)
+    ("page up" . scroll-down-command)
+    ("scroll down" . scroll-up-command)
+    ("scroll down" . scroll-up-command)
+    ("page down" . scroll-up-command)
+    ("next page" . scroll-up-command)
+    ("close other windows" . delete-other-windows)
+    ("run the buffer" . eval-buffer)
+    ("mark buffer" . mark-whole-buffer)
+    ("mark paragraph" . mark-paragraph)
+    ("expand" . expand-region))
+  "Commands for speech recognition.")
+
+(defun my-whisper-handle-commands (text)
+  ;; Let's do commands at the beginning of a speech segment for now
+  (if (string-match (concat "^" (regexp-opt (mapcar 'car my-whisper-commands)) "\\>")
+                    text)
+      (progn
+        (while (string-match (concat "^\\(" (regexp-opt (mapcar 'car my-whisper-commands)) "\\)\\>[,\\.\\?]? *")
+                             text)
+          (let* ((match (match-string 1 text))
+                 (func (assoc-default (downcase match) my-whisper-commands #'string=)))
+            (when func
+              (message "Command: %s" match)
+              (setq text (replace-match "" nil nil text))
+              (cond
+               ((commandp func)
+                (call-interactively func))
+               ((functionp func)
+                (funcall func))))))
+        text)
+    text))
+
+(defvar my-whisper-replacements
+  '((" *\\<start \\(list\\|next\\) item\\>[\\.,] *" . "\n- ")
+    (" *\\<start check ?box\\>[\\.,] *" . "\n- [ ] ")
+    (" *start paragraph[\\.,]? *" . "\n\n")))
+
+(defun my-whisper-process-replacements ()
+  (goto-char (point-min))
+  (when (looking-at " +") (replace-match ""))
+  (let ((case-fold-search t))
+    (cond
+     ((re-search-forward  " *okay[,\\.]? stop recording" nil t)
+      (when (process-live-p whisper--recording-process)
+        (replace-match "")
+        (message "Stopping.")
+        (my-whisper-done)))))
+  (dolist (rep my-whisper-replacements)
+    (goto-char (point-min))
+    (while (re-search-forward (car rep) nil t)
+      (replace-match (cdr rep))))
+  (goto-char (point-max))
+  (insert " "))
+
+(with-eval-after-load 'whisper
+  (add-hook 'whisper-after-transcription-hook 'my-whisper-process-replacements 70))
+;; Slowly building speech-based commands for Emacs:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:1]]
+(defvar my-chrome-speech-ws nil "Websocket for connecting.")
+(defvar my-chrome-speech-url "ws://127.0.0.1:8000/ws" "Websocket URL to connect to for captions.")
+(defun my-chrome-speech-connect ()
+  (interactive)
+  (unless (websocket-p my-chrome-speech-ws)
+    (setq my-chrome-speech-ws
+          (websocket-open
+           my-chrome-speech-url
+           :on-message #'my-chrome-speech-handle))))
+(defun my-chrome-speech-reconnect ()
+  (interactive)
+  (my-chrome-speech-disconnect)
+  (my-chrome-speech-connect))
+
+(defvar my-speech-functions '(my-speech-display)
+  "Functions to run with the info as an argument.
+The info is an alist with 'type and 'content.
+The functions are called in sequence, with the first function getting the info
+from the websocket message and the other functions getting the results of the
+previous functions.")
+
+(defvar-local my-speech-previous-final nil)
+
+(defface my-chrome-caption-current
+  '((t :height 200))
+  "Display current caption.")
+
+(defun my-speech-display (info)
+  (let-alist info
+    (with-current-buffer (get-buffer-create
+                          (format "*Captions - %s*"
+                                  .session))
+      (when (and (string= .type "TEMP")
+                 my-speech-previous-final)
+        (goto-char (point-max))
+        (set-text-properties
+         (line-beginning-position)
+         (line-end-position)
+         (list
+          'face `(:foreground ,(modus-themes-get-color-value 'fg-dim))))
+        (insert "\n"
+                (propertize my-speech-previous-final
+                            'face `(:foreground ,(modus-themes-get-color-value 'fg-dim)))
+                "\n")
+        (setq my-speech-previous-final nil))
+      (when (string= .type "TEMP")
+        (goto-char (point-max))
+        (delete-region (line-beginning-position) (line-end-position))
+        (insert (propertize .content 'face 'my-chrome-caption-current)))
+      (when (string= .type "FINAL")
+        (unless (string= my-speech-previous-final .content)
+          (goto-char (point-max))
+          (set-text-properties
+           (line-beginning-position)
+           (line-end-position)
+           (list
+            'face `(:foreground ,(modus-themes-get-color-value 'fg-dim))))
+          (insert "\n"))
+        (setq my-speech-previous-final .content)
+        (goto-char (point-max))
+        (delete-region (line-beginning-position) (line-end-position))
+        (insert (propertize .content 'face 'my-chrome-caption-current)))))
+  info)
+;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:1 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:2]]
+(defun my-chrome-speech-handle (_ frame)
+  (let* ((info (json-parse-string (websocket-frame-text frame)
+                                  :object-type 'alist)))
+    (seq-reduce (lambda (prev cur)
+                  (funcall cur prev))
+                my-speech-functions info)))
+
+(defun my-chrome-speech-disconnect ()
+  (interactive)
+  (websocket-close my-chrome-speech-ws)
+  (setq my-chrome-speech-ws nil))
+
+(defvar my-chrome-speech-recognition-server-process nil)
+(defvar my-chrome-speech-dir "~/proj/emacs-web-speech")
+(defun my-chrome-ensure-speech-recognition-server ()
+  (interactive)
+  (unless (process-live-p my-chrome-speech-recognition-server-process)
+    (let ((default-directory my-chrome-speech-dir))
+      (setq my-chrome-speech-recognition-server-process
+            (make-process
+             :name "live-captioning"
+             :buffer "*live-captioning*"
+             :command (list (expand-file-name ".venv/bin/python3") "app.py")))
+      (sit-for 1))))
+
+(defun my-chrome-stop-speech-recognition-server ()
+  (interactive)
+  (when (process-live-p my-chrome-speech-recognition-server-process)
+    (kill-process my-chrome-speech-recognition-server-process)))
+
+(defvar-local my-chrome-speech-session nil)
+(defvar-local my-chrome-speech-user-dir nil)
+(defvar-local my-chrome-speech-lang "en-US")
+(defun my-chrome-speech-new-session (&optional id lang local-only)
+  (interactive (list
+                (file-name-base
+                 (make-temp-name
+                  (expand-file-name "chrome-"
+                                    (temporary-file-directory))))
+                my-chrome-speech-lang
+                current-prefix-arg))
+  (my-chrome-ensure-speech-recognition-server)
+  (let* ((base-id (file-name-base id))
+         (user-dir
+          (if (file-exists-p
+               (expand-file-name
+                id
+                (temporary-file-directory)))
+              (make-temp-file "chrome-" t)
+            ;; small race condition, but this is fine
+            (expand-file-name
+             id
+             (temporary-file-directory))))
+         process
+         (process-environment
+          (append
+           (list
+            (format
+             "PULSE_SOURCE=%s"
+             my-chrome-speech-input)
+            (format
+             "PULSE_PROP=node.description='%s' media.name='%s' node.name='%s'"
+             base-id base-id base-id))
+           process-environment)))
+    ;; Hook it up to my-chrome-speech-input by default
+    (setq process
+          (make-process
+           :name "chrome"
+           :buffer "*chrome*"
+           :command (list
+                     "google-chrome"
+                     "--disable-fre"
+                     "--no-default-browser-check"
+                     "--no-first-run"
+                     (concat "--user-data-dir=" (shell-quote-argument user-dir))
+                     (format "http://127.0.0.1:8000/?session=%s&lang=%s&local=%s"
+                             (url-hexify-string base-id)
+                             lang
+                             (if local-only "1" ""))
+                     (concat "--class=" (shell-quote-argument base-id)))
+           :sentinel
+           (lambda (process event)
+             ;; Clean up afterwards
+             (cond
+              ((string-match "finished\\|deleted\\|exited\\|failed\\|core dumped" event)
+               (with-current-buffer (process-buffer process)
+                 (when my-chrome-speech-user-dir
+                   (delete-directory my-chrome-speech-user-dir t))))))))
+    (with-current-buffer (process-buffer process)
+      (setq-local my-chrome-speech-user-dir user-dir))
+    (switch-to-buffer (format "*Captions - %s*" base-id))
+    (setq-local my-chrome-speech-session base-id)
+    (my-chrome-speech-connect)))
+;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:2 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:3]]
+(defun my-speech-sessions ()
+  (seq-keep (lambda (o)
+              (with-current-buffer o
+                (when my-speech-session
+                  (cons my-speech-session o))))
+            (buffer-list)))
+
+(defun my-speech-clear-all ()
+  (interactive)
+  (dolist (session (my-speech-sessions))
+    (my-speech-clear session)))
+
+(defun my-speech-clear (session)
+  (interactive (list (my-speech-select-session)))
+  (with-current-buffer (cdr session)
+      (erase-buffer)
+      (setq-local my-speech-previous-final nil)))
+
+(defun my-speech-select-session (&optional prompt)
+  (let ((sessions (my-speech-sessions)))
+    (if (= (length sessions) 1)
+        (car sessions)
+      (assoc
+       (completing-read
+        (or prompt "Session: ")
+        (mapcar 'car sessions))
+       sessions))))
+
+(defvar-local my-speech-input "VirtualMicSink:input")
+
+(defun my-speech-rewire (&optional id input)
+  "Unhook it from all input and reconnect it to `my-speech-input'.
+Call with \\[universal-argument] to specify the input."
+  (interactive (list (my-speech-select-session)
+                     (if current-prefix-arg
+                         (epwgraph-complete-logical-node-name)
+                       my-speech-input)))
+  (with-current-buffer (cdr id)
+    (setq input (or input my-speech-input))
+    (setq-local my-speech-input input)
+    (let* ((node-name (concat (car id) ":input"))
+           (session-ports (epwgraph-get-ports-with-logical-name
+                           node-name))
+           (new-ports (if (stringp input)
+                          (epwgraph-get-ports-with-logical-name input)
+                        input))
+           (old-incoming (epwgraph-get-incoming-links session-ports)))
+      (epwgraph-disconnect-all-inputs-for-logical-node session-ports)
+      (epwgraph-connect-logical-nodes
+       (epwgraph--map-channels new-ports session-ports)))))
+
+(defun my-speech-get-text-and-clear (session)
+  (let (text)
+    (with-current-buffer (cdr session)
+      (setq text (buffer-substring-no-properties (point-min) (point-max)))
+      (erase-buffer)
+      (setq-local my-speech-previous-final nil))
+    text))
+
+(defun my-speech-insert-at-point (session)
+  (interactive (list (my-speech-select-session)))
+  (insert (my-speech-get-text-and-clear session)))
+
+(defun my-speech-save-to-clocked-task (session)
+  (interactive (list (my-speech-select-session)))
+  (save-window-excursion
+    (let ((link (org-store-link nil)))
+      (org-clock-goto)
+      (org-end-of-subtree)
+      (unless (bolp)
+        (insert "\n"))
+      (insert "\n")
+      (when link (insert link "\n"))
+      (insert (my-speech-get-text-and-clear session) "\n"))))
+;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:3 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:4]]
+(defvar my-speech-etherpads nil "Alist of (session . pad-id)")
+;; (setq my-speech-etherpads '(("chrome-VgjMhu" . "test")))
+
+(defun my-speech-append-to-etherpad (info)
+  (when (and info (string= (assoc-default 'type info) "FINAL"))
+    (let-alist info
+      (when-let* ((pad-id (assoc-default .session my-speech-etherpads #'string=)))
+        (emacsconf-pad-append-text pad-id (concat "\n" .content)))))
+  info)
+
+(defun my-speech-link-etherpad (session pad-id)
+  (interactive (list
+                (my-speech-select-session)
+                (read-string "Pad ID: ")))
+  (add-to-list 'my-speech-etherpads
+               (cons (concat "#" (car session))
+                     pad-id)))
+
+(defun my-speech-unlink-etherpad (pad-id)
+  (interactive (list (completing-read "Pad: " (mapcar 'cdr my-speech-etherpads))))
+  (setq my-speech-etherpads
+        (seq-remove (lambda (o)
+                      (string= (cdr o) pad-id))
+                    my-speech-etherpads)))
+
+(add-to-list 'my-speech-functions #'my-speech-append-to-etherpad)
+;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:4 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:5]]
+(defvar my-speech-erc nil "Alist of (session . channel)")
+;; (setq my-speech-erc '(("#chrome-HP7k8I" . "#emacsconf-test")))
+
+(defun my-speech-send-to-erc (info)
+  (when (and info (string= (assoc-default 'type info) "FINAL"))
+    (let-alist info
+      (when-let* ((channel (assoc-default .session my-speech-erc #'string=)))
+        (emacsconf-erc-with-channels (list channel)
+          (erc-send-message (string-trim .content))))))
+  info)
+
+(defun my-speech-link-erc (session channel)
+  (interactive (list
+                (my-speech-select-session)
+                (read-string "Channel: ")))
+  (add-to-list 'my-speech-erc
+               (cons (concat "#" (car session))
+                     channel)))
+
+(defun my-speech-unlink-channel (channel)
+  (interactive (list (completing-read "Channel: " (mapcar 'cdr my-speech-erc))))
+  (setq my-speech-erc
+        (seq-remove (lambda (o)
+                      (string= (cdr o) channel))
+                    my-speech-erc)))
+
+(add-to-list 'my-speech-functions #'my-speech-send-to-erc)
+;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:5 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:6]]
+(defun my-speech-fix-common-errors (info)
+  (with-temp-buffer
+    (insert (alist-get 'content info))
+    (goto-char (point-min))
+    (my-subed-fix-common-errors-from-start)
+    (setf (alist-get 'content info) (buffer-string)))
+  info)
+(add-hook 'my-speech-functions #'my-speech-fix-common-errors -100)
+;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:6 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:7]]
+(defun my-speech-insert-at-markers (info)
+  (when (and my-whisper-target-markers info)
+    (my-whisper-insert (alist-get 'content info))))
+(add-hook 'my-speech-functions #'my-speech-insert-at-markers 100)
+;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:7 ends here
+
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api-speech-and-subed-record][speech and subed-record:1]]
+(defvar my-speech-timestamp-adjust-before 1000)
+(defvar my-speech-timestamp-adjust-after 300)
+
+(defun my-speech-subed-record-convert-timestamp (s)
+  "Convert S into a relative number of milliseconds based on `subed-record-filename'."
+  (floor (* (float-time (time-subtract (date-to-time s) subed-record-start-time)) 1000.0)))
+
+(defun my-speech-subed-record-distance (s1 s2)
+  (/
+   (* 1.0
+      (string-distance (downcase (replace-regexp-in-string "[^A-Za-z]"
+                                                           ""
+                                                           s1))
+                       (downcase (replace-regexp-in-string "[^A-Za-z]"
+                                                           ""
+                                                           s2))))
+   (max (length s1)
+        (length s2))))
+
+(defun my-speech-subed-record-close-enough (s1 s2)
+  "Return t if it's close enough."
+  (< (my-speech-subed-record-distance s1 s2) 0.3))
+
+(defun my-speech-subed-record-update (info)
+  (let ((start-ms (- (my-speech-subed-record-convert-timestamp
+                      (alist-get 'start info))
+                     my-speech-timestamp-adjust-before))
+        (stop-ms (+ (my-speech-subed-record-convert-timestamp
+                     (alist-get 'end info))
+                    my-speech-timestamp-adjust-after)))
+    (subed-set-subtitle-time-start start-ms)
+    (subed-set-subtitle-time-stop stop-ms)
+    (subed-set-subtitle-comment
+	   (concat
+		  (if (subed-subtitle-comment)
+				  (concat (string-trim (replace-regexp-in-string
+									              "#\\+AUDIO: .*\\(\n\\|$\\)?" ""
+									              (subed-subtitle-comment)))
+								  "\n")
+			  "")
+		  (format "#+AUDIO: %s" subed-record-filename)))
+    (message "%.1f %s"
+             (my-speech-subed-record-distance
+              (alist-get 'content info)
+              (subed-subtitle-text))
+             (alist-get 'content info))))
+
+(defvar my-speech-subed-ignore nil "Ignore the GTTS-CLI output.")
+(defun my-speech-subed-record-process (info)
+  (let ((text (alist-get 'content info))
+        (current (subed-subtitle-text)))
+    (cond
+     ((my-speech-subed-record-close-enough text current)
+      (my-speech-subed-record-update info)
+      (subed-forward-subtitle-text)
+      (my-french-say-current-subtitle
+       (lambda ()
+         (setq my-speech-subed-ignore nil))))
+     ;; Check previous
+     ((my-speech-subed-record-close-enough
+       text
+       (save-excursion
+         (subed-backward-subtitle-text)
+         (subed-subtitle-text)))
+      (save-excursion
+        (subed-backward-subtitle-text)
+        (my-speech-subed-record-update info)))
+     ;; Check next
+     ((my-speech-subed-record-close-enough
+       text
+       (save-excursion
+         (subed-forward-subtitle-text)
+         (subed-subtitle-text)))
+      (save-excursion
+        (subed-forward-subtitle-text)
+        (my-speech-subed-record-update info)))
+     (t
+      (my-speech-subed-record-update info)))))
+(defun my-speech-subed-record (info)
+  (when (and (string= (alist-get 'type info) "FINAL")
+             (derived-mode-p 'subed-mode)
+             (boundp 'subed-record-start-time)
+             subed-record-minor-mode
+             subed-record-start-time
+             (not my-speech-subed-ignore))
+    (my-speech-subed-record-process info))
+  info)
+
+(add-to-list 'my-speech-functions #'my-speech-subed-record)
+;; speech and subed-record:1 ends here
 
 ;; [[file:Sacha.org::#using-emacs-lisp-to-send-audio-files-to-deepgram-and-format-vtts][Using Emacs Lisp to send audio files to Deepgram and format VTTs:1]]
 (defvar my-deepgram-length-threshold 45 "Number of characters.")
@@ -4351,6 +6607,36 @@ If DIARIZE is non-nil, identify speakers."
 			(insert s))
 		(my-wdiff (buffer-file-name) temp-file)
 		(delete-file temp-file)))
+
+(defun my-wdiff-find-at-point ()
+  (interactive)
+  (unless (looking-at "\\[-")
+    (re-search-backward "\\[-" nil t)
+    (when (looking-at "\\[-\\(.+?\\)-\\] {\\+\\(.+?\\)\\+}")
+      (let ((s (match-string 1))
+            (rep (match-string 2)))
+        (goto-char (match-end 0))
+        (other-window 1)
+        (if (re-search-forward (regexp-quote s) nil t)
+            (progn
+              (save-match-data (pulse-momentary-highlight-region (match-beginning 0)
+                                                                 (match-end 0)))
+              (when (save-match-data (y-or-n-p (format "Change %s to %s: " s rep)))
+                (replace-match rep t t)
+                t))
+          (message "Could not find %s to change to %s" s rep)
+          nil)))))
+
+(defun my-wdiff-next ()
+  (interactive)
+  (other-window 1)
+  (re-search-forward "{\\+\\(.+?\\)\\+}")
+  (pulse-momentary-highlight-region (match-beginning 0) (match-end 0))
+  (my-wdiff-find-at-point))
+
+(defun my-wdiff-next-loop ()
+  (interactive)
+  (while (my-wdiff-next)))
 ;; Wdiff:1 ends here
 
 ;; [[file:Sacha.org::#writing-and-editing-denote][Denote:1]]
@@ -4373,11 +6659,17 @@ If DIARIZE is non-nil, identify speakers."
 	(org-fold-catch-invisible-edits 'smart))
 ;; org-package-setup ends here
 
+;; [[file:Sacha.org::#org-mode-after-i-jump-to-a-task-from-org-clock-goto-narrow-to-it-automatically][After I jump to a task from org-clock-goto, narrow to it automatically:1]]
+(with-eval-after-load 'org
+  (add-hook 'org-clock-goto-hook #'org-narrow-to-subtree)
+  (add-hook 'org-agenda-after-show-hook #'org-narrow-to-subtree))
+;; After I jump to a task from org-clock-goto, narrow to it automatically:1 ends here
+
 ;; [[file:Sacha.org::#org-mode-find-first-common-org-mode-heading][Find first common Org Mode heading:1]]
 (defun my-org-find-first-common-heading (other-buffer)
 	"Go to the first top-level heading in common with OTHER-BUFFER.
 This is helpful when resolving sync conflicts."
-	(interactive (list (read-buffer)))
+	(interactive (list (read-buffer "Other buffer: ")))
 	(let ((other-headings (with-current-buffer (get-buffer other-buffer)
 													(org-map-entries (lambda () (org-entry-get (point) "ITEM")) "LEVEL=1"))))
 		(goto-char
@@ -4393,6 +6685,8 @@ This is helpful when resolving sync conflicts."
 ;; [[file:Sacha.org::#org-mode-writing-about-sketches-and-including-their-text][Writing about sketches and including their text:1]]
 (defun my-insert-sketch-and-text (sketch)
 	(interactive (list (my-complete-sketch-filename)))
+  (when (and (listp sketch) (alist-get 'source_path sketch))
+    (setq sketch (my-get-image-filename (file-name-base (alist-get 'source_path sketch)))))
 	(insert
 	 (if (string= (file-name-extension sketch) "svg")
 			 (format
@@ -4502,6 +6796,7 @@ This is helpful when resolving sync conflicts."
                     org-mouse
                     org-protocol
                     org-annotate-file
+                    ol-info
                     org-expiry
                     org-interactive-query
                     org-collector
@@ -4555,10 +6850,10 @@ This is helpful when resolving sync conflicts."
 (defun my-org-cut-subtree-or-list-item (&optional n)
 	"Cut current subtree or list item."
 	(cond
-	 ; limit this to only Inbox.org and news.org
-	 ((not (string-match (regexp-opt '("Inbox.org" "posts.org" "news.org"))
+	 ; limit this to certain files
+	 ((not (string-match (regexp-opt '("Inbox.org" "posts.org" "news.org" "ipad.org"))
 											 (or (buffer-file-name) "")))
-		(message "Let's only cut things in Inbox.org or news.org")) ; do nothing
+		(message "Let's only cut things in inboxes")) ; do nothing
 	 ((and (looking-at org-outline-regexp) (looking-back "^\**" nil))
 		(org-cut-subtree n))
 	 ((looking-at (org-item-re))
@@ -4572,8 +6867,20 @@ This is helpful when resolving sync conflicts."
 (setq org-use-effective-time t)
 
 (defun my-org-subtree-text ()
-  (save-excursion
-    (buffer-substring (save-excursion (org-end-of-meta-data t) (point)) (org-end-of-subtree))))
+  (if (derived-mode-p 'org-mode)
+      (if (org-before-first-heading-p)
+          (buffer-substring (point-min)
+                            (save-excursion
+                              (org-next-visible-heading)
+                              (line-beginning-position)))
+        (save-excursion
+          (buffer-substring (save-excursion (org-end-of-meta-data t) (point))
+                            (org-end-of-subtree))))
+    (buffer-string)))
+
+(defun my-org-copy-subtree-text ()
+  (interactive)
+  (kill-new (my-org-subtree-text)))
 
 (defun my-org-mark-done ()
   (interactive)
@@ -4753,7 +7060,7 @@ This is helpful when resolving sync conflicts."
         ;; From https://takeonrules.com/2022/10/16/adding-another-function-to-my-workflow/
         ("c" "Contents to current clocked task"
 	       plain (clock)
-	       "%i%?"
+	       "%i%?\n%a"
 	       :empty-lines 1)
         ;; ("p" "Podcast log - timestamped" item
         ;;  (file+olp+datetree "~/sync/orgzly/timestamped.org")
@@ -5312,7 +7619,7 @@ This function is heavily adapted from `org-between-regexps-p'."
                       "~/sync/orgzly/crafts.org"
                       "~/sync/emacs/Sacha.org"
                       "~/proj/emacsconf/wiki/2025/organizers-notebook/index.org"
-                      "~/proj/emacsconf/2025/private/conf.org"
+                      "~/proj/emacsconf/wiki/organizers-notebook/index.org"
                       "~/proj/stream/index.org"
                       "~/proj/plover-notes/README.org"
                       "~/personal/sewing.org"
@@ -5546,6 +7853,8 @@ This function is heavily adapted from `org-between-regexps-p'."
 				 )
         ("i" "Inbox" alltodo ""
          ((org-agenda-files '("~/sync/orgzly/Inbox.org" "~/sync/orgzly/computer-inbox.org"))))
+        ("s" tags-todo "stream"
+         ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
         ("t" tags-todo "-cooking"
          ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
         ("T" tags-todo "TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}" nil "~/cloud/agenda/nonroutine.html")
@@ -5868,9 +8177,11 @@ This function is heavily adapted from `org-between-regexps-p'."
 						(concat "records.json?start=" (or start "") "&end=" (or end "")
 										"&order=newest&display_type=time&filter_string=" (url-hexify-string cat))
 						(list (cons 'auth_token (quantified-token))) "GET")))
-				 (duration (apply '+ (mapcar (lambda (o) (alist-get 'duration o 0)) records)))
+				 (duration (apply '+ (delq nil (mapcar (lambda (o) (alist-get 'duration o 0)) records))))
 				 (hours (/ duration 3600.0)))
-		(message "%s: %.1f hour(s) in %d entries" cat hours (length records))))
+    (when (called-interactively-p 'any)
+		  (message "%s: %.1f hour(s) in %d entries" cat hours (length records)))
+    hours))
 
 (defun my-quantified-get-hours (category time-summary)
   "Return the number of hours based on the time summary."
@@ -5878,7 +8189,7 @@ This function is heavily adapted from `org-between-regexps-p'."
       (if (assoc category time-summary) (/ (cdr (assoc category time-summary)) 3600.0) 0)
     (apply '+ (mapcar (lambda (x) (my-quantified-get-hours x time-summary)) category))))
 
-(defun _my-extract-tasks-from-agenda (string matchers prefix line-re)
+(defun my-extract-tasks-from-agenda (string matchers prefix line-re)
   (with-temp-buffer
     (insert string)
     (goto-char (point-min))
@@ -5892,9 +8203,9 @@ This function is heavily adapted from `org-between-regexps-p'."
                 (setq temp-list nil)))
           (setq temp-list (cdr temp-list)))))))
 
-(ert-deftest _my-extract-tasks-from-agenda ()
+(ert-deftest my-extract-tasks-from-agenda ()
   (let (list-a list-b (line-re "\\([^:]+\\):\\( \\)\\(.*\\)"))
-    (_my-extract-tasks-from-agenda
+    (my-extract-tasks-from-agenda
      "listA: Task 1\nother: Task 2\nlistA: Task 3"
      '(("listA" . list-a)
        ("." . list-b))
@@ -5903,10 +8214,10 @@ This function is heavily adapted from `org-between-regexps-p'."
     (should (equal list-a '("- [ ] Task 1" "- [ ] Task 3")))
     (should (equal list-b '("- [ ] Task 2")))))
 
-(defun _my-get-upcoming-tasks ()
+(defun my-get-upcoming-tasks ()
   (save-window-excursion
     (org-agenda nil "W")
-    (_my-extract-tasks-from-agenda (buffer-string)
+    (my-extract-tasks-from-agenda (buffer-string)
                                    '(("routines" . ignore)
                                      ("business" . business-next)
                                      ("people" . relationships-next)
@@ -5914,7 +8225,7 @@ This function is heavily adapted from `org-between-regexps-p'."
                                      ("." . life-next))
                                    "  - [ ] "
                                    my-weekly-review-line-regexp)))
-(defun _my-get-previous-tasks ()
+(defun my-get-previous-tasks ()
   (let (string)
     (save-window-excursion
       (org-agenda nil "W")
@@ -5925,7 +8236,7 @@ This function is heavily adapted from `org-between-regexps-p'."
       (org-agenda-later 1)
       (org-agenda-log-mode 16)
       (setq string (concat string "\n" (buffer-string)))
-      (_my-extract-tasks-from-agenda string
+      (my-extract-tasks-from-agenda string
                                      '(("routines" . ignore)
                                        ("business" . business)
                                        ("people" . relationships)
@@ -5944,8 +8255,8 @@ This function is heavily adapted from `org-between-regexps-p'."
     (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
     (setq time-summary (quantified-summarize-time start end))
     (setq biz-time (my-quantified-get-hours "Business" time-summary))
-    (_my-get-upcoming-tasks)
-    (_my-get-previous-tasks)
+    (my-get-upcoming-tasks)
+    (my-get-previous-tasks)
     (setq string
           (concat
            (format "- *A- (Childcare)* (%.1fh - %d%% of total)\n"
@@ -6120,7 +8431,7 @@ This function is heavily adapted from `org-between-regexps-p'."
 ;; Weekly review:3 ends here
 
 ;; [[file:Sacha.org::#flickr-extract][Flickr extract:1]]
-(defun _my-clean-up-flickr-list (list)
+(defun my-clean-up-flickr-list (list)
   (setq list
         (replace-regexp-in-string "\\[\"" "[" list))
   (setq list
@@ -6130,7 +8441,7 @@ This function is heavily adapted from `org-between-regexps-p'."
         (replace-regexp-in-string "\"
         " "" (replace-regexp-in-string "\"\\]" "]" list))))
 
-(defun _my-format-flickr-link-for-org (x)
+(defun my-format-flickr-link-for-org (x)
   (let ((title (assoc-default "FileName" x)))
     (format
      "- %s %s"
@@ -6149,7 +8460,7 @@ This function is heavily adapted from `org-between-regexps-p'."
                 (assoc-default "Description" x)))))))
 
 
-(defun _my-parse-and-filter-flickr-csv-buffer (start end)
+(defun my-parse-and-filter-flickr-csv-buffer (start end)
   (sort
    (delq nil
          (mapcar (lambda (x)
@@ -6220,6 +8531,11 @@ This function is heavily adapted from `org-between-regexps-p'."
 					(let ((url (match-string 0)))
 						(unless (string-match "permalink.gmane.org" url)
 							(browse-url url))))))))
+
+(add-to-list 'browse-url-handlers '("https?://yhetil.org/.*/raw" . my-browse-yhetil))
+(defun my-browse-yhetil (url &rest _)
+  (when (string-match "\\(https?://yhetil.org/.*\\)/raw$" url)
+    (funcall browse-url-browser-function (match-string 1 url))))
 ;; Link-related convenience functions:1 ends here
 
 ;; [[file:Sacha.org::#monthly-reviews][Monthly reviews:1]]
@@ -6316,7 +8632,6 @@ This function is heavily adapted from `org-between-regexps-p'."
     (goto-char (line-end-position))
     (insert
      "\n\n** " title "  :monthly:review:\n"
-		 (my-quantified-summarize-time-table-month (format-time-string "%Y-%m-%d" time)) "\n\n"
      "*Blog posts*\n"
      posts "\n\n"
      "*Sketches*\n\n"
@@ -6403,7 +8718,7 @@ This function is heavily adapted from `org-between-regexps-p'."
 	(let* ((file (nth 1 refloc))
 				 (pos (nth 3 refloc)))
 		(save-excursion
-			(with-current-buffer (find-file-noselect file 'noward)
+			(with-current-buffer (find-file-noselect file 'nowarn)
 				(save-excursion
 					(save-restriction
 						(widen)
@@ -6880,12 +9195,15 @@ Uses the info from `my-org-bookmark-file'."
 						'url (plist-get o :url))))
 	 (my-org-bookmarks)))
 
-(defun my-org-bookmark-complete ()
+(defun my-org-bookmark-complete (&optional initial-text)
 	"Complete a bookmark."
+  (when (region-active-p)
+    (setq initial-text (or initial-text (buffer-substring (region-beginning)
+                                                          (region-end)))))
 	(let ((bookmarks (my-org-bookmarks-for-completion)))
 		(assoc-default
 		 (completing-read
-			"Bookmark: " bookmarks)
+			"Bookmark: " bookmarks nil nil initial-text)
 		 bookmarks
 		 #'string=)))
 
@@ -7123,7 +9441,8 @@ of contents as a string, or nil if it is empty."
 						(attr (org-export-read-attribute :attr_html (org-element-parent-element link))))
 				(if (string= (file-name-extension path) "svg")
 						(with-temp-buffer
-							(insert-file-contents-literally path)
+              (set-buffer-multibyte t)
+							(insert-file-contents path)
 							(if attr
 									(replace-regexp-in-string
 									 "<svg "
@@ -7157,7 +9476,8 @@ of contents as a string, or nil if it is empty."
 						(attr (org-export-read-attribute :attr_html (org-element-parent-element link))))
 				(if (string= (file-name-extension path) "svg")
 						(with-temp-buffer
-							(insert-file-contents-literally path)
+              (set-buffer-multibyte t)
+							(insert-file-contents path)
 							(if attr
 									(replace-regexp-in-string
 									 "<svg "
@@ -7227,6 +9547,7 @@ of contents as a string, or nil if it is empty."
 (org-link-set-parameters
  "my-include"
  :follow #'my-include-open
+ :store #'my-include-store
  :export #'my-include-export
  :complete #'my-include-complete)
 
@@ -7268,6 +9589,16 @@ of contents as a string, or nil if it is empty."
 			(when (or (not (= start (point-min)))
 								(not (= end (point-max))))
 				(narrow-to-region start end)))))
+
+(defun my-include-store ()
+  "Store a link to Org Babel named blocks."
+  (when-let ((elem (and (derived-mode-p 'org-mode) (org-element-at-point))))
+    (when (and (org-element-type-p elem 'src-block)
+               (org-element-property :name elem))
+      (org-link-store-props :type "my-include"
+                            :link (concat "my-include:" (buffer-file-name) "?name="
+                                          (org-element-property :name elem))
+                            :text (org-entry-get (point) "ITEM")))))
 
 (defun my-include-export (path _ format _)
 	"Export PATH to FORMAT using the specified wrap parameter."
@@ -7407,6 +9738,7 @@ of contents as a string, or nil if it is empty."
                           ;; on Emacs to update image if the file
                           ;; has changed.
                           (image-flush image)
+                          (overlay-put ov 'evaporate t)
 													(overlay-put ov 'display image)
 													(overlay-put ov 'face 'default)
 													(overlay-put ov 'org-image-overlay t)
@@ -7522,10 +9854,14 @@ of contents as a string, or nil if it is empty."
 			(if (string-match "webm" file)
 					(progn
 						(mpv-play file)
-						(insert (org-link-make-string (concat "video:" file "?caption=" (or note (read-string "Caption: ")))) "\n"))
+						(insert "#+begin_media-post\n"
+                    (org-link-make-string (concat "video:" file "?caption=" (or note (read-string "Caption: ")))) "\n"
+                    "#+end_media-post\n"))
 				(with-current-buffer (find-file-noselect file) (display-buffer (current-buffer)))
 				(insert "#+CAPTION: " (or note (read-string "Caption: ")) "\n"
-								(org-link-make-string (concat "file:" file))))))))
+								(org-link-make-string (concat "file:" file)
+                                      (concat "file:" file)
+                                      )))))))
 
 (defun my-copy-last-screenshot-to-file (new-filename)
   (interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (my-latest-screenshot))))))
@@ -7618,7 +9954,7 @@ of contents as a string, or nil if it is empty."
 	 ((derived-mode-p 'org-mode)
 		(when (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
 			(let ((filename (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")))
-				(dolist (dir (list my-11ty-site-dir my-11ty-local-dir my-11ty-remote-dir))
+				(dolist (dir (list my-11ty-site-dir my-11ty-local-dir my-11ty-remote-dir my-11ty-base-dir))
 					(when (and dir (file-directory-p (expand-file-name filename dir)))
 						(delete-directory (expand-file-name filename dir) t)))
 				(org-delete-property "EXPORT_ELEVENTY_FILE_NAME")
@@ -7874,18 +10210,11 @@ This is extracted from lines like:
 (defvar my-blog-base-url "https://sachachua.com/")
 
 (defun my-org-blog-complete ()
-	(let ((base (replace-regexp-in-string "/$" "" my-blog-base-url)))
-		(completing-read
-		 "Post: "
-		 (mapcar
-			(lambda (o)
-				(concat base (alist-get 'permalink o)))
-			(let* ((json-object-type 'alist)
-						 (json-array-type 'list))
-				(json-read-file "~/sync/static-blog/_site/blog/all/index.json"))))))
+  "Select a blog post and return its URL."
+  (my-blog-url (my-consult-blog-posts-by-title)))
 
 (defun my-org-blog-export (link desc format _)
-	(let ((path (concat (if (eq format '11ty) "/" "https://sachachua.com/")
+	(let ((path (concat (if (eq format '11ty) "/" my-blog-base-url)
 											(replace-regexp-in-string "\\.html$" "/"
 																								(replace-regexp-in-string "^/\\|index.html$" ""
 																																					link)))))
@@ -7898,37 +10227,26 @@ This is extracted from lines like:
 
 (defun my-11ty-html-filename (link)
 	"Return the HTML file for LINK."
-	(setq link (replace-regexp-in-string "^blog:\\|https://sachachua.com/" "" link))
-	(if (file-exists-p link)
+  (when (listp link) (setq link (assoc-default 'permalink link)))
+	(setq link (replace-regexp-in-string (concat "^blog:\\|" (regexp-quote my-blog-base-url)) "" link))
+	(when (string-match "^/" link) (setq link (concat "." link)))
+  (if (file-exists-p link)
 			link
 		(or (catch 'found
 					(dolist (f
 									 (list
 										(expand-file-name "index.html"
 																			(expand-file-name
-																			 (if (string-match "^/" link)
-																					 (concat "." link)
-																				 link)
+																			 link
 																			 my-11ty-base-dir))
 										(expand-file-name "index.html"
 																			(expand-file-name
-																			 (if (string-match "^/" link)
-																					 (concat "." link)
-																				 link)
+																			 link
 																			 (expand-file-name "blog" my-11ty-base-dir)))
 										(replace-regexp-in-string
 										 "/$" ".html"
 										 (expand-file-name
-											(if (string-match "^/" link)
-													(concat "." link)
-												link)
-											my-11ty-base-dir))
-										(replace-regexp-in-string
-										 "/$" ".html"
-										 (expand-file-name
-											(if (string-match "^/" link)
-													(concat "." link)
-												link)
+											link
 											my-11ty-base-dir))))
 						(if (and f (file-exists-p f))
 								(throw 'found f))))
@@ -8082,19 +10400,184 @@ This is extracted from lines like:
 					 (my-11ty-post-categories (my-11ty-html-filename blog)))))
 	(my-11ty-add-category-to-post (my-11ty-html-filename blog) category))
 
+(defun my-blog-url (path)
+  (concat my-blog-base-url
+          (replace-regexp-in-string (concat "^" (regexp-quote my-blog-base-url))
+                                    ""
+                                    (replace-regexp-in-string "^\\(blog:\\)?/" ""
+                                                              (if (stringp path)
+                                                                  path
+                                                                (assoc-default 'permalink path))))))
+
 (defun my-embark-org-blog-open-in-browser (path)
-	(interactive (list (my-org-blog-complete)))
-	(browse-url (concat "https://sachachua.com/"
-											(replace-regexp-in-string "^\\(blog:\\)?/" "" path))))
+	(interactive (list (my-consult-blog-posts-by-title)))
+  (browse-url (my-blog-url path)))
+
+(defun my-embark-blog-insert-link (post)
+  (interactive (list (my-consult-blog-posts-by-title)))
+  (when (looking-back "\\]\\]")         ; end of a link, add a space
+    (insert ", "))
+  (my-org-insert-link-dwim (my-blog-url post)
+                           (and (listp post) (assoc-default 'title post))))
+
+(defun my-11ty-exported-org-filename (info)
+  "Return the exported .org file for INFO, or nil if there isn't any."
+  (when (stringp info) (setq info (my-blog-post-info-for-url info)))
+  (let-alist info
+    (let* ((org (and .permalink (expand-file-name "index.org" (expand-file-name (concat "." .permalink) my-11ty-base-dir)))))
+      (cond
+       ((and org (file-exists-p org))
+        org)
+       (.inputPath
+        (expand-file-name .inputPath my-11ty-base-dir))))))
+
+(defun my-blog-post--position (info &optional find-file)
+  "Return the file position marker for a blog post INFO.
+FIND-FILE is the file open function, defaulting to `consult--file-action'."
+  (when (stringp info) (setq info (my-blog-post-info-for-url info)))
+  (let (pos
+        (files '("~/sync/emacs/Sacha.org"
+								 "~/sync/orgzly/posts.org"))
+        (line-number (alist-get 'line_number info 0)))
+    (when-let* ((source-path
+                 (or
+                  (while files
+                    (with-current-buffer (find-file-noselect (car files))
+                      (save-excursion
+                        (save-restriction
+                          (widen)
+						              (setq pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" (assoc-default 'permalink info)))
+						              (if pos
+                              (progn
+                                (goto-char pos)
+                                (when line-number
+                                  (forward-line line-number))
+                                (setq line-number (line-number-at-pos nil t))
+                                (setq files nil)
+							                  (buffer-file-name))
+                            (setq files (cdr files)))))))
+                  (alist-get 'source_path info)
+                  (my-11ty-exported-org-filename info))))
+      (consult--marker-from-line-column
+       (funcall (or find-file #'consult--file-action) (file-truename source-path))
+       line-number 0))))
+
+(defun my-blog-post-info-for-url (url &optional all-posts)
+  "Return the alist for URL."
+  (if (listp url)
+      url
+    (setq url (replace-regexp-in-string
+               (concat "^" (regexp-quote my-11ty-base-dir)
+                       "\\|^"
+                       (regexp-quote (expand-file-name my-11ty-base-dir))
+                       "\\|^"
+                       (regexp-quote (file-truename my-11ty-base-dir))
+                       "\\|index\\.org$\\|\\.org$") "" url))
+    (when (string-match (regexp-quote my-blog-base-url) url)
+      (setq url (substring url (match-end 0))))
+    (when (string-match "\\?" url)
+      (setq url (substring url 0 (match-beginning 0))))
+    (unless (string-match "^/" url)
+      (setq url (concat "/" url)))
+    (seq-find (lambda (o) (string= (alist-get 'permalink o) url))
+              (or all-posts (my-blog-posts)))))
+
+(ert-deftest my-blog-post-info-for-url ()
+  (should
+   (equal
+    (my-blog-post-info-for-url
+     "https://sachachua.com/blog/2025/10/added-multiple-timezone-support-to-casual-timezone-planner/"
+     )
+    '((permalink . "/blog/2025/10/added-multiple-timezone-support-to-casual-timezone-planner/")
+      (date . "2025-10-08T13:53:11.000Z")
+      (title . "Added multiple timezone support to casual-timezone-planner")
+      (categories "emacs")
+      (inputPath . "./blog/2025/10/added-multiple-timezone-support-to-casual-timezone-planner/index.html"))))
+  (should
+   (equal
+    (my-blog-post-info-for-url
+     "/blog/2021/03/org2blog-add-a-note-to-the-bottom-of-blog-posts-exported-from-my-config-file/")
+    '((permalink . "/blog/2021/03/org2blog-add-a-note-to-the-bottom-of-blog-posts-exported-from-my-config-file/") (date . "2021-03-25T00:00:00.000Z") (title . "Add a note to the bottom of blog posts exported from my config file") (categories "emacs" "org") (inputPath . "./blog/2021/03/org2blog-add-a-note-to-the-bottom-of-blog-posts-exported-from-my-config-file.html")))))
+
+(defun my-blog-post--state ()
+  "Blog post RAG search state function, managing preview window and cleanup."
+  ;; These functions are closures captured when the state is initialized by consult--read
+  (let ((preview (consult--jump-preview))
+        (open (consult--temporary-files))
+        (jump (consult--jump-state)))
+    ;; The returned lambda is the actual preview function called by Consult
+    (lambda (action cand)
+      (unless cand
+        (funcall open))
+      (funcall preview action
+               (and (or (eq action 'preview))
+                    (my-blog-post--position cand (and (not (eq action 'return)) open)))))))
+
+(defun my-11ty-current-post ()
+  "Return the current blog post info if any."
+  (cond
+	 ((derived-mode-p 'org-mode)
+		(when (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")
+			(let ((filename (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")))
+        `((filename . ,filename)
+          (permalink . ,(org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK"))
+          (title . ,(save-excursion
+                      (save-restriction
+                        (widen)
+                        (goto-char (org-find-property "EXPORT_ELEVENTY_FILE_NAME" (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")))
+                        (org-entry-get (point) "ITEM"))))
+          (date . ,(org-entry-get-with-inheritance "EXPORT_DATE"))))))
+	 ((derived-mode-p '(html-mode web-mode))
+		;; called from an index.html or page.html, maybe?
+		(let* ((file (buffer-file-name))
+					 (json-file (concat (file-name-sans-extension (buffer-file-name))
+															".11tydata.json"))
+					 (json-data (and (file-exists-p json-file)
+													 (json-read-file json-file))))
+      (cons
+       (cons 'filename file)
+       json-data)))))
+
+(defun my-consult-blog-posts-by-title (&optional query)
+  (interactive)
+  (consult--read
+   (mapcar
+    #'my-blog-format-for-completion
+    (append
+     (list (my-11ty-current-post))
+                                        ;todo: make a function to get the current blog post context
+     (sort (my-blog-posts) :key (lambda (o) (alist-get 'date o)) :lessp #'string< :reverse t)
+     nil))
+   :lookup #'consult--lookup-cdr
+   :prompt "Search blog posts (exact): "
+   :category 'my-blog
+   :sort nil
+   :require-match t
+   :state (my-blog-post--state)
+   :initial query))
+
+(defun my-blog-format-for-completion (result)
+  (let-alist result
+    (let* ((title (or .title "No Title"))
+           (date (or .date "2000-01-01"))
+           (year (substring date 0 4))
+           (categories (string-join .categories ", "))
+           (final-display
+            (format "%-5s %s [%s]"
+                    (propertize year 'face 'font-lock-comment-face) title categories)))
+      (put-text-property 0 1 'consult--candidate result final-display)
+      (cons final-display result))))
 
 (with-eval-after-load 'embark
 	(add-to-list 'embark-target-finders #'my-embark-org-blog-target)
 	(defvar-keymap embark-my-blog-actions
+    :parent embark-general-map
 		:doc "Shortcuts for my blog"
 		"h" #'my-blog-edit-html
 		"j" #'my-blog-edit-json
-		"e" #'my-embark-11ty-find-org
+		"e" #'my-blog-find-org
 		"c" #'my-embark-org-blog-add-category
+    "i" #'my-embark-blog-insert-link
 		"b" #'my-embark-org-blog-open-in-browser)
 	(add-to-list 'embark-keymap-alist '(my-blog . embark-my-blog-actions)))
 ;; Making it easier to add a category to a blog post:2 ends here
@@ -8113,29 +10596,11 @@ This is extracted from lines like:
 
 ;; [[file:Sacha.org::#embark-11ty][embark-11ty:1]]
 (defvar my-11ty-base-dir "~/proj/static-blog/")
-(defun my-embark-11ty-find-org (url)
-	(interactive (list (my-complete-blog-post-url)))
-	(setq url (my-org-link-as-url url))
-	(when (string-match "https://sachachua\\.com\\(/blog/.*\\)" url)
-		(let ((path (match-string 1 url))
-					pos)
-			;; check my config
-			(catch 'found
-				(dolist (file '("~/sync/emacs/Sacha.org"
-												"~/sync/orgzly/posts.org"))
-					(with-current-buffer (find-file-noselect file)
-						(setq pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" path))
-						(when pos
-							(switch-to-buffer (current-buffer))
-							(goto-char pos)
-							(throw 'found (buffer-file-name)))))
-				(when (file-exists-p
-							 (expand-file-name "index.org"
-																 (concat my-11ty-base-dir path)))
-					(find-file
-					 (expand-file-name "index.org" (concat my-11ty-base-dir path)))
-					(throw 'found (buffer-file-name)))))))
-(defalias 'my-blog-edit-org #'my-embark-11ty-find-org)
+(defun my-blog-edit-org (info)
+	(interactive (list (my-consult-blog-posts-by-title)))
+  (unless (listp info) (setq info (my-blog-post-info-for-url info)))
+  (my-blog-post--position info))
+
 (defun my-embark-11ty-find-html (url)
 	(interactive (list (my-complete-blog-post-url)))
 	(when (string-match "https://sachachua\\.com\\(/blog/.*\\)" (my-org-link-as-url url))
@@ -8158,8 +10623,8 @@ This is extracted from lines like:
 					 (expand-file-name "index.org" (concat my-11ty-base-dir path)))
 					(throw 'found (buffer-file-name)))))))
 (with-eval-after-load 'embark
-	(define-key embark-url-map "v" #'my-embark-11ty-find-org)
-	(define-key embark-org-link-map "v" #'my-embark-11ty-find-org))
+	(define-key embark-url-map "v" #'my-blog-find-org)
+	(define-key embark-org-link-map "v" #'my-blog-find-org))
 ;; embark-11ty:1 ends here
 
 ;; [[file:Sacha.org::#moving-my-org-post-subtree-to-the-11ty-directory][Moving my Org post subtree to the 11ty directory:1]]
@@ -8245,12 +10710,13 @@ With prefix arg, move the subtree."
 					 "<div id=\"%s-footnotes\">\n<h3 class=\"footnotes\">%%s</h3>\n<div id=\"%s-text-footnotes\">\n%%s\n</div>\n</div>"
 					 permalink-slug
 					 permalink-slug)))
-		(unless (string= (plist-get info :input-file)
-										 (expand-file-name
-											"index.org"
-											(expand-file-name
-											 (plist-get info :file-name)
-											 (plist-get info :base-dir))))
+		(unless (or (string= (plist-get info :input-file)
+										     (expand-file-name
+											    "index.org"
+											    (expand-file-name
+											     (plist-get info :file-name)
+											     (plist-get info :base-dir))))
+                (plist-get (org-11ty--front-matter info) :no_source))
 			(save-window-excursion
 				(my-org-11ty-copy-subtree nil subtreep)))
 		(org-11ty-export-to-11tydata-and-html async subtreep visible-only body-only ext-plist)))
@@ -8261,6 +10727,37 @@ With prefix arg, move the subtree."
 	(map-put (caddr (org-export-backend-menu (org-export-get-backend '11ty)))
 					 ?1 (list "To Org, 11tydata.json, HTML" 'my-org-11ty-export)))
 ;; Moving my Org post subtree to the 11ty directory:4 ends here
+
+;; [[file:Sacha.org::my-blog-org-files-except-reviews][my-blog-org-files-except-reviews]]
+(defun my-blog-org-files-except-reviews (after-date)
+  "Return a list of recent .org files except for Emacs News and weekly/monthly/yearly reviews.
+AFTER-DATE is in the form yyyy, yyyy-mm, or yyyy-mm-dd."
+  (setq after-date (or after-date "2020"))
+  (let ((after-month (substring after-date 0 7))
+        (posts (my-blog-posts)))
+    (seq-keep
+     (lambda (filename)
+       (when (not (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-emacs-news" filename))
+         (when (string-match "/blog/\\([0-9]+\\)/\\([0-9]+\\)/" filename)
+           (let ((month (match-string 2 filename))
+                 (year (match-string 1 filename)))
+             (unless (string> after-month
+                              (concat year "-" month))
+               (let ((info (my-blog-post-info-for-url (replace-regexp-in-string "~/proj/static-blog\\|index\\.org$\\|\\.org$" "" filename) posts)))
+                 (let-alist info
+
+                   (when (and
+                          info
+                          (string> .date after-date)
+                          (not (seq-intersection .categories
+                                                 '("emacs-news" "weekly" "monthly" "yearly")
+                                                 'string=)))
+                     filename))))))))
+     (sort
+      (directory-files-recursively "~/proj/static-blog/blog" "\\.org$")
+      :lessp #'string<
+      :reverse t))))
+;; my-blog-org-files-except-reviews ends here
 
 ;; [[file:Sacha.org::#org-mode-publishing-11ty-static-site-generation-include-mastodon-field-in-front-matter][Include Mastodon, HN, Reddit fields in front matter:1]]
 (defun my-org-11ty-add-mastodon-to-front-matter (front-matter info)
@@ -8777,19 +11274,21 @@ the mode, `toggle' toggles the state."
 (defun my-org-save-and-tangle-my-config ()
 	(when (string= (buffer-file-name) (expand-file-name "~/sync/emacs/Sacha.org")) (my-org-export-and-tangle-when-saved-in-focus-mode 1)))
 
-(defun my-export-dotemacs ()
+(defun my-export-dotemacs (&optional sync)
 	(interactive)
 	(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
 		(org-babel-tangle)
-		(async-start
-		 `(lambda ()
-				;; make async emacs aware of packages (for byte-compilation)
-				(package-initialize)
-				(setq my-exporting t)
-				(load-file "~/sync/emacs/Sacha.el")
-				(find-file "~/sync/emacs/Sacha.org")
-				(org-export-to-file 'html "index.html"))
-		 (lambda (&rest results) (message "Tangled and exported.")))))
+    (if sync
+        (org-export-to-file 'html "index.html")
+		  (async-start
+		   `(lambda ()
+				  ;; make async emacs aware of packages (for byte-compilation)
+				  (package-initialize)
+				  (setq my-exporting t)
+				  (load-file "~/sync/emacs/Sacha.el")
+				  (find-file "~/sync/emacs/Sacha.org")
+				  (org-export-to-file 'html "index.html"))
+		   (lambda (&rest results) (message "Tangled and exported."))))))
 ;(use-package org
 ;  :hook ((org-mode . my-org-save-and-tangle-my-config)))
 ;; Org Mode: Asynchronous export and tangle of a large file:3 ends here
@@ -8839,7 +11338,8 @@ the mode, `toggle' toggles the state."
   :menu-entry '(?p "Export to custom plain text"
 									 ((?p "As plain text buffer" my-plain-text-export-to-buffer)
 										(?P "As plain text file" my-plain-text-export-to-file))))
-	(add-to-list 'org-export-backends 'my-plain-text))
+	(add-to-list 'org-export-backends 'my-plain-text)
+  (provide 'ox-my-plain-text))
 ;; Plain text:1 ends here
 
 ;; [[file:Sacha.org::#pdf][PDF:1]]
@@ -8958,8 +11458,29 @@ the mode, `toggle' toggles the state."
 ("\\subsubsection{%s}" . "\\subsubsection*{%s}"))))
 ;; PDF:1 ends here
 
+;; [[file:Sacha.org::#org-mode-links-convert-an-inline-link-into-a-side-note-footnote][Convert an inline link into a side note/footnote:1]]
+(defun my-org-convert-link-to-footnote (label)
+  "Convert the link at point into a footnote."
+  (interactive (list (read-string "Footnote label: ")))
+  ;; Get the Org link path at point
+  (when (org-in-regexp org-link-bracket-re 1)
+    (let ((url (match-string 1)))
+      (replace-match (match-string 2) 0)
+      (skip-syntax-forward ".")
+      (my-org-footnote-add (org-link-make-string (org-link-unescape url)
+                                                 (my-org-link-default-description url nil))))))
+
+(defun my-org-footnote-add (label &optional text)
+  (interactive "MLabel: \n")
+  (insert (format "[fn:%s]" label))
+  (goto-char (org-footnote-create-definition label))
+  (goto-char (line-end-position))
+  (when text
+    (insert text)))
+;; Convert an inline link into a side note/footnote:1 ends here
+
 ;; [[file:Sacha.org::#my-org-insert-link-dwim][Adding Org Mode link awesomeness elsewhere: my-org-insert-link-dwim:1]]
-(defun my-org-insert-link-dwim ()
+(defun my-org-insert-link-dwim (&optional url title)
 	"Like `org-insert-link' but with personal dwim preferences."
 	(interactive)
 	(let* ((point-in-link (and (derived-mode-p 'org-mode) (org-in-regexp org-link-any-re 1)))
@@ -8973,6 +11494,7 @@ the mode, `toggle' toggles the state."
 								 (and (member (org-element-type elem) '(src-block export-block))
 											(not (string= (org-element-property :type elem) "Org"))))))
 				 (url (cond
+               (url url)
 							 ((my-org-in-bracketed-text-link-p) nil)
 							 ((not point-in-link) (my-org-read-link
 																		 ;; clipboard
@@ -8982,7 +11504,8 @@ the mode, `toggle' toggles the state."
 				 (region-content (when (region-active-p)
 													 (buffer-substring-no-properties (region-beginning)
 																													 (region-end))))
-				 (title (or region-content
+				 (title (or title
+                    region-content
 										(when (or (string-match (regexp-quote "*new toot*") (buffer-name))
 															(derived-mode-p '(markdown-mode web-mode oddmuse-mode))
 															point-in-html-block
@@ -9201,6 +11724,16 @@ This uses :insert-description if defined."
  :follow #'my-org-dotemacs-open)
 ;; org-dotemacs-link ends here
 
+;; [[file:Sacha.org::org-config-link][org-config-link]]
+(use-package org
+  :config
+  (org-link-set-parameters
+   "config"
+   :follow (lambda (id) (org-open-link-from-string (format "[[~/sync/emacs/Sacha.org::%s]]" id)))
+   :export (lambda (link description format)
+             (format "<a href=\"https://sachachua.com/dotemacs#%s\">%s</a>" link description))))
+;; org-config-link ends here
+
 ;; [[file:Sacha.org::org-yt-link][org-yt-link]]
 (defvar my-org-yt-iframe-format
   (concat "<div class=\"yt-video\"><iframe width=\"456\""
@@ -9347,15 +11880,19 @@ This uses :insert-description if defined."
 			(org-export-string-as (org-link-make-string link desc) format)
 		(pcase format
 			((or 'html '11ty 'md)
-			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
-							(url (concat "file://" (if (file-name-absolute-p (car path-and-query))
-																				 (expand-file-name (car path-and-query))
-																			 (car path-and-query))))
+			 (let* ((parsed-url (url-generic-parse-url link))
+              (path-and-query (url-path-and-query parsed-url))
+							(url
+               (if (string-match "^https://" link)
+                   (concat (url-type parsed-url) "://" (url-domain parsed-url) (car path-and-query))
+                 (concat "file://" (if (file-name-absolute-p (car path-and-query))
+																		   (expand-file-name (car path-and-query))
+																	   (car path-and-query)))))
 							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query))))
 							body)
 				 (setq body
 							 (format
-								"<video%s%s src=\"%s\" %stype=\"%s\">%s%s<a href=\"%s\">Download the video</a>%s</video>"
+								"<video%s%s src=\"%s\" %stype=\"%s\">%s%s<a href=\"%s\">Download the video</a></video>%s"
 								(if (string= (or (car (assoc-default "controls" params 'string= '("1"))) "1") "0")
 										""
 									" controls=\"1\"")
@@ -9370,7 +11907,9 @@ This uses :insert-description if defined."
 								(mailcap-file-name-to-mime-type (car path-and-query))
 								(if (assoc-default "captions" params)
 										(format "<track kind=\"subtitles\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
-														(expand-file-name (car (assoc-default "captions" params))))
+                            (if (string= (car (assoc-default "captions" params)) "t")
+                                (concat (file-name-sans-extension url) ".vtt")
+														  (expand-file-name (car (assoc-default "captions" params)))))
 									"")
 								(if (assoc-default "thumbnail" params)
 										(format "<div>Video not supported. Thumbnail:<br /><img src=\"%s\" alt=\"Thumbnail\" /></div>"
@@ -9394,14 +11933,19 @@ This uses :insert-description if defined."
 	(concat "video:" (read-file-name "File: ")))
 ;; org-video-link ends here
 
-;; [[file:Sacha.org::*Linking to a specific time in a video][Linking to a specific time in a video:1]]
+;; [[file:Sacha.org::#org-mode-links-linking-to-a-specific-time-in-a-video][Linking to a specific time in a video:1]]
 (org-link-set-parameters
  "vtime"
  :export #'my-org-video-time-export
+ :complete #'my-org-video-time-complete
  :follow #'my-org-video-time-follow)
 (defun my-org-video-time-follow (path _)
-;; TODO: Look for the previous video and jump to the specified time
-	)
+  ;; TODO: Look for the previous video and jump to the specified time
+  (mpv-seek path)
+  (mpv--enqueue '("set" "pause" "no") #'ignore))
+(defun my-org-video-time-complete ()
+  (interactive)
+  (concat "vtime:" (format-seconds "%02h:%02m:%02s" (mpv-get-playback-position))))
 
 (defun my-org-video-time-export (link desc format info)
 	"Export PATH to FORMAT using the specified wrap parameter."
@@ -9415,6 +11959,51 @@ This uses :insert-description if defined."
 							 (match-string 0 link))))
 		('org link)))
 ;; Linking to a specific time in a video:1 ends here
+
+;; [[file:Sacha.org::#org-mode-links-linking-to-a-specific-time-in-a-video][Linking to a specific time in a video:2]]
+(defun my-org-vtime-item-p ()
+  (save-excursion
+    (org-list-at-regexp-after-bullet-p
+     "\\[\\[\\(vtime:[0-9]+:[0-9]+:[0-9]+\\)\\]\\]")))
+
+(defun my-org-vtime-insert-item-advice (fn &rest args)
+  (let ((itemp (org-in-item-p))
+        (pos (point)))
+    (unless (or (not itemp)
+		            (save-excursion
+		              (goto-char itemp)
+		              (org-invisible-p)))
+      (if (my-org-vtime-item-p)
+          ;; Insert another vtime link
+          (my-org-vtime-item)
+        (apply fn args)))))
+
+(defun my-org-vtime-item ()
+  (let ((itemp (org-in-item-p)) (pos (point)))
+    (cond
+     ;; In a timer list, insert with `org-list-insert-item',
+     ;; then fix the list.
+     ((and itemp (goto-char itemp) (my-org-vtime-item-p))
+      (let* ((struct (org-list-struct))
+	           (prevs (org-list-prevs-alist struct))
+	           (s (concat (org-link-make-string (my-org-video-time-complete)) " - ")))
+	      (setq struct (org-list-insert-item pos struct prevs nil s))
+	      (org-list-write-struct struct (org-list-parents-alist struct))
+	      (looking-at org-list-full-item-re)
+	      (goto-char (match-end 0))
+        (line-end-position)))
+     ;; In a list of another type, don't break anything: throw an error.
+     (itemp (goto-char pos) (error "This is not a vtime list"))
+     ;; Else, start a new list.
+     (t
+      (forward-line 0)
+      (org-indent-line)
+      (insert  "- "
+               (concat (org-link-make-string (my-org-video-time-complete)) " - "))))))
+
+(with-eval-after-load 'org
+  (advice-add 'org-insert-item :around 'my-org-vtime-insert-item-advice))
+;; Linking to a specific time in a video:2 ends here
 
 ;; [[file:Sacha.org::org-audio-link][org-audio-link]]
 (org-link-set-parameters
@@ -9435,40 +12024,39 @@ This uses :insert-description if defined."
 
 (defun my-org-audio-export (link desc format _)
 	"Export PATH to FORMAT using the specified wrap parameter."
-	(if desc
-			(org-export-string-as (org-link-make-string link desc) format)
-		(pcase format
-			((or 'html '11ty 'md)
-			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
-							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query))))
-							(element (or (assoc-default "element" params #'string=) "audio")))
-				 (format
-					"<div class=\"audio\"><%s%s%s%s preload=\"metadata\" src=\"%s\" type=\"%s\"><a href=\"%s\">Download the audio</a>%s</%s>%s</div>"
-					element
-					(if (string= (or (assoc-default "controls" params 'string= "1") "1") "0")
-							""
-						" controls=\"1\"")
-					(if (string= (or (assoc-default "autoplay" params 'string= "0") "0") "0")
-							""
-						" autoplay=\"1\"")
-					(if (assoc-default "id" params)
-							(format " id=\"%s\"" (car (assoc-default "id" params)))
-						"")
-					(car path-and-query)
-					(mailcap-file-name-to-mime-type (car path-and-query))
-					(car path-and-query)
-					(if (assoc-default "captions" params)
-							(format "<track kind=\"captions\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
-											(car (assoc-default "captions" params)))
-						"")
-					element
-					(if (and (assoc-default "captions" params)
-									 (assoc-default "id" params))
-							(format  "<div class=\"captions\" style=\"display: none\"></div>"
-											 (car (assoc-default "id" params)))
-						"")
-					)))
-			(_ path))))
+	(pcase format
+		((or 'html '11ty 'md)
+		 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
+						(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query))))
+						(element (or (assoc-default "element" params #'string=) "audio")))
+			 (format
+				"<div class=\"audio\">%s<%s%s%s%s preload=\"metadata\" src=\"%s\" type=\"%s\"><a href=\"%s\">Download the audio</a>%s</%s>%s</div>"
+        (if desc (concat desc " ") "")
+				element
+				(if (string= (or (assoc-default "controls" params 'string= "1") "1") "0")
+						""
+					" controls=\"1\"")
+				(if (string= (or (assoc-default "autoplay" params 'string= "0") "0") "0")
+						""
+					" autoplay=\"1\"")
+				(if (assoc-default "id" params)
+						(format " id=\"%s\"" (car (assoc-default "id" params)))
+					"")
+				(car path-and-query)
+				(mailcap-file-name-to-mime-type (car path-and-query))
+				(car path-and-query)
+				(if (assoc-default "captions" params)
+						(format "<track kind=\"captions\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
+										(car (assoc-default "captions" params)))
+					"")
+				element
+				(if (and (assoc-default "captions" params)
+								 (assoc-default "id" params))
+						(format  "<div class=\"captions\" style=\"display: none\"></div>"
+										 (car (assoc-default "id" params)))
+					"")
+				)))
+		(_ path)))
 (ert-deftest my-org-audio-export ()
  (should
 	(string-match
@@ -9490,15 +12078,23 @@ This uses :insert-description if defined."
 (org-link-set-parameters
  "captions"
  :export #'my-org-captions-export
+ :follow #'find-file
  :complete #'my-org-captions-complete)
 
 (defun my-org-captions-format (file &optional separator)
 	(let ((cues (subed-parse-file file)))
 		(mapconcat (lambda (cue)
-								 (format "<span class=\"audio-time\" data-start=\"%f\" data-stop=\"%f\">%s</span>"
-												 (/ (elt cue 1) 1000.0)
-												 (/ (elt cue 2) 1000.0)
-												 (elt cue 3)))
+                 (concat
+                  (if (and (elt cue 4) (not (string= (elt cue 4) "")))
+                      (format "<div class=\"transcript-heading\"><span class=\"audio-time\" data-start=\"%f\">%s</span> <strong>%s</strong></div>"
+                              (floor (/ (elt cue 1) 1000))
+                              (format-seconds "%02h:%02m:%02s" (floor (/ (elt cue 1) 1000)))
+                              (elt cue 4))
+                    "")
+								  (format "<span class=\"audio-time caption\" data-start=\"%f\" data-stop=\"%f\" >%s</span>"
+												  (/ (elt cue 1) 1000.0)
+												  (/ (elt cue 2) 1000.0)
+												  (elt cue 3))))
 							 cues (or separator " "))))
 
 (defun my-org-captions-export (link desc format _)
@@ -9512,7 +12108,7 @@ This uses :insert-description if defined."
 (defun my-org-captions-complete ()
 	"Complete audio reference."
 	(interactive)
-	(concat "captions:" (read-ffile-name "Captions: ")))
+	(concat "captions:" (read-file-name "Captions: ")))
 
 (defun my-org-captions-insert-as-html-block (file)
 	(interactive "FFile: ")
@@ -9651,7 +12247,7 @@ If we're in a Dired buffer, use the file at point."
 	(cond
 	 ((string-match "^/" link)
 		(concat my-blog-base-url (replace-regexp-in-string "^/" "" link)))
-	 ((string-match "^https://" link)
+	 ((string-match "^\\(https://\\|file:\\)" link)
 		link)
 	 (t
 		(dom-attr
@@ -9961,9 +12557,10 @@ FORMAT."
 ;; [[file:Sacha.org::#add-custom-id][Speed command for adding a custom ID to Org Mode posts:1]]
 (defun my-make-slug (s)
   (thread-last s
-    (downcase)
-    (replace-regexp-in-string "[^a-z0-9]+" "-")
-    (replace-regexp-in-string "^-\\|-$" "")))
+               (my-translate-unaccented)
+               (downcase)
+               (replace-regexp-in-string "[^a-z0-9]+" "-")
+               (replace-regexp-in-string "^-\\|-$" "")))
 (defun my-org-set-custom-id (id)
   "Set the CUSTOM_ID property to ID at point."
   (interactive (list
@@ -10186,6 +12783,7 @@ FORMAT."
   (let ((json-object-type 'plist)
         (url-request-extra-headers (cons '("Content-Type" . "application/json") url-request-extra-headers)))
     (with-current-buffer (url-retrieve-synchronously url)
+      (set-buffer-multibyte t)
       (goto-char (point-min))
       (re-search-forward "^$" nil t)
       (json-read))))
@@ -10675,6 +13273,7 @@ FORMAT."
    '((dot . t)
      (ditaa . t)
 		 (pikchr . t)
+     (forth . t)
 		 (gnuplot . t)
 		 (mermaid . t)
      (emacs-lisp . t)
@@ -10697,7 +13296,7 @@ FORMAT."
   (add-to-list 'org-src-lang-modes '("dot" . graphviz-dot)))
 ;; Diagrams and graphics:2 ends here
 
-;; [[file:Sacha.org::*Treemap visualization][Treemap visualization:1]]
+;; [[file:Sacha.org::#org-mode-diagrams-and-graphics-treemap-visualization][Treemap visualization:1]]
 (defvar my-org-treemap-temp-file "~/Downloads/treemap.html") ; Firefox inside Snap can't access /tmp
 (defvar my-org-treemap-command "treemap" "Executable to generate a treemap.")
 
@@ -11305,10 +13904,9 @@ Use the region if active."
 			(my-org-defun-open symbol)
 			(let ((function-body
 						 ;; get the whole babel block instead of the sexp at point
-						 (nth 2 (org-src--contents-area (org-element-at-point)))
-						 ;; (buffer-substring (point)
-						 ;; 									 (progn (forward-sexp) (point)))
-						 )
+             (if (derived-mode-p 'org-mode)
+						     (nth 2 (org-src--contents-area (org-element-at-point)))
+               (thing-at-point 'defun)))
 						body)
 				(pcase format
 					((or '11ty 'html)
@@ -11439,11 +14037,14 @@ If it's from a tangled file, follow the link."
       (or (eobp) (forward-char 1))
       (beginning-of-defun)
 			(let ((data (read (current-buffer))))
-				(if (eq (car data) 'defun)
-						(org-link-store-props :type "defun"
-																	:link (concat "defun:" (lisp-current-defun-name)))
-					(org-link-store-props :type "defvar"
-																:link (format "defvar:%s" (cadr data))))))))
+				(cond
+         ((not (listp data)) nil)
+         ((eq (car data) 'defun)
+				  (org-link-store-props :type "defun"
+															  :link (concat "defun:" (lisp-current-defun-name))))
+         ((member (car data) '(defvar defcustom))
+				  (org-link-store-props :type "defvar"
+															  :link (format "defvar:%s" (cadr data)))))))))
 
 (defun my-org-defvar-open (symbol _)
 	"Jump to the function definition."
@@ -11565,6 +14166,325 @@ If it's from a tangled file, follow the link."
 	(when (directory-files default-directory nil "sync-conflict.*\\.org")
 		(message "Syncthing conflicts exist.")))
 ;; No blank titles, no duplicate paths:1 ends here
+
+;; [[file:Sacha.org::org-db-v3][org-db-v3]]
+(use-package org-db-v3
+  :load-path "~/vendor/org-db-v3/elisp"
+  :init
+  (setq org-db-v3-auto-enable nil))
+
+(defun my-org-db-v3-to-emacs-rag-search (query &optional limit filename-pattern)
+  "Search org-db-v3 and transform the data to look like emacs-rag-search's output."
+  (org-db-v3-ensure-server)
+  (setq limit (or limit 100))
+  (mapcar (lambda (o)
+            `((source_path . ,(assoc-default 'filename o))
+              (line_number . ,(assoc-default 'begin_line o))
+              ,@o))
+          (sort
+           (assoc-default 'results
+                          (plz 'post (concat (org-db-v3-server-url) "/api/search/semantic")
+                            :headers '(("Content-Type" . "application/json"))
+                            :body (json-encode `((query . ,query)
+                                                 (limit . ,limit)
+                                                 (filename_pattern . ,filename-pattern)))
+                            :as #'json-read))
+           :key (lambda (o) (alist-get 'similarity_score o))
+           :reverse t)))
+;; org-db-v3 ends here
+
+;; [[file:Sacha.org::#org-mode-vector-search-indexing-related-code][Indexing-related code:3]]
+;; Based on org-db-v3-reindex-database
+(defun my-org-db-v3-remove-missing-files ()
+  "Remove missing files currently in the database.
+Fetches the list of files from the server and reindexes each one.
+Also removes files that no longer exist from the database.
+Uses non-blocking queue processing to keep Emacs responsive.
+Skips remote Tramp files."
+  (interactive)
+  (org-db-v3-ensure-server)
+  (plz 'get (concat (org-db-v3-server-url) "/api/files")
+    :as #'json-read
+    :then (lambda (response)
+            (let* ((files (alist-get 'files response))
+                   (count (length files))
+                   (missing-files nil)
+                   (existing-files nil)
+                   (remote-files nil))
+
+              ;; Classify files as existing, missing, or remote
+              (dotimes (i count)
+                (let ((filename (alist-get 'filename (elt files i))))
+                  (cond
+                   ((file-remote-p filename)
+                    (push filename remote-files))
+                   ((file-exists-p filename)
+                    (push filename existing-files))
+                   (t
+                    (push filename missing-files)))))
+              (if (zerop count)
+                  (message "No files found in database")
+                (when missing-files
+                  (message "Removing %d missing file%s from database..."
+                           (length missing-files)
+                           (if (= (length missing-files) 1) "" "s"))
+                  (dolist (filename missing-files)
+                    (org-db-v3-delete-file-async filename)))
+                )))
+    :else (lambda (error)
+            (message "Error fetching file list: %s" (plz-error-message error)))))
+;; Indexing-related code:3 ends here
+
+;; [[file:Sacha.org::my-blog-similar-link][my-blog-similar-link]]
+(defun my-blog-similar-link (link)
+  "Vector-search blog posts using `emacs-rag-search' and insert a link.
+If called with \\[universal-argument\], use the current post's text.
+If a region is selected, use that as the default QUERY.
+HIDE-INITIAL means hide the initial query, which is handy if the query is very long."
+  (interactive (list
+                (if embark--command
+                    (read-string "Link: ")
+                  (my-blog-similar
+                   (cond
+                    (current-prefix-arg (my-11ty-post-text))
+                    ((region-active-p)
+                     (buffer-substring (region-beginning)
+                                       (region-end))))
+                   current-prefix-arg))))
+  (my-embark-blog-insert-link link))
+
+(defun my-embark-blog--inject-target-url (&rest args)
+  "Replace the completion text with the URL."
+  (delete-minibuffer-contents)
+  (insert (my-blog-url (get-text-property 0 'consult--candidate (plist-get args :target)))))
+
+(with-eval-after-load 'embark
+  (add-to-list 'embark-target-injection-hooks '(my-blog-similar-link my-embark-blog--inject-target-url)))
+
+(defun my-11ty-interactive-context (use-post)
+  "Returns (query hide-initial) for use in interactive arguments.
+If USE-POST is non-nil, query is the current post text and hide-initial is t.
+If the region is active, returns that as the query."
+  (list (cond
+         (embark--command (read-string "Input: "))
+         (use-post (my-11ty-post-text))
+         ((region-active-p)
+          (buffer-substring (region-beginning)
+                            (region-end))))
+        use-post))
+
+(defun my-blog-similar (&optional query hide-initial)
+  "Vector-search blog posts using org-db-v3 and present results via Consult.
+If called with \\[universal-argument\], use the current post's text.
+If a region is selected, use that as the default QUERY.
+HIDE-INITIAL means hide the initial query, which is handy if the query is very long."
+  (interactive (my-11ty-interactive-context current-prefix-arg))
+  (consult--read
+   (if hide-initial
+       (my-org-db-v3-blog-post--collection query)
+     (consult--dynamic-collection
+         #'my-org-db-v3-blog-post--collection
+       :min-input 3 :debounce 1))
+   :lookup #'consult--lookup-cdr
+   :prompt "Search blog posts (approx): "
+   :category 'my-blog
+   :sort nil
+   :require-match t
+   :state (my-blog-post--state)
+   :initial (unless hide-initial query)))
+
+(defvar my-blog-semantic-search-source 'org-db-v3)
+(defun my-org-db-v3-blog-post--collection (input)
+  "Perform the RAG search and format the results for Consult.
+Returns a list of cons cells (DISPLAY-STRING . PLIST)."
+  (let ((posts (my-blog-posts)))
+    (mapcar (lambda (o)
+              (my-blog-format-for-completion
+               (append o
+                       (my-blog-post-info-for-url (alist-get 'source_path o)
+                                                  posts))))
+            (seq-uniq
+               (my-org-db-v3-to-emacs-rag-search input 100 "%static-blog%")
+               (lambda (a b) (string= (alist-get 'source_path a)
+                                      (alist-get 'source_path b)))))))
+;; my-blog-similar-link ends here
+
+;; [[file:Sacha.org::my-org-db-v3-index-recent-sketches][my-org-db-v3-index-recent-sketches]]
+(defun my-org-db-v3-index-recent-sketches (after)
+  (interactive (list
+                (when current-prefix-arg
+                  (org-read-date nil nil nil "After: " nil "-2w"))))
+  (setq after (or after (org-read-date nil nil "-2w")))
+  (mapcar #'org-db-v3-index-file-async
+          (seq-remove
+           (lambda (o) (string> after (file-name-base o)))
+           (directory-files "~/sync/sketches" t "\\.txt$"))))
+;; my-org-db-v3-index-recent-sketches ends here
+
+;; [[file:Sacha.org::org-db-v3-sketches][org-db-v3-sketches]]
+(defun my-org-db-v3-sketch--collection (input)
+  "Perform the RAG search and format the results for Consult.
+Returns a list of cons cells (DISPLAY-STRING . PLIST)."
+  (mapcar
+   (lambda (o)
+     (cons (file-name-base (alist-get 'source_path o)) o))
+   (seq-uniq
+    (my-org-db-v3-to-emacs-rag-search input 100 "%sync/sketches%")
+    (lambda (a b) (string= (alist-get 'source_path a)
+                           (alist-get 'source_path b))))))
+
+(defun my-sketch-similar (&optional query hide-initial)
+  "Vector-search blog posts using `emacs-rag-search' and present results via Consult.
+If called with \\[universal-argument\], use the current post's text.
+If a region is selected, use that as the default QUERY.
+HIDE-INITIAL means hide the initial query, which is handy if the query is very long."
+  (interactive (my-11ty-interactive-context current-prefix-arg))
+  (consult--read
+   (if hide-initial
+       (my-org-db-v3-sketch--collection query)
+     (consult--dynamic-collection
+         #'my-org-db-v3-sketch--collection
+       :min-input 3 :debounce 1))
+   :lookup #'consult--lookup-cdr
+   :prompt "Search sketches (approx): "
+   :category 'sketch
+   :sort nil
+   :require-match t
+   :state (my-image--state)
+   :initial (unless hide-initial query)))
+
+(defun my-sketch-similar-insert (link)
+  "Vector-search sketches and insert a link.
+If called with \\[universal-argument\], use the current post's text.
+If a region is selected, use that as the default QUERY.
+HIDE-INITIAL means hide the initial query, which is handy if the query is very long."
+  (interactive (list
+                (if embark--command
+                    (read-string "Sketch: ")
+                  (apply #'my-sketch-similar
+                         (my-11ty-interactive-context current-prefix-arg)))))
+  (my-insert-sketch-and-text link))
+
+(defun my-sketch-similar-link (link)
+  "Vector-search sketches and insert a link.
+If called with \\[universal-argument\], use the current post's text.
+If a region is selected, use that as the default QUERY.
+HIDE-INITIAL means hide the initial query, which is handy if the query is very long."
+  (interactive (list
+                (if embark--command
+                    (read-string "Sketch: ")
+                  (apply #'my-sketch-similar
+                         (my-11ty-interactive-context current-prefix-arg)))))
+  (when (and (listp link) (alist-get 'source_path link))
+    (setq link (my-image-filename (file-name-base link))))
+  (insert (org-link-make-string (concat "sketchLink:" link) (file-name-base link))))
+;; org-db-v3-sketches ends here
+
+;; [[file:Sacha.org::my-consult-similar][my-consult-similar]]
+(with-eval-after-load 'consult
+  (defvar my-consult-source-similar-blog-posts
+    (list :name "Blog posts"
+          :narrow ?b
+          :category 'my-blog
+          :state #'my-blog-post--state
+          :async (consult--dynamic-collection
+                     (lambda (input)
+                       (seq-take
+                        (my-org-db-v3-blog-post--collection input)
+                        5)))
+          :action #'my-embark-blog-insert-link))
+
+  (defvar my-consult-source-similar-sketches
+    (list :name "Sketches"
+          :narrow ?s
+          :category 'sketch
+          :async (consult--dynamic-collection
+                     (lambda (input)
+                       (seq-take (my-org-db-v3-sketch--collection input) 5)))
+          :state #'my-image--state
+          :action #'my-insert-sketch-and-text)))
+
+(defun my-consult-similar (query hide-initial)
+  (interactive (my-11ty-interactive-context current-prefix-arg))
+  (require 'consult)
+  (if hide-initial
+      (let ((new-sources
+             (list
+              (append
+               (copy-sequence my-consult-source-similar-blog-posts)
+               (list :items (seq-take (my-org-db-v3-blog-post--collection query) 5)))
+              (append
+               (copy-sequence my-consult-source-similar-sketches)
+               (list :items (seq-take (my-org-db-v3-sketch--collection query) 5))))))
+        (dolist (source new-sources)
+          (cl-remf source :async))
+        (consult--multi new-sources))
+    (consult--multi '(my-consult-source-similar-blog-posts
+                      my-consult-source-similar-sketches)
+                    :initial query)))
+
+(defun my-org-db-v3-index-recent-public (after)
+  (interactive (list
+                (when current-prefix-arg
+                  (org-read-date nil nil nil "After: " nil "-2w"))))
+  (setq after (or after (org-read-date nil nil "-2w")))
+  (mapc #'org-db-v3-index-file-async
+        (my-blog-org-files-except-reviews after))
+  (my-org-db-v3-index-recent-sketches after))
+;; my-consult-similar ends here
+
+;; [[file:Sacha.org::emacs-rag-search][emacs-rag-search]]
+(use-package emacs-rag
+  :load-path "~/vendor/emacs-rag-libsql/emacs-rag"
+  :commands (emacs-rag-menu emacs-rag--request)
+  :config
+  (setq emacs-rag-server-working-directory "~/vendor/emacs-rag-libsql/emacs-rag-server")
+  (setq emacs-rag-server-command '("~/.local/bin/uv" "run" "emacs-rag-server" "serve"))
+  (setq emacs-rag-indexed-extensions '("org" "txt" "md"))
+  (setq emacs-rag-auto-index-on-save nil))
+
+(defun my-emacs-rag-search (query limit)
+  (assoc-default 'results
+                 (emacs-rag--request "GET" "/search/vector" nil
+                                     `((query . ,query)
+                                       (limit . ,limit)
+                                       (rerank . ,emacs-rag-search-enable-rerank)))))
+
+(defun my-emacs-rag-search-blog-posts-hybrid (query &optional vector-weight limit)
+  "Use hybrid search to search for QUERY.
+Tune with VECTOR-WEIGHT
+Start with LIMIT results and keep only unique blog posts."
+  (interactive (list (if (region-active-p)
+                         (buffer-substring (region-beginning)
+                                           (region-end))
+                       (read-string "Search: "))))
+  (setq limit (or limit 100))
+  (setq vector-weight (or vector-weight 0.5))
+  (let* ((blog-posts (my-blog-posts))
+         (results
+          (seq-uniq
+           (assoc-default 'results
+                          (emacs-rag--request "GET" "/search/hybrid" nil
+                                              `((query . ,query)
+                                                (limit . ,limit)
+                                                (vector_weight . ,vector-weight)
+                                                (rerank . ,emacs-rag-search-enable-rerank))))
+           (lambda (a b)
+             (string= (assoc-default 'source_path a nil "")
+                      (assoc-default 'source_path b nil ""))))))
+    (seq-keep
+     (lambda (o)
+       (when (string-match "/blog/" (alist-get 'source_path o))
+         (append
+          o
+          (my-blog-post-info-for-url (alist-get 'source_path o) blog-posts)
+          nil)))
+     results)))
+;; emacs-rag-search ends here
+
+;; [[file:Sacha.org::#multimedia][Multimedia:1]]
+(use-package epwgraph :load-path "~/proj/epwgraph")
+;; Multimedia:1 ends here
 
 ;; [[file:Sacha.org::#multimedia-emacs-tv][Emacs.tv:1]]
 (use-package emacstv
@@ -12904,15 +15824,19 @@ map-progression should be a list of lists with the following format:
                    (or directories my-image-directories))))
            'string<))))
 
-(defun my-get-image-filename (base &optional as-regexp directories)
+(defun my-image-filename (base &optional as-regexp directories)
   "Check several directories for files matching BASE.
 Return the first matching filename, if any.
 If AS-REGEXP is non-nil, treat BASE as a regular expression."
+  (when (and (listp base) (alist-get 'source_path base))
+    (setq base (file-name-base (alist-get 'source_path base))))
   (if (file-exists-p base)
       base
     (car (my-get-image-filenames base as-regexp directories))))
-(defun my-get-sketch-filename (base &optional as-regexp)
-  (my-get-image-filename base as-regexp my-sketch-directories))
+(defun my-sketch-filename (base &optional as-regexp)
+  (my-image-filename base as-regexp my-sketch-directories))
+(defalias 'my-get-image-filename 'my-image-filename)
+(defalias 'my-get-sketch-filename 'my-sketch-filename)
 
 (defun my-list-sketches (regexp &optional full-filename directories)
   "Return a list of sketch filenames matching REGEXP."
@@ -13072,7 +15996,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
     (cond ((eq backend 'md)
            (format "[%s](%s)" desc link))
           ((eq backend '11ty)
-           (format "{%% sketchLink \"%s\", \"%s\" %%}" (file-name-base link) desc))
+           (format "{%% sketchLink \"%s\", \"%s\" %%}"
+                   (replace-regexp-in-string "\"" "\\\"" (file-name-base link) nil t)
+                   (replace-regexp-in-string "\"" "\\\"" desc nil t)))
           ((eq backend 'html)
            (format "<a href=\"https://sketches.sachachua.com/filename/%s\">%s</a>" (file-name-nondirectory link) desc))
           (t (format "[[%s][%s]]" link desc)))))
@@ -13154,6 +16080,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
                   (overlay-put ov 'display image)
                   (overlay-put ov 'face 'default)
                   (overlay-put ov 'org-image-overlay t)
+                  (overlay-put ov 'evaporate t)
                   (overlay-put
                    ov 'modification-hooks
                    (list 'org-display-inline-remove-overlay))
@@ -13218,16 +16145,6 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
     (box-11 ,(format "[[copy:%.2f][%.2f]]" box-11 box-11))
     (box-12 ,(format "[[copy:%.2f][%.2f]]" box-12 box-12))))
 ;; Org Mode custom link: copy to clipboard:2 ends here
-
-;; [[file:Sacha.org::org-config-link][org-config-link]]
-(use-package org
-  :config
-  (org-link-set-parameters
-   "config"
-   :follow (lambda (id) (org-open-link-from-string (format "[[~/sync/emacs/Sacha.org::%s]]" id)))
-   :export (lambda (link description format)
-             (format "<a href=\"https://sachachua.com/dotemacs#%s\">%s</a>" link description))))
-;; org-config-link ends here
 
 ;; [[file:Sacha.org::#helm-completion-with-my-helm-org-sketches][Helm completion with my-helm-org-sketches:1]]
 (defun my-helm-source-org-sketch-list ()
@@ -13425,6 +16342,198 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
         (org-refile 4 nil location)
         (my-prepare-index-card-for-subtree)) t)))
 ;; Templates:1 ends here
+
+;; [[file:Sacha.org::my-dot-grid-boxes-template][my-dot-grid-boxes-template]]
+(require 'svg)
+(defvar my-dot-grid-boxes-params
+	'(:num-rows 5
+		:num-cols 7
+		:dot-size 3
+		:line-width 3
+		:dot-spacing 60
+		:grid-color "#a6d2ff"
+		:row-size 6
+		:col-size 6
+		:text-size 50
+		:margin-top 2))
+(cl-defun my-dot-grid-boxes-template (&key (num-rows 5)
+                                           (num-cols 7)
+                                           (dot-size 3)
+																					 (line-width 3)
+                                           (dot-spacing 60)
+                                           (grid-color "#a6d2ff")
+                                           (row-size 6)
+                                           (col-size 6)
+																					 (text-size 50)
+                                           (margin-top 2))
+  "Prepare an SVG with a dot grid within a table with solid gridlines.
+Each dot is a solid circle of DOT-SIZE filled with GRID-COLOR spaced DOT-SPACING apart.
+The gridlines are also GRID-COLOR. They should divide the image into ROWS and COLUMNS, which are ROW-SIZE * DOT-SPACING and COL-SIZE * DOT-SPACING apart.
+The table has a top margin with the dot grid, and this is MARGIN-TOP * DOT-SPACING tall.
+All dots are centered on their x, y coordinates.
+The rest of the image's background is white."
+  (let* ((width (* num-cols col-size dot-spacing))
+         (height (* dot-spacing (+ margin-top (* num-rows row-size))))
+         (margin-top-height (* margin-top dot-spacing))
+				 (svg (svg-create width height)))
+		(dotimes (row (+ (* num-rows row-size) margin-top))
+      (dotimes (col (1+ (* num-cols col-size)))
+        (let ((x (* col dot-spacing))
+              (y (* row dot-spacing)))
+          (svg-circle svg x y dot-size
+											:fill-color grid-color
+											:stroke-width 0))))
+		(when (> text-size 0)
+			(dotimes (i (* num-rows num-cols))
+        (let ((x (* (% i num-cols) col-size dot-spacing))
+              (y (+ margin-top-height (* (/ i num-cols) row-size dot-spacing))))
+          (svg-text svg
+										(number-to-string (1+ i))
+										:x x :y (+ y text-size)
+										:fill-color grid-color
+										:font-size text-size
+										:stroke-width 0))))
+    (dotimes (col (1+ num-cols))
+      (let ((x (* col col-size dot-spacing)))
+        (svg-line svg x margin-top-height x height
+									:stroke-color grid-color
+									:stroke-width line-width)))
+    (dotimes (row (1+ num-rows))
+      (let ((y (+ margin-top-height (* row row-size dot-spacing))))
+        (svg-line svg 0 y width y
+									:stroke-color grid-color
+									:stroke-width line-width)))
+		svg))
+;; my-dot-grid-boxes-template ends here
+
+;; [[file:Sacha.org::my-dot-grid-boxes-extract][my-dot-grid-boxes-extract]]
+(cl-defun my-dot-grid-boxes-list (&key (num-rows 5)
+																			 (num-cols 7)
+																			 (dot-spacing 60)
+																			 (row-size 6)
+																			 (col-size 6)
+																			 (text-bottom 1)
+																			 (margin-top 2)
+																			 filename
+																			 &allow-other-keys)
+	"Return a list of boxes."
+	(let* ((margin-top-height (* margin-top dot-spacing))
+				 (max-image-size nil)
+				 (size (image-size (create-image filename nil nil :scale 1) t))
+				 (ratio (/ (car size) (* num-cols col-size dot-spacing 1.0)))
+				 results)
+		(message "Expected adjusted height %f actual height %f"
+						 (* (+ margin-top (* num-rows row-size)) dot-spacing ratio)
+						 (cdr size))
+		(dotimes (i (* num-rows num-cols))
+			(let* ((r (/ i num-cols))
+						 (c (% i num-cols))
+						 (y (* (+ margin-top-height (* r col-size dot-spacing)) ratio))
+						 (x (* c row-size dot-spacing ratio))
+						 (width (* col-size dot-spacing ratio))
+						 (height (* (- row-size text-bottom) dot-spacing ratio)))
+				(setq results (cons
+											 `((r . ,r)
+												 (c . ,c)
+												 (i . ,i)
+												 (x . ,(floor x))
+												 (y . ,(floor y))
+												 (w . ,(floor width))
+												 (h . ,(floor height))
+												 (x2 . ,(floor (+ x width)))
+												 (y2 . ,(floor (+ y height))))
+											 results))))
+		(nreverse results)))
+
+(defvar my-sketch-icon-directory "~/sync/sketches/icons")
+(cl-defun my-dot-grid-boxes-extract (&rest args &key filename labels
+																					 (output-dir my-sketch-icon-directory) force &allow-other-keys)
+	(let* ((list (apply #'my-dot-grid-boxes-list args))
+				 (base (file-name-base filename))
+				 (ext (concat "." (file-name-extension filename)))
+				 (id
+					(if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" base)
+							(match-string 0 base)
+						""))
+				 results
+				 args)
+		(dolist (icon list)
+			(let-alist icon
+				(let ((new-filename (expand-file-name
+														 (concat (my-make-slug (elt labels .i)) "--"
+																		 id
+																		 (format "-%d-%d"
+																						 .r .c)
+																		 ext)
+														 output-dir)))
+					(push `((term . ,(elt labels .i))
+									(icon . ,(file-name-nondirectory new-filename))
+									(source . ,(file-name-nondirectory filename)))
+								results)
+					(when (or force (not (file-exists-p new-filename)))
+						(setq args
+									(list (expand-file-name filename)
+												"-crop"
+												(format "%dx%d+%d+%d" .w .h .x .y)
+												"+repage"
+												new-filename))
+						(message "%s" (concat "convert " (mapconcat #'shell-quote-argument args " ")))
+						(apply #'call-process "convert" nil nil nil args)))))
+		(nreverse results)))
+
+(defun my-dot-grid-boxes-labels (id)
+	(with-temp-buffer
+		(insert-file-contents (concat (file-name-sans-extension (my-get-sketch-filename id)) ".txt"))
+		(goto-char (point-min))
+		(re-search-forward "^ *$")
+		(split-string (string-trim (buffer-substring (point) (point-max))) "\n")))
+;; my-dot-grid-boxes-extract ends here
+
+;; [[file:Sacha.org::my-dot-grid-boxes-process][my-dot-grid-boxes-process]]
+(defun my-sketch-icon-update-index (list)
+	(let (data
+				(index-file (expand-file-name "index.json" my-sketch-icon-directory)))
+		(with-temp-file index-file
+			(setq data
+						(if (file-exists-p index-file)
+								(json-read-file index-file)
+							'()))
+			(dolist (entry list)
+				;; Remove current entry
+				(setq data (seq-remove (lambda (o)
+																 (and (string-match (regexp-quote (alist-get 'source o)) (alist-get 'source entry))
+																			(string= (alist-get 'term o) (alist-get 'term entry))
+                                      (string= (alist-get 'icon o) (alist-get 'icon entry))))
+															 data))
+				;; Add a new entry
+				(push
+				 `((term . ,(alist-get 'term entry))
+					 (icon . ,(alist-get 'icon entry))
+					 (source . ,(alist-get 'source entry)))
+				 data))
+			(insert (json-encode (sort data :key (lambda (o) (alist-get 'term o)) :lessp #'string<))))))
+
+(defun my-dot-grid-boxes-process (id &optional force)
+	(interactive
+	 (list
+		(my-complete-sketch-filename "drawing")
+		current-prefix-arg))
+	(let* ((labels (my-dot-grid-boxes-labels id))
+				 list)
+		(cl-assert (= (% (length labels) 7) 0))
+		(cl-assert (> (length labels) 1))
+		(setq list
+					(my-dot-grid-boxes-extract :output-dir my-sketch-icon-directory
+																		 :num-rows (/ (length labels) 7)
+																		 :filename (my-get-sketch-filename id)
+																		 :labels labels
+																		 :force force))
+		(my-sketch-icon-update-index list)))
+
+(defun my-dot-grid-boxes-process-all-icons ()
+	(interactive)
+	(dolist (source (my-sketches "icons")) (my-dot-grid-boxes-process source)))
+;; my-dot-grid-boxes-process ends here
 
 ;; [[file:Sacha.org::#easily-backfill-my-journal][Easily backfill my journal:1]]
 (defun my-draw-journal-entry (date)
@@ -14141,8 +17250,8 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 ;; Supernote:2 ends here
 
 ;; [[file:Sacha.org::#supernote][Supernote:3]]
-(defun my-sketch-process (file)
-  (interactive "FFile: ")
+(defun my-sketch-process (file &optional do-crop)
+  (interactive (list (read-file-name "File: ")))
 	(condition-case nil
 			(progn
 				(my-image-recognize file)
@@ -14157,11 +17266,12 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 					 (setq file
 								 (my-image-store
 									(my-image-autorotate
-									 (my-image-autocrop
-										file
+									 (if do-crop
+											 (my-image-autocrop file
 										;; (my-sketch-recolor-png
 										;;  file)
-										)))))))
+																					)
+										 file)))))))
 		(error nil))
 	(find-file file)
 	(find-file-other-window (concat (file-name-sans-extension file) ".txt"))
@@ -14524,6 +17634,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 							 (overlay (make-overlay word-start word-end)))
 					(overlay-put overlay 'my-split t)
 					(overlay-put overlay 'split-num n)
+          (overlay-put overlay 'evaporate t)
 					(overlay-put overlay 'before-string (propertize (format "%s" n)
 																													'face '(:foreground "white"
 																																							:background "blue")))
@@ -14854,7 +17965,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 	:load-path "~/proj/subed-record"
   :config
   (remove-hook 'subed-sanitize-functions 'subed-sort)
-	(setq subed-record-ffmpeg-args (split-string "-y -f pulse -i alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo"))
+	(setq subed-record-ffmpeg-args (split-string "-y -f pulse -i VirtualMicSink.monitor"))
   :bind
   (:map subed-mode-map ("C-c C-c" . subed-record-compile-video)))
 ;; Other subtitle code:1 ends here
@@ -14902,6 +18013,9 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
    'avy-dispatch-alist
    (cons ?, 'subed-split-subtitle)))
 
+(defun my-subed-maybe-save-place ()
+  (when buffer-file-name (save-place-local-mode 1)))
+
 (use-package subed
   :if my-laptop-p
   :load-path "~/proj/subed/subed"
@@ -14924,7 +18038,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
         ("M-." . subed-merge-dwim))
 	:config
 	;; Remember cursor position between sessions
-	(add-hook 'subed-mode-hook 'save-place-local-mode)
+	(add-hook 'subed-mode-hook 'my-subed-maybe-save-place)
 	;; Some reasonable defaults
 	;; Replay subtitles as you adjust their start or stop time with M-[, M-], M-{, or M-}
 	(add-hook 'subed-mode-hook 'subed-enable-replay-adjusted-subtitle)
@@ -14932,7 +18046,6 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 	(add-hook 'subed-mode-hook 'subed-enable-loop-over-current-subtitle)
 	;; Show characters per second
 	(add-hook 'subed-mode-hook 'subed-enable-show-cps)
-  (add-hook 'subed-mode-hook (lambda () (remove-hook 'before-save-hook 'subed-sort t)))
 	(with-eval-after-load 'consult
 		(advice-add 'consult-buffer :around
 								(lambda (f &rest r)
@@ -15113,6 +18226,7 @@ FILE should be a VTT or SRT file produced by whisperx with the
 						(let ((overlay (make-overlay (match-beginning 0)
 																				 (match-end 0))))
 							(overlay-put overlay 'common-edit t)
+              (overlay-put overlay 'evaporate t)
 							(overlay-put
 							 overlay 'display
 							 (propertize (concat (match-string 0) " -> "
@@ -15159,6 +18273,7 @@ FILE should be a VTT or SRT file produced by whisperx with the
 ;; Showing captions:1 ends here
 
 ;; [[file:Sacha.org::#edit-text][Edit text:1]]
+;; Use the saved version of this instead of forcing the reevaluation
 (defcustom my-subed-common-edits
 	'("I"
     "I've"
@@ -15167,20 +18282,22 @@ FILE should be a VTT or SRT file produced by whisperx with the
     "JavaScript"
     "RSS"
 		("stop section" "subsection")
-		("EmacsConf" "EmacsCon")
+		("EmacsConf" "EmacsCon" "emacs conf" "imaxconf")
     ("going to" "gonna")
     ("want to" "wanna")
     ("transient" "transit")
+    ("C-c" "control c" "Ctrl+C")
+    ("C-x" "control x" "Ctrl+X")
+    ("C-f" "control f")
     ("" "uh" "um")
     ("Magit" "maggot")
     ("Emacs" "e-max" "emex" "emax" "bmx" "imax")
     ("Emacs News" "emacs news")
 		("Emacs Lisp" "emacs list")
-    ("EmacsConf" "emacs conf" "imaxconf")
     ("ivy" "iv")
     ("UI" "ui")
     ("TECO" "tico")
-    ("org-roam" "orgrim" "orgrom")
+    ("org-roam" "orgrim" "orgrom" "Org Rome")
     ("non-nil" "non-nail")
     ("commits" "comets")
     "SQL"
@@ -15197,6 +18314,7 @@ FILE should be a VTT or SRT file produced by whisperx with the
     "SQLite"
     "SQL"
     "I'll"
+    ("<f9>" "F-9" "f9")
     "I'd"
     "PDFs"
     "PDF"
@@ -15289,6 +18407,10 @@ FILE should be a VTT or SRT file produced by whisperx with the
 						 ((= c ?j) (subed-mpv-jump-to-current-subtitle))
 						 ((= c ?.) (setq done t))))
 				(replace-match correction t t)))))
+
+(defun my-subed-fix-common-errors-from-start ()
+  (goto-char (point-min))
+  (my-subed-fix-common-errors))
 ;; Edit text:2 ends here
 
 ;; [[file:Sacha.org::#working-with-media][Working with media:1]]
@@ -15681,7 +18803,7 @@ If threshold is 0, remove all gaps."
 												(buffer-file-name))))
 
 (defun my-rename-file-set (file new-prefix &optional force)
-	(interactive (let ((file (read-file-name file)))
+	(interactive (let ((file (read-file-name "File: ")))
 								 (list
 									file
 									(read-file-name (format "New prefix (%s): "
@@ -15693,7 +18815,7 @@ If threshold is 0, remove all gaps."
 											 new-prefix
 											 "."
 											 (file-name-extension file))))
-				(when (and (not (=string= file new-file))
+				(when (and (not (string= file new-file))
 									 (file-exists-p new-file))
 					(error "%s already exists."
 								 new-file)))))
@@ -15721,6 +18843,14 @@ If threshold is 0, remove all gaps."
 													(dired-get-filename)
 												(buffer-file-name))
 											new-name))
+
+(defun my-move-current-file-set (new-dir)
+  (interactive (list (read-file-name "Destination: " "~/proj/" nil t nil 'file-directory-p)))
+	(dolist (file (my-file-set
+	               (if (derived-mode-p 'dired-mode)
+										 (dired-get-filename)
+									 (buffer-file-name))))
+    (rename-file file (expand-file-name (file-name-nondirectory file) new-dir))))
 ;; Working with or renaming a set of files:1 ends here
 
 ;; [[file:Sacha.org::#multimedia-elfeed][Elfeed:1]]
@@ -15784,6 +18914,7 @@ If threshold is 0, remove all gaps."
 
 ;; [[file:Sacha.org::#coding][Coding:1]]
 (editorconfig-mode 1)
+(add-to-list 'exec-path "~/.local/bin")
 ;; Coding:1 ends here
 
 ;; [[file:Sacha.org::#scan-bin-and-turn-the-scripts-into-interactive-commands][Scan ~/bin and turn the scripts into interactive commands:1]]
@@ -15930,6 +19061,9 @@ If threshold is 0, remove all gaps."
 ;; Web development:4 ends here
 
 ;; [[file:Sacha.org::#lsp][LSP:1]]
+(defun my-local-lsp ()
+  (unless (file-remote-p default-directory)
+    (lsp)))
 (use-package lsp-mode
   :if my-laptop-p
   :config
@@ -15950,8 +19084,8 @@ If threshold is 0, remove all gaps."
 	(add-to-list 'lsp-file-watch-ignored-directories "/blog\\'")
 	(add-to-list 'lsp-file-watch-ignored-directories "/_site\\'")
 	(add-to-list 'lsp-file-watch-ignored-directories "/_local\\'")
-  :hook ((js-mode . lsp)
-         (python-mode . lsp)
+  :hook ((js-mode . my-local-lsp)
+         (python-mode . my-local-lsp)
          (lsp-mode-hook . lsp-enable-which-key-integration)))
 (use-package lsp-ui
   :if my-laptop-p
@@ -16061,7 +19195,7 @@ If threshold is 0, remove all gaps."
 			(setq function-body (buffer-substring (point)
 																						(progn (forward-sexp) (point)))))
 		(save-excursion
-			(insert function-body (format "\n\n(advice-add '%s :around 'my-%s)\n" function-name function-name)))
+			(insert function-body (format "\n\n(advice-add '%s :override #'my-%s)\n" function-name function-name)))
 		(save-excursion
 			(forward-char 1)
 			(forward-sexp 1)
@@ -16069,8 +19203,7 @@ If threshold is 0, remove all gaps."
 			(insert "my-")
 			(forward-sexp 1)
 			(skip-syntax-forward " ")
-			(forward-char 1)
-			(insert "_ "))))
+			(forward-char 1))))
 ;; Easily override existing functions:1 ends here
 
 ;; [[file:Sacha.org::#lispy][Lispy:1]]
@@ -16518,7 +19651,7 @@ Useful as `imenu-create-index-function'."
 	:quelpa (undercover :fetcher github :repo "undercover-el/undercover.el")
 	:defer t
 	)
-(use-package coverage :efer t)
+(use-package coverage :defer t)
 ;; Undercover:1 ends here
 
 ;; [[file:Sacha.org::#eldoc][Eldoc:1]]
@@ -16733,7 +19866,7 @@ Useful as `imenu-create-index-function'."
   ([remap describe-key] . helpful-key)
   ([remap describe-command] . helpful-command)
   ([remap describe-variable] . helpful-variable)
-  ([remap describe-function] . helpful-function))
+  ([remap describe-function] . helpful-callable))
 ;; Helpful:1 ends here
 
 ;; [[file:Sacha.org::#elisp-demos][elisp-demos:1]]
@@ -16748,6 +19881,16 @@ Useful as `imenu-create-index-function'."
 	:custom
 	elisp-demos-user-files '("~/sync/orgzly/elisp-demos.org"))
 ;; elisp-demos:1 ends here
+
+;; [[file:Sacha.org::#coding-emacs-lisp-democratize][Democratize:1]]
+(use-package xht
+	:vc (:url "https://git.sr.ht/~flandrew/xht"))
+(use-package democratize
+	:vc (:url "https://git.sr.ht/~flandrew/democratize")
+  :config
+  (democratize-enable-examples-in-helpful)
+  (democratize-enable-examples-in-help))
+;; Democratize:1 ends here
 
 ;; [[file:Sacha.org::#coding-emacs-lisp-json][JSON:1]]
 (setq json-object-type 'alist
@@ -16773,6 +19916,18 @@ Useful as `imenu-create-index-function'."
   (yas-global-mode 1)
   (bind-key "\t" 'hippie-expand yas-minor-mode-map)
 )
+
+(defun my-use-yasnippet-capf () (add-to-list 'completion-at-point-functions #'yasnippet-capf))
+
+(use-package yasnippet-capf
+  :after cape
+  :config
+  (add-to-list 'completion-at-point-functions #'yasnippet-capf)
+  :hook
+  (emacs-lisp-mode . my-use-yasnippet-capf)
+  (lisp-interaction-mode . my-use-yasnippet-capf)
+  (org-mode . my-use-yasnippet-capf)
+  )
 ;;        (global-set-key (kbd "C-c y") (lambda () (interactive)
 ;;                                         (yas/load-directory "~/elisp/snippets")))
 ;; Snippets:1 ends here
@@ -17685,6 +20840,46 @@ current buffer, killing it."
   (add-to-list 'magic-mode-alist '("SQLite format 3\x00" . ct/sqlite-view-file-magically)))
 ;; SQLite:1 ends here
 
+;; [[file:Sacha.org::#coding-write-a-function-to-help-with-crontab-entries][Write a function to help with crontab entries:1]]
+(defun my-bbb-insert-translated-crontab-entries (time-zone start-time end-time)
+  "Insert crontab entries.
+Convert START-TIME and END-TIME from TIME-ZONE.
+(Assume END-TIME is after START-TIME.)
+Create a pair of crontab entries for the start (converted to local time)
+and end."
+  (interactive
+   (progn
+     (require 'tzc)
+     (let* ((time-zone (completing-read "Timezone: " tzc-time-zones))
+            (start-time
+             (org-read-date t t nil "Start date and time: "))
+            (end-time
+             (org-read-date t t nil "End time: " start-time)))
+       (list time-zone start-time end-time))))
+  (when (stringp start-time)
+    (setq start-time (org-read-date t t start-time)))
+  (when (stringp end-time)
+    (setq end-time (org-read-date t t end-time nil start-time)))
+  (let ((tz-offset (format-time-string "%z" start-time time-zone))
+         text)
+     (setq start-time (date-to-time (concat (format-time-string "%Y-%m-%dT%H:%M:%S.000" start-time) tz-offset)))
+     (setq end-time (date-to-time (concat (format-time-string "%Y-%m-%dT%H:%M:%S.000" end-time) tz-offset)))
+     (setq text (concat
+                 (format-time-string "%-M %-H %-d %-m * \n" start-time)
+                 (format-time-string "%-M %-H %-d %-m * " end-time)))
+     (when (called-interactively-p 'any)
+       (insert text))
+     text))
+
+(ert-deftest my-bbb-insert-translated-crontab-entries ()
+  (should (string= (my-bbb-insert-translated-crontab-entries
+                    "Europe/Berlin"
+                    "2025-11-12T07:00:00"
+                    "2025-11-12T10:30:00")
+                   "0 1 12 11 *
+30 4 12 11 * ")))
+;; Write a function to help with crontab entries:1 ends here
+
 ;; [[file:Sacha.org::#internet-relay-chat][Internet Relay Chat:1]]
 (use-package erc
 	:defer t
@@ -17942,26 +21137,37 @@ When called with \\[universal-argument], prompt for a URL."
 ;; mastodon.el: Mention people based on regexp:1 ends here
 
 ;; [[file:Sacha.org::#mastodon-mastodon-el-mention-people-based-on-regexp][mastodon.el: Mention people based on regexp:2]]
+(defun my-org-contacts-all-alist ()
+  "Return a list of all contacts in `org-contacts-files'.
+Each element has the form (NAME . (FILE . POSITION))."
+  (seq-mapcat
+   (lambda (file)
+     (unless (buffer-live-p (get-buffer (file-name-nondirectory file)))
+       (find-file-noselect file))
+     (with-current-buffer (find-file-noselect file)
+       (org-map-entries
+        (lambda ()
+          (let* ((name (substring-no-properties (org-get-heading t t t t)))
+                 (file (buffer-file-name))
+                 (position (point))
+                 (entry-properties (org-entry-properties position 'standard)))
+            `(("NAME" . ,name)
+              ("FILE" . ,file)
+              ("POSITION" . ,position)
+              ,@entry-properties))))))
+   (org-contacts-files)))
+
+(defun my-org-contacts-to-mention (text)
+  (seq-filter
+   (lambda (o) (and (assoc-default "MENTION_REGEXP" o #'string=)
+                    (string-match (assoc-default "MENTION_REGEXP" o #'string=) text)))
+   (my-org-contacts-all-alist)))
+
 (defun my-mastodon-interested-handles (text)
-	(let (list)
-		(with-temp-buffer
-			(insert-file-contents my-org-contacts-file)
-			(org-mode)
-			(goto-char (point-min))
-			(org-map-entries
-			 (lambda ()
-				 (let ((handle (org-entry-get (point) "MASTODON")))
-					 (when (and (string-match (org-entry-get (point) "MENTION_REGEXP")
-																		text)
-											(not (string-match
-														(rx
-														 word-start
-														 (literal handle)
-														 word-end)
-														text)))
-						 (cl-pushnew handle list))))
-			 "MASTODON={.}+MENTION_REGEXP={.}"))
-		list))
+  (seq-keep
+   (lambda (o)
+     (assoc-default "MASTODON" o #'string=))
+   (my-org-contacts-to-mention text)))
 
 (defun my-mastodon-insert-interested-handles (text)
 	(interactive (list (mastodon-toot--remove-docs)))
@@ -17970,6 +21176,59 @@ When called with \\[universal-argument], prompt for a URL."
 			(unless (looking-at " ") (insert " "))
 			(insert (string-join handles " ")))))
 ;; mastodon.el: Mention people based on regexp:2 ends here
+
+;; [[file:Sacha.org::#mastodon-mastodon-el-mention-people-based-on-regexp][mastodon.el: Mention people based on regexp:3]]
+(defun my-org-contacts-best-contact (rec)
+  (seq-find
+   (lambda (type)
+     (when (assoc-default type rec #'string=)
+       type))
+   '("MASTODON" "EMAIL" "X")))
+
+(defun my-org-contacts-collect-context (contact text)
+  "Return the list of links or keywords matching MENTION_REGEXP for CONTACT in TEXT."
+  (with-temp-buffer
+    (insert text)
+    (goto-char (point-min))
+    (org-mode)
+    (let ((regexp (assoc-default "MENTION_REGEXP" contact #'string=))
+          results)
+      (while (re-search-forward regexp nil t)
+        (let ((elem (org-element-context)))
+          (if (eq (org-element-type elem) 'link)
+              (push (org-element-property :raw-link elem)
+                    results)
+            (push (sentence-at-point) results))))
+      (nreverse results))))
+
+(defun my-org-contacts-suggest-mentions (text url)
+  (interactive (list (if (region-active-p) (buffer-substring (region-beginning) (region-end))
+                       (my-11ty-post-text))
+                     (my-11ty-post-url)))
+
+  (when-let* ((people (seq-group-by #'my-org-contacts-best-contact (my-org-contacts-to-mention text))))
+    (with-current-buffer (get-buffer-create "*mentions*")
+      (erase-buffer)
+      (org-mode)
+      (dolist (type '("MASTODON" "EMAIL" "X"))
+        (when (assoc-default type people #'string=)
+          (insert "* " type "\n\n"
+                  (mapconcat (lambda (o)
+                               (assoc-default type o #'string=))
+                             (assoc-default type people #'string=) ", ")
+                  "\n"
+                  (string-join
+                   (seq-mapcat
+                    (lambda (o)
+                      (my-org-contacts-collect-context o text))
+                    (assoc-default type people #'string=))
+                   "\n")
+                  (if url (concat " " url) "")
+                  "\n\n")))
+      (goto-char (point-min))
+      ;; collect the links
+      (pop-to-buffer (current-buffer)))))
+;; mastodon.el: Mention people based on regexp:3 ends here
 
 ;; [[file:Sacha.org::#mastodon-mastodon-el-collect-handles-in-kill-ring][mastodon.el: Collect handles in clipboard (Emacs kill ring):1]]
 (defvar my-mastodon-handle "@sacha@social.sachachua.com")
@@ -18504,7 +21763,7 @@ If you can find there something you can use, then I'm happy to be useful to the 
 	(interactive "MHandle: ")
 	(require 'mastodon-profile)
 	(when (string-match "https?://\\(.+?\\)/\\(@.+\\)" user-handle)
-		(setq user-handle (concat (match-string 2 user-handle) "@" (match-string 1 user-handle))))
+		(setq user-handle (concat (match-string user-handle) "@" (match-string 1 user-handle))))
 	(let* ((account (mastodon-profile--search-account-by-handle
                    user-handle))
 				 (user-id (alist-get 'id account))
@@ -18551,12 +21810,23 @@ If you can find there something you can use, then I'm happy to be useful to the 
 	"Get tags for current post."
 	(plist-get (my-11ty-post-plist) :tags))
 
+(defun my-11ty-post-url ()
+  (when (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")
+    (concat (replace-regexp-in-string "/$" "" my-blog-base-url)
+            (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK"))))
+
 (defun my-11ty-post-text ()
 	(save-excursion
-		(goto-char (org-find-property "EXPORT_ELEVENTY_PERMALINK"
-																	(org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
-		(org-end-of-meta-data)
-		(buffer-substring (point) (org-end-of-subtree))))
+		(goto-char
+     (cond
+      ((org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")
+       (org-find-property "EXPORT_ELEVENTY_PERMALINK"
+												  (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
+      (t (org-back-to-heading-or-point-min))))
+    (if (org-before-first-heading-p)
+        (buffer-string)
+		  (org-end-of-meta-data)
+		  (buffer-substring (point) (org-end-of-subtree)))))
 
 (defun my-mastodon-11ty-toot-post ()
 	"Compose a toot sharing this blog post on Mastodon."
@@ -19938,6 +23208,10 @@ See also:  http://ivan.kanis.fr/caly.el"
   (interactive)
   (ibizaman/syncthing-resolve-conflicts "~/sync/orgzly"))
 
+(defun my-resolve-orgzly-ipad-syncthing ()
+  (interactive)
+  (ibizaman/syncthing-resolve-conflicts "~/sync/orgzly-ipad"))
+
 (defun ibizaman/syncthing-resolve-conflicts (directory)
   "Resolve all conflicts under given DIRECTORY."
   (interactive "D")
@@ -20102,6 +23376,7 @@ See also:  http://ivan.kanis.fr/caly.el"
 ;; Add comment to blog post:1 ends here
 
 ;; [[file:Sacha.org::#gnus][Gnus:1]]
+(setq mml-secure-openpgp-encrypt-to-self t)
 (setq gnus-select-method '(nnnil ""))
 (setq gnus-secondary-select-methods
       '((nntp "news.gmane.io")
@@ -20184,7 +23459,7 @@ See also:  http://ivan.kanis.fr/caly.el"
 						 (re-search-forward "\\(https://.+?/mailman/admindb/\\(.+\\)\\)" nil t))
 			 (match-string 2)
 		 (completing-read "List: " '("emacsconf-org" "emacsconf-org-private" "emacs-tangents"
-																 "emacsconf-submit"
+																 "emacsconf-submit" "emacsconf-discuss"
 																 "info-gnu-emacs")))))
 	(goto-char (point-min))
 	(browse-url (concat "https://lists.gnu.org/mailman/admindb/" list-id "?adminpw="
@@ -20214,7 +23489,7 @@ See also:  http://ivan.kanis.fr/caly.el"
 	(when (stringp date) (setq date (date-to-time date)))
 	(let* ((newsletter-date (format-time-string "%Y-%m-%d" date))
 				 (current-week (org-read-date nil t "++Mon" nil date))
-				 (current-week-end (org-read-date nil t "++2Sun" nil date))
+				 (current-week-end (org-read-date nil t "++Sun" nil date))
 				 (next-week (org-read-date nil t "+2Mon" nil date))
 				 (next-week-end (org-read-date nil t "+3Sun" nil date))
 				 result)
@@ -20290,62 +23565,128 @@ If ACTIVATE-APP-AFTERWARDS is non-nil, use xdotool to try to activate that app's
 ;; Transforming HTML:1 ends here
 
 ;; [[file:Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-saving-images][Saving images:1]]
+;; Hmm, now I need to modify it to handle emojis in the text.
+;; Emojis have :text: in the alt. I need to upload them.
+
 (defun my-transform-html-save-images (dom dir &optional file-prefix transform-fn)
-	(let (last-image last-image-filename last-image-alt results)
-		(dom-search dom
-								(lambda (node)
-									(pcase (dom-tag node)
-										('img
-										 (let ((data (dom-attr node 'src)))
-											 (cond
-												((string-match "^images/" data)
-												 (setq last-image nil
-															 last-image-filename data
-															 last-image-alt (dom-attr node 'alt)))
-												((string-match "^data:image/" data)
-												 (with-temp-buffer
-													 (insert data)
-													 (goto-char (point-min))
-													 (when (looking-at "data:image/\\([^;]+?\\);base64,")
-														 (setq last-image (cons (match-string 1)
-																										(buffer-substring (match-end 0) (point-max)))
-																	 last-image-filename nil
-																	 last-image-alt (dom-attr node 'alt))))))))
-										('h2
-										 (when (not (string= (string-trim (dom-texts node)) ""))
-											 (cond
-												(last-image
-												 (setq last-image-filename
-															 (expand-file-name
-																(format "%s%s.%s"
-																				(or file-prefix "")
-																				(if transform-fn
-																						(funcall transform-fn (dom-texts node))
-																					(dom-texts node))
-																				(car last-image))
-																dir))
-												 (with-temp-file last-image-filename
-													 (set-buffer-file-coding-system 'binary)
-													 (insert (base64-decode-string (cdr last-image)))))
-												(last-image-filename
-												 (let ((new-filename
-																(expand-file-name
-																 (format "%s%s.%s"
-																				 (or file-prefix "")
-																				 (if transform-fn
-																						 (funcall transform-fn (dom-texts node))
-																					 (dom-texts node))
-																				 "jpg")
-																 dir)))
-													 (call-process "convert" nil nil nil last-image-filename
-																				 new-filename)
-													 (setq last-image-filename new-filename))))
-											 (push (cons (string-trim (dom-texts node))
-																	 `((filename . ,last-image-filename)
-																		 (alt . ,last-image-alt)))
-														 results)
-											 (setq last-image nil
-														 last-image-filename nil))))))
+  "Returns a list of (section list).
+list is a list of alists with the following keys:
+- type (main, extra, emoji)
+- alt
+- filename"
+	(let (last-image last-image-filename last-image-alt results last-image-node)
+		(dom-search
+     dom
+		 (lambda (node)
+			 (pcase (dom-tag node)
+				 ('img
+					(let* ((data (dom-attr node 'src))
+                 (jpg (concat (file-name-sans-extension data)
+                             ".jpg")))
+            (when (file-exists-p jpg)
+              (dom-set-attribute node 'src jpg)
+              (setq data jpg))
+            (when (or last-image last-image-filename)
+              (cond
+               ;; this image is after another image, so the previous image must be an extra one
+							 (last-image
+								(setq last-image-filename
+											(expand-file-name
+											 (format "%s%s-extra.%s"
+															 (or file-prefix "")
+															 (if transform-fn
+																	 (funcall transform-fn (caar results))
+																 (caar results))
+															 (car last-image))
+											 dir))
+								(with-temp-file last-image-filename
+									(set-buffer-file-coding-system 'binary)
+									(insert (base64-decode-string (cdr last-image)))))
+							 ;; this image is after another image, so the previous image must be an extra one
+							 (last-image-filename
+								(let ((new-filename
+											 (expand-file-name
+												(format "%s%s-extra.%s"
+																(or file-prefix "")
+																(if transform-fn
+																		(funcall transform-fn (caar results))
+																	(caar results))
+																"jpg")
+												dir)))
+									(call-process "convert" nil nil nil last-image-filename
+																new-filename)
+									(setq last-image-filename new-filename))))
+              (push
+               (list
+                (cons 'type 'extra)
+                (cons 'filename last-image-filename)
+                (cons 'alt last-image-alt))
+               (cdr (car results)))
+              (dom-remove-node dom node)
+              (setq last-image-node nil)
+              (setq last-image nil last-image-filename nil))
+						(cond
+             ((string-match "^:.+?:" (or (dom-attr node 'alt) ""))
+              (setq last-image-node nil)
+              (push
+               (list
+                (cons 'type 'emoji)
+                (cons 'filename (dom-attr node 'src))
+                (cons 'alt (dom-attr node 'alt)))
+               (cdar results)))
+						 ((string-match "^images/" data)
+							(setq last-image nil
+										last-image-filename data
+										last-image-alt (dom-attr node 'alt)
+                    last-image-node node))
+						 ((string-match "^data:image/" data)
+							(with-temp-buffer
+								(insert data)
+								(goto-char (point-min))
+								(when (looking-at "data:image/\\([^;]+?\\);base64,")
+									(setq last-image (cons (match-string 1)
+																				 (buffer-substring (match-end 0) (point-max)))
+												last-image-filename nil
+												last-image-alt (dom-attr node 'alt)
+                        last-image-node node)))))))
+				 ('h2
+					(when (not (string= (string-trim (dom-texts node)) ""))
+						(cond
+						 (last-image
+							(setq last-image-filename
+										(expand-file-name
+										 (format "%s%s.%s"
+														 (or file-prefix "")
+														 (if transform-fn
+																 (funcall transform-fn (dom-texts node))
+															 (dom-texts node))
+														 (car last-image))
+										 dir))
+							(with-temp-file last-image-filename
+								(set-buffer-file-coding-system 'binary)
+								(insert (base64-decode-string (cdr last-image)))))
+						 (last-image-filename
+							(let ((new-filename
+										 (expand-file-name
+											(format "%s%s.%s"
+															(or file-prefix "")
+															(if transform-fn
+																	(funcall transform-fn (dom-texts node))
+																(dom-texts node))
+															(file-name-extension last-image-filename))
+											dir)))
+                (copy-file last-image-filename new-filename t)
+								(setq last-image-filename new-filename))))
+						(push (cons (string-trim (dom-texts node))
+												`(((filename . ,last-image-filename)
+					                 (alt . ,last-image-alt)
+                           (type . main))))
+									results)
+            (when last-image-node
+              (dom-remove-node dom last-image-node))
+						(setq last-image nil
+                  last-image-node nil
+									last-image-filename nil))))))
 		(nreverse results)))
 ;; Saving images:1 ends here
 
@@ -20369,7 +23710,7 @@ If ACTIVATE-APP-AFTERWARDS is non-nil, use xdotool to try to activate that app's
 	(my-transform-html-save-images
 	 dom
 	 my-brigade-newsletter-images-directory
-	 (concat (org-read-date nil nil "+Sun")
+	 (concat (substring (org-read-date nil nil "+Sun") 0 10)
 					 "-news-")
 	 #'my-transform-html-slugify))
 ;; Saving images:2 ends here
@@ -20462,6 +23803,9 @@ Resume at the next h1 heading."
 						(dolist (attr '(style class id))
 							(when (dom-attr node attr)
 								(dom-remove-attribute node attr))))))
+		;; remove comments
+    (mapc (lambda (node) (dom-remove-node (dom-parent dom node) node))
+          (dom-by-tag dom 'sup))
 		;; remove blank paragraphs
 		(dom-search
 		 dom
@@ -20685,23 +24029,57 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 												t (regexp-quote (my-brigade-newsletter-heading-to-image-file-name heading))))))
 ;; Getting a Google Docs draft ready for Mailchimp via Emacs and Org Mode:1 ends here
 
-;; [[file:Sacha.org::*Bike Brigade: working with Mailchimp images][Bike Brigade: working with Mailchimp images:1]]
+;; [[file:Sacha.org::#collaboration-bike-brigade-working-with-mailchimp-images][Bike Brigade: working with Mailchimp images:1]]
 (use-package mailchimp :load-path "~/proj/mailchimp-el" :vc (:url "https://github.com/sachac/mailchimp-el"))
+
 (defun my-brigade-reuse-or-upload-images (images)
-	"Return an alist of (SECTION . URL)"
-	(let ((recent-files (assoc-default 'files (mailchimp-recent-files 100))))
+  "Return an updated list of (section . images)."
+	(let* ((base-regexp "^.+?-news-\\|\\(\\.[0-9][0-9]\\)?\\.\\(jpg\\||png\\)$")
+         (recent-files
+          (mapcar
+           (lambda (o)
+             (cons
+              (cons 'base
+                    (replace-regexp-in-string
+                     base-regexp ""
+                     (file-name-base (assoc-default 'name o))))
+              o))
+           (assoc-default 'files (mailchimp-recent-files 100))))
+         results)
 		(mapcar
-		 (lambda (img)
-			 (let* ((base (regexp-quote
-										 (replace-regexp-in-string "^.+?-news-" "" (file-name-nondirectory (assoc-default 'filename (cdr img))))))
-							(existing (seq-find (lambda (o) (string-match base (assoc-default 'name o)))
-																	recent-files)))
-				 (push (cons 'url
-										 (if existing
-												 (assoc-default 'full_size_url existing)
-											 (alist-get 'full_size_url (mailchimp-upload-file (assoc-default 'filename (cdr img))))))
-							 (cdr img))
-				 img))
+		 (lambda (section)
+       (setcdr
+        section
+        (mapcar
+         (lambda (image)
+			     (let* ((base
+                   (if (eq (alist-get 'type image) 'emoji)
+                       (replace-regexp-in-string "^:\\|:$" "" (alist-get 'alt image))
+                     (and (assoc-default 'filename image)
+                          (replace-regexp-in-string
+                           base-regexp ""
+                           (file-name-base (alist-get 'filename image))))))
+                  (existing (and base (seq-find (lambda (o)
+                                                  (string= base (alist-get 'base o)))
+                                                recent-files))))
+             (when base
+               (let ((url
+                      (if existing
+                          (assoc-default 'full_size_url existing)
+                        (alist-get
+                         'full_size_url
+                         (mailchimp-upload-file
+                          (alist-get 'filename image)
+                          (if (eq (alist-get 'type image) 'emoji)
+                              (concat
+                               (replace-regexp-in-string "^:\\|:$" "" (alist-get 'alt image))
+                               "."
+                               (file-name-extension (alist-get 'filename image)))))))))
+				         (push (cons 'url url) image)
+                 (push (cons (file-name-base (alist-get 'filename image)) url) results)))
+				     image))
+         (cdr section)))
+       section)
 		 images)))
 
 (defun my-brigade-toc (sections)
@@ -20716,6 +24094,12 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 							(my-brigade-toc-items (assoc-default "In our community" sections 'string=)))))
 		 (buffer-string))))
 
+(defun my-brigade-remove-section-images (item)
+  ;; remove the last image, because that's the image for the next section
+  (when-let* ((last-image (car (last (dom-by-tag item 'img)))))
+    (dom-remove-node item last-image))
+  item)
+
 (defun my-brigade-format-section (section images &optional recolor)
 	(mapconcat
 	 (lambda (group)
@@ -20723,33 +24107,56 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 												 (append
 													(list (dom-node 'h2 nil (car group)))
 													(cdr group))))
-						(image (assoc-default (car group) images 'string=))
+						(images (assoc-default (car group) images 'string=))
+            (main-image (seq-find (lambda (o) (eq (alist-get 'type o) 'main)) images))
+            (extra-image (seq-find (lambda (o) (eq (alist-get 'type o) 'extra)) images))
 						(call-to-action (dom-attr (dom-search item (lambda (o)
 																												 (and (eq (dom-tag o) 'a)
 																															(string-match "^\\[ .+ \\]" (dom-texts o)))))
 																			'href)))
-			 (format "<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\" style=\"margin-top: 12px; margin-bottom: 12px;\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover\" valign=\"top\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"12\" rowspan=\"1\" valign=\"top\" width=\"100%%\" class=\"mceColumn\" id=\"mceColumnId--38\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0\" valign=\"top\" id=\"b812\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover;padding-top:0px;padding-bottom:0px\" valign=\"top\"><table style=\"table-layout:fixed\" width=\"100%%\" border=\"0\" cellspacing=\"24\" cellpadding=\"0\"><tbody><tr><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-809\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"background-color:transparent;border:0;border-radius:0\" valign=\"top\" class=\"mceImageBlockContainer\" id=\"b808\"><table style=\"border-collapse:separate;margin:0;vertical-align:top;max-width:100%%;width:100%%;height:auto\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0;margin:0\" valign=\"top\">%s</td></tr></tbody></table></td></tr></tbody></table></td><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-811\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0\" valign=\"top\" class=\"mceGutterContainer\" id=\"gutterContainerId-810\"><table style=\"border-collapse:separate\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0;border:0;border-radius:0\" valign=\"top\" id=\"b810\"><table style=\"border:0;background-color:transparent;border-radius:0;border-collapse:separate\" width=\"100%%\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-left:24px;padding-right:24px;\" class=\"mceTextBlockContainer\">%s</td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table>"
-							 (if call-to-action
-									 (format "<a href=\"%s\" tabindex=\"-1\" style=\"display: block;\"><span style=\"background-color: transparent\"><img src=\"%s\" alt=\"%s\" style=\"padding-top: 12px; display:block;max-width:100%%;height:auto;border-radius:0\" width=\"306\" height=\"auto\" class=\"imageDropZone mceImage\"></span></a>"
-													 call-to-action
-													 (assoc-default 'url image)
-													 (if (not (string= (assoc-default 'alt image) ""))
-															 (assoc-default 'alt image)
-														 (car group)))
-								 (format "<img src=\"%s\" alt=\"%s\" style=\"display:block; padding-top: 12px; max-width:100%%;height:auto;border-radius:0\" width=\"306\" height=\"auto\" class=\"imageDropZone mceImage\">"
-												 (assoc-default 'url image)
-												 (if (not (string= (assoc-default 'alt image) ""))
-														 (assoc-default 'alt image)
-													 (car group))))
-							 (my-transform-html
-								(delq nil
-											(list
-											 'my-transform-html-remove-images
-											 'my-transform-html-remove-italics
-											 'my-brigade-format-buttons
-											 (when recolor
-												 'my-brigade-recolor-recursively)))
-								item))))
+       (if main-image
+			     (format "<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\" style=\"margin-top: 12px; margin-bottom: 12px;\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover\" valign=\"top\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"12\" rowspan=\"1\" valign=\"top\" width=\"100%%\" class=\"mceColumn\" id=\"mceColumnId--38\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0\" valign=\"top\" id=\"b812\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr class=\"mceRow\"><td colspan=\"1\" rowspan=\"1\" style=\"background-position:center;background-repeat:no-repeat;background-size:cover;padding-top:0px;padding-bottom:0px\" valign=\"top\"><table style=\"table-layout:fixed\" width=\"100%%\" border=\"0\" cellspacing=\"24\" cellpadding=\"0\"><tbody><tr><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-809\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"background-color:transparent;border:0;border-radius:0\" valign=\"top\" class=\"mceImageBlockContainer\" id=\"b808\"><table style=\"border-collapse:separate;margin:0;vertical-align:top;max-width:100%%;width:100%%;height:auto\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"border:0;border-radius:0;margin:0\" valign=\"top\">%s</td></tr></tbody></table></td></tr></tbody></table></td><td colspan=\"6\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0\" valign=\"top\" width=\"50%%\" class=\"mceColumn\" id=\"mceColumnId-811\"><table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding:12px\" valign=\"top\" class=\"mceGutterContainer\"><table style=\"border-collapse:separate\" width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"padding-top:0;padding-bottom:0;padding-right:0;padding-left:0;border:0;border-radius:0\" valign=\"top\" id=\"b810\"><table style=\"border:0;background-color:transparent;border-radius:0;border-collapse:separate\" width=\"100%%\"><tbody><tr><td colspan=\"1\" rowspan=\"1\" qqstyle=\"padding-left:24px;padding-right:24px;\" class=\"mceTextBlockContainer\">%s</td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr></tbody></table></td></tr>%s</tbody></table>"
+							     (if call-to-action
+									     (format "<a href=\"%s\" tabindex=\"-1\" style=\"display: block;\"><span style=\"background-color: transparent\"><img src=\"%s\" alt=\"%s\" style=\"padding-top: 12px; display:block;max-width:100%%;height:auto;border-radius:0\" width=\"306\" height=\"auto\" class=\"imageDropZone mceImage\"></span></a>"
+													     call-to-action
+													     (assoc-default 'url main-image)
+													     (if (not (string= (assoc-default 'alt main-image) ""))
+															     (assoc-default 'alt main-image)
+														     (car group)))
+								     (format "<img src=\"%s\" alt=\"%s\" style=\"display:block; padding-top: 12px; width:100%%; max-width:100%%;height:auto;border-radius:0\" width=\"306\" height=\"auto\" class=\"imageDropZone mceImage\">"
+												     (assoc-default 'url main-image)
+												     (if (not (string= (assoc-default 'alt main-image) ""))
+														     (assoc-default 'alt main-image)
+													     (car group))))
+							     (my-transform-html
+								    (delq nil
+											    (list
+											     'my-transform-html-remove-italics
+											     'my-brigade-format-buttons
+											     (when recolor
+												     'my-brigade-recolor-recursively)))
+								    item)
+                   ;; extra images?
+                   (if extra-image
+                       (format "<tr><td colspan=\"2\" style=\"padding-top: 12px\"><img src=\"%s\" style=\"width: 100%%; max-width: 100%%\" alt=\"%s\"></td></tr>" (assoc-default 'url extra-image) (assoc-default 'alt extra-image nil ""))
+                     ""))
+         ;; No images
+         (format "<table width=\"100%%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" align=\"center\" style=\"margin-top: 12px; margin-bottom: 12px;\"><tbody>%s%s</tbody></table>"
+                 (format "<tr><td colspan=\"2\" style=\"padding-top: 12px\">%s</td></tr>"
+                         (my-transform-html
+								          (delq nil
+											          (list
+											           'my-transform-html-remove-italics
+											           'my-brigade-format-buttons
+											           (when recolor
+												           'my-brigade-recolor-recursively)))
+								          item))
+                 ;; extra images?
+                 (if extra-image
+                     (format "<tr><td colspan=\"2\" style=\"padding-top: 12px\"><img src=\"%s\" alt=\"%s\" style=\"width: 100%%; max-width: 100%%\"></td></tr>" (assoc-default 'url extra-image) (assoc-default 'alt extra-image nil ""))
+                   "")
+                 ))
+       ))
 	 (my-html-group-by-tag 'h2 section)
 	 ""))
 
@@ -20761,25 +24168,45 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 	 style
 	 text))
 
+(defun my-brigade-update-images (dom images)
+  "Replace image references.
+IMAGES is an alist of (filename . URL)."
+  (let ((all-images (mapcan 'cdr images))) ; todo: hash or alist
+    (mapcar
+     (lambda (node)
+       (when-let* ((base (file-name-base (dom-attr node 'src)))
+                   (url
+                    (alist-get 'url
+                               (seq-find
+                                (lambda (o)
+                                  (string= base
+                                           (file-name-base (alist-get 'filename o))))
+                                all-images))))
+         (dom-set-attribute node 'src url)))
+     (dom-by-tag dom 'img)))
+  dom)
+
 (defun my-brigade-process-latest-newsletter-draft-with-images (date)
 	"Create an Org file with the HTML for different blocks."
 	(interactive (list (if current-prefix-arg (org-read-date nil t nil "Date: ")
 											 (org-read-date nil t "+Sun"))))
 	(when (stringp date) (setq date (date-to-time date)))
-	(let ((default-directory "~/Downloads/newsletter")
+	(let ((default-directory "~/proj/bike-brigade/temp_newsletter/")
 				file
 				images
 				dom
 				sections
 				html)
-		(call-process "unzip" nil nil nil "-o" (my-latest-file "~/Downloads" "\\.zip$"))
-		(setq file (my-latest-file default-directory))
+                                        ;(call-process "unzip" nil nil nil "-o" (my-latest-file "~/Downloads" "\\.zip$"))
+		(setq file (my-latest-file default-directory ".html"))
 		(with-temp-buffer
 			(insert-file-contents-literally file)
 			(goto-char (point-min))
 			(setq dom (libxml-parse-html-region (point-min) (point-max)))
-			(setq images (my-brigade-reuse-or-upload-images (my-brigade-save-newsletter-images dom)))
+			(setq images (my-brigade-reuse-or-upload-images
+                    (my-brigade-save-newsletter-images dom)))
 			(setq dom (my-brigade-simplify-html dom))
+      (setq dom (my-brigade-update-images dom images))
 			(setq sections
 						(my-html-group-by-tag
 						 'h1
@@ -20788,32 +24215,159 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 							 dom 'body)))))
 		(setq html
 					(replace-regexp-in-string "<p><span></span></p>" ""
-					(concat
-					 "<table class=\"newsletter\" margin=0 cellpadding=0 cellspacing=0 style=\"border-collapse:collapse\"><tbody><tr><td>"
-					 (my-brigade-block (format "<table style=\"margin: auto\"><tbody><tr><td style=\"text-align: center; color: #f3f3f3\"><div style=\"text-align: center; color: #f3f3f3\">%s</div></td></tr></table>"
-																		 (format-time-string "%B %-e, %Y" date))
-														 :bg "#16232a"
-														 :style "padding: 0px 24px 12px 24px")
-					 "<base href=\"\"><style>table { border-collapse: collapse !important } table.newsletter { border-collapse: collapse} .mceStandardButton a, table.sign-up a { text-decoration: none }</style><table><tbody><tr><td style=\"padding: 12px 24px 12px 24px\"><p>Hi Bike Brigaders! Here’s what's happening this week, with quick signup links. In this e-mail:</p>"
-					 (my-brigade-toc sections)
-					 ""
-					 (my-brigade-copy-signup-block date)
-					 (my-brigade-format-section (assoc-default "Bike Brigade" sections #'string=) images)
-					 "</td></tr></tbody></table><table style=\"background-color:#223f4d;\"><tbody><tr><td style=\"padding-left: 24px; padding-right: 24px\">"
-					 (my-brigade-block "<h1 style=\"text-align: center;\"><span style= \"color:#ffffff;\">In our community</span></h1>")
-					 (my-brigade-format-section (assoc-default "In our community" sections #'string=) images t)
-					 "</td></tr></tbody></table>"
-					 (if (assoc-default "Other updates" sections #'string=)
-							 (format "<table><tbody><tr><td style=\"padding: 12px 24px 12px 24px\"><h2>Other updates</h2>%s</td></tr></tbody></table>"
-											 (my-transform-html
-												nil
-												(car (assoc-default "Other updates" sections #'string=))))
-						 "")
-					 "</td></tr></tbody></table>")))
+					                          (concat
+					                           "<table class=\"newsletter\" margin=0 cellpadding=0 cellspacing=0 style=\"border-collapse:collapse\"><tbody><tr><td>"
+					                           (my-brigade-block (format "<table style=\"margin: auto\"><tbody><tr><td style=\"text-align: center; color: #f3f3f3\"><div style=\"text-align: center; color: #f3f3f3\">%s</div></td></tr></table>"
+																		                           (format-time-string "%B %-e, %Y" date))
+														                           :bg "#16232a"
+														                           :style "padding: 0px 24px 12px 24px")
+					                           "<base href=\"\"><style>table { border-collapse: collapse !important } table.newsletter { border-collapse: collapse} .mceStandardButton a, table.sign-up a { text-decoration: none }</style><table><tbody><tr><td style=\"padding: 12px 24px 12px 24px\"><p>Hi Bike Brigaders! Here’s what's happening this week, with quick signup links. In this e-mail:</p>"
+					                           (my-brigade-toc sections)
+					                           ""
+					                           (my-brigade-copy-signup-block date)
+					                           (my-brigade-format-section (assoc-default "Bike Brigade" sections #'string=) images)
+					                           "</td></tr></tbody></table><table style=\"background-color:#223f4d;\"><tbody><tr><td style=\"padding-left: 24px; padding-right: 24px\">"
+					                           (my-brigade-block "<h1 style=\"text-align: center;\"><span style= \"color:#ffffff;\">In our community</span></h1>")
+					                           (my-brigade-format-section (assoc-default "In our community" sections #'string=) images t)
+					                           "</td></tr></tbody></table>"
+					                           (if (assoc-default "Other updates" sections #'string=)
+							                           (format "<table><tbody><tr><td style=\"padding: 12px 24px 12px 24px\"><h2>Other updates</h2>%s</td></tr></tbody></table>"
+											                           (my-transform-html
+												                          nil
+												                          (car (assoc-default "Other updates" sections #'string=))))
+						                           "")
+					                           "</td></tr></tbody></table>")))
 		(when (called-interactively-p 'any)
 			(kill-new html))
 		html))
 ;; Bike Brigade: working with Mailchimp images:1 ends here
+
+;; [[file:Sacha.org::#collaboration-bike-brigade-updating-mailchimp-directly][Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it:1]]
+(defun my-brigade-next-campaign (&optional date)
+  (setq date (or date (org-read-date nil nil "+Sun")))
+  (seq-find
+   (lambda (o)
+     (string-match (concat "^" date)
+                   (alist-get 'title (alist-get 'settings o))))
+   (alist-get 'campaigns (mailchimp-campaigns 5))))
+
+(defvar my-bike-brigade-output-file nil)
+
+(defun my-brigade-download-newsletter-from-google-docs ()
+  "Download the newsletter from Google Docs and puts it in ~/proj/bike-brigade/temp_newsletter/."
+  (interactive)
+  (let ((default-directory "~/proj/bike-brigade"))
+    (delete-directory "~/proj/bike-brigade/temp_newsletter" t)
+    (with-current-buffer (get-buffer-create "*Newsletter*")
+      (erase-buffer)
+      (display-buffer (current-buffer))
+      (call-process "node" nil t t "convert-newsletter.js" "download"))))
+
+(defun my-brigade-create-or-update-campaign (&optional use-local)
+  (interactive (list current-prefix-arg))
+  (let* ((date (org-read-date nil nil "+Sun"))
+         (template-name "Bike Brigade weekly update")
+         (list-name "Bike Brigade")
+         (template-id
+          (alist-get
+           'id
+           (seq-find
+            (lambda (o)
+              (string= template-name (alist-get 'name o)))
+            (alist-get 'templates (mailchimp--request-json "templates")))))
+         (list-id (seq-find
+                   (lambda (o)
+                     (string= list-name
+                              (alist-get 'name o)))
+                   (alist-get 'lists (mailchimp--request-json "lists"))))
+         (campaign (my-brigade-next-campaign date))
+         (body `((type . "regular")
+                 (recipients (list_id . ,(alist-get 'id list-id)))
+                 (settings
+                  (title . ,date)
+                  (subject_line . "Bike Brigade: Weekly update")
+                  (from_name . "Bike Brigade")
+                  (reply_to . "info@bikebrigade.ca")
+                  (tracking
+                   (opens . t)
+                   (html_clicks . t))))))
+    (unless campaign
+      (setq campaign (mailchimp--request-json
+                      "/campaigns"
+                      :method "POST"
+                      :body
+                      body)))
+    ;; Download the HTML
+    (if use-local
+        (progn
+          (make-directory "~/proj/bike-brigade/temp_newsletter/" t)
+          (let ((default-directory "~/proj/bike-brigade/temp_newsletter/"))
+            (call-process "unzip" nil (get-buffer-create "*Newsletter*") nil
+                          (my-latest-file my-download-dir ".zip")))
+          (let ((default-directory "~/proj/bike-brigade/"))
+            (call-process "node" nil (get-buffer-create "*Newsletter*") nil
+                          "convert-newsletter.js"
+                          "resize")))
+      (my-brigade-download-newsletter-from-google-docs))
+    ;; Upload to Mailchimp
+    (mailchimp-campaign-update-from-template
+     (alist-get 'id campaign)
+     template-id
+     (list
+      (cons "main_content_area"
+            (my-brigade-process-latest-newsletter-draft-with-images
+             date))))
+    (when my-bike-brigade-output-file
+      (with-temp-file my-bike-brigade-output-file
+        (insert (alist-get 'html (mailchimp--request-json (format "/campaigns/%s/content" (alist-get 'id campaign)))))))
+    (browse-url (concat "https://sachachua.com/bike-brigade/" (file-name-nondirectory my-bike-brigade-output-file)))
+    (message "%s" "Done!")))
+;; Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it:1 ends here
+
+;; [[file:Sacha.org::#collaboration-bike-brigade-updating-mailchimp-directly][Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it:2]]
+(defvar my-brigade-test-emails nil "Set to a list of e-mail addresses.")
+(defun my-brigade-send-test-to-me ()
+  (interactive)
+  (mailchimp-campaign-send-test-email (my-brigade-next-campaign) user-mail-address))
+
+(defun my-brigade-send-test ()
+  (interactive)
+  (if my-brigade-test-emails
+      (mailchimp-campaign-send-test-email (my-brigade-next-campaign) my-brigade-test-emails)
+    (error "Set `my-brigade-test-emails'.")))
+;; Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it:2 ends here
+
+;; [[file:Sacha.org::#collaboration-bike-brigade-updating-mailchimp-directly][Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it:3]]
+(defun my-brigade-schedule ()
+  (interactive)
+  (let* ((campaign (my-brigade-next-campaign))
+         (sched (format-time-string "%FT%T%z" (org-read-date t t "+Sun 11:00") t)))
+    (mailchimp-campaign-schedule campaign sched)
+    (message "Scheduled %s" (alist-get 'title (alist-get 'settings campaign)))))
+;; Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it:3 ends here
+
+;; [[file:Sacha.org::#streaming-send-currently-clocked-task-title-to-file-include-in-stream][Send currently-clocked task title to file, include in stream:1]]
+(defun my-org-save-streaming-task-to-file ()
+  (if (member "stream" (org-get-tags))
+      (let ((title (org-entry-get (point) "ITEM")))
+        (with-temp-file "~/proj/stream/current-task.txt"
+          (insert title)))
+    (with-temp-file "~/proj/stream/current-task.txt")))
+
+(defun my-org-clear-streaming-task ()
+  (with-temp-file "~/proj/stream/current-task.txt"))
+
+(with-eval-after-load 'org-clock
+  (add-hook 'org-clock-in-hook #'my-org-save-streaming-task-to-file)
+  (add-hook 'org-clock-out-hook #'my-org-clear-streaming-task))
+;; Send currently-clocked task title to file, include in stream:1 ends here
+
+;; [[file:Sacha.org::#streaming-stream-agenda][Stream agenda:1]]
+(defun my-stream-agenda ()
+  (interactive)
+  (org-agenda nil "s")
+  )
+;; Stream agenda:1 ends here
 
 ;; [[file:Sacha.org::#simple-streaming][Simple streaming with FFmpeg:4]]
 (defvar my-stream-process nil)
@@ -21423,21 +24977,27 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
   (interactive)
   (insert (org-link-make-string (concat "file:" (string-trim (shell-command-to-string "geeqie --remote --tell"))))))
 (use-package org :config (require 'org-attach))
+;; Manage photos with geeqie:1 ends here
 
-
+;; [[file:Sacha.org::my-geeqie-view][my-geeqie-view]]
 (defun my-geeqie-view (filenames)
   (interactive "f")
-  (start-process-shell-command "geeqie" nil
-															 (concat "geeqie --remote "
-																			 (mapconcat (lambda (f)
-																										(concat "file:" (shell-quote-argument f)))
-																									(cond
-																									 ((listp filenames) filenames)
-																									 ((file-directory-p filenames)
-																										(list (car (seq-filter #'file-regular-p (directory-files filenames t)))))
-																									 (t (list filenames)))
-																									" "))))
+  (start-process-shell-command
+   "geeqie" nil
+	 (concat
+    "geeqie --remote "
+    (mapconcat
+     (lambda (f)
+       (concat "file:" (shell-quote-argument f)))
+     (cond
+      ((listp filenames) filenames)
+      ((file-directory-p filenames)
+       (list (car (seq-filter #'file-regular-p (directory-files filenames t)))))
+      (t (list filenames)))
+     " "))))
+;; my-geeqie-view ends here
 
+;; [[file:Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie:3]]
 (defvar my-rotate-jpeg-using-exiftran nil)
 
 (defun my-rotate-image-clockwise (filename)
@@ -21575,7 +25135,7 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 				 'file-regular-p
 				 (directory-files my-scan-directory t "^[0-9]+.*#")))
   (shell-command-to-string "make-sketch-thumbnails"))
-;; Manage photos with geeqie:1 ends here
+;; Manage photos with geeqie:3 ends here
 
 ;; [[file:Sacha.org::#plover][Plover:1]]
 (use-package plover-websocket
@@ -22146,12 +25706,14 @@ Restore main dictionary and turn off Plover when done."
     (setq my-practise-steno-previous-overlay
           (make-overlay (overlay-end my-practise-steno-previous-overlay)
                         (+ (overlay-end my-practise-steno-previous-overlay) (match-end 0))))
+    (overlay-put my-practise-steno-previous-overlay 'evaporate t)
     (overlay-put my-practise-steno-previous-overlay 'face 'my-practise-steno-correct)))
 
 (defun my-practise-steno--mark-incorrect-and-fixed ()
-  (overlay-put (make-overlay (overlay-end my-practise-steno-previous-overlay)
-                             (+ (overlay-end my-practise-steno-previous-overlay) (match-beginning 0)))
-               'face 'my-practise-steno-wrong)
+  (let ((ov (make-overlay (overlay-end my-practise-steno-previous-overlay)
+                          (+ (overlay-end my-practise-steno-previous-overlay) (match-beginning 0)))))
+    (overlay-put ov 'face 'my-practise-steno-wrong)
+    (overlay-put ov 'evaporate t))
   ;; make a new overlay
   (setq my-practise-steno-previous-overlay (copy-overlay my-practise-steno-previous-overlay))
   (move-overlay my-practise-steno-previous-overlay
@@ -22250,10 +25812,13 @@ ITEMS should be a list like ((word) (word) (word))."
           my-practise-steno-highlight-overlay (make-overlay (1+ (point-min)) (+ 1 (point-min) (length (car (car items))))))
     (buffer-face-set "my-practise-steno-base")
     (overlay-put my-practise-steno-previous-overlay 'face 'my-practise-steno-correct)
+    (overlay-put my-practise-steno-previous-overlay 'evaporate t)
     (overlay-put my-practise-steno-highlight-overlay 'face 'my-practise-steno-highlight)
+    (overlay-put my-practise-steno-highlight-overlay 'evaporate t)
     (overlay-put my-practise-steno-current-overlay 'modification-hooks '(my-practise-steno-check))
     (overlay-put my-practise-steno-current-overlay 'insert-in-front-hooks '(my-practise-steno-check))
     (overlay-put my-practise-steno-current-overlay 'face 'my-practise-steno-wrong)
+    (overlay-put my-practise-steno-current-overlay 'evaporate t)
     ;; (add-hook 'after-change-functions 'my-practise-steno-check nil t)
     (add-hook 'plover-websocket-on-message-payload-functions 'my-practise-steno-store-strokes)
     (switch-to-buffer (current-buffer))))
@@ -22669,6 +26234,7 @@ loaded."
 	:hook
 	(message-send . emacsconf-mail-check-for-zzz-before-sending)
 	:config
+  (setq emacsconf-refresh-schedule-from-org t)
 	(defhydra emacsconf
 		(:exit t)
 		("t" emacsconf-go-to-talk "talk")
@@ -22680,11 +26246,7 @@ loaded."
 					 (call-interactively #'projectile-find-file)) "org dir")
 		("w" (let ((default-directory emacsconf-directory))
 					 (call-interactively #'projectile-find-file)))
-		("o"
-		 (progn
-			 (find-file (expand-file-name "organizers-notebook/index.org" (expand-file-name emacsconf-year emacsconf-directory)))
-			 (call-interactively #'consult-org-heading))
-		 "org notes")
+		("o" emacsconf-main-org-notebook-heading "org notes")
 		("a" (let ((default-directory emacsconf-ansible-directory))
 					 (call-interactively #'projectile-find-file)) "ansible")
 		("A" emacsconf-prep-agenda "agenda")
@@ -22715,21 +26277,138 @@ loaded."
 ;; ChatGPT, AI, and large-language models:1 ends here
 
 ;; [[file:Sacha.org::#chatgpt-ai][ChatGPT, AI, and large-language models:2]]
+(defun gptel-api-key-from-environment (&optional var)
+  (lambda ()
+    (getenv (or var                     ;provided key
+                (thread-first           ;or fall back to <TYPE>_API_KEY
+                  (type-of gptel-backend)
+                  (symbol-name)
+                  (substring 6)
+                  (upcase)
+                  (concat "_API_KEY"))))))
+
 (use-package gptel
 	:commands (gptel gptel-send gptel-set-topic gptel-menu)
 	:defer t
 	:config
-	(setq gptel-model 'gemma:2b
-				gptel-backend
-				(gptel-make-ollama "Ollama"             ;Any name of your choosing
-					:host "localhost:11434"               ;Where it's running
-					:stream t                             ;Stream responses
-					:models '(gemma:2b)))
+  (setq my-gptel-groq
+        (gptel-make-openai "Groq"
+          :host "api.groq.com"
+          :endpoint "/openai/v1/chat/completions"
+          :stream t
+          :key (gptel-api-key-from-environment "GROQ_API_KEY")
+          :models '(llama-3.3-70b-versatile
+                    llama-3.1-8b-instant
+                    openai/gpt-oss-20b
+                    openai/gpt-oss-120b)))
+  (setq my-gptel-gemini
+        (gptel-make-gemini "Gemini"
+          :key (gptel-api-key-from-environment "GEMINI_API_KEY")
+          :stream t
+          :models '(gemini-3-flash-preview
+                    gemini-2.5-flash)))
+	(setq gptel-model 'gemini-3-flash-preview
+				gptel-backend my-gptel-gemini)
 	:hook
 	(gptel-post-stream . gptel-auto-scroll)
 	(gptel-post-response . gptel-end-of-response)
 	)
 ;; ChatGPT, AI, and large-language models:2 ends here
+
+;; [[file:Sacha.org::#inactive-infrequent-things-chatgpt-ai-and-large-language-models-interact-with-google-gemini-web-interface-through-spookfox][Interact with Google Gemini web interface through Spookfox:1]]
+(defun my-spookfox-wait-for-gemini-response ()
+  ;; Not working for now, let's just do it manually
+  (read-key "Press a key when the response is ready.")
+  ;; (sit-for 2)
+  ;; (spookfox-eval-js-in-active-tab "
+  ;; function waitForGemini(threshold = 2000) { return new Promise((resolve) => {
+  ;;    let timeout;
+  ;;         const observer = new MutationObserver((mutations) => {
+  ;;             clearTimeout(timeout);
+  ;;             timeout = setTimeout(() => {
+  ;;                 observer.disconnect();
+  ;;                 resolve();
+  ;;             }, threshold);
+  ;;         });
+  ;;         observer.observe(document.body, {
+  ;;             childList: true,
+  ;;             subtree: true,
+  ;;             characterData: true
+  ;;         });
+  ;;     });
+  ;; }
+  ;; await waitForGemini();
+  ;; " t)
+  )
+
+(defun my-spookfox-show-gemini-response-as-org (&optional html)
+  (interactive)
+  (with-current-buffer (get-buffer-create "*gemini*")
+    (erase-buffer)
+    (insert (or html (spookfox-eval-js-in-active-tab "x = document.querySelectorAll('.response-content'); x[x.length - 1].innerHTML" t)))
+    (call-process-region (point-min) (point-max) "pandoc" t t t "-f" "html" "-t" "org" "-")
+    (org-mode)
+    (goto-char (point-min))
+    (display-buffer-other-window (current-buffer))))
+
+(defun my-spookfox-latest-response-html ()
+  (spookfox-eval-js-in-active-tab "x = document.querySelectorAll('.response-content'); x[x.length - 1].innerHTML" t))
+
+(defun my-spookfox-send-text-to-gemini (text)
+  (interactive (list (if (region-active-p)
+                         (buffer-substring (region-beginning) (region-end))
+                       (read-string "Input: "))))
+  (spookfox-eval-js-in-active-tab
+   (format "document.querySelector('div[contenteditable=\"true\"]').innerText = %s;"
+           (json-encode text))
+   t)
+  (sleep-for 0.1)
+  (spookfox-eval-js-in-active-tab " document.querySelector('div[contenteditable=\"true\"]').dispatchEvent(new InputEvent('input', {bubbles: true, cancelable: true, inputType: 'insertText'}));" t)
+  (sleep-for 0.1)
+  (spookfox-eval-js-in-active-tab "document.querySelector('button.send-button').click()" t)
+  (my-spookfox-wait-for-gemini-response)
+  (let ((result (my-spookfox-latest-response-html)))
+    ;; (read-key "Press any key when the response is ready.")
+    (when (called-interactively-p 'any)
+      (my-spookfox-show-gemini-response-as-org result))
+    result))
+
+(defun my-spookfox-send-subtree-to-gemini-textarea (prefix)
+  (interactive (list (when current-prefix-arg
+                       (read-string "Prepend: "))))
+  (my-spookfox-show-gemini-response-as-org
+   (my-spookfox-send-text-to-gemini
+    (concat
+     (if prefix
+         (concat prefix "\n\n####\n\n")
+       "")
+     (my-org-subtree-text)))))
+
+(defun my-spookfox-parse-latest-json (&optional result)
+  (cond
+   ((or (stringp result) (null result))
+    (setq result (or result (my-spookfox-latest-response-html)))
+    (with-temp-buffer
+      (insert (or result (my-spookfox-latest-response-html)))
+      (call-process-region (point-min) (point-max) "pandoc" t t t "-f" "html" "-t" "org" "-")
+      (goto-char (point-min))
+      (re-search-forward "{")
+      (goto-char (match-beginning 0))
+      (json-read)))
+   ((listp result) result)))
+
+(defun my-spookfox-send-text-and-get-json (text)
+  (my-spookfox-parse-latest-json (my-spookfox-send-text-to-gemini text)))
+;; Interact with Google Gemini web interface through Spookfox:1 ends here
+
+;; [[file:Sacha.org::#inactive-infrequent-things-chatgpt-ai-and-large-language-models-interact-with-google-gemini-web-interface-through-spookfox][Interact with Google Gemini web interface through Spookfox:2]]
+(defun my-french-spookfox-send-subtree (&optional reuse-feedback)
+  (interactive (list current-prefix-arg))
+  (my-french-handle-feedback-flycheck
+   (if reuse-feedback
+       (my-spookfox-parse-latest-json)
+     (my-spookfox-send-text-and-get-json (my-org-subtree-text)))))
+;; Interact with Google Gemini web interface through Spookfox:2 ends here
 
 ;; [[file:Sacha.org::#paint][Paint:1]]
 (use-package paint

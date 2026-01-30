@@ -15454,7 +15454,7 @@ I want things to Just Work.
 
 #+begin_media-post
 
-[[video:images/my-org-insert-link-dwim.webm?caption=Screencast showing how I insert links]]
+[[video:https://sachachua.com/blog/2025/09/adding-org-mode-link-awesomeness-elsewhere-my-org-insert-link-dwim/my-org-insert-link-dwim.webm?caption=Screencast showing how I insert links]]
 
 Play by play:
 
@@ -25373,7 +25373,7 @@ Autocompile, but don't interrupt me with native compilation warnings.
 			(setq function-body (buffer-substring (point)
 																						(progn (forward-sexp) (point)))))
 		(save-excursion
-			(insert function-body (format "\n\n(advice-add '%s :around 'my-%s)\n" function-name function-name)))
+			(insert function-body (format "\n\n(advice-add '%s :override #'my-%s)\n" function-name function-name)))
 		(save-excursion
 			(forward-char 1)
 			(forward-sexp 1)
@@ -25381,8 +25381,7 @@ Autocompile, but don't interrupt me with native compilation warnings.
 			(insert "my-")
 			(forward-sexp 1)
 			(skip-syntax-forward " ")
-			(forward-char 1)
-			(insert "_ "))))
+			(forward-char 1))))
 
 #+end_src
 

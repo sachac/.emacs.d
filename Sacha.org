@@ -11163,7 +11163,7 @@ then breaking it down into previous/next week.
       (if (assoc category time-summary) (/ (cdr (assoc category time-summary)) 3600.0) 0)
     (apply '+ (mapcar (lambda (x) (my-quantified-get-hours x time-summary)) category))))
 
-(defun _my-extract-tasks-from-agenda (string matchers prefix line-re)
+(defun my-extract-tasks-from-agenda (string matchers prefix line-re)
   (with-temp-buffer
     (insert string)
     (goto-char (point-min))
@@ -11177,9 +11177,9 @@ then breaking it down into previous/next week.
                 (setq temp-list nil)))
           (setq temp-list (cdr temp-list)))))))
 
-(ert-deftest _my-extract-tasks-from-agenda ()
+(ert-deftest my-extract-tasks-from-agenda ()
   (let (list-a list-b (line-re "\\([^:]+\\):\\( \\)\\(.*\\)"))
-    (_my-extract-tasks-from-agenda
+    (my-extract-tasks-from-agenda
      "listA: Task 1\nother: Task 2\nlistA: Task 3"
      '(("listA" . list-a)
        ("." . list-b))
@@ -11188,10 +11188,10 @@ then breaking it down into previous/next week.
     (should (equal list-a '("- [ ] Task 1" "- [ ] Task 3")))
     (should (equal list-b '("- [ ] Task 2")))))
 
-(defun _my-get-upcoming-tasks ()
+(defun my-get-upcoming-tasks ()
   (save-window-excursion
     (org-agenda nil "W")
-    (_my-extract-tasks-from-agenda (buffer-string)
+    (my-extract-tasks-from-agenda (buffer-string)
                                    '(("routines" . ignore)
                                      ("business" . business-next)
                                      ("people" . relationships-next)
@@ -11199,7 +11199,7 @@ then breaking it down into previous/next week.
                                      ("." . life-next))
                                    "  - [ ] "
                                    my-weekly-review-line-regexp)))
-(defun _my-get-previous-tasks ()
+(defun my-get-previous-tasks ()
   (let (string)
     (save-window-excursion
       (org-agenda nil "W")
@@ -11210,7 +11210,7 @@ then breaking it down into previous/next week.
       (org-agenda-later 1)
       (org-agenda-log-mode 16)
       (setq string (concat string "\n" (buffer-string)))
-      (_my-extract-tasks-from-agenda string
+      (my-extract-tasks-from-agenda string
                                      '(("routines" . ignore)
                                        ("business" . business)
                                        ("people" . relationships)
@@ -11229,8 +11229,8 @@ then breaking it down into previous/next week.
     (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
     (setq time-summary (quantified-summarize-time start end))
     (setq biz-time (my-quantified-get-hours "Business" time-summary))
-    (_my-get-upcoming-tasks)
-    (_my-get-previous-tasks)
+    (my-get-upcoming-tasks)
+    (my-get-previous-tasks)
     (setq string
           (concat
            (format "- *A- (Childcare)* (%.1fh - %d%% of total)\n"
@@ -11417,7 +11417,7 @@ Now we put it all together...
 :END:
 
 #+begin_src emacs-lisp
-(defun _my-clean-up-flickr-list (list)
+(defun my-clean-up-flickr-list (list)
   (setq list
         (replace-regexp-in-string "\\[\"" "[" list))
   (setq list
@@ -11427,7 +11427,7 @@ Now we put it all together...
         (replace-regexp-in-string "\"
         " "" (replace-regexp-in-string "\"\\]" "]" list))))
 
-(defun _my-format-flickr-link-for-org (x)
+(defun my-format-flickr-link-for-org (x)
   (let ((title (assoc-default "FileName" x)))
     (format
      "- %s %s"
@@ -11446,7 +11446,7 @@ Now we put it all together...
                 (assoc-default "Description" x)))))))
 
 
-(defun _my-parse-and-filter-flickr-csv-buffer (start end)
+(defun my-parse-and-filter-flickr-csv-buffer (start end)
   (sort
    (delq nil
          (mapcar (lambda (x)
@@ -11749,7 +11749,7 @@ moves it to the current location.
 	(let* ((file (nth 1 refloc))
 				 (pos (nth 3 refloc)))
 		(save-excursion
-			(with-current-buffer (find-file-noselect file 'noward)
+			(with-current-buffer (find-file-noselect file 'nowarn)
 				(save-excursion
 					(save-restriction
 						(widen)
@@ -12520,9 +12520,7 @@ If called with \\[universal-argument], prompt for a file, and then prompt for th
 					(error "Could not find %s" id))))))
 #+end_src
 
-For example, in [[https://emacslife.com/calendar/#crontab][Using Org Mode, Emacs Lisp, and
-TRAMP to parse meetup calendar entries and
-generate a crontab]], I have a Emacs Lisp source
+For example, in [[https://emacslife.com/calendar/#crontab][Using Org Mode, Emacs Lisp, and TRAMP to parse meetup calendar entries and generate a crontab]], I have a Emacs Lisp source
 block that generates a crontab on a different
 computer, and a shell source block that installs
 it on that computer.

@@ -34704,21 +34704,144 @@ with open("/home/sacha/.config/plover/annotated.txt", "w") as f:
 #+end_src
 
 #+begin_src emacs-lisp
+(defun gptel-api-key-from-environment (&optional var)
+  (lambda ()
+    (getenv (or var                     ;provided key
+                (thread-first           ;or fall back to <TYPE>_API_KEY
+                  (type-of gptel-backend)
+                  (symbol-name)
+                  (substring 6)
+                  (upcase)
+                  (concat "_API_KEY"))))))
+
 (use-package gptel
 	:commands (gptel gptel-send gptel-set-topic gptel-menu)
 	:defer t
 	:config
-	(setq gptel-model 'gemma:2b
-				gptel-backend
-				(gptel-make-ollama "Ollama"             ;Any name of your choosing
-					:host "localhost:11434"               ;Where it's running
-					:stream t                             ;Stream responses
-					:models '(gemma:2b)))
+  (setq my-gptel-groq
+        (gptel-make-openai "Groq"
+          :host "api.groq.com"
+          :endpoint "/openai/v1/chat/completions"
+          :stream t
+          :key (gptel-api-key-from-environment "GROQ_API_KEY")
+          :models '(llama-3.3-70b-versatile
+                    llama-3.1-8b-instant
+                    openai/gpt-oss-20b
+                    openai/gpt-oss-120b)))
+  (setq my-gptel-gemini
+        (gptel-make-gemini "Gemini"
+          :key (gptel-api-key-from-environment "GEMINI_API_KEY")
+          :stream t
+          :models '(gemini-3-flash-preview
+                    gemini-2.5-flash)))
+	(setq gptel-model 'gemini-3-flash-preview
+				gptel-backend my-gptel-gemini)
 	:hook
 	(gptel-post-stream . gptel-auto-scroll)
 	(gptel-post-response . gptel-end-of-response)
 	)
 #+end_src
+*** Interact with Google Gemini web interface through Spookfox
+:PROPERTIES:
+:CUSTOM_ID: inactive-infrequent-things-chatgpt-ai-and-large-language-models-interact-with-google-gemini-web-interface-through-spookfox
+:END:
+
+#+begin_src emacs-lisp
+(defun my-spookfox-wait-for-gemini-response ()
+  ;; Not working for now, let's just do it manually
+  (read-key "Press a key when the response is ready.")
+  ;; (sit-for 2)
+  ;; (spookfox-eval-js-in-active-tab "
+  ;; function waitForGemini(threshold = 2000) { return new Promise((resolve) => {
+  ;;    let timeout;
+  ;;         const observer = new MutationObserver((mutations) => {
+  ;;             clearTimeout(timeout);
+  ;;             timeout = setTimeout(() => {
+  ;;                 observer.disconnect();
+  ;;                 resolve();
+  ;;             }, threshold);
+  ;;         });
+  ;;         observer.observe(document.body, {
+  ;;             childList: true,
+  ;;             subtree: true,
+  ;;             characterData: true
+  ;;         });
+  ;;     });
+  ;; }
+  ;; await waitForGemini();
+  ;; " t)
+  )
+
+(defun my-spookfox-show-gemini-response-as-org (&optional html)
+  (interactive)
+  (with-current-buffer (get-buffer-create "*gemini*")
+    (erase-buffer)
+    (insert (or html (spookfox-eval-js-in-active-tab "x = document.querySelectorAll('.response-content'); x[x.length - 1].innerHTML" t)))
+    (call-process-region (point-min) (point-max) "pandoc" t t t "-f" "html" "-t" "org" "-")
+    (org-mode)
+    (goto-char (point-min))
+    (display-buffer-other-window (current-buffer))))
+
+(defun my-spookfox-latest-response-html ()
+  (spookfox-eval-js-in-active-tab "x = document.querySelectorAll('.response-content'); x[x.length - 1].innerHTML" t))
+
+(defun my-spookfox-send-text-to-gemini (text)
+  (interactive (list (if (region-active-p)
+                         (buffer-substring (region-beginning) (region-end))
+                       (read-string "Input: "))))
+  (spookfox-eval-js-in-active-tab
+   (format "document.querySelector('div[contenteditable=\"true\"]').innerText = %s;"
+           (json-encode text))
+   t)
+  (sleep-for 0.1)
+  (spookfox-eval-js-in-active-tab " document.querySelector('div[contenteditable=\"true\"]').dispatchEvent(new InputEvent('input', {bubbles: true, cancelable: true, inputType: 'insertText'}));" t)
+  (sleep-for 0.1)
+  (spookfox-eval-js-in-active-tab "document.querySelector('button.send-button').click()" t)
+  (my-spookfox-wait-for-gemini-response)
+  (let ((result (my-spookfox-latest-response-html)))
+    ;; (read-key "Press any key when the response is ready.")
+    (when (called-interactively-p 'any)
+      (my-spookfox-show-gemini-response-as-org result))
+    result))
+
+(defun my-spookfox-send-subtree-to-gemini-textarea (prefix)
+  (interactive (list (when current-prefix-arg
+                       (read-string "Prepend: "))))
+  (my-spookfox-show-gemini-response-as-org
+   (my-spookfox-send-text-to-gemini
+    (concat
+     (if prefix
+         (concat prefix "\n\n####\n\n")
+       "")
+     (my-org-subtree-text)))))
+
+(defun my-spookfox-parse-latest-json (&optional result)
+  (cond
+   ((or (stringp result) (null result))
+    (setq result (or result (my-spookfox-latest-response-html)))
+    (with-temp-buffer
+      (insert (or result (my-spookfox-latest-response-html)))
+      (call-process-region (point-min) (point-max) "pandoc" t t t "-f" "html" "-t" "org" "-")
+      (goto-char (point-min))
+      (re-search-forward "{")
+      (goto-char (match-beginning 0))
+      (json-read)))
+   ((listp result) result)))
+
+(defun my-spookfox-send-text-and-get-json (text)
+  (my-spookfox-parse-latest-json (my-spookfox-send-text-to-gemini text)))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun my-french-spookfox-send-subtree (&optional reuse-feedback)
+  (interactive (list current-prefix-arg))
+  (my-french-handle-feedback-flycheck
+   (if reuse-feedback
+       (my-spookfox-parse-latest-json)
+     (my-spookfox-send-text-and-get-json (my-org-subtree-text)))))
+#+end_src
+
+
 ** Chronos timers
 :PROPERTIES:
 :CUSTOM_ID: chronos

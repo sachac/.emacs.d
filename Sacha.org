@@ -34025,12 +34025,14 @@ Only checks one dictionary for now, but probably good enough
     (setq my-practise-steno-previous-overlay
           (make-overlay (overlay-end my-practise-steno-previous-overlay)
                         (+ (overlay-end my-practise-steno-previous-overlay) (match-end 0))))
+    (overlay-put my-practise-steno-previous-overlay 'evaporate t)
     (overlay-put my-practise-steno-previous-overlay 'face 'my-practise-steno-correct)))
 
 (defun my-practise-steno--mark-incorrect-and-fixed ()
-  (overlay-put (make-overlay (overlay-end my-practise-steno-previous-overlay)
-                             (+ (overlay-end my-practise-steno-previous-overlay) (match-beginning 0)))
-               'face 'my-practise-steno-wrong)
+  (let ((ov (make-overlay (overlay-end my-practise-steno-previous-overlay)
+                          (+ (overlay-end my-practise-steno-previous-overlay) (match-beginning 0)))))
+    (overlay-put ov 'face 'my-practise-steno-wrong)
+    (overlay-put ov 'evaporate t))
   ;; make a new overlay
   (setq my-practise-steno-previous-overlay (copy-overlay my-practise-steno-previous-overlay))
   (move-overlay my-practise-steno-previous-overlay
@@ -34129,10 +34131,13 @@ ITEMS should be a list like ((word) (word) (word))."
           my-practise-steno-highlight-overlay (make-overlay (1+ (point-min)) (+ 1 (point-min) (length (car (car items))))))
     (buffer-face-set "my-practise-steno-base")
     (overlay-put my-practise-steno-previous-overlay 'face 'my-practise-steno-correct)
+    (overlay-put my-practise-steno-previous-overlay 'evaporate t)
     (overlay-put my-practise-steno-highlight-overlay 'face 'my-practise-steno-highlight)
+    (overlay-put my-practise-steno-highlight-overlay 'evaporate t)
     (overlay-put my-practise-steno-current-overlay 'modification-hooks '(my-practise-steno-check))
     (overlay-put my-practise-steno-current-overlay 'insert-in-front-hooks '(my-practise-steno-check))
     (overlay-put my-practise-steno-current-overlay 'face 'my-practise-steno-wrong)
+    (overlay-put my-practise-steno-current-overlay 'evaporate t)
     ;; (add-hook 'after-change-functions 'my-practise-steno-check nil t)
     (add-hook 'plover-websocket-on-message-payload-functions 'my-practise-steno-store-strokes)
     (switch-to-buffer (current-buffer))))

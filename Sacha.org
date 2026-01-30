@@ -4397,9 +4397,44 @@ From Xah Lee:
      (char-to-string
       (car (get-char-code-property c 'decomposition))))
    s ""))
+
+(defvar-keymap my-french-map
+  "l" #'my-french-lexique-complete-word
+  "w" #'my-french-wordreference-lookup
+  "c" #'my-french-conjugate
+  "f" #'my-french-consult-en-fr
+  "s" #'my-french-say-word-at-point)
+
+(with-eval-after-load 'org
+  (keymap-set org-mode-map "C-," my-french-map)
+  (keymap-set org-mode-map "C-c u" my-french-map)
+  )
+
+(with-eval-after-load 'flyspell
+  (keymap-set flyspell-mode-map "C-," my-french-map))
+
+(use-package wiktionary-bro
+  :config
+  (setq wiktionary-bro-language "fr")
+  )
+
+(defun my-french-chrome-speech-new-session ()
+  (interactive)
+  (my-chrome-speech-new-session "french" "fr-FR"))
+
+(use-package flycheck-grammalecte
+  :config
+  (setq flycheck-grammalecte-report-apos nil)
+  (setq flycheck-grammalecte-report-nbsp nil)
+  (setq flycheck-grammalecte-report-esp nil)
+  (with-eval-after-load 'flycheck
+    (flycheck-grammalecte-setup)))
 #+end_src
 
 *** gtts-cli
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-gtts-cli
+:END:
 libsox-fmt-mp3
 gtts-cli "rendez-vous" -l fr | play -t mp3 -
 
@@ -4425,6 +4460,10 @@ gtts-cli "rendez-vous" -l fr | play -t mp3 -
                         (format "gtts-cli -l fr %s | play -t mp3 -"
                                 (shell-quote-argument s)))
          :sentinel sentinel)))
+
+(defun my-french-say-word-at-point ()
+  (interactive)
+  (my-french-say (word-at-point)))
 
 (defun my-french-say-sentence-at-point ()
   (interactive)
@@ -4487,9 +4526,108 @@ gtts-cli "rendez-vous" -l fr | play -t mp3 -
 my-french-shadow
 :end:
 
-*** Practice pronunciation
-#+begin_src emacs-lisp
 
+*** SOMEDAY Add shadowing with tts to subed-record             :emacs:stream:
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-add-shadowing-with-tts-to-subed-record
+:END:
+
+#+begin_src emacs-lisp
+(defun my-french-prepare-subed-record ()
+  (interactive)
+  (let ((filename (expand-file-name (concat (org-entry-get (point) "DATE") ".vtt")
+                                    "~/proj/french/recordings/")))
+    (if (file-exists-p filename)
+        (find-file filename)
+      (my-subed-convert-sentences
+       (save-excursion
+         (org-back-to-heading)
+         (org-end-of-meta-data)
+         (point))
+       (save-excursion
+         (org-end-of-subtree))
+       filename
+       (concat (file-name-base filename) ".opus")))))
+
+(defun my-subed-convert-sentences (beg end filename &optional output)
+  (interactive (cond
+                ((region-active-p)
+                 (list (region-beginning)
+                       (region-end)
+                       (read-file-name)))
+                ((derived-mode-p 'org-mode)
+                 (list
+                  (save-excursion
+                    (org-back-to-heading)
+                    (org-end-of-meta-data)
+                    (point))
+                  (save-excursion
+                    (org-end-of-subtree)))
+                 (read-file-name))))
+  (let (lines pos)
+    (save-excursion
+      (goto-char beg)
+      (while (< (point) end)
+        (setq pos (point))
+        (forward-sentence)
+        (when (> (point) end) (goto-char end))
+        (push (string-trim (buffer-substring-no-properties pos (point))) lines))
+      (setq lines (nreverse lines)))
+    (with-current-buffer (find-file-noselect filename)
+      (subed-auto-insert)
+      (subed-append-subtitle-list
+       (seq-map-indexed
+        (lambda (line i)
+          (list nil 0 0 line
+                (when (= i 0)
+                  (format "#+OUTPUT: %s"
+                          (or output
+                              (concat (file-name-base filename)
+                                      ".opus"))))))
+          lines))
+      (goto-char (point-min))
+      (save-buffer)
+      (switch-to-buffer (current-buffer)))))
+
+(defun my-french-say-current-subtitle (&optional callback)
+  (interactive)
+  (my-french-say
+   (subed-subtitle-text)
+   callback))
+
+(defun my-french-say-word-at-click (event)
+  (interactive "e")
+  (mouse-set-point event)
+  (my-french-say (word-at-point)))
+
+(defun my-french-say-current-subtitle-and-reset-subed-record ()
+  (interactive)
+  (my-french-say
+   (replace-regexp-in-string "^- +" "" (subed-subtitle-text))
+   (lambda (&rest _)
+     (subed-record-retry))))
+
+(with-eval-after-load 'subed-record
+  (keymap-set subed-record-minor-mode-map "s" #'my-french-say-current-subtitle-and-reset-subed-record)
+  (keymap-set subed-mode-map "<mouse-1>" #'my-french-say-word-at-click)
+  (add-hook 'subed-record-accept-segment-hook #'my-french-say-current-subtitle-and-reset-subed-record))
+
+
+(define-minor-mode my-lang-shadow-mode "Language learning")
+(defvar-keymap my-lang-shadow-mode-map
+  "<mouse-1>" #'my-french-say-word-at-click)
+
+#+end_src
+
+#+RESULTS:
+:results:
+| my-french-say-current-subtitle-and-reset-subed-record |
+:end:
+*** Practice pronunciation
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-practice-pronunciation
+:END:
+#+begin_src emacs-lisp
 (defvar my-practice-dir "~/proj/french/audio")
 (defvar my-practice-temp (expand-file-name "temp.wav" my-practice-dir))
 (defun my-practice-line ()
@@ -4636,6 +4774,9 @@ my-french-shadow
           (my-french-get-audio-feedback filename extra t)))))
 #+end_src
 *** AI feedback
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-ai-feedback
+:END:
 #+begin_src emacs-lisp
 (defvar my-gemini-api-key nil)
 
@@ -4783,7 +4924,209 @@ Example output:
       (kill-new result))
     result))
 #+end_src
+
+Through the web interface so that it's easy to continue:
+
+#+begin_src emacs-lisp
+(defun my-french-send-subtree-to-web-gemini ()
+  (interactive)
+  (my-spookfox-send-subtree-to-gemini-textarea)
+  (with-current-buffer "*gemini*"
+    (goto-char (point-min))
+    (re-search-forward "{")
+    (goto-char (match-beginning 0))
+    (setq my-french-feedback (json-read)))
+  (my-french-find-next-correction))
+#+end_src
+*** Using flycheck to display AI grammar feedback from gptel as I learn French
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-using-flycheck-to-display-ai-grammar-feedback-from-gptel-as-i-learn-french
+:END:
+
+#+CAPTION: Screenshot of flycheck showing grammar feedback from gptel
+[[file:images/2026-01-26_08-15-16.png]]
+
+#+begin_src emacs-lisp
+(defvar-local my-lang-current-errors nil
+  "Stores the parsed JSON corrections for the current buffer.")
+
+(defun my-lang-flycheck (_checker callback)
+  (let (errors (end-pos (point-max)))
+    (save-restriction
+      (save-excursion
+        (when (derived-mode-p 'org-mode)
+          (org-narrow-to-subtree))
+        (goto-char (point-min))
+        (dolist (corr (alist-get 'corrections my-lang-current-errors))
+          (let ((case-fold-search t)
+                (match-re (alist-get 'match corr)))
+            (when (re-search-forward (concat "\\<" match-re "\\>") nil t)
+              (let* ((beg (or (match-beginning 1) (match-beginning 0)))
+                     (end (or (match-end 1) (match-end 0))))
+                (push (flycheck-error-new
+                       :line (line-number-at-pos beg t)
+                       :column (- beg (save-excursion (goto-char beg)
+                                                      (line-beginning-position)) -1)
+                       :end-line (line-number-at-pos end t)
+                       :end-column (- end (save-excursion
+                                            (goto-char end)
+                                            (line-beginning-position)) -1)
+                       :level 'error
+                       :message (format "%s: %s"
+                                        (alist-get 'suggested corr)
+                                        (alist-get 'explanation corr))
+                       :checker 'lang-gpt-checker
+                       :buffer (current-buffer))
+                      errors)))))
+        (let ((line-num (line-number-at-pos (point-min) t)))
+          (mapc
+           (lambda (note)
+             (push
+              (flycheck-error-new
+               :line line-num
+               :column 1
+               :level 'info
+               :message note
+               :checker 'lang-gpt-checker
+               :buffer (current-buffer))
+              errors))
+           (alist-get 'notes my-lang-current-errors)))))
+    (funcall callback 'finished errors)))
+
+(with-eval-after-load 'flycheck
+  (flycheck-define-generic-checker 'lang-gpt-checker
+    "Use LLM results."
+    :start #'my-lang-flycheck
+    :modes '(org-mode text-mode)
+    :predicate (lambda () (bound-and-true-p my-lang-current-errors)))
+  (add-to-list 'flycheck-checkers 'lang-gpt-checker))
+
+(defun my-lang-handle-feedback-flycheck (result)
+  "Update the local error list and trigger Flycheck."
+  (setq-local my-lang-current-errors result)
+  (setq-local flycheck-check-syntax-automatically '(save newline mode-enabled))
+  (unless flycheck-mode (flycheck-mode 1))
+  (flycheck-select-checker 'lang-gpt-checker)
+  (flycheck-buffer)
+  (flycheck-list-errors))
+#+end_src
+
+#+begin_src emacs-lisp
+(defvar my-lang-gptel-prompt
+  "Check this beginner French and give me feedback/suggestions in English. Input may be in Org Mode syntax. Ignore the use of \"le\" and spelled out numbers in the date header (ex: lundi, le dix novembre) since that's how my tutor wants to do it. Also, I tend to spell numbers out for practice. Don't include the full revised text or encouragement/acknowledgement unless I ask for it explicitly, just focus on the parts that need correction.
+
+Score it from 1 to 10. I prefer a casual tone, and I am female.
+
+Format the results as a JSON file like this, using Emacs Lisp regular expression syntax. The match field should be a large enough regular expression to capture context and avoid ambiguity, and it should have a single capture group \\(...\\) highlighting what specifically needs to be changed. The suggested field should have just the words that replace the capture group in the match field.
+
+```js
+{\"score\": 8,
+ \"corrections\": [
+   {\"match\": \"ou \\\\(peut-être j'ai\\\\) juste besoin\",
+    \"suggested\": \"peut-être que j'ai\",
+    \"explanation\": \"When starting a clause with 'peut-être que', the 'que' is generally required if it's followed by a subject and verb in this context.\"},
+   {\"match\": \"Petit à petit \\\\(j'améliore\\\\).\",
+    \"suggested\": \"je m'améliore\",
+    \"explanation\": \"To improve (yourself) is reflexive in French: *s'améliorer*.\"},
+   {\"match\": \"apprendre à \\\\(demander l'aide\\\\)\",
+    \"suggested\": \"demander de l'aide\",
+    \"explanation\": \"When asking for 'some' help (indefinite quantity), use the partitive article 'de l'aide' rather than the definite 'l'aide'.\"},
+   {\"match\": \"D'autre part, \\\\(a\\\\) moins\",
+    \"suggested\": \"au\",
+    \"explanation\": \"The expression is *au moins*.\"},
+   {\"match\": \"\\\\(donner la priorité à moi\\\\)\",
+    \"suggested\": \"me donner la priorité\",
+    \"explanation\": \"In French, we use the indirect object pronoun 'me' before the verb instead of 'à moi' at the end.\"}
+ ],
+ \"notes\": [
+   \"You mentioned: \\\"Mon sous-objectif n'est pas de lui enseigner.\\\" If you mean you don't want to \\\"lecture\\\" her or \\\"play the teacher,\\\" a very natural way to say that in French is: \\\"Mon but n'est pas de lui faire la leçon\\\" (literally: to give her the lesson).\"
+ ]
+}
+```
+Return just the JSON.
+###
+")
+
+(defun my-lang-gptel-send-subtree (text &rest params)
+  (interactive (list (if (region-active-p)
+                         (buffer-substring (region-beginning)
+                                           (region-end))
+                       (my-org-subtree-text))))
+  (setq my-lang-current-errors nil)
+  (message "Sending to %s..." gptel-model)
+  (let ((extra-callback (plist-get params :callback)))
+    (setq params (org-plist-delete params :callback))
+    (apply
+     'gptel-request
+     (append (list (concat my-lang-gptel-prompt text)
+                   :callback
+                   (lambda (text info)
+                     (with-current-buffer (plist-get info :buffer)
+                       (if text
+                           (let ((json-data (with-temp-buffer
+                                              (insert text)
+                                              (goto-char (point-min))
+                                              (when (re-search-forward "```json" nil t)
+                                                (goto-char (match-end 0)))
+                                              (condition-case nil
+                                                  (json-read)
+                                                (error nil
+                                                       (message "%s" (buffer-string)))))))
+                             (message "Feedback received.")
+                             (my-lang-handle-feedback-flycheck json-data))
+                         (message "GPTel error: No response"))
+                       (when extra-callback (funcall extra-callback text info)))))
+             params))))
+#+end_src
+
+Sometimes I still have more questions.
+
+#+begin_src emacs-lisp
+(defvar my-lang-gptel-clarify-prompt
+  "You are a French tutor. Answer the following question and tell me how to rephrase things.:\n\n")
+(defun my-lang-gptel-clarify (extra &optional context previous-feedback)
+  (interactive (list
+                (read-string "Text: ")
+                (if (region-active-p)
+                    (concat " " (buffer-substring (region-beginning)
+                                                  (region-end)))
+                  (sentence-at-point))
+                (when-let* ((errors
+                             (flycheck-overlay-errors-in
+                              (if (region-active-p)
+                                  (region-beginning)
+                                (car (bounds-of-thing-at-point 'sentence)))
+                              (if (region-active-p)
+                                  (region-end)
+                                (cdr (bounds-of-thing-at-point 'sentence))))))
+                   (concat "Previous feedback:\n"
+                           (mapconcat (lambda (o) (plist-get o :message))
+                                      errors "\n")
+                           "\n\n"))))
+  (with-current-buffer (get-buffer-create "*gptel*")
+    (erase-buffer)
+    (gptel-request
+        (concat
+         my-lang-gptel-clarify-prompt
+         "<context>"
+         context
+         "</context>\n<previous-feedback>\n"
+         (or previous-feedback "")
+         "</previous-feedback><question>\n"
+         extra
+         "\n</question>")
+      :callback (lambda (response info)
+                  (with-current-buffer (plist-get info :buffer)
+                    (insert response)
+                    (goto-char (point-min))
+                    (display-buffer-other-window
+                     (current-buffer)))))))
+#+end_src
+
 *** Process audio files
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-process-audio-files
+:END:
 #+begin_src emacs-lisp
 (defun my-audio-clip (source start-time end-time destination text)
   (interactive
@@ -4816,6 +5159,9 @@ Example output:
                text)))))
 #+end_src
 *** Save journal entries for analysis
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-save-journal-entries-for-analysis
+:END:
 #+begin_src emacs-lisp
 (defun my-french-write-journal-entries-for-subtree ()
   (interactive)
@@ -4832,6 +5178,7 @@ Example output:
 *** TODO Load en-fr dictionary
 :PROPERTIES:
 :CREATED: [2025-12-27 Sat 15:21]
+:CUSTOM_ID: writing-and-editing-learning-french-load-en-fr-dictionary
 :END:
 
 https://github.com/thierryvolpiatto/dic-en-fr-fr-en
@@ -4849,15 +5196,17 @@ https://github.com/thierryvolpiatto/dic-en-fr-fr-en
           (seq-keep (lambda (s)
                       (when (string-match "^\\(.+?\\) {\\(.+?\\)}\\(?: /\\(.+?\\)/\\)?\\(?: (\\(.+?\\))\\)?\\( SEE: .+?\\)? ::\\(?: \\(.+?\\) *\\({.+}.*\\)?\\)?$" s)
                         (let ((headword (match-string 1 s))
+                              (head-type (match-string 2 s))
                               (def (match-string 4 s))
                               (see (match-string 5 s))
                               (translation (match-string 6 s))
                               (types (match-string 7 s)))
                           (cons
-                           (propertize (format "%s - %s :: %s %s"
+                           (propertize (format "%s {%s} - %s - %s :: %s"
                                                headword
-                                               (or def "")
+                                               head-type
                                                (or see translation)
+                                               (or def "")
                                                (or types ""))
                                        'face
                                        (cond
@@ -4903,8 +5252,84 @@ my-french-consult-en-fr
 :end:
 
 https://github.com/emacsmirror/wordreference
+*** Conjugation
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-conjugation
+:END:
 
+- http://rali.iro.umontreal.ca/rali/?q=en/node/1238
+- https://github.com/RosaeNLG/rosaenlg
+
+  #+begin_src emacs-lisp
+(defun my-french-conjugate-grammalecte (input)
+  "Query Grammalecte for INPUT."
+  (interactive (list (my-french-lexique-complete-word)))
+  (grammalecte-conjugate-verb input))
+
+(defvar my-french-verbe-db "~/vendor/verbe-conjugaison-academie-francaise/output/verbs.db")
+
+(defun my-french-conjugate (input &optional all-forms)
+  (interactive (list (my-french-lexique-complete-word)
+                     (null current-prefix-arg)))
+  (let* ((db (sqlite-open my-french-verbe-db))
+         (value
+          (consult--read
+           (if all-forms
+               (mapcar (lambda (row)
+                         (cons (string-join
+                                (list
+                                 (elt row 0)
+                                 (elt row 1)
+                                 (elt row 2)
+                                 (elt row 4)
+                                 (elt row 3))
+                                " - ")
+                               (elt row 0)))
+
+                       (sqlite-select db
+                                      "SELECT
+    conjugaison, voix, mode, temps, personne
+FROM verbes v
+JOIN conjugaisons c
+ON v.id = c.verbe_id WHERE v.infinitif = ?
+ORDER BY temps, mode, personne" (list input)))
+             (mapcar (lambda (row)
+                         (cons (string-join
+                                (list
+                                 (elt row 0)
+                                 (elt row 4)
+                                 (elt row 3))
+                                " - ")
+                               (elt row 0)))
+
+                       (sqlite-select db
+                                      "SELECT
+    conjugaison, voix, mode, temps, personne
+FROM verbes v
+JOIN conjugaisons c
+ON v.id = c.verbe_id WHERE v.infinitif = ?
+AND temps in (?, ?)
+AND mode=?
+ORDER BY temps, mode, personne"
+                                      (list input "present" "passe_compose"  "indicatif"))))
+           :prompt "Verbe: "
+           :lookup 'consult--lookup-cdr)))
+    (sqlite-close db)
+    (when (called-interactively-p 'any)
+      (when (word-at-point)
+          (delete-region (save-excursion
+                           (skip-syntax-backward "w")
+                           (point))
+                         (save-excursion
+                           (skip-syntax-forward "w")
+                           (point))))
+      (insert value))
+    value))
+  #+end_src
 *** Looking up words via wordreference
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-looking-up-words-via-wordreference
+:END:
 
 There's also a package:wordreference.
 
@@ -4983,6 +5408,9 @@ There's also a package:wordreference.
                       (url-hexify-string s))))
 #+end_src
 *** Lexique
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-lexique
+:END:
 http://www.lexique.org/databases/Lexique383/
 
 #+begin_src emacs-lisp
@@ -5002,7 +5430,7 @@ conn.close()
 
 Adding an unaccented version for easier lookup:
 
-#+begin_src sql
+#+begin_src sql :eval no
 ALTER TABLE lexique ADD COLUMN ortho_flat TEXT;
 
 -- Update it (you can use your Python logic to strip accents)
@@ -5023,7 +5451,7 @@ Emacs Lisp functions for finding things:
   "Query the Lexique SQLite database for INPUT."
   (let ((db (sqlite-open my-french-lexique-db)))
     (prog1 (sqlite-select db
-                          "SELECT ortho, lemme, genre, nombre, phon, syll FROM lexique
+                          "SELECT ortho, lemme, genre, nombre, phon, syll, infover FROM lexique
                     WHERE ortho=? ORDER BY freqfilms2 DESC LIMIT 1"
                           (list input))
       (sqlite-close db))))
@@ -5032,8 +5460,18 @@ Emacs Lisp functions for finding things:
   "Query the Lexique SQLite database for INPUT."
   (let ((db (sqlite-open my-french-lexique-db)))
     (prog1 (sqlite-select db
-                          "SELECT ortho, lemme, genre, nombre, phon, syll FROM lexique
-                    WHERE ortho_flat LIKE ? ORDER BY freqfilms2 DESC LIMIT 50"
+                          "SELECT ortho, lemme, genre, nombre, phon, syll, infover FROM lexique
+                    WHERE ortho_flat LIKE ? OR ortho LIKE ? ORDER BY freqfilms2 DESC LIMIT 50"
+                          (list (concat (downcase input) "%")
+                                (concat (downcase input) "%")))
+      (sqlite-close db))))
+
+(defun my-french-lexique-lookup-db-lemma (input)
+  "Query the Lexique SQLite database for INPUT."
+  (let ((db (sqlite-open my-french-lexique-db)))
+    (prog1 (sqlite-select db
+                          "SELECT ortho, lemme, genre, nombre, infover, phon, syll, ortho_flat FROM lexique
+                    WHERE lemme LIKE ? ORDER BY freqfilms2 DESC LIMIT 50"
                           (list (concat input "%")))
       (sqlite-close db))))
 
@@ -5045,13 +5483,17 @@ Emacs Lisp functions for finding things:
                (lambda (input)
                  (mapcar (lambda (row)
                            (let ((word (nth 0 row))
-                                 (gender (nth 1 row))
-                                 (number (nth 2 row))
-                                 (ipa (nth 3 row)))
+                                 (gender (nth 2 row))
+                                 (number (nth 3 row))
+                                 (ipa (my-french-lexique-to-ipa (nth 5 row)))
+                                 (infover (nth 6 row)))
                              ;; Format the string for the completion buffer
                              (cons
                               (propertize
-                               (format "%-20s [%s] (%s, %s)" word ipa gender number)
+                               (format "%-20s [%s] (%s)" word ipa
+                                       (string-join
+                                        (delq nil (list gender number infover))
+                                        ", "))
                                'consult--candidate word
                                'face
                                (pcase gender
@@ -5065,16 +5507,56 @@ Emacs Lisp functions for finding things:
            :lookup #'consult--lookup-cdr
            :category 'french-word)))
     (when selection
-      (when (word-at-point)
-        (delete-region (save-excursion
-                         (skip-syntax-backward "w")
-                         (point))
-                       (save-excursion
-                         (skip-syntax-forward "w")
-                         (point))))
-      (insert selection))))
+      (when (called-interactively-p 'any)
+        (when (word-at-point)
+          (delete-region (save-excursion
+                           (skip-syntax-backward "w")
+                           (point))
+                         (save-excursion
+                           (skip-syntax-forward "w")
+                           (point))))
+        (insert selection))
+      selection)))
+#+end_src
+
+*** STARTED Write a completion-at-point function for French
+:PROPERTIES:
+:Effort:   0:30
+:QUANTIFIED: Emacs
+:CUSTOM_ID: writing-and-editing-learning-french-write-a-completion-at-point-function-for-french
+:END:
+:LOGBOOK:
+CLOCK: [2026-01-13 Tue 19:48]--[2026-01-14 Wed 09:33] => 13:45
+:END:
+
+#+begin_src emacs-lisp
+(defun my-french-lexique-completion-at-point ()
+  (let ((bounds (bounds-of-thing-at-point 'word)))
+    (when bounds
+      (list (car bounds)
+            (cdr bounds)
+            (mapcar (lambda (row)
+                      (let ((word (nth 0 row))
+                            (gender (nth 2 row))
+                            (number (nth 3 row))
+                            (ipa (my-french-lexique-to-ipa (nth 5 row)))
+                            (infover (nth 6 row)))
+                        word))
+                    (my-french-lexique-lookup-db-flat
+                     (buffer-substring-no-properties
+                      (car bounds)
+                      (cdr bounds))))
+            :exclusive 'no))))
+(with-eval-after-load 'org
+  (add-hook 'org-mode-hook
+            (lambda ()
+              (when (and (buffer-file-name) (string-match "journal-fr\\|french" (buffer-file-name)))
+                (add-hook 'completion-at-point-functions 'my-french-lexique-completion-at-point)))))
 #+end_src
 *** Highlight and count new words in journal entries
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-highlight-and-count-new-words-in-journal-entries
+:END:
 #+begin_src emacs-lisp
 (defun my-french-load-known-lemmas ()
   "Parse the CSV and return a hash table of lemma -> info."
@@ -5089,7 +5571,10 @@ Emacs Lisp functions for finding things:
      data)
     (setq my-french-known-lemmas known)))
 
-(defvar my-french-ignore '("des" "les" "ma" "elle" "la" "une" "mes" "cette" "du" "puis" "ces"))
+(defvar my-french-ignore
+  (with-temp-buffer
+    (insert-file-contents "~/proj/french/ignored.txt")
+    (split-string (string-trim (buffer-string)) "\n")))
 
 (defun my-french-lexique-to-ipa (s)
   (mapconcat (lambda (c)
@@ -5127,7 +5612,7 @@ Emacs Lisp functions for finding things:
                (count-words 0))
           (save-excursion
             (goto-char beg)
-            (while (re-search-forward "\\b[[:alpha:]-]+\\b" end t)
+            (while (and (< (point) end) (re-search-forward "\\b[[:alpha:]-]+\\b" end t))
               (let* ((word (match-string 0))
                      (info (and (or
                                  (not (car (gethash (downcase word) known-lemmas)))
@@ -5163,6 +5648,7 @@ Emacs Lisp functions for finding things:
                                    (t 'modus-themes-subtle-green))))
                         (overlay-put ov 'my-french-highlight t)
                         (overlay-put ov 'word word)
+                        (overlay-put ov 'evaporate t)
                         (when my-french-show-pronunciation
                           (overlay-put ov 'after-string (my-french-lexique-to-ipa syll)))
                         (overlay-put ov 'face face)))))))
@@ -5176,6 +5662,7 @@ Emacs Lisp functions for finding things:
       (let ((data (org-map-entries #'my-french-highlight-new-words-in-subtree "DATE={.}" 'tree)))
         (org-back-to-heading)
         (let ((ov (make-overlay (line-beginning-position) (line-end-position))))
+          (overlay-put ov 'evaporate t)
           (overlay-put ov 'after-string
                        (format " + %d = %d"
                                (apply '+ (mapcar 'car data))
@@ -5192,6 +5679,9 @@ Emacs Lisp functions for finding things:
 
 
 ** Spellcheck
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-spellcheck
+:END:
 
 #+begin_export emacs-lisp
 (use-package flyspell
@@ -5333,6 +5823,7 @@ sentence navigation commands work for me.
 	(interactive "r")
 	(let ((overlay (make-overlay beg end)))
 		(overlay-put overlay 'redact t)
+    (overlay-put overlay 'evaporate t)
 		(overlay-put overlay 'display
 								 (cond
 									((functionp func)

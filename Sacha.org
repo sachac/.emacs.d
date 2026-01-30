@@ -15144,19 +15144,21 @@ the mode, `toggle' toggles the state."
 (defun my-org-save-and-tangle-my-config ()
 	(when (string= (buffer-file-name) (expand-file-name "~/sync/emacs/Sacha.org")) (my-org-export-and-tangle-when-saved-in-focus-mode 1)))
 
-(defun my-export-dotemacs ()
+(defun my-export-dotemacs (&optional sync)
 	(interactive)
 	(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
 		(org-babel-tangle)
-		(async-start
-		 `(lambda ()
-				;; make async emacs aware of packages (for byte-compilation)
-				(package-initialize)
-				(setq my-exporting t)
-				(load-file "~/sync/emacs/Sacha.el")
-				(find-file "~/sync/emacs/Sacha.org")
-				(org-export-to-file 'html "index.html"))
-		 (lambda (&rest results) (message "Tangled and exported.")))))
+    (if sync
+        (org-export-to-file 'html "index.html")
+		  (async-start
+		   `(lambda ()
+				  ;; make async emacs aware of packages (for byte-compilation)
+				  (package-initialize)
+				  (setq my-exporting t)
+				  (load-file "~/sync/emacs/Sacha.el")
+				  (find-file "~/sync/emacs/Sacha.org")
+				  (org-export-to-file 'html "index.html"))
+		   (lambda (&rest results) (message "Tangled and exported."))))))
 ;(use-package org
 ;  :hook ((org-mode . my-org-save-and-tangle-my-config)))
 #+end_src

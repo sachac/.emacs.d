@@ -26047,7 +26047,7 @@ Useful as `imenu-create-index-function'."
 	:quelpa (undercover :fetcher github :repo "undercover-el/undercover.el")
 	:defer t
 	)
-(use-package coverage :efer t)
+(use-package coverage :defer t)
 #+end_src
 *** Eldoc
 :PROPERTIES:
@@ -27603,8 +27603,14 @@ current buffer, killing it."
   (add-to-list 'magic-mode-alist '("SQLite format 3\x00" . ct/sqlite-view-file-magically)))
 #+end_src
 ** Crontab
+:PROPERTIES:
+:CUSTOM_ID: coding-crontab
+:END:
 
 ** TODO Write a function to help with crontab entries
+:PROPERTIES:
+:CUSTOM_ID: coding-write-a-function-to-help-with-crontab-entries
+:END:
 
 #+begin_src emacs-lisp
 (defun my-bbb-insert-translated-crontab-entries (time-zone start-time end-time)
@@ -29519,7 +29525,7 @@ with this bit of Emacs Lisp.
 
 Here's a quick demo:
 
-[[video:~/recordings/2025-07-11_17.07.10.webm?caption=Screencast showing it in use]]
+[[video:https://sachachua.com/blog/2025/07/emacs-open-urls-or-search-the-web-plus-browse-url-handlers/2025-07-11_17.07.10.webm?caption=Screencast showing it in use]]
 
 #+begin_my_details Play by play
 1. Opening a URL: https://example.com
@@ -29780,7 +29786,7 @@ window.location.href
 :results:
 :end:
 
-[[video:/home/sacha/recordings/2024-01-19_08.16.31.webm?caption=Evaluating a Javascript block with :spookfox t]]
+[[video:https://sachachua.com/blog/2024/01/running-the-current-org-mode-babel-javascript-block-in-spookfox/2024-01-19_08.16.31.webm?caption=Evaluating a Javascript block with :spookfox t]]
 
 To do this, we wrap some advice around the ~org-babel-execute:js~ function that's called by ~org-babel-execute-src-block~.
 
@@ -29865,7 +29871,7 @@ document.querySelector('h1').style.fontSize = Math.floor(Math.random() * 10 + 10
 :results:
 :end:
 
-[[video:/home/sacha/recordings/2024-01-19_08.26.35.webm?caption=Sending the current line]]
+[[video:https://sachachua.com/blog/2024/01/running-the-current-org-mode-babel-javascript-block-in-spookfox/2024-01-19_08.26.35.webm?caption=Sending the current line]]
 
 I used to do this kind of interaction with [[https://github.com/skeeto/skewer-mode][Skewer]], which also has some extra stuff for evaluating CSS and HTML. Skewer hasn't been updated in a while, but maybe I should also check that out again to see if I can get it working.
 
@@ -31236,7 +31242,11 @@ don't get the theme applied. This fixes that:
   :if my-laptop-p)
 
    #+end_src
-** Transforming HTML clipboard contents with Emacs to smooth out Mailchimp annoyances: dates, images, comments, colours :emacs:
+** Bike Brigade
+:PROPERTIES:
+:CUSTOM_ID: collaboration-bike-brigade
+:END:
+*** Transforming HTML clipboard contents with Emacs to smooth out Mailchimp annoyances: dates, images, comments, colours :emacs:
 :PROPERTIES:
 :CUSTOM_ID: areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours
 :EXPORT_DATE: 2025-06-20T19:26:47-0400
@@ -31286,7 +31296,7 @@ I think I can get [[https://sachachua.com/topic/emacs/][Emacs]] to make things e
 #+TOC: headlines 2 local
 #+end_sticky-toc
 
-*** Automating buttons
+**** Automating buttons
 :PROPERTIES:
 :CUSTOM_ID: areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-automating-buttons
 :END:
@@ -31373,7 +31383,7 @@ though the inline style says
 ~text-decoration:none~, but it's easy enough to
 remove that with ~Ctrl+u~.
 
-*** Transforming HTML
+**** Transforming HTML
 :PROPERTIES:
 :CUSTOM_ID: areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html
 :END:
@@ -31441,7 +31451,7 @@ If ACTIVATE-APP-AFTERWARDS is non-nil, use xdotool to try to activate that app's
 		(call-process "xdotool" nil nil nil "search" "--onlyvisible" "--all" activate-app-afterwards "windowactivate" "windowfocus")))
 #+end_src
 
-*** Saving images
+**** Saving images
 :PROPERTIES:
 :CUSTOM_ID: areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-saving-images
 :END:
@@ -31465,100 +31475,130 @@ fine too. I can parse and save the images like
 this:
 
 #+begin_src emacs-lisp
+;; Hmm, now I need to modify it to handle emojis in the text.
+;; Emojis have :text: in the alt. I need to upload them.
+
 (defun my-transform-html-save-images (dom dir &optional file-prefix transform-fn)
-	(let (last-image last-image-filename last-image-alt results)
-		(dom-search dom
-								(lambda (node)
-									(pcase (dom-tag node)
-										('img
-										 (let ((data (dom-attr node 'src)))
-                       (when (or last-image last-image-filename)
-                         (cond
-                          ;; this image is after another image, so the previous image must be an extra one
-												  (last-image
-												   (setq last-image-filename
-															   (expand-file-name
-																  (format "%s%s-extra.%s"
-																				  (or file-prefix "")
-																				  (if transform-fn
-																						  (funcall transform-fn (caar results))
-																					  (caar results))
-																				  (car last-image))
-																  dir))
-												   (with-temp-file last-image-filename
-													   (set-buffer-file-coding-system 'binary)
-													   (insert (base64-decode-string (cdr last-image)))))
-												  ;; this image is after another image, so the previous image must be an extra one
-												  (last-image-filename
-												   (let ((new-filename
-																  (expand-file-name
-																   (format "%s%s-extra.%s"
-																				   (or file-prefix "")
-																				   (if transform-fn
-																						   (funcall transform-fn (caar results))
-																					   (caar results))
-																	         "jpg")
-																   dir)))
-													   (call-process "convert" nil nil nil last-image-filename
-																				   new-filename)
-													   (setq last-image-filename new-filename))))
-                         (push
-                          (cons 'extra last-image-filename)
-                          (cdr (car results)))
-                         (push
-                          (cons 'alt last-image-alt)
-                          (cdr (car results)))
-                         (setq last-image nil last-image-filename nil))
-											 (cond
-												((string-match "^images/" data)
-												 (setq last-image nil
-															 last-image-filename data
-															 last-image-alt (dom-attr node 'alt)))
-												((string-match "^data:image/" data)
-												 (with-temp-buffer
-													 (insert data)
-													 (goto-char (point-min))
-													 (when (looking-at "data:image/\\([^;]+?\\);base64,")
-														 (setq last-image (cons (match-string 1)
-																										(buffer-substring (match-end 0) (point-max)))
-																	 last-image-filename nil
-																	 last-image-alt (dom-attr node 'alt))))))))
-										('h2
-										 (when (not (string= (string-trim (dom-texts node)) ""))
-											 (cond
-												(last-image
-												 (setq last-image-filename
-															 (expand-file-name
-																(format "%s%s.%s"
-																				(or file-prefix "")
-																				(if transform-fn
-																						(funcall transform-fn (dom-texts node))
-																					(dom-texts node))
-																				(car last-image))
-																dir))
-												 (with-temp-file last-image-filename
-													 (set-buffer-file-coding-system 'binary)
-													 (insert (base64-decode-string (cdr last-image)))))
-												(last-image-filename
-												 (let ((new-filename
-																(expand-file-name
-																 (format "%s%s.%s"
-																				 (or file-prefix "")
-																				 (if transform-fn
-																						 (funcall transform-fn (dom-texts node))
-																					 (dom-texts node))
-																				 "jpg")
-																 dir)))
-													 (call-process "convert" nil nil nil last-image-filename
-																				 new-filename)
-													 (setq last-image-filename new-filename))))
-											 (push (cons (string-trim (dom-texts node))
-																	 `((filename . ,last-image-filename)
-																		 (alt . ,last-image-alt)))
-														 results)
-											 (setq last-image nil
-														 last-image-filename nil))))))
+  "Returns a list of (section list).
+list is a list of alists with the following keys:
+- type (main, extra, emoji)
+- alt
+- filename"
+	(let (last-image last-image-filename last-image-alt results last-image-node)
+		(dom-search
+     dom
+		 (lambda (node)
+			 (pcase (dom-tag node)
+				 ('img
+					(let* ((data (dom-attr node 'src))
+                 (jpg (concat (file-name-sans-extension data)
+                             ".jpg")))
+            (when (file-exists-p jpg)
+              (dom-set-attribute node 'src jpg)
+              (setq data jpg))
+            (when (or last-image last-image-filename)
+              (cond
+               ;; this image is after another image, so the previous image must be an extra one
+							 (last-image
+								(setq last-image-filename
+											(expand-file-name
+											 (format "%s%s-extra.%s"
+															 (or file-prefix "")
+															 (if transform-fn
+																	 (funcall transform-fn (caar results))
+																 (caar results))
+															 (car last-image))
+											 dir))
+								(with-temp-file last-image-filename
+									(set-buffer-file-coding-system 'binary)
+									(insert (base64-decode-string (cdr last-image)))))
+							 ;; this image is after another image, so the previous image must be an extra one
+							 (last-image-filename
+								(let ((new-filename
+											 (expand-file-name
+												(format "%s%s-extra.%s"
+																(or file-prefix "")
+																(if transform-fn
+																		(funcall transform-fn (caar results))
+																	(caar results))
+																"jpg")
+												dir)))
+									(call-process "convert" nil nil nil last-image-filename
+																new-filename)
+									(setq last-image-filename new-filename))))
+              (push
+               (list
+                (cons 'type 'extra)
+                (cons 'filename last-image-filename)
+                (cons 'alt last-image-alt))
+               (cdr (car results)))
+              (dom-remove-node dom node)
+              (setq last-image-node nil)
+              (setq last-image nil last-image-filename nil))
+						(cond
+             ((string-match "^:.+?:" (or (dom-attr node 'alt) ""))
+              (setq last-image-node nil)
+              (push
+               (list
+                (cons 'type 'emoji)
+                (cons 'filename (dom-attr node 'src))
+                (cons 'alt (dom-attr node 'alt)))
+               (cdar results)))
+						 ((string-match "^images/" data)
+							(setq last-image nil
+										last-image-filename data
+										last-image-alt (dom-attr node 'alt)
+                    last-image-node node))
+						 ((string-match "^data:image/" data)
+							(with-temp-buffer
+								(insert data)
+								(goto-char (point-min))
+								(when (looking-at "data:image/\\([^;]+?\\);base64,")
+									(setq last-image (cons (match-string 1)
+																				 (buffer-substring (match-end 0) (point-max)))
+												last-image-filename nil
+												last-image-alt (dom-attr node 'alt)
+                        last-image-node node)))))))
+				 ('h2
+					(when (not (string= (string-trim (dom-texts node)) ""))
+						(cond
+						 (last-image
+							(setq last-image-filename
+										(expand-file-name
+										 (format "%s%s.%s"
+														 (or file-prefix "")
+														 (if transform-fn
+																 (funcall transform-fn (dom-texts node))
+															 (dom-texts node))
+														 (car last-image))
+										 dir))
+							(with-temp-file last-image-filename
+								(set-buffer-file-coding-system 'binary)
+								(insert (base64-decode-string (cdr last-image)))))
+						 (last-image-filename
+							(let ((new-filename
+										 (expand-file-name
+											(format "%s%s.%s"
+															(or file-prefix "")
+															(if transform-fn
+																	(funcall transform-fn (dom-texts node))
+																(dom-texts node))
+															(file-name-extension last-image-filename))
+											dir)))
+                (copy-file last-image-filename new-filename t)
+								(setq last-image-filename new-filename))))
+						(push (cons (string-trim (dom-texts node))
+												`(((filename . ,last-image-filename)
+					                 (alt . ,last-image-alt)
+                           (type . main))))
+									results)
+            (when last-image-node
+              (dom-remove-node dom last-image-node))
+						(setq last-image nil
+                  last-image-node nil
+									last-image-filename nil))))))
 		(nreverse results)))
+
 #+end_src
 
 I wrapped this in a small function for
@@ -31598,7 +31638,7 @@ clipboard, I can call it like this:
 (my-brigade-save-newsletter-images
  (with-temp-buffer (insert-file-contents "~/Downloads/test.html") (libxml-parse-html-region)))
 #+end_src
-*** Cleaning up
+**** Cleaning up
 :PROPERTIES:
 :CUSTOM_ID: areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-cleaning-up
 :END:
@@ -31640,7 +31680,7 @@ Here's how I can test it:
  (with-temp-buffer (insert-file-contents "~/Downloads/test.html") (buffer-string)))
 #+end_src
 
-*** Removing sections
+**** Removing sections
 :PROPERTIES:
 :CUSTOM_ID: areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-removing-sections
 :END:
@@ -31683,7 +31723,7 @@ Let's try it out:
 	 my-brigade-remove-meta-recursively)
  (with-temp-buffer (insert-file-contents "~/Downloads/test.html") (buffer-string)))
 #+end_src
-*** Removing unneeded styles
+**** Removing unneeded styles
 :PROPERTIES:
 :CUSTOM_ID: collaboration-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-removing-unneeded-styles
 :END:
@@ -31745,7 +31785,7 @@ Let's try it out:
 					(dom-set-attribute node 'href (car (assoc-default "q" args 'string=))))))
 		dom))
 #+end_src
-*** Formatting calls to action
+**** Formatting calls to action
 :PROPERTIES:
 :CUSTOM_ID: areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-formatting-calls-to-action
 :END:
@@ -31793,7 +31833,7 @@ Now I can test those functions in combination:
 #+CAPTION: Screenshot of button
 [[file:images/2025-06-20_21-10-38.png]]
 
-*** Changing link colours
+**** Changing link colours
 :PROPERTIES:
 :CUSTOM_ID: areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-changing-link-colours
 :END:
@@ -31856,7 +31896,7 @@ I can add that to the sequence:
  (with-temp-buffer (insert-file-contents "~/Downloads/test.html") (buffer-string)))
 #+end_src
 
-*** Just the headings
+**** Just the headings
 :PROPERTIES:
 :CUSTOM_ID: collaboration-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-just-the-headings
 :END:
@@ -31871,7 +31911,7 @@ I can add that to the sequence:
 					(dom-append-child entries (dom-node 'li nil text)))))
 		entries))
 #+end_src
-*** Wrapping it up
+**** Wrapping it up
 :PROPERTIES:
 :CUSTOM_ID: areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-wrapping-it-up
 :END:
@@ -31931,7 +31971,7 @@ handy. By writing the functions as small,
 composable parts, I can change how I want to
 transform the clipboard.
 
-*** Next steps
+**** Next steps
 :PROPERTIES:
 :CUSTOM_ID: areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-next-steps
 :END:
@@ -31948,7 +31988,7 @@ get xclip to work more reliably from within Emacs
 by adding ~-filter 2>& /dev/null~ to the end of my
 xclip call so it didn't hang.)
 
-** Getting a Google Docs draft ready for Mailchimp via Emacs and Org Mode  :emacs:org:
+*** Getting a Google Docs draft ready for Mailchimp via Emacs and Org Mode :emacs:org:
 :PROPERTIES:
 :CUSTOM_ID: collaboration-bike-brigade-extract-information-from-google-docs-export-as-zipped-html
 :EXPORT_DATE: 2025-09-17T10:07:10-0400
@@ -32127,7 +32167,7 @@ When I saw two more events and one additional link that I wanted to include, I w
 I think this is a good combination of Google Docs for getting other people's feedback and letting them edit, and Org Mode for keeping myself sane as I turn it into whatever Mailchimp wants.
 
 My next step for improving this workflow might be to check out other e-mail providers in case I can get Emacs to make the whole template. That way, I don't have to keep switching between applications and using the mouse to duplicate blocks and edit the code.
-** Bike Brigade: working with Mailchimp images
+*** Bike Brigade: working with Mailchimp images
 :PROPERTIES:
 :CUSTOM_ID: collaboration-bike-brigade-working-with-mailchimp-images
 :END:

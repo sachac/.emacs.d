@@ -12917,7 +12917,8 @@ to include SVGs.
 						(attr (org-export-read-attribute :attr_html (org-element-parent-element link))))
 				(if (string= (file-name-extension path) "svg")
 						(with-temp-buffer
-							(insert-file-contents-literally path)
+              (set-buffer-multibyte t)
+							(insert-file-contents path)
 							(if attr
 									(replace-regexp-in-string
 									 "<svg "
@@ -12951,7 +12952,8 @@ to include SVGs.
 						(attr (org-export-read-attribute :attr_html (org-element-parent-element link))))
 				(if (string= (file-name-extension path) "svg")
 						(with-temp-buffer
-							(insert-file-contents-literally path)
+              (set-buffer-multibyte t)
+							(insert-file-contents path)
 							(if attr
 									(replace-regexp-in-string
 									 "<svg "
@@ -13257,6 +13259,7 @@ This code displays the images inline.
                           ;; on Emacs to update image if the file
                           ;; has changed.
                           (image-flush image)
+                          (overlay-put ov 'evaporate t)
 													(overlay-put ov 'display image)
 													(overlay-put ov 'face 'default)
 													(overlay-put ov 'org-image-overlay t)
@@ -13432,10 +13435,14 @@ This uses the ~my-combined-screenshots~ and ~my-latest-screenshot~ functions fro
 			(if (string-match "webm" file)
 					(progn
 						(mpv-play file)
-						(insert (org-link-make-string (concat "video:" file "?caption=" (or note (read-string "Caption: ")))) "\n"))
+						(insert "#+begin_media-post\n"
+                    (org-link-make-string (concat "video:" file "?caption=" (or note (read-string "Caption: ")))) "\n"
+                    "#+end_media-post\n"))
 				(with-current-buffer (find-file-noselect file) (display-buffer (current-buffer)))
 				(insert "#+CAPTION: " (or note (read-string "Caption: ")) "\n"
-								(org-link-make-string (concat "file:" file))))))))
+								(org-link-make-string (concat "file:" file)
+                                      (concat "file:" file)
+                                      )))))))
 
 (defun my-copy-last-screenshot-to-file (new-filename)
   (interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (my-latest-screenshot))))))

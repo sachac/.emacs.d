@@ -1,4 +1,5 @@
-# [[elisp:my-export-dotemacs][Export this file]]
+# [[elisp:my-export-dotemacs][Export this file asynchronously]]
+# [[elisp:(my-export-dotemacs 'sync)][Export this file synchronously]]
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:nil h:4 html-style:nil html-postamble:nil
 #+SETUPFILE: ~/vendor/org-html-themes/org/theme-readtheorg-sachac.setup

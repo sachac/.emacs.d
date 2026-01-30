@@ -8987,7 +8987,7 @@ stuff.
 	(org-fold-catch-invisible-edits 'smart))
 #+end_src
 
-* After I jump to a task from org-clock-goto, narrow to it automatically
+** After I jump to a task from org-clock-goto, narrow to it automatically
 :PROPERTIES:
 :CREATED:  [2026-01-09 Fri 11:10]
 :Effort:   0:15
@@ -12804,7 +12804,6 @@ CLOSED: [2024-10-25 Fri 10:17]
 :LOGBOOK:
 - State "DONE"       from "STARTED"    [2024-10-25 Fri 10:17]
 :END:
-[[file:images/visual-book-notes.org]]
 
 #+begin_src emacs-lisp
 (defun my-org-html-toc (depth info &optional scope)
@@ -12840,8 +12839,8 @@ of contents as a string, or nil if it is empty."
 		    toc
 		    (format "</%s>\n" outer-tag))))))))
 
-(with-eval-after-load 'org
-	(defalias 'org-html-toc #'my-org-html-toc))
+;; (with-eval-after-load 'org
+;;   (advice-add 'org-html-toc :override #'my-org-html-toc))
 #+end_src
 
 *** Include inline SVGs in Org Mode HTML and Markdown exports :emacs:org:images:

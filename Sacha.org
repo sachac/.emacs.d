@@ -9404,8 +9404,20 @@ You can find out a little more about [[https://orgmode.org/manual/Speed-Keys.htm
 (setq org-use-effective-time t)
 
 (defun my-org-subtree-text ()
-  (save-excursion
-    (buffer-substring (save-excursion (org-end-of-meta-data t) (point)) (org-end-of-subtree))))
+  (if (derived-mode-p 'org-mode)
+      (if (org-before-first-heading-p)
+          (buffer-substring (point-min)
+                            (save-excursion
+                              (org-next-visible-heading)
+                              (line-beginning-position)))
+        (save-excursion
+          (buffer-substring (save-excursion (org-end-of-meta-data t) (point))
+                            (org-end-of-subtree))))
+    (buffer-string)))
+
+(defun my-org-copy-subtree-text ()
+  (interactive)
+  (kill-new (my-org-subtree-text)))
 
 (defun my-org-mark-done ()
   (interactive)

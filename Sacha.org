@@ -15948,10 +15948,14 @@ With prefix argument, also display headlines without a TODO keyword."
 			(org-export-string-as (org-link-make-string link desc) format)
 		(pcase format
 			((or 'html '11ty 'md)
-			 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
-							(url (concat "file://" (if (file-name-absolute-p (car path-and-query))
-																				 (expand-file-name (car path-and-query))
-																			 (car path-and-query))))
+			 (let* ((parsed-url (url-generic-parse-url link))
+              (path-and-query (url-path-and-query parsed-url))
+							(url
+               (if (string-match "^https://" link)
+                   (concat (url-type parsed-url) "://" (url-domain parsed-url) (car path-and-query))
+                 (concat "file://" (if (file-name-absolute-p (car path-and-query))
+																		   (expand-file-name (car path-and-query))
+																	   (car path-and-query)))))
 							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query))))
 							body)
 				 (setq body
@@ -16004,10 +16008,15 @@ With prefix argument, also display headlines without a TODO keyword."
 (org-link-set-parameters
  "vtime"
  :export #'my-org-video-time-export
+ :complete #'my-org-video-time-complete
  :follow #'my-org-video-time-follow)
 (defun my-org-video-time-follow (path _)
-;; TODO: Look for the previous video and jump to the specified time
-	)
+  ;; TODO: Look for the previous video and jump to the specified time
+  (mpv-seek path)
+  (mpv--enqueue '("set" "pause" "no") #'ignore))
+(defun my-org-video-time-complete ()
+  (interactive)
+  (concat "vtime:" (format-seconds "%02h:%02m:%02s" (mpv-get-playback-position))))
 
 (defun my-org-video-time-export (link desc format info)
 	"Export PATH to FORMAT using the specified wrap parameter."
@@ -16020,6 +16029,51 @@ With prefix argument, also display headlines without a TODO keyword."
 										 (match-string 0 link)) 1000.0))
 							 (match-string 0 link))))
 		('org link)))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun my-org-vtime-item-p ()
+  (save-excursion
+    (org-list-at-regexp-after-bullet-p
+     "\\[\\[\\(vtime:[0-9]+:[0-9]+:[0-9]+\\)\\]\\]")))
+
+(defun my-org-vtime-insert-item-advice (fn &rest args)
+  (let ((itemp (org-in-item-p))
+        (pos (point)))
+    (unless (or (not itemp)
+		            (save-excursion
+		              (goto-char itemp)
+		              (org-invisible-p)))
+      (if (my-org-vtime-item-p)
+          ;; Insert another vtime link
+          (my-org-vtime-item)
+        (apply fn args)))))
+
+(defun my-org-vtime-item ()
+  (let ((itemp (org-in-item-p)) (pos (point)))
+    (cond
+     ;; In a timer list, insert with `org-list-insert-item',
+     ;; then fix the list.
+     ((and itemp (goto-char itemp) (my-org-vtime-item-p))
+      (let* ((struct (org-list-struct))
+	           (prevs (org-list-prevs-alist struct))
+	           (s (concat (org-link-make-string (my-org-video-time-complete)) " - ")))
+	      (setq struct (org-list-insert-item pos struct prevs nil s))
+	      (org-list-write-struct struct (org-list-parents-alist struct))
+	      (looking-at org-list-full-item-re)
+	      (goto-char (match-end 0))
+        (line-end-position)))
+     ;; In a list of another type, don't break anything: throw an error.
+     (itemp (goto-char pos) (error "This is not a vtime list"))
+     ;; Else, start a new list.
+     (t
+      (forward-line 0)
+      (org-indent-line)
+      (insert  "- "
+               (concat (org-link-make-string (my-org-video-time-complete)) " - "))))))
+
+(with-eval-after-load 'org
+  (advice-add 'org-insert-item :around 'my-org-vtime-insert-item-advice))
 #+end_src
 *** Audio
 :PROPERTIES:
@@ -16108,15 +16162,23 @@ With prefix argument, also display headlines without a TODO keyword."
 (org-link-set-parameters
  "captions"
  :export #'my-org-captions-export
+ :follow #'find-file
  :complete #'my-org-captions-complete)
 
 (defun my-org-captions-format (file &optional separator)
 	(let ((cues (subed-parse-file file)))
 		(mapconcat (lambda (cue)
-								 (format "<span class=\"audio-time\" data-start=\"%f\" data-stop=\"%f\">%s</span>"
-												 (/ (elt cue 1) 1000.0)
-												 (/ (elt cue 2) 1000.0)
-												 (elt cue 3)))
+                 (concat
+                  (if (and (elt cue 4) (not (string= (elt cue 4) "")))
+                      (format "<div class=\"transcript-heading\"><span class=\"audio-time\" data-start=\"%f\">%s</span> <strong>%s</strong></div>"
+                              (floor (/ (elt cue 1) 1000))
+                              (format-seconds "%02h:%02m:%02s" (floor (/ (elt cue 1) 1000)))
+                              (elt cue 4))
+                    "")
+								  (format "<span class=\"audio-time caption\" data-start=\"%f\" data-stop=\"%f\" >%s</span>"
+												  (/ (elt cue 1) 1000.0)
+												  (/ (elt cue 2) 1000.0)
+												  (elt cue 3))))
 							 cues (or separator " "))))
 
 (defun my-org-captions-export (link desc format _)
@@ -16130,7 +16192,7 @@ With prefix argument, also display headlines without a TODO keyword."
 (defun my-org-captions-complete ()
 	"Complete audio reference."
 	(interactive)
-	(concat "captions:" (read-ffile-name "Captions: ")))
+	(concat "captions:" (read-file-name "Captions: ")))
 
 (defun my-org-captions-insert-as-html-block (file)
 	(interactive "FFile: ")
@@ -16358,7 +16420,7 @@ instead of regular expressions.
 	(cond
 	 ((string-match "^/" link)
 		(concat my-blog-base-url (replace-regexp-in-string "^/" "" link)))
-	 ((string-match "^https://" link)
+	 ((string-match "^\\(https://\\|file:\\)" link)
 		link)
 	 (t
 		(dom-attr

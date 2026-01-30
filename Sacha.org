@@ -19323,24 +19323,9 @@ Start with LIMIT results and keep only unique blog posts."
 :PROPERTIES:
 :CUSTOM_ID: multimedia
 :END:
-** whisper
-:PROPERTIES:
-:CUSTOM_ID: multimedia-whisper
-:END:
 
 #+begin_src emacs-lisp
-(use-package whisper
-  :config
-  (setq whisper--ffmpeg-input-device "alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo")
-  (setq whisper-language "auto")
-  (setq whisper-use-threads (1- (num-processors)))
-  :bind
-  (("<f9>" . whisper-run)))
-(defun my-whisper-replay ()
-  "Replay the last temporary recording."
-  (interactive)
-  (mpv-play whisper--temp-file))
-
+(use-package epwgraph :load-path "~/proj/epwgraph")
 #+end_src
 ** Emacs.tv
 :PROPERTIES:
@@ -21211,6 +21196,7 @@ for it. It would be extra cool if I could use this
                   (overlay-put ov 'display image)
                   (overlay-put ov 'face 'default)
                   (overlay-put ov 'org-image-overlay t)
+                  (overlay-put ov 'evaporate t)
                   (overlay-put
                    ov 'modification-hooks
                    (list 'org-display-inline-remove-overlay))
@@ -22916,7 +22902,7 @@ I wonder if multimodal AI models can handle annotated images with editing marks.
 #+end_update
 
 #+CAPTION: Diagram of different ways to get drawings off my Supernote A5X
-[[attachment:2024-09-26-01 Supernote A5X Browse and Access %23supernote.png]]
+[[sketchFull:2024-09-26-01 Supernote A5X Browse and Access #supernote.png]]
 
 #+begin_my_details Text from sketch
 Supernote A5X
@@ -23240,6 +23226,7 @@ CLOCK: [2024-10-21 Mon 12:13]--[2024-10-21 Mon 13:12] =>  0:59
 							 (overlay (make-overlay word-start word-end)))
 					(overlay-put overlay 'my-split t)
 					(overlay-put overlay 'split-num n)
+          (overlay-put overlay 'evaporate t)
 					(overlay-put overlay 'before-string (propertize (format "%s" n)
 																													'face '(:foreground "white"
 																																							:background "blue")))
@@ -23602,7 +23589,7 @@ CLOCK: [2024-10-16 Wed 20:43]--[2024-10-16 Wed 20:50] =>  0:07
 	:load-path "~/proj/subed-record"
   :config
   (remove-hook 'subed-sanitize-functions 'subed-sort)
-	(setq subed-record-ffmpeg-args (split-string "-y -f pulse -i alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo"))
+	(setq subed-record-ffmpeg-args (split-string "-y -f pulse -i VirtualMicSink.monitor"))
   :bind
   (:map subed-mode-map ("C-c C-c" . subed-record-compile-video)))
 #+end_src
@@ -23907,7 +23894,7 @@ for FILE in "$@"; do
        echo "Skipping $FILE as it's already been transcribed."
     else
     		~/vendor/whisperx/.venv/bin/whisperx --model "$MODEL" --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --compute_type int8 --print_progress True --max_line_width $MAX_LINE_WIDTH --segment_resolution chunk --max_line_count 1  "$FILE" $WHISPER_FLAGS
-		    rm -f "${FILE%.*}.srt
+		    rm -f "${FILE%.*}.srt"
     fi
 done
 #+end_src
@@ -24130,6 +24117,7 @@ without asking for confirmation.
 						(let ((overlay (make-overlay (match-beginning 0)
 																				 (match-end 0))))
 							(overlay-put overlay 'common-edit t)
+              (overlay-put overlay 'evaporate t)
 							(overlay-put
 							 overlay 'display
 							 (propertize (concat (match-string 0) " -> "
@@ -24191,6 +24179,7 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
 :END:
 
 #+begin_src emacs-lisp
+;; Use the saved version of this instead of forcing the reevaluation
 (defcustom my-subed-common-edits
 	'("I"
     "I've"
@@ -24199,20 +24188,22 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
     "JavaScript"
     "RSS"
 		("stop section" "subsection")
-		("EmacsConf" "EmacsCon")
+		("EmacsConf" "EmacsCon" "emacs conf" "imaxconf")
     ("going to" "gonna")
     ("want to" "wanna")
     ("transient" "transit")
+    ("C-c" "control c" "Ctrl+C")
+    ("C-x" "control x" "Ctrl+X")
+    ("C-f" "control f")
     ("" "uh" "um")
     ("Magit" "maggot")
     ("Emacs" "e-max" "emex" "emax" "bmx" "imax")
     ("Emacs News" "emacs news")
 		("Emacs Lisp" "emacs list")
-    ("EmacsConf" "emacs conf" "imaxconf")
     ("ivy" "iv")
     ("UI" "ui")
     ("TECO" "tico")
-    ("org-roam" "orgrim" "orgrom")
+    ("org-roam" "orgrim" "orgrom" "Org Rome")
     ("non-nil" "non-nail")
     ("commits" "comets")
     "SQL"
@@ -24229,6 +24220,7 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
     "SQLite"
     "SQL"
     "I'll"
+    ("<f9>" "F-9" "f9")
     "I'd"
     "PDFs"
     "PDF"
@@ -24320,6 +24312,10 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
 						 ((= c ?j) (subed-mpv-jump-to-current-subtitle))
 						 ((= c ?.) (setq done t))))
 				(replace-match correction t t)))))
+
+(defun my-subed-fix-common-errors-from-start ()
+  (goto-char (point-min))
+  (my-subed-fix-common-errors))
 #+end_src
 
 *** Working with media

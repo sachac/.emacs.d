@@ -6996,10 +6996,1325 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el -
 	(dired my-audio-braindump-dir "-lt"))
 (defalias 'my-phone-dired #'my-audio-braindump-dired)
 #+end_src
-** Speech recognition  :audio:
+** Speech recognition  :audio:SpeechRecognition:
 :PROPERTIES:
 :CUSTOM_ID: speech-recognition
 :END:
+
+#+begin_src emacs-lisp
+(use-package caser
+  :bind
+  ("M-D" . caser-dashcase-dwim))
+#+end_src
+*** Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere :speech:
+:PROPERTIES:
+:CUSTOM_ID: multimedia-whisper
+:EXPORT_DATE: 2026-01-03T20:23:57-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2026/01/using-whisper-el-to-capture-text-to-speech-in-emacs/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2026/01/using-whisper-el-to-capture-text-to-speech-in-emacs/
+:EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01KE3D9XENS7FKCEJHF7SKR3TX
+:EXPORT_MODIFIED: 2026-01-13T13:38:54-0500
+:END:
+
+#+begin_update
+- [2026-01-30 Fri]: Major change: I switched to [[https://github.com/sachac/whisper.el/tree/whisper-insert-text-at-point-function][my fork]] of natrys/whisper.el so that I can specify functions that change the window configuration etc.
+- [2026-01-13]: Change main function to ~my-whisper-run~, use seq-reduce to go through the functions.
+- [2026-01-09]: Added code for automatically capturing screenshots, saving text, working with a list of functions.
+- [2026-01-08]: Added demo, fixed some bugs.
+- [2026-01-04]: Added note about difference from MELPA package, fixed :vc
+#+end_update
+
+I want to get my thoughts into the computer quickly, and talking might be a good way to do some of that. [[https://github.com/openai/whisper][OpenAI Whisper]] is reasonably good at recognizing my speech now and [[https://github.com/natrys/whisper.el][whisper.el]] gives me a convenient way to call [[https://github.com/ggml-org/whisper.cpp][whisper.cpp]] from Emacs with a single keybinding. (Note: This is not the same [[https://melpa.org/#/whisper][whisper]] package as the one on MELPA.) Here is how I have it set up for reasonable performance on my Lenovo P52 with just the CPU, no GPU.
+
+I've bound ~<f9>~ to the command ~whisper-run~. I press ~<f9>~ to start recording, talk, and then press ~<f9>~ to stop recording. By default, it inserts the text into the buffer at the current point. I've set ~whisper-return-cursor-to-start~ to ~nil~ so that I can keep going.
+
+#+begin_src emacs-lisp
+(use-package whisper
+  :vc (:url "https://github.com/natrys/whisper.el")
+  :load-path "~/vendor/whisper.el"
+  :config
+  (setq whisper--mode-line-recording-indicator "⏺")
+  (setq whisper-quantize "q4_0")
+  (setq whisper-install-directory "~/vendor")
+  (setq whisper--install-path (concat
+     (expand-file-name (file-name-as-directory whisper-install-directory))
+     "whisper.cpp/"))
+  ;; Get it running with whisper-server-mode set to nil first before you switch to 'local.
+  ;; If you change models,
+  ;; (whisper-install-whispercpp (whisper--check-install-and-run nil "whisper-start"))
+  (setq whisper-server-mode 'local)
+  (setq whisper-model "base")
+  (setq whisper-return-cursor-to-start nil)
+  ;(setq whisper--ffmpeg-input-device "alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo")
+  (setq whisper--ffmpeg-input-device "VirtualMicSink.monitor")
+  (setq whisper-language "en")
+  (setq whisper-recording-timeout 3000)
+  (setq whisper-before-transcription-hook nil)
+  (setq whisper-use-threads (1- (num-processors)))
+  (setq whisper-transcription-buffer-name-function 'whisper--simple-transcription-buffer-name)
+  (add-hook 'whisper-after-transcription-hook 'my-subed-fix-common-errors-from-start -100)
+  :bind
+  (("<f9>" . whisper-run)
+   ("C-<f9>" . my-whisper-run)
+   ("S-<f9>" . my-whisper-replay)
+   ("M-<f9>" . my-whisper-toggle-language)))
+#+end_src
+
+Let's see if we can process "Computer remind me to...":
+
+#+begin_src emacs-lisp
+(defvar my-whisper-org-reminder-template "t")
+
+(defun my-whisper-org-process-reminder ()
+  (let ((text (buffer-string))
+        reminder)
+    (when (string-match "computer[,\.]? reminds? me to \\(.+\\)" text)
+      (setq reminder (match-string 1 text))
+      (save-window-excursion
+        (with-current-buffer (if (markerp whisper--marker) (marker-buffer whisper--marker) (current-buffer))
+          (when (markerp whisper--marker) (goto-char whisper--marker))
+          (org-capture nil my-whisper-org-reminder-template)
+          (insert reminder)
+          (org-capture-finalize)))
+      (erase-buffer))))
+
+(with-eval-after-load 'whisper
+  (add-hook 'whisper-after-transcription-hook 'my-whisper-org-process-reminder 50))
+#+end_src
+
+Disk space is inexpensive and backups are great, so let's save each file using the timestamp.
+
+#+begin_src emacs-lisp
+(defvar my-whisper-dir "~/recordings/whisper/")
+(defun my-whisper-set-temp-filename ()
+  (setq whisper--temp-file (expand-file-name
+                            (format-time-string "%Y-%m-%d-%H-%M-%S.wav")
+                            my-whisper-dir)))
+
+(with-eval-after-load 'whisper
+  (add-hook 'whisper-before-transcription-hook #'my-whisper-set-temp-filename))
+#+end_src
+
+The technology isn't quite there yet to do real-time audio transcription so that I can see what it understands while I'm saying things, but that might be distracting anyway. If I do it in short segments, it might still be okay. I can replay the most recently recorded snippet in case it's missed something and I've forgotten what I just said.
+
+#+begin_src emacs-lisp
+(defun my-whisper-replay (&optional file)
+  "Replay the last temporary recording."
+  (interactive (list
+                (when current-prefix-arg
+                  (read-file-name "File: " my-whisper-dir))))
+  (setq whisper--temp-file (or file whisper--temp-file))
+  (mpv-play whisper--temp-file))
+
+(defun my-whisper-insert-retry (&optional file)
+  (interactive (list
+                (when current-prefix-arg
+                  (read-file-name "File: " my-whisper-dir))))
+  (whisper--cleanup-transcription)
+  (setq whisper--marker (point-marker)
+        whisper--temp-file (or file whisper--temp-file))
+  (whisper--transcribe-audio))
+#+end_src
+
+Il peut aussi comprendre le français.
+
+#+begin_src emacs-lisp
+(defun my-whisper-toggle-language ()
+  "Set the language explicitly, since sometimes auto doesn't figure out the right one."
+  (interactive)
+  (setq whisper-language (if (string= whisper-language "en") "fr" "en"))
+  ;; If using a server, we need to restart for the language
+  (when (process-live-p whisper--server-process) (kill-process whisper--server-process))
+  (message "%s" whisper-language))
+#+end_src
+
+I could use this with ~org-capture~, but that's a lot of keystrokes. My shortcut for org-capture is ~C-c r~. I need to press at least one key to set the template, ~<f9>~ to start recording, ~<f9>~ to stop recording, and ~C-c C-c~ to save it. I want to be able to capture notes to my currently clocked in task without having an Org capture buffer interrupt my display.
+
+To clock in, I can use ~C-c C-x i~ or my ~!~ [[dotemacs:org-mode-keyboard-shortcuts-other-speed-commands][speed command]]. Bonus: the modeline displays the current task to keep me on track, and I can use ~org-clock-goto~ (which I've bound to ~C-c j~) to jump to it.
+
+Then, when I'm looking at something else and I want to record a note, I can press ~<f9>~ to start the recording, and then ~C-<f9>~ to save it to my currently clocked task along with a link to whatever I'm looking at. (Update: Ooh, now I can save a screenshot too.)
+
+#+begin_src emacs-lisp
+(defun my-whisper-reset (text)
+  (setq my-whisper-skip-annotation nil)
+  (remove-hook 'whisper-insert-text-at-point #'my-whisper-org-save-to-clocked-task)
+  text)
+
+;; Only works with my tweaks to whisper.el
+;; https://github.com/sachac/whisper.el/tree/whisper-insert-text-at-point-function
+(with-eval-after-load 'whisper
+  (setq whisper-insert-text-at-point
+        '(my-whisper-handle-commands
+          my-whisper-save-text
+          my-whisper-save-to-file
+          my-whisper-maybe-type
+          my-whisper-insert
+          my-whisper-reset)))
+
+(defvar my-whisper-last-annotation nil "Last annotation so we can skip duplicates.")
+(defvar my-whisper-skip-annotation nil)
+(defvar my-whisper-target-markers nil "List of markers to send text to.")
+
+(defun my-whisper-insert (text)
+  (let ((markers
+         (cond
+          ((null my-whisper-target-markers)
+           (list whisper--marker)) ; current point where whisper was started
+          ((listp my-whisper-target-markers)
+           my-whisper-target-markers)
+          ((markerp my-whisper-target-markers)
+           (list my-whisper-target-markers))))
+        (orig-point (point))
+        (orig-buffer (current-buffer)))
+    (when text
+      (mapcar (lambda (marker)
+                (with-current-buffer (marker-buffer marker)
+                  (save-restriction
+                    (widen)
+
+                    (when (markerp marker) (goto-char marker))
+                    (when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
+                      (insert "\n"))
+                    (whisper--insert-text
+                     (concat
+                      (if (looking-back "[ \t\n]\\|^")
+                          ""
+                        " ")
+                      (string-trim text)))
+                    ;; Move the marker forward here
+                    (move-marker marker (point)))))
+              markers)
+      (when my-whisper-target-markers
+        (goto-char orig-point))
+      nil)))
+
+(defun my-whisper-maybe-type (text)
+  (when text
+    (if (frame-focus-state)
+        text
+      (make-process :name "xdotool" :command
+                    (list "xdotool" "type"
+                          text))
+      nil)))
+
+(defun my-whisper-clear-markers ()
+  (interactive)
+  (setq my-whisper-target-markers nil))
+
+(defun my-whisper-use-current-point (&optional add)
+  (interactive (list current-prefix-arg))
+  (if add
+      (push (point-marker) my-whisper-target-markers)
+    (setq my-whisper-target-markers (list (point-marker)))))
+
+(defun my-whisper-run-at-point (&optional add)
+  (interactive (list current-prefix-arg))
+  (my-whisper-clear-markers)
+  (whisper-run))
+
+(keymap-global-set "<f9>" #'my-whisper-run-at-point)
+(keymap-global-set "<kp-1>" #'whisper-run)
+
+(defun my-whisper-jump-to-marker ()
+  (interactive)
+  (with-current-buffer (marker-buffer (car my-whisper-target-markers))
+    (goto-char (car my-whisper-target-markers))))
+
+(defun my-whisper-use-currently-clocked-task (&optional add)
+  (interactive (list current-prefix-arg))
+  (save-window-excursion
+    (save-restriction
+      (save-excursion
+        (org-clock-goto)
+        (org-end-of-meta-data)
+        (org-end-of-subtree)
+        (if add
+            (push (point-marker) my-whisper-target-markers)
+          (setq my-whisper-target-markers (list (point-marker))))))))
+
+(defun my-whisper-run (&optional skip-annotation)
+  (interactive (list current-prefix-arg))
+  (require 'whisper)
+  (add-hook 'whisper-insert-text-at-point #'my-whisper-org-save-to-clocked-task -10)
+  (whisper-run)
+  (when skip-annotation
+    (setq my-whisper-skip-annotation t)))
+
+(defun my-whisper-save-text (text)
+  "Save TEXT beside `whisper--temp-file'."
+  (when text
+    (let ((link (org-store-link nil)))
+      (with-temp-file (concat (file-name-sans-extension whisper--temp-file) ".txt")
+        (when link
+          (insert link "\n"))
+        (insert text)))
+    text))
+
+(defun my-whisper-org-save-to-clocked-task (text)
+  (when text
+    (save-window-excursion
+      (with-current-buffer (if (markerp whisper--marker) (marker-buffer whisper--marker) (current-buffer))
+        (when (markerp whisper--marker) (goto-char whisper--marker))
+        ;; Take a screenshot maybe
+        (let* ((link (and (not my-whisper-skip-annotation)
+                          (org-store-link nil)))
+               (region (and (region-active-p) (buffer-substring (region-beginning) (region-end))))
+               (screenshot-filename
+                (when (or
+                       (null link)
+                       (not (string= my-whisper-last-annotation link))
+                       (not (frame-focus-state))) ; not in focus, take a screenshot
+                  (my-screenshot-current-screen (concat (file-name-sans-extension whisper--temp-file) ".png")))))
+          (if (org-clocking-p)
+              (save-window-excursion
+                (save-restriction
+                  (save-excursion
+                    (org-clock-goto)
+                    (org-end-of-subtree)
+                    (unless (bolp)
+                      (insert "\n"))
+                    (insert "\n")
+                    (if (and link (not (string= my-whisper-last-annotation link)))
+                        (insert
+                         (if screenshot-filename
+                             (concat "(" (org-link-make-string
+                                          (concat "file:" screenshot-filename)
+                                          "screenshot") ") ")
+                           "")
+                         link
+                         "\n")
+                      (when screenshot-filename
+                        (insert (org-link-make-string
+                                 (concat "file:" screenshot-filename)
+                                 "screenshot")
+                                "\n")))
+                    (when region
+                      (insert "#+begin_example\n" region "\n#+end_example\n"))
+                    (insert text "\n")
+                    (setq my-whisper-last-annotation link)))
+                (run-at-time 0.5 nil (lambda (text) (message "Added clock note: %s" text)) text))
+            ;; No clocked task, prompt for a place to capture it
+            (kill-new text)
+            (setq org-capture-initial text)
+            (call-interactively 'org-capture)
+            ;; Delay the window configuration
+            (let ((config (current-window-configuration)))
+              (run-at-time 0.5 nil
+                           (lambda (text config)
+                             (set-window-configuration config)
+                             (message "Copied: %s" text))
+                           text config))))))))
+
+(with-eval-after-load 'org
+  (add-hook 'org-clock-in-hook #'my-whisper-org-clear-saved-annotation))
+
+(defun my-whisper-org-clear-saved-annotation ()
+  (setq my-whisper-org-last-annotation nil))
+#+end_src
+
+Here's an idea for a function that saves the recognized text with a timestamp.
+
+#+begin_src emacs-lisp
+(defvar my-whisper-notes "~/sync/stream/narration.org")
+(defun my-whisper-save-to-file (text)
+  (when text
+    (let ((link (org-store-link nil)))
+      (with-current-buffer (find-file-noselect my-whisper-notes)
+        (goto-char (point-max))
+        (insert "\n\n" (format-time-string "%H:%M ") text "\n" (if link (concat link "\n") ""))
+        (save-buffer)
+        (run-at-time 0.5 nil (lambda (text) (message "Saved to file: %s" text)) text)))
+    text))
+#+end_src
+
+And now I can redo things if needed:
+
+#+begin_src emacs-lisp
+(defun my-whisper-redo ()
+  (interactive)
+  (setq whisper--marker (point-marker))
+  (whisper--transcribe-audio))
+#+end_src
+
+I think I've just figured out my Pipewire setup so
+that I can record audio in OBS while also being
+able to do speech to text, without the audio
+stuttering. [[https://github.com/rncbc/qpwgraph][qpwgraph]] was super helpful
+for visualizing the Pipewire connections and fixing them.
+
+#+begin_src sh :eval no :tangle "~/bin/setup-mic" :shebang "#!/bin/bash"
+systemctl --user restart pipewire
+sleep 2
+pactl load-module module-null-sink \
+  sink_name="VirtualMicSink" sink_properties=device.description=VirtualMicSink
+pactl load-module module-null-sink \
+  sink_name="CombinedSink" sink_properties=device.description=CombinedSink
+if pactl list short sources | grep -i pci-0000; then
+  pactl load-module module-loopback \
+    source="alsa_input.pci-0000_00_1f.3.analog-stereo" \
+    sink="VirtualMicSink" \
+    latency_msec=100 \
+    adjust_time=1 \
+    source_output_properties="node.description='SysToVMic' node.name='SysToVMic' media.name='SysVToMic'" \
+    sink_input_properties="node.description='SysToVMic' node.name='SysToVMic' media.role='filter'"
+    sink_input_properties=media.role=filter
+  pactl load-module module-loopback \    source="alsa_output.pci-0000_00_1f.3.analog-stereo.monitor" \
+    sink="CombinedSink" \
+    node_name="SystemOutToCombined" \
+    source_output_properties="node.description='SysOutToCombined' node.name='SysOutToCombined'" \
+    sink_input_properties="node.description='SysOutToCombined' node.name='SysOutToCombined' media.role='filter'" \
+    latency_msec=100 adjust_time=1
+fi
+if pactl list short sources | grep -i yeti; then
+  pactl load-module module-loopback \
+    source="alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo" \
+    sink="VirtualMicSink" \
+    latency_msec=100 \
+    adjust_time=1 \
+    source_output_properties="node.description='YetiToVMic' node.name='YetiToVMic' media.name='YetiToVMic'" \
+    sink_input_properties="node.description='YetiToVMic' node.name='YetiToVMic' media.role='filter'"
+  pactl load-module module-loopback \    source="alsa_output.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo.monitor" \
+    sink="CombinedSink" \
+    source_output_properties="node.description='YetiOutToCombined' node.name='YetiOutToCombined' media.name='YetiOutToCombined' " \
+    sink_input_properties="node.description='YetiOutToCombined' node.name='YetiOutToCombined' media.role='filter'" \
+    latency_msec=100 adjust_time=1
+fi
+pactl load-module module-loopback \
+  source="VirtualMicSink.monitor" \
+  sink="CombinedSink" \
+  source_output_properties="node.description='VMicToCombined' node.name='VMicToCombined' media.name='VMicToCombined'" \
+  sink_input_properties="node.description='VMicToCombined' node.name='VMicToCombined' media.role='filter'" \
+  latency_msec=100 adjust_time=1
+
+pactl load-module module-null-sink \
+  sink_name="ExtraSink1" sink_properties=device.description=ExtraSink1
+
+pactl load-module module-loopback \
+  source="ExtraSink1.monitor" \
+  sink="CombinedSink" \
+  source_output_properties="node.description='ExtraSink1ToCombined' node.name='ExtraSink1ToCombined' media.name='ExtraSink1ToCombined'" \
+  sink_input_properties="node.description='ExtraSink1ToCombined' node.name='ExtraSink1ToCombined' media.role='filter'" \
+  latency_msec=100 adjust_time=1
+#+end_src
+
+Here's a demo:
+
+#+begin_media-post
+[[video:https://sachachua.com/blog/2026/01/using-whisper-el-to-capture-text-to-speech-in-emacs/2026-01-08_11.17.22.webm?caption=Screencast of using whisper.el to do speech-to-text into the current buffer, clocked-in task, or other function&captions=t]]
+
+#+begin_my_details Transcript :open t
+captions:~/recordings/2026-01-08_11.17.22.vtt
+#+end_my_details
+#+end_media-post
+*** Emacs and whisper.el: Trying out different speech-to-text backends and models :emacs:SpeechRecognition:
+:PROPERTIES:
+:EXPORT_DATE: 2026-01-20T14:21:46-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2026/01/emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2026/01/emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models/
+:EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01KFERY839GS115F3J8Z6BNT1K
+:CUSTOM_ID: writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models
+:END:
+
+I was curious about [[https://parakeettdt.com/][parakeet]] because I heard that it was faster than Whisper on the [[https://huggingface.co/spaces/hf-audio/open_asr_leaderboard][HuggingFace leaderboard]]. When I installed it and got it running on my laptop (CPU only, no GPU), it seemed like my results were a little faster than whisper.cpp with the large model, but much slower than whisper.cpp with the base model. The base model is decent for quick dictation, so I got curious about other backends and other models.
+
+In order to try [[https://github.com/natrys/whisper.el][natrys/whisper.el]] with other backends, I needed to work around how whisper.el validates the model names and sends requests to the servers. Here's the quick and dirty code for doing so, in case you want to try it out for yourself.
+
+#+begin_src emacs-lisp :eval never-export
+(defvar my-whisper-url-format "http://%s:%d/transcribe")
+(defun my-whisper--transcribe-via-local-server ()
+  "Transcribe audio using the local whisper server."
+  (message "[-] Transcribing via local server")
+  (whisper--setup-mode-line :show 'transcribing)
+  (whisper--ensure-server)
+  (setq whisper--transcribing-process
+        (whisper--process-curl-request
+         (format my-whisper-url-format whisper-server-host whisper-server-port)
+         (list "Content-Type: multipart/form-data")
+         (list (concat "file=@" whisper--temp-file)
+               "temperature=0.0"
+               "temperature_inc=0.2"
+               "response_format=json"
+               (concat "model=" whisper-model)
+               (concat "language=" whisper-language)))))
+(defun my-whisper--check-model-consistency () t)
+(defun my-whisper--ensure-server () t)
+
+(with-eval-after-load 'whisper
+  (advice-add 'whisper--transcribe-via-local-server :override #'my-whisper--transcribe-via-local-server)
+  (advice-add 'whisper--check-model-consistency :override #'my-whisper--check-model-consistency)
+  (advice-add 'whisper--ensure-server :override #'my-whisper--ensure-server)
+  )
+#+end_src
+
+Then I have this function for trying things out.
+
+#+begin_src emacs-lisp :lexical t :results silent :exports code :eval never-export
+(defun my-test-whisper-api (url &optional args)
+  (with-temp-buffer
+    (apply #'call-process "curl" nil t nil "-s"
+           url
+         (append (mapcan
+                  (lambda (h) (list "-H" h))
+                  (list "Content-Type: multipart/form-data"))
+                 (mapcan
+                  (lambda (h) (list "-F" h))
+                  (list (concat "file=@" whisper--temp-file)
+                        "temperature=0.0"
+                        "temperature_inc=0.2"
+                        "response_format=verbose_json"
+                        (concat "language=" whisper-language)))
+                 args))
+    (message "%s %s" (buffer-string) url)))
+#+end_src
+
+Here's the audio file. It is around 10 seconds long. I run the benchmark 3 times and report the average time.
+
+[[audio:https://sachachua.com/blog/2026/01/emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models/2026-01-19-14-17-53.wav]]
+[[https://sachachua.com/blog/2026/01/emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models/2026-01-19-14-17-53.wav][Download]]
+
+#+NAME: results
+#+begin_src emacs-lisp :eval no :results replace table value :lexical t :var times=3 :summary Code for running the benchmarks :tangle no
+(let ((times '3))
+(mapcar
+ (lambda (group)
+   (let ((whisper--temp-file "/home/sacha/recordings/whisper/2026-01-19-14-17-53.wav"))
+     ;; warm up the model
+     (eval (cadr group))
+     (list
+      (format "%.3f"
+              (/ (car
+                  (benchmark-call (lambda () (eval (cadr group))) times))
+                 times))
+      (car group))))
+ '(
+   ("parakeet"
+    (my-test-whisper-api
+     (format "http://%s:%d/v1/audio/transcriptions" whisper-server-host 5092)))
+   ("whisper.cpp base-q4_0"
+    (my-test-whisper-api
+     (format "http://%s:%d/inference" whisper-server-host 8642)))
+   ("speaches whisper-base"
+    (my-test-whisper-api
+     (format "http://%s:%d/v1/audio/transcriptions" whisper-server-host 8001)
+     (list "-F" "model=Systran/faster-whisper-base")))
+   ("speaches whisper-base.en"
+    (my-test-whisper-api
+     (format "http://%s:%d/v1/audio/transcriptions" whisper-server-host 8001)
+     (list "-F" "model=Systran/faster-whisper-base.en")))
+   ("speaches whisper-small"
+    (my-test-whisper-api
+     (format "http://%s:%d/v1/audio/transcriptions" whisper-server-host 8001)
+     (list "-F" "model=Systran/faster-whisper-small")))
+   ("speaches whisper-small.en"
+    (my-test-whisper-api
+     (format "http://%s:%d/v1/audio/transcriptions" whisper-server-host 8001)
+     (list "-F" "model=Systran/faster-whisper-small.en")))
+   ("speaches lorneluo/whisper-small-ct2-int8"
+    (my-test-whisper-api
+     (format "http://%s:%d/v1/audio/transcriptions" whisper-server-host 8001)
+     (list "-F" "model=lorneluo/whisper-small-ct2-int8")))
+   ;; needed export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1
+   ("whisperx-server Systran/faster-whisper-small"
+    (my-test-whisper-api
+     (format "http://%s:%d/transcribe" whisper-server-host 8002)))))
+)
+#+end_src
+
+#+RESULTS: results
+:results:
+| 3.694 | parakeet                                     |
+| 2.484 | whisper.cpp base-q4_0                        |
+| 1.547 | speaches whisper-base                        |
+| 1.425 | speaches whisper-base.en                     |
+| 4.076 | speaches whisper-small                       |
+| 3.735 | speaches whisper-small.en                    |
+| 2.870 | speaches lorneluo/whisper-small-ct2-int8     |
+| 4.537 | whisperx-server Systran/faster-whisper-small |
+:end:
+
+I tried it with:
+- [[https://parakeettdt.com/][parakeet]]
+- [[https://huggingface.co/ggerganov/whisper.cpp][whisper.cpp]] (as [[https://github.com/natrys/whisper.el][whisper.el]] sets it up)
+- [[https://github.com/speaches-ai/speaches][speaches]], which is a front-end for [[https://github.com/SYSTRAN/faster-whisper][faster-whisper]], and
+- [[https://codeberg.org/aryak/whisperx-server][whisperx-server]], which is a front-end for [[https://github.com/m-bain/whisperX][whisperx]]
+
+Looks like speaches + faster-whisper-base is the winner for now. I like how speaches lets me switch models on the fly, so maybe I can use base.en generally and switch to base when I want to try dictating in French. Here's how I've set it up to use the server I just set up.
+
+#+begin_src emacs-lisp
+(setq whisper-server-port 8001 whisper-model "Systran/faster-whisper-base.en"
+      my-whisper-url-format "http://%s:%d/v1/audio/transcriptions")
+#+end_src
+
+#+RESULTS:
+:results:
+http://%s:%d/v1/audio/transcriptions
+:end:
+
+At some point, I'll override ~whisper--ensure-server~ so that starting it up is smoother.
+
+Benchmark notes: I have a Lenovo P52 laptop (released 2018) with an Intel Core i7-8850H (6 cores, 12 threads; 2.6 GHz base / 4.3 GHz turbo) with 64GB RAM and an SSD. I haven't figured out how to get the GPU working under Ubuntu yet.
+
+
+*** Queuing multiple transcriptions with whisper.el speech recognition :SpeechRecognition:emacs:
+:PROPERTIES:
+:Effort:   0:30
+:CUSTOM_ID: writing-and-editing-speech-recognition-queue-multiple-transcriptions-with-whisper-el-speech-recognition
+:EXPORT_DATE: 2026-01-23T14:50:37-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2026/01/queue-multiple-transcriptions-with-whisper-el-speech-recognition/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2026/01/queue-multiple-transcriptions-with-whisper-el-speech-recognition/
+:EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01KFP6RDJ52ERX664SPP6CN7S9
+:END:
+:LOGBOOK:
+CLOCK: [2026-01-23 Fri 14:12]--[2026-01-23 Fri 14:41] =>  0:29
+CLOCK: [2026-01-23 Fri 14:12]--[2026-01-23 Fri 14:12] =>  0:00
+CLOCK: [2026-01-23 Fri 12:36]--[2026-01-23 Fri 14:12] =>  1:36
+CLOCK: [2026-01-23 Fri 11:02]--[2026-01-23 Fri 12:27] =>  1:25
+:END:
+
+I want to be able to talk out loud and have the ideas go into Emacs. I can do this in a number of different ways:
+
+1. I briefly demonstrated a step-by-step approach with [[https://sachachua.com/blog/2026/01/using-whisper-el-to-capture-text-to-speech-in-emacs/][natrys/whisper.el with a single file]]. I press a keyboard shortcut to start the recording, another shortcut to stop the recording, and it transcribes it in the background. But the way whisper.el is set up is that if I press the keyboard shortcut to start recording again it will offer to interrupt the transcription process, which is not what I want. I want to just keep talking and have it process results as things come in.
+2. I'm also experimenting with [[dotemacs:writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Google Chrome's web speech API to do continuous speech recognition]], which I can get into Emacs using a web socket.
+3. What I've just figured out is how to layer a semi-continuous interface for speech recognition on top of whisper.el so that while it's processing in the background, I can just press a keyboard shortcut (I'm using numpad 9 to call ~my-whisper-continue~) to stop the previous recording, queue it for processing, and start the next recording. If I use this keyboard shortcut to separate my thoughts, then Whisper has a much easier time making sense of the whole sentence or paragraph or whatever, instead of trying to use the sliding 30 second context window that many streaming approaches to speech recognition try to use.
+
+Question: Did you fix the keyboard delay you've got while speech catches what you're saying?
+
+Sometimes, when the speed recognition kicks in, my computer gets busy. When my computer gets really busy, it doesn't process my keystrokes in the right order, which is very annoying because then I have to delete the previous word and retype it. I haven't sorted that out yet, but it seems like I probably have to lower the priority on different processes. On the plus side, as I mentioned, if I dictate things instead of typing them, then I don't run into that problem at all.
+
+Also, other notes on delays: The continuous speech recognition via Google Chrome shows up fairly quickly, but it's not very precise, and it doesn't have punctuation. Even if there's a little bit of a delay, as long as I press the my-whisper-continue shortcut after each thought, then I can get that text into my Emacs buffer using the nicer transcription from my selected model. There is going to be a bit of a delay for that one because it gets processed at the end of the thought. Also, I need to start thinking in complete sentences instead of just adding one cause after the other as my brain goes on all of these tangents. I think it's pretty promising. There's the continuous speech recognition via Google Chrome if I don't mind the lower accuracy and lack of punctuation, and I can still get the pretty version on the other side.
+
+Why talk out loud? I liked the [[https://emacsconf.org/2025/talks/bookclub-tapas][Bookclub Tapas]] presentation that Maddie Sullivan did at EmacsConf 2025. Talking out loud helps me be a lot more verbose about what I'm saying, compared to typing things out or even like having to switch to my notes or interrupting my screen with an Org capture buffer. Of course I want to clean that up for  putting into a blog post, but given that my life still sometimes has random interruptions from a kiddo who must have my attention at that very minute, having that kind of record that I can at least try to reread afterwards to reconstruct what I was thinking about sounds like it might be helpful.
+
+Still, making sense out loud is hard. I'm not actually used to talking to people that much now. This is probably a good reason for me to experiment with streaming more. Then I get the practice in talking out loud, there are backup recordings, and people can ask questions when things are unclear.
+
+Of course, sometimes the text doesn't quite make sense because of the speech recognition errors. I can usually figure it out from the context. I save the audio as well so that I can go back and listen to it again if I really need to.
+
+Anyway, here's the code for sending the current recording to whisper in the background and starting another recording. It assumes a lot about how things are set up. For example, I'm only testing this with a local speaches server instead of whisper.cpp. You might need to look at my other speech related configuration blog posts and sections in order to make sense of it.
+
+#+begin_src emacs-lisp :summary Code for queuing whisper.el requests to a local server
+(defvar my-whisper--queue nil)
+(defun my-whisper-continue (&optional arg)
+  "Send what we've got so far for transcription and then continue recording.
+Call with \\[universal-argument] to signal that we can stop."
+  (interactive "P")
+  (require 'whisper)
+  (if arg
+      (my-whisper-done)
+    (setq whisper--marker (point-marker) whisper--point-buffer (current-buffer))
+    (when (process-live-p whisper--recording-process)
+      ;; queue only if the last one is not asking for the same file
+      (unless
+          (string=
+           (plist-get
+            (car
+             (last my-whisper--queue))
+            :file)
+           whisper--temp-file)
+        (add-to-list
+         'my-whisper--queue
+         (list :file whisper--temp-file
+               :buffer
+               (format "*result: %s*" (file-name-base whisper--temp-file)))
+         t))
+      ;; Remove the sentinel; handle results ourselves
+      (set-process-sentinel whisper--recording-process
+                            (lambda (process event)
+                              (my-whisper-process-queue)))
+      (interrupt-process whisper--recording-process))
+    (run-hooks 'whisper-before-transcription-hook)
+    (whisper--setup-mode-line :show 'recording)
+    (whisper--record-audio)))
+
+(defun my-whisper-discard ()
+ "Ignore the previous recording."
+  (interactive)
+  (when (process-live-p whisper--recording-process)
+    ;; Remove the sentinel; handle results ourselves
+    (set-process-sentinel whisper--recording-process
+                          (lambda (process event)
+                            (when (file-exists-p whisper--temp-file)
+                              (delete-file whisper--temp-file))
+                            (my-whisper-process-queue)))
+    (interrupt-process whisper--recording-process)))
+
+(defun my-whisper-discard-and-continue ()
+ "Ignore the previous recording and continue."
+  (interactive)
+  (if (process-live-p whisper--recording-process)
+      (progn
+        ;; Remove the sentinel; handle results ourselves
+        (set-process-sentinel whisper--recording-process
+                              (lambda (process event)
+                                (my-whisper-process-queue)
+                                (my-whisper-continue)))
+        (interrupt-process whisper--recording-process))
+    (my-whisper-continue)))
+
+(defun my-whisper-done ()
+  (interactive)
+  (when (process-live-p whisper--recording-process)
+    (add-to-list
+     'my-whisper--queue
+     (list :file whisper--temp-file
+           :buffer
+           (format "*result: %s*" (file-name-base whisper--temp-file)))
+     t)
+    ;; Remove the sentinel; handle results ourselves
+    (set-process-sentinel whisper--recording-process
+                          (lambda (process event)
+                            (my-whisper-process-queue)))
+    (whisper--setup-mode-line :hide 'recording)
+    (interrupt-process whisper--recording-process)))
+
+(defun my-whisper-process-queue-result ()
+  "Process the first part of the queue that already has results."
+  (while (plist-get (car my-whisper--queue) :results)
+    (let ((o (pop my-whisper--queue)))
+      (unless my-whisper-target-markers
+        (setq whisper--marker (point-marker)
+              whisper--point-buffer (current-buffer)))
+      (with-current-buffer (plist-get o :buffer)
+        (erase-buffer)
+        (insert (plist-get o :results)))
+      ;; Only works with my fork: https://github.com/sachac/whisper.el/tree/whisper-insert-text-at-point-function
+      (whisper--handle-transcription-output nil (plist-get o :buffer)))))
+
+(defun my-whisper-process-queue ()
+  (let (o)
+    (while (setq o (seq-find (lambda (o) (and (plist-get o :file)
+                                              (not (plist-get o :process))
+                                              (not (plist-get o :results))))
+                             my-whisper--queue))
+      (let* ((headers (list "Content-Type: multipart/form-data"))
+             (params (list (concat "file=@"
+                                   (plist-get o :file))
+                           "temperature=0.0"
+                           "temperature_inc=0.2"
+                           "response_format=json"
+                           (concat "model=" whisper-model)
+                           (concat "language=" whisper-language)))
+             (url (format my-whisper-url-format whisper-server-host whisper-server-port))
+             (command `("curl" "-s"
+                        ,url
+                        ,@(mapcan (lambda (h) (list "-H" h)) headers)
+                        ,@(mapcan (lambda (p) (list "-F" p)) params))))
+        (with-current-buffer (get-buffer-create (plist-get o :buffer))
+          (erase-buffer))
+        (plist-put
+         o :process
+         (make-process
+          :name "whisper-curl"
+          :command command
+          :buffer (plist-get o :buffer)
+          :coding 'utf-8
+          :sentinel
+          (lambda (process event)
+            (with-current-buffer (process-buffer process)
+              (let ((current my-whisper--queue-item))
+                (when (and (get-buffer (plist-get current :buffer))
+                           (string-equal "finished\n" event))
+                  (with-current-buffer (plist-get current :buffer)
+                    (goto-char (point-min))
+                    (plist-put current :results
+                               (or
+                                (condition-case nil
+                                    (gethash "text" (json-parse-buffer))
+                                  (error ""))
+                                "(error)"))))))
+            (my-whisper-process-queue-result))))
+        (plist-put o :command (string-join command " "))
+        (with-current-buffer (process-buffer (plist-get o :process))
+          (setq-local my-whisper--queue-item o))))))
+(defvar-local my-whisper--queue-item nil)
+
+(defun my-whisper-reprocess-queue ()
+  (interactive)
+  (setq whisper--marker (point-marker) whisper--point-buffer (current-buffer))
+  (mapc (lambda (o)
+          (when (process-live-p (plist-get o :process))
+            (kill-process (plist-get o :process)))
+          (when (get-buffer (plist-get o :buffer))
+            (kill-buffer (plist-get o :buffer)))
+          (plist-put o :process nil)
+          (plist-put o :results nil))
+        my-whisper--queue)
+  (my-whisper-process-queue))
+
+(defun my-whisper-clear-queue ()
+  (interactive)
+  (mapc (lambda (o)
+          (when (process-live-p (plist-get o :process))
+            (kill-process (plist-get o :process)))
+          (when (get-buffer (plist-get o :buffer))
+            (kill-buffer (plist-get o :buffer)))
+          (plist-put o :process nil)
+          (plist-put o :results nil))
+        my-whisper--queue)
+  (setq my-whisper--queue nil))
+
+(keymap-global-set "<kp-9>" #'my-whisper-continue)
+(keymap-global-set "<kp-8>" #'my-whisper-discard-and-continue)
+(keymap-global-set "C-<kp-9>" #'my-whisper-done)
+ #+end_src
+*** Using Silero voice activity detection to automatically queue multiple transcriptions with natrys/whisper.el  :SpeechRecognition:emacs:
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-speech-recognition-using-silero-voice-activity-detection-to-automatically-queue-multiple-transcriptions-with-natrys-whisper-el
+:EXPORT_DATE: 2026-01-29T11:24:46-0500
+:EXPORT_ELEVENTY_PERMALINK: /blog/2026/01/using-silero-voice-activity-detection-to-automatically-queue-multiple-transcriptions-with-natrys-whisper-el/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2026/01/using-silero-voice-activity-detection-to-automatically-queue-multiple-transcriptions-with-natrys-whisper-el/
+:END:
+
+I can [[https://sachachua.com/blog/2026/01/queue-multiple-transcriptions-with-whisper-el-speech-recognition/][queue multiple transcriptions with whisper.el]] so that they get processed sequentially with backup audio. It catches up when I pause to think. Now I want to use [[https://pytorch.org/hub/snakers4_silero-vad_vad/][Silero voice activity detection]] to do that kind of segmentation for me automatically.
+
+First, I need a Python server that can print out events when it notices the start or stop of a speech segment. If I print out the timestamps, I might be able to cross-reference it someday with interestingthings. For now, even just paying attention to the end of a segment is enough for what I want to do.
+
+#+begin_my_details Python script for printing out events
+#+INCLUDE: ~/proj/speech/vad-events.py src python
+#+end_my_details
+
+Then I can start this process from Emacs:
+
+#+begin_src emacs-lisp
+(defvar my-vad-events-process nil)
+(defvar my-vad-events-dir "~/proj/speech/")
+(defvar my-vad-events-command `(,(expand-file-name ".venv/bin/python" my-vad-events-dir)
+                                "vad-events.py"))
+
+(defun my-vad-events-filter (proc string)
+  (when (and (string-match "^END" string)
+             (process-live-p whisper--recording-process))
+    (message "Noticed speech turn: %s" string)
+    (my-whisper-continue)))
+
+(defun my-vad-events-ensure ()
+  "Start the process if it's not already running."
+  (interactive)
+  (unless (process-live-p my-vad-events-process)
+    (let ((default-directory my-vad-events-dir)
+          (process-environment
+           (cons
+            (format
+             "PULSE_PROP=node.description='%s' media.name='%s' node.name='%s'"
+             "vad" "vad" "vad")
+            process-environment)))
+      (setq my-vad-events-process
+            (make-process
+             :name "vad-events"
+             :command my-vad-events-command
+             :buffer (get-buffer-create "*vad-events*")
+             :stderr (get-buffer-create "*vad-events-err*")
+             :filter #'my-vad-events-filter)))))
+
+#+end_src
+
+Because I added Pulse properties to the process environment, I can easily use [[https://sachachua.com/blog/2026/01/visualizing-and-managing-pipewire-audio-graphs-from-emacs/][epwgraph]] to rewire the input so that it gets the input from my VirtualMicSink instead of the default system audio device. (Someday I'll figure out how to specify that as the input automatically.)
+
+Now I can press my shortcut for ~my-whisper-continue~ to start the process. As I keep talking, it will continue to record. When I pause for more than a second between sentences, then it will send that chunk to the server for transcription without me having to press another button, while still listening for more speech.
+
+How is this different from the streaming approach that many real-time speech recognition services offer? I think this gives me a bit more visibility into and control of the process. For my personal use, I don't need to have everything processed as quickly as possible, and I'm not trying to replicate live captions. I just want to be able to look back over the last five minutes to try to remember what I was talking about. I usually have a lot of quiet time as I think through my next steps, and it's fine to have it catch up then. I also like that I can save time-stamped audio files for later processing, divided according to the speech segments. Those might be a little bit easier to work with when I get around to compositing them into a video.
+
+*** Slowly building speech-based commands for Emacs
+:PROPERTIES:
+:Effort:   0:30
+:CUSTOM_ID: writing-and-editing-speech-recognition-slowly-building-speech-based-commands-for-emacs
+:END:
+:LOGBOOK:
+CLOCK: [2026-01-29 Thu 10:46]--[2026-01-29 Thu 11:13] =>  0:27
+:END:
+
+I'd like to be able to dictate to Org Mode more fluidly, which includes being able to break thoughts up into paragraphs or add to lists. Here's a possible starting point that works with my other experiments in [[https://sachachua.com/topic/speech-recognition/][speech recognition]]
+
+#+begin_src emacs-lisp
+(defvar my-whisper-commands
+  '(("scroll up" . scroll-down-command)
+    ("scrolling up" . scroll-down-command)
+    ("page up" . scroll-down-command)
+    ("scroll down" . scroll-up-command)
+    ("scroll down" . scroll-up-command)
+    ("page down" . scroll-up-command)
+    ("next page" . scroll-up-command)
+    ("close other windows" . delete-other-windows)
+    ("run the buffer" . eval-buffer)
+    ("mark buffer" . mark-whole-buffer)
+    ("mark paragraph" . mark-paragraph)
+    ("expand" . expand-region))
+  "Commands for speech recognition.")
+
+(defun my-whisper-handle-commands (text)
+  ;; Let's do commands at the beginning of a speech segment for now
+  (if (string-match (concat "^" (regexp-opt (mapcar 'car my-whisper-commands)) "\\>")
+                    text)
+      (progn
+        (while (string-match (concat "^\\(" (regexp-opt (mapcar 'car my-whisper-commands)) "\\)\\>[,\\.\\?]? *")
+                             text)
+          (let* ((match (match-string 1 text))
+                 (func (assoc-default (downcase match) my-whisper-commands #'string=)))
+            (when func
+              (message "Command: %s" match)
+              (setq text (replace-match "" nil nil text))
+              (cond
+               ((commandp func)
+                (call-interactively func))
+               ((functionp func)
+                (funcall func))))))
+        text)
+    text))
+
+(defvar my-whisper-replacements
+  '((" *\\<start \\(list\\|next\\) item\\>[\\.,] *" . "\n- ")
+    (" *\\<start check ?box\\>[\\.,] *" . "\n- [ ] ")
+    (" *start paragraph[\\.,]? *" . "\n\n")))
+
+(defun my-whisper-process-replacements ()
+  (goto-char (point-min))
+  (when (looking-at " +") (replace-match ""))
+  (let ((case-fold-search t))
+    (cond
+     ((re-search-forward  " *okay[,\\.]? stop recording" nil t)
+      (when (process-live-p whisper--recording-process)
+        (replace-match "")
+        (message "Stopping.")
+        (my-whisper-done)))))
+  (dolist (rep my-whisper-replacements)
+    (goto-char (point-min))
+    (while (re-search-forward (car rep) nil t)
+      (replace-match (cdr rep))))
+  (goto-char (point-max))
+  (insert " "))
+
+(with-eval-after-load 'whisper
+  (add-hook 'whisper-after-transcription-hook 'my-whisper-process-replacements 70))
+#+end_src
+
+*** Streaming speech recognition into Emacs using Google Chrome Web Speech API
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api
+:END:
+
+#+begin_src emacs-lisp :lexical t
+(defvar my-chrome-speech-ws nil "Websocket for connecting.")
+(defvar my-chrome-speech-url "ws://127.0.0.1:8000/ws" "Websocket URL to connect to for captions.")
+(defun my-chrome-speech-connect ()
+  (interactive)
+  (unless (websocket-p my-chrome-speech-ws)
+    (setq my-chrome-speech-ws
+          (websocket-open
+           my-chrome-speech-url
+           :on-message #'my-chrome-speech-handle))))
+(defun my-chrome-speech-reconnect ()
+  (interactive)
+  (my-chrome-speech-disconnect)
+  (my-chrome-speech-connect))
+
+(defvar my-speech-functions '(my-speech-display)
+  "Functions to run with the info as an argument.
+The info is an alist with 'type and 'content.
+The functions are called in sequence, with the first function getting the info
+from the websocket message and the other functions getting the results of the
+previous functions.")
+
+(defvar-local my-speech-previous-final nil)
+
+(defface my-chrome-caption-current
+  '((t :height 200))
+  "Display current caption.")
+
+(defun my-speech-display (info)
+  (let-alist info
+    (with-current-buffer (get-buffer-create
+                          (format "*Captions - %s*"
+                                  .session))
+      (when (and (string= .type "TEMP")
+                 my-speech-previous-final)
+        (goto-char (point-max))
+        (set-text-properties
+         (line-beginning-position)
+         (line-end-position)
+         (list
+          'face `(:foreground ,(modus-themes-get-color-value 'fg-dim))))
+        (insert "\n"
+                (propertize my-speech-previous-final
+                            'face `(:foreground ,(modus-themes-get-color-value 'fg-dim)))
+                "\n")
+        (setq my-speech-previous-final nil))
+      (when (string= .type "TEMP")
+        (goto-char (point-max))
+        (delete-region (line-beginning-position) (line-end-position))
+        (insert (propertize .content 'face 'my-chrome-caption-current)))
+      (when (string= .type "FINAL")
+        (unless (string= my-speech-previous-final .content)
+          (goto-char (point-max))
+          (set-text-properties
+           (line-beginning-position)
+           (line-end-position)
+           (list
+            'face `(:foreground ,(modus-themes-get-color-value 'fg-dim))))
+          (insert "\n"))
+        (setq my-speech-previous-final .content)
+        (goto-char (point-max))
+        (delete-region (line-beginning-position) (line-end-position))
+        (insert (propertize .content 'face 'my-chrome-caption-current)))))
+  info)
+#+end_src
+
+#+begin_src emacs-lisp :lexical t
+(defun my-chrome-speech-handle (_ frame)
+  (let* ((info (json-parse-string (websocket-frame-text frame)
+                                  :object-type 'alist)))
+    (seq-reduce (lambda (prev cur)
+                  (funcall cur prev))
+                my-speech-functions info)))
+
+(defun my-chrome-speech-disconnect ()
+  (interactive)
+  (websocket-close my-chrome-speech-ws)
+  (setq my-chrome-speech-ws nil))
+
+(defvar my-chrome-speech-recognition-server-process nil)
+(defvar my-chrome-speech-dir "~/proj/emacs-web-speech")
+(defun my-chrome-ensure-speech-recognition-server ()
+  (interactive)
+  (unless (process-live-p my-chrome-speech-recognition-server-process)
+    (let ((default-directory my-chrome-speech-dir))
+      (setq my-chrome-speech-recognition-server-process
+            (make-process
+             :name "live-captioning"
+             :buffer "*live-captioning*"
+             :command (list (expand-file-name ".venv/bin/python3") "app.py")))
+      (sit-for 1))))
+
+(defun my-chrome-stop-speech-recognition-server ()
+  (interactive)
+  (when (process-live-p my-chrome-speech-recognition-server-process)
+    (kill-process my-chrome-speech-recognition-server-process)))
+
+(defvar-local my-chrome-speech-session nil)
+(defvar-local my-chrome-speech-user-dir nil)
+(defvar-local my-chrome-speech-lang "en-US")
+(defun my-chrome-speech-new-session (&optional id lang local-only)
+  (interactive (list
+                (file-name-base
+                 (make-temp-name
+                  (expand-file-name "chrome-"
+                                    (temporary-file-directory))))
+                my-chrome-speech-lang
+                current-prefix-arg))
+  (my-chrome-ensure-speech-recognition-server)
+  (let* ((base-id (file-name-base id))
+         (user-dir
+          (if (file-exists-p
+               (expand-file-name
+                id
+                (temporary-file-directory)))
+              (make-temp-file "chrome-" t)
+            ;; small race condition, but this is fine
+            (expand-file-name
+             id
+             (temporary-file-directory))))
+         process
+         (process-environment
+          (append
+           (list
+            (format
+             "PULSE_SOURCE=%s"
+             my-chrome-speech-input)
+            (format
+             "PULSE_PROP=node.description='%s' media.name='%s' node.name='%s'"
+             base-id base-id base-id))
+           process-environment)))
+    ;; Hook it up to my-chrome-speech-input by default
+    (setq process
+          (make-process
+           :name "chrome"
+           :buffer "*chrome*"
+           :command (list
+                     "google-chrome"
+                     "--disable-fre"
+                     "--no-default-browser-check"
+                     "--no-first-run"
+                     (concat "--user-data-dir=" (shell-quote-argument user-dir))
+                     (format "http://127.0.0.1:8000/?session=%s&lang=%s&local=%s"
+                             (url-hexify-string base-id)
+                             lang
+                             (if local-only "1" ""))
+                     (concat "--class=" (shell-quote-argument base-id)))
+           :sentinel
+           (lambda (process event)
+             ;; Clean up afterwards
+             (cond
+              ((string-match "finished\\|deleted\\|exited\\|failed\\|core dumped" event)
+               (with-current-buffer (process-buffer process)
+                 (when my-chrome-speech-user-dir
+                   (delete-directory my-chrome-speech-user-dir t))))))))
+    (with-current-buffer (process-buffer process)
+      (setq-local my-chrome-speech-user-dir user-dir))
+    (switch-to-buffer (format "*Captions - %s*" base-id))
+    (setq-local my-chrome-speech-session base-id)
+    (my-chrome-speech-connect)))
+#+end_src
+
+Now I get to figure out how to use the buffers.
+
+#+begin_src emacs-lisp
+(defun my-speech-sessions ()
+  (seq-keep (lambda (o)
+              (with-current-buffer o
+                (when my-speech-session
+                  (cons my-speech-session o))))
+            (buffer-list)))
+
+(defun my-speech-clear-all ()
+  (interactive)
+  (dolist (session (my-speech-sessions))
+    (my-speech-clear session)))
+
+(defun my-speech-clear (session)
+  (interactive (list (my-speech-select-session)))
+  (with-current-buffer (cdr session)
+      (erase-buffer)
+      (setq-local my-speech-previous-final nil)))
+
+(defun my-speech-select-session (&optional prompt)
+  (let ((sessions (my-speech-sessions)))
+    (if (= (length sessions) 1)
+        (car sessions)
+      (assoc
+       (completing-read
+        (or prompt "Session: ")
+        (mapcar 'car sessions))
+       sessions))))
+
+(defvar-local my-speech-input "VirtualMicSink:input")
+
+(defun my-speech-rewire (&optional id input)
+  "Unhook it from all input and reconnect it to `my-speech-input'.
+Call with \\[universal-argument] to specify the input."
+  (interactive (list (my-speech-select-session)
+                     (if current-prefix-arg
+                         (epwgraph-complete-logical-node-name)
+                       my-speech-input)))
+  (with-current-buffer (cdr id)
+    (setq input (or input my-speech-input))
+    (setq-local my-speech-input input)
+    (let* ((node-name (concat (car id) ":input"))
+           (session-ports (epwgraph-get-ports-with-logical-name
+                           node-name))
+           (new-ports (if (stringp input)
+                          (epwgraph-get-ports-with-logical-name input)
+                        input))
+           (old-incoming (epwgraph-get-incoming-links session-ports)))
+      (epwgraph-disconnect-all-inputs-for-logical-node session-ports)
+      (epwgraph-connect-logical-nodes
+       (epwgraph--map-channels new-ports session-ports)))))
+
+(defun my-speech-get-text-and-clear (session)
+  (let (text)
+    (with-current-buffer (cdr session)
+      (setq text (buffer-substring-no-properties (point-min) (point-max)))
+      (erase-buffer)
+      (setq-local my-speech-previous-final nil))
+    text))
+
+(defun my-speech-insert-at-point (session)
+  (interactive (list (my-speech-select-session)))
+  (insert (my-speech-get-text-and-clear session)))
+
+(defun my-speech-save-to-clocked-task (session)
+  (interactive (list (my-speech-select-session)))
+  (save-window-excursion
+    (let ((link (org-store-link nil)))
+      (org-clock-goto)
+      (org-end-of-subtree)
+      (unless (bolp)
+        (insert "\n"))
+      (insert "\n")
+      (when link (insert link "\n"))
+      (insert (my-speech-get-text-and-clear session) "\n"))))
+#+end_src
+
+Oooh, let's add it to an EmacsConf Etherpad...
+
+#+begin_src emacs-lisp
+(defvar my-speech-etherpads nil "Alist of (session . pad-id)")
+;; (setq my-speech-etherpads '(("chrome-VgjMhu" . "test")))
+
+(defun my-speech-append-to-etherpad (info)
+  (when (and info (string= (assoc-default 'type info) "FINAL"))
+    (let-alist info
+      (when-let* ((pad-id (assoc-default .session my-speech-etherpads #'string=)))
+        (emacsconf-pad-append-text pad-id (concat "\n" .content)))))
+  info)
+
+(defun my-speech-link-etherpad (session pad-id)
+  (interactive (list
+                (my-speech-select-session)
+                (read-string "Pad ID: ")))
+  (add-to-list 'my-speech-etherpads
+               (cons (concat "#" (car session))
+                     pad-id)))
+
+(defun my-speech-unlink-etherpad (pad-id)
+  (interactive (list (completing-read "Pad: " (mapcar 'cdr my-speech-etherpads))))
+  (setq my-speech-etherpads
+        (seq-remove (lambda (o)
+                      (string= (cdr o) pad-id))
+                    my-speech-etherpads)))
+
+(add-to-list 'my-speech-functions #'my-speech-append-to-etherpad)
+#+end_src
+
+And let's do the same with IRC:
+
+#+begin_src emacs-lisp
+(defvar my-speech-erc nil "Alist of (session . channel)")
+;; (setq my-speech-erc '(("#chrome-HP7k8I" . "#emacsconf-test")))
+
+(defun my-speech-send-to-erc (info)
+  (when (and info (string= (assoc-default 'type info) "FINAL"))
+    (let-alist info
+      (when-let* ((channel (assoc-default .session my-speech-erc #'string=)))
+        (emacsconf-erc-with-channels (list channel)
+          (erc-send-message (string-trim .content))))))
+  info)
+
+(defun my-speech-link-erc (session channel)
+  (interactive (list
+                (my-speech-select-session)
+                (read-string "Channel: ")))
+  (add-to-list 'my-speech-erc
+               (cons (concat "#" (car session))
+                     channel)))
+
+(defun my-speech-unlink-channel (channel)
+  (interactive (list (completing-read "Channel: " (mapcar 'cdr my-speech-erc))))
+  (setq my-speech-erc
+        (seq-remove (lambda (o)
+                      (string= (cdr o) channel))
+                    my-speech-erc)))
+
+(add-to-list 'my-speech-functions #'my-speech-send-to-erc)
+#+end_src
+
+Ooooh! Let's run it through my common edits process as well!
+
+#+begin_src emacs-lisp
+(defun my-speech-fix-common-errors (info)
+  (with-temp-buffer
+    (insert (alist-get 'content info))
+    (goto-char (point-min))
+    (my-subed-fix-common-errors-from-start)
+    (setf (alist-get 'content info) (buffer-string)))
+  info)
+(add-hook 'my-speech-functions #'my-speech-fix-common-errors -100)
+#+end_src
+
+And let's try it with the markers...
+
+#+begin_src emacs-lisp
+(defun my-speech-insert-at-markers (info)
+  (when (and my-whisper-target-markers info)
+    (my-whisper-insert (alist-get 'content info))))
+(add-hook 'my-speech-functions #'my-speech-insert-at-markers 100)
+
+#+end_src
+**** speech and subed-record
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api-speech-and-subed-record
+:END:
+
+#+begin_src emacs-lisp
+(defvar my-speech-timestamp-adjust-before 1000)
+(defvar my-speech-timestamp-adjust-after 300)
+
+(defun my-speech-subed-record-convert-timestamp (s)
+  "Convert S into a relative number of milliseconds based on `subed-record-filename'."
+  (floor (* (float-time (time-subtract (date-to-time s) subed-record-start-time)) 1000.0)))
+
+(defun my-speech-subed-record-distance (s1 s2)
+  (/
+   (* 1.0
+      (string-distance (downcase (replace-regexp-in-string "[^A-Za-z]"
+                                                           ""
+                                                           s1))
+                       (downcase (replace-regexp-in-string "[^A-Za-z]"
+                                                           ""
+                                                           s2))))
+   (max (length s1)
+        (length s2))))
+
+(defun my-speech-subed-record-close-enough (s1 s2)
+  "Return t if it's close enough."
+  (< (my-speech-subed-record-distance s1 s2) 0.3))
+
+(defun my-speech-subed-record-update (info)
+  (let ((start-ms (- (my-speech-subed-record-convert-timestamp
+                      (alist-get 'start info))
+                     my-speech-timestamp-adjust-before))
+        (stop-ms (+ (my-speech-subed-record-convert-timestamp
+                     (alist-get 'end info))
+                    my-speech-timestamp-adjust-after)))
+    (subed-set-subtitle-time-start start-ms)
+    (subed-set-subtitle-time-stop stop-ms)
+    (subed-set-subtitle-comment
+	   (concat
+		  (if (subed-subtitle-comment)
+				  (concat (string-trim (replace-regexp-in-string
+									              "#\\+AUDIO: .*\\(\n\\|$\\)?" ""
+									              (subed-subtitle-comment)))
+								  "\n")
+			  "")
+		  (format "#+AUDIO: %s" subed-record-filename)))
+    (message "%.1f %s"
+             (my-speech-subed-record-distance
+              (alist-get 'content info)
+              (subed-subtitle-text))
+             (alist-get 'content info))))
+
+(defvar my-speech-subed-ignore nil "Ignore the GTTS-CLI output.")
+(defun my-speech-subed-record-process (info)
+  (let ((text (alist-get 'content info))
+        (current (subed-subtitle-text)))
+    (cond
+     ((my-speech-subed-record-close-enough text current)
+      (my-speech-subed-record-update info)
+      (subed-forward-subtitle-text)
+      (my-french-say-current-subtitle
+       (lambda ()
+         (setq my-speech-subed-ignore nil))))
+     ;; Check previous
+     ((my-speech-subed-record-close-enough
+       text
+       (save-excursion
+         (subed-backward-subtitle-text)
+         (subed-subtitle-text)))
+      (save-excursion
+        (subed-backward-subtitle-text)
+        (my-speech-subed-record-update info)))
+     ;; Check next
+     ((my-speech-subed-record-close-enough
+       text
+       (save-excursion
+         (subed-forward-subtitle-text)
+         (subed-subtitle-text)))
+      (save-excursion
+        (subed-forward-subtitle-text)
+        (my-speech-subed-record-update info)))
+     (t
+      (my-speech-subed-record-update info)))))
+(defun my-speech-subed-record (info)
+  (when (and (string= (alist-get 'type info) "FINAL")
+             (derived-mode-p 'subed-mode)
+             (boundp 'subed-record-start-time)
+             subed-record-minor-mode
+             subed-record-start-time
+             (not my-speech-subed-ignore))
+    (my-speech-subed-record-process info))
+  info)
+
+(add-to-list 'my-speech-functions #'my-speech-subed-record)
+#+end_src
+
+
 *** TOBLOG Using Emacs Lisp to send audio files to Deepgram and format VTTs :emacs:speech:
 :PROPERTIES:
 :CUSTOM_ID: using-emacs-lisp-to-send-audio-files-to-deepgram-and-format-vtts

@@ -18681,11 +18681,14 @@ scoping so that it kicks in only when ~defun:~ would also kick in.
       (or (eobp) (forward-char 1))
       (beginning-of-defun)
 			(let ((data (read (current-buffer))))
-				(if (eq (car data) 'defun)
-						(org-link-store-props :type "defun"
-																	:link (concat "defun:" (lisp-current-defun-name)))
-					(org-link-store-props :type "defvar"
-																:link (format "defvar:%s" (cadr data))))))))
+				(cond
+         ((not (listp data)) nil)
+         ((eq (car data) 'defun)
+				  (org-link-store-props :type "defun"
+															  :link (concat "defun:" (lisp-current-defun-name))))
+         ((member (car data) '(defvar defcustom))
+				  (org-link-store-props :type "defvar"
+															  :link (format "defvar:%s" (cadr data)))))))))
 
 (defun my-org-defvar-open (symbol _)
 	"Jump to the function definition."

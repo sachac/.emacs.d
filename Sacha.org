@@ -8986,6 +8986,26 @@ stuff.
 	(org-footnote-section nil)
 	(org-fold-catch-invisible-edits 'smart))
 #+end_src
+
+* After I jump to a task from org-clock-goto, narrow to it automatically
+:PROPERTIES:
+:CREATED:  [2026-01-09 Fri 11:10]
+:Effort:   0:15
+:QUANTIFIED: Emacs
+:CUSTOM_ID: org-mode-after-i-jump-to-a-task-from-org-clock-goto-narrow-to-it-automatically
+:END:
+:LOGBOOK:
+CLOCK: [2026-01-09 Fri 11:11]--[2026-01-09 Fri 11:19] =>  0:08
+:END:
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'org
+  (add-hook 'org-clock-goto-hook #'org-narrow-to-subtree)
+  (add-hook 'org-agenda-after-show-hook #'org-narrow-to-subtree))
+#+end_src
+
+[[file:~/sync/orgzly/Inbox.org::*Send the recognized text to a list of functions][Send the recognized text to a list of functions]]
+
 ** Find first common Org Mode heading
 :PROPERTIES:
 :CUSTOM_ID: org-mode-find-first-common-org-mode-heading

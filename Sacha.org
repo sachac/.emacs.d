@@ -9649,7 +9649,7 @@ entries, notes, and other semi-structured pieces of information.
         ;; From https://takeonrules.com/2022/10/16/adding-another-function-to-my-workflow/
         ("c" "Contents to current clocked task"
 	       plain (clock)
-	       "%i%?"
+	       "%i%?\n%a"
 	       :empty-lines 1)
         ;; ("p" "Podcast log - timestamped" item
         ;;  (file+olp+datetree "~/sync/orgzly/timestamped.org")
@@ -10733,6 +10733,8 @@ hang of using these more!
 				 )
         ("i" "Inbox" alltodo ""
          ((org-agenda-files '("~/sync/orgzly/Inbox.org" "~/sync/orgzly/computer-inbox.org"))))
+        ("s" tags-todo "stream"
+         ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
         ("t" tags-todo "-cooking"
          ((org-agenda-sorting-strategy '(todo-state-up priority-down effort-up))))
         ("T" tags-todo "TODO=\"TODO\"-goal-routine-cooking-SCHEDULED={.+}" nil "~/cloud/agenda/nonroutine.html")

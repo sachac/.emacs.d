@@ -3893,7 +3893,7 @@ error when you do this (I need to send a patch
 	(seq-take
 	 (sort
 		(seq-mapcat (lambda (dir)
-									(directory-files-recursively dir "^[0-9][0-9][0-9][0-9]-.*\\.\\(png\\|webm\\)"))
+									(directory-files-recursively dir "[0-9][0-9][0-9][0-9]-.*\\.\\(png\\|webm\\|gif\\|svg\\)"))
 								my-screenshot-dirs)
 		:key (lambda (o) (file-attribute-modification-time (file-attributes o)))
 		:reverse t)

@@ -25193,6 +25193,9 @@ https://emacs-lsp.github.io/lsp-mode/tutorials/reactjs-tutorial/
 https://www.mattduck.com/lsp-python-getting-started.html
 
 #+begin_src emacs-lisp
+(defun my-local-lsp ()
+  (unless (file-remote-p default-directory)
+    (lsp)))
 (use-package lsp-mode
   :if my-laptop-p
   :config
@@ -25213,8 +25216,8 @@ https://www.mattduck.com/lsp-python-getting-started.html
 	(add-to-list 'lsp-file-watch-ignored-directories "/blog\\'")
 	(add-to-list 'lsp-file-watch-ignored-directories "/_site\\'")
 	(add-to-list 'lsp-file-watch-ignored-directories "/_local\\'")
-  :hook ((js-mode . lsp)
-         (python-mode . lsp)
+  :hook ((js-mode . my-local-lsp)
+         (python-mode . my-local-lsp)
          (lsp-mode-hook . lsp-enable-which-key-integration)))
 (use-package lsp-ui
   :if my-laptop-p

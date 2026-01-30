@@ -6691,19 +6691,36 @@ Ideas for next steps:
 
 Based on https://www.reddit.com/r/emacs/comments/idz35e/emacs_27_can_take_svg_screenshots_of_itself/
 #+begin_src emacs-lisp
-(defun my-screenshot-svg ()
+(defun my-screenshot-svg (&optional filename)
   "Save a screenshot of the current frame as an SVG image.
 Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   (let* ((filename
-					(expand-file-name
-					 (format-time-string "%Y-%m-%d-%H-%M-%S.svg")
-					 my-recordings-dir))
+          (or filename
+					    (expand-file-name
+					     (format-time-string "%Y-%m-%d-%H-%M-%S.svg")
+					     my-recordings-dir)))
          (data (x-export-frames nil 'svg)))
     (with-temp-file filename
       (insert data))
-    (kill-new filename)
-    (message filename)))
+    (when (called-interactively-p 'any)
+      (kill-new filename)
+      (message filename))
+    filename))
+
+(defun my-screenshot-current-screen (&optional filename)
+  (interactive)
+  (let ((new-file
+         (or filename
+             (expand-file-name
+              (format-time-string "%Y-%m-%d-%H-%M-%S.png")
+              my-recordings-dir))))
+    (make-process
+     :name "spectacle"
+     :command
+     (list "spectacle" "-b" "-m" "-n" "-o" new-file))
+    new-file))
+
 (keymap-global-set "C-c s" #'screenshot-svg)
 #+end_src
 

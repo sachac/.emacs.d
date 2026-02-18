@@ -24298,6 +24298,7 @@ CLOCK: [2024-10-16 Wed 20:43]--[2024-10-16 Wed 20:50] =>  0:07
   :load-path "~/vendor/subed/subed"
   :config
   (setq subed-subtitle-spacing 1)
+  (setq subed-align-mfa-conda-env "/home/sacha/vendor/miniconda3/envs/aligner")
   (key-chord-define subed-mode-map "hu" 'my-subed/body)
   (key-chord-define subed-mode-map "ht" 'my-subed/body)
 	(setq subed-loop-seconds-before 0 subed-loop-seconds-after 0)
@@ -24317,6 +24318,141 @@ CLOCK: [2024-10-16 Wed 20:43]--[2024-10-16 Wed 20:50] =>  0:07
   (:map subed-mode-map ("C-c C-c" . subed-record-compile-video)))
 #+end_src
 
+
+*** Simplify inserting audio links
+:PROPERTIES:
+:CUSTOM_ID: multimedia-subtitles-with-subed-simplify-inserting-audio-links
+:END:
+
+#+begin_src emacs-lisp
+(defvar my-subed-audio-link-list nil)
+(defun my-subed-remove-audio-links (beg end)
+  (interactive (if (region-active-p)
+                   (list (region-beginning)
+                         (region-end))
+                 (save-excursion
+                   (org-back-to-heading)
+                   (org-end-of-meta-data t)
+                   (list (point)
+                         (save-excursion (org-end-of-subtree)
+                                         (point))))))
+  (save-excursion
+    (goto-char beg)
+    (while (re-search-forward "vtime:[0-9:]+ +" nil t)
+      (replace-match ""))))
+
+(defun my-subed-save-audio-links ()
+  (interactive)
+  (cond
+   ((derived-mode-p 'subed-mode)
+    (setq my-subed-audio-link-list (subed-subtitle-list)))
+   ((derived-mode-p 'org-mode)
+    (let ((filename
+           (car
+            (url-path-and-query (url-generic-parse-url (org-element-property :path (org-element-context)))))))
+      (setq my-subed-audio-link-list
+            (seq-filter
+             (lambda (o)
+               (and (elt o 3) (not (string= (elt o 3) ""))))
+             (subed-parse-file
+              (concat (file-name-sans-extension filename)
+                      ".vtt"))))))))
+
+(defun my-subed-remove-audio-links (beg end)
+  "Remove audio links from region."
+  (interactive (cond
+                ((region-active-p)
+                 (list (region-beginning)
+                       (region-end)))
+                ((org-in-block-p '("media-post"))
+                 (let ((block (org-element-lineage (org-element-context) 'special-block)))
+                   (list
+                    (org-element-begin block)
+                    (org-element-end block))))
+                (t
+                 (list
+                  (point-min) (point-max)))))
+  (save-excursion
+    (goto-char beg)
+    (while (re-search-forward "vtime:[0-9:]+ " end t)
+      (replace-match ""))))
+
+(defun my-subed-insert-next-audio-link (&optional by-sentence)
+  (interactive (list current-prefix-arg))
+  (let* ((candidates
+          (seq-keep (lambda (o)
+                      (unless (string= (string-trim (elt o 3)) "")
+                        (cons (replace-regexp-in-string "<.+?>" "" (elt o 3))
+                              (car o))))
+                    my-subed-audio-link-list))
+         (keep-hours
+          (seq-find
+           (lambda (o)
+             (> (elt o 2) (* 60 60 1000)))
+           my-subed-audio-link-list))
+         (sentence (replace-regexp-in-string
+                    " *{.+?}" ""
+                    (or (sentence-at-point)
+                        (buffer-substring (point) (line-end-position)))))
+         (choice
+          (or
+           (cdr
+            (seq-find
+             (lambda (o)
+               (subed-word-data-compare-normalized-string-distance
+                sentence
+                (replace-regexp-in-string " *{.+?}" "" (car o))))
+             candidates))
+           (consult--read
+            candidates
+            :lookup 'consult--lookup-cdr
+            :sort nil))))
+    (save-excursion
+      (insert "vtime:"
+              (if keep-hours
+                  (substring choice 0 8)
+                (substring choice 3 8))
+              " "))
+    (cond
+     ((org-in-item-p)
+      (condition-case nil
+          (progn
+            (org-next-item)
+            (when (looking-at org-list-full-item-re)
+              (goto-char (match-end 0))))
+        (error nil)))
+     (by-sentence (forward-sentence))
+     (t (forward-paragraph)
+        (skip-syntax-forward " ")))
+    (setq my-subed-audio-link-list
+          (seq-remove
+           (lambda (o) (string= (car o) choice))
+           my-subed-audio-link-list))))
+
+(defun my-subed-insert-audio-links (beg end)
+  (interactive (cond
+                ((region-active-p)
+                 (list (region-beginning)
+                       (region-end)))
+                ((org-in-block-p '("media-post"))
+                 (let ((block (org-element-lineage (org-element-context) 'special-block)))
+                   (list
+                    (org-element-begin block)
+                    (org-element-end block))))
+                (t
+                 (list
+                  (point-min) (point-max)))))
+  (save-restriction
+    (narrow-to-region beg end)
+    (while (and my-subed-audio-link-list
+                (not (eobp)))
+      (my-subed-insert-next-audio-link))))
+    #+end_src
+
+#+RESULTS:
+:results:
+my-subed-insert-next-audio-link
+:end:
 *** Using Emacs to fix automatically generated subtitle timestamps   :emacs:
 :PROPERTIES:
 :ID:       o2b:6bd48025-ccdc-4a2a-8a19-fbf7727cb8e5

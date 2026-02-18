@@ -26934,9 +26934,12 @@ Related:
 - [[https://www.masteringemacs.org/article/seamlessly-merge-multiple-documentation-sources-eldoc][Seamlessly Merge Multiple Documentation Sources with Eldoc - Mastering Emacs]]
 
 #+begin_src emacs-lisp
-(use-package flycheck
-	:if my-laptop-p
-	:preface
+(add-to-list 'display-buffer-alist
+             `(,(rx bos "*Flycheck errors*" eos)
+               (display-buffer-in-side-window)
+               (side . bottom)
+               (reusable-frames . visible)
+               (window-height . 0.33)))
 (defun mp-flycheck-eldoc (callback &rest _ignored)
    "Print flycheck messages at point by calling CALLBACK."
    (when-let ((flycheck-errors (and flycheck-mode (flycheck-overlay-errors-at (point)))))
@@ -26960,6 +26963,8 @@ Related:
     (setq eldoc-documentation-strategy 'eldoc-documentation-compose-eagerly)
     (setq flycheck-display-errors-function nil)
     (setq flycheck-help-echo-function nil))
+(use-package flycheck
+	:if my-laptop-p
   :hook ((flycheck-mode . mp-flycheck-prefer-eldoc)))
 (use-package eglot
 	:if my-laptop-p

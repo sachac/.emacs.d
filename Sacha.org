@@ -16216,6 +16216,9 @@ Here's the ~my-org-insert-link-dwim~ function, using ~my-org-link-as-url~ from [
 		 ((or point-in-src-or-export-block
 					(not (derived-mode-p 'org-mode)))
 			(insert title " " url))
+     ((or (derived-mode-p 'message-mode)
+          (derived-mode-p 'notmuch-message-mode))
+      (insert title " " url))
 		 ((and region-content url (not point-in-link))
 			(insert (org-link-make-string url region-content)))
 		 ((and url (not point-in-link))
@@ -16239,6 +16242,7 @@ Consistent keybindings mean less thinking.
 								 (mastodon-toot . mastodon-toot-mode-map)
 								 (web-mode . web-mode-map)
 								 (oddmuse-mode . oddmuse-mode-map)
+                 (notmuch . notmuch-message-mode-map)
 								 (text-mode . text-mode-map)
 								 (html-mode . html-mode-map)))
 	(with-eval-after-load (car group)

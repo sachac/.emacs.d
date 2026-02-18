@@ -27266,6 +27266,7 @@ Democratize is similar to elisp-demos. I found out about it from [[https://fland
   (emacs-lisp-mode . my-use-yasnippet-capf)
   (lisp-interaction-mode . my-use-yasnippet-capf)
   (org-mode . my-use-yasnippet-capf)
+  (js2-mode . my-use-yasnippet-capf)
   )
 ;;        (global-set-key (kbd "C-c y") (lambda () (interactive)
 ;;                                         (yas/load-directory "~/elisp/snippets")))
@@ -29896,7 +29897,6 @@ I want to be able to follow people if I specify their ID.
 	(let* ((info (my-11ty-post-plist))
 				 (url (concat "https://sachachua.com" (plist-get info :permalink)))
 				 (blog-text (my-11ty-post-text))
-
 				 (title (plist-get info :title)))
 		(mastodon-toot--compose-buffer
 		 nil nil nil
@@ -32235,7 +32235,7 @@ switch to Google Chrome so that I can paste it in.
 			"<table class=\"sign-up\" style=\"background-color: #223f4d; text-align: center; margin: auto; margin-top: 24px; margin-bottom: 12px;\"><tbody><tr><td><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" target=\"_blank\" class=\"sign-up mceButtonLink\" style=\"background-color:#223f4d;border-radius:0;border:2px solid #223f4d;color:#ffffff;display:block;font-family:'Helvetica Neue', Helvetica, Arial, Verdana, sans-serif;font-size:16px;font-weight:normal;font-style:normal;padding:16px 28px;text-decoration:none;text-align:center;direction:ltr;letter-spacing:0px\" rel=\"noreferrer\">SIGN UP NOW TO DELIVER %s-%s</a></td></tr></table>
 <p style=\"text-align: center; font-family: 'Helvetica Neue', Helvetica, Arial, Verdana\"><a href=\"https://dispatch.bikebrigade.ca/campaigns/signup?current_week=%s\" style=\"color: #476584; margin-top: 12px; margin-bottom: 12px;\" target=\"_blank\">You can also sign up early to deliver %s-%s</a></p>"
 			(format-time-string "%Y-%m-%d" current-week)
-			(upcase (format-time-string "%b %e" current-week))
+			(upcase (format-time-string "%b %-e" current-week))
 			(upcase (format-time-string
 			 (if (string= (format-time-string "%m" current-week)
 										(format-time-string "%m" current-week-end))
@@ -32243,7 +32243,7 @@ switch to Google Chrome so that I can paste it in.
 				 "%b %-e")
 			 current-week-end))
 			(format-time-string "%Y-%m-%d" next-week)
-			(format-time-string "%b %e" next-week)
+			(format-time-string "%b %-e" next-week)
 			(format-time-string
 			 (if (string= (format-time-string "%m" next-week)
 										(format-time-string "%m" next-week-end))
@@ -32539,15 +32539,6 @@ Now that I've saved the images, I can remove them:
 #+end_src
 
 I can also remove the italics that I use for comments.
-
-#+begin_src emacs-lisp
-(defun my-transform-html-remove-italics (dom)
-	(dolist (node (dom-by-tag dom 'i))
-		(dom-remove-node dom node))
-	dom)
-#+end_src
-
-and generally simplify the markup:
 
 #+begin_src emacs-lisp
 (defun my-transform-html-remove-italics (dom)
@@ -35792,6 +35783,31 @@ with open("/home/sacha/.config/plover/annotated.txt", "w") as f:
 ** ChatGPT, AI, and large-language models
 :PROPERTIES:
 :CUSTOM_ID: chatgpt-ai
+:NUM_DRAFTS: 1
+:END:
+:LOGBOOK:
+- Note taken on [2026-02-05 Thu 10:39] \\
+  - levain qui \(a été\) dans -> était: Use the *imparfait* (était) for continuous states or descriptions in the past rather than the passé composé (a été).
+  - faire encore \(de pain\) -> du pain: Use the partitive article 'du' (some) for masculine nouns like 'pain'. 'De' is typically used for negative sentences or specific quantities.
+  - levain \(toujours grandit\) -> grandit toujours: In French, adverbs are usually placed after the conjugated verb.
+  - avant \(une fois de plus le levain menace\) -> que le levain ne menace une fois de plus: The conjunction 'avant que' is required before a subject-verb clause; it triggers the subjunctive mood and often a 'ne explétif'.
+  - satisfaisant \(que voir\) -> de voir: After an adjective (satisfaisant), use 'de' to introduce an infinitive verb.
+  - plus facile \(à marcher\) -> de marcher: When 'C'est + [adjective]' is used to introduce an action, use the preposition 'de'.
+  - voisins \(m'avons remercié\) -> m'ont remerciée: The verb must be 3rd person plural (ont). Also, since you are female, the past participle 'remerciée' should agree with the direct object 'me' (m') which precedes the verb.
+  - enlever \(de neige\) -> de la neige: Use the partitive article 'de la' for feminine nouns like 'neige'.
+  - l'\(éntree\) -> entrée: The accent on 'entrée' is an acute accent on the first 'e', and there is no accent on the 'n'.
+  - \(l'hier jour\) -> la journée d'hier: 'Hier' is an adverb meaning 'yesterday'. To say 'yesterday's entry', use 'l'entrée d'hier' or 'l'entrée de la journée d'hier'.
+  - pour \(enregistrér\) -> enregistrer: The infinitive ending for -er verbs does not have an accent on the last 'e'.
+  - \(mon\) nouvelle fonction -> ma: 'Fonction' is feminine, so use the feminine possessive adjective 'ma'.
+  - du \(lotion\) -> de la lotion: 'Lotion' is a feminine noun in French.
+  - Elle n'\(invité\) que -> a invité: You need the auxiliary verb 'avoir' to form the passé composé: 'Elle n'a invité que...'
+  - La \(pochette\) des pantalons -> poche: A pocket in clothing is a 'poche'. A 'pochette' is a small pouch, a clutch bag, or a suit pocket square.
+  - \(filer\) l'aiguille -> enfiler: The verb to thread a needle is 'enfiler'. 'Filer' means to spin wool or to leave quickly.
+  - Instead of 'à notre sud', 'au sud de chez nous' sounds more natural.
+  - For 'quelque chose de fête de Pokémon', try 'des articles de fête Pokémon'.
+  - For 'pièces chocolat', use 'pièces en chocolat' to indicate the material.
+  - For 'revêtements muffins', 'caissettes à muffins' is the specific term for the paper liners.
+  - Instead of 'compétence applicative', 'compétence pratique' (practical skill) is more common.
 :END:
 
 #+begin_src emacs-lisp
@@ -35836,48 +35852,76 @@ with open("/home/sacha/.config/plover/annotated.txt", "w") as f:
           :key (gptel-api-key-from-environment "GEMINI_API_KEY")
           :stream t
           :models '(gemini-3-flash-preview
-                    gemini-2.5-flash)))
+                    gemini-2.5-flash
+                    gemini-2.5-flash-preview-09-2025
+                    gemini-2.5-flash-lite)))
+  (setq my-gptel-gemini-paid
+        (gptel-make-gemini "Gemini - paid"
+          :key (gptel-api-key-from-environment "GEMINI_PAID_API_KEY")
+          :stream t
+          :models '(gemini-3-flash-preview
+                    gemini-2.5-flash
+                    gemini-2.5-flash-preview-09-2025
+                    gemini-2.5-flash-lite)))
+  (setq my-gptel-mistral
+        (gptel-make-openai "Mistral"
+          :key (gptel-api-key-from-environment "MISTRAL_API_KEY")
+          :host "api.mistral.ai"
+          :endpoint "/v1/chat/completions"
+          :stream t
+          :models '(mistral-medium
+                    mistral-large-2411)))
 	(setq gptel-model 'gemini-3-flash-preview
-				gptel-backend my-gptel-gemini)
+				gptel-backend my-gptel-gemini
+        gptel-log-level 'info)
 	:hook
 	(gptel-post-stream . gptel-auto-scroll)
 	(gptel-post-response . gptel-end-of-response)
 	)
+
 #+end_src
+
+
+So that I don't have to use ~gptel-menu~ just to change the model:
+
+#+begin_src emacs-lisp
+(defun my-gptel-set-model ()
+  "Interactively set the gptel model."
+  (interactive)
+  (require 'gptel-transient)
+  (let* ((infix (get 'gptel--infix-provider 'transient--suffix))
+         (reader (oref infix reader))
+         (result (funcall reader "Model: ")))
+    (setq gptel-backend (car result))
+    (setq gptel-model (cadr result))))
+#+end_src
+
 *** Interact with Google Gemini web interface through Spookfox
 :PROPERTIES:
 :CUSTOM_ID: inactive-infrequent-things-chatgpt-ai-and-large-language-models-interact-with-google-gemini-web-interface-through-spookfox
 :END:
 
 #+begin_src emacs-lisp
-(defun my-spookfox-wait-for-gemini-response ()
-  ;; Not working for now, let's just do it manually
-  (read-key "Press a key when the response is ready.")
-  ;; (sit-for 2)
-  ;; (spookfox-eval-js-in-active-tab "
-  ;; function waitForGemini(threshold = 2000) { return new Promise((resolve) => {
-  ;;    let timeout;
-  ;;         const observer = new MutationObserver((mutations) => {
-  ;;             clearTimeout(timeout);
-  ;;             timeout = setTimeout(() => {
-  ;;                 observer.disconnect();
-  ;;                 resolve();
-  ;;             }, threshold);
-  ;;         });
-  ;;         observer.observe(document.body, {
-  ;;             childList: true,
-  ;;             subtree: true,
-  ;;             characterData: true
-  ;;         });
-  ;;     });
-  ;; }
-  ;; await waitForGemini();
-  ;; " t)
-  )
+(defun my-spookfox-wait-for-condition (condition &optional step)
+  (setq step (or step 500))
+  (spookfox-eval-js-in-active-tab
+   (format "
+  async function waitForSpookfox(step=%d) {
+    while (true) {
+       const result = %s;
+       if (result) {
+          return;
+       } else {
+          await new Promise(r => setTimeout(r, step));
+       }
+    }
+  }
+  await waitForSpookfox();" step condition)
+   t))
 
-(defun my-spookfox-show-gemini-response-as-org (&optional html)
+(defun my-spookfox-ai-show-response-as-org (&optional html)
   (interactive)
-  (with-current-buffer (get-buffer-create "*gemini*")
+  (with-current-buffer (get-buffer-create "*ai*")
     (erase-buffer)
     (insert (or html (spookfox-eval-js-in-active-tab "x = document.querySelectorAll('.response-content'); x[x.length - 1].innerHTML" t)))
     (call-process-region (point-min) (point-max) "pandoc" t t t "-f" "html" "-t" "org" "-")
@@ -35885,45 +35929,69 @@ with open("/home/sacha/.config/plover/annotated.txt", "w") as f:
     (goto-char (point-min))
     (display-buffer-other-window (current-buffer))))
 
-(defun my-spookfox-latest-response-html ()
-  (spookfox-eval-js-in-active-tab "x = document.querySelectorAll('.response-content'); x[x.length - 1].innerHTML" t))
+(defun my-spookfox-ai-latest-response-html ()
+  (let-alist (my-spookfox-ai-params)
+    (spookfox-eval-js-in-active-tab
+       (format "x = document.querySelectorAll('%s'); x[x.length - 1].innerHTML"
+               .response)
+       t)))
 
-(defun my-spookfox-send-text-to-gemini (text)
-  (interactive (list (if (region-active-p)
-                         (buffer-substring (region-beginning) (region-end))
-                       (read-string "Input: "))))
-  (spookfox-eval-js-in-active-tab
-   (format "document.querySelector('div[contenteditable=\"true\"]').innerText = %s;"
-           (json-encode text))
-   t)
-  (sleep-for 0.1)
-  (spookfox-eval-js-in-active-tab " document.querySelector('div[contenteditable=\"true\"]').dispatchEvent(new InputEvent('input', {bubbles: true, cancelable: true, inputType: 'insertText'}));" t)
-  (sleep-for 0.1)
-  (spookfox-eval-js-in-active-tab "document.querySelector('button.send-button').click()" t)
-  (my-spookfox-wait-for-gemini-response)
-  (let ((result (my-spookfox-latest-response-html)))
-    ;; (read-key "Press any key when the response is ready.")
-    (when (called-interactively-p 'any)
-      (my-spookfox-show-gemini-response-as-org result))
-    result))
+(defun my-spookfox-ai-params ()
+  (let ((location (spookfox-eval-js-in-active-tab "window.location.href" t)))
+    (cond
+     ((string-match "gemini" location)
+      '((textarea . "document.querySelector('div[contenteditable=\"true\"]').innerText = %s;")
+        (dispatch . "div[contenteditable=\"true\"]")
+        (update . "button.send-button")
+        (condition . "window.getComputedStyle(document.querySelector('.loading-content-spinner-container'))?.visibility == 'hidden'")
+        (response . ".response-content")
+        (history . "document.querySelectorAll('.query-text').length > 0")))
+     ((string-match "claude" location)
+      '((textarea . "document.querySelector('div[contenteditable=\"true\"]').innerText = %s;")
+        (dispatch . "div[contenteditable=\"true\"]")
+        (update . "button[aria-label=\"Send message\"]")
+        (response . ".font-claude-response")
+        (history . "document.querySelectorAll('div[data-testid=\"user-message\"]').length > 0"))))))
 
-(defun my-spookfox-send-subtree-to-gemini-textarea (prefix)
+(defun my-spookfox-ai-send-text (text)
+  (interactive (list (read-string "Input: ")))
+  (let-alist (my-spookfox-ai-params)
+    (spookfox-eval-js-in-active-tab (format .textarea (json-encode text)) t)
+    (sleep-for 0.1)
+    (spookfox-eval-js-in-active-tab
+     (format "document.querySelector('%s').dispatchEvent(new InputEvent('input', {bubbles: true, cancelable: true, inputType: 'insertText'})); "
+             .dispatch)
+     t)
+    (sleep-for 0.1)
+    (spookfox-eval-js-in-active-tab (format "document.querySelector('%s').click()"
+                                            .update) t)
+    (if .condition
+        (progn
+          (sit-for 4)
+          (my-spookfox-wait-for-condition .condition))
+      (read-key "Press a key when the results are ready."))
+    (let ((result (my-spookfox-ai-latest-response-html)))
+      (when (called-interactively-p 'any)
+        (my-spookfox-show-response-as-org result))
+      result)))
+
+(defun my-spookfox-send-subtree-to-ai-textarea (prefix)
   (interactive (list (when current-prefix-arg
                        (read-string "Prepend: "))))
-  (my-spookfox-show-gemini-response-as-org
-   (my-spookfox-send-text-to-gemini
+  (my-spookfox-ai-show-response-as-org
+   (my-spookfox-ai-send-text
     (concat
      (if prefix
          (concat prefix "\n\n####\n\n")
        "")
      (my-org-subtree-text)))))
 
-(defun my-spookfox-parse-latest-json (&optional result)
+(defun my-spookfox-ai-parse-latest-json (&optional result)
   (cond
    ((or (stringp result) (null result))
-    (setq result (or result (my-spookfox-latest-response-html)))
+    (setq result (or result (my-spookfox-ai-latest-response-html)))
     (with-temp-buffer
-      (insert (or result (my-spookfox-latest-response-html)))
+      (insert (or result (my-spookfox-ai-latest-response-html)))
       (call-process-region (point-min) (point-max) "pandoc" t t t "-f" "html" "-t" "org" "-")
       (goto-char (point-min))
       (re-search-forward "{")
@@ -35931,17 +35999,31 @@ with open("/home/sacha/.config/plover/annotated.txt", "w") as f:
       (json-read)))
    ((listp result) result)))
 
-(defun my-spookfox-send-text-and-get-json (text)
-  (my-spookfox-parse-latest-json (my-spookfox-send-text-to-gemini text)))
+(defun my-spookfox-ai-send-text-and-get-json (text)
+  (my-spookfox-ai-parse-latest-json (my-spookfox-ai-send-text text)))
 #+end_src
 
 #+begin_src emacs-lisp
-(defun my-french-spookfox-send-subtree (&optional reuse-feedback)
+(defun my-french-spookfox-send (&optional reuse-feedback)
   (interactive (list current-prefix-arg))
-  (my-french-handle-feedback-flycheck
-   (if reuse-feedback
-       (my-spookfox-parse-latest-json)
-     (my-spookfox-send-text-and-get-json (my-org-subtree-text)))))
+  (let-alist (my-spookfox-ai-params)
+    (if reuse-feedback
+        (cl-pushnew
+         (my-spookfox-ai-parse-latest-json)
+         my-lang-gptel-current-errors)
+      (push
+       (my-spookfox-ai-send-text-and-get-json
+        (let ((my-lang-gptel-current-errors nil)
+              (my-lang-gptel-prompt
+               (if (eq (spookfox-eval-js-in-active-tab .history t)
+                       :false)
+                   my-lang-gptel-prompt
+                 nil)))
+          (my-lang-gptel-prompt)))
+       my-lang-gptel-current-errors)))
+  (my-lang-gptel-finished-log-errors)
+  (setq flycheck-current-syntax-check nil)
+  (flycheck-buffer))
 #+end_src
 
 

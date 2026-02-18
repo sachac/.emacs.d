@@ -1864,7 +1864,7 @@ Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char
 	(completion-styles '(orderless basic))
 	(completion-category-overrides '((file (styles basic partial-completion)))))
 (use-package prescient :config (prescient-persist-mode +1))
-(use-package company-prescient :init (company-prescient-mode +1))
+;(use-package company-prescient :init (company-prescient-mode +1))
 #+end_src
 
 ** Consult
@@ -27391,7 +27391,8 @@ with HTTPS sites.
 	(define-key company-mode-map (kbd "<tab>") 'company-indent-or-complete-common))
 (use-package company
   :if my-laptop-p
-  :init (add-hook 'prog-mode-hook 'company-mode))
+  ;:init (add-hook 'prog-mode-hook 'company-mode)
+  )
 (use-package company-posframe :if my-laptop-p :init (company-posframe-mode 1) :diminish)
 #+end_src
 
@@ -34820,12 +34821,6 @@ loaded."
     (sorted          t)
     (duplicates      t)
     (no-cache        t)))
-
-(use-package company
-  :hook
-	(prog-mode . company-mode)
-  ;(add-to-list 'company-backends 'my-company-strokedict)
-  )
 #+end_src
 
 This code added stroke annotations from the Typey Type dictionary to the frequency-sorted word list from https://github.com/hermitdave/FrequencyWords/blob/master/content/2018/en/en_full.txt.

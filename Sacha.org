@@ -28922,10 +28922,17 @@ Each element has the form (NAME . (FILE . POSITION))."
    (my-org-contacts-all-alist)))
 
 (defun my-mastodon-interested-handles (text)
-  (seq-keep
-   (lambda (o)
-     (assoc-default "MASTODON" o #'string=))
-   (my-org-contacts-to-mention text)))
+  (seq-uniq
+   (append
+    (seq-keep
+     (lambda (o)
+       (assoc-default "MASTODON" o #'string=))
+     (my-org-contacts-to-mention text))
+    (with-temp-buffer
+      (insert text)
+      (goto-char (point-min))
+      (cl-loop while (re-search-forward "@[\\.0-9A-Z_a-z-]+@[\\.0-9A-Z_a-z-]+" nil t)
+               collect (match-string 0))))))
 
 (defun my-mastodon-insert-interested-handles (text)
 	(interactive (list (mastodon-toot--remove-docs)))

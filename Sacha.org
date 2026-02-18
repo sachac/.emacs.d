@@ -14948,7 +14948,19 @@ Then I want to be able to add a category to all the blog posts in a region:
   (unless (listp info) (setq info (my-blog-post-info-for-url info)))
   (my-blog-post--position info))
 
-(defun my-embark-11ty-find-html (url)
+(defun my-blog-find-html (url)
+  "Go to the HTML file for URL."
+	(interactive (list (my-complete-blog-post-url)))
+  (setq url (my-org-link-as-url url))
+	(when (string-match "https://sachachua\\.com/\\(blog/.*\\)" url)
+    (find-file
+     (expand-file-name
+      "index.html"
+      (expand-file-name (match-string 1 url)
+                        my-11ty-base-dir)))))
+
+(defun my-blog-find-org (url)
+  "Go to the Org file for URL."
 	(interactive (list (my-complete-blog-post-url)))
 	(when (string-match "https://sachachua\\.com\\(/blog/.*\\)" (my-org-link-as-url url))
 		(let ((path (match-string 1 url))
@@ -15052,7 +15064,7 @@ Then this adds a link to it:
 													(plist-get info :base-dir)))))
 		(goto-char (point-max))
 		(insert
-		 (format "<div><a href=\"%sindex.org\">View org source for this post</a></div>"
+		 (format "<div><a href=\"%sindex.org\">View Org source for this post</a></div>"
 						 (plist-get info :permalink)))))
 
 (with-eval-after-load 'ox-11ty
@@ -16676,7 +16688,7 @@ With prefix argument, also display headlines without a TODO keyword."
 									"")
 								(mailcap-file-name-to-mime-type (car path-and-query))
 								(if (assoc-default "captions" params)
-										(format "<track kind=\"subtitles\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
+ 										(format "<track kind=\"subtitles\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
                             (if (string= (car (assoc-default "captions" params)) "t")
                                 (concat (file-name-sans-extension url) ".vtt")
 														  (expand-file-name (car (assoc-default "captions" params)))))
@@ -16724,7 +16736,7 @@ With prefix argument, also display headlines without a TODO keyword."
 	"Export PATH to FORMAT using the specified wrap parameter."
 	(pcase format
 		((or 'html '11ty 'md)
-		 (when (string-match "[0-9]+:[0-9]+:[0-9]+" link)
+		 (when (string-match "\\([0-9]+:\\)?[0-9]+:[0-9]+" link)
 			 (format "<span class=\"media-time\" data-start=\"%.3f\">%s</span>"
 							 (save-match-data
 								 (/ (compile-media-timestamp-to-msecs
@@ -16737,7 +16749,7 @@ With prefix argument, also display headlines without a TODO keyword."
 (defun my-org-vtime-item-p ()
   (save-excursion
     (org-list-at-regexp-after-bullet-p
-     "\\[\\[\\(vtime:[0-9]+:[0-9]+:[0-9]+\\)\\]\\]")))
+     "\\[\\[\\(vtime:\\(?:[0-9]+:\\)?[0-9]+:[0-9]+\\)\\]\\]")))
 
 (defun my-org-vtime-insert-item-advice (fn &rest args)
   (let ((itemp (org-in-item-p))
@@ -16804,11 +16816,17 @@ With prefix argument, also display headlines without a TODO keyword."
 	"Export PATH to FORMAT using the specified wrap parameter."
 	(pcase format
 		((or 'html '11ty 'md)
-		 (let* ((path-and-query (url-path-and-query (url-generic-parse-url link)))
+		 (let* ((parsed-url (url-generic-parse-url link))
+            (path-and-query (url-path-and-query parsed-url))
 						(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query))))
-						(element (or (assoc-default "element" params #'string=) "audio")))
+						(element (or (assoc-default "element" params #'string=) "audio"))
+            (url (if (string-match "^https://" link)
+                     (concat (url-type parsed-url) "://" (url-domain parsed-url) (car path-and-query))
+                   (concat "file://" (if (file-name-absolute-p (car path-and-query))
+																		     (expand-file-name (car path-and-query))
+																	     (car path-and-query))))))
 			 (format
-				"<div class=\"audio\">%s<%s%s%s%s preload=\"metadata\" src=\"%s\" type=\"%s\"><a href=\"%s\">Download the audio</a>%s</%s>%s</div>"
+				"<div class=\"audio\">%s<%s%s%s%s preload=\"metadata\" src=\"%s%s\" type=\"%s\"><a href=\"%s\">Download the audio</a>%s</%s>%s</div>"
         (if desc (concat desc " ") "")
 				element
 				(if (string= (or (assoc-default "controls" params 'string= "1") "1") "0")
@@ -16821,17 +16839,20 @@ With prefix argument, also display headlines without a TODO keyword."
 						(format " id=\"%s\"" (car (assoc-default "id" params)))
 					"")
 				(car path-and-query)
+				(if (string= (or (assoc-default "nocache" params 'string= "0") "1") "1")
+						(concat "?" (format-time-string "%Y-%m-%d"))
+					"")
 				(mailcap-file-name-to-mime-type (car path-and-query))
 				(car path-and-query)
 				(if (assoc-default "captions" params)
 						(format "<track kind=\"captions\" label=\"Captions\" src=\"%s\" srclang=\"en\" default></track>"
-										(car (assoc-default "captions" params)))
+										(if (string= (car (assoc-default "captions" params)) "t")
+                        (concat (file-name-sans-extension url) ".vtt")
+											(expand-file-name (car (assoc-default "captions" params)))))
 					"")
 				element
-				(if (and (assoc-default "captions" params)
-								 (assoc-default "id" params))
-						(format  "<div class=\"captions\" style=\"display: none\"></div>"
-										 (car (assoc-default "id" params)))
+				(if (and (assoc-default "captions-below" params))
+            "<div class=\"captions\" style=\"display: none\"></div>"
 					"")
 				)))
 		(_ path)))
@@ -16849,7 +16870,7 @@ With prefix argument, also display headlines without a TODO keyword."
 (defun my-org-audio-complete ()
 	"Complete audio reference."
 	(interactive)
-	(concat "audio:" (read-file-name "File: ")))
+	(concat "audio:" (read-file-name "File: ") "?captions=t&captions-below=t"))
 
 #+end_src
 

@@ -24745,6 +24745,8 @@ the files faster than real-time:
 I used this command to get word-level timing data. ([[https://medium.com/@didierlacroix/the-power-of-single-word-subtitles-662f8c3891bd][Experimenting with options from this post]])
 
 #+begin_src sh :eval no :tangle "~/bin/whisperx"
+#!/bin/zsh
+WHISPER_ARGS=(${(z)WHISPER_FLAGS})
 MAX_LINE_WIDTH="${MAX_LINE_WIDTH:-50}"
 MODEL="${MODEL:-large-v2}"
 for FILE in "$@"; do
@@ -24752,7 +24754,7 @@ for FILE in "$@"; do
     if [  -f "$text" ]; then
        echo "Skipping $FILE as it's already been transcribed."
     else
-    		~/vendor/whisperx/.venv/bin/whisperx --model "$MODEL" --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --compute_type int8 --print_progress True --max_line_width $MAX_LINE_WIDTH --segment_resolution chunk --max_line_count 1  "$FILE" $WHISPER_FLAGS
+    		~/vendor/whisperx/.venv/bin/whisperx --model "$MODEL" --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --compute_type int8 --print_progress True --max_line_width $MAX_LINE_WIDTH --segment_resolution chunk --max_line_count 1 --initial_prompt "Emacs et Org Mode sont d'excellents outils. J'utilise Org-roam pour prendre des notes. Today I am recording a braindump about technical setups. C'est vraiment utile pour la productivité." "$FILE" $WHISPER_FLAGS
 		    rm -f "${FILE%.*}.srt"
     fi
 done

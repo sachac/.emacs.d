@@ -137,6 +137,16 @@ Memoize is handy for improving the performance when I use slow functions multipl
 
 Use =M-x package-refresh-contents= to reload the list of packages
 after adding these for the first time.
+*** Review packages when upgrading
+Emacs 31 onwards:
+
+#+begin_src emacs-lisp
+  (setq package-review-policy t
+        package-review-diff-command '("git" "diff" "--no-index" "--color=never" "--diff-filter=d"))
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Package Review Diff:"
+                 (display-buffer-full-frame)))
+#+end_src
 
 *** Add my elisp directory and other files
 :PROPERTIES:

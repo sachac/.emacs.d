@@ -532,14 +532,55 @@ contents of the minibuffer before submitting it.
 
 From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
 
-#+BEGIN_SRC emacs-lisp
-  (defadvice kill-region (before slick-cut activate compile)
-    "When called interactively with no active region, kill a single line instead."
-    (interactive
-     (if mark-active (list (region-beginning) (region-end))
-       (list (line-beginning-position)
-             (line-beginning-position 2)))))
+#+BEGIN_SRC emacs-lisp :tangle lisp/my-navigate.el
+;;;###autoload
+(defun my-kill-single-line-if-region-is-inactive (beg end &optional region)
+  "Wrap around `kill-region' so that we kill a single line."
+  (interactive (progn
+                 (let ((beg (mark kill-region-dwim))
+                       (end (point)))
+                   (cond
+                    ((and kill-region-dwim (not (use-region-p)))
+                     (list beg end kill-region-dwim))
+                    ((not (and beg end))
+                     (user-error "The mark is not set now, so there is no region"))
+                    ((list beg end 'region))))))
+  (if (or (region-active-p)
+          (derived-mode-p 'minibuffer-mode))
+      (kill-region beg end region)
+    (kill-region
+     (line-beginning-position)
+     (line-beginning-position 2))))
+
+(ert-deftest my-kill-single-line-if-region-is-inactive ()
+  "Tests `my-kill-single-line-if-region-is-inactive'."
+  (should
+   (equal
+    (with-temp-buffer
+      (insert "Hello there\nWorld\n")
+      (goto-char (point-min))
+      (my-kill-single-line-if-region-is-inactive nil nil)
+      (setq text (buffer-string)))
+    "World\n")))
 #+END_SRC
+
+If I use =M-w= (=kill-ring-save=) without a region, I usually mean the current symbol.
+
+#+begin_src emacs-lisp :tangle lisp/my-navigate.el :lexical t
+;;;###autoload
+(defun my-copy-symbol-if-region-is-inactive (beg end &optional region)
+  "Wrap around `kill-ring-save' so that we kill a single line."
+  (interactive (list (mark) (point) 'region))
+  (if (region-active-p)
+      (kill-ring-save beg end region)
+    (let ((bounds (or (bounds-of-thing-at-point 'symbol)
+                      (bounds-of-thing-at-point 'word))))
+      (kill-new (filter-buffer-substring (car bounds) (cdr bounds))))))
+#+end_src
+#+begin_src emacs-lisp
+(keymap-global-set "M-w" #'my-copy-symbol-if-region-is-inactive)
+#+end_src
+
 * Keybindings
 :PROPERTIES:
 :CUSTOM_ID: keybindings

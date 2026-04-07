@@ -2983,7 +2983,7 @@ From https://protesilaos.com/codelog/2024-11-28-basic-emacs-configuration/:
   (defun my-setup-color-theme ()
     (interactive)
     (when (display-graphic-p)
-      (load-theme (car modus-themes-to-toggle))))
+      (load-theme (car modus-themes-to-toggle) t)))
   (use-package modus-themes
           :quelpa (modus-themes :fetcher github :repo "protesilaos/modus-themes")
           :init (setq modus-themes-to-toggle '(modus-operandi-tinted modus-vivendi-tinted))

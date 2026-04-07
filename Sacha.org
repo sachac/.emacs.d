@@ -26223,17 +26223,28 @@ the files faster than real-time:
 
 I used this command to get word-level timing data. ([[https://medium.com/@didierlacroix/the-power-of-single-word-subtitles-662f8c3891bd][Experimenting with options from this post]])
 
-#+begin_src sh :eval no :tangle "~/bin/whisperx" :shebang "/bin/bash"
-#!/bin/zsh
+#+begin_src sh :eval no :tangle "~/bin/whisperx" :shebang "#!/bin/zsh"
+MODEL="${MODEL:-medium}"
+VENV_NVIDIA="/home/sacha/vendor/whisperx/.venv/lib/python3.12/site-packages/nvidia"
+export LD_LIBRARY_PATH="$VENV_NVIDIA/cudnn/lib:$VENV_NVIDIA/cublas/lib:$VENV_NVIDIA/cuda_runtime/lib:$LD_LIBRARY_PATH"
+LANGUAGE="${LANGUAGE:-en}"
+PROMPT="${PROMPT:-Omit filler words. Keep in original language. Keywords: Sacha Chua, Emacs, Org Mode}"
+
+export LD_LIBRARY_PATH="$(find /home/sacha/vendor/whisperx/.venv/lib/python3.12/site-packages/nvidia -maxdepth 2 -name lib -type d | tr '\n' ':')${LD_LIBRARY_PATH}"
+if [[ "$MODEL" == *large* ]]; then
+    DEVICE="cpu"
+else
+    DEVICE="cuda"
+fi
+echo $DEVICE
 WHISPER_ARGS=(${(z)WHISPER_FLAGS})
 MAX_LINE_WIDTH="${MAX_LINE_WIDTH:-50}"
-MODEL="${MODEL:-large-v2}"
 for FILE in "$@"; do
     text="${FILE%.*}.txt"
     if [  -f "$text" ]; then
        echo "Skipping $FILE as it's already been transcribed."
     else
-    		~/vendor/whisperx/.venv/bin/whisperx --model "$MODEL" --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --compute_type int8 --print_progress True --max_line_width $MAX_LINE_WIDTH --segment_resolution chunk --max_line_count 1 --initial_prompt "Emacs et Org Mode sont d'excellents outils. J'utilise Org-roam pour prendre des notes. Today I am recording a braindump about technical setups. C'est vraiment utile pour la productivité." "$FILE" $WHISPER_FLAGS
+    		~/vendor/whisperx/.venv/bin/whisperx --model "$MODEL" --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --compute_type int8 --print_progress True --max_line_width $MAX_LINE_WIDTH --language "$LANGUAGE" --device "$DEVICE" --segment_resolution chunk --max_line_count 1 --initial_prompt "$PROMPT" "$FILE" $WHISPER_FLAGS
 		    rm -f "${FILE%.*}.srt"
     fi
 done

@@ -65,6 +65,10 @@ easier.
 Here's my early-init.el:
 
 #+begin_src emacs-lisp :tangle "~/.config/emacs/early-init.el" :eval never-export
+(eval-when-compile
+  (add-to-list 'load-path "~/vendor/org-mode/lisp")
+  (add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
+  (load "~/vendor/org-mode/lisp/org-loaddefs.el" nil t))
 (setq user-lisp-directory "~/sync/emacs/lisp")
 #+end_src
 
@@ -116,8 +120,6 @@ Here's how we start:
 ;; This sets up the load path so that we can override it
 (setq warning-suppress-log-types '((package reinitialization)))  (package-initialize)
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
-(add-to-list 'load-path "~/vendor/org-mode/lisp")
-(add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
 (setq custom-file "~/.config/emacs/custom-settings.el")
 (setq use-package-always-ensure t)
 #+END_SRC
@@ -13580,8 +13582,9 @@ Aha, I can fiddle with =org-babel-post-tangle-hook= to insert the boilerplate af
          url
          title)
       (cons url title))))
-(require 'ob-core)
-(require 'ob-tangle)
+
+(declare-function 'org-babel-tangle--compute-targets "ob-tangle")
+(eval-when-compile (require 'org-core nil t))
 (defun my-org-collect-links-for-tangled-files ()
   "Return a list of ((filename (link link link link)) ...)."
   (let* ((file (buffer-file-name))

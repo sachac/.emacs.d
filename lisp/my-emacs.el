@@ -94,8 +94,9 @@
          url
          title)
       (cons url title))))
-(require 'ob-core)
-(require 'ob-tangle)
+
+(declare-function 'org-babel-tangle--compute-targets "ob-tangle")
+(eval-when-compile (require 'org-core nil t))
 (defun my-org-collect-links-for-tangled-files ()
   "Return a list of ((filename (link link link link)) ...)."
   (let* ((file (buffer-file-name))

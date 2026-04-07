@@ -27977,7 +27977,7 @@ Skip this for now
 
    I wrote this Emacs Lisp code with the header arguments =#+begin_src emacs-lisp :var bindings=bindings :colnames yes=:
 
-   #+begin_src emacs-lisp :var bindings=bindings :colnames yes
+ #+begin_src emacs-lisp :var bindings=bindings :colnames yes :eval never-export
 (eval
  (append
   '(defhydra my-lispy-cheat-sheet (:hint nil :foreign-keys run)

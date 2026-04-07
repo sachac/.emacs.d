@@ -33046,6 +33046,7 @@ the date so that I can pick it up when plotting the heatmap:
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/my-time.el
+(defvar my-calendar-count-scaled)
 ;;;###autoload
 (defun my-calendar-heat-map-using-echo-text (&rest _)
   (when my-calendar-count-scaled
@@ -33129,6 +33130,7 @@ data.
 Now I can have it display the last year of data or so.
 
 #+begin_src emacs-lisp :tangle lisp/my-time.el
+(defvar my-calendar-count-scaled)
 ;;;###autoload
 (defun my-calendar-visualize (values)
   (setq my-calendar-count-scaled values)

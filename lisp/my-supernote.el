@@ -163,6 +163,7 @@
 				(call-process-region
 				 (point-min) (point-max) "wkhtmltopdf" nil nil nil "--no-background" "-"
 				 filename))))))
+
 ;; Supernote:8 ends here
 
 ;; [[file:../Sacha.org::#supernote-org-upload][Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access:1]]

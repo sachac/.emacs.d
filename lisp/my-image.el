@@ -624,6 +624,7 @@ are available:
                     "/" (or prefix "image-")
                     ".png\"
       <StrokeEvent>") t t)))
+
 ;; Artrage:1 ends here
 
 ;; [[file:../Sacha.org::#interactively-recolor][Interactively recolor a sketch:1]]
@@ -870,6 +871,7 @@ are available:
 ;; my-geeqie-view ends here
 
 ;; [[file:../Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie:3]]
+
 (defvar my-rotate-jpeg-using-exiftran nil)
 
 ;;;###autoload
@@ -958,6 +960,7 @@ are available:
   (let ((file (my-geeqie-filename)))
 		(my-geeqie-next)
 		(delete-file file t)))
+
 ;; Manage photos with geeqie:3 ends here
 
 ;; [[file:../Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie:5]]

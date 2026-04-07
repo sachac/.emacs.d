@@ -195,6 +195,7 @@
 						 (- (* 1000.0
 									 (time-to-seconds (time-subtract file-timestamp start-of-recording)))
 								(subed-subtitle-msecs-start)))))
+
 ;; Interleave images with transcript:1 ends here
 
 ;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-split-a-transcript-into-phrases-for-subtitles][Split a transcript into phrases for subtitles:1]]
@@ -1075,6 +1076,9 @@ The current section is defined by NOTE comments."
 		 (concat "#+OUTPUT: "
 						 (file-name-base (buffer-file-name))
 						 "-cleaned.opus"))))
+
+
+
 ;; Split up oops better:3 ends here
 
 ;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-export-transcript-as-list][Export transcript as list:1]]
@@ -1143,6 +1147,7 @@ If threshold is 0, remove all gaps."
 																		 (subed-subtitle-msecs-start)))))))
 			(unless (subed-forward-subtitle-start-pos)
 				(goto-char (point-max))))))
+
 ;; Removing gaps and merging subtitles:1 ends here
 
 (provide 'my-subed)

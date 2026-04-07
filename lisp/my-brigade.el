@@ -210,6 +210,7 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 	 (when file
 		 (with-temp-buffer (insert-file-contents file) (buffer-string)))
 	as-rich-text))
+
 ;; Wrapping it up:1 ends here
 
 ;; [[file:../Sacha.org::#collaboration-bike-brigade-extract-information-from-google-docs-export-as-zipped-html][Getting a Google Docs draft ready for Mailchimp via Emacs and Org Mode:1]]
@@ -336,6 +337,7 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 	 (nreverse
 		(directory-files my-brigade-newsletter-images-directory
 												t (regexp-quote (my-brigade-newsletter-heading-to-image-file-name heading))))))
+
 ;; Getting a Google Docs draft ready for Mailchimp via Emacs and Org Mode:1 ends here
 
 ;; [[file:../Sacha.org::#collaboration-bike-brigade-working-with-mailchimp-images][Bike Brigade: working with Mailchimp images:2]]
@@ -554,6 +556,7 @@ IMAGES is an alist of (filename . URL)."
 		(when (called-interactively-p 'any)
 			(kill-new html))
 		html))
+
 ;; Bike Brigade: working with Mailchimp images:2 ends here
 
 ;; [[file:../Sacha.org::#collaboration-bike-brigade-updating-mailchimp-directly][Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it:1]]

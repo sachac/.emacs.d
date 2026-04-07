@@ -105,6 +105,7 @@
     (if my-phone-p
         (shell-command command)
       (shell-command (format "ssh phone %s" (shell-quote-argument command))))))
+
 ;; Emacs and my phone:2 ends here
 
 (provide 'my-misc)

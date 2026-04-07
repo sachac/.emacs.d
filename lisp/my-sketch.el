@@ -746,6 +746,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
            (org-entry-get-with-inheritance "BASENAME")
            (org-entry-get-with-inheritance "SHORT_TITLE")
            (org-entry-get-with-inheritance "AUTHOR"))))
+
 ;; Sketched books:2 ends here
 
 ;; [[file:../Sacha.org::#other-sketches][Other sketches:1]]
@@ -847,6 +848,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
                            (shell-quote-argument (expand-file-name index-card))))
     (my-rotate-screen 180)
     (my-set-up-sketch-buffer)))
+
 ;; Other sketches:1 ends here
 
 ;; [[file:../Sacha.org::#other-sketch-related-functions][Other sketch-related functions:1]]
@@ -902,6 +904,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
   (interactive)
   (quantified-track "Drawing")
   (my-prepare-index-card "Journal"))
+
 ;; Other sketch-related functions:1 ends here
 
 ;; [[file:../Sacha.org::#write-about-half-page-scans][Write about half-page scans:1]]

@@ -64,6 +64,7 @@
 					(when (member (org-entry-get (point) "ITEM") current)
 						(throw 'done (point))))
 				"LEVEL=1" 'file)))))
+
 ;; Keep only unique headings:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-validation-no-blank-titles-no-duplicate-paths][No blank titles, no duplicate paths:1]]

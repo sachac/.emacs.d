@@ -434,6 +434,7 @@ list is a list of alists with the following keys:
                   last-image-node nil
 									last-image-filename nil))))))
 		(nreverse results)))
+
 ;; Saving images:1 ends here
 
 ;; [[file:../Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-saving-images][Saving images:2]]

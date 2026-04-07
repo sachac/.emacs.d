@@ -343,6 +343,7 @@ Omit my own handle, as specified in `my-mastodon-handle'."
 			 (format "accounts/%s/statuses?count=1&limit=1&exclude_reblogs=t"
 							 (mastodon-auth--get-account-id)))
 			nil :silent))))
+
 ;; mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:1 ends here
 
 ;; [[file:../Sacha.org::#mastodon-mastodon-el-copy-toot-url-after-posting-also-copying-just-this-post-with-11ty][mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:3]]
@@ -412,6 +413,7 @@ Omit my own handle, as specified in `my-mastodon-handle'."
 										 )))
 						"")
 				))))
+
 ;; my-mastodon-store-link ends here
 
 ;; [[file:../Sacha.org::#mastodon-news][Collecting Emacs News from Mastodon:1]]
@@ -426,6 +428,7 @@ Omit my own handle, as specified in `my-mastodon-handle'."
 						(mastodon-tl--find-property-range 'byline (point)))
 					 'boosted-p)
 		(mastodon-toot--toggle-boost-or-favourite 'boost)))
+
 ;; Collecting Emacs News from Mastodon:1 ends here
 
 ;; [[file:../Sacha.org::#mastodon-news][Collecting Emacs News from Mastodon:5]]
@@ -856,6 +859,7 @@ Use consult to provide a preview."
     (goto-char pos)
     (when (looking-at org-complex-heading-regexp)
 			(org-sort-entries nil ?T))))
+
 ;; Collect my recent toots in an Org file so that I can refile them:2 ends here
 
 ;; [[file:../Sacha.org::#mastodon-insert-statuses][Archive toots on my blog:1]]

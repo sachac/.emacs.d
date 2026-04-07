@@ -187,6 +187,7 @@ Returns a list of cons cells (DISPLAY-STRING . PLIST)."
                (my-org-db-v3-to-emacs-rag-search input 100 "%static-blog%")
                (lambda (a b) (string= (alist-get 'source_path a)
                                       (alist-get 'source_path b)))))))
+
 ;; my-blog-similar-link ends here
 
 ;; [[file:../Sacha.org::my-org-db-v3-index-recent-sketches][my-org-db-v3-index-recent-sketches]]

@@ -95,8 +95,11 @@
          title)
       (cons url title))))
 
+(eval-and-compile
+  (require 'org-core nil t)
+  (require 'org-macs nil t)
+  (require 'org-src nil t))
 (declare-function 'org-babel-tangle--compute-targets "ob-tangle")
-(eval-when-compile (require 'org-core nil t))
 (defun my-org-collect-links-for-tangled-files ()
   "Return a list of ((filename (link link link link)) ...)."
   (let* ((file (buffer-file-name))

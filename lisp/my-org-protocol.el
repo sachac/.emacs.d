@@ -110,6 +110,7 @@
 (eval-after-load 'org-protocol
   '(add-to-list 'org-protocol-protocol-alist
                 '("copy-thumbnail" :protocol "copy-thumbnail" :function my-org-protocol-copy-thumbnail)))
+
 ;; Links from org-protocol:2 ends here
 
 ;; [[file:../Sacha.org::org-protocol-link][org-protocol-link]]
@@ -121,6 +122,7 @@
 (defun org-protocol-copy-open-link (arg)
 	(interactive "P")
 	(kill-new (concat "org-protocol://open?link=" (url-hexify-string (org-store-link arg)))))
+
 ;; org-protocol-link ends here
 
 ;; [[file:../Sacha.org::#org-protocol-open][Org protocol: following Org links from outside Emacs:3]]

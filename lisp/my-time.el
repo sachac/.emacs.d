@@ -66,6 +66,7 @@
 ;; Timestamps:1 ends here
 
 ;; [[file:../Sacha.org::#using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs][Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:2]]
+(defvar my-calendar-count-scaled)
 ;;;###autoload
 (defun my-calendar-heat-map-using-echo-text (&rest _)
   (when my-calendar-count-scaled
@@ -91,6 +92,7 @@
 ;; Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:2 ends here
 
 ;; [[file:../Sacha.org::#using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs][Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:5]]
+(defvar my-calendar-count-scaled)
 ;;;###autoload
 (defun my-calendar-visualize (values)
   (setq my-calendar-count-scaled values)
@@ -153,6 +155,7 @@
                    (seq-filter (lambda (o) (string-match "tantrum\\|grump\\|angry\\|meltdown"
                                                            (my-journal-note o)))
                                (cdr (pcsv-parse-file "~/Downloads/entries.csv"))))))))
+
 ;; Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:6 ends here
 
 ;; [[file:../Sacha.org::#using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs][Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:8]]

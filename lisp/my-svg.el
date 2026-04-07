@@ -397,6 +397,8 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 												links-from-text))))
 		(with-temp-file filename
 			(svg-print dom))))
+
+
 ;; Identifying paths:3 ends here
 
 ;; [[file:../Sacha.org::#multimedia-images-svg-animating-svgs-linking-paths][Linking paths:1]]

@@ -145,6 +145,7 @@ Prefix
      :shell-args dwim-shell-command-shell-args
      :silent-success (string-prefix-p " " script)
      :error-autofocus (not dwim-shell-command-prompt-on-error))))
+
 ;; dwim-shell-command:1 ends here
 
 ;; [[file:../Sacha.org::#automation][Automation:1]]

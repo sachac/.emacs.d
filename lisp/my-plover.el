@@ -117,6 +117,7 @@
   ;;  (benchmark-run 2 (my-plover-search-dictionary-for-translation "stenography" t "typey-type.json")
   ;; (benchmark-run 2 (my-plover-search-dictionary-for-translation "stenography" t))
   ;;  (benchmark-run 2 (my-plover-search-dictionary-for-strokes "^THER/")))
+
 ;; Looking things up:1 ends here
 
 (provide 'my-plover)

@@ -101,6 +101,7 @@
 			(forward-sexp 1)
 			(skip-syntax-forward " ")
 			(forward-char 1))))
+
 ;; Easily override existing functions:1 ends here
 
 ;; [[file:../Sacha.org::#edebug][Edebug:1]]
@@ -191,6 +192,7 @@
       (my-ert-find-insert-point func)
       (insert test-def)
       (backward-char 7))))
+
 ;; ERT:1 ends here
 
 ;; [[file:../Sacha.org::#buttercup][Buttercup:1]]
@@ -493,6 +495,7 @@ Useful as `imenu-create-index-function'."
             " "
             (format "%s" (--map (s-concat "arg" (number-to-string it)) (number-sequence 1 (length args))))
             "\n  \"SomeDocs\"\n  nil)\n\n")))))))
+
 ;; Stubbing:1 ends here
 
 ;; [[file:../Sacha.org::#mastodon-news][Collecting Emacs News from Mastodon:3]]

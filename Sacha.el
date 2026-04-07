@@ -2,8 +2,6 @@
 ;; This sets up the load path so that we can override it
 (setq warning-suppress-log-types '((package reinitialization)))  (package-initialize)
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
-(add-to-list 'load-path "~/vendor/org-mode/lisp")
-(add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
 (setq custom-file "~/.config/emacs/custom-settings.el")
 (setq use-package-always-ensure t)
 
@@ -119,14 +117,9 @@
       (setq kill-ring-max 1000)
 ;; Killing text:1 ends here
 
-;; [[file:Sacha.org::#killing-text][Killing text:2]]
-  (defadvice kill-region (before slick-cut activate compile)
-    "When called interactively with no active region, kill a single line instead."
-    (interactive
-     (if mark-active (list (region-beginning) (region-end))
-       (list (line-beginning-position)
-             (line-beginning-position 2)))))
-;; Killing text:2 ends here
+;; [[file:Sacha.org::#killing-text][Killing text:4]]
+(keymap-global-set "M-w" #'my-copy-symbol-if-region-is-inactive)
+;; Killing text:4 ends here
 
 ;; [[file:Sacha.org::#keybindings][Keybindings:1]]
   (repeat-mode 1)
@@ -892,7 +885,7 @@
   (defun my-setup-color-theme ()
     (interactive)
     (when (display-graphic-p)
-      (load-theme (car modus-themes-to-toggle))))
+      (load-theme (car modus-themes-to-toggle) t)))
   (use-package modus-themes
           :quelpa (modus-themes :fetcher github :repo "protesilaos/modus-themes")
           :init (setq modus-themes-to-toggle '(modus-operandi-tinted modus-vivendi-tinted))
@@ -2004,24 +1997,25 @@
      s ""))
 
   (defvar-keymap my-lang-map
+    :prefix t
     "l" (cons "lookup" #'my-lang-lexique-complete-word)
     "w" (cons "wordref" #'my-lang-wordreference-lookup)
     "c" (cons "conj" #'my-lang-conjugate)
     "f" (cons "→ fr" #'my-lang-consult-en-fr)
     "s" (cons "say" #'my-lang-say-word-at-point)
+    "x" (cons "example" #'learn-lang-tatoeba-consult)
     "t" (cons "→ en" #'my-lang-translate-dwim))
-  (fset 'my-lang-map my-lang-map)
 
   (with-eval-after-load 'org
-    (keymap-set org-mode-map "C-," my-lang-map)
-    (keymap-set org-mode-map "C-c u" my-lang-map))
+    (keymap-set org-mode-map "C-," 'my-lang-map)
+    (keymap-set org-mode-map "C-c u" 'my-lang-map))
 
-  (with-eval-after-load 'org
-    (keymap-set message-mode-map "C-," my-lang-map)
+  (with-eval-after-load 'message
+    (keymap-set message-mode-map "C-," 'my-lang-map)
     )
 
   (with-eval-after-load 'flyspell
-    (keymap-set flyspell-mode-map "C-," my-lang-map))
+    (keymap-set flyspell-mode-map "C-," 'my-lang-map))
 
 
   (use-package wiktionary-bro
@@ -2560,6 +2554,7 @@
          (when (string-match "finished" event)
            (rename-file temp-file file t)
            (message "Normalized %s" file))))))
+
 ;; Add shadowing with tts to subed-record:1 ends here
 
 ;; [[file:Sacha.org::#writing-and-editing-learning-french-make-it-easy-to-add-reference-links][Make it easy to add reference links:1]]
@@ -5328,6 +5323,7 @@ Call with \\[universal-argument] to specify the input."
   (when (and my-whisper-target-markers info)
     (my-whisper-insert (alist-get 'content info))))
 (add-hook 'my-speech-functions #'my-speech-insert-at-markers 100)
+
 ;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:7 ends here
 
 ;; [[file:Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api-speech-and-subed-record][speech and subed-record:1]]
@@ -6226,6 +6222,7 @@ This is helpful when resolving sync conflicts."
 ;; Org Mode: Cutting the current list item (including nested lists) with a speed command:2 ends here
 
 ;; [[file:Sacha.org::#org-mode-keyboard-shortcuts-other-speed-commands][Other speed commands:1]]
+
 (setq org-use-effective-time t)
 
 (defun my-org-goto-text-start ()
@@ -6637,6 +6634,7 @@ With PARG kill the content instead."
 ;; Estimating WPM:1 ends here
 
 ;; [[file:Sacha.org::#logbook][Logbook:1]]
+
 (defun my-org-log-note (note)
   "Add NOTE to the current entry's logbook."
   (interactive "MNote: ")
@@ -6705,6 +6703,7 @@ With PARG kill the content instead."
   (my-org-with-current-task
    (let ((org-agenda-view-columns-initially t))
      (org-agenda nil "t" 'subtree))))
+
 ;; Projects:2 ends here
 
 ;; [[file:Sacha.org::#projects][Projects:3]]
@@ -7755,6 +7754,7 @@ This function is heavily adapted from `org-between-regexps-p'."
                                          (or (null to-date) (string< entry-time to-date)))))
                                     (xml-get-children (car (xml-get-children (car feed) 'channel)) 'item))))
                  ""))))
+
 ;; Weekly review:2 ends here
 
 ;; [[file:Sacha.org::#weekly-review][Weekly review:3]]
@@ -8246,6 +8246,8 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
 ;; Quick way to jump:1 ends here
 
 ;; [[file:Sacha.org::#refile-inbox][Refile inbox entries to a smaller set of org-refile-targets:1]]
+
+
 (defun my-org-refile-to-subset (arg)
 	"Refile to a smaller set of targets."
 	(interactive "P")
@@ -8387,6 +8389,7 @@ and indent it one level."
         (unless found
           (org-end-of-item-list)
           (insert string "\n"))))))
+
 ;; Moving lines around:1 ends here
 
 ;; [[file:Sacha.org::#destination][Moving lines around:2]]
@@ -8399,6 +8402,7 @@ and indent it one level."
       (delete-region (line-beginning-position) (1+ (line-end-position)))
       (org-end-of-item-list)
       (insert string))))
+
 ;; Moving lines around:2 ends here
 
 ;; [[file:Sacha.org::#organizing-my-blog-index][Organizing my blog index:1]]
@@ -8504,6 +8508,7 @@ and indent it one level."
 				(message-goto-body)
 				(unless (re-search-forward "^Hi, " nil t)
 					(insert "Hi, " (string-join people ",") "!\n\n"))))))
+
 ;; Contacts:1 ends here
 
 ;; [[file:Sacha.org::#inserting-code][Inserting code:2]]
@@ -8585,6 +8590,7 @@ and indent it one level."
       (unless (save-excursion (re-search-forward ":tangle" nil (line-end-position)))
         (goto-char (line-end-position))
         (insert " :tangle " (file-relative-name filename (file-name-directory (buffer-file-name))))))))
+
 ;; Make it easier to split my literate config into files:1 ends here
 
 ;; [[file:Sacha.org::org-babel-default-header-args][org-babel-default-header-args]]
@@ -8758,6 +8764,7 @@ and indent it one level."
   :config
 	(setq org-epub-style-default
         (concat org-epub-style-default "\n  p.my-verse { white-space: pre }\n")))
+
 ;; ox-epub:1 ends here
 
 ;; [[file:Sacha.org::#config-footer][Add a note to the bottom of blog posts exported from my config file:2]]
@@ -9170,6 +9177,7 @@ and indent it one level."
    :follow (lambda (id) (org-open-link-from-string (format "[[~/sync/emacs/Sacha.org::%s]]" id)))
    :export (lambda (link description format)
              (format "<a href=\"https://sachachua.com/dotemacs#%s\">%s</a>" link description))))
+
 ;; org-config-link ends here
 
 ;; [[file:Sacha.org::#youtube][YouTube:3]]
@@ -9295,6 +9303,7 @@ and indent it one level."
 ;; [[file:Sacha.org::#links-from-org-protocol][Links from org-protocol:3]]
 (use-package org-protocol-capture-html
 	:vc (:url "https://github.com/alphapapa/org-protocol-capture-html"))
+
 ;; Links from org-protocol:3 ends here
 
 ;; [[file:Sacha.org::#fix-elisp-links][Fix elisp links:2]]
@@ -9333,6 +9342,7 @@ FORMAT."
 ;; Org protocol: following Org links from outside Emacs:2 ends here
 
 ;; [[file:Sacha.org::#add-custom-id][Speed command for adding a custom ID to Org Mode posts:2]]
+
 (with-eval-after-load 'hydra
   (define-key hydra-base-map (kbd "<down>") 'my-hydra-pop)
   (define-key hydra-base-map (kbd "<up>") (lambda () (interactive) (my-hydra-go-and-push 'my-shortcuts/body)))
@@ -9407,6 +9417,7 @@ FORMAT."
   :config
   (setq org-attach-store-link-p 'attached)
   (setq org-attach-auto-tag nil))
+
 ;; Attachments:1 ends here
 
 ;; [[file:Sacha.org::#http][HTTP:1]]
@@ -10005,6 +10016,9 @@ If FRAMERATE is specified, use that instead of 30."
 ;; Split up oops better:2 ends here
 
 ;; [[file:Sacha.org::#multimedia-subtitles-with-subed-using-scripts-to-correct-transcripts][Using scripts to correct transcripts:1]]
+
+
+
 ;;  (my-combine-script-and-transcript '("I have a script" "that's broken up" "into phrases.") (split-string "I have, oops, I have a script oops. I have a script that's broken up in to faces." " ") "\\<oops\\>")
 ;;  (my-combine-script-and-transcript '("I already talk quickly," "so I'm not going to speed that up" "into phrases.") (split-string "I already talk pretty quickly. Oops. I already talk quickly, so I'm not going to speed that up, but I can trim the pauses in between phrases,"))
 ;; (subed-word-data-find-approximate-match "I already talk quickly" (split-string "I already talk pretty quickly oops I already talk quickly" " "))
@@ -10434,9 +10448,14 @@ If FRAMERATE is specified, use that instead of 30."
 
 ;; Hide package namespaces
 (use-package nameless
-  :ensure t
   :hook
   (emacs-lisp-mode .  nameless-mode)
+  :init
+  (with-eval-after-load 'lispy
+    (define-key lispy-mode-map "_" #'nameless-insert-name-or-self-insert))
+  :bind
+  (:map nameless-mode
+   ("_" . nameless-insert-name-or-self-insert))
   :custom
   (nameless-global-aliases '())
   (nameless-private-prefix t))
@@ -10554,6 +10573,7 @@ If FRAMERATE is specified, use that instead of 30."
   :disabled t
   :defer t
   :init (add-hook 'emacs-lisp-mode-hook 'redshank-mode))
+
 ;; Refactoring:1 ends here
 
 ;; [[file:Sacha.org::#jumping-to-code][Jumping to code:1]]
@@ -11085,6 +11105,7 @@ If FRAMERATE is specified, use that instead of 30."
   (add-to-list 'eshell-preoutput-filter-functions 'xterm-color-filter)
   (setq eshell-output-filter-functions
         (remove 'eshell-handle-ansi-color eshell-output-filter-functions)))
+
 ;; Eshell:1 ends here
 
 ;; [[file:Sacha.org::#coding-eshell-eshell-completion][Eshell completion:1]]
@@ -11369,6 +11390,7 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 	 "spookfox"
 	 :complete #'my-org-spookfox-complete
 	 :insert-description #'my-org-link-insert-description))
+
 ;; Link to current webpage from Spookfox:2 ends here
 
 ;; [[file:Sacha.org::#spookfox-babel][Running the current Org Mode Babel Javascript block from Emacs using Spookfox:5]]
@@ -11524,6 +11546,7 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 (with-eval-after-load 'embark
 	(add-to-list 'embark-target-finders 'mail-embark-finder)
 	)
+
 ;; Act on current message with Embark:2 ends here
 
 ;; [[file:Sacha.org::#gnus][Gnus:1]]
@@ -11595,6 +11618,7 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
   :commands (crdt-share-buffer crdt-connect)
   :load-path "~/vendor/crdt.el"
   :if my-laptop-p)
+
 ;; Collaboration:1 ends here
 
 ;; [[file:Sacha.org::#collaboration-bike-brigade-working-with-mailchimp-images][Bike Brigade: working with Mailchimp images:1]]
@@ -11815,6 +11839,7 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
              ("<f8>" my-plover-drilling-time "Drill"))
   :bind
   ("<f6>" . #'my-plover/body))
+
 ;; Plover:1 ends here
 
 ;; [[file:Sacha.org::#adding-steno-hints-as-i-type][Adding steno hints as I type:1]]
@@ -12140,6 +12165,7 @@ Restore main dictionary and turn off Plover when done."
     (my-process-inbox-entries))
    ((derived-mode-p 'subed-mode)
     (my-plover/edit-subtitles))))
+
 ;; Making it easier to execute commands:1 ends here
 
 ;; [[file:Sacha.org::#suggesting-briefs][Suggesting briefs:1]]
@@ -12574,6 +12600,7 @@ ITEMS should be a list like ((word) (word) (word))."
 ;; Using inotify to add Plover Clippy suggestions into Emacs:1 ends here
 
 ;; [[file:Sacha.org::#stenoing-interface][Stenoing interface:1]]
+
 (defvar my-plover-quick-notes "~/proj/plover-notes/scratch.org")
 (defvar my-plover-current-stroke-buffer "*Current stroke*")
 (defun my-plover-add-note (string)
@@ -12852,6 +12879,7 @@ loaded."
 ;; Manage photos with geeqie:4 ends here
 
 ;; [[file:Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie:6]]
+
 (use-package pretty-hydra
   :config
   (pretty-hydra-define my-geeqie ()
@@ -12992,6 +13020,7 @@ loaded."
 	(gptel-post-stream . gptel-auto-scroll)
 	(gptel-post-response . gptel-end-of-response)
 	)
+
 ;; ChatGPT, AI, and large-language models:3 ends here
 
 ;; [[file:Sacha.org::#inactive-infrequent-things-chatgpt-ai-and-large-language-models-agent-shell][agent-shell:2]]

@@ -204,6 +204,7 @@ so that it's still active even after you stage a change. Very experimental."
   ["Auxiliary commands"
    ("d" "Difftastic Diff (dwim)" th/magit-diff-with-difftastic)
 	 ("s" "Difftastic Show" th/magit-show-with-difftastic)])
+
 ;; Use difftastic:1 ends here
 
 ;; [[file:../Sacha.org::#checking-things-out][Checking things out:1]]

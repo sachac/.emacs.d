@@ -68,6 +68,7 @@
   (let* ((cwd (string-remove-suffix "/" (agent-shell-cwd)))
          (sanitized (replace-regexp-in-string "/" "-" (string-remove-prefix "/" cwd))))
     (expand-file-name subdir (locate-user-emacs-file (concat "agent-shell/" sanitized)))))
+
 ;; agent-shell:1 ends here
 
 (provide 'my-ai)

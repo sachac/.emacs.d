@@ -297,6 +297,7 @@
           (if (and hippie-expand-verbose
                    (not (window-minibuffer-p)))
               (message "Undoing expansions"))))))
+
 ;; Snippets:6 ends here
 
 (provide 'my-complete)

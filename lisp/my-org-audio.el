@@ -34,6 +34,7 @@
 
 
 ;; [[file:../Sacha.org::#audio][Audio:2]]
+
 ;;;###autoload
 (defun my-org-audio-replace-with-permalink ()
 	(interactive)

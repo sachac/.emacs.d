@@ -437,6 +437,7 @@
   "Trigger task to export. Phone must be unlocked."
   (interactive)
   (my-send-intent "com.sachachua.journal.export" '(("a" . "b"))))
+
 ;; Journal:7 ends here
 
 ;; [[file:../Sacha.org::#journal][Journal:9]]

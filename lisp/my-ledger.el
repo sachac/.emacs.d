@@ -122,6 +122,7 @@
     (my-ledger-change-account (ledger-read-account-with-prompt
                                (format "%s %s: " (s-trim (save-match-data (ledger-xact-payee)))
                                        (match-string 1))))))
+
 ;; Ledger:3 ends here
 
 (provide 'my-ledger)

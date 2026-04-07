@@ -191,6 +191,7 @@
                    ov 'modification-hooks
                    (list 'org-display-inline-remove-overlay))
                   (push ov org-inline-image-overlays))))))))))
+
 ;; org-sketch-link ends here
 
 (provide 'my-org-image)

@@ -963,6 +963,7 @@ With prefix arg, move the subtree."
 													(when (boundp 'image-map)
 														(overlay-put ov 'keymap image-map))
 													(push ov org-inline-image-overlays))))))))))))))
+
 ;; Org Mode: Including portions of files between two regular expressions:3 ends here
 
 ;; [[file:../Sacha.org::#copy-linked-file-and-change-link][Copy linked file and change link:1]]
@@ -1350,6 +1351,7 @@ This uses :insert-description if defined."
 	(save-restriction
 		(narrow-to-region beg end)
 		(kill-new (org-export-as 'ascii nil nil t))))
+
 ;; YouTube:2 ends here
 
 ;; [[file:../Sacha.org::#web-link][Copy web link:1]]
@@ -2159,6 +2161,7 @@ Use the region if active."
   (when (looking-at "^[-+] \\[\\[\\([^]]+\\)")
     (add-hook 'eww-after-render-hook #'my-eww-readable-nonce)
     (eww (match-string 1))))
+
 ;; Digital index piles with Emacs:4 ends here
 
 ;; [[file:../Sacha.org::#digital-index-piles-with-emacs][Digital index piles with Emacs:5]]
@@ -2307,6 +2310,7 @@ Use the region if active."
       (save-window-excursion
         (org-refile 4 nil location)
         (my-org-clock-in-and-track)))))
+
 ;; Quantified Awesome:1 ends here
 
 ;; [[file:../Sacha.org::#compare-time][Compare times and effort estimates:1]]
@@ -2386,6 +2390,7 @@ Use the region if active."
       (if (called-interactively-p 'any)
           (kill-new string)
         string))))
+
 ;; List upcoming tasks so that I can see if I'm overloaded:2 ends here
 
 ;; [[file:../Sacha.org::#streaming-send-currently-clocked-task-title-to-file-include-in-stream][Send currently-clocked task title to file, include in stream:1]]
@@ -2400,6 +2405,7 @@ Use the region if active."
 ;;;###autoload
 (defun my-org-clear-streaming-task ()
   (with-temp-file "~/proj/stream/current-task.txt"))
+
 ;; Send currently-clocked task title to file, include in stream:1 ends here
 
 ;; [[file:../Sacha.org::#show-emacs-related-tasks][Show Emacs-related tasks:1]]

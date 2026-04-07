@@ -9927,6 +9927,7 @@ stuff.
 (defvar my-org-inbox-file "~/sync/orgzly/Inbox.org")
 (use-package org
   :load-path ("~/vendor/org-mode/lisp" "~/vendor/org-mode/contrib/lisp")
+  :preface (load "~/vendor/org-mode/lisp/org-loaddefs.el" nil t)
   :bind
   (:map org-mode-map
         ("C-M-<return>" . org-insert-subheading)
@@ -25700,7 +25701,8 @@ CLOCK: [2024-10-16 Wed 20:43]--[2024-10-16 Wed 20:50] =>  0:07
 (use-package subed
   :if my-laptop-p
   ;; :quelpa (subed :fetcher github :repo "rndusr/subed" :files (:defaults "subed/*.el"))
-  :load-path "~/vendor/subed/subed"
+  :preface (load "~/proj/subed/subed-autoloads.el" nil t)
+  :load-path "~/proj/subed/subed"
   :config
   (setq subed-subtitle-spacing 1)
   (setq subed-align-mfa-conda-env "/home/sacha/vendor/miniconda3/envs/aligner")

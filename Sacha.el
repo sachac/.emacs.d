@@ -1984,7 +1984,13 @@
 ;; Writing and editing:1 ends here
 
 ;; [[file:Sacha.org::#multimedia-learning-french][Learning French:1]]
-  (use-package learn-lang :load-path "~/proj/learn-lang")
+  (use-package learn-lang :load-path "~/proj/learn-lang"
+    :preface (load "~/proj/learn-lang/learn-lang-autoloads.el" nil t)
+    :config
+    (setq learn-lang-language "fr")
+    (setq learn-lang-tatoeba-files
+          '(("fr" . "~/proj/french/tatoeba-fr-en.tsv")))
+    )
 ;; Learning French:1 ends here
 
 ;; [[file:Sacha.org::#multimedia-learning-french][Learning French:2]]
@@ -6004,6 +6010,7 @@ If DIARIZE is non-nil, identify speakers."
 (defvar my-org-inbox-file "~/sync/orgzly/Inbox.org")
 (use-package org
   :load-path ("~/vendor/org-mode/lisp" "~/vendor/org-mode/contrib/lisp")
+  :preface (load "~/vendor/org-mode/lisp/org-loaddefs.el" nil t)
   :bind
   (:map org-mode-map
         ("C-M-<return>" . org-insert-subheading)
@@ -9920,7 +9927,8 @@ If FRAMERATE is specified, use that instead of 30."
 (use-package subed
   :if my-laptop-p
   ;; :quelpa (subed :fetcher github :repo "rndusr/subed" :files (:defaults "subed/*.el"))
-  :load-path "~/vendor/subed/subed"
+  :preface (load "~/proj/subed/subed-autoloads.el" nil t)
+  :load-path "~/proj/subed/subed"
   :config
   (setq subed-subtitle-spacing 1)
   (setq subed-align-mfa-conda-env "/home/sacha/vendor/miniconda3/envs/aligner")

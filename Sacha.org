@@ -65,10 +65,10 @@ easier.
 Here's my early-init.el:
 
 #+begin_src emacs-lisp :tangle "~/.config/emacs/early-init.el" :eval never-export
-(eval-when-compile
-  (add-to-list 'load-path "~/vendor/org-mode/lisp")
-  (add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
-  (load "~/vendor/org-mode/lisp/org-loaddefs.el" nil t))
+(setq load-path (cl-remove-if (lambda (p) (string-match-p "lisp/org$" p)) load-path))
+(add-to-list 'load-path "~/vendor/org-mode/lisp")
+(add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
+(load "~/vendor/org-mode/lisp/org-loaddefs.el" nil t)
 (setq user-lisp-directory "~/sync/emacs/lisp")
 #+end_src
 
@@ -13591,8 +13591,11 @@ Aha, I can fiddle with =org-babel-post-tangle-hook= to insert the boilerplate af
          title)
       (cons url title))))
 
+(eval-and-compile
+  (require 'org-core nil t)
+  (require 'org-macs nil t)
+  (require 'org-src nil t))
 (declare-function 'org-babel-tangle--compute-targets "ob-tangle")
-(eval-when-compile (require 'org-core nil t))
 (defun my-org-collect-links-for-tangled-files ()
   "Return a list of ((filename (link link link link)) ...)."
   (let* ((file (buffer-file-name))

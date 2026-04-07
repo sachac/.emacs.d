@@ -4625,7 +4625,13 @@ From Xah Lee:
 :END:
 
 #+begin_src emacs-lisp
-  (use-package learn-lang :load-path "~/proj/learn-lang")
+  (use-package learn-lang :load-path "~/proj/learn-lang"
+    :preface (load "~/proj/learn-lang/learn-lang-autoloads.el" nil t)
+    :config
+    (setq learn-lang-language "fr")
+    (setq learn-lang-tatoeba-files
+          '(("fr" . "~/proj/french/tatoeba-fr-en.tsv")))
+    )
 #+end_src
 
 #+begin_src emacs-lisp
@@ -4639,24 +4645,25 @@ From Xah Lee:
      s ""))
 
   (defvar-keymap my-lang-map
+    :prefix t
     "l" (cons "lookup" #'my-lang-lexique-complete-word)
     "w" (cons "wordref" #'my-lang-wordreference-lookup)
     "c" (cons "conj" #'my-lang-conjugate)
     "f" (cons "→ fr" #'my-lang-consult-en-fr)
     "s" (cons "say" #'my-lang-say-word-at-point)
+    "x" (cons "example" #'learn-lang-tatoeba-consult)
     "t" (cons "→ en" #'my-lang-translate-dwim))
-  (fset 'my-lang-map my-lang-map)
 
   (with-eval-after-load 'org
-    (keymap-set org-mode-map "C-," my-lang-map)
-    (keymap-set org-mode-map "C-c u" my-lang-map))
+    (keymap-set org-mode-map "C-," 'my-lang-map)
+    (keymap-set org-mode-map "C-c u" 'my-lang-map))
 
-  (with-eval-after-load 'org
-    (keymap-set message-mode-map "C-," my-lang-map)
+  (with-eval-after-load 'message
+    (keymap-set message-mode-map "C-," 'my-lang-map)
     )
 
   (with-eval-after-load 'flyspell
-    (keymap-set flyspell-mode-map "C-," my-lang-map))
+    (keymap-set flyspell-mode-map "C-," 'my-lang-map))
 
 
   (use-package wiktionary-bro

@@ -28180,9 +28180,14 @@ Copied from https://www.reddit.com/r/emacs/comments/1051bfu/comment/j38ymkn/?utm
 
 ;; Hide package namespaces
 (use-package nameless
-  :ensure t
   :hook
   (emacs-lisp-mode .  nameless-mode)
+  :init
+  (with-eval-after-load 'lispy
+    (define-key lispy-mode-map "_" #'nameless-insert-name-or-self-insert))
+  :bind
+  (:map nameless-mode
+   ("_" . nameless-insert-name-or-self-insert))
   :custom
   (nameless-global-aliases '())
   (nameless-private-prefix t))

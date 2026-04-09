@@ -449,6 +449,8 @@ INFO is a plist holding contextual information."
 ;; Abbreviations:2 ends here
 
 ;; [[file:../Sacha.org::#adding-a-custom-header-argument-to-org-mode-source-blocks-and-using-that-argument-during-export][Adding a custom header argument to Org Mode source blocks and using that argument during export:1]]
+(eval-and-compile
+  (require 'org-macs nil t))
 ;;;###autoload
 (defun my-org-html-src-block (src-block _contents info)
 	(let* ((result

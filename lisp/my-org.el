@@ -892,6 +892,8 @@ With prefix arg, move the subtree."
 ;; Org Mode: Including portions of files between two regular expressions:2 ends here
 
 ;; [[file:../Sacha.org::#org-mode-including-portions-of-files-between-two-regular-expressions][Org Mode: Including portions of files between two regular expressions:3]]
+(eval-and-compile
+  (require 'org-macs nil t))
 ;;;###autoload
 (defun my-org-display-included-images (&optional include-linked refresh beg end)
 	"Display inline images for my-include types."

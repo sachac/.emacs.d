@@ -8001,8 +8001,8 @@ stuttering. [[https://github.com/rncbc/qpwgraph][qpwgraph]] was super helpful
 for visualizing the Pipewire connections and fixing them.
 
 #+begin_src sh :eval no :tangle "~/bin/setup-mic" :shebang "#!/bin/bash"
-systemctl --user restart pipewire
-sleep 2
+systemctl --user restart pipewire pipewire-pulse wireplumber
+sleep 3
 pactl load-module module-null-sink \
   sink_name="VirtualMicSink" sink_properties=device.description=VirtualMicSink
 pactl load-module module-null-sink \
@@ -8011,38 +8011,39 @@ if pactl list short sources | grep -i pci-0000; then
   pactl load-module module-loopback \
     source="alsa_input.pci-0000_00_1f.3.analog-stereo" \
     sink="VirtualMicSink" \
-    latency_msec=100 \
-    adjust_time=1 \
+    latency_msec=200 \
+    adjust_time=3 \
     source_output_properties="node.description='SysToVMic' node.name='SysToVMic' media.name='SysVToMic'" \
     sink_input_properties="node.description='SysToVMic' node.name='SysToVMic' media.role='filter'"
-    sink_input_properties=media.role=filter
-  pactl load-module module-loopback \    source="alsa_output.pci-0000_00_1f.3.analog-stereo.monitor" \
+  pactl load-module module-loopback \
+    source="alsa_output.pci-0000_00_1f.3.analog-stereo.monitor" \
     sink="CombinedSink" \
     node_name="SystemOutToCombined" \
     source_output_properties="node.description='SysOutToCombined' node.name='SysOutToCombined'" \
     sink_input_properties="node.description='SysOutToCombined' node.name='SysOutToCombined' media.role='filter'" \
-    latency_msec=100 adjust_time=1
+    latency_msec=200 adjust_time=3
 fi
 if pactl list short sources | grep -i yeti; then
   pactl load-module module-loopback \
     source="alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo" \
     sink="VirtualMicSink" \
-    latency_msec=100 \
-    adjust_time=1 \
+    latency_msec=200 \
+    adjust_time=3 \
     source_output_properties="node.description='YetiToVMic' node.name='YetiToVMic' media.name='YetiToVMic'" \
     sink_input_properties="node.description='YetiToVMic' node.name='YetiToVMic' media.role='filter'"
-  pactl load-module module-loopback \    source="alsa_output.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo.monitor" \
+  pactl load-module module-loopback \
+    source="alsa_output.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo.monitor" \
     sink="CombinedSink" \
-    source_output_properties="node.description='YetiOutToCombined' node.name='YetiOutToCombined' media.name='YetiOutToCombined' " \
+    source_output_properties="node.description='YetiOutToCombined' node.name='YetiOutToCombined' media.name='YetiOutToCombined'" \
     sink_input_properties="node.description='YetiOutToCombined' node.name='YetiOutToCombined' media.role='filter'" \
-    latency_msec=100 adjust_time=1
+    latency_msec=200 adjust_time=3
 fi
 pactl load-module module-loopback \
   source="VirtualMicSink.monitor" \
   sink="CombinedSink" \
   source_output_properties="node.description='VMicToCombined' node.name='VMicToCombined' media.name='VMicToCombined'" \
   sink_input_properties="node.description='VMicToCombined' node.name='VMicToCombined' media.role='filter'" \
-  latency_msec=100 adjust_time=1
+  latency_msec=200 adjust_time=3
 
 pactl load-module module-null-sink \
   sink_name="ExtraSink1" sink_properties=device.description=ExtraSink1
@@ -8052,7 +8053,16 @@ pactl load-module module-loopback \
   sink="CombinedSink" \
   source_output_properties="node.description='ExtraSink1ToCombined' node.name='ExtraSink1ToCombined' media.name='ExtraSink1ToCombined'" \
   sink_input_properties="node.description='ExtraSink1ToCombined' node.name='ExtraSink1ToCombined' media.role='filter'" \
-  latency_msec=100 adjust_time=1
+  latency_msec=200 adjust_time=3
+
+if pactl load-module module-remap-source \
+  source_name="VirtualMic" \
+  master="VirtualMicSink.monitor" \
+  source_properties="device.description='VirtualMic'" 2>/dev/null; then
+  pactl set-default-source VirtualMic
+else
+  pactl set-default-source VirtualMicSink.monitor
+fi
 #+end_src
 
 Here's a demo:
@@ -15763,6 +15773,8 @@ my-include-complete
 This code displays the images inline.
 
 #+begin_src emacs-lisp :tangle "lisp/my-org.el"
+(eval-and-compile
+  (require 'org-macs nil t))
 ;;;###autoload
 (defun my-org-display-included-images (&optional include-linked refresh beg end)
 	"Display inline images for my-include types."
@@ -16386,6 +16398,8 @@ regular src blocks, and to change the HTML export to wrap the code in
 ~details~ if the summary was specified.
 
 #+begin_src emacs-lisp :tangle "lisp/my-org-export.el" :summary "Code for adding a :summary argument and using it during export"
+(eval-and-compile
+  (require 'org-macs nil t))
 ;;;###autoload
 (defun my-org-html-src-block (src-block _contents info)
 	(let* ((result

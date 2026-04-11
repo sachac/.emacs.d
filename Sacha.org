@@ -96,6 +96,9 @@ happens in an external Emacs process. Since I create =Sacha.el= via
 =org-babel-tangle=, my Emacs config can load =Sacha.el= without
 loading Org first.
 ** Update: I'm working on moving code to function libraries
+:PROPERTIES:
+:CUSTOM_ID: about-this-file-update-i-m-working-on-moving-code-to-function-libraries
+:END:
 
 I'm slowly moving function definitions to the [[file:lisp/][lisp/]] subdirectory.
 
@@ -3282,6 +3285,9 @@ repeating just the last keystroke.
                 (buffer-list))))
 #+end_src
 ** Substitution
+:PROPERTIES:
+:CUSTOM_ID: navigation-substitution
+:END:
 
 #+begin_src emacs-lisp
 (use-package substitute
@@ -4735,7 +4741,7 @@ Based on https://kitchingroup.cheme.cmu.edu/blog/2014/08/31/Using-Mac-gestures-i
                                (setq sacha-navigate-swipe-debounce t)))))
 #+end_src
 
-#+begin_src emacs-lisp :tangle lisp/sacha-navigate.el
+#+begin_src emacs-lisp
 (keymap-global-set "<triple-wheel-right>" 'sacha-navigate-previous-buffer-debounced)
 (keymap-global-set "<triple-wheel-left>" 'sacha-navigate-next-buffer-debounced)
 #+end_src
@@ -7301,7 +7307,9 @@ Prompt for a caption afterwards."
      :command
      (list "spectacle" "-b" "-m" "-n" "-o" new-file))
     new-file))
+#+end_src
 
+#+begin_src emacs-lisp
 (keymap-global-set "C-c s" #'sacha-screenshot)
 (keymap-global-set "s-s" #'sacha-screenshot)
 #+end_src
@@ -8589,7 +8597,6 @@ Call with \\[universal-argument] to signal that we can stop."
   :doc "Keymap for sacha-minor-mode."
   "S-<f2>" #'sacha-whisper-continue
   )
-(define-key sacha-whisper-simulated-continuous-mode-map [remap whisper-run] #'sacha-whisper-continue)
 
 (define-minor-mode sacha-whisper-simulated-continuous-mode
   "Simulate continuous speech recognition by queuing."
@@ -8605,7 +8612,9 @@ Call with \\[universal-argument] to signal that we can stop."
 (keymap-global-set "<kp-9>" #'sacha-whisper-continue)
 (keymap-global-set "<kp-8>" #'sacha-whisper-discard-and-continue)
 (keymap-global-set "C-<kp-9>" #'sacha-whisper-done)
- #+end_src
+(with-eval-after-load 'sacha-whisper
+  (define-key sacha-whisper-simulated-continuous-mode-map [remap whisper-run] #'sacha-whisper-continue))
+#+end_src
 *** Using Silero voice activity detection to automatically queue multiple transcriptions with natrys/whisper.el  :SpeechRecognition:emacs:
 :PROPERTIES:
 :CUSTOM_ID: writing-and-editing-speech-recognition-using-silero-voice-activity-detection-to-automatically-queue-multiple-transcriptions-with-natrys-whisper-el
@@ -12246,7 +12255,7 @@ extra keystroke. ;)
   (org-agenda-todo "DONE"))
 #+end_src
 
-#+begin_src emacs-lisp :tangle lisp/sacha-org.el
+#+begin_src emacs-lisp
 ;; Override the key definition for org-exit
 (define-key org-agenda-mode-map "x" 'sacha-org-agenda-done)
 #+end_src
@@ -36478,6 +36487,9 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
           (presentation :default-height 180))))
 #+end_src
 ** Custom Org link type for hints (and sound effects)
+:PROPERTIES:
+:CUSTOM_ID: streaming-custom-org-link-type-for-hints-and-sound-effects
+:END:
 
 #+begin_src emacs-lisp :tangle lisp/sacha-org-hint.el
 (defun sacha-org-hint-export (path desc format _)
@@ -37304,12 +37316,16 @@ Make it easier to review my credit card transactions
   :demand t)
 #+end_src
 
+#+begin_src emacs-lisp
+(with-eval-after-load 'ledger
+  (defadvice ledger-accounts-list (around sacha activate)
+    "Cache"
+    (setq ad-return-value (or sacha-ledger-account-list-cache
+                              (setq sacha-ledger-account-list-cache ad-do-it)))))
+#+end_src
+
 #+begin_src emacs-lisp :tangle lisp/sacha-ledger.el
 (defvar-local sacha-ledger-account-list-cache nil)
-(defadvice ledger-accounts-list (around sacha activate)
-  "Cache"
-  (setq ad-return-value (or sacha-ledger-account-list-cache
-                            (setq sacha-ledger-account-list-cache ad-do-it))))
 
 ;;;###autoload
 (defun sacha-ledger-set-unknown-account (account point)

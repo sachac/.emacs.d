@@ -27,13 +27,13 @@
 ;; Related Emacs config sections:
 ;;
 ;; - Custom Org link type for hints (and sound effects)
-;;   https://sachachua.com/dotemacs#streaming
+;;   https://sachachua.com/dotemacs#streaming-custom-org-link-type-for-hints-and-sound-effects
 ;;
 ;;; Code:
 
 
 
-;; [[file:../Sacha.org::*Custom Org link type for hints (and sound effects)][Custom Org link type for hints (and sound effects):1]]
+;; [[file:../Sacha.org::#streaming-custom-org-link-type-for-hints-and-sound-effects][Custom Org link type for hints (and sound effects):1]]
 (defun sacha-org-hint-export (path desc format _)
 	"Export hint."
 	(pcase format

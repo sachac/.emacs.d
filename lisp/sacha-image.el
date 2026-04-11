@@ -416,9 +416,6 @@ Prompt for a caption afterwards."
      :command
      (list "spectacle" "-b" "-m" "-n" "-o" new-file))
     new-file))
-
-(keymap-global-set "C-c s" #'sacha-screenshot)
-(keymap-global-set "s-s" #'sacha-screenshot)
 ;; Screenshot:1 ends here
 
 ;; [[file:../Sacha.org::sacha-org-insert-screenshot][sacha-org-insert-screenshot]]

@@ -549,11 +549,6 @@ From https://www.reddit.com/r/emacs/comments/l4v1ux/one_of_the_most_useful_small
                                (setq sacha-navigate-swipe-debounce t)))))
 ;; Touch gestures:1 ends here
 
-;; [[file:../Sacha.org::#touch][Touch gestures:2]]
-(keymap-global-set "<triple-wheel-right>" 'sacha-navigate-previous-buffer-debounced)
-(keymap-global-set "<triple-wheel-left>" 'sacha-navigate-next-buffer-debounced)
-;; Touch gestures:2 ends here
-
 ;; [[file:../Sacha.org::#link-related-convenience-functions][Link-related convenience functions:1]]
 ;;;###autoload
 (defun kensanata/resolve-redirect (url)

@@ -539,7 +539,6 @@ Call with \\[universal-argument] to signal that we can stop."
   :doc "Keymap for sacha-minor-mode."
   "S-<f2>" #'sacha-whisper-continue
   )
-(define-key sacha-whisper-simulated-continuous-mode-map [remap whisper-run] #'sacha-whisper-continue)
 
 (define-minor-mode sacha-whisper-simulated-continuous-mode
   "Simulate continuous speech recognition by queuing."

@@ -1274,11 +1274,6 @@ This function is heavily adapted from `org-between-regexps-p'."
   (org-agenda-todo "DONE"))
 ;; Make it easy to mark a task as done:1 ends here
 
-;; [[file:../Sacha.org::#make-it-easy-to-mark-a-task-as-done][Make it easy to mark a task as done:2]]
-;; Override the key definition for org-exit
-(define-key org-agenda-mode-map "x" 'sacha-org-agenda-done)
-;; Make it easy to mark a task as done:2 ends here
-
 ;; [[file:../Sacha.org::#make-it-easy-to-mark-a-task-as-done-and-create-a-follow-up-task][Make it easy to mark a task as done and create a follow-up task:1]]
 ;;;###autoload
 (defun sacha-org-agenda-mark-done-and-add-followup ()

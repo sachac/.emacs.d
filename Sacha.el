@@ -659,7 +659,7 @@
 (keymap-global-set "C-x !" #'delete-other-windows-vertically)
 ;; Navigation:1 ends here
 
-;; [[file:Sacha.org::*Substitution][Substitution:1]]
+;; [[file:Sacha.org::#navigation-substitution][Substitution:1]]
 (use-package substitute
   :bind ("C-;" . substitute-target-in-buffer))
 ;; Substitution:1 ends here
@@ -1079,6 +1079,11 @@
       (tramp-hlo-setup))
 ;; Network: TRAMP and editing files over SSH:2 ends here
 
+;; [[file:Sacha.org::#touch][Touch gestures:2]]
+(keymap-global-set "<triple-wheel-right>" 'sacha-navigate-previous-buffer-debounced)
+(keymap-global-set "<triple-wheel-left>" 'sacha-navigate-next-buffer-debounced)
+;; Touch gestures:2 ends here
+
 ;; [[file:Sacha.org::#reading][Reading:1]]
   (use-package pdf-tools
     :if sacha-laptop-p
@@ -1205,6 +1210,11 @@
     :if sacha-laptop-p
     :mode ("\\.\\(njk\\|md\\)\\'" . markdown-mode))
 ;; Markdown:1 ends here
+
+;; [[file:Sacha.org::#screenshot][Screenshot:2]]
+(keymap-global-set "C-c s" #'sacha-screenshot)
+(keymap-global-set "s-s" #'sacha-screenshot)
+;; Screenshot:2 ends here
 
 ;; [[file:Sacha.org::#avoiding-weasel-words][Avoiding weasel words:1]]
   (use-package artbollocks-mode
@@ -1364,6 +1374,8 @@
 (keymap-global-set "<kp-9>" #'sacha-whisper-continue)
 (keymap-global-set "<kp-8>" #'sacha-whisper-discard-and-continue)
 (keymap-global-set "C-<kp-9>" #'sacha-whisper-done)
+(with-eval-after-load 'sacha-whisper
+  (define-key sacha-whisper-simulated-continuous-mode-map [remap whisper-run] #'sacha-whisper-continue))
 ;; Queuing multiple transcriptions with whisper.el speech recognition:2 ends here
 
 ;; [[file:Sacha.org::#writing-and-editing-speech-recognition-using-silero-voice-activity-detection-to-automatically-queue-multiple-transcriptions-with-natrys-whisper-el][Using Silero voice activity detection to automatically queue multiple transcriptions with natrys/whisper.el:1]]
@@ -2132,6 +2144,11 @@
 (setq org-complete-tags-always-offer-all-agenda-tags t)
 (setq org-use-fast-tag-selection nil)
 ;; Making it easier to tag inbox items:1 ends here
+
+;; [[file:Sacha.org::#make-it-easy-to-mark-a-task-as-done][Make it easy to mark a task as done:2]]
+;; Override the key definition for org-exit
+(define-key org-agenda-mode-map "x" 'sacha-org-agenda-done)
+;; Make it easy to mark a task as done:2 ends here
 
 ;; [[file:Sacha.org::#make-it-easy-to-mark-a-task-as-done-and-create-a-follow-up-task][Make it easy to mark a task as done and create a follow-up task:2]]
 ;; Override the key definition
@@ -5063,7 +5080,7 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
           (presentation :default-height 180))))
 ;; Mode for streaming:3 ends here
 
-;; [[file:Sacha.org::*Custom Org link type for hints (and sound effects)][Custom Org link type for hints (and sound effects):2]]
+;; [[file:Sacha.org::#streaming-custom-org-link-type-for-hints-and-sound-effects][Custom Org link type for hints (and sound effects):2]]
 (with-eval-after-load 'org
   (setq sacha-org-hint-sound-alist
         '(("yup" . "~/proj/stream/correct.mp3")
@@ -5175,6 +5192,14 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 	:hook (ledger-mode . flycheck-mode)
   :demand t)
 ;; Ledger:2 ends here
+
+;; [[file:Sacha.org::#ledger-personal-finance-in-sacha-config][Ledger:3]]
+(with-eval-after-load 'ledger
+  (defadvice ledger-accounts-list (around sacha activate)
+    "Cache"
+    (setq ad-return-value (or sacha-ledger-account-list-cache
+                              (setq sacha-ledger-account-list-cache ad-do-it)))))
+;; Ledger:3 ends here
 
 ;; [[file:Sacha.org::#ssh-and-daemon][SSH and --daemon:2]]
 (sacha-ssh-refresh)

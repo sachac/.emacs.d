@@ -657,7 +657,7 @@ Activate this with:
       (complete-with-action action completions string pred))))
 ;; Using Spookfox to scroll Firefox up and down from Emacs:5 ends here
 
-;; [[file:../Sacha.org::#ledger-personal-finance-in-sacha-config][Ledger:4]]
+;; [[file:../Sacha.org::#ledger-personal-finance-in-sacha-config][Ledger:5]]
 ;;;###autoload
 (defun sacha-latest-file (path &optional filter)
   "Return the newest file in PATH. Optionally filter by FILTER."
@@ -669,7 +669,7 @@ Activate this with:
 		 (sort (seq-remove #'file-directory-p
 											 (directory-files path 'full filter t))
 					 #'file-newer-than-file-p))))
-;; Ledger:4 ends here
+;; Ledger:5 ends here
 
 (provide 'sacha-elisp)
 ;;; sacha-elisp.el ends here

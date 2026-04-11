@@ -33,12 +33,8 @@
 
 
 
-;; [[file:../Sacha.org::#ledger-personal-finance-in-sacha-config][Ledger:3]]
+;; [[file:../Sacha.org::#ledger-personal-finance-in-sacha-config][Ledger:4]]
 (defvar-local sacha-ledger-account-list-cache nil)
-(defadvice ledger-accounts-list (around sacha activate)
-  "Cache"
-  (setq ad-return-value (or sacha-ledger-account-list-cache
-                            (setq sacha-ledger-account-list-cache ad-do-it))))
 
 ;;;###autoload
 (defun sacha-ledger-set-unknown-account (account point)
@@ -123,7 +119,7 @@
                                (format "%s %s: " (s-trim (save-match-data (ledger-xact-payee)))
                                        (match-string 1))))))
 
-;; Ledger:3 ends here
+;; Ledger:4 ends here
 
 (provide 'sacha-ledger)
 ;;; sacha-ledger.el ends here

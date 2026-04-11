@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Ledger
+;;   https://sachachua.com/dotemacs#ledger-personal-finance-in-sacha-config
+;;
 ;;; Code:
 
 

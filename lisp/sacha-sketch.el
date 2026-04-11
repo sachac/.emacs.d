@@ -24,7 +24,62 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Embark and images
+;;   https://sachachua.com/dotemacs#embark-image
+;;
+;; - Completing sketches
+;;   https://sachachua.com/dotemacs#completing-sketches
+;;
+;; - Writing about sketches and including their text
+;;   https://sachachua.com/dotemacs#org-mode-writing-about-sketches-and-including-their-text
+;;
+;; - Sketch list
+;;   https://sachachua.com/dotemacs#flickr-extract
+;;
+;; - Breaking up a PDF from Supernote
+;;   https://sachachua.com/dotemacs#multimedia-images-svg-animating-svgs-breaking-up-a-pdf-from-supernote
+;;
+;; - Finding sketches
+;;   https://sachachua.com/dotemacs#finding-sketches
+;;
+;; - Renaming and recoloring sketches
+;;   https://sachachua.com/dotemacs#sketch-rename-recolor
+;;
+;; - Button-based interface
+;;   https://sachachua.com/dotemacs#button-based-interface
+;;
+;; - Templates
+;;   https://sachachua.com/dotemacs#templates
+;;
+;; - Get information for sketched books
+;;   https://sachachua.com/dotemacs#get-information-for-sketched-books
+;;
+;; - Make it easy to follow up on a sketch
+;;   https://sachachua.com/dotemacs#make-it-easy-to-follow-up-on-a-sketch
+;;
+;; - Digital index piles with Emacs
+;;   https://sachachua.com/dotemacs#digital-index-piles-with-emacs
+;;
+;; - Sketched books
+;;   https://sachachua.com/dotemacs#insert-point
+;;
+;; - Other sketches
+;;   https://sachachua.com/dotemacs#other-sketches
+;;
+;; - Other sketch-related functions
+;;   https://sachachua.com/dotemacs#other-sketch-related-functions
+;;
+;; - Write about half-page scans
+;;   https://sachachua.com/dotemacs#write-about-half-page-scans
+;;
+;; - Supernote
+;;   https://sachachua.com/dotemacs#supernote
+;;
+;; - org-attaching the latest image from my Supernote via Browse and Access
+;;   https://sachachua.com/dotemacs#supernote-browse
+;;
 ;;; Code:
 
 
@@ -983,7 +1038,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 
 ;; Other sketch-related functions:1 ends here
 
-;; [[file:../Sacha.org::#write-about-half-page-scans][SOMEDAY Write about half-page scans:1]]
+;; [[file:../Sacha.org::#write-about-half-page-scans][Write about half-page scans:1]]
 ;;;###autoload
 (defun sacha-write-about-half-page-scan (filename)
   (interactive (list (read-file-name (format "Sketch (%s): "
@@ -1005,7 +1060,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
                                          sacha-sketches-directory))
         (rename-file filename new-name)))
     (sacha-write-about-sketch new-name)))
-;; SOMEDAY Write about half-page scans:1 ends here
+;; Write about half-page scans:1 ends here
 
 ;; [[file:../Sacha.org::#supernote][Supernote:4]]
 ;;;###autoload

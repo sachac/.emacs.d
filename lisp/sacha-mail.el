@@ -24,12 +24,22 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Send mail asynchronously
+;;   https://sachachua.com/dotemacs#async-smtpmail
+;;
+;; - Add comment to blog post
+;;   https://sachachua.com/dotemacs#mail-and-news-notmuch-add-comment-to-blog-post
+;;
+;; - Approve or discard Mailman messages
+;;   https://sachachua.com/dotemacs#approve-or-discard-mailman-messages
+;;
 ;;; Code:
 
 
 
-;; [[file:../Sacha.org::#async-smtpmail][TOBLOG Send mail asynchronously:1]]
+;; [[file:../Sacha.org::#async-smtpmail][Send mail asynchronously:1]]
 ;;;###autoload
 (defun sacha-async-smtpmail-send-it ()
   (let ((to          (message-field-value "To"))
@@ -49,7 +59,7 @@
           (smtpmail-send-it)))
      `(lambda (&optional _ignore)
 				(message "Delivering message to %s...done" ,to)))))
-;; TOBLOG Send mail asynchronously:1 ends here
+;; Send mail asynchronously:1 ends here
 
 ;; [[file:../Sacha.org::#mail-and-news-notmuch-add-comment-to-blog-post][Add comment to blog post:1]]
 ;;;###autoload

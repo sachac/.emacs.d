@@ -24,7 +24,53 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Changing Org Mode underlines to the HTML mark element
+;;   https://sachachua.com/dotemacs#org-mode-publishing-changing-org-mode-underlines-to-the-html-mark-element
+;;
+;; - Include inline SVGs in Org Mode HTML and Markdown exports
+;;   https://sachachua.com/dotemacs#org-inline-svg
+;;
+;; - Org Mode: Export HTML, copy files, and serve the results via simple-httpd so that media files work
+;;   https://sachachua.com/dotemacs#org-mode-publishing-html-export-html-copy-files-and-serve-via-simple-httpd
+;;
+;; - Moving my Org post subtree to the 11ty directory
+;;   https://sachachua.com/dotemacs#moving-sacha-org-post-subtree-to-the-11ty-directory
+;;
+;; - Remove heading from TOC
+;;   https://sachachua.com/dotemacs#org-mode-publishing-remove-heading-from-toc
+;;
+;; - Add a note to the bottom of blog posts exported from my config file
+;;   https://sachachua.com/dotemacs#config-footer
+;;
+;; - Cleaning up export
+;;   https://sachachua.com/dotemacs#cleaning-up-export
+;;
+;; - Publish without prompting
+;;   https://sachachua.com/dotemacs#publish-without-prompting
+;;
+;; - Abbreviations
+;;   https://sachachua.com/dotemacs#org-mode-publishing-abbreviations
+;;
+;; - Adding a custom header argument to Org Mode source blocks and using that argument during export
+;;   https://sachachua.com/dotemacs#adding-a-custom-header-argument-to-org-mode-source-blocks-and-using-that-argument-during-export
+;;
+;; - Org Mode: Asynchronous export and tangle of a large file
+;;   https://sachachua.com/dotemacs#org-async-export-and-tangle
+;;
+;; - Plain text
+;;   https://sachachua.com/dotemacs#org-mode-publishing-plain-text
+;;
+;; - Fix elisp links
+;;   https://sachachua.com/dotemacs#fix-elisp-links
+;;
+;; - IRC
+;;   https://sachachua.com/dotemacs#irc
+;;
+;; - Save when Emacs loses focus
+;;   https://sachachua.com/dotemacs#save-when-emacs-loses-focus
+;;
 ;;; Code:
 
 

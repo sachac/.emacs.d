@@ -24,12 +24,22 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Validation
+;;   https://sachachua.com/dotemacs#org-mode-validation
+;;
+;; - Keep only unique headings
+;;   https://sachachua.com/dotemacs#org-mode-validation-keep-only-unique-headings
+;;
+;; - No blank titles, no duplicate paths
+;;   https://sachachua.com/dotemacs#org-mode-validation-no-blank-titles-no-duplicate-paths
+;;
 ;;; Code:
 
 
 
-;; [[file:../Sacha.org::#org-mode-validation][STARTED Validation:1]]
+;; [[file:../Sacha.org::#org-mode-validation][Validation:1]]
 (defvar sacha-org-validate-functions
 	'(sacha-org-validate-no-blank-titles
 		sacha-org-validate-unique-outline-paths
@@ -39,7 +49,7 @@
 	(interactive)
 	(unless (string-match "_archive\\'" (buffer-file-name))
 		(run-hooks 'sacha-org-validate-functions)))
-;; STARTED Validation:1 ends here
+;; Validation:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-validation-keep-only-unique-headings][Keep only unique headings:1]]
 ;;;###autoload

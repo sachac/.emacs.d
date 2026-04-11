@@ -24,7 +24,59 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Learning French
+;;   https://sachachua.com/dotemacs#multimedia-learning-french
+;;
+;; - Practice pronunciation
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-practice-pronunciation
+;;
+;; - Start the process for transcribing the latest recording
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-start-the-process-for-transcribing-the-latest-recording
+;;
+;; - Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document
+;;
+;; - gtts-cli
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-gtts-cli
+;;
+;; - Word timestamps
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-word-timestamps
+;;
+;; - AI feedback
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-ai-feedback
+;;
+;; - Save journal entries for analysis
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-save-journal-entries-for-analysis
+;;
+;; - Load en-fr dictionary
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-load-en-fr-dictionary
+;;
+;; - Conjugation
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-conjugation
+;;
+;; - Looking up words via wordreference
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-looking-up-words-via-wordreference
+;;
+;; - Lexique
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-lexique
+;;
+;; - Write a completion-at-point function for French
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-write-a-completion-at-point-function-for-french
+;;
+;; - Highlight and count new words in journal entries
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-highlight-and-count-new-words-in-journal-entries
+;;
+;; - Correct encoding errors
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-correct-encoding-errors
+;;
+;; - Map lang-gptel feedback from the logbook to KwizIQ topics
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-map-lang-gptel-feedback-from-the-logbook-to-kwiziq-topics
+;;
+;; - Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results
+;;
 ;;; Code:
 
 
@@ -702,7 +754,7 @@
         selection)))
 ;; Lexique:4 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing-learning-french-write-a-completion-at-point-function-for-french][STARTED Write a completion-at-point function for French:1]]
+;; [[file:../Sacha.org::#writing-and-editing-learning-french-write-a-completion-at-point-function-for-french][Write a completion-at-point function for French:1]]
 ;;;###autoload
   (defun sacha-learn-lang-lexique-completion-at-point ()
     (let ((bounds (bounds-of-thing-at-point 'word)))
@@ -726,7 +778,7 @@
               (lambda ()
                 (when (and (buffer-file-name) (string-match "journal-fr\\|french" (buffer-file-name)))
                   (add-hook 'completion-at-point-functions 'sacha-learn-lang-lexique-completion-at-point)))))
-;; STARTED Write a completion-at-point function for French:1 ends here
+;; Write a completion-at-point function for French:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-highlight-and-count-new-words-in-journal-entries][Highlight and count new words in journal entries:1]]
 ;;;###autoload

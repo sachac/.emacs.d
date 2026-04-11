@@ -24,7 +24,29 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Looking things up
+;;   https://sachachua.com/dotemacs#looking-things-up
+;;
+;; - Running Plover drills from Emacs
+;;   https://sachachua.com/dotemacs#running-plover-drills-from-emacs
+;;
+;; - Making it easier to execute commands
+;;   https://sachachua.com/dotemacs#making-it-easier-to-execute-commands
+;;
+;; - Suggesting briefs
+;;   https://sachachua.com/dotemacs#suggesting-briefs
+;;
+;; - Using inotify to add Plover Clippy suggestions into Emacs
+;;   https://sachachua.com/dotemacs#plover_clippy_buffer
+;;
+;; - Stenoing interface
+;;   https://sachachua.com/dotemacs#stenoing-interface
+;;
+;; - Coding with Plover
+;;   https://sachachua.com/dotemacs#coding-with-plover
+;;
 ;;; Code:
 
 

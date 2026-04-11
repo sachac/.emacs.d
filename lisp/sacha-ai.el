@@ -24,7 +24,14 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - ChatGPT, AI, and large-language models
+;;   https://sachachua.com/dotemacs#chatgpt-ai
+;;
+;; - agent-shell
+;;   https://sachachua.com/dotemacs#inactive-infrequent-things-chatgpt-ai-and-large-language-models-agent-shell
+;;
 ;;; Code:
 
 

@@ -24,7 +24,17 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Linking to and exporting function definitions in Org Mode
+;;   https://sachachua.com/dotemacs#linking-to-and-exporting-function-definitions-in-org-mode
+;;
+;; - Still allow linking to the file
+;;   https://sachachua.com/dotemacs#org-mode-linking-to-and-exporting-function-definitions-in-org-mode-still-allow-linking-to-the-file
+;;
+;; - Including variables
+;;   https://sachachua.com/dotemacs#including-variables
+;;
 ;;; Code:
 
 

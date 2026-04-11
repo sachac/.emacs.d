@@ -24,7 +24,17 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Timestamps
+;;   https://sachachua.com/dotemacs#multimedia-timestamps
+;;
+;; - Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs
+;;   https://sachachua.com/dotemacs#using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs
+;;
+;; - Workrave
+;;   https://sachachua.com/dotemacs#workrave
+;;
 ;;; Code:
 
 

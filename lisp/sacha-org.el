@@ -24,7 +24,272 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Using Embark to insert files as Org INCLUDEs
+;;   https://sachachua.com/dotemacs#using-embark-to-insert-files-as-org-includes
+;;
+;; - Renaming and storing
+;;   https://sachachua.com/dotemacs#keybindings-embark-renaming-and-storing
+;;
+;; - Hydra keyboard shortcuts
+;;   https://sachachua.com/dotemacs#hydras
+;;
+;; - consult-omni
+;;   https://sachachua.com/dotemacs#consult-omni
+;;
+;; - Using web searches and bookmarks to quickly link placeholders in Org Mode
+;;   https://sachachua.com/dotemacs#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode
+;;
+;; - Downloaded files
+;;   https://sachachua.com/dotemacs#navigation-downloaded-files
+;;
+;; - Searching
+;;   https://sachachua.com/dotemacs#searching
+;;
+;; - Using image-dired to browse the latest screenshots from multiple directories
+;;   https://sachachua.com/dotemacs#image-dired-screenshots
+;;
+;; - Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document
+;;
+;; - AI feedback
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-ai-feedback
+;;
+;; - Write about keybindings
+;;   https://sachachua.com/dotemacs#write-about-keybindings
+;;
+;; - Automatically continue lists
+;;   https://sachachua.com/dotemacs#org-mode-automatically-continue-lists
+;;
+;; - Find first common Org Mode heading
+;;   https://sachachua.com/dotemacs#org-mode-find-first-common-org-mode-heading
+;;
+;; - Remove open Org Mode clock entries
+;;   https://sachachua.com/dotemacs#org-mode-remove-open-org-mode-clock-entries
+;;
+;; - Move Org Mode properties from subtree to parent
+;;   https://sachachua.com/dotemacs#sacha-org-move-properties-to-parent
+;;
+;; - Org Mode: Cutting the current list item (including nested lists) with a speed command
+;;   https://sachachua.com/dotemacs#org-mode-keyboard-shortcuts-speed-commands-org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command
+;;
+;; - Other speed commands
+;;   https://sachachua.com/dotemacs#org-mode-keyboard-shortcuts-other-speed-commands
+;;
+;; - Link Org subtrees and navigate between them
+;;   https://sachachua.com/dotemacs#link-org-subtrees-and-navigate-between-them
+;;
+;; - Dealing with big tables
+;;   https://sachachua.com/dotemacs#dealing-with-big-tables
+;;
+;; - Date trees
+;;   https://sachachua.com/dotemacs#date-trees
+;;
+;; - Allow refiling in the middle(ish) of a capture
+;;   https://sachachua.com/dotemacs#allow-refiling-in-the-middle-ish-of-a-capture
+;;
+;; - Try out this capture command
+;;   https://sachachua.com/dotemacs#try-out-this-capture-command
+;;
+;; - Estimating WPM
+;;   https://sachachua.com/dotemacs#estimating-wpm
+;;
+;; - Logbook
+;;   https://sachachua.com/dotemacs#logbook
+;;
+;; - Projects
+;;   https://sachachua.com/dotemacs#projects
+;;
+;; - Estimating tasks
+;;   https://sachachua.com/dotemacs#subset
+;;
+;; - Quick way to archive all DONE from inbox
+;;   https://sachachua.com/dotemacs#quick-way-to-archive-all-done-from-inbox
+;;
+;; - Structure templates
+;;   https://sachachua.com/dotemacs#structure-templates
+;;
+;; - Demarcate, but for all blocks
+;;   https://sachachua.com/dotemacs#demarcate-but-for-begin-notes
+;;
+;; - Display projects with associated subtasks
+;;   https://sachachua.com/dotemacs#agenda_commands
+;;
+;; - Org agenda custom commands
+;;   https://sachachua.com/dotemacs#org-agenda-custom-commands
+;;
+;; - Shuffling my Org Mode unscheduled tasks
+;;   https://sachachua.com/dotemacs#org-mode-org-agenda-shuffling-sacha-org-mode-unscheduled-tasks
+;;
+;; - Make it easy to mark a task as done
+;;   https://sachachua.com/dotemacs#make-it-easy-to-mark-a-task-as-done
+;;
+;; - Make it easy to mark a task as done and create a follow-up task
+;;   https://sachachua.com/dotemacs#make-it-easy-to-mark-a-task-as-done-and-create-a-follow-up-task
+;;
+;; - Capture something based on the agenda
+;;   https://sachachua.com/dotemacs#capture-something-based-on-the-agenda
+;;
+;; - Sorting by date and priority
+;;   https://sachachua.com/dotemacs#sorting-by-date-and-priority
+;;
+;; - Preventing things from falling through the cracks
+;;   https://sachachua.com/dotemacs#preventing-things-from-falling-through-the-cracks
+;;
+;; - Weekly review
+;;   https://sachachua.com/dotemacs#weekly-review
+;;
+;; - Monthly reviews
+;;   https://sachachua.com/dotemacs#monthly-reviews
+;;
+;; - Emoji summaries
+;;   https://sachachua.com/dotemacs#org-mode-reviews-emoji-summaries
+;;
+;; - Inserting code
+;;   https://sachachua.com/dotemacs#inserting-code
+;;
+;; - 11ty static site generation
+;;   https://sachachua.com/dotemacs#11ty
+;;
+;; - Linking to blog topics
+;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-linking-to-blog-topics
+;;
+;; - Linking to blog posts
+;;   https://sachachua.com/dotemacs#linking-to-blog-posts
+;;
+;; - Moving my Org post subtree to the 11ty directory
+;;   https://sachachua.com/dotemacs#moving-sacha-org-post-subtree-to-the-11ty-directory
+;;
+;; - Include Mastodon, HN, Reddit fields in front matter
+;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-include-mastodon-field-in-front-matter
+;;
+;; - Copy Tasker task
+;;   https://sachachua.com/dotemacs#org-mode-publishing-copy-tasker-task
+;;
+;; - Counting words without blocks
+;;   https://sachachua.com/dotemacs#org-mode-publishing-counting-words-without-blocks
+;;
+;; - Org Mode: Including portions of files between two regular expressions
+;;   https://sachachua.com/dotemacs#org-mode-including-portions-of-files-between-two-regular-expressions
+;;
+;; - Copy linked file and change link
+;;   https://sachachua.com/dotemacs#copy-linked-file-and-change-link
+;;
+;; - Org Mode: Create a quick timestamped note and capture a screenshot
+;;   https://sachachua.com/dotemacs#org-mode-create-a-quick-timestamped-note-and-capture-a-screenshot
+;;
+;; - Special blocks
+;;   https://sachachua.com/dotemacs#special-blocks
+;;
+;; - Copy region
+;;   https://sachachua.com/dotemacs#copy-region
+;;
+;; - Convert an inline link into a side note/footnote
+;;   https://sachachua.com/dotemacs#org-mode-links-convert-an-inline-link-into-a-side-note-footnote
+;;
+;; - Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim
+;;   https://sachachua.com/dotemacs#sacha-org-insert-link-dwim
+;;
+;; - Links to my config
+;;   https://sachachua.com/dotemacs#links-to-sacha-config
+;;
+;; - YouTube
+;;   https://sachachua.com/dotemacs#youtube
+;;
+;; - Copy web link
+;;   https://sachachua.com/dotemacs#web-link
+;;
+;; - Linking to headings that match a tag
+;;   https://sachachua.com/dotemacs#org-mode-links-linking-to-headings-that-match-a-tag
+;;
+;; - Dired
+;;   https://sachachua.com/dotemacs#org-dired
+;;
+;; - Speed command for adding a custom ID to Org Mode posts
+;;   https://sachachua.com/dotemacs#add-custom-id
+;;
+;; - Counting
+;;   https://sachachua.com/dotemacs#counting
+;;
+;; - Spreadsheets
+;;   https://sachachua.com/dotemacs#spreadsheets
+;;
+;; - Copying and sharing code
+;;   https://sachachua.com/dotemacs#copying-and-sharing-code
+;;
+;; - Tables
+;;   https://sachachua.com/dotemacs#tables
+;;
+;; - Invoices
+;;   https://sachachua.com/dotemacs#invoices
+;;
+;; - Counting words
+;;   https://sachachua.com/dotemacs#counting-words
+;;
+;; - Allow dashes in tags
+;;   https://sachachua.com/dotemacs#allow-dashes-in-tags
+;;
+;; - Convert from Markdown
+;;   https://sachachua.com/dotemacs#org-mode-convert-from-markdown
+;;
+;; - Copying information from my phone
+;;   https://sachachua.com/dotemacs#copying-information-from-sacha-phone
+;;
+;; - Reddit
+;;   https://sachachua.com/dotemacs#reddit
+;;
+;; - Sorting Org Mode lists using a sequence of regular expressions
+;;   https://sachachua.com/dotemacs#sorting-org-mode-lists-using-a-sequence-of-regular-expressions
+;;
+;; - Clipboard
+;;   https://sachachua.com/dotemacs#clipboard
+;;
+;; - Setting properties
+;;   https://sachachua.com/dotemacs#setting-properties
+;;
+;; - Org - send things to the bottom of the list
+;;   https://sachachua.com/dotemacs#org-send-things-to-the-bottom-of-the-list
+;;
+;; - Org Mode: Format Libby book highlights exported as JSON
+;;   https://sachachua.com/dotemacs#org-mode-org-mode-format-libby-book-highlights-exported-as-json
+;;
+;; - Org Mode custom link: copy to clipboard
+;;   https://sachachua.com/dotemacs#org-mode-copy
+;;
+;; - Digital index piles with Emacs
+;;   https://sachachua.com/dotemacs#digital-index-piles-with-emacs
+;;
+;; - Doodles
+;;   https://sachachua.com/dotemacs#multimedia-images-doodles
+;;
+;; - Simplify inserting audio links
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-simplify-inserting-audio-links
+;;
+;; - Collecting Emacs News from Mastodon
+;;   https://sachachua.com/dotemacs#mastodon-news
+;;
+;; - Quantified Awesome
+;;   https://sachachua.com/dotemacs#clock-in
+;;
+;; - Compare times and effort estimates
+;;   https://sachachua.com/dotemacs#compare-time
+;;
+;; - List upcoming tasks so that I can see if I'm overloaded
+;;   https://sachachua.com/dotemacs#list-upcoming-tasks-so-that-i-can-see-if-i-m-overloaded
+;;
+;; - Show Emacs-related tasks
+;;   https://sachachua.com/dotemacs#show-emacs-related-tasks
+;;
+;; - Making it easier to execute commands
+;;   https://sachachua.com/dotemacs#making-it-easier-to-execute-commands
+;;
+;; - Coding with Plover
+;;   https://sachachua.com/dotemacs#coding-with-plover
+;;
+;; - Comparison-shopping with Org Mode
+;;   https://sachachua.com/dotemacs#shopping
+;;
 ;;; Code:
 
 
@@ -204,7 +469,7 @@
            ("w t" . #'sacha-consult-omni-embark-copy-title-as-kill)))
 ;; consult-omni:1 ends here
 
-;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][SOMEDAY Using web searches and bookmarks to quickly link placeholders in Org Mode:1]]
+;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode:1]]
 ;; we're in a bracketed link with no description and the target doesn't look like a link;
 ;; likely I've actually added the text for the description and now we need to include the link
 (defun sacha-org-in-bracketed-text-link-p ()
@@ -241,9 +506,9 @@
           (delete-region (car bracket-pos) (cdr bracket-pos))
           (insert result)
           result)))))
-;; SOMEDAY Using web searches and bookmarks to quickly link placeholders in Org Mode:1 ends here
+;; Using web searches and bookmarks to quickly link placeholders in Org Mode:1 ends here
 
-;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][SOMEDAY Using web searches and bookmarks to quickly link placeholders in Org Mode:2]]
+;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode:2]]
 ;;;###autoload
   (defun sacha-org-set-link-target-with-org-completion ()
           "Replace the current link's target with `org-insert-link' completion.
@@ -269,17 +534,17 @@
                                   (goto-char (cdr bracket-pos))
                                   (org-insert-link nil nil bracket-target))
                           (delete-region (car bracket-pos) (cdr bracket-pos)))))
-;; SOMEDAY Using web searches and bookmarks to quickly link placeholders in Org Mode:2 ends here
+;; Using web searches and bookmarks to quickly link placeholders in Org Mode:2 ends here
 
-;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][SOMEDAY Using web searches and bookmarks to quickly link placeholders in Org Mode:3]]
+;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode:3]]
 ;;;###autoload
   (defun sacha-org-set-link-target-dwim ()
           (interactive)
           (or (sacha-org-set-link-target-with-search)
                           (sacha-org-set-link-target-with-org-completion)))
-;; SOMEDAY Using web searches and bookmarks to quickly link placeholders in Org Mode:3 ends here
+;; Using web searches and bookmarks to quickly link placeholders in Org Mode:3 ends here
 
-;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][SOMEDAY Using web searches and bookmarks to quickly link placeholders in Org Mode:4]]
+;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode:4]]
 ;;;###autoload
   (defun sacha-org-scan-for-untargeted-links ()
           "Look for [[some text]] and prompt for the actual targets."
@@ -291,7 +556,7 @@
                                            (org-element-lineage (org-element-context) '(link) t)) ; ignore text in code blocks, etc.
                           (undo-boundary)
                           (sacha-org-set-link-target-dwim))))
-;; SOMEDAY Using web searches and bookmarks to quickly link placeholders in Org Mode:4 ends here
+;; Using web searches and bookmarks to quickly link placeholders in Org Mode:4 ends here
 
 ;; [[file:../Sacha.org::#navigation-downloaded-files][Downloaded files:1]]
   (defvar sacha-download-dir "~/Downloads")
@@ -956,26 +1221,19 @@ This function is heavily adapted from `org-between-regexps-p'."
 ;; Display projects with associated subtasks:1 ends here
 
 ;; [[file:../Sacha.org::#org-agenda-custom-commands][Org agenda custom commands:2]]
-(defvar sacha-org-agenda-contexts
-  '((tags-todo "phone")
-    (tags-todo "work")
-    (tags-todo "drawing")
-    (tags-todo "coding")
-    (tags-todo "writing")
-    (tags-todo "computer")
-    (tags-todo "home")
-    (tags-todo "errands"))
-  "Usual list of contexts.")
-;;;###autoload
-(defun sacha-org-agenda-skip-scheduled ()
-  (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
+  (defvar sacha-org-agenda-contexts
+    nil
+    "Usual list of contexts.")
+  ;;;###autoload
+  (defun sacha-org-agenda-skip-scheduled ()
+    (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
 
-;;;###autoload
-(defun sacha-org-projects ()
-  (interactive)
-(org-ql-search (org-agenda-files)
-  '(and (todo "TODO" "WAITING") (ancestors (tags "project")))
-  :super-groups '((:auto-parent t))))
+  ;;;###autoload
+  (defun sacha-org-projects ()
+    (interactive)
+    (org-ql-search (org-agenda-files)
+      '(and (todo "TODO" "WAITING") (ancestors (tags "project")))
+      :super-groups '((:auto-parent t))))
 ;; Org agenda custom commands:2 ends here
 
 ;; [[file:../Sacha.org::#org-mode-org-agenda-shuffling-sacha-org-mode-unscheduled-tasks][Shuffling my Org Mode unscheduled tasks:1]]

@@ -24,7 +24,14 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Links from org-protocol
+;;   https://sachachua.com/dotemacs#links-from-org-protocol
+;;
+;; - Org protocol: following Org links from outside Emacs
+;;   https://sachachua.com/dotemacs#org-protocol-open
+;;
 ;;; Code:
 
 

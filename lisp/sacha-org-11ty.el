@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - 11ty static site generation
+;;   https://sachachua.com/dotemacs#11ty
+;;
 ;;; Code:
 
 

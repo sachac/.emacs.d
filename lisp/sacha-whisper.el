@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Expanding yasnippets by voice in Emacs and other applications
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-expanding-yasnippet-by-voice
+;;
 ;;; Code:
 
 

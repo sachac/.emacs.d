@@ -24,7 +24,26 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Vector search
+;;   https://sachachua.com/dotemacs#org-mode-vector-search
+;;
+;; - Indexing-related code
+;;   https://sachachua.com/dotemacs#org-mode-vector-search-indexing-related-code
+;;
+;; - Consult-based interface for searching blog posts
+;;   https://sachachua.com/dotemacs#org-mode-vector-search-consult-based-interface-for-searching-blog-posts
+;;
+;; - Handle sketches too
+;;   https://sachachua.com/dotemacs#org-mode-vector-search-consult-based-interface-for-searching-blog-posts-handle-sketches-too
+;;
+;; - Multiple sources
+;;   https://sachachua.com/dotemacs#org-mode-vector-search-consult-based-interface-for-searching-blog-posts-multiple-sources
+;;
+;; - emacs-rag-search?
+;;   https://sachachua.com/dotemacs#org-mode-vector-search-emacs-rag-search
+;;
 ;;; Code:
 
 

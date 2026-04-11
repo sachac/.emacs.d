@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Notmuch
+;;   https://sachachua.com/dotemacs#notmuch
+;;
 ;;; Code:
 
 

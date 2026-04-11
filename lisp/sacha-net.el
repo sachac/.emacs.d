@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - SSH and --daemon
+;;   https://sachachua.com/dotemacs#ssh-and-daemon
+;;
 ;;; Code:
 
 

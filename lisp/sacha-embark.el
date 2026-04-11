@@ -24,7 +24,44 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Using Embark to act on video
+;;   https://sachachua.com/dotemacs#embark-video
+;;
+;; - Using Embark to act on audio
+;;   https://sachachua.com/dotemacs#embark-audio
+;;
+;; - Using Embark to offer context-sensitive actions for Org elements
+;;   https://sachachua.com/dotemacs#using-embark-to-offer-context-sensitive-actions-for-org-elements
+;;
+;; - Whichkey and Embark
+;;   https://sachachua.com/dotemacs#whichkey-embark
+;;
+;; - Embark and images
+;;   https://sachachua.com/dotemacs#embark-image
+;;
+;; - Embark and subed
+;;   https://sachachua.com/dotemacs#embark-subed
+;;
+;; - Embark and erefactor-rename-symbol-in-buffer
+;;   https://sachachua.com/dotemacs#keybindings-embark-embark-and-erefactor-rename-symbol-in-buffer
+;;
+;; - Quickly jump to positions
+;;   https://sachachua.com/dotemacs#quickly-jump-to-positions
+;;
+;; - Insert a link to an Org Mode heading from an org-refile prompt
+;;   https://sachachua.com/dotemacs#org-refile-insert-link
+;;
+;; - Making it easier to add a category to a blog post
+;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-making-it-easier-to-add-a-category-to-a-blog-post
+;;
+;; - Tip from Omar: embark-around-action-hooks
+;;   https://sachachua.com/dotemacs#org-mode-links-using-an-emacs-lisp-macro-to-define-quick-custom-org-mode-links-to-project-files-plus-urls-and-search-quickly-search-sacha-code-tip-from-omar-embark-around-action-hooks
+;;
+;; - Act on current message with Embark
+;;   https://sachachua.com/dotemacs#act-on-current-message-with-embark
+;;
 ;;; Code:
 
 

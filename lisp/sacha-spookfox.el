@@ -24,7 +24,26 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Link to current webpage from Spookfox
+;;   https://sachachua.com/dotemacs#web-spookfox-link-to-current-webpage-from-spookfox
+;;
+;; - Link to currently-selected text using Spookfox
+;;   https://sachachua.com/dotemacs#spookfox-fragment
+;;
+;; - Running the current Org Mode Babel Javascript block from Emacs using Spookfox
+;;   https://sachachua.com/dotemacs#spookfox-babel
+;;
+;; - Using Spookfox to scroll Firefox up and down from Emacs
+;;   https://sachachua.com/dotemacs#spookfox-scroll
+;;
+;; - Emacs and Spookfox: org-capture the current tab from Firefox or a link from the page
+;;   https://sachachua.com/dotemacs#spookfox-insert-url
+;;
+;; - Interact with Google Gemini web interface through Spookfox
+;;   https://sachachua.com/dotemacs#inactive-infrequent-things-chatgpt-ai-and-large-language-models-interact-with-google-gemini-web-interface-through-spookfox
+;;
 ;;; Code:
 
 
@@ -35,7 +54,7 @@
 	(spookfox-js-injection-eval-in-active-tab "window.location.href" t))
 ;; Link to current webpage from Spookfox:1 ends here
 
-;; [[file:../Sacha.org::#spookfox-fragment][STARTED Link to currently-selected text using Spookfox:1]]
+;; [[file:../Sacha.org::#spookfox-fragment][Link to currently-selected text using Spookfox:1]]
 ;;;###autoload
 (defun sacha-spookfox-link-to-fragment ()
 	(interactive)
@@ -44,7 +63,7 @@
 		(when (called-interactively-p 'any)
 			(insert url))
 		url))
-;; STARTED Link to currently-selected text using Spookfox:1 ends here
+;; Link to currently-selected text using Spookfox:1 ends here
 
 ;; [[file:../Sacha.org::#spookfox-babel][Running the current Org Mode Babel Javascript block from Emacs using Spookfox:4]]
 ;;;###autoload

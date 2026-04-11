@@ -24,7 +24,14 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Hydra keyboard shortcuts
+;;   https://sachachua.com/dotemacs#hydras
+;;
+;; - Emacs Hydra: Allow completion when I can't remember the command name
+;;   https://sachachua.com/dotemacs#hydra-completion
+;;
 ;;; Code:
 
 

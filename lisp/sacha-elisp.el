@@ -24,7 +24,50 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Prefix for writing functions
+;;   https://sachachua.com/dotemacs#coding-emacs-lisp-prefix-for-writing-functions
+;;
+;; - Easily override existing functions
+;;   https://sachachua.com/dotemacs#easily-override-existing-functions
+;;
+;; - Edebug
+;;   https://sachachua.com/dotemacs#edebug
+;;
+;; - ERT
+;;   https://sachachua.com/dotemacs#ert
+;;
+;; - Buttercup
+;;   https://sachachua.com/dotemacs#buttercup
+;;
+;; - Eldoc
+;;   https://sachachua.com/dotemacs#eldoc
+;;
+;; - YE11: Fix find-function for Emacs Lisp from org-babel or scratch
+;;   https://sachachua.com/dotemacs#org-mode-org-babel-fix-find-function-when-i-ve-evaluated-something-from-org-babel
+;;
+;; - Sorting
+;;   https://sachachua.com/dotemacs#sorting
+;;
+;; - Evaluation
+;;   https://sachachua.com/dotemacs#evaluation
+;;
+;; - Stubbing
+;;   https://sachachua.com/dotemacs#stubbing
+;;
+;; - Collecting Emacs News from Mastodon
+;;   https://sachachua.com/dotemacs#mastodon-news
+;;
+;; - Combining Mastodon timelines using mastodon.el
+;;   https://sachachua.com/dotemacs#mastodon-combined-timeline
+;;
+;; - Using Spookfox to scroll Firefox up and down from Emacs
+;;   https://sachachua.com/dotemacs#spookfox-scroll
+;;
+;; - Ledger
+;;   https://sachachua.com/dotemacs#ledger-personal-finance-in-sacha-config
+;;
 ;;; Code:
 
 

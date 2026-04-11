@@ -24,7 +24,20 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - General code
+;;   https://sachachua.com/dotemacs#general-code
+;;
+;; - Display in speech buffer
+;;   https://sachachua.com/dotemacs#display-in-speech-buffer
+;;
+;; - Display words per minute
+;;   https://sachachua.com/dotemacs#display-words-per-minute
+;;
+;; - Append to EmacsConf Etherpad
+;;   https://sachachua.com/dotemacs#append-to-emacsconf-etherpad
+;;
 ;;; Code:
 
 

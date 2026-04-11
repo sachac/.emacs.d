@@ -24,7 +24,29 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Display
+;;   https://sachachua.com/dotemacs#display
+;;
+;; - Set up a color scheme
+;;   https://sachachua.com/dotemacs#set-up-a-light-on-dark-color-scheme
+;;
+;; - Making highlight-sexp follow modus-themes-toggle
+;;   https://sachachua.com/dotemacs#making-highlight-sexp-follow-modus-themes-toggle
+;;
+;; - Highlight the active modeline using colours from modus-themes
+;;   https://sachachua.com/dotemacs#highlight-the-active-modeline-using-colours-from-modus-themes
+;;
+;; - Quickly adding face properties to regions
+;;   https://sachachua.com/dotemacs#face-text
+;;
+;; - Highlight the current line while still being able to easily customize/describe underlying faces
+;;   https://sachachua.com/dotemacs#highlight-line-mode
+;;
+;; - Change Org Mode TODO keyword color based on the state and the current Modus theme
+;;   https://sachachua.com/dotemacs#sacha-org-todo-set-keyword-faces
+;;
 ;;; Code:
 
 

@@ -24,7 +24,14 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Foot pedal
+;;   https://sachachua.com/dotemacs#keybindings-foot-pedal
+;;
+;; - Speech synthesis (experimental)
+;;   https://sachachua.com/dotemacs#speech-synthesis-experimental
+;;
 ;;; Code:
 
 

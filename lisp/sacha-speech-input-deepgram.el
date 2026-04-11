@@ -24,12 +24,16 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Using Emacs Lisp to send audio files to Deepgram and format VTTs
+;;   https://sachachua.com/dotemacs#using-emacs-lisp-to-send-audio-files-to-deepgram-and-format-vtts
+;;
 ;;; Code:
 
 
 
-;; [[file:../Sacha.org::#using-emacs-lisp-to-send-audio-files-to-deepgram-and-format-vtts][TOBLOG Using Emacs Lisp to send audio files to Deepgram and format VTTs:1]]
+;; [[file:../Sacha.org::#using-emacs-lisp-to-send-audio-files-to-deepgram-and-format-vtts][Using Emacs Lisp to send audio files to Deepgram and format VTTs:1]]
 (defvar sacha-deepgram-length-threshold 45 "Number of characters.")
 (defvar sacha-deepgram-time-threshold 10 "Number of seconds since the first word.")
 
@@ -175,7 +179,7 @@ Save the results as JSON and VTT."
 		 duration
 		 (* duration whisper-large-per-min)
 		 (* duration nova2-streaming-per-min))))
-;; TOBLOG Using Emacs Lisp to send audio files to Deepgram and format VTTs:1 ends here
+;; Using Emacs Lisp to send audio files to Deepgram and format VTTs:1 ends here
 
 (provide 'sacha-speech-input-deepgram)
 ;;; sacha-speech-input-deepgram.el ends here

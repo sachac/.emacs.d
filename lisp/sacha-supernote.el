@@ -24,7 +24,20 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Supernote
+;;   https://sachachua.com/dotemacs#supernote
+;;
+;; - Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access
+;;   https://sachachua.com/dotemacs#supernote-org-upload
+;;
+;; - org-attaching the latest image from my Supernote via Browse and Access
+;;   https://sachachua.com/dotemacs#supernote-browse
+;;
+;; - Using Puppeteer to grab an image from the SuperNote's screen mirror
+;;   https://sachachua.com/dotemacs#using-puppeteer-to-grab-an-image-from-the-supernote-s-screen-mirror
+;;
 ;;; Code:
 
 

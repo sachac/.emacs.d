@@ -24,7 +24,38 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Completing blog posts
+;;   https://sachachua.com/dotemacs#completing-blog-posts
+;;
+;; - List all blog posts that match a category or title search
+;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-list-all-blog-posts-that-match-a-category-or-title-search
+;;
+;; - Making it easier to add a category to a blog post
+;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-making-it-easier-to-add-a-category-to-a-blog-post
+;;
+;; - embark-11ty
+;;   https://sachachua.com/dotemacs#embark-11ty
+;;
+;; - Listing exported Org posts
+;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-listing-exported-org-posts
+;;
+;; - Comments
+;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-comments
+;;
+;; - Adding Mastodon toots as comments in my 11ty static blog
+;;   https://sachachua.com/dotemacs#mastodon-adding-mastodon-toots-as-comments-in-sacha-11ty-static-blog
+;;
+;; - mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty
+;;   https://sachachua.com/dotemacs#mastodon-mastodon-el-copy-toot-url-after-posting-also-copying-just-this-post-with-11ty
+;;
+;; - Tooting a link to the current post
+;;   https://sachachua.com/dotemacs#mastodon-tooting-a-link-to-the-current-post
+;;
+;; - Blog
+;;   https://sachachua.com/dotemacs#blog
+;;
 ;;; Code:
 
 

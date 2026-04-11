@@ -24,7 +24,50 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Using Embark and qrencode to show a QR code for the Org Mode link at point
+;;   https://sachachua.com/dotemacs#embark-qr
+;;
+;; - Cargo-culted stuff
+;;   https://sachachua.com/dotemacs#cargo-culted-stuff
+;;
+;; - Copy and append string
+;;   https://sachachua.com/dotemacs#navigation-copy-and-append-string
+;;
+;; - Copy text from current PDFview page in other window
+;;   https://sachachua.com/dotemacs#pdf-copy
+;;
+;; - Replace with latest download
+;;   https://sachachua.com/dotemacs#navigation-downloaded-files-replace-with-latest-download
+;;
+;; - C-g improvement
+;;   https://sachachua.com/dotemacs#navigation-c-g-improvement
+;;
+;; - Writing and editing
+;;   https://sachachua.com/dotemacs#writing-and-editing
+;;
+;; - Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document
+;;
+;; - Formatting the subtitles into Org Mode subtrees
+;;   https://sachachua.com/dotemacs#formatting-the-subtitles-into-org-mode-subtrees
+;;
+;; - Web development
+;;   https://sachachua.com/dotemacs#web-development
+;;
+;; - Alignment
+;;   https://sachachua.com/dotemacs#alignment
+;;
+;; - Emacs Lisp
+;;   https://sachachua.com/dotemacs#emacs-lisp
+;;
+;; - Other useful functions
+;;   https://sachachua.com/dotemacs#coding-emacs-lisp-other-useful-functions
+;;
+;; - Emacs and my phone
+;;   https://sachachua.com/dotemacs#on-sacha-phone
+;;
 ;;; Code:
 
 
@@ -63,7 +106,7 @@
           (kill-new (concat (buffer-substring beg end) append)))
 ;; Copy and append string:1 ends here
 
-;; [[file:../Sacha.org::#pdf-copy][TOBLOG Copy text from current PDFview page in other window:1]]
+;; [[file:../Sacha.org::#pdf-copy][Copy text from current PDFview page in other window:1]]
 ;;;###autoload
   (defun sacha-pdf-view-insert-current-page-text ()
           (interactive)
@@ -78,7 +121,7 @@
                                                                                                                                                    (list 0 0 1 1)))
                                                    (throw 'found text))))))
                   (when text (save-excursion (insert text)))))
-;; TOBLOG Copy text from current PDFview page in other window:1 ends here
+;; Copy text from current PDFview page in other window:1 ends here
 
 ;; [[file:../Sacha.org::#navigation-downloaded-files-replace-with-latest-download][Replace with latest download:1]]
 ;;;###autoload

@@ -24,7 +24,14 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Helm completion with sacha-helm-org-sketches
+;;   https://sachachua.com/dotemacs#helm-completion-with-sacha-helm-org-sketches
+;;
+;; - Digital index piles with Emacs
+;;   https://sachachua.com/dotemacs#digital-index-piles-with-emacs
+;;
 ;;; Code:
 
 

@@ -24,7 +24,20 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Adding steno hints as I type
+;;   https://sachachua.com/dotemacs#adding-steno-hints-as-i-type
+;;
+;; - Practising within Emacs
+;;   https://sachachua.com/dotemacs#practising-within-emacs
+;;
+;; - Cheat sheets
+;;   https://sachachua.com/dotemacs#cheat-sheets
+;;
+;; - Displaying frequency-sorted completions with stroke hints
+;;   https://sachachua.com/dotemacs#displaying-frequency-sorted-completions-with-stroke-hints
+;;
 ;;; Code:
 
 

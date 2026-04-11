@@ -24,7 +24,26 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Weekly review
+;;   https://sachachua.com/dotemacs#weekly-review
+;;
+;; - Monthly reviews
+;;   https://sachachua.com/dotemacs#monthly-reviews
+;;
+;; - Child time!
+;;   https://sachachua.com/dotemacs#self-tracking-statistics-and-other-data-transformations-quantified-awesome-child-time
+;;
+;; - Make a tablist of my time entries
+;;   https://sachachua.com/dotemacs#quantified-tablist
+;;
+;; - Time tracking, previous weekly review
+;;   https://sachachua.com/dotemacs#time-tracking-previous-weekly-review
+;;
+;; - Compare time use
+;;   https://sachachua.com/dotemacs#compare-time-use
+;;
 ;;; Code:
 
 

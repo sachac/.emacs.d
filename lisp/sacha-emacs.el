@@ -24,7 +24,26 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Reload
+;;   https://sachachua.com/dotemacs#reload
+;;
+;; - Repeatable commands
+;;   https://sachachua.com/dotemacs#repeatable-commands
+;;
+;; - which-key and which-key-posframe
+;;   https://sachachua.com/dotemacs#which-key-and-which-key-posframe
+;;
+;; - Make it easier to split my literate config into files
+;;   https://sachachua.com/dotemacs#org-mode-org-babel-make-it-easier-to-split-sacha-literate-config-into-files
+;;
+;; - Tangle Emacs config snippets to different files and add boilerplate
+;;   https://sachachua.com/dotemacs#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate
+;;
+;; - Key chords
+;;   https://sachachua.com/dotemacs#key-chord
+;;
 ;;; Code:
 
 

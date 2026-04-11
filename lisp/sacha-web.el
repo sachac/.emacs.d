@@ -24,7 +24,38 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Org Mode: Export HTML, copy files, and serve the results via simple-httpd so that media files work
+;;   https://sachachua.com/dotemacs#org-mode-publishing-html-export-html-copy-files-and-serve-via-simple-httpd
+;;
+;; - Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim
+;;   https://sachachua.com/dotemacs#sacha-org-insert-link-dwim
+;;
+;; - Emacs: Open URLs or search the web, plus browse-url-handlers
+;;   https://sachachua.com/dotemacs#web-emacs-open-urls-or-search-the-web-plus-browse-url-handlers
+;;
+;; - Checking URLs
+;;   https://sachachua.com/dotemacs#checking-urls
+;;
+;; - Parsing RSS and Atom feeds
+;;   https://sachachua.com/dotemacs#web-parsing-rss-and-atom-feeds
+;;
+;; - Transforming HTML
+;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html
+;;
+;; - Saving images
+;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-saving-images
+;;
+;; - Cleaning up
+;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-cleaning-up
+;;
+;; - Removing unneeded styles
+;;   https://sachachua.com/dotemacs#collaboration-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-removing-unneeded-styles
+;;
+;; - Stream notes
+;;   https://sachachua.com/dotemacs#stream-notes
+;;
 ;;; Code:
 
 

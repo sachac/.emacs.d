@@ -24,7 +24,26 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Extended command list
+;;   https://sachachua.com/dotemacs#keybindings-extended-command-list
+;;
+;; - Emacs completion and handling accented characters with orderless
+;;   https://sachachua.com/dotemacs#completion-emacs-completion-and-handling-accented-characters-with-orderless
+;;
+;; - Marginalia
+;;   https://sachachua.com/dotemacs#marginalia
+;;
+;; - Marginalia and annotating journal entries
+;;   https://sachachua.com/dotemacs#marginalia-and-annotating-journal-entries
+;;
+;; - Expand
+;;   https://sachachua.com/dotemacs#expand
+;;
+;; - Snippets
+;;   https://sachachua.com/dotemacs#snippets
+;;
 ;;; Code:
 
 

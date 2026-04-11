@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Wdiff
+;;   https://sachachua.com/dotemacs#wdiff
+;;
 ;;; Code:
 
 

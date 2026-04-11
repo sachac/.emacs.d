@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Captions
+;;   https://sachachua.com/dotemacs#org-captions
+;;
 ;;; Code:
 
 

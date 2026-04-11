@@ -24,7 +24,32 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Format source
+;;   https://sachachua.com/dotemacs#format-source
+;;
+;; - Python
+;;   https://sachachua.com/dotemacs#python
+;;
+;; - Web development
+;;   https://sachachua.com/dotemacs#web-development
+;;
+;; - LSP
+;;   https://sachachua.com/dotemacs#lsp
+;;
+;; - Javascript
+;;   https://sachachua.com/dotemacs#javascript
+;;
+;; - HTML
+;;   https://sachachua.com/dotemacs#html
+;;
+;; - Projects and projectile
+;;   https://sachachua.com/dotemacs#projects-and-projectile
+;;
+;; - SQLite
+;;   https://sachachua.com/dotemacs#coding-sqlite
+;;
 ;;; Code:
 
 

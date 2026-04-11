@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Try speaches with realtime
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-try-speaches-with-realtime
+;;
 ;;; Code:
 
 

@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Org Mode sketch: links
+;;   https://sachachua.com/dotemacs#org-mode-sketch-links
+;;
 ;;; Code:
 
 

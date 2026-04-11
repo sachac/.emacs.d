@@ -24,7 +24,62 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Embark and images
+;;   https://sachachua.com/dotemacs#embark-image
+;;
+;; - Converting handwriting to text
+;;   https://sachachua.com/dotemacs#keybindings-embark-converting-handwriting-to-text
+;;
+;; - Renaming and storing
+;;   https://sachachua.com/dotemacs#keybindings-embark-renaming-and-storing
+;;
+;; - Using image-dired to browse the latest screenshots from multiple directories
+;;   https://sachachua.com/dotemacs#image-dired-screenshots
+;;
+;; - Saving photos
+;;   https://sachachua.com/dotemacs#saving-photos
+;;
+;; - Screenshot
+;;   https://sachachua.com/dotemacs#screenshot
+;;
+;; - Org Mode: Create a quick timestamped note and capture a screenshot
+;;   https://sachachua.com/dotemacs#org-mode-create-a-quick-timestamped-note-and-capture-a-screenshot
+;;
+;; - Photos
+;;   https://sachachua.com/dotemacs#photos
+;;
+;; - Rotate clockwise or counterclockwise
+;;   https://sachachua.com/dotemacs#multimedia-images-imagemagick-rotate-clockwise-or-counterclockwise
+;;
+;; - Emacs: Extract part of an image to another file
+;;   https://sachachua.com/dotemacs#sacha-image-write-region
+;;
+;; - Make an image square
+;;   https://sachachua.com/dotemacs#multimedia-images-imagemagick-make-an-image-square
+;;
+;; - Animate highlighting part of an image
+;;   https://sachachua.com/dotemacs#multimedia-images-imagemagick-animate-highlighting-part-of-an-image
+;;
+;; - Artrage
+;;   https://sachachua.com/dotemacs#artrage
+;;
+;; - Interactively recolor a sketch
+;;   https://sachachua.com/dotemacs#interactively-recolor
+;;
+;; - Rename scanned index cards
+;;   https://sachachua.com/dotemacs#rename-scanned-index-cards
+;;
+;; - Supernote
+;;   https://sachachua.com/dotemacs#supernote
+;;
+;; - Manage photos with geeqie
+;;   https://sachachua.com/dotemacs#manage-photos-with-geeqie
+;;
+;; - Tools for organizing
+;;   https://sachachua.com/dotemacs#tools-for-organizing
+;;
 ;;; Code:
 
 
@@ -513,7 +568,7 @@ Prompt for a caption afterwards."
 	(call-process "mogrify" nil nil nil "-rotate" "90" image))
 ;; Rotate clockwise or counterclockwise:1 ends here
 
-;; [[file:../Sacha.org::#sacha-image-write-region][TOBLOG Emacs: Extract part of an image to another file:1]]
+;; [[file:../Sacha.org::#sacha-image-write-region][Emacs: Extract part of an image to another file:1]]
 ;; Based on image-crop.
 ;;;###autoload
 (defun sacha-image-select-rect (op)
@@ -611,9 +666,9 @@ OP should be a string describing the operation (ex: \"cut\").
 										:width width :height height
 										:right (+ left width)
 										:bottom (+ top height)))))))))
-;; TOBLOG Emacs: Extract part of an image to another file:1 ends here
+;; Emacs: Extract part of an image to another file:1 ends here
 
-;; [[file:../Sacha.org::#sacha-image-write-region][TOBLOG Emacs: Extract part of an image to another file:2]]
+;; [[file:../Sacha.org::#sacha-image-write-region][Emacs: Extract part of an image to another file:2]]
 ;;;###autoload
 (defun sacha-image-write-region ()
   "Copy a section of the image under point to a different file.
@@ -648,7 +703,7 @@ are available:
                              (?w . ,width)
                              (?h . ,height)
                              (?f . ,(cadr (split-string type "/"))))))))
-;; TOBLOG Emacs: Extract part of an image to another file:2 ends here
+;; Emacs: Extract part of an image to another file:2 ends here
 
 ;; [[file:../Sacha.org::#multimedia-images-imagemagick-make-an-image-square][Make an image square:1]]
 ;;;###autoload
@@ -917,7 +972,7 @@ are available:
 		 (t file))))
 ;; Supernote:3 ends here
 
-;; [[file:../Sacha.org::#manage-photos-with-geeqie][TOBLOG Manage photos with geeqie:1]]
+;; [[file:../Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie:1]]
 (defvar sacha-scan-directory "~/sync/scans/")
 (defvar sacha-ipad-directory "~/sync/ipad")
 (defvar sacha-portfolio-directory "~/sync/portfolio")
@@ -941,7 +996,7 @@ are available:
 (defun sacha-geeqie-insert-file-link ()
   (interactive)
   (insert (org-link-make-string (concat "file:" (string-trim (shell-command-to-string "geeqie --remote --tell"))))))
-;; TOBLOG Manage photos with geeqie:1 ends here
+;; Manage photos with geeqie:1 ends here
 
 ;; [[file:../Sacha.org::sacha-geeqie-view][sacha-geeqie-view]]
 ;;;###autoload
@@ -962,7 +1017,7 @@ are available:
      " "))))
 ;; sacha-geeqie-view ends here
 
-;; [[file:../Sacha.org::#manage-photos-with-geeqie][TOBLOG Manage photos with geeqie:3]]
+;; [[file:../Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie:3]]
 
 (defvar sacha-rotate-jpeg-using-exiftran nil)
 
@@ -1053,17 +1108,17 @@ are available:
 		(sacha-geeqie-next)
 		(delete-file file t)))
 
-;; TOBLOG Manage photos with geeqie:3 ends here
+;; Manage photos with geeqie:3 ends here
 
-;; [[file:../Sacha.org::#manage-photos-with-geeqie][TOBLOG Manage photos with geeqie:5]]
+;; [[file:../Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie:5]]
 ;;;###autoload
 (defun sacha-geeqie-setup ()
   (interactive)
   (shell-command "wmctrl -r :ACTIVE: -b remove,maximized_vert,maximized_horz; xdotool getactivewindow windowsize 50% 100%")
   (shell-command "geeqie &"))
-;; TOBLOG Manage photos with geeqie:5 ends here
+;; Manage photos with geeqie:5 ends here
 
-;; [[file:../Sacha.org::#manage-photos-with-geeqie][TOBLOG Manage photos with geeqie:7]]
+;; [[file:../Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie:7]]
 ;;;###autoload
 (defun sacha-move-portfolio-files ()
   (interactive)
@@ -1078,7 +1133,7 @@ are available:
 				 'file-regular-p
 				 (directory-files sacha-scan-directory t "^[0-9]+.*#")))
   (shell-command-to-string "make-sketch-thumbnails"))
-;; TOBLOG Manage photos with geeqie:7 ends here
+;; Manage photos with geeqie:7 ends here
 
 ;; [[file:../Sacha.org::#tools-for-organizing][Tools for organizing:1]]
 ;;;###autoload

@@ -24,7 +24,23 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Building a today-I-learned habit, and displaying the documentation for random Emacs commands
+;;   https://sachachua.com/dotemacs#building-a-today-i-learned-habit-and-displaying-the-documentation-for-random-emacs-commands
+;;
+;; - Shuffling lines
+;;   https://sachachua.com/dotemacs#shuffling-lines
+;;
+;; - Controlling my stream audio from Emacs: background music, typing sounds, and push to talk
+;;   https://sachachua.com/dotemacs#controlling-sacha-stream-audio-from-emacs-background-music-typing-sounds-and-push-to-talk
+;;
+;; - Stardew Valley
+;;   https://sachachua.com/dotemacs#miscellaneous-stardew-valley
+;;
+;; - Diagrams
+;;   https://sachachua.com/dotemacs#diagrams
+;;
 ;;; Code:
 
 

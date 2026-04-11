@@ -24,7 +24,17 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Emacs chats, Emacs hangouts
+;;   https://sachachua.com/dotemacs#emacs-chats-emacs-hangouts
+;;
+;; - YouTube
+;;   https://sachachua.com/dotemacs#youtube
+;;
+;; - Org Mode: Insert YouTube video with separate captions
+;;   https://sachachua.com/dotemacs#org-youtube-captions
+;;
 ;;; Code:
 
 

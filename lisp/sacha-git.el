@@ -24,7 +24,20 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Magit - nice git interface
+;;   https://sachachua.com/dotemacs#magit
+;;
+;; - Finding repos with uncommitted changes
+;;   https://sachachua.com/dotemacs#coding-magit-nice-git-interface-finding-repos-with-uncommitted-changes
+;;
+;; - Use difftastic
+;;   https://sachachua.com/dotemacs#coding-magit-nice-git-interface-use-difftastic
+;;
+;; - Checking things out
+;;   https://sachachua.com/dotemacs#checking-things-out
+;;
 ;;; Code:
 
 

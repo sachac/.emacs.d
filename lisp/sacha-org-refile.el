@@ -24,7 +24,35 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Org Mode: Prompt for a heading and then refile it to point
+;;   https://sachachua.com/dotemacs#org-mode-filing-org-mode-prompt-for-a-heading-and-then-refile-it-to-point
+;;
+;; - Bounce to another file
+;;   https://sachachua.com/dotemacs#bounce-to-another-file
+;;
+;; - Jump to Org location by substring
+;;   https://sachachua.com/dotemacs#jump-to-org-location-by-substring
+;;
+;; - Quick way to jump
+;;   https://sachachua.com/dotemacs#quick-way-to-jump
+;;
+;; - Refile inbox entries to a smaller set of org-refile-targets
+;;   https://sachachua.com/dotemacs#refile-inbox
+;;
+;; - Automatically refiling Org Mode headings based on tags
+;;   https://sachachua.com/dotemacs#refile-tags
+;;
+;; - Moving lines around
+;;   https://sachachua.com/dotemacs#destination
+;;
+;; - Organizing my blog index
+;;   https://sachachua.com/dotemacs#organizing-sacha-blog-index
+;;
+;; - Refiling Org Mode notes to headings in the same file
+;;   https://sachachua.com/dotemacs#quickly-refiling-org-mode-notes-to-headings-in-the-same-file
+;;
 ;;; Code:
 
 
@@ -79,7 +107,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
         (save-buffer)))))
 ;; Bounce to another file:1 ends here
 
-;; [[file:../Sacha.org::#jump-to-org-location-by-substring][TEACH Jump to Org location by substring:1]]
+;; [[file:../Sacha.org::#jump-to-org-location-by-substring][Jump to Org location by substring:1]]
 ;; Example: (org-refile 4 nil (sacha-org-refile-get-location-by-substring "Other Emacs"))
 ;;;###autoload
 (defun sacha-org-refile-get-location-by-substring (regexp &optional file)
@@ -145,7 +173,7 @@ Limitations: Reinserts entry at bottom of subtree, uses kill ring."
   (eval-when-compile (require 'quantified nil t))
   (sacha-org-clock-in-refile "Off my computer")
   (quantified-track category))
-;; TEACH Jump to Org location by substring:1 ends here
+;; Jump to Org location by substring:1 ends here
 
 ;; [[file:../Sacha.org::#quick-way-to-jump][Quick way to jump:1]]
 ;;;###autoload

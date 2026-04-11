@@ -24,7 +24,29 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Other speed commands
+;;   https://sachachua.com/dotemacs#org-mode-keyboard-shortcuts-other-speed-commands
+;;
+;; - Journal
+;;   https://sachachua.com/dotemacs#journal
+;;
+;; - Working with journal entries
+;;   https://sachachua.com/dotemacs#working-with-journal-entries
+;;
+;; - Tagging journal entries
+;;   https://sachachua.com/dotemacs#tagging-journal-entries
+;;
+;; - Moments
+;;   https://sachachua.com/dotemacs#org-mode-journal-moments
+;;
+;; - Slicing and dicing the journal entries
+;;   https://sachachua.com/dotemacs#org-mode-journal-slicing-and-dicing-the-journal-entries
+;;
+;; - Easily backfill my journal
+;;   https://sachachua.com/dotemacs#easily-backfill-sacha-journal
+;;
 ;;; Code:
 
 

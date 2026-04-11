@@ -24,7 +24,14 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Consult directory navigation
+;;   https://sachachua.com/dotemacs#consult-directory-navigation
+;;
+;; - Correctly complete commands in subdirectories
+;;   https://sachachua.com/dotemacs#correctly-complete-commands-in-subdirectories
+;;
 ;;; Code:
 
 

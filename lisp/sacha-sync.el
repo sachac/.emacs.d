@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Syncthing
+;;   https://sachachua.com/dotemacs#syncthing
+;;
 ;;; Code:
 
 

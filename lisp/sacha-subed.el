@@ -24,7 +24,71 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Embark and subed
+;;   https://sachachua.com/dotemacs#embark-subed
+;;
+;; - Reformat speaker in a two-speaker transcript
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-reformat-speaker-in-a-two-speaker-transcript
+;;
+;; - Interleave images with transcript
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-interleave-images-with-transcript
+;;
+;; - Split a transcript into phrases for subtitles
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-split-a-transcript-into-phrases-for-subtitles
+;;
+;; - Transcript editing
+;;   https://sachachua.com/dotemacs#transcript-editing
+;;
+;; - Remove underlining from WhisperX VTT
+;;   https://sachachua.com/dotemacs#remove-whisperx-underline
+;;
+;; - Adjust subtitles
+;;   https://sachachua.com/dotemacs#adjust-subtitles
+;;
+;; - Extract part of a video
+;;   https://sachachua.com/dotemacs#extract-part-of-a-video
+;;
+;; - Hide IDs and times
+;;   https://sachachua.com/dotemacs#hide-ids-and-times
+;;
+;; - Other subtitle code
+;;   https://sachachua.com/dotemacs#other-subtitle-code
+;;
+;; - Simplify inserting audio links
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-simplify-inserting-audio-links
+;;
+;; - Using Emacs to fix automatically generated subtitle timestamps
+;;   https://sachachua.com/dotemacs#using-emacs-to-fix-automatically-generated-subtitle-timestamps
+;;
+;; - Using word-level timing information when editing subtitles or captions in Emacs
+;;   https://sachachua.com/dotemacs#word-level
+;;
+;; - Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record
+;;   https://sachachua.com/dotemacs#whisperx
+;;
+;; - Testing subtitle start times by skimming the first second
+;;   https://sachachua.com/dotemacs#sacha-subed-skim-starts
+;;
+;; - Edit text
+;;   https://sachachua.com/dotemacs#edit-text
+;;
+;; - Working with sections defined by NOTE comments
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-working-with-sections-defined-by-note-comments
+;;
+;; - Split up oops better
+;;   https://sachachua.com/dotemacs#split-up-oops-better
+;;
+;; - Export transcript as list
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-export-transcript-as-list
+;;
+;; - Removing gaps and merging subtitles
+;;   https://sachachua.com/dotemacs#subed-gaps
+;;
+;; - Editing subtitles
+;;   https://sachachua.com/dotemacs#editing-subtitles
+;;
 ;;; Code:
 
 
@@ -164,7 +228,7 @@
 
 ;; Interleave images with transcript:1 ends here
 
-;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-split-a-transcript-into-phrases-for-subtitles][TOBLOG Split a transcript into phrases for subtitles:1]]
+;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-split-a-transcript-into-phrases-for-subtitles][Split a transcript into phrases for subtitles:1]]
 ;;;###autoload
 (defun sacha-split-at-words ()
 	(interactive)
@@ -204,7 +268,7 @@
 (defun sacha-split-clear-overlays ()
 	(interactive)
 	(remove-overlays (point-min) (point-max) 'sacha-split t))
-;; TOBLOG Split a transcript into phrases for subtitles:1 ends here
+;; Split a transcript into phrases for subtitles:1 ends here
 
 ;; [[file:../Sacha.org::#transcript-editing][Transcript editing:1]]
 ;;;###autoload

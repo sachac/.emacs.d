@@ -24,7 +24,14 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Linking to a specific time in a video
+;;   https://sachachua.com/dotemacs#org-mode-links-linking-to-a-specific-time-in-a-video
+;;
+;; - Simplify inserting audio links
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-simplify-inserting-audio-links
+;;
 ;;; Code:
 
 

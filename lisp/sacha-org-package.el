@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Package links
+;;   https://sachachua.com/dotemacs#package-links
+;;
 ;;; Code:
 
 

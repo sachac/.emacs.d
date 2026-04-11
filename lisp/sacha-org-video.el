@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Videos
+;;   https://sachachua.com/dotemacs#videos
+;;
 ;;; Code:
 
 

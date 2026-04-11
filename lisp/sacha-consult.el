@@ -24,7 +24,23 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Bookmarks
+;;   https://sachachua.com/dotemacs#completion-consult-consult-omni-bookmarks
+;;
+;; - Finding my blog posts with consult-omni
+;;   https://sachachua.com/dotemacs#completion-consult-consult-omni-blog-posts
+;;
+;; - Searching my blog, notes, and sketches with consult-ripgrep and consult-omni
+;;   https://sachachua.com/dotemacs#searching-sacha-blog
+;;
+;; - Quickly search my code
+;;   https://sachachua.com/dotemacs#org-mode-links-using-an-emacs-lisp-macro-to-define-quick-custom-org-mode-links-to-project-files-plus-urls-and-search-quickly-search-sacha-code
+;;
+;; - Shellcheck
+;;   https://sachachua.com/dotemacs#shellcheck
+;;
 ;;; Code:
 
 
@@ -132,7 +148,7 @@
      :require-match t))
 ;; Finding my blog posts with consult-omni:1 ends here
 
-;; [[file:../Sacha.org::#searching-sacha-blog][STARTED Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:2]]
+;; [[file:../Sacha.org::#searching-sacha-blog][Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:2]]
 ;;;###autoload
   (cl-defun sacha-consult-omni--google-blog-fetch-results (input &rest args &key callback &allow-other-keys)
     "Fetches search results for INPUT from “Google Custom Search” service.
@@ -219,7 +235,7 @@
      :sort t
      :interactive consult-omni-intereactive-commands-type
      :annotate nil))
-;; STARTED Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:2 ends here
+;; Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:2 ends here
 
 ;; [[file:../Sacha.org::#org-mode-links-using-an-emacs-lisp-macro-to-define-quick-custom-org-mode-links-to-project-files-plus-urls-and-search-quickly-search-sacha-code][Quickly search my code:1]]
 ;;;###autoload

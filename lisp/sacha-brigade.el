@@ -24,7 +24,35 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Automating buttons
+;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-automating-buttons
+;;
+;; - Removing sections
+;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-removing-sections
+;;
+;; - Formatting calls to action
+;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-formatting-calls-to-action
+;;
+;; - Changing link colours
+;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-changing-link-colours
+;;
+;; - Just the headings
+;;   https://sachachua.com/dotemacs#collaboration-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-just-the-headings
+;;
+;; - Wrapping it up
+;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-wrapping-it-up
+;;
+;; - Getting a Google Docs draft ready for Mailchimp via Emacs and Org Mode
+;;   https://sachachua.com/dotemacs#collaboration-bike-brigade-extract-information-from-google-docs-export-as-zipped-html
+;;
+;; - Bike Brigade: working with Mailchimp images
+;;   https://sachachua.com/dotemacs#collaboration-bike-brigade-working-with-mailchimp-images
+;;
+;; - Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it
+;;   https://sachachua.com/dotemacs#collaboration-bike-brigade-updating-mailchimp-directly
+;;
 ;;; Code:
 
 

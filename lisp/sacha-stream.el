@@ -24,7 +24,26 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Try redacting
+;;   https://sachachua.com/dotemacs#try-redacting
+;;
+;; - Mode for streaming
+;;   https://sachachua.com/dotemacs#streaming-mode-for-streaming
+;;
+;; - Chat
+;;   https://sachachua.com/dotemacs#streaming-chat
+;;
+;; - Send currently-clocked task title to file, include in stream
+;;   https://sachachua.com/dotemacs#streaming-send-currently-clocked-task-title-to-file-include-in-stream
+;;
+;; - Stream agenda
+;;   https://sachachua.com/dotemacs#streaming-stream-agenda
+;;
+;; - Try continuous streaming and the Google Speech Recognition API
+;;   https://sachachua.com/dotemacs#speech-to-text
+;;
 ;;; Code:
 
 
@@ -412,7 +431,7 @@
   (org-agenda nil "s"))
 ;; Stream agenda:1 ends here
 
-;; [[file:../Sacha.org::#speech-to-text][CANCELLED Try continuous streaming and the Google Speech Recognition API:3]]
+;; [[file:../Sacha.org::#speech-to-text][Try continuous streaming and the Google Speech Recognition API:3]]
 ;;;###autoload
 (defun sacha-stream-captions-on-close (&rest args)
   (message "Captions websocket closed.")
@@ -446,7 +465,7 @@
 (defun sacha-stream-captions-stop ()
   (interactive)
   (stop-process sacha-stream-captions-process))
-;; CANCELLED Try continuous streaming and the Google Speech Recognition API:3 ends here
+;; Try continuous streaming and the Google Speech Recognition API:3 ends here
 
 (provide 'sacha-stream)
 ;;; sacha-stream.el ends here

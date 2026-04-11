@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Gladia
+;;   https://sachachua.com/dotemacs#gladia
+;;
 ;;; Code:
 
 

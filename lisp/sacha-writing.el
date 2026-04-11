@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Emacs: Cycle through different paragraph formats: all on one line, wrapped, max one sentence per line, one sentence per line
+;;   https://sachachua.com/dotemacs#unfill-paragraph
+;;
 ;;; Code:
 
 

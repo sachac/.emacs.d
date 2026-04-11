@@ -24,7 +24,65 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Process audio files
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-process-audio-files
+;;
+;; - gif-screencast
+;;   https://sachachua.com/dotemacs#gif-screencast
+;;
+;; - Transcripts from my phone
+;;   https://sachachua.com/dotemacs#transcripts-from-sacha-phone
+;;
+;; - Animating paths in order
+;;   https://sachachua.com/dotemacs#svg-animating-paths-in-order
+;;
+;; - FFmpeg
+;;   https://sachachua.com/dotemacs#multimedia-ffmpeg
+;;
+;; - Transcript editing
+;;   https://sachachua.com/dotemacs#transcript-editing
+;;
+;; - Using word-level timing information when editing subtitles or captions in Emacs
+;;   https://sachachua.com/dotemacs#word-level
+;;
+;; - Showing captions
+;;   https://sachachua.com/dotemacs#showing-captions
+;;
+;; - Org Mode: Insert YouTube video with separate captions
+;;   https://sachachua.com/dotemacs#org-youtube-captions
+;;
+;; - Preparing to record YouTube shorts
+;;   https://sachachua.com/dotemacs#youtube-shorts
+;;
+;; - Simple streaming with FFmpeg
+;;   https://sachachua.com/dotemacs#simple-streaming
+;;
+;; - Controlling my stream audio from Emacs: background music, typing sounds, and push to talk
+;;   https://sachachua.com/dotemacs#controlling-sacha-stream-audio-from-emacs-background-music-typing-sounds-and-push-to-talk
+;;
+;; - More background music
+;;   https://sachachua.com/dotemacs#more-background-music
+;;
+;; - Stream message
+;;   https://sachachua.com/dotemacs#streaming-stream-message
+;;
+;; - Playing recordings
+;;   https://sachachua.com/dotemacs#playing-recordings
+;;
+;; - Stream notes
+;;   https://sachachua.com/dotemacs#stream-notes
+;;
+;; - Chapters
+;;   https://sachachua.com/dotemacs#streaming-chapters
+;;
+;; - Try continuous streaming and the Google Speech Recognition API
+;;   https://sachachua.com/dotemacs#speech-to-text
+;;
+;; - Animation for Emacs chats
+;;   https://sachachua.com/dotemacs#animation-for-emacs-chats
+;;
 ;;; Code:
 
 
@@ -653,7 +711,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 												"")))))
 ;; Chapters:1 ends here
 
-;; [[file:../Sacha.org::#speech-to-text][CANCELLED Try continuous streaming and the Google Speech Recognition API:1]]
+;; [[file:../Sacha.org::#speech-to-text][Try continuous streaming and the Google Speech Recognition API:1]]
 (defvar sacha-stream-captions-websocket nil)
 (defvar sacha-stream-captions-history nil)
 (defvar sacha-stream-captions-last-caption nil)
@@ -690,7 +748,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
   (interactive (list (read-string "Caption: " sacha-stream-captions-last-caption 'sacha-stream-captions-history sacha-stream-captions-last-caption)))
   (when (> (length caption) 0)
     (sacha-obs-websocket-add-caption caption)))
-;; CANCELLED Try continuous streaming and the Google Speech Recognition API:1 ends here
+;; Try continuous streaming and the Google Speech Recognition API:1 ends here
 
 ;; [[file:../Sacha.org::#animation-for-emacs-chats][Animation for Emacs chats:1]]
 ;;;###autoload

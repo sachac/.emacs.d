@@ -24,7 +24,14 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Internet Relay Chat
+;;   https://sachachua.com/dotemacs#internet-relay-chat
+;;
+;; - Search logs
+;;   https://sachachua.com/dotemacs#search-logs
+;;
 ;;; Code:
 
 

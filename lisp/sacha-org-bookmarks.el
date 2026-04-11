@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Bookmarks
+;;   https://sachachua.com/dotemacs#org-bookmarks
+;;
 ;;; Code:
 
 

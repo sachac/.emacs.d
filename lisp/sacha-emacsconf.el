@@ -24,7 +24,14 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Prepare for EmacsConf screenshots or recordings
+;;   https://sachachua.com/dotemacs#prepare-for-emacsconf-screenshots-or-recordings
+;;
+;; - EmacsConf
+;;   https://sachachua.com/dotemacs#emacsconf
+;;
 ;;; Code:
 
 

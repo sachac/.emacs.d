@@ -24,7 +24,35 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere
+;;   https://sachachua.com/dotemacs#multimedia-whisper
+;;
+;; - Emacs and whisper.el: Trying out different speech-to-text backends and models
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models
+;;
+;; - Queuing multiple transcriptions with whisper.el speech recognition
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-queue-multiple-transcriptions-with-whisper-el-speech-recognition
+;;
+;; - Using Silero voice activity detection to automatically queue multiple transcriptions with natrys/whisper.el
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-using-silero-voice-activity-detection-to-automatically-queue-multiple-transcriptions-with-natrys-whisper-el
+;;
+;; - Slowly building speech-based commands for Emacs
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-slowly-building-speech-based-commands-for-emacs
+;;
+;; - Okay, track...
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-okay-track
+;;
+;; - Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results
+;;
+;; - Streaming speech recognition into Emacs using Google Chrome Web Speech API
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api
+;;
+;; - speech and subed-record
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api-speech-and-subed-record
+;;
 ;;; Code:
 
 

@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Save edited text for sketch post
+;;   https://sachachua.com/dotemacs#multimedia-images-save-edited-text-for-sketch-post
+;;
 ;;; Code:
 
 

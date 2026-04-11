@@ -24,7 +24,14 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Add shadowing with tts to subed-record
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-add-shadowing-with-tts-to-subed-record
+;;
+;; - Make it easy to add reference links
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-make-it-easy-to-add-reference-links
+;;
 ;;; Code:
 
 

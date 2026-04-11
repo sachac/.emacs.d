@@ -24,7 +24,26 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Tangle Emacs config snippets to different files and add boilerplate
+;;   https://sachachua.com/dotemacs#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate
+;;
+;; - Org Babel: Detangle just the current block
+;;   https://sachachua.com/dotemacs#org-mode-org-babel-detangle-just-the-current-block
+;;
+;; - Run source blocks in an Org Mode subtree by custom ID
+;;   https://sachachua.com/dotemacs#execute-subtree-by-custom-id
+;;
+;; - Execute named babel block
+;;   https://sachachua.com/dotemacs#execute-named-babel-block
+;;
+;; - JSON
+;;   https://sachachua.com/dotemacs#json
+;;
+;; - Fix block indentation
+;;   https://sachachua.com/dotemacs#org-block-indentation
+;;
 ;;; Code:
 
 

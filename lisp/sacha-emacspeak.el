@@ -24,7 +24,11 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Emacspeak
+;;   https://sachachua.com/dotemacs#emacspeak
+;;
 ;;; Code:
 
 

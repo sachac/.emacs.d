@@ -24,7 +24,68 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Mastodon
+;;   https://sachachua.com/dotemacs#mastodon
+;;
+;; - Adding Mastodon toots as comments in my 11ty static blog
+;;   https://sachachua.com/dotemacs#mastodon-adding-mastodon-toots-as-comments-in-sacha-11ty-static-blog
+;;
+;; - mastodon.el: Copy toot content as Org Mode
+;;   https://sachachua.com/dotemacs#mastodon-mastodon-el-copy-toot-content-as-org-mode
+;;
+;; - mastodon.el: Mention people based on regexp
+;;   https://sachachua.com/dotemacs#mastodon-mastodon-el-mention-people-based-on-regexp
+;;
+;; - mastodon.el: Collect handles in clipboard (Emacs kill ring)
+;;   https://sachachua.com/dotemacs#mastodon-mastodon-el-collect-handles-in-kill-ring
+;;
+;; - mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty
+;;   https://sachachua.com/dotemacs#mastodon-mastodon-el-copy-toot-url-after-posting-also-copying-just-this-post-with-11ty
+;;
+;; - Storing Mastodon links in Org mode
+;;   https://sachachua.com/dotemacs#storing-mastodon-links-in-org-mode
+;;
+;; - Collecting Emacs News from Mastodon
+;;   https://sachachua.com/dotemacs#mastodon-news
+;;
+;; - Copy Mastodon link for Emacs News
+;;   https://sachachua.com/dotemacs#copy-mastodon-link-for-emacs-news
+;;
+;; - Combining Mastodon timelines using mastodon.el
+;;   https://sachachua.com/dotemacs#mastodon-combined-timeline
+;;
+;; - Following people
+;;   https://sachachua.com/dotemacs#following-people
+;;
+;; - Tooting a link to the current post
+;;   https://sachachua.com/dotemacs#mastodon-tooting-a-link-to-the-current-post
+;;
+;; - Compose a Mastodon toot with the current Org subtree
+;;   https://sachachua.com/dotemacs#mastodon-toot-subtree
+;;
+;; - Posting the latest screenshot with mastodon.el
+;;   https://sachachua.com/dotemacs#posting-the-latest-screenshot-with-mastodon-el
+;;
+;; - Making it easier to toot my config
+;;   https://sachachua.com/dotemacs#mastodon-toot-config
+;;
+;; - Capture
+;;   https://sachachua.com/dotemacs#mastodon-org-contacts-capture
+;;
+;; - Completion
+;;   https://sachachua.com/dotemacs#mastodon-org-contacts-complete
+;;
+;; - Copy Mastodon toot URL as author link
+;;   https://sachachua.com/dotemacs#mastodon-copy-mastodon-toot-url-as-author-link
+;;
+;; - Collect my recent toots in an Org file so that I can refile them
+;;   https://sachachua.com/dotemacs#mastodon-org-feed
+;;
+;; - Archive toots on my blog
+;;   https://sachachua.com/dotemacs#mastodon-insert-statuses
+;;
 ;;; Code:
 
 

@@ -24,7 +24,38 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Recognizing keyword phrases
+;;   https://sachachua.com/dotemacs#recognizing-keyword-phrases
+;;
+;; - Splitting the lines based on keywords and oopses
+;;   https://sachachua.com/dotemacs#splitting-the-lines-based-on-keywords-and-oopses
+;;
+;; - Preparing the VTT subtitles
+;;   https://sachachua.com/dotemacs#preparing-the-vtt-subtitles
+;;
+;; - Formatting the subtitles into Org Mode subtrees
+;;   https://sachachua.com/dotemacs#formatting-the-subtitles-into-org-mode-subtrees
+;;
+;; - Process a single transcript from the raw text file
+;;   https://sachachua.com/dotemacs#process-a-single-transcript-from-the-raw-text-file
+;;
+;; - Process multiple files
+;;   https://sachachua.com/dotemacs#process-multiple-files
+;;
+;; - Updating my audio braindump workflow to take advantage of WhisperX
+;;   https://sachachua.com/dotemacs#writing-and-editing-updating-sacha-audio-braindump-workflow-to-take-advantage-of-whisperx
+;;
+;; - Rerecognize this audio and reprocess it
+;;   https://sachachua.com/dotemacs#rerecognize
+;;
+;; - Remove filler words at the start and upcase the next word
+;;   https://sachachua.com/dotemacs#filler-start
+;;
+;; - Split up oops better
+;;   https://sachachua.com/dotemacs#split-up-oops-better
+;;
 ;;; Code:
 
 
@@ -501,7 +532,7 @@
   ;; (sacha-audio-braindump-from-whisperx-json (sacha-latest-file "~/sync/recordings" "\\.json"))
 ;; Updating my audio braindump workflow to take advantage of WhisperX:1 ends here
 
-;; [[file:../Sacha.org::#rerecognize][TOBLOG Rerecognize this audio and reprocess it:1]]
+;; [[file:../Sacha.org::#rerecognize][Rerecognize this audio and reprocess it:1]]
 ;;;###autoload
 (defun sacha-audio-braindump-reprocess (audio-file)
 	(interactive
@@ -531,7 +562,7 @@
 	(find-file sacha-audio-braindump-braindump-file)
 	(goto-char (point-min))
 	(sacha-audio-braindump-insert-subtitles-as-org-tree (concat (file-name-sans-extension audio-file) ".vtt")))
-;; TOBLOG Rerecognize this audio and reprocess it:1 ends here
+;; Rerecognize this audio and reprocess it:1 ends here
 
 ;; [[file:../Sacha.org::#filler-start][Remove filler words at the start and upcase the next word:1]]
 (defvar sacha-filler-words-regexp "\\(\\. \\|^\\)\\(?:So?\\|And\\|You know\\|Uh\\)\\(?:,\\|\\.\\.\\.\\)? \\(.\\)")

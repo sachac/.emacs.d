@@ -24,7 +24,17 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Templates
+;;   https://sachachua.com/dotemacs#templates
+;;
+;; - Contacts
+;;   https://sachachua.com/dotemacs#org-contacts
+;;
+;; - mastodon.el: Mention people based on regexp
+;;   https://sachachua.com/dotemacs#mastodon-mastodon-el-mention-people-based-on-regexp
+;;
 ;;; Code:
 
 

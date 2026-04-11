@@ -24,7 +24,62 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Obscure Emacs package appreciation: backup-walker
+;;   https://sachachua.com/dotemacs#about-this-file-backups-obscure-emacs-package-appreciation-backup-walker
+;;
+;; - Killing text
+;;   https://sachachua.com/dotemacs#killing-text
+;;
+;; - Hydra keyboard shortcuts
+;;   https://sachachua.com/dotemacs#hydras
+;;
+;; - Searching my blog, notes, and sketches with consult-ripgrep and consult-omni
+;;   https://sachachua.com/dotemacs#searching-sacha-blog
+;;
+;; - Navigation
+;;   https://sachachua.com/dotemacs#navigation
+;;
+;; - Focus on the current window
+;;   https://sachachua.com/dotemacs#navigation-focus-on-the-current-window
+;;
+;; - Sort files in read-file-name
+;;   https://sachachua.com/dotemacs#sort-read-file-name
+;;
+;; - Deleting things
+;;   https://sachachua.com/dotemacs#deleting-things
+;;
+;; - Ediff
+;;   https://sachachua.com/dotemacs#ediff
+;;
+;; - Hideshow
+;;   https://sachachua.com/dotemacs#hideshow
+;;
+;; - Frequently-accessed files
+;;   https://sachachua.com/dotemacs#frequently-accessed-files
+;;
+;; - Move to beginning of line
+;;   https://sachachua.com/dotemacs#move-to-beginning-of-line
+;;
+;; - Open files externally
+;;   https://sachachua.com/dotemacs#open-files-externally
+;;
+;; - Toggle
+;;   https://sachachua.com/dotemacs#toggle
+;;
+;; - Randomness for serendipity
+;;   https://sachachua.com/dotemacs#random
+;;
+;; - Touch gestures
+;;   https://sachachua.com/dotemacs#touch
+;;
+;; - Link-related convenience functions
+;;   https://sachachua.com/dotemacs#link-related-convenience-functions
+;;
+;; - Tag files
+;;   https://sachachua.com/dotemacs#tag-files
+;;
 ;;; Code:
 
 
@@ -134,7 +189,7 @@
   (switch-to-buffer (other-buffer (current-buffer) 1)))
 ;; Hydra keyboard shortcuts:6 ends here
 
-;; [[file:../Sacha.org::#searching-sacha-blog][STARTED Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:1]]
+;; [[file:../Sacha.org::#searching-sacha-blog][Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:1]]
 ;;;###autoload
   (defun sacha-search-notes ()
           (interactive)
@@ -143,7 +198,7 @@
   (defun sacha-search-public-notes ()
           (interactive)
           (consult-ripgrep '("~/sync/static-blog/blog" "~/sync/sketches" "~/sync/topics")))
-;; STARTED Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:1 ends here
+;; Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:1 ends here
 
 ;; [[file:../Sacha.org::#navigation][Navigation:2]]
 (defun sacha-close-other-buffers ()

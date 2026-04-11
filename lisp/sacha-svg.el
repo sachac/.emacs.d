@@ -24,7 +24,23 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Identifying paths
+;;   https://sachachua.com/dotemacs#svg-identifying-paths
+;;
+;; - Linking paths
+;;   https://sachachua.com/dotemacs#multimedia-images-svg-animating-svgs-linking-paths
+;;
+;; - Sorting paths
+;;   https://sachachua.com/dotemacs#svg-sorting-paths
+;;
+;; - Animating paths in order
+;;   https://sachachua.com/dotemacs#svg-animating-paths-in-order
+;;
+;; - RevealJS CSS animation of sketches
+;;   https://sachachua.com/dotemacs#reveal-js-sketch-animation
+;;
 ;;; Code:
 
 

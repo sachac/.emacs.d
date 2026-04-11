@@ -24,7 +24,17 @@
 
 ;;; Commentary:
 ;;
-
+;; Related Emacs config sections:
+;;
+;; - Scan ~/bin and turn the scripts into interactive commands
+;;   https://sachachua.com/dotemacs#scan-bin-and-turn-the-scripts-into-interactive-commands
+;;
+;; - dwim-shell-command
+;;   https://sachachua.com/dotemacs#dwim-shell-command
+;;
+;; - Automation
+;;   https://sachachua.com/dotemacs#automation
+;;
 ;;; Code:
 
 

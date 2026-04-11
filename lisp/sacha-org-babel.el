@@ -26,7 +26,7 @@
 ;;
 ;; Related Emacs config sections:
 ;;
-;; - Tangle Emacs config snippets to different files and add boilerplate
+;; - Org Mode: Tangle Emacs config snippets to different files and add boilerplate
 ;;   https://sachachua.com/dotemacs#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate
 ;;
 ;; - Org Babel: Detangle just the current block
@@ -48,7 +48,7 @@
 
 
 
-;; [[file:../Sacha.org::#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Tangle Emacs config snippets to different files and add boilerplate:3]]
+;; [[file:../Sacha.org::#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Org Mode: Tangle Emacs config snippets to different files and add boilerplate:3]]
 (defvar sacha-emacs-config-modules-dir "~/sync/emacs/lisp/")
 (defvar sacha-emacs-config-modules-info nil "Alist of module info.")
 (defvar sacha-emacs-config-url "https://sachachua.com/dotemacs")
@@ -105,7 +105,7 @@
                       base
                       base))
       (save-buffer))))
-;; Tangle Emacs config snippets to different files and add boilerplate:3 ends here
+;; Org Mode: Tangle Emacs config snippets to different files and add boilerplate:3 ends here
 
 ;; [[file:../Sacha.org::#org-mode-org-babel-detangle-just-the-current-block][Org Babel: Detangle just the current block:1]]
 ;;;###autoload

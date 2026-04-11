@@ -38,7 +38,7 @@
 ;; - Make it easier to split my literate config into files
 ;;   https://sachachua.com/dotemacs#org-mode-org-babel-make-it-easier-to-split-sacha-literate-config-into-files
 ;;
-;; - Tangle Emacs config snippets to different files and add boilerplate
+;; - Org Mode: Tangle Emacs config snippets to different files and add boilerplate
 ;;   https://sachachua.com/dotemacs#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate
 ;;
 ;; - Key chords
@@ -139,7 +139,7 @@
         (insert " :tangle " (file-relative-name filename (file-name-directory (buffer-file-name))))))))
 ;; Make it easier to split my literate config into files:1 ends here
 
-;; [[file:../Sacha.org::#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Tangle Emacs config snippets to different files and add boilerplate:2]]
+;; [[file:../Sacha.org::#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Org Mode: Tangle Emacs config snippets to different files and add boilerplate:2]]
 (defvar sacha-dotemacs-url "https://sachachua.com/dotemacs/")
 
 ;;;###autoload
@@ -217,7 +217,7 @@
   "Update module info if tangling my config."
   (when (string-match "Sacha.org" (buffer-file-name))
     (sacha-emacs-config-update-module-info)))
-;; Tangle Emacs config snippets to different files and add boilerplate:2 ends here
+;; Org Mode: Tangle Emacs config snippets to different files and add boilerplate:2 ends here
 
 ;; [[file:../Sacha.org::#key-chord][Key chords:1]]
 ;;;###autoload

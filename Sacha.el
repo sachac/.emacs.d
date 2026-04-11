@@ -2274,12 +2274,12 @@
 												(apply old-fun args))))
 ;; Linking to Org Babel source in a comment, and making that always use file links:2 ends here
 
-;; [[file:Sacha.org::#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Tangle Emacs config snippets to different files and add boilerplate:4]]
+;; [[file:Sacha.org::#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Org Mode: Tangle Emacs config snippets to different files and add boilerplate:4]]
 (setq sacha-emacs-config-url "https://sachachua.com/dotemacs")
 (with-eval-after-load 'org
   (add-hook 'org-babel-pre-tangle-hook #'sacha-emacs-config-prepare-to-tangle)
   (add-hook 'org-babel-post-tangle-hook #'sacha-org-babel-post-tangle-insert-boilerplate-for-sacha-lisp))
-;; Tangle Emacs config snippets to different files and add boilerplate:4 ends here
+;; Org Mode: Tangle Emacs config snippets to different files and add boilerplate:4 ends here
 
 ;; [[file:Sacha.org::#format-source][Format source:2]]
 (use-package format-all :if sacha-laptop-p :defer t)

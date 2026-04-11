@@ -1,39 +1,3 @@
-;;; my-file.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Working with or renaming a set of files
-;;   https://sachachua.com/dotemacs#multimedia-working-with-or-renaming-a-set-of-files
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#multimedia-working-with-or-renaming-a-set-of-files][Working with or renaming a set of files:1]]
 ;;;###autoload
 (defun my-file-set (file)
 	(let ((base (file-name-base file)))
@@ -122,7 +86,3 @@
 										 (dired-get-filename)
 									 (buffer-file-name))))
     (rename-file file (expand-file-name (file-name-nondirectory file) new-dir))))
-;; Working with or renaming a set of files:1 ends here
-
-(provide 'my-file)
-;;; my-file.el ends here

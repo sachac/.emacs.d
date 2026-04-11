@@ -1,63 +1,3 @@
-;;; my-brigade.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Automating buttons
-;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-automating-buttons
-;;
-;; - Removing sections
-;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-removing-sections
-;;
-;; - Formatting calls to action
-;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-formatting-calls-to-action
-;;
-;; - Changing link colours
-;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-changing-link-colours
-;;
-;; - Just the headings
-;;   https://sachachua.com/dotemacs#collaboration-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-just-the-headings
-;;
-;; - Wrapping it up
-;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-wrapping-it-up
-;;
-;; - Getting a Google Docs draft ready for Mailchimp via Emacs and Org Mode
-;;   https://sachachua.com/dotemacs#collaboration-bike-brigade-extract-information-from-google-docs-export-as-zipped-html
-;;
-;; - Bike Brigade: working with Mailchimp images
-;;   https://sachachua.com/dotemacs#collaboration-bike-brigade-working-with-mailchimp-images
-;;
-;; - Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it
-;;   https://sachachua.com/dotemacs#collaboration-bike-brigade-updating-mailchimp-directly
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-automating-buttons][Automating buttons:1]]
 ;;;###autoload
 (defun my-brigade-copy-signup-block (date)
 	(interactive (list (if current-prefix-arg (org-read-date nil t nil "Date: ")
@@ -92,9 +32,7 @@
 			(kill-new result)
 			(shell-command "xdotool search  --onlyvisible --all Chrome windowactivate windowfocus"))
 		result))
-;; Automating buttons:1 ends here
 
-;; [[file:../Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-removing-sections][Removing sections:1]]
 (defvar my-brigade-section nil)
 ;;;###autoload
 (defun my-brigade-remove-meta-recursively (node &optional recursing)
@@ -119,9 +57,7 @@ Resume at the next h1 heading."
 								(my-brigade-remove-meta-recursively child t)))
 						(dom-children node))))
 			`(,(dom-tag node) ,(dom-attributes node) ,@processed)))))
-;; Removing sections:1 ends here
 
-;; [[file:../Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-formatting-calls-to-action][Formatting calls to action:1]]
 ;;;###autoload
 (defun my-brigade-format-buttons (dom)
 	(dolist (node (dom-by-tag dom 'a))
@@ -140,9 +76,7 @@ Resume at the next h1 heading."
 							 parent-paragraph)
 							(dom-remove-node dom parent-paragraph))))))
 	dom)
-;; Formatting calls to action:1 ends here
 
-;; [[file:../Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-changing-link-colours][Changing link colours:1]]
 (defvar my-brigade-community-text-style "color: #ffffff")
 (defvar my-brigade-community-link-style "color: #aed9ef")
 ;;;###autoload
@@ -165,9 +99,7 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 								 (my-brigade-recolor-recursively child)))
 						 (dom-children node))))
 			 `(,(dom-tag node) ,(dom-attributes node) ,@processed)))))
-;; Changing link colours:1 ends here
 
-;; [[file:../Sacha.org::#collaboration-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-just-the-headings][Just the headings:1]]
 ;;;###autoload
 (defun my-brigade-just-headings (dom)
 	(let ((entries
@@ -177,9 +109,7 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 				(unless (string= text "")
 					(dom-append-child entries (dom-node 'li nil text)))))
 		entries))
-;; Just the headings:1 ends here
 
-;; [[file:../Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-wrapping-it-up][Wrapping it up:1]]
 ;;;###autoload
 (defun my-brigade-transform-html (&optional recolor file as-rich-text)
 	(interactive (list nil (when current-prefix-arg (read-file-name "File: "))))
@@ -211,9 +141,7 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 		 (with-temp-buffer (insert-file-contents file) (buffer-string)))
 	as-rich-text))
 
-;; Wrapping it up:1 ends here
 
-;; [[file:../Sacha.org::#collaboration-bike-brigade-extract-information-from-google-docs-export-as-zipped-html][Getting a Google Docs draft ready for Mailchimp via Emacs and Org Mode:1]]
 ;;;###autoload
 (defun my-brigade-process-latest-newsletter-draft (date)
 	"Create an Org file with the HTML for different blocks."
@@ -338,9 +266,7 @@ Uses `my-brigade-community-text-style' and `my-brigade-community-link-style'."
 		(directory-files my-brigade-newsletter-images-directory
 												t (regexp-quote (my-brigade-newsletter-heading-to-image-file-name heading))))))
 
-;; Getting a Google Docs draft ready for Mailchimp via Emacs and Org Mode:1 ends here
 
-;; [[file:../Sacha.org::#collaboration-bike-brigade-working-with-mailchimp-images][Bike Brigade: working with Mailchimp images:2]]
 ;;;###autoload
 (defun my-brigade-reuse-or-upload-images (images)
   "Return an updated list of (section . images)."
@@ -557,9 +483,7 @@ IMAGES is an alist of (filename . URL)."
 			(kill-new html))
 		html))
 
-;; Bike Brigade: working with Mailchimp images:2 ends here
 
-;; [[file:../Sacha.org::#collaboration-bike-brigade-updating-mailchimp-directly][Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it:1]]
 ;;;###autoload
 (defun my-brigade-next-campaign (&optional date)
   (setq date (or date (org-read-date nil nil "+Sun")))
@@ -642,9 +566,7 @@ IMAGES is an alist of (filename . URL)."
         (insert (alist-get 'html (mailchimp--request-json (format "/campaigns/%s/content" (alist-get 'id campaign)))))))
     (browse-url (concat "https://sachachua.com/bike-brigade/" (file-name-nondirectory my-bike-brigade-output-file)))
     (message "%s" "Done!")))
-;; Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it:1 ends here
 
-;; [[file:../Sacha.org::#collaboration-bike-brigade-updating-mailchimp-directly][Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it:2]]
 (defvar my-brigade-test-emails nil "Set to a list of e-mail addresses.")
 ;;;###autoload
 (defun my-brigade-send-test-to-me ()
@@ -657,9 +579,7 @@ IMAGES is an alist of (filename . URL)."
   (if my-brigade-test-emails
       (mailchimp-campaign-send-test-email (my-brigade-next-campaign) my-brigade-test-emails)
     (error "Set `my-brigade-test-emails'.")))
-;; Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it:2 ends here
 
-;; [[file:../Sacha.org::#collaboration-bike-brigade-updating-mailchimp-directly][Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it:3]]
 ;;;###autoload
 (defun my-brigade-schedule ()
   (interactive)
@@ -667,7 +587,3 @@ IMAGES is an alist of (filename . URL)."
          (sched (format-time-string "%FT%T%z" (org-read-date t t "+Sun 11:00") t)))
     (mailchimp-campaign-schedule campaign sched)
     (message "Scheduled %s" (alist-get 'title (alist-get 'settings campaign)))))
-;; Emacs: Updating a Mailchimp campaign using a template, sending test e-mails, and scheduling it:3 ends here
-
-(provide 'my-brigade)
-;;; my-brigade.el ends here

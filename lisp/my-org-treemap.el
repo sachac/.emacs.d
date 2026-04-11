@@ -1,39 +1,3 @@
-;;; my-org-treemap.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Treemap visualization
-;;   https://sachachua.com/dotemacs#org-mode-diagrams-and-graphics-treemap-visualization
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#org-mode-diagrams-and-graphics-treemap-visualization][Treemap visualization:1]]
 (defvar my-org-treemap-temp-file "~/Downloads/treemap.html") ; Firefox inside Snap can't access /tmp
 (defvar my-org-treemap-command "treemap" "Executable to generate a treemap.")
 
@@ -114,7 +78,3 @@
 				 nil
 				 my-org-treemap-command nil t t))
 			(browse-url (concat "file://" (expand-file-name my-org-treemap-temp-file))))))
-;; Treemap visualization:1 ends here
-
-(provide 'my-org-treemap)
-;;; my-org-treemap.el ends here

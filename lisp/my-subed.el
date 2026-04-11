@@ -1,90 +1,3 @@
-;;; my-subed.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Embark and subed
-;;   https://sachachua.com/dotemacs#embark-subed
-;;
-;; - Interleave images with transcript
-;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-interleave-images-with-transcript
-;;
-;; - Split a transcript into phrases for subtitles
-;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-split-a-transcript-into-phrases-for-subtitles
-;;
-;; - Transcript editing
-;;   https://sachachua.com/dotemacs#transcript-editing
-;;
-;; - Adjust subtitles
-;;   https://sachachua.com/dotemacs#adjust-subtitles
-;;
-;; - Extract part of a video
-;;   https://sachachua.com/dotemacs#extract-part-of-a-video
-;;
-;; - Hide IDs and times
-;;   https://sachachua.com/dotemacs#hide-ids-and-times
-;;
-;; - Other subtitle code
-;;   https://sachachua.com/dotemacs#other-subtitle-code
-;;
-;; - Simplify inserting audio links
-;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-simplify-inserting-audio-links
-;;
-;; - Using Emacs to fix automatically generated subtitle timestamps
-;;   https://sachachua.com/dotemacs#using-emacs-to-fix-automatically-generated-subtitle-timestamps
-;;
-;; - Using word-level timing information when editing subtitles or captions in Emacs
-;;   https://sachachua.com/dotemacs#word-level
-;;
-;; - Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record
-;;   https://sachachua.com/dotemacs#whisperx
-;;
-;; - Testing subtitle start times by skimming the first second
-;;   https://sachachua.com/dotemacs#my-subed-skim-starts
-;;
-;; - Edit text
-;;   https://sachachua.com/dotemacs#edit-text
-;;
-;; - Working with sections defined by NOTE comments
-;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-working-with-sections-defined-by-note-comments
-;;
-;; - Split up oops better
-;;   https://sachachua.com/dotemacs#split-up-oops-better
-;;
-;; - Export transcript as list
-;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-export-transcript-as-list
-;;
-;; - Removing gaps and merging subtitles
-;;   https://sachachua.com/dotemacs#subed-gaps
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#embark-subed][Embark and subed:1]]
 ;;;###autoload
 (defun my-subed-set-timestamp-to-mpv-position (&optional rest)
   (interactive)
@@ -133,9 +46,26 @@
     (if (bolp)
         (my-subed-copy-timestamp-from-previous)
       (my-subed-copy-timestamp-to-next))))
-;; Embark and subed:1 ends here
 
-;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-interleave-images-with-transcript][Interleave images with transcript:1]]
+;;;###autoload
+(defun my-subed-format-second-speaker (speaker-name)
+  "Italicize and shift the subtitles for SPEAKER-NAME"
+  (interactive "MSpeaker name: ")
+  (goto-char (point-min))
+  (let ((line-pos "80%")
+        (first t))
+    (while (re-search-forward
+            (format "\n<v %s>\\(.+\\)</v>" (regexp-quote speaker-name))
+            nil t)
+      (replace-match
+       (format " line:%s\n<v %s><i>%s</i></v>"
+               line-pos
+               speaker-name
+               (if first
+                   (concat speaker-name ": ")
+                 (match-string 1))))
+      (setq first nil))))
+
 ;;;###autoload
 (defun my-subed-interleave-image-links (dir &optional offset-ms)
 	(interactive (list (read-file-name "Directory: ")
@@ -196,9 +126,7 @@
 									 (time-to-seconds (time-subtract file-timestamp start-of-recording)))
 								(subed-subtitle-msecs-start)))))
 
-;; Interleave images with transcript:1 ends here
 
-;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-split-a-transcript-into-phrases-for-subtitles][Split a transcript into phrases for subtitles:1]]
 ;;;###autoload
 (defun my-split-at-words ()
 	(interactive)
@@ -238,9 +166,7 @@
 (defun my-split-clear-overlays ()
 	(interactive)
 	(remove-overlays (point-min) (point-max) 'my-split t))
-;; Split a transcript into phrases for subtitles:1 ends here
 
-;; [[file:../Sacha.org::#transcript-editing][Transcript editing:1]]
 ;;;###autoload
 (defun my-split-sentence-and-capitalize ()
   (interactive)
@@ -260,9 +186,24 @@
   (skip-syntax-backward "w")
   (kill-word 1)
   (capitalize-word 1))
-;; Transcript editing:1 ends here
 
-;; [[file:../Sacha.org::#adjust-subtitles][Adjust subtitles:1]]
+;;;###autoload
+(defun my-subed-remove-whisperx-underlines ()
+  "Remove underlines from the transcript.
+If you called whisperx with --highlight_words, this function can remove the underlines."
+	(interactive)
+	(let (results)
+		(dolist (cue (subed-subtitle-list))
+			(let ((text (replace-regexp-in-string "</?u>" "" (elt cue 3))))
+				(if (and results (string= text (elt (car results) 3)))
+						(setf (elt (car results) 2) (elt cue 2))
+					(setf (elt cue 3) text)
+					(push cue results))))
+		(goto-char (point-min))
+		(subed-forward-subtitle-start-pos)
+		(delete-region (point) (point-max))
+		(subed-append-subtitle-list (reverse results))))
+
 ;;;###autoload
 (defun my-subed-move-succeeding-subtitles-based-on-mpv ()
   "Move current and succeeding subtitles so that current starts at MPV playing position."
@@ -282,9 +223,7 @@
 		 (subed-msecs-to-timestamp (elt (elt list pos) 1)))
 		(subed-mpv-jump-to-current-subtitle)
 		(subed-mpv-unpause)))
-;; Adjust subtitles:1 ends here
 
-;; [[file:../Sacha.org::#extract-part-of-a-video][Extract part of a video:1]]
 ;;;###autoload
 (defun my-subed-get-region-start-stop (beg end)
   (interactive "r")
@@ -391,9 +330,7 @@
       (message "%s" cmd)
       (if kill-only (kill-new cmd)
 				(shell-command cmd)))))
-;; Extract part of a video:1 ends here
 
-;; [[file:../Sacha.org::#hide-ids-and-times][Hide IDs and times:1]]
 (define-minor-mode my-subed-hide-nontext-minor-mode
   "Minor mode for hiding non-text stuff.")
 ;;;###autoload
@@ -443,9 +380,7 @@
 (advice-add 'subed-merge-with-previous :around #'my-ignore-read-only)
 (advice-add 'subed-regenerate-ids :around #'my-ignore-read-only)
 (advice-add 'subed-kill-subtitle :around #'my-ignore-read-only)
-;; Hide IDs and times:1 ends here
 
-;; [[file:../Sacha.org::#other-subtitle-code][Other subtitle code:1]]
 ;;;###autoload
 (defun my-subed-forward-word (&optional arg)
   "Skip timestamps."
@@ -478,9 +413,7 @@
             (setq end (point))
             (subed-jump-to-subtitle-end)
             (backward-word 1)))))
-;; Other subtitle code:1 ends here
 
-;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-simplify-inserting-audio-links][Simplify inserting audio links:1]]
 (defvar my-subed-audio-link-list nil)
 ;;;###autoload
 (defun my-subed-remove-audio-links (beg end)
@@ -546,9 +479,7 @@
     (goto-char beg)
     (while (re-search-forward "vtime:[0-9:]+ " end t)
       (replace-match ""))))
-;; Simplify inserting audio links:1 ends here
 
-;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-simplify-inserting-audio-links][Simplify inserting audio links:4]]
 ;;;###autoload
 (defun my-subed-insert-next-audio-link (&optional by-sentence)
   (interactive (list current-prefix-arg))
@@ -585,7 +516,7 @@
             :lookup 'consult--lookup-cdr
             :sort nil))))
     (save-excursion
-      (insert "vtime:" (replace-regexp-in-string "\\.[0-9]+" choice) " "))
+      (insert "vtime:" (replace-regexp-in-string "\\.[0-9]+" "" choice) " "))
     (my-org-next-item-or-paragraph by-sentence)
     (setq my-subed-audio-link-list
           (seq-remove
@@ -611,14 +542,14 @@
                   current-prefix-arg))))
   (setq beg (or beg (point)))
   (setq end (or end (point-max)))
-  (when do-load
+  (when (or do-load (null my-subed-audio-link-list))
     (save-excursion
       (unless (eq 'link (org-element-type (org-element-context)))
         (re-search-backward "audio:" nil t))
       (let ((elem (org-element-context)))
         (when (and (eq 'link (org-element-type elem))
                    (string= "audio" (org-element-property :type elem)))
-          (my-subed-save-audio-links)
+          (my-subed-load-audio-links)
           (my-org-next-item-or-paragraph)))))
   (save-restriction
     (narrow-to-region beg end)
@@ -631,9 +562,7 @@
   (interactive)
   (dolist (cue my-subed-audio-link-list)
     (insert "- " (my-org-vtime-link cue) " " (elt cue 3) "\n")))
-;; Simplify inserting audio links:4 ends here
 
-;; [[file:../Sacha.org::#using-emacs-to-fix-automatically-generated-subtitle-timestamps][Using Emacs to fix automatically generated subtitle timestamps:1]]
 ;;;###autoload
 (defun my-subed-fix-timestamps ()
   "Change all ending timestamps to the start of the next subtitle."
@@ -643,9 +572,7 @@
     (while (subed-backward-subtitle-time-start)
       (subed-set-subtitle-time-stop timestamp)
       (setq timestamp (subed-subtitle-msecs-start)))))
-;; Using Emacs to fix automatically generated subtitle timestamps:1 ends here
 
-;; [[file:../Sacha.org::#word-level][Using word-level timing information when editing subtitles or captions in Emacs:3]]
 ;;;###autoload
 (defun subed-avy-set-up-actions ()
   (interactive)
@@ -657,9 +584,7 @@
 ;;;###autoload
 (defun my-subed-maybe-save-place ()
   (when buffer-file-name (save-place-local-mode 1)))
-;; Using word-level timing information when editing subtitles or captions in Emacs:3 ends here
 
-;; [[file:../Sacha.org::#whisperx][Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record:3]]
 ;;;###autoload
 (defun my-subed-word-tsv-from-whisperx-json (file)
 	(interactive "FJSON: ")
@@ -695,9 +620,7 @@
 		 t
 		 'subed-tsv-mode)
 		(find-file filename)))
-;; Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record:3 ends here
 
-;; [[file:../Sacha.org::#whisperx][Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record:4]]
 ;;;###autoload
 (defun my-subed-load-word-data-from-whisperx-highlights (file)
 	"Return a list of word cues from FILE.
@@ -719,9 +642,7 @@ FILE should be a VTT or SRT file produced by whisperx with the
     (mapc (lambda (sub) (apply #'subed-append-subtitle nil (cdr sub)))
 					(my-subed-load-word-data-from-whisperx-highlights file))
 		(switch-to-buffer (current-buffer))))
-;; Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record:4 ends here
 
-;; [[file:../Sacha.org::#whisperx][Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record:5]]
 (defvar my-subed-merge-close-subtitles-threshold 500)
 ;;;###autoload
 (defun my-subed-merge-close-subtitles (threshold)
@@ -736,9 +657,7 @@ FILE should be a VTT or SRT file produced by whisperx with the
 			(if (and end next-start (< (- next-start end) threshold))
 					(subed-merge-with-next)
 				(or (subed-forward-subtitle-end) (goto-char (point-max)))))))
-;; Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record:5 ends here
 
-;; [[file:../Sacha.org::#my-subed-skim-starts][Testing subtitle start times by skimming the first second:1]]
 (defvar my-subed-skim-msecs 1000 "Number of milliseconds to play when skimming.")
 ;;;###autoload
 (defun my-subed-skim-starts ()
@@ -758,9 +677,7 @@ FILE should be a VTT or SRT file produced by whisperx with the
 				(subed-waveform-refresh))
 			(recenter)))
 	(subed-mpv-pause))
-;; Testing subtitle start times by skimming the first second:1 ends here
 
-;; [[file:../Sacha.org::#edit-text][Edit text:1]]
 ;; Use the saved version of this instead of forcing the reevaluation
 (defcustom my-subed-common-edits
 	'("I"
@@ -826,9 +743,7 @@ FILE should be a VTT or SRT file produced by whisperx with the
 	:group 'sachac
 	:type '(repeat (choice string
 												 (repeat string))))
-;; Edit text:1 ends here
 
-;; [[file:../Sacha.org::#edit-text][Edit text:2]]
 ;;;###autoload
 (defun my-subed-add-common-edit (beg end replacement)
 	"Add this word to the misrecognized words."
@@ -904,9 +819,7 @@ FILE should be a VTT or SRT file produced by whisperx with the
 (defun my-subed-fix-common-errors-from-start ()
   (goto-char (point-min))
   (my-subed-fix-common-errors))
-;; Edit text:2 ends here
 
-;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-working-with-sections-defined-by-note-comments][Working with sections defined by NOTE comments:1]]
 ;;;###autoload
 (defun my-subed-group-sections (subtitles)
 	"Return a list of ((:comment ... :start-ms ... :stop-ms ... :subtitles ...) ...)."
@@ -977,9 +890,7 @@ The current section is defined by NOTE comments."
 			(push-mark start)
 			(goto-char end)
 			(activate-mark))))
-;; Working with sections defined by NOTE comments:1 ends here
 
-;; [[file:../Sacha.org::#split-up-oops-better][Split up oops better:3]]
 ;;;###autoload
 (defun my-subed-delete-oops (&optional skip-only)
 	(interactive (list current-prefix-arg))
@@ -1079,36 +990,72 @@ The current section is defined by NOTE comments."
 
 
 
-;; Split up oops better:3 ends here
 
-;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-export-transcript-as-list][Export transcript as list:1]]
+(ert-deftest my-subed-org-format-by-speaker ()
+  "Tests `my-subed-org-format-by-speaker'."
+  (should
+   (string=
+    (my-subed-org-format-by-speaker
+     '((nil 0 10 "<v Sacha>This is a test</v>")
+       (nil 20 30 "<v Sacha>This is another</v>")
+       (nil 40 50 "<v Guest>Next sentence</v>")))
+    "Sacha: This is a test\nThis is another\n\nGuest: Next sentence")))
+
+
+(defun my-subed-org-format-by-speaker (subtitles)
+  "Return a string of
+
+Speaker: text ...
+
+Speaker: text ...
+"
+  (let (last-speaker)
+    (replace-regexp-in-string
+     "</?i>" ""
+     (string-trim
+      (mapconcat (lambda (sub)
+                   (let ((text (elt sub 3)))
+                     (if (string-match "<v \\([^>]+\\)>\\(.+\\)</v>" text)
+                         (if (not (string= last-speaker (match-string 1 text)))
+                             (progn
+                               (setq last-speaker (match-string 1 text))
+                               (format "\n%s: %s" last-speaker
+                                       (replace-regexp-in-string
+                                        (save-match-data (concat "^" (regexp-quote last-speaker) ": ")) ""
+                                        (match-string 2 text))))
+                           (match-string 2 text))
+                       text)))
+                 subtitles
+                 "\n")))))
+
+
 ;;;###autoload
-  (cl-defun my-subed-as-org-list-with-times (file &key from to)
-		(interactive "FVTT: ")
-    (when (stringp from) (setq from (compile-media-timestamp-to-msecs from)))
-    (when (stringp to) (setq to (compile-media-timestamp-to-msecs to)))
-		(let ((s (mapconcat
-							(lambda (o)
-								(format "- @@html:<span class=\"audio-time\" data-start=\"%.3f\" data-stop=\"%.3f\">%s</span>@@: *%s*:\n  %s\n\n"
-  											(/ (plist-get o :start-ms) 1000.0)
-  											(/ (plist-get o :stop-ms) 1000.0)
-  											(replace-regexp-in-string "^00:0?\\|\\.[0-9]+$" "" (my-msecs-to-timestamp (plist-get o :start-ms)))
-  											(plist-get o :comment)
-  											(string-trim (replace-regexp-in-string
-  																		"[ \n]+" " "
-  																		(subed-subtitle-list-text (plist-get o :subtitles))))))
-							(my-subed-group-sections
-							 (seq-filter (lambda (sub)
-  													 (and (or (not from) (>= (elt sub 1) from))
-  																(or (not to) (< (elt sub 2) to))))
-  												 (subed-parse-file file)))
-							"")))
-			(if (called-interactively-p 'any)
-					(insert s)
-				s)))
-;; Export transcript as list:1 ends here
+(cl-defun my-subed-as-org-list-with-times (file &key from to)
+	(interactive "FVTT: ")
+  (when (stringp from) (setq from (compile-media-timestamp-to-msecs from)))
+  (when (stringp to) (setq to (compile-media-timestamp-to-msecs to)))
+	(let ((s (mapconcat
+						(lambda (o)
+              (let ((text (org-ascii--indent-string
+                           (my-subed-org-format-by-speaker
+                            (plist-get o :subtitles))
+                           2)))
+							  (format "- @@html:<span class=\"audio-time\" data-start=\"%.3f\" data-stop=\"%.3f\">%s</span>@@: *%s*:\n%s\n\n"
+  										  (/ (plist-get o :start-ms) 1000.0)
+  										  (/ (plist-get o :stop-ms) 1000.0)
+  										  (replace-regexp-in-string "^00:0?\\|\\.[0-9]+$" "" (my-msecs-to-timestamp (plist-get o :start-ms)))
+  										  (plist-get o :comment)
+                        text)))
+						(my-subed-group-sections
+						 (seq-filter (lambda (sub)
+  												 (and (or (not from) (>= (elt sub 1) from))
+  															(or (not to) (< (elt sub 2) to))))
+  											 (subed-parse-file file)))
+						"")))
+		(if (called-interactively-p 'any)
+				(insert s)
+			s)))
 
-;; [[file:../Sacha.org::#subed-gaps][Removing gaps and merging subtitles:1]]
 ;;;###autoload
 (defun my-subed-remove-gaps (&optional threshold)
 	"Remove gaps between cues below threshold.
@@ -1148,7 +1095,84 @@ If threshold is 0, remove all gaps."
 			(unless (subed-forward-subtitle-start-pos)
 				(goto-char (point-max))))))
 
-;; Removing gaps and merging subtitles:1 ends here
 
-(provide 'my-subed)
-;;; my-subed.el ends here
+;;;###autoload
+(defun my-subed-subtitle-set-text (text)
+  (interactive "MNew text: ")
+  (subed-jump-to-subtitle-text)
+  (delete-region (point) (or (subed-jump-to-subtitle-end) (point)))
+  (insert text))
+
+;;;###autoload
+(defun my-plover/edit-find-target (input)
+  (or (looking-at (concat "\\b" (regexp-quote input) "\\b"))
+      (re-search-forward (concat "\\b" (regexp-quote input) "\\b")
+                         nil t)))
+;;;###autoload
+(defun my-plover/edit-subtitles ()
+  (interactive)
+  (catch 'exit
+    (while t
+      (my-read-command-string
+       "Command: "
+       '(("toggle" subed-mpv-toggle-pause)
+         ("jump" (lambda () (interactive) (subed-mpv-jump-to-current-subtitle)))
+         ("split [text before split]" subed-split-subtitle)
+         ("center" recenter-top-bottom)
+         (" previous" (lambda () (interactive) (subed-merge-with-previous) (fill-paragraph)))
+         ("merge next" (lambda () (interactive) (subed-merge-with-next) (fill-paragraph)))
+         ("slow" (lambda () (interactive) (subed-mpv-playback-speed 0.5)))
+         ("fast" (lambda () (interactive) (subed-mpv-playback-speed 2)))
+         ("scroll" scroll-up-command)
+         ("fill" fill-paragraph)
+         ("next [text]" search-forward)
+         ("replace <text>")
+         ("previous [text]" search-backward)
+         ("cap [text]" capitalize-word)
+         ("delete [text]" kill-word)
+         (", [text]" (lambda () (interactive) (insert ",")))
+         ("end [text] - adds period and capitalizes next word" (lambda () (interactive) (insert ".") (capitalize-word 1)))
+         ("oops" 'undo)
+         ("exit" (throw 'exit nil)))
+       (lambda (input)
+         (cond
+          ((string-match "^split \\(.+\\) *$" input)
+           (when (my-plover/edit-find-target (match-string 1 input))
+             (goto-char (match-end 0))
+             (subed-split-subtitle)
+             (fill-paragraph)))
+          ((string-match "^delete \\(.+\\) *$" input)
+           (when (my-plover/edit-find-target (match-string 1 input))
+             (replace-match "")))
+          ((string-match "^, \\(.+\\) *$" input)
+           (when (my-plover/edit-find-target (match-string 1 input))
+             (goto-char (match-end 0))
+             (insert ",")))
+          ((string-match "^end \\(.+\\) *$" input)
+           (when (my-plover/edit-find-target (match-string 1 input))
+             (goto-char (match-end 0))
+             (insert ".")
+             (unless (save-excursion (subed-jump-to-subtitle-end))
+               (subed-forward-subtitle-text))
+             (capitalize-word 1)))
+          ((string-match "^zap \\(.+\\)$" input)
+           (delete-region (point)
+                          (my-plover/edit-find-target (match-string 1 input))))
+          ((string-match "^replace \\(.+\\)$" input)
+           (kill-word 1)
+           (insert (match-string 1 input)))
+          ((string-match "^cap \\(.+\\) *$" input)
+           (when (my-plover/edit-find-target (match-string 1 input))
+             (replace-match (capitalize (match-string 0)) t t)))
+          ((string-match "^... \\(.+\\) *$" input)
+           (when (my-plover/edit-find-target (match-string 1 input))
+             (insert "...")))
+          ((string-match "^next \\(.+\\) *$" input)
+           (my-plover/edit-find-target (match-string 1 input)))
+          ((string-match "^previous \\(.+\\) *$" input)
+           (re-search-backward (concat "\\b" (regexp-quote (match-string 1 input)) "\\b") nil t)
+           (goto-char (match-end 0)))
+          (t (re-search-forward (concat "\\b" (regexp-quote input) "\\b")))
+          ;; (t (my-subed-subtitle-set-text input))
+          ))
+       nil))))

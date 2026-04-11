@@ -1,45 +1,3 @@
-;;; my-time.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Timestamps
-;;   https://sachachua.com/dotemacs#multimedia-timestamps
-;;
-;; - Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs
-;;   https://sachachua.com/dotemacs#using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs
-;;
-;; - Workrave
-;;   https://sachachua.com/dotemacs#workrave
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#multimedia-timestamps][Timestamps:1]]
 ;;;###autoload
 (defun my-filename-timestamp (file)
 	(setq file (replace-regexp-in-string "^screen-" "" (file-name-base file)))
@@ -63,9 +21,7 @@
 					"test-2024-09-20-13:18:08-024")
  (string= (format-time-string "test-%F-%T-%3N" (my-filename-timestamp "screen-2024-09-20-13_1808-024.png"))
 					"test-2024-09-20-13:18:08-024"))
-;; Timestamps:1 ends here
 
-;; [[file:../Sacha.org::#using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs][Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:2]]
 (defvar my-calendar-count-scaled)
 ;;;###autoload
 (defun my-calendar-heat-map-using-echo-text (&rest _)
@@ -89,9 +45,49 @@
 						 (point) (+ 2 (point))
 						 'face (intern (format "calendar-scale-%d" count-scaled))))
 					(goto-char next-change))))))
-;; Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:2 ends here
 
-;; [[file:../Sacha.org::#using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs][Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:5]]
+(defface calendar-scale-1  '((((background light)) :foreground "black" :background "#eceff1")
+                             (((background dark))  :foreground "white" :background "#263238")) "")
+(defface calendar-scale-2  '((((background light)) :foreground "black" :background "#cfd8dc")
+                             (((background dark))  :foreground "white" :background "#37474f")) "")
+(defface calendar-scale-3  '((((background light)) :foreground "black" :background "#b0bec5")
+                             (((background dark))  :foreground "white" :background "#455a64")) "")
+(defface calendar-scale-4  '((((background light)) :foreground "black" :background "#90a4ae")
+                             (((background dark))  :foreground "white" :background "#546e7a")) "")
+(defface calendar-scale-5  '((((background light)) :foreground "black" :background "#78909c")
+                             (((background dark))  :foreground "white" :background "#607d8b")) "")
+(defface calendar-scale-6  '((((background light)) :foreground "white" :background "#607d8b")
+                             (((background dark))  :foreground "black" :background "#78909c")) "")
+(defface calendar-scale-7  '((((background light)) :foreground "white" :background "#546e7a")
+                             (((background dark))  :foreground "black" :background "#90a4ae")) "")
+(defface calendar-scale-8  '((((background light)) :foreground "white" :background "#455a64")
+                             (((background dark))  :foreground "black" :background "#b0bec5")) "")
+(defface calendar-scale-9  '((((background light)) :foreground "white" :background "#37474f")
+                             (((background dark))  :foreground "black" :background "#cfd8dc")) "")
+(defun my-count-calendar-entries (grouped-entries)
+  (mapcar (lambda (entry) (cons (car entry) (length (cdr entry)))) grouped-entries))
+
+(defface calendar-scale-10 '((((background light)) :foreground "white" :background "#263238")
+                             (((background dark))  :foreground "black" :background "#eceff1")) "")
+
+(defun my-scale-calendar-entries (grouped-entries &optional scale-max)
+  (let* ((count (my-count-calendar-entries grouped-entries))
+         (count-max (apply #'max (mapcar (lambda (o) (if (car o) (cdr o) 0)) count))))
+    (mapcar (lambda (entry)
+              (cons (car entry)
+                    (/ (* 1.0 (or scale-max 1.0) (cdr entry)) count-max)))
+            count)))
+
+(defun my-scale-calendar-entries-logarithmically (grouped-entries &optional scale-max)
+  (let* ((count (my-count-calendar-entries grouped-entries))
+         (count-max (apply #'max (mapcar (lambda (o) (if (car o) (cdr o) 0)) count))))
+    (mapcar (lambda (entry)
+              (cons (car entry)
+                    (/ (* 1.0 (or scale-max 1.0) (log (cdr entry))) (log count-max))))
+            count)))
+
+(defvar my-calendar-count-scaled nil "Values to display.")
+
 (defvar my-calendar-count-scaled)
 ;;;###autoload
 (defun my-calendar-visualize (values)
@@ -100,9 +96,7 @@
 				 (month (calendar-extract-month date))
 				 (year (calendar-extract-year date)))
 		(year-calendar month (1- year))))
-;; Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:5 ends here
 
-;; [[file:../Sacha.org::#using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs][Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:6]]
 ;;;###autoload
 (defun my-calendar-visualize-journal-entries ()
   (interactive)
@@ -156,9 +150,7 @@
                                                            (my-journal-note o)))
                                (cdr (pcsv-parse-file "~/Downloads/entries.csv"))))))))
 
-;; Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:6 ends here
 
-;; [[file:../Sacha.org::#using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs][Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:8]]
 ;; https://stackoverflow.com/questions/9547912/emacs-calendar-show-more-than-3-months
 (defmacro lawlist-calendar-for-loop (var from init to final do &rest body)
   "Execute a for loop.
@@ -240,9 +232,7 @@ See also:  http://ivan.kanis.fr/caly.el"
   (interactive (list (prefix-numeric-value current-prefix-arg)
                      last-nonmenu-event))
   (lawlist-scroll-year-calendar-forward (- (or arg 1)) event))
-;; Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:8 ends here
 
-;; [[file:../Sacha.org::#using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs][Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:9]]
 ;;;###autoload
 (defun my-scroll-year-calendar-forward-year (&optional arg event)
   "Scroll the yearly calendar by year in a forward direction."
@@ -266,9 +256,7 @@ See also:  http://ivan.kanis.fr/caly.el"
 (eval-after-load "calendar" '(progn
   (define-key calendar-mode-map "{" 'my-scroll-year-calendar-backward-year)
   (define-key calendar-mode-map "}" 'my-scroll-year-calendar-forward-year)))
-;; Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:9 ends here
 
-;; [[file:../Sacha.org::#workrave][Workrave:1]]
 (defvar my-workrave-file (expand-file-name ".\\Workrave\\historystats" (getenv "AppData")))
 
 ;;;###autoload
@@ -298,7 +286,3 @@ See also:  http://ivan.kanis.fr/caly.el"
       (if (interactive-p)
           (kill-new result)
         result))))
-;; Workrave:1 ends here
-
-(provide 'my-time)
-;;; my-time.el ends here

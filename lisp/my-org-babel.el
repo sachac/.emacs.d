@@ -1,54 +1,3 @@
-;;; my-org-babel.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Tangle Emacs config snippets to different files and add boilerplate
-;;   https://sachachua.com/dotemacs#org-mode-org-babel-tangling-my-emacs-config-snippets-to-different-files-and-adding-boilerplate
-;;
-;; - Org Babel: Detangle just the current block
-;;   https://sachachua.com/dotemacs#org-mode-org-babel-detangle-just-the-current-block
-;;
-;; - Run source blocks in an Org Mode subtree by custom ID
-;;   https://sachachua.com/dotemacs#execute-subtree-by-custom-id
-;;
-;; - Execute named babel block
-;;   https://sachachua.com/dotemacs#execute-named-babel-block
-;;
-;; - JSON
-;;   https://sachachua.com/dotemacs#json
-;;
-;; - Fix block indentation
-;;   https://sachachua.com/dotemacs#org-block-indentation
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#org-mode-org-babel-tangling-my-emacs-config-snippets-to-different-files-and-adding-boilerplate][Tangle Emacs config snippets to different files and add boilerplate:3]]
 (defvar my-emacs-config-modules-dir "~/sync/emacs/lisp/")
 (defvar my-emacs-config-modules-info nil "Alist of module info.")
 (defvar my-emacs-config-url "https://sachachua.com/dotemacs")
@@ -105,9 +54,7 @@
                       base
                       base))
       (save-buffer))))
-;; Tangle Emacs config snippets to different files and add boilerplate:3 ends here
 
-;; [[file:../Sacha.org::#org-mode-org-babel-detangle-just-the-current-block][Org Babel: Detangle just the current block:1]]
 ;;;###autoload
 (defun my-org-babel-detangle-current-block ()
   "Detangle just the current block."
@@ -127,9 +74,7 @@
                  (match-end 0)
                (point-max))))
     (narrow-to-region start end)))
-;; Org Babel: Detangle just the current block:1 ends here
 
-;; [[file:../Sacha.org::#execute-subtree-by-custom-id][Run source blocks in an Org Mode subtree by custom ID:1]]
 ;;;###autoload
 (defun my-org-execute-subtree-by-custom-id (id &optional filename)
 	"Prompt for a CUSTOM_ID value and execute the subtree with that ID.
@@ -150,9 +95,7 @@ If called with \\[universal-argument], prompt for a file, and then prompt for th
 					(org-babel-execute-subtree)
 				(if filename(error "Could not find %s in %s" id filename)
 					(error "Could not find %s" id))))))
-;; Run source blocks in an Org Mode subtree by custom ID:1 ends here
 
-;; [[file:../Sacha.org::test][test]]
 ;;;###autoload
 (defun my-org-execute-src-block-by-name (name)
   (interactive (list (completing-read "Block: "(org-babel-src-block-names))))
@@ -160,9 +103,7 @@ If called with \\[universal-argument], prompt for a file, and then prompt for th
     (goto-char (point-min))
     (when (re-search-forward (format "^#\\+NAME:[ \t]+%s[ \t]*$" (regexp-quote name)) nil t)
       (org-babel-execute-src-block))))
-;; test ends here
 
-;; [[file:../Sacha.org::#json][JSON:1]]
 ;;;###autoload
 (defun my-org-babel-execute:json (body params)
   (let ((jq (cdr (assoc :jq params)))
@@ -183,9 +124,7 @@ If called with \\[universal-argument], prompt for a file, and then prompt for th
         (insert node)
         (shell-command-on-region (point-min) (point-max) "node -p" nil 't)
         (buffer-string))))))
-;; JSON:1 ends here
 
-;; [[file:../Sacha.org::#org-block-indentation][Fix block indentation:1]]
 ;;;###autoload
 (defun my-org-fix-block-indentation ()
 	"Fix the indentation of the current src block."
@@ -193,7 +132,3 @@ If called with \\[universal-argument], prompt for a file, and then prompt for th
 	(org-edit-special)
 	(indent-region (point-min) (point-max))
 	(org-edit-src-exit))
-;; Fix block indentation:1 ends here
-
-(provide 'my-org-babel)
-;;; my-org-babel.el ends here

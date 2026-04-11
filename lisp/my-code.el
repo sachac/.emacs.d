@@ -1,72 +1,14 @@
-;;; my-code.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Format source
-;;   https://sachachua.com/dotemacs#format-source
-;;
-;; - Python
-;;   https://sachachua.com/dotemacs#python
-;;
-;; - Web development
-;;   https://sachachua.com/dotemacs#web-development
-;;
-;; - LSP
-;;   https://sachachua.com/dotemacs#lsp
-;;
-;; - Javascript
-;;   https://sachachua.com/dotemacs#javascript
-;;
-;; - HTML
-;;   https://sachachua.com/dotemacs#html
-;;
-;; - SQLite
-;;   https://sachachua.com/dotemacs#coding-sqlite
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#format-source][Format source:1]]
 ;;;###autoload
 (defun my-format-all-advice ()
   (ignore-errors               ; in case there's no language support
     (format-all-buffer)))
-;; Format source:1 ends here
 
-;; [[file:../Sacha.org::#python][Python:2]]
 ;;;###autoload
 (defun colorize-compilation-buffer ()
   (when (eq major-mode 'compilation-mode)
 		(let ((inhibit-read-only t))
 			(ansi-color-apply-on-region compilation-filter-start (point-max)))))
-;; Python:2 ends here
 
-;; [[file:../Sacha.org::#web-development][Web development:2]]
 ;;;###autoload
 (defun themkat/activate-tide ()
   (interactive)
@@ -99,9 +41,7 @@
   (web-mode)
   (themkat/activate-tide)
   (setq-local eldoc-documentation-function #'themkat/eldoc-web-mode))
-;; Web development:2 ends here
 
-;; [[file:../Sacha.org::#web-development][Web development:5]]
 ;; from FAQ at http://web-mode.org/ for smartparens
 ;;;###autoload
 (defun my-sp-web-mode-is-code-context (id action context)
@@ -109,16 +49,12 @@
              (not (or (get-text-property (point) 'part-side)
                       (get-text-property (point) 'block-side))))
     t))
-;; Web development:5 ends here
 
-;; [[file:../Sacha.org::#lsp][LSP:1]]
 ;;;###autoload
 (defun my-local-lsp ()
   (unless (file-remote-p default-directory)
     (lsp)))
-;; LSP:1 ends here
 
-;; [[file:../Sacha.org::#javascript][Javascript:4]]
 (defvar my-javascript-test-regexp (concat (regexp-quote "/** Testing **/") "\\(.*\n\\)*")
   "Regular expression matching testing-related code to remove.
       See `my-copy-javascript-region-or-buffer'.")
@@ -142,9 +78,7 @@
      (buffer-substring (point-min) (point-max))
      nil)
     "\n</script>")))
-;; Javascript:4 ends here
 
-;; [[file:../Sacha.org::#javascript][Javascript:5]]
 (defvar my-debug-counter 1)
 ;;;###autoload
 (defun my-insert-or-flush-debug (&optional reset beg end)
@@ -168,9 +102,7 @@
     (setq my-debug-counter (1+ my-debug-counter))
     (backward-char 3)
     (js2-indent-line))))
-;; Javascript:5 ends here
 
-;; [[file:../Sacha.org::#html][HTML:1]]
 ;;;###autoload
 (defun my-clean-up-spans-in-region (beg end)
   (interactive "r")
@@ -207,9 +139,12 @@
                    "<span><a href=\"http://example.com\">Leave</a> alone</span>")))
 
 ;; (ert "my-clean-up-spans-in-string")
-;; HTML:1 ends here
 
-;; [[file:../Sacha.org::#coding-sqlite][SQLite:1]]
+;;;###autoload
+(defun my-projectile-open-notes ()
+	(interactive)
+	(find-file-other-window (expand-file-name "notes.org" (projectile-project-root))))
+
 ;;;###autoload
 (defun ct/sqlite-view-file-magically ()
     "Runs `sqlite-mode-open-file' on the file name visited by the
@@ -218,7 +153,3 @@ current buffer, killing it."
     (let ((file-name buffer-file-name))
       (kill-current-buffer)
       (sqlite-mode-open-file file-name)))
-;; SQLite:1 ends here
-
-(provide 'my-code)
-;;; my-code.el ends here

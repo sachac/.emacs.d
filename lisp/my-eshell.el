@@ -1,42 +1,3 @@
-;;; my-eshell.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Consult directory navigation
-;;   https://sachachua.com/dotemacs#consult-directory-navigation
-;;
-;; - Correctly complete commands in subdirectories
-;;   https://sachachua.com/dotemacs#correctly-complete-commands-in-subdirectories
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#consult-directory-navigation][Consult directory navigation:2]]
 ;; https://karthinks.com/software/jumping-directories-in-eshell/
 ;;;###autoload
 (defun eshell/z (&optional regexp)
@@ -58,9 +19,7 @@
                     (consult-dir--pick "Switch directory: ")))))
      (t (eshell/cd (if regexp (eshell-find-previous-directory regexp)
                      (completing-read "cd: " eshell-dirs)))))))
-;; Consult directory navigation:2 ends here
 
-;; [[file:../Sacha.org::#correctly-complete-commands-in-subdirectories][Correctly complete commands in subdirectories:1]]
 ;;;###autoload
 (defun eshell--complete-commands-list ()
 		"Generate list of applicable, visible commands."
@@ -120,7 +79,3 @@
 																	 (null completions)))
 													(all-completions filename obarray #'functionp))
 										 completions)))))))
-;; Correctly complete commands in subdirectories:1 ends here
-
-(provide 'my-eshell)
-;;; my-eshell.el ends here

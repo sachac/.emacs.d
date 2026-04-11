@@ -1,66 +1,3 @@
-;;; my-embark.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Using Embark to act on video
-;;   https://sachachua.com/dotemacs#embark-video
-;;
-;; - Using Embark to act on audio
-;;   https://sachachua.com/dotemacs#embark-audio
-;;
-;; - Using Embark to offer context-sensitive actions for Org elements
-;;   https://sachachua.com/dotemacs#using-embark-to-offer-context-sensitive-actions-for-org-elements
-;;
-;; - Whichkey and Embark
-;;   https://sachachua.com/dotemacs#whichkey-embark
-;;
-;; - Embark and images
-;;   https://sachachua.com/dotemacs#embark-image
-;;
-;; - Embark and subed
-;;   https://sachachua.com/dotemacs#embark-subed
-;;
-;; - Embark and erefactor-rename-symbol-in-buffer
-;;   https://sachachua.com/dotemacs#keybindings-embark-embark-and-erefactor-rename-symbol-in-buffer
-;;
-;; - Making it easier to add a category to a blog post
-;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-making-it-easier-to-add-a-category-to-a-blog-post
-;;
-;; - Tip from Omar: embark-around-action-hooks
-;;   https://sachachua.com/dotemacs#org-mode-links-using-an-emacs-lisp-macro-to-define-quick-custom-org-mode-links-to-project-files-plus-urls-and-search-quickly-search-my-code-tip-from-omar-embark-around-action-hooks
-;;
-;; - Act on current message with Embark
-;;   https://sachachua.com/dotemacs#act-on-current-message-with-embark
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#embark-video][Using Embark to act on video:1]]
 ;;;###autoload
 (defun my-embark-video ()
   "Match video."
@@ -74,9 +11,7 @@
       (when (and (derived-mode-p 'dired-mode)
                  (string-match extensions (dired-get-filename)))
         (cons 'video (dired-get-filename))))))
-;; Using Embark to act on video:1 ends here
 
-;; [[file:../Sacha.org::#embark-audio][Using Embark to act on audio:1]]
 ;;;###autoload
 (defun my-embark-audio ()
   "Match audio."
@@ -123,9 +58,7 @@
 (defun my-open-in-audacity (file)
   (interactive "FFile: ")
   (start-process "audacity" nil "audacity" file))
-;; Using Embark to act on audio:1 ends here
 
-;; [[file:../Sacha.org::embark][embark]]
 ;;;###autoload
 (defun my-embark-org-element ()
   "Target an Org Mode element at point."
@@ -154,9 +87,7 @@
                 (format "<<%s(%s)>>" (org-element-property element :name)
                         (org-element-property element :parameters))
               (format "<<%s>>" (org-element-property element :parameters)))))
-;; embark ends here
 
-;; [[file:../Sacha.org::#whichkey-embark][Whichkey and Embark:1]]
 ;;;###autoload
 (defun embark-which-key-indicator ()
   "An embark indicator that displays keymaps using which-key.
@@ -188,9 +119,7 @@
   (let ((embark-indicators
          (remq #'embark-which-key-indicator embark-indicators)))
     (apply fn args)))
-;; Whichkey and Embark:1 ends here
 
-;; [[file:../Sacha.org::#embark-image][Embark and images:2]]
 ;;;###autoload
 (defun my-embark-image ()
   "Match images."
@@ -219,9 +148,7 @@
       (cons 'image (buffer-file-name))))))
   (with-eval-after-load 'embark
           (add-to-list 'embark-target-finders 'my-embark-image))
-;; Embark and images:2 ends here
 
-;; [[file:../Sacha.org::#embark-subed][Embark and subed:2]]
 ;;;###autoload
 (defun my-embark-subed-timestamp ()
   (save-excursion
@@ -232,9 +159,7 @@
              (match-string 0)
              'ms (compile-media-timestamp-to-msecs (match-string 0))
              'position (if (bolp) 'start 'stop))))))
-;; Embark and subed:2 ends here
 
-;; [[file:../Sacha.org::#keybindings-embark-embark-and-erefactor-rename-symbol-in-buffer][Embark and erefactor-rename-symbol-in-buffer:1]]
 ;;;###autoload
 (defun my-embark-erefactor-rename-symbol-in-buffer (old-name new-name)
   (interactive (let* ((old-name (read-string "Symbol: "))
@@ -243,32 +168,71 @@
                                              'erefactor--read-symbol-history)))
                  (list old-name new-name)))
   (erefactor-rename-symbol-in-buffer old-name new-name))
-;; Embark and erefactor-rename-symbol-in-buffer:1 ends here
 
-;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-making-it-easier-to-add-a-category-to-a-blog-post][Making it easier to add a category to a blog post:2]]
+;;;###autoload
+    (defun avy-action-exchange (pt)
+      "Exchange sexp at PT with the one at point."
+      (set-mark pt)
+      (transpose-sexps 0))
+;;;###autoload
+    (defun avy-action-embark (pt)
+      (save-excursion
+        (goto-char pt)
+        (embark-act))
+      (select-window
+       (cdr (ring-ref avy-ring 0)))
+      t)
+
+;;;###autoload
+(defun my-embark-org-insert-link-from-path (path)
+	(interactive (list (car (org-refile-get-location))))
+	(let* ((extra (if org-refile-use-outline-path "/" ""))
+				 (tbl (mapcar
+							 (lambda (x)
+								 (if (and (not (member org-refile-use-outline-path
+																			 '(file full-file-path title)))
+													(not (equal filename (file-truename (nth 1 x)))))
+										 (cons (concat (car x) extra " ("
+																	 (file-name-nondirectory (nth 1 x)) ")")
+													 (cdr x))
+									 (cons (concat (car x) extra) (cdr x))))
+							 org-refile-target-table))
+				 link)
+		(insert (save-window-excursion
+							(save-excursion
+								(org-goto-marker-or-bmk
+								 (elt
+									(org-refile--get-location path tbl)
+									3))
+								(org-store-link nil))))))
+(defvar-keymap my-org-path-map
+	:doc "Shortcuts for working with Org paths from `org-refile'."
+	"i" #'my-embark-org-insert-link-from-path
+	"L" #'my-embark-org-insert-link-from-path)
+
 ;;;###autoload
 (defun my-embark-org-blog-target ()
-	"Identify when we're looking at a blog link."
-	(cond
-	 ((and (derived-mode-p 'org-mode)
-				 (let ((context (org-element-context)))
-					 (and (org-element-type-p context 'link)
-								(cond
-								 ((string= (org-element-property :type context) "blog")
-									(cons 'my-blog (org-element-property :path (org-element-context))))
-								 ((string-match "//sachachua.com\\(.+\\)" (org-element-property :path context))
-									(cons 'my-blog (match-string 1 (org-element-property :path context))))))))
-)))
+  "Identify when we're looking at a blog link."
+  (cond
+   ((and (derived-mode-p 'org-mode)
+	 (let ((context (org-element-context)))
+	   (and (org-element-type-p context 'link)
+		(cond
+		 ((string= (org-element-property :type context) "blog")
+		  (cons 'my-blog (org-element-property :path (org-element-context))))
+		 ((string-match "//sachachua.com\\(.+\\)" (org-element-property :path context))
+		  (cons 'my-blog (match-string 1 (org-element-property :path context))))))))
+    )))
 
 ;;;###autoload
 (defun my-embark-org-blog-add-category (blog &optional category)
-	(interactive (list (my-org-blog-complete)))
-	(unless category
-		(setq category
-					(my-11ty-complete-category
-					 "Add category: "
-					 (my-11ty-post-categories (my-11ty-html-filename blog)))))
-	(my-11ty-add-category-to-post (my-11ty-html-filename blog) category))
+  (interactive (list (my-org-blog-complete)))
+  (unless category
+    (setq category
+	  (my-11ty-complete-category
+	   "Add category: "
+	   (my-11ty-post-categories (my-11ty-html-filename blog)))))
+  (my-11ty-add-category-to-post (my-11ty-html-filename blog) category))
 
 ;;;###autoload
 (defun my-blog-url (path)
@@ -282,7 +246,7 @@
 
 ;;;###autoload
 (defun my-embark-org-blog-open-in-browser (path)
-	(interactive (list (my-consult-blog-posts-by-title)))
+  (interactive (list (my-consult-blog-posts-by-title)))
   (browse-url (my-blog-url path)))
 
 ;;;###autoload
@@ -311,52 +275,85 @@
 FIND-FILE is the file open function, defaulting to `consult--file-action'."
   (when (stringp info) (setq info (my-blog-post-info-for-url info)))
   (let (pos
-        (files '("~/sync/emacs/Sacha.org"
-								 "~/sync/orgzly/posts.org"))
+        (files (delq nil
+                     (list "~/sync/emacs/Sacha.org"
+                           "~/sync/orgzly/posts.org"
+                           (alist-get 'source_path info)
+                           (my-11ty-exported-org-filename info))))
         (line-number (alist-get 'line_number info 0)))
     (when-let* ((source-path
-                 (or
-                  (while files
-                    (with-current-buffer (find-file-noselect (car files))
+                 (seq-find
+                  (lambda (filename)
+                    (with-current-buffer (find-file-noselect filename)
                       (save-excursion
                         (save-restriction
                           (widen)
-						              (setq pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" (assoc-default 'permalink info)))
-						              (if pos
+                          (if (assoc-default 'anchor info)
+                              (when-let* ((pos (org-find-property "CUSTOM_ID" (assoc-default 'anchor info))))
+                                (goto-char pos)
+                                (setq line-number (line-number-at-pos nil t))
+                                (buffer-file-name))
+			    (setq pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" (assoc-default 'permalink info)))
+			    (when pos
                               (progn
                                 (goto-char pos)
                                 (when line-number
                                   (forward-line line-number))
                                 (setq line-number (line-number-at-pos nil t))
-                                (setq files nil)
-							                  (buffer-file-name))
-                            (setq files (cdr files)))))))
-                  (alist-get 'source_path info)
-                  (my-11ty-exported-org-filename info))))
+				(buffer-file-name))))))))
+                  files)))
       (consult--marker-from-line-column
        (funcall (or find-file #'consult--file-action) (file-truename source-path))
        line-number 0))))
 
 ;;;###autoload
 (defun my-blog-post-info-for-url (url &optional all-posts)
-  "Return the alist for URL."
-  (if (listp url)
-      url
-    (setq url (replace-regexp-in-string
-               (concat "^" (regexp-quote my-11ty-base-dir)
-                       "\\|^"
-                       (regexp-quote (expand-file-name my-11ty-base-dir))
-                       "\\|^"
-                       (regexp-quote (file-truename my-11ty-base-dir))
-                       "\\|index\\.org$\\|\\.org$") "" url))
-    (when (string-match (regexp-quote my-blog-base-url) url)
-      (setq url (substring url (match-end 0))))
-    (when (string-match "\\?" url)
-      (setq url (substring url 0 (match-beginning 0))))
-    (unless (string-match "^/" url)
-      (setq url (concat "/" url)))
-    (seq-find (lambda (o) (string= (alist-get 'permalink o) url))
-              (or all-posts (my-blog-posts)))))
+  "Return the alist for URL.
+The alist will have the following keys: permalink, date, title,
+categories, inputPath.  If URL has an anchor, add it as an anchor
+attribute.
+"
+  (let (anchor entry)
+    (if (listp url)
+        url
+      (when (string-match "#\\(.*\\)" url)
+        (setq anchor (match-string 1 url))
+        (setq url (replace-match "" nil nil url)))
+      (setq url (replace-regexp-in-string
+                 (concat "^" (regexp-quote my-11ty-base-dir)
+                         "\\|^"
+                         (regexp-quote (expand-file-name my-11ty-base-dir))
+                         "\\|^"
+                         (regexp-quote (file-truename my-11ty-base-dir))
+                         "\\|index\\.org$\\|\\.org$") "" url))
+      (when (string-match (regexp-quote my-blog-base-url) url)
+        (setq url (substring url (match-end 0))))
+      (when (string-match "\\?" url)
+        (setq url (substring url 0 (match-beginning 0))))
+      (unless (string-match "^/" url)
+        (setq url (concat "/" url)))
+      (setq entry
+            (seq-find (lambda (o) (string= (alist-get 'permalink o) url))
+                      (or all-posts (my-blog-posts))))
+      (if anchor
+          (cons `(anchor . ,anchor) entry)
+        entry))))
+
+(ert-deftest my-blog-post-info-for-url--handle-hash ()
+  "Tests `my-blog-post-info-for-url'."
+  (should
+   (equal
+    (my-blog-post-info-for-url "/blog/2026/04/yayemacs-10-emacs-coaching-with-prot-packaging-emacs-lisp/#projects-experiment-with-learning-from-prot-yayemacs-10-emacs-coaching-with-prot-packaging-emacs-lisp-ideas-for-next-steps")
+    '((anchor
+       . "projects-experiment-with-learning-from-prot-yayemacs-10-emacs-coaching-with-prot-packaging-emacs-lisp-ideas-for-next-steps")
+      (permalink
+       . "/blog/2026/04/yayemacs-10-emacs-coaching-with-prot-packaging-emacs-lisp/")
+      (date . "2026-04-04T02:23:03.000Z")
+      (title
+       . "#YayEmacs 10: Emacs coaching with Prot: Emacs workflows and streaming")
+      (categories "emacs" "yay-emacs")
+      (inputPath
+       . "./blog/2026/04/yayemacs-10-emacs-coaching-with-prot-packaging-emacs-lisp/index.html")))))
 
 (ert-deftest my-blog-post-info-for-url ()
   (should
@@ -394,9 +391,9 @@ FIND-FILE is the file open function, defaulting to `consult--file-action'."
 (defun my-11ty-current-post ()
   "Return the current blog post info if any."
   (cond
-	 ((derived-mode-p 'org-mode)
-		(when (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")
-			(let ((filename (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")))
+   ((derived-mode-p 'org-mode)
+    (when (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")
+      (let ((filename (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")))
         `((filename . ,filename)
           (permalink . ,(org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK"))
           (title . ,(save-excursion
@@ -405,13 +402,13 @@ FIND-FILE is the file open function, defaulting to `consult--file-action'."
                         (goto-char (org-find-property "EXPORT_ELEVENTY_FILE_NAME" (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")))
                         (org-entry-get (point) "ITEM"))))
           (date . ,(org-entry-get-with-inheritance "EXPORT_DATE"))))))
-	 ((derived-mode-p '(html-mode web-mode))
-		;; called from an index.html or page.html, maybe?
-		(let* ((file (buffer-file-name))
-					 (json-file (concat (file-name-sans-extension (buffer-file-name))
-															".11tydata.json"))
-					 (json-data (and (file-exists-p json-file)
-													 (json-read-file json-file))))
+   ((derived-mode-p '(html-mode web-mode))
+    ;; called from an index.html or page.html, maybe?
+    (let* ((file (buffer-file-name))
+	   (json-file (concat (file-name-sans-extension (buffer-file-name))
+			      ".11tydata.json"))
+	   (json-data (and (file-exists-p json-file)
+			   (json-read-file json-file))))
       (cons
        (cons 'filename file)
        json-data)))))
@@ -419,21 +416,29 @@ FIND-FILE is the file open function, defaulting to `consult--file-action'."
 ;;;###autoload
 (defun my-consult-blog-posts-by-title (&optional query)
   (interactive)
-  (consult--read
-   (mapcar
-    #'my-blog-format-for-completion
-    (append
-     (list (my-11ty-current-post))
+  (let* ((options
+          (mapcar
+           #'my-blog-format-for-completion
+           (delq
+            nil
+            (append
+             (list (my-11ty-current-post))
                                         ;todo: make a function to get the current blog post context
-     (sort (my-blog-posts) :key (lambda (o) (alist-get 'date o)) :lessp #'string< :reverse t)
-     nil))
-   :lookup #'consult--lookup-cdr
-   :prompt "Search blog posts (exact): "
-   :category 'my-blog
-   :sort nil
-   :require-match t
-   :state (my-blog-post--state)
-   :initial query))
+             (sort (my-blog-posts) :key (lambda (o) (alist-get 'date o)) :lessp #'string< :reverse t)
+             nil))))
+         (val (consult--read
+               options
+               :prompt "Search blog posts (exact): "
+               :category 'my-blog
+               :sort nil
+               :require-match nil
+               :state (my-blog-post--state)
+               :initial query)))
+    nil
+    (or (and (stringp val) (string-match "^https://\\|^/" val)
+             (my-blog-post-info-for-url val))
+        (get-text-property 0 'consult--candidate val)
+        (assoc-default val options #'string=))))
 
 ;;;###autoload
 (defun my-blog-format-for-completion (result)
@@ -447,9 +452,7 @@ FIND-FILE is the file open function, defaulting to `consult--file-action'."
                     (propertize year 'face 'font-lock-comment-face) title categories)))
       (put-text-property 0 1 'consult--candidate result final-display)
       (cons final-display result))))
-;; Making it easier to add a category to a blog post:2 ends here
 
-;; [[file:../Sacha.org::#org-mode-links-using-an-emacs-lisp-macro-to-define-quick-custom-org-mode-links-to-project-files-plus-urls-and-search-quickly-search-my-code-tip-from-omar-embark-around-action-hooks][Tip from Omar: embark-around-action-hooks:1]]
 ;;;###autoload
 (cl-defun embark-consult--at-location (&rest args &key target type run &allow-other-keys)
 	"RUN action at the target location."
@@ -462,15 +465,9 @@ FIND-FILE is the file open function, defaulting to `consult--file-action'."
 					('consult-grep (consult--jump (consult--grep-position target)))
 					('file (find-file target)))
 				(apply run args)))))
-;; Tip from Omar: embark-around-action-hooks:1 ends here
 
-;; [[file:../Sacha.org::#act-on-current-message-with-embark][Act on current message with Embark:1]]
 ;;;###autoload
-(defun mail-embark-finder ()
+(defun my-embark-mail-finder ()
 	"Identify when we're in a notmuch message."
 	(cond ((derived-mode-p 'notmuch-show-mode)
 				 `(mail . ,(plist-get (plist-get (notmuch-show-get-message-properties) :headers) :From)))))
-;; Act on current message with Embark:1 ends here
-
-(provide 'my-embark)
-;;; my-embark.el ends here

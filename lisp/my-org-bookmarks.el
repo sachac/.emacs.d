@@ -1,39 +1,3 @@
-;;; my-org-bookmarks.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Bookmarks
-;;   https://sachachua.com/dotemacs#org-bookmarks
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#org-bookmarks][Bookmarks:1]]
 (defvar my-org-bookmark-file "~/sync/orgzly/resources.org")
 
 ;;;###autoload
@@ -58,6 +22,7 @@ Uses the info from `my-org-bookmark-file'."
                (when url
                  (list :title title :url url))))))))
 
+;;;###autoload
 (defun my-org-bookmark-match (s)
   "Return the first bookmark that matches S."
   (setq s (downcase s))
@@ -122,7 +87,3 @@ Uses the info from `my-org-bookmark-file'."
     (unless (bolp) (insert "\n"))
     (insert "** " title "\n" link "\n")
     (save-buffer)))
-;; Bookmarks:1 ends here
-
-(provide 'my-org-bookmarks)
-;;; my-org-bookmarks.el ends here

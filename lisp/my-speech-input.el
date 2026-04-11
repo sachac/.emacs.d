@@ -1,57 +1,3 @@
-;;; my-speech-input.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere
-;;   https://sachachua.com/dotemacs#multimedia-whisper
-;;
-;; - Emacs and whisper.el: Trying out different speech-to-text backends and models
-;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models
-;;
-;; - Queuing multiple transcriptions with whisper.el speech recognition
-;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-queue-multiple-transcriptions-with-whisper-el-speech-recognition
-;;
-;; - Using Silero voice activity detection to automatically queue multiple transcriptions with natrys/whisper.el
-;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-using-silero-voice-activity-detection-to-automatically-queue-multiple-transcriptions-with-natrys-whisper-el
-;;
-;; - Slowly building speech-based commands for Emacs
-;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-slowly-building-speech-based-commands-for-emacs
-;;
-;; - Okay, track...
-;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-okay-track
-;;
-;; - Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results
-;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:2]]
 (defvar my-whisper-org-reminder-template "t")
 
 ;;;###autoload
@@ -68,9 +14,7 @@
           (org-capture-finalize)))
       (erase-buffer))))
 
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:2 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:4]]
 (defvar my-whisper-dir "~/recordings/whisper/")
 ;;;###autoload
 (defun my-whisper-set-temp-filename ()
@@ -78,9 +22,7 @@
                             (format-time-string "%Y-%m-%d-%H-%M-%S.wav")
                             my-whisper-dir)))
 
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:4 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:6]]
 ;;;###autoload
 (defun my-whisper-replay (&optional file)
   "Replay the last temporary recording."
@@ -99,17 +41,22 @@
   (setq whisper--marker (point-marker)
         whisper--temp-file (or file whisper--temp-file))
   (whisper--transcribe-audio))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:6 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:8]]
+;;;###autoload
+(defun my-whisper-toggle-language ()
+  "Set the language explicitly, since sometimes auto doesn't figure out the right one."
+  (interactive)
+  (setq whisper-language (if (string= whisper-language "en") "fr" "en"))
+  ;; If using a server, we need to restart for the language
+  (when (process-live-p whisper--server-process) (kill-process whisper--server-process))
+  (message "%s" whisper-language))
+
 ;;;###autoload
 (defun my-whisper-reset (text)
   (setq my-whisper-skip-annotation nil)
   (remove-hook 'whisper-insert-text-at-point #'my-whisper-org-save-to-clocked-task)
   text)
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:8 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:10]]
 (defvar my-whisper-last-annotation nil "Last annotation so we can skip duplicates.")
 (defvar my-whisper-skip-annotation nil)
 (defvar my-whisper-target-markers nil "List of markers to send text to.")
@@ -146,9 +93,7 @@
       (when my-whisper-target-markers
         (goto-char orig-point))
       nil)))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:10 ends here
 
-;; [[file:../Sacha.org::my-whisper-maybe-type][my-whisper-maybe-type]]
 ;;;###autoload
 (defun my-whisper-maybe-type (text)
   "If Emacs is not the focused app, simulate typing TEXT.
@@ -160,9 +105,7 @@ Add this function to `whisper-insert-text-at-point'."
                     (list "xdotool" "type"
                           text))
       nil)))
-;; my-whisper-maybe-type ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:12]]
 ;;;###autoload
 (defun my-whisper-clear-markers ()
   (interactive)
@@ -181,9 +124,107 @@ Add this function to `whisper-insert-text-at-point'."
   (my-whisper-clear-markers)
   (whisper-run))
 
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:12 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:14]]
+;;;###autoload
+(defun my-whisper-jump-to-marker ()
+  (interactive)
+  (with-current-buffer (marker-buffer (car my-whisper-target-markers))
+    (goto-char (car my-whisper-target-markers))))
+
+;;;###autoload
+(defun my-whisper-use-currently-clocked-task (&optional add)
+  (interactive (list current-prefix-arg))
+  (save-window-excursion
+    (save-restriction
+      (save-excursion
+        (org-clock-goto)
+        (org-end-of-meta-data)
+        (org-end-of-subtree)
+        (if add
+            (push (point-marker) my-whisper-target-markers)
+          (setq my-whisper-target-markers (list (point-marker))))))))
+
+;;;###autoload
+(defun my-whisper-run (&optional skip-annotation)
+  (interactive (list current-prefix-arg))
+  (require 'whisper)
+  (add-hook 'whisper-insert-text-at-point #'my-whisper-org-save-to-clocked-task -10)
+  (whisper-run)
+  (when skip-annotation
+    (setq my-whisper-skip-annotation t)))
+
+;;;###autoload
+(defun my-whisper-save-text (text)
+  "Save TEXT beside `whisper--temp-file'."
+  (when text
+    (let ((link (org-store-link nil)))
+      (with-temp-file (concat (file-name-sans-extension whisper--temp-file) ".txt")
+        (when link
+          (insert link "\n"))
+        (insert text)))
+    text))
+
+;;;###autoload
+(defun my-whisper-org-save-to-clocked-task (text)
+  (when text
+    (save-window-excursion
+      (with-current-buffer (if (markerp whisper--marker) (marker-buffer whisper--marker) (current-buffer))
+        (when (markerp whisper--marker) (goto-char whisper--marker))
+        ;; Take a screenshot maybe
+        (let* ((link (and (not my-whisper-skip-annotation)
+                          (org-store-link nil)))
+               (region (and (region-active-p) (buffer-substring (region-beginning) (region-end))))
+               (screenshot-filename
+                (when (or
+                       (null link)
+                       (not (string= my-whisper-last-annotation link))
+                       (not (frame-focus-state))) ; not in focus, take a screenshot
+                  (my-screenshot-current-screen (concat (file-name-sans-extension whisper--temp-file) ".png")))))
+          (if (org-clocking-p)
+              (save-window-excursion
+                (save-restriction
+                  (save-excursion
+                    (org-clock-goto)
+                    (org-end-of-subtree)
+                    (unless (bolp)
+                      (insert "\n"))
+                    (insert "\n")
+                    (if (and link (not (string= my-whisper-last-annotation link)))
+                        (insert
+                         (if screenshot-filename
+                             (concat "(" (org-link-make-string
+                                          (concat "file:" screenshot-filename)
+                                          "screenshot") ") ")
+                           "")
+                         link
+                         "\n")
+                      (when screenshot-filename
+                        (insert (org-link-make-string
+                                 (concat "file:" screenshot-filename)
+                                 "screenshot")
+                                "\n")))
+                    (when region
+                      (insert "#+begin_example\n" region "\n#+end_example\n"))
+                    (insert text "\n")
+                    (setq my-whisper-last-annotation link)))
+                (run-at-time 0.5 nil (lambda (text) (message "Added clock note: %s" text)) text))
+            ;; No clocked task, prompt for a place to capture it
+            (kill-new text)
+            (setq org-capture-initial text)
+            (call-interactively 'org-capture)
+            ;; Delay the window configuration
+            (let ((config (current-window-configuration)))
+              (run-at-time 0.5 nil
+                           (lambda (text config)
+                             (set-window-configuration config)
+                             (message "Copied: %s" text))
+                           text config))))))))
+
+
+;;;###autoload
+(defun my-whisper-org-clear-saved-annotation ()
+  (setq my-whisper-org-last-annotation nil))
+
 (defvar my-whisper-notes "~/sync/stream/narration.org")
 ;;;###autoload
 (defun my-whisper-save-to-file (text)
@@ -195,17 +236,13 @@ Add this function to `whisper-insert-text-at-point'."
         (save-buffer)
         (run-at-time 0.5 nil (lambda (text) (message "Saved to file: %s" text)) text)))
     text))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:14 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:15]]
 ;;;###autoload
 (defun my-whisper-redo ()
   (interactive)
   (setq whisper--marker (point-marker))
   (whisper--transcribe-audio))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:15 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models][Emacs and whisper.el: Trying out different speech-to-text backends and models:1]]
 (defvar my-whisper-url-format "http://%s:%d/transcribe")
 ;;;###autoload
 (defun my-whisper--transcribe-via-local-server ()
@@ -225,9 +262,7 @@ Add this function to `whisper-insert-text-at-point'."
                (concat "language=" whisper-language)))))
 ;;;###autoload
 (defun my-whisper--check-model-consistency () t)
-;; Emacs and whisper.el: Trying out different speech-to-text backends and models:1 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models][Emacs and whisper.el: Trying out different speech-to-text backends and models:6]]
 (defvar sacha-speech-input-model-aliases
   '(("small" . "Systran/faster-whisper-small.en")
     ("medium" . "Systran/faster-whisper-medium.en")
@@ -243,9 +278,7 @@ Use `sacha-speech-input-model-aliases' for aliases."
     (setq model-name (assoc-default model-name sacha-speech-input-model-aliases #'string=)))
   (setq whisper-model model-name)
   (setq speech-input-model model-name))
-;; Emacs and whisper.el: Trying out different speech-to-text backends and models:6 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-queue-multiple-transcriptions-with-whisper-el-speech-recognition][Queuing multiple transcriptions with whisper.el speech recognition:1]]
 (defvar my-whisper--queue nil)
 ;;;###autoload
 (defun my-whisper-continue (&optional arg)
@@ -428,16 +461,12 @@ Call with \\[universal-argument] to signal that we can stop."
     (message "All done.")
     (my-whisper-done)))
 
-;; Queuing multiple transcriptions with whisper.el speech recognition:1 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-using-silero-voice-activity-detection-to-automatically-queue-multiple-transcriptions-with-natrys-whisper-el][Using Silero voice activity detection to automatically queue multiple transcriptions with natrys/whisper.el:3]]
 ;;;###autoload
 (defun my-whisper-maybe-continue ()
   (when (process-live-p whisper--recording-process)
     (my-whisper-continue)))
-;; Using Silero voice activity detection to automatically queue multiple transcriptions with natrys/whisper.el:3 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-slowly-building-speech-based-commands-for-emacs][Slowly building speech-based commands for Emacs:1]]
 (defvar my-whisper-commands
   '(("scroll up" . scroll-down-command)
     ("scrolling up" . scroll-down-command)
@@ -500,9 +529,7 @@ Call with \\[universal-argument] to signal that we can stop."
   (goto-char (point-max))
   (insert " "))
 
-;; Slowly building speech-based commands for Emacs:1 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-okay-track][Okay, track...:1]]
 (defvar my-quantified-common-categories
   '(("Emacs" . "Discretionary - Productive - Emacs")
     ("Child care" . "Childcare")
@@ -524,25 +551,21 @@ Call with \\[universal-argument] to signal that we can stop."
          (assoc-default category my-quantified-common-categories #'string=))
         nil)
     text))
-;; Okay, track...:1 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results][Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results:2]]
 ;;;###autoload
 (defun my-whisper-translate ()
   (goto-char (point-min))
   (let ((case-fold-search t))
     (when (re-search-forward "okay[,\\.]? translate[,\\.]? \\(.+\\)\\|okay[,\\.]? \\(.+?\\) in French" nil t)
       (let* ((s (or (match-string 1) (match-string 2)))
-             (translation (save-match-data (my-lang-en-to-fr s))))
+             (translation (save-match-data (my-learn-lang-en-to-fr s))))
         (replace-match
          (propertize translation
                      'type-hint translation
                      'type-original s
                      'help-echo s))))))
 
-;; Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results:2 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results][Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results:4]]
 ;;;###autoload
 (defun my-whisper-maybe-type-with-hints (text)
   "Add this function to `whisper-insert-text-at-point'."
@@ -553,7 +576,259 @@ Call with \\[universal-argument] to signal that we can stop."
           (learn-lang-type-with-hint hint original)
           nil)
       text)))
-;; Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results:4 ends here
 
-(provide 'my-speech-input)
-;;; my-speech-input.el ends here
+;;;###autoload
+(defun my-speech-sessions ()
+  (seq-keep (lambda (o)
+              (with-current-buffer o
+                (when my-speech-session
+                  (cons my-speech-session o))))
+            (buffer-list)))
+
+;;;###autoload
+(defun my-speech-clear-all ()
+  (interactive)
+  (dolist (session (my-speech-sessions))
+    (my-speech-clear session)))
+
+;;;###autoload
+(defun my-speech-clear (session)
+  (interactive (list (my-speech-select-session)))
+  (with-current-buffer (cdr session)
+      (erase-buffer)
+      (setq-local my-speech-previous-final nil)))
+
+;;;###autoload
+(defun my-speech-select-session (&optional prompt)
+  (let ((sessions (my-speech-sessions)))
+    (if (= (length sessions) 1)
+        (car sessions)
+      (assoc
+       (completing-read
+        (or prompt "Session: ")
+        (mapcar 'car sessions))
+       sessions))))
+
+(defvar-local my-speech-input "VirtualMicSink:input")
+
+;;;###autoload
+(defun my-speech-rewire (&optional id input)
+  "Unhook it from all input and reconnect it to `my-speech-input'.
+Call with \\[universal-argument] to specify the input."
+  (interactive (list (my-speech-select-session)
+                     (if current-prefix-arg
+                         (epwgraph-complete-logical-node-name)
+                       my-speech-input)))
+  (with-current-buffer (cdr id)
+    (setq input (or input my-speech-input))
+    (setq-local my-speech-input input)
+    (let* ((node-name (concat (car id) ":input"))
+           (session-ports (epwgraph-get-ports-with-logical-name
+                           node-name))
+           (new-ports (if (stringp input)
+                          (epwgraph-get-ports-with-logical-name input)
+                        input))
+           (old-incoming (epwgraph-get-incoming-links session-ports)))
+      (epwgraph-disconnect-all-inputs-for-logical-node session-ports)
+      (epwgraph-connect-logical-nodes
+       (epwgraph--map-channels new-ports session-ports)))))
+
+;;;###autoload
+(defun my-speech-get-text-and-clear (session)
+  (let (text)
+    (with-current-buffer (cdr session)
+      (setq text (buffer-substring-no-properties (point-min) (point-max)))
+      (erase-buffer)
+      (setq-local my-speech-previous-final nil))
+    text))
+
+;;;###autoload
+(defun my-speech-insert-at-point (session)
+  (interactive (list (my-speech-select-session)))
+  (insert (my-speech-get-text-and-clear session)))
+
+;;;###autoload
+(defun my-speech-save-to-clocked-task (session)
+  (interactive (list (my-speech-select-session)))
+  (save-window-excursion
+    (let ((link (org-store-link nil)))
+      (org-clock-goto)
+      (org-end-of-subtree)
+      (unless (bolp)
+        (insert "\n"))
+      (insert "\n")
+      (when link (insert link "\n"))
+      (insert (my-speech-get-text-and-clear session) "\n"))))
+
+(defvar my-speech-etherpads nil "Alist of (session . pad-id)")
+;; (setq my-speech-etherpads '(("chrome-VgjMhu" . "test")))
+
+;;;###autoload
+(defun my-speech-append-to-etherpad (info)
+  (when (and info (string= (assoc-default 'type info) "FINAL"))
+    (let-alist info
+      (when-let* ((pad-id (assoc-default .session my-speech-etherpads #'string=)))
+        (emacsconf-pad-append-text pad-id (concat "\n" .content)))))
+  info)
+
+;;;###autoload
+(defun my-speech-link-etherpad (session pad-id)
+  (interactive (list
+                (my-speech-select-session)
+                (read-string "Pad ID: ")))
+  (add-to-list 'my-speech-etherpads
+               (cons (concat "#" (car session))
+                     pad-id)))
+
+;;;###autoload
+(defun my-speech-unlink-etherpad (pad-id)
+  (interactive (list (completing-read "Pad: " (mapcar 'cdr my-speech-etherpads))))
+  (setq my-speech-etherpads
+        (seq-remove (lambda (o)
+                      (string= (cdr o) pad-id))
+                    my-speech-etherpads)))
+
+(add-to-list 'my-speech-functions #'my-speech-append-to-etherpad)
+
+(defvar my-speech-erc nil "Alist of (session . channel)")
+;; (setq my-speech-erc '(("#chrome-HP7k8I" . "#emacsconf-test")))
+
+;;;###autoload
+(defun my-speech-send-to-erc (info)
+  (when (and info (string= (assoc-default 'type info) "FINAL"))
+    (let-alist info
+      (when-let* ((channel (assoc-default .session my-speech-erc #'string=)))
+        (emacsconf-erc-with-channels (list channel)
+          (erc-send-message (string-trim .content))))))
+  info)
+
+;;;###autoload
+(defun my-speech-link-erc (session channel)
+  (interactive (list
+                (my-speech-select-session)
+                (read-string "Channel: ")))
+  (add-to-list 'my-speech-erc
+               (cons (concat "#" (car session))
+                     channel)))
+
+;;;###autoload
+(defun my-speech-unlink-channel (channel)
+  (interactive (list (completing-read "Channel: " (mapcar 'cdr my-speech-erc))))
+  (setq my-speech-erc
+        (seq-remove (lambda (o)
+                      (string= (cdr o) channel))
+                    my-speech-erc)))
+
+(add-to-list 'my-speech-functions #'my-speech-send-to-erc)
+
+;;;###autoload
+(defun my-speech-fix-common-errors (info)
+  (with-temp-buffer
+    (insert (alist-get 'content info))
+    (goto-char (point-min))
+    (my-subed-fix-common-errors-from-start)
+    (setf (alist-get 'content info) (buffer-string)))
+  info)
+(add-hook 'my-speech-functions #'my-speech-fix-common-errors -100)
+
+;;;###autoload
+(defun my-speech-insert-at-markers (info)
+  (when (and my-whisper-target-markers info)
+    (my-whisper-insert (alist-get 'content info))))
+(add-hook 'my-speech-functions #'my-speech-insert-at-markers 100)
+
+
+(defvar my-speech-timestamp-adjust-before 1000)
+(defvar my-speech-timestamp-adjust-after 300)
+
+;;;###autoload
+(defun my-speech-subed-record-convert-timestamp (s)
+  "Convert S into a relative number of milliseconds based on `subed-record-filename'."
+  (floor (* (float-time (time-subtract (date-to-time s) subed-record-start-time)) 1000.0)))
+
+;;;###autoload
+(defun my-speech-subed-record-distance (s1 s2)
+  (/
+   (* 1.0
+      (string-distance (downcase (replace-regexp-in-string "[^A-Za-z]"
+                                                           ""
+                                                           s1))
+                       (downcase (replace-regexp-in-string "[^A-Za-z]"
+                                                           ""
+                                                           s2))))
+   (max (length s1)
+        (length s2))))
+
+;;;###autoload
+(defun my-speech-subed-record-close-enough (s1 s2)
+  "Return t if it's close enough."
+  (< (my-speech-subed-record-distance s1 s2) 0.3))
+
+;;;###autoload
+(defun my-speech-subed-record-update (info)
+  (let ((start-ms (- (my-speech-subed-record-convert-timestamp
+                      (alist-get 'start info))
+                     my-speech-timestamp-adjust-before))
+        (stop-ms (+ (my-speech-subed-record-convert-timestamp
+                     (alist-get 'end info))
+                    my-speech-timestamp-adjust-after)))
+    (subed-set-subtitle-time-start start-ms)
+    (subed-set-subtitle-time-stop stop-ms)
+    (subed-set-subtitle-comment
+	   (concat
+		  (if (subed-subtitle-comment)
+				  (concat (string-trim (replace-regexp-in-string
+									              "#\\+AUDIO: .*\\(\n\\|$\\)?" ""
+									              (subed-subtitle-comment)))
+								  "\n")
+			  "")
+		  (format "#+AUDIO: %s" subed-record-filename)))
+    (message "%.1f %s"
+             (my-speech-subed-record-distance
+              (alist-get 'content info)
+              (subed-subtitle-text))
+             (alist-get 'content info))))
+
+(defvar my-speech-subed-ignore nil "Ignore the GTTS-CLI output.")
+;;;###autoload
+(defun my-speech-subed-record-process (info)
+  (let ((text (alist-get 'content info))
+        (current (subed-subtitle-text)))
+    (cond
+     ((my-speech-subed-record-close-enough text current)
+      (my-speech-subed-record-update info)
+      (subed-forward-subtitle-text)
+      (my-learn-lang-say-current-subtitle
+       (lambda ()
+         (setq my-speech-subed-ignore nil))))
+     ;; Check previous
+     ((my-speech-subed-record-close-enough
+       text
+       (save-excursion
+         (subed-backward-subtitle-text)
+         (subed-subtitle-text)))
+      (save-excursion
+        (subed-backward-subtitle-text)
+        (my-speech-subed-record-update info)))
+     ;; Check next
+     ((my-speech-subed-record-close-enough
+       text
+       (save-excursion
+         (subed-forward-subtitle-text)
+         (subed-subtitle-text)))
+      (save-excursion
+        (subed-forward-subtitle-text)
+        (my-speech-subed-record-update info)))
+     (t
+      (my-speech-subed-record-update info)))))
+;;;###autoload
+(defun my-speech-subed-record (info)
+  (when (and (string= (alist-get 'type info) "FINAL")
+             (derived-mode-p 'subed-mode)
+             (boundp 'subed-record-start-time)
+             subed-record-start-time
+             (not my-speech-subed-ignore))
+    (my-speech-subed-record-process info))
+  info)
+
+(add-to-list 'my-speech-functions #'my-speech-subed-record)

@@ -1,42 +1,3 @@
-;;; my-hydra.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Hydra keyboard shortcuts
-;;   https://sachachua.com/dotemacs#hydras
-;;
-;; - Emacs Hydra: Allow completion when I can't remember the command name
-;;   https://sachachua.com/dotemacs#hydra-completion
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#hydras][Hydra keyboard shortcuts:8]]
 (defvar hydra-stack nil)
 
 (defun my-hydra-push (expr)
@@ -54,9 +15,7 @@
 
 ;; example (progn (hydra-b/body) (hydra-push '(hydra-a/body)))
 ;; or   ("q" hydra-pop "exit")
-;; Hydra keyboard shortcuts:8 ends here
 
-;; [[file:../Sacha.org::#hydra-completion][Emacs Hydra: Allow completion when I can't remember the command name:1]]
 (defun my-hydra-format-head (h)
   (let ((key-binding (elt h 0))
         (hint (elt h 2))
@@ -84,7 +43,3 @@
     (cond
      ((null bind) nil)
      ((hydra--callablep bind) (call-interactively bind)))))
-;; Emacs Hydra: Allow completion when I can't remember the command name:1 ends here
-
-(provide 'my-hydra)
-;;; my-hydra.el ends here

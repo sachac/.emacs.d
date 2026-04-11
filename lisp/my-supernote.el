@@ -1,45 +1,3 @@
-;;; my-supernote.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Supernote
-;;   https://sachachua.com/dotemacs#supernote
-;;
-;; - Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access
-;;   https://sachachua.com/dotemacs#supernote-org-upload
-;;
-;; - org-attaching the latest image from my Supernote via Browse and Access
-;;   https://sachachua.com/dotemacs#supernote-browse
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#supernote][Supernote:1]]
 (defvar my-supernote-export-dir "~/Dropbox/Supernote/EXPORT")
 (defvar my-dropbox-sketches-dir "~/Dropbox/sketches")
 ;;;###autoload
@@ -62,9 +20,7 @@
 (defun my-supernote-process-latest (&optional skip-download)
   (interactive "P")
 	(my-sketch-process (my-latest-sketch skip-download)))
-;; Supernote:1 ends here
 
-;; [[file:../Sacha.org::#supernote][Supernote:2]]
 ;;;###autoload
 (defun my-supernote-open-latest ()
 	(interactive)
@@ -78,9 +34,7 @@
 (defun my-supernote-export-dired ()
   (interactive)
   (dired my-supernote-export-dir "-tl"))
-;; Supernote:2 ends here
 
-;; [[file:../Sacha.org::#supernote][Supernote:5]]
 ;;;###autoload
 (defun my-open-latest-export ()
   (interactive)
@@ -96,9 +50,7 @@
   (interactive)
   (call-process "sn" nil nil nil (my-latest-file "~/Downloads"))
 	(message "%s" (my-latest-file "~/Downloads")))
-;; Supernote:5 ends here
 
-;; [[file:../Sacha.org::#supernote][Supernote:6]]
 (defvar my-supernote-inbox "~/Dropbox/Supernote/INBOX")
 ;;;###autoload
 (defun my-save-manpage-to-supernote (path)
@@ -116,17 +68,31 @@
 		(call-process "ebook-convert" nil (get-buffer-create "*temp*") nil temp-html
 									(expand-file-name (concat base ".epub") my-supernote-inbox))
 		(delete-file temp-html)))
-;; Supernote:6 ends here
 
-;; [[file:../Sacha.org::#supernote][Supernote:8]]
+;;;###autoload
+(defun my-supernote-save-info (path)
+	(interactive (list (read-file-name "Texi: " nil nil
+																		 (and Info-current-file
+																					(file-exists-p (concat Info-current-file ".texi"))
+																					(concat Info-current-file ".texi"))
+																		 nil
+																		 (lambda (f)
+																			 (or
+																				(string-match "\\.texi\\'" f)
+																				(file-directory-p f))))))
+	(call-process "texi2pdf" nil "*temp*" t (expand-file-name path)
+								"-o"
+								(expand-file-name (concat (file-name-base path) ".pdf")
+																															my-supernote-inbox)))
+
 (defvar my-supernote-css "~/proj/static-blog/assets/css/style.css")
 ;;;###autoload
-(defun my-save-to-supernote ()
+(defun my-supernote-save ()
 	(interactive)
 	(cond
 	 ((derived-mode-p 'Man-mode) (my-save-manpage-to-supernote Man-arguments))
 	 ((derived-mode-p 'Info-mode)
-		(my-save-info-to-supernote
+		(my-supernote-save-info
 		 (or (and Info-current-file
 							(file-exists-p (concat Info-current-file ".texi"))
 							(concat Info-current-file ".texi"))
@@ -164,9 +130,8 @@
 				 (point-min) (point-max) "wkhtmltopdf" nil nil nil "--no-background" "-"
 				 filename))))))
 
-;; Supernote:8 ends here
 
-;; [[file:../Sacha.org::#supernote-org-upload][Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access:1]]
+(defvar my-supernote-ip-address)
 ;;;###autoload
 (defun my-supernote-upload (filename &optional supernote-path)
 	(interactive "FFile: ")
@@ -194,9 +159,7 @@
 			(error
 			 (copy-file filename (expand-file-name (file-name-nondirectory filename) my-supernote-inbox) t)
 			 (message "Copied %s to %s, please sync" (file-name-nondirectory filename) my-supernote-inbox)))))
-;; Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access:1 ends here
 
-;; [[file:../Sacha.org::#supernote-org-upload][Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access:2]]
 ;;;###autoload
 (defun my-supernote-org-upload-as-text (&optional async subtree visible-only body-only ext-plist)
 	"Export Org format, but save it with a .txt extension."
@@ -217,9 +180,7 @@
 (defun my-supernote-org-upload-as-epub (&optional async subtree visible-only body-only ext-plist)
 	(interactive (list nil current-prefix-arg))
 	(my-supernote-upload (org-epub-export-to-epub async subtree visible-only ext-plist)))
-;; Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access:2 ends here
 
-;; [[file:../Sacha.org::#supernote-org-upload][Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access:3]]
 (with-eval-after-load 'org
   (org-export-define-backend
 		  'supernote nil
@@ -227,9 +188,7 @@
 										   ((?s "as PDF" my-supernote-org-upload-as-pdf)
 											  (?e "as EPUB" my-supernote-org-upload-as-epub)
 											  (?o "as Org" my-supernote-org-upload-as-text)))))
-;; Using Emacs Lisp to export TXT/EPUB/PDF from Org Mode to the Supernote via Browse and Access:3 ends here
 
-;; [[file:../Sacha.org::#supernote-browse][org-attaching the latest image from my Supernote via Browse and Access:1]]
 (defvar my-supernote-ip-address "192.168.1.221")
 ;;;###autoload
 (defun my-supernote-get-exported-files ()
@@ -243,9 +202,7 @@
 					 :lessp 'string<
 					 :reverse t)))
 		(error nil)))
-;; org-attaching the latest image from my Supernote via Browse and Access:1 ends here
 
-;; [[file:../Sacha.org::#supernote-browse][org-attaching the latest image from my Supernote via Browse and Access:3]]
 ;;;###autoload
 (defun my-supernote-download-latest-exported-file ()
 	"Save exported file in downloads dir."
@@ -262,9 +219,7 @@
 			 new-file
 			 t)
 			new-file)))
-;; org-attaching the latest image from my Supernote via Browse and Access:3 ends here
 
-;; [[file:../Sacha.org::#supernote-browse][org-attaching the latest image from my Supernote via Browse and Access:5]]
 ;;;###autoload
 (defun my-supernote-org-attach-latest-exported-file ()
 	(interactive)
@@ -301,7 +256,14 @@
 			;; insert the link
 			(org-insert-link nil (concat "attachment:" (replace-regexp-in-string "#" "%23" (file-name-nondirectory new-file)))))
 		(org-redisplay-inline-images)))
-;; org-attaching the latest image from my Supernote via Browse and Access:5 ends here
 
-(provide 'my-supernote)
-;;; my-supernote.el ends here
+;;;###autoload
+(defun my-supernote-org-insert-screenshot-from-mirror ()
+	"Copy the current image from the SuperNote mirror."
+	(interactive)
+	(let ((filename (expand-file-name (format-time-string "%Y-%m-%d-%H-%M-%S.png") "~/recordings")))
+		(shell-command-to-string (concat "NODE_PATH=/usr/lib/node_modules node ~/bin/supernote-screenshot.js " (shell-quote-argument filename)))
+		;; trim it
+		(call-process "mogrify" nil nil nil "-trim" "+repage" filename)
+		(shell-command-to-string (concat "~/bin/recolor.py --colors c0c0c0,f6f396 " (shell-quote-argument filename)))
+		(call-interactively 'my-org-insert-screenshot)))

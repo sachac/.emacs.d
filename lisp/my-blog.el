@@ -1,66 +1,3 @@
-;;; my-blog.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Completing blog posts
-;;   https://sachachua.com/dotemacs#completing-blog-posts
-;;
-;; - List all blog posts that match a category or title search
-;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-list-all-blog-posts-that-match-a-category-or-title-search
-;;
-;; - Making it easier to add a category to a blog post
-;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-making-it-easier-to-add-a-category-to-a-blog-post
-;;
-;; - embark-11ty
-;;   https://sachachua.com/dotemacs#embark-11ty
-;;
-;; - Listing exported Org posts
-;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-listing-exported-org-posts
-;;
-;; - Comments
-;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-comments
-;;
-;; - Adding Mastodon toots as comments in my 11ty static blog
-;;   https://sachachua.com/dotemacs#mastodon-adding-mastodon-toots-as-comments-in-my-11ty-static-blog
-;;
-;; - mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty
-;;   https://sachachua.com/dotemacs#mastodon-mastodon-el-copy-toot-url-after-posting-also-copying-just-this-post-with-11ty
-;;
-;; - Tooting a link to the current post
-;;   https://sachachua.com/dotemacs#mastodon-tooting-a-link-to-the-current-post
-;;
-;; - Blog
-;;   https://sachachua.com/dotemacs#blog
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#completing-blog-posts][Completing blog posts:1]]
 (defalias 'my-complete-blog-post-url #'my-org-blog-complete)
 
 ;;;###autoload
@@ -130,9 +67,7 @@
                url
                (my-blog-title url)))
     (insert url)))
-;; Completing blog posts:1 ends here
 
-;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-list-all-blog-posts-that-match-a-category-or-title-search][List all blog posts that match a category or title search:1]]
 ;;;###autoload
 (defun my-11ty-list-all-matching-blog-posts (match)
 	(interactive "MMatch: ")
@@ -145,81 +80,77 @@
 										 (alist-get 'title o))
 										"\n")))
 				(my-blog-posts)))
-;; List all blog posts that match a category or title search:1 ends here
 
-;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-making-it-easier-to-add-a-category-to-a-blog-post][Making it easier to add a category to a blog post:1]]
 ;;;###autoload
 (defun my-11ty-complete-blog-post ()
-	(completing-read
-	 "Post: "
-	 (mapcar (lambda (o)
-						 (file-name-directory (file-relative-name o my-11ty-base-dir)))
-					 (directory-files-recursively (expand-file-name "blog" my-11ty-base-dir) "index\\.html" nil))))
+  (completing-read
+   "Post: "
+   (mapcar (lambda (o)
+	     (file-name-directory (file-relative-name o my-11ty-base-dir)))
+	   (directory-files-recursively (expand-file-name "blog" my-11ty-base-dir) "index\\.html" nil))))
 ;;;###autoload
 (defun my-11ty-ripgrep ()
-	(interactive)
-	(consult-ripgrep (expand-file-name "blog" my-11ty-base-dir)))
+  (interactive)
+  (consult-ripgrep (expand-file-name "blog" my-11ty-base-dir)))
 
 ;;;###autoload
 (defun my-11ty-post-categories (file)
-	(assoc-default 'categories
-								 (let ((json-object-type 'alist)
-											 (json-array-type 'list))
-									 (json-read-file (my-11ty-json-filename file)))))
+  (assoc-default 'categories
+		 (let ((json-object-type 'alist)
+		       (json-array-type 'list))
+		   (json-read-file (my-11ty-json-filename file)))))
 
 ;;;###autoload
 (defun my-11ty-add-category-tag (cat)
-	(interactive (list (my-11ty-complete-category "Category: ")))
-	(org-set-tags (cons cat (org-get-tags))))
+  (interactive (list (my-11ty-complete-category "Category: ")))
+  (org-set-tags (cons cat (org-get-tags))))
 
 ;;;###autoload
 (defun my-11ty-complete-category (prompt &optional categories)
-	(let ((all-categories
-				 (json-read-file
-					(expand-file-name "siteCategories.json"
-														(expand-file-name "_data" my-11ty-base-dir)))))
-		(completing-read
-		 (if categories
-				 (format  "%s(current: %s) "
-									prompt
-									(string-join categories ", "))
-			 prompt)
-		 (mapcar (lambda (c) (assoc-default 'slug c))
-						 all-categories))))
+  (let ((all-categories
+	 (json-read-file
+	  (expand-file-name "siteCategories.json"
+			    (expand-file-name "_data" my-11ty-base-dir)))))
+    (completing-read
+     (if categories
+	 (format  "%s(current: %s) "
+		  prompt
+		  (string-join categories ", "))
+       prompt)
+     (mapcar (lambda (c) (assoc-default 'slug c))
+	     all-categories))))
 
 ;;;###autoload
 (defun my-11ty-json-filename (path)
-	(concat (file-name-sans-extension (my-11ty-html-filename path)) ".11tydata.json"))
+  (concat (file-name-sans-extension (my-11ty-html-filename path)) ".11tydata.json"))
 
 ;;;###autoload
 (defun my-11ty-change-details (file modify-func)
-	(let* ((json-object-type 'alist)
-				 (json-array-type 'list)
-				 (json-file (my-11ty-json-filename file))
-				 (json (funcall modify-func (json-read-file json-file))))
-		(when json
-			(with-temp-file json-file
-				(insert (json-encode json)))
-			json-file)))
+  (let* ((json-object-type 'alist)
+	 (json-array-type 'list)
+	 (json-file (my-11ty-json-filename file))
+	 (json (funcall modify-func (json-read-file json-file))))
+    (when json
+      (with-temp-file json-file
+	(insert (json-encode json)))
+      json-file)))
 
 ;;;###autoload
 (defun my-11ty-add-category-to-post (file new-category)
-	(interactive (list (buffer-file-name)
-										 (my-11ty-complete-category "Add category: "
-																								(my-11ty-post-categories file))))
-	(my-11ty-change-details
-	 file
-	 (lambda (json)
-		 (let ((categories (assoc-default 'categories json)))
-			 (if categories
-					 (unless (member new-category categories)
-						 (setcdr (assoc 'categories json)
-										 (cons new-category categories)))
-				 (setq json (cons (cons 'categories (cons new-category categories)) json)))
-			 json))))
-;; Making it easier to add a category to a blog post:1 ends here
+  (interactive (list (buffer-file-name)
+		     (my-11ty-complete-category "Add category: "
+						(my-11ty-post-categories file))))
+  (my-11ty-change-details
+   file
+   (lambda (json)
+     (let ((categories (assoc-default 'categories json)))
+       (if categories
+	   (unless (member new-category categories)
+	     (setcdr (assoc 'categories json)
+		     (cons new-category categories)))
+	 (setq json (cons (cons 'categories (cons new-category categories)) json)))
+       json))))
 
-;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-making-it-easier-to-add-a-category-to-a-blog-post][Making it easier to add a category to a blog post:4]]
 ;;;###autoload
 (defun my-11ty-add-category-to-all-posts-in-region (category beg end)
 	(interactive (list (my-11ty-complete-category "Category: ")
@@ -230,16 +161,14 @@
 		(my-11ty-add-category-to-post
 		 (my-11ty-html-filename (org-element-property :raw-link (org-element-context)))
 		 category)))
-;; Making it easier to add a category to a blog post:4 ends here
 
-;; [[file:../Sacha.org::#embark-11ty][embark-11ty:1]]
 (defvar my-11ty-base-dir "~/proj/static-blog/")
 
 ;;;###autoload
 (defun my-blog-edit-org (info)
 	(interactive (list (my-consult-blog-posts-by-title)))
   (unless (listp info) (setq info (my-blog-post-info-for-url info)))
-  (my-blog-post--position info))
+  (org-goto-marker-or-bmk (my-blog-post--position info)))
 
 ;;;###autoload
 (defun my-blog-find-html (url)
@@ -254,31 +183,9 @@
                         my-11ty-base-dir)))))
 
 ;;;###autoload
-(defun my-blog-find-org (url)
-  "Go to the Org file for URL."
-	(interactive (list (my-complete-blog-post-url)))
-	(when (string-match "https://sachachua\\.com\\(/blog/.*\\)" (my-org-link-as-url url))
-		(let ((path (match-string 1 url))
-					pos)
-			;; check my config
-			(catch 'found
-				(dolist (file '("~/sync/emacs/Sacha.org"
-												"~/sync/orgzly/posts.org"))
-					(with-current-buffer (find-file-noselect file)
-						(setq pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" path))
-						(when pos
-							(switch-to-buffer (current-buffer))
-							(goto-char pos)
-							(throw 'found (buffer-file-name)))))
-				(when (file-exists-p
-							 (expand-file-name "index.org"
-																 (concat my-11ty-base-dir path)))
-					(find-file
-					 (expand-file-name "index.org" (concat my-11ty-base-dir path)))
-					(throw 'found (buffer-file-name)))))))
-;; embark-11ty:1 ends here
+(defalias 'my-blog-find-org #'my-blog-edit-org)
 
-;; [[file:../Sacha.org::my-blog-org-files-except-reviews][my-blog-org-files-except-reviews]]
+
 ;;;###autoload
 (defun my-blog-org-files-except-reviews (after-date)
   "Return a list of recent .org files except for Emacs News and weekly/monthly/yearly reviews.
@@ -308,9 +215,7 @@ AFTER-DATE is in the form yyyy, yyyy-mm, or yyyy-mm-dd."
       (directory-files-recursively "~/proj/static-blog/blog" "\\.org$")
       :lessp #'string<
       :reverse t))))
-;; my-blog-org-files-except-reviews ends here
 
-;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-comments][Comments:1]]
 ;;;###autoload
 (defun my-11ty-add-blog-comment (new-comment url)
 	"Add COMMENT to URL.
@@ -342,9 +247,7 @@ COMMENT should be an alist with author, date (ISO8901 format), and message (HTML
 			 (json-encode comments))
 			(json-pretty-print (point-min) (point-max)))
 		filename))
-;; Comments:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-adding-mastodon-toots-as-comments-in-my-11ty-static-blog][Adding Mastodon toots as comments in my 11ty static blog:1]]
 ;;;###autoload
 (defun my-11ty-comment-file (url)
 	(interactive (list (my-complete-blog-post-url)))
@@ -369,9 +272,7 @@ COMMENT should be an alist with author, date (ISO8901 format), and message (HTML
 			(find-file filename))
 		filename))
 ;; (my-11ty-comment-file "https://sachachua.com/blog/2021/01/a-list-of-sharks-that-are-obligate-ram-ventilators/")
-;; Adding Mastodon toots as comments in my 11ty static blog:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-adding-mastodon-toots-as-comments-in-my-11ty-static-blog][Adding Mastodon toots as comments in my 11ty static blog:2]]
 ;;;###autoload
 (defun my-11ty-comments (url)
   (let ((filename (my-11ty-comment-file url))
@@ -385,13 +286,31 @@ COMMENT should be an alist with author, date (ISO8901 format), and message (HTML
          (comments . nil))))))
 
 ;;(let-alist (my-11ty-comments "/blog/2021/01/a-list-of-sharks-that-are-obligate-ram-ventilators/") .disqus)
-;; Adding Mastodon toots as comments in my 11ty static blog:2 ends here
 
-;; [[file:../Sacha.org::#mastodon-mastodon-el-copy-toot-url-after-posting-also-copying-just-this-post-with-11ty][mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:4]]
 ;;;###autoload
-(defun my-org-11ty-copy-just-this-post ()
+(defun my-org-11ty-copy-just-this-post (&optional url)
 	(interactive)
 	(cond
+   (url
+    (let* ((relative-path (replace-regexp-in-string
+                           (concat "^" (regexp-quote my-blog-base-url) "\\|^/")
+                           ""
+                           url))
+           (local (expand-file-name relative-path (expand-file-name "_local" my-11ty-base-dir)))
+           (remote (concat "web:/var/www/static-blog/" relative-path))
+           (remote-tramp (concat "/ssh:" remote)))
+      (if (file-directory-p local)
+          (progn
+            (call-process "chmod" nil nil nil "ugo+rX" "-R" local)
+            (unless (file-directory-p (file-name-directory remote-tramp))
+              (make-directory (file-name-directory remote-tramp) t))
+            (call-process "rsync" nil (get-buffer-create "*rsync*") nil "--chmod=ugo=rX" "-avzpe" "ssh"
+                          local
+                          remote)
+            (if (string-match "^https://" url)
+                (browse-url url)
+              (browse-url (concat my-blog-base-url url))))
+        (error "Could not find %s" local))))
 	 ((derived-mode-p 'org-mode)
 		(let* ((subtreep (not (org-before-first-heading-p)))
 					 (params (org-combine-plists
@@ -414,7 +333,8 @@ COMMENT should be an alist with author, date (ISO8901 format), and message (HTML
 						(browse-url (concat (replace-regexp-in-string "/$" "" my-blog-base-url)
 																permalink)))
 				(error "Could not find %s" local))))
-	 ((derived-mode-p 'html-mode)
+	 ((or (derived-mode-p 'html-mode)
+        (derived-mode-p 'web-mode))
 		(let* ((json-object-type 'alist)
 					 (permalink
 						(alist-get 'permalink (json-read-file (concat (file-name-sans-extension (buffer-file-name)) ".11tydata.json"))))
@@ -425,9 +345,7 @@ COMMENT should be an alist with author, date (ISO8901 format), and message (HTML
 										remote)
 			(browse-url (concat (replace-regexp-in-string "/$" "" my-blog-base-url)
 													permalink))))))
-;; mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:4 ends here
 
-;; [[file:../Sacha.org::#mastodon-tooting-a-link-to-the-current-post][Tooting a link to the current post:1]]
 ;;;###autoload
 (defun my-11ty-post-plist ()
 	(cond
@@ -483,9 +401,7 @@ COMMENT should be an alist with author, date (ISO8901 format), and message (HTML
         (buffer-string)
 		  (org-end-of-meta-data)
 		  (buffer-substring (point) (org-end-of-subtree)))))
-;; Tooting a link to the current post:1 ends here
 
-;; [[file:../Sacha.org::#blog][Blog:1]]
 ;;;###autoload
 (defun my-strip-blog-share ()
   (interactive)
@@ -495,7 +411,3 @@ COMMENT should be an alist with author, date (ISO8901 format), and message (HTML
       (while (re-search-forward
               "<div class=\"sharedaddy sd-sharing-enabled\">.*?<div class=\"sharing-clear\"></div></div></div></div>" nil t)
         (replace-match "")))))
-;; Blog:1 ends here
-
-(provide 'my-blog)
-;;; my-blog.el ends here

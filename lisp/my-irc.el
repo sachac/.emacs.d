@@ -1,42 +1,3 @@
-;;; my-irc.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Internet Relay Chat
-;;   https://sachachua.com/dotemacs#internet-relay-chat
-;;
-;; - Search logs
-;;   https://sachachua.com/dotemacs#search-logs
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#internet-relay-chat][Internet Relay Chat:2]]
 ;;;###autoload
   (defun erc-cmd-OPME ()
     "Request chanserv to op me."
@@ -74,9 +35,7 @@
     (interactive)
     (mapc #'kill-buffer (erc-buffer-list (lambda () (null (erc-server-process-alive)))))
     (erc-update-mode-line))
-;; Internet Relay Chat:2 ends here
 
-;; [[file:../Sacha.org::#search-logs][Search logs:1]]
 ;;;###autoload
 (defun my-search-irc-logs ()
   (interactive)
@@ -86,7 +45,3 @@
 (defun my-irc-log-dired ()
   (interactive)
 	(dired "~/backups/server/home/.znc/users/sachac/moddata/log"))
-;; Search logs:1 ends here
-
-(provide 'my-irc)
-;;; my-irc.el ends here

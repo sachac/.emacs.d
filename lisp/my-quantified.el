@@ -1,48 +1,100 @@
-;;; my-quantified.el ---  -*- lexical-binding: t -*-
+(defvar my-weekly-review-line-regexp
+  "^  \\([^:]+\\): +\\(Sched[^:]+: +\\)?TODO \\(.*?\\)\\(?:[      ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$"
+  "Regular expression matching lines to include.")
+(defvar my-weekly-done-line-regexp
+  "^  \\([^:]+\\): +.*?\\(?:Clocked\\|Closed\\):.*?\\(TODO\\|DONE\\) \\(.*?\\)\\(?:[       ]+\\(:[[:alnum:]_@#%:]+:\\)\\)?[        ]*$"
+  "Regular expression matching lines to include as completed tasks.")
 
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
+;;;###autoload
+(defun my-quantified-sum (start end cat)
+	"Return the number of hours from START to END in CAT."
+	(quantified-parse-json
+   (quantified-request
+    (concat "records.json?start=" (or start "") "&end=" (or end "")
+						"&order=newest&display_type=time&split=keep&category=" (url-hexify-string cat))
+    (list (cons 'auth_token (quantified-token))) "GET")))
 
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;;;###autoload
+(defun my-quantified-average-weekly (start end category &optional insert)
+  "Calculate average hours per week from START to END for CATEGORY."
+  (interactive (list (org-read-date nil nil nil "Start: ")
+                     (org-read-date nil nil nil "End: ")
+                     (my-quantified-read-category)
+                     current-prefix-arg))
+  (let ((hours
+         (/ (* 7.0 (my-quantified-sum start end category))
+            (days-between end start))))
+    (when (called-interactively-p 'any)
+      (if insert
+          (insert "%.1f hours" hours)
+        (message "%.1f hours" hours)))
+    hours))
 
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Child time!
-;;   https://sachachua.com/dotemacs#self-tracking-statistics-and-other-data-transformations-quantified-awesome-child-time
-;;
-;; - Make a tablist of my time entries
-;;   https://sachachua.com/dotemacs#quantified-tablist
-;;
-;; - Time tracking, previous weekly review
-;;   https://sachachua.com/dotemacs#time-tracking-previous-weekly-review
-;;
-;; - Compare time use
-;;   https://sachachua.com/dotemacs#compare-time-use
-;;
-;;; Code:
+(defvar my-quantified-categories nil)
+;;;###autoload
+(defun my-quantified-read-category ()
+	(setq my-quantified-categories
+				(or my-quantified-categories
+						(quantified-parse-json
+						 (quantified-request "/record_categories.json?all=1"
+																 (list (cons 'auth_token (quantified-token)))
+																 "GET"))))
+	(completing-read
+	 "Category: "
+	 (mapcar (lambda (o)
+						 (cons
+							(alist-get 'full_name o)
+							o))
+					 my-quantified-categories)))
 
+;;;###autoload
+(defun my-quantified-sum (start end cat)
+	"Return the number of hours from START to END in CAT."
+	(interactive (list (org-read-date nil nil nil "Start: ")
+										 (org-read-date nil nil nil "End: ")
+										 (my-quantified-read-category)))
+	(let* ((records
+					(quantified-parse-json
+					 (quantified-request
+						(concat "records.json?start=" (or start "") "&end=" (or end "")
+										"&order=newest&display_type=time&filter_string=" (url-hexify-string cat))
+						(list (cons 'auth_token (quantified-token))) "GET")))
+				 (duration (apply '+ (delq nil (mapcar (lambda (o) (alist-get 'duration o 0)) records))))
+				 (hours (/ duration 3600.0)))
+    (when (called-interactively-p 'any)
+		  (message "%s: %.1f hour(s) in %d entries" cat hours (length records)))
+    hours))
 
+;;;###autoload
+(defun my-quantified-get-hours (category time-summary)
+  "Return the number of hours based on the time summary."
+  (if (stringp category)
+      (if (assoc category time-summary) (/ (cdr (assoc category time-summary)) 3600.0) 0)
+    (apply '+ (mapcar (lambda (x) (my-quantified-get-hours x time-summary)) category))))
 
-;; [[file:../Sacha.org::#self-tracking-statistics-and-other-data-transformations-quantified-awesome-child-time][Child time!:1]]
+(defvar my-quantified-summary-categories '("Business" "Discretionary - Play" "Unpaid work" "A+" "Discretionary - Family" "Sleep" "Discretionary - Productive" "Personal"))
+;;;###autoload
+(defun my-quantified-summarize-time-table-month (month)
+	"Insert or return the table summarizing the month's time, compared with the previous month."
+	(interactive (list (org-read-date nil t)))
+	(let* ((date (decode-time (if (stringp month) (date-to-time month) month)))
+				 (month (elt date 4))
+         (year (elt date 5))
+				 start-date
+				 end-date
+				 previous-date
+				 results)
+		(calendar-increment-month month year -1)
+		(setq start-date (format "%4d-%02d-01 0:00" year month)
+          end-date (format "%4d-%02d-01 0:00" (elt date 5) (elt date 4)))
+		(calendar-increment-month month year -1)
+		(setq previous-date (format "%4d-%02d-01 0:00" year month))
+		(setq results (orgtbl-to-orgtbl (my-quantified-compare previous-date start-date start-date end-date my-quantified-summary-categories "Previous month %" "This month %")
+																		nil))
+		(when (called-interactively-p 'any)
+			(insert results))
+		results))
+
 ;;;###autoload
 (defun my-childcare ()
 	(interactive)
@@ -50,9 +102,7 @@
 			(when (org-clocking-p)
 				(org-clock-out)))
 	(quantified-track "Childcare"))
-;; Child time!:1 ends here
 
-;; [[file:../Sacha.org::#quantified-tablist][Make a tablist of my time entries:1]]
 (define-derived-mode my-quantified-list-mode tablist-mode "Time"
 	"Major mode for time entries"
 	(setq tabulated-list-format [("id" 5)
@@ -116,9 +166,7 @@
 						 (format-seconds "%d:%z%.2h:%.2m" seconds)
 						 (/ seconds 3600.0))))
 ;; (my-quantified-list "2024-09-30" nil "E1")
-;; Make a tablist of my time entries:1 ends here
 
-;; [[file:../Sacha.org::#time-tracking-previous-weekly-review][Time tracking, previous weekly review:1]]
 (defvar my-org-quantified-categories
   '(("Business"
      ("Earn" . "Business - Earn")
@@ -175,9 +223,7 @@
     (if (called-interactively-p 'any)
         (insert result)
       result)))
-;; Time tracking, previous weekly review:1 ends here
 
-;; [[file:../Sacha.org::#compare-time-use][Compare time use:1]]
 ;;;###autoload
 (defun my-quantified-compare (start1 end1 start2 end2 &optional categories label1 label2)
   "Return a table comparing the times for START1 - END1 and START2 - END2."
@@ -225,7 +271,3 @@
 		(when (called-interactively-p 'any)
 			(insert (orgtbl-to-orgtbl result nil)))
 		result))
-;; Compare time use:1 ends here
-
-(provide 'my-quantified)
-;;; my-quantified.el ends here

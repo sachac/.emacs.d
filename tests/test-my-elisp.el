@@ -1,4 +1,3 @@
-;; [[file:../Sacha.org::#org-mode-org-babel-fix-find-function-when-i-ve-evaluated-something-from-org-babel][YE11: Fix find-function for Emacs Lisp from org-babel or scratch:6]]
 (ert-deftest sacha-elisp--find-function-search-for-symbol--in-buffer ()
   (let ((sym (make-temp-name "--test-fn"))
         buffer)
@@ -29,4 +28,3 @@
             (should (equal (buffer-file-name (car pos)) temp-file))
             (should (equal (cdr pos) 35))))
       (delete-file temp-file))))
-;; YE11: Fix find-function for Emacs Lisp from org-babel or scratch:6 ends here

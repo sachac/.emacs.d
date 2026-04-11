@@ -1,45 +1,3 @@
-;;; my-mail.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Send mail asynchronously
-;;   https://sachachua.com/dotemacs#async-smtpmail
-;;
-;; - Add comment to blog post
-;;   https://sachachua.com/dotemacs#mail-and-news-notmuch-add-comment-to-blog-post
-;;
-;; - Approve or discard Mailman messages
-;;   https://sachachua.com/dotemacs#approve-or-discard-mailman-messages
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#async-smtpmail][Send mail asynchronously:1]]
 ;;;###autoload
 (defun my-async-smtpmail-send-it ()
   (let ((to          (message-field-value "To"))
@@ -59,9 +17,7 @@
           (smtpmail-send-it)))
      `(lambda (&optional _ignore)
 				(message "Delivering message to %s...done" ,to)))))
-;; Send mail asynchronously:1 ends here
 
-;; [[file:../Sacha.org::#mail-and-news-notmuch-add-comment-to-blog-post][Add comment to blog post:1]]
 ;;;###autoload
 (defun my-message-add-blog-comment (url)
 	(interactive (list (my-complete-blog-post-url)))
@@ -83,9 +39,7 @@
 																	(org-export-string-as message 'html t)
 																	)))))
 			(find-file (my-11ty-add-blog-comment new-comment url)))))
-;; Add comment to blog post:1 ends here
 
-;; [[file:../Sacha.org::#approve-or-discard-mailman-messages][Approve or discard Mailman messages:1]]
 ;;;###autoload
 (defun my-mailman-approve ()
   "Approve this mailing list message."
@@ -122,7 +76,3 @@
 	(browse-url (concat "https://lists.gnu.org/mailman/admindb/" list-id "?adminpw="
 												(url-hexify-string (string-trim (shell-command-to-string
 																												 (concat "pass " list-id)))))))
-;; Approve or discard Mailman messages:1 ends here
-
-(provide 'my-mail)
-;;; my-mail.el ends here

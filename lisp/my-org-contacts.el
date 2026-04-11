@@ -1,39 +1,44 @@
-;;; my-org-contacts.el ---  -*- lexical-binding: t -*-
+;;;###autoload
+(defun my-org-contacts-template-email (&optional return-value)
+  "Try to return the contact email for a template.
+         If not found return RETURN-VALUE or something that would ask the user."
+  (eval-when-compile (require 'gnus-art nil t))
+  (eval-when-compile (require 'org-contacts nil t))
+  (or (cadr (if (gnus-alive-p)
+                (gnus-with-article-headers
+                  (mail-extract-address-components
+                   (or (mail-fetch-field "Reply-To") (mail-fetch-field "From") "")))))
+      return-value
+      (concat "%^{" org-contacts-email-property "}p")))
 
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
+(defvar my-message-greet-contacts t "Non-nil means say hi.")
 
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;;;###autoload
+(defun my-message-greet-contacts-skip (fn &rest args)
+	(let ((my-message-greet-contacts nil))
+		(apply fn args)))
 
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - mastodon.el: Mention people based on regexp
-;;   https://sachachua.com/dotemacs#mastodon-mastodon-el-mention-people-based-on-regexp
-;;
-;;; Code:
+;;;###autoload
+(defun my-message-greet-contacts ()
+	(interactive)
+	(when my-message-greet-contacts
+		(let* ((emails
+						(mapcar 'car
+										(append
+										 (mail-header-parse-addresses (message-fetch-field "To"))
+										 (mail-header-parse-addresses (message-fetch-field "Cc")))))
+					 (people
+						(seq-keep
+						 (lambda (email)
+							 (cdr (assoc-string "NAME_SHORT"
+																	(caddr (car (org-contacts-filter nil nil (cons "EMAIL" email)))))))
+						 emails)))
+			(when people
+				(message-goto-body)
+				(unless (re-search-forward "^Hi, " nil t)
+					(insert "Hi, " (string-join people ",") "!\n\n"))))))
 
 
-
-;; [[file:../Sacha.org::#mastodon-mastodon-el-mention-people-based-on-regexp][mastodon.el: Mention people based on regexp:2]]
 ;;;###autoload
 (defun my-org-contacts-all-alist ()
   "Return a list of all contacts in `org-contacts-files'.
@@ -61,9 +66,7 @@ Each element has the form (NAME . (FILE . POSITION))."
    (lambda (o) (and (assoc-default "MENTION_REGEXP" o #'string=)
                     (string-match (assoc-default "MENTION_REGEXP" o #'string=) text)))
    (my-org-contacts-all-alist)))
-;; mastodon.el: Mention people based on regexp:2 ends here
 
-;; [[file:../Sacha.org::#mastodon-mastodon-el-mention-people-based-on-regexp][mastodon.el: Mention people based on regexp:4]]
 ;;;###autoload
 (defun my-org-contacts-best-contact (rec)
   (seq-find
@@ -117,7 +120,3 @@ Each element has the form (NAME . (FILE . POSITION))."
       (goto-char (point-min))
       ;; collect the links
       (pop-to-buffer (current-buffer)))))
-;; mastodon.el: Mention people based on regexp:4 ends here
-
-(provide 'my-org-contacts)
-;;; my-org-contacts.el ends here

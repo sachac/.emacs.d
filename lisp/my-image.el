@@ -1,81 +1,3 @@
-;;; my-image.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Embark and images
-;;   https://sachachua.com/dotemacs#embark-image
-;;
-;; - Converting handwriting to text
-;;   https://sachachua.com/dotemacs#keybindings-embark-converting-handwriting-to-text
-;;
-;; - Renaming and storing
-;;   https://sachachua.com/dotemacs#keybindings-embark-renaming-and-storing
-;;
-;; - Org Mode: Create a quick timestamped note and capture a screenshot
-;;   https://sachachua.com/dotemacs#org-mode-create-a-quick-timestamped-note-and-capture-a-screenshot
-;;
-;; - Photos
-;;   https://sachachua.com/dotemacs#photos
-;;
-;; - Rotate clockwise or counterclockwise
-;;   https://sachachua.com/dotemacs#multimedia-images-imagemagick-rotate-clockwise-or-counterclockwise
-;;
-;; - Emacs: Extract part of an image to another file
-;;   https://sachachua.com/dotemacs#my-image-write-region
-;;
-;; - Make an image square
-;;   https://sachachua.com/dotemacs#multimedia-images-imagemagick-make-an-image-square
-;;
-;; - Animate highlighting part of an image
-;;   https://sachachua.com/dotemacs#multimedia-images-imagemagick-animate-highlighting-part-of-an-image
-;;
-;; - Artrage
-;;   https://sachachua.com/dotemacs#artrage
-;;
-;; - Interactively recolor a sketch
-;;   https://sachachua.com/dotemacs#interactively-recolor
-;;
-;; - Rename scanned index cards
-;;   https://sachachua.com/dotemacs#rename-scanned-index-cards
-;;
-;; - Supernote
-;;   https://sachachua.com/dotemacs#supernote
-;;
-;; - Manage photos with geeqie
-;;   https://sachachua.com/dotemacs#manage-photos-with-geeqie
-;;
-;; - Tools for organizing
-;;   https://sachachua.com/dotemacs#tools-for-organizing
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#embark-image][Embark and images:3]]
 ;;;###autoload
 (defun my-image-open-in-annotator (file)
   (interactive "FImage: ")
@@ -112,9 +34,7 @@
                       (list "+repage" (expand-file-name filename)))))
     (apply #'call-process "mogrify" nil my-debug-buffer nil args)
     filename))
-;; Embark and images:3 ends here
 
-;; [[file:../Sacha.org::#keybindings-embark-converting-handwriting-to-text][Converting handwriting to text:1]]
 ;;;###autoload
 (defun my-image-recognize (file)
   "Returns the text."
@@ -148,9 +68,7 @@
       (with-temp-file (concat (file-name-sans-extension file) ".txt")
         (insert text))
       text)))
-;; Converting handwriting to text:1 ends here
 
-;; [[file:../Sacha.org::#keybindings-embark-renaming-and-storing][Renaming and storing:1]]
 ;;;###autoload
 (defun my-image-rename-current-image-based-on-id (id)
   (interactive
@@ -278,9 +196,133 @@
     (call-process "convert" nil nil nil path "-thumbnail" "500x" filename)
     (kill-new filename)
     filename))
-;; Renaming and storing:1 ends here
 
-;; [[file:../Sacha.org::my-org-insert-screenshot][my-org-insert-screenshot]]
+  (defvar my-screenshot-dirs
+          '("~/recordings"
+                  "~/.var/app/org.prismlauncher.PrismLauncher/data/PrismLauncher/instances/"
+                  "~/sync/gdlauncher-instances/"
+                  ))
+  (defvar my-recent-screenshot-limit 50)
+
+;;;###autoload
+  (defun my-combined-screenshots (&optional limit)
+          (seq-take
+           (sort
+                  (seq-mapcat (lambda (dir)
+                                                                          (directory-files-recursively dir "[0-9][0-9][0-9][0-9]-.*\\.\\(png\\|webm\\|gif\\|svg\\|mkv\\)"))
+                                                                  my-screenshot-dirs)
+                  :key (lambda (o) (file-attribute-modification-time (file-attributes o)))
+                  :reverse t)
+           (or limit my-recent-screenshot-limit)))
+
+;;;###autoload
+  (defun my-latest-screenshot ()
+          (car (my-combined-screenshots)))
+
+;;;###autoload
+  (defun my-show-combined-screenshots (&optional limit)
+          "Show thumbnails for combined screenshots."
+          (interactive (list (when current-prefix-arg (read-number "Limit: "))))
+          (condition-case nil
+                          ;; ignore errors from image-dired trying to set default-directory
+                          (image-dired-show-all-from-dir
+                           (cons (car my-screenshot-dirs) (my-combined-screenshots limit)))
+                  (error nil)))
+
+;;;###autoload
+(defun my-save-photo (name)
+  (interactive "MName: ")
+  (let* ((file (dired-get-filename))
+         new-name)
+    (cond
+     ((string-match "CameraZOOM-\\([0-9][0-9][0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9][0-9]\\)" file)
+      (setq new-name
+            (format "%s-%s-%s %s.%s.%s.%s %s.jpg"
+                    (match-string 1 file)
+                    (match-string 2 file)
+                    (match-string 3 file)
+                    (match-string 4 file)
+                    (match-string 5 file)
+                    (match-string 6 file)
+                    (match-string 7 file)
+                    name)))
+     ((string-match "\\([0-9][0-9][0-9][0-9]\\)[\\.-]\\([0-9][0-9]\\)[\\.-]\\([0-9][0-9]\\)[\\.- ]\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)" file)
+      (setq new-name
+            (format "%s-%s-%s %s.%s.%s %s.jpg"
+                    (match-string 1 file)
+                    (match-string 2 file)
+                    (match-string 3 file)
+                    (match-string 4 file)
+                    (match-string 5 file)
+                    (match-string 6 file)
+                    name)))
+     (t (setq new-name (concat (file-name-sans-extension (file-name-nondirectory file)) " " name ".jpg"))))
+    (when (string-match "A-" name)
+      (copy-file file (expand-file-name new-name my-kid-photo-directory)))
+    (rename-file file (expand-file-name new-name "~/archives/2016/photos/selected/"))))
+;;;###autoload
+(defun my-backup-media ()
+  (interactive)
+  (mapcar (lambda (file)
+            (rename-file
+             file
+             (expand-file-name
+              (file-name-nondirectory file)
+              (cond
+               ((string-match "mp4" file) "~/archives/2016/videos/")
+               ((string-match "mp3\\|wav" file) "~/archives/2016/audio/")
+               (t "~/archives/2016/photos/backup/")))))
+          (dired-get-marked-files)))
+
+;;;###autoload
+(defun my-screenshot (&optional filename current-screen caption)
+  "Save a screenshot of the current frame as an SVG image.
+Saves to a temp file and puts the filename in the kill ring.
+Prompt for a caption afterwards."
+  (interactive (list nil current-prefix-arg))
+  (if current-screen
+      (setq filename (my-screenshot-current-screen filename))
+    (let* ((filename
+            (or filename
+                (expand-file-name
+                 (format-time-string "%Y-%m-%d-%H-%M-%S.svg")
+                 my-recordings-dir)))
+           (data (x-export-frames nil 'svg)))
+      (with-temp-file filename
+        (insert data))))
+  (when (called-interactively-p 'any)
+    (unless caption
+      (save-window-excursion
+        (with-current-buffer (find-file-noselect filename) (display-buffer (current-buffer)))
+        (setq caption (read-string "Caption: "))))
+    (when (and caption (not (string= caption "")))
+      (let ((new-filename (concat
+                           (file-name-sans-extension filename)
+                           " " caption
+                           "." (file-name-extension filename))))
+        (rename-file filename new-filename t)
+        (setq filename new-filename)))
+    (kill-new filename)
+    (message filename))
+  filename)
+
+;;;###autoload
+(defun my-screenshot-current-screen (&optional filename)
+  (interactive)
+  (let ((new-file
+         (or filename
+             (expand-file-name
+              (format-time-string "%Y-%m-%d-%H-%M-%S.png")
+              my-recordings-dir))))
+    (make-process
+     :name "spectacle"
+     :command
+     (list "spectacle" "-b" "-m" "-n" "-o" new-file))
+    new-file))
+
+(keymap-global-set "C-c s" #'my-screenshot)
+(keymap-global-set "s-s" #'my-screenshot)
+
 ;;;###autoload
 (defun my-org-insert-screenshot (file &optional note)
   (interactive (list
@@ -326,21 +368,25 @@
 ;;;###autoload
 (defun my-convert-latest-recording ()
   (interactive)
-  (let* ((latest (expand-file-name (my-latest-screenshot)))
-         (new-file (concat (file-name-sans-extension latest) ".webm")))
-    (when (string= (file-name-extension latest) "mkv")
-      (message "Converting %s..." latest)
-      (make-process :name "ffmpeg"
-                    :buffer "*ffmpeg*"
-                    :command
-                    (list "ffmpeg" "-i" latest "-y" new-file)
-                    :sentinel
-                    (lambda (proc status)
-                      (when (string-match "finished" status)
-                        (message "%s done." new-file)))))))
-;; my-org-insert-screenshot ends here
+  (let* ((latest (expand-file-name (my-latest-screenshot))))
+    (pcase (file-name-extension latest)
+      ("mkv"
+       (message "Converting %s..." latest)
+       (let ((new-file (new-file (concat (file-name-sans-extension latest) ".webm"))))
+         (make-process :name "ffmpeg"
+                       :buffer "*ffmpeg*"
+                       :command
+                       (list "ffmpeg" "-i" latest "-y" new-file)
+                       :sentinel
+                       (lambda (proc status)
+                         (when (string-match "finished" status)
+                           (message "%s done." new-file))))))
+      ("svg"
+       (let ((new-file (concat (file-name-sans-extension latest) ".png")))
+         (call-process "convert" nil nil nil latest new-file)
+         (kill-new new-file)
+         (message "Converted %s to %s" latest new-file))))))
 
-;; [[file:../Sacha.org::#photos][Photos:1]]
 ;;;###autoload
 (defun my-get-image-caption (file)
   (let ((caption (shell-command-to-string (format "exiftool -s -s -s -ImageDescription %s" (shell-quote-argument file)))))
@@ -364,9 +410,7 @@
   (interactive (list (if (derived-mode-p 'dired-mode) (dired-get-filename) (buffer-file-name))
                      (read-string "Caption: ")))
   (shell-command (format "exiftool -ImageDescription=\"%s\" %s" (shell-quote-argument caption) (shell-quote-argument file))))
-;; Photos:1 ends here
 
-;; [[file:../Sacha.org::#photos][Photos:2]]
 (defvar my-photo-directory "/mnt/nfs/photos/inbox")
 ;;;###autoload
 (defun my-get-photo-rating (file)
@@ -408,9 +452,7 @@
                     (my-make-photo-list start end 3)
                     "\n")))
     (if (called-interactively-p 'any) (insert result) result)))
-;; Photos:2 ends here
 
-;; [[file:../Sacha.org::#multimedia-images-imagemagick-rotate-clockwise-or-counterclockwise][Rotate clockwise or counterclockwise:1]]
 ;;;###autoload
 (defun my-image-rotate-counterclockwise (image)
 	(interactive "FImage: ")
@@ -419,9 +461,7 @@
 (defun my-image-rotate-clockwise (image)
 	(interactive "FImage: ")
 	(call-process "mogrify" nil nil nil "-rotate" "90" image))
-;; Rotate clockwise or counterclockwise:1 ends here
 
-;; [[file:../Sacha.org::#my-image-write-region][Emacs: Extract part of an image to another file:1]]
 ;; Based on image-crop.
 ;;;###autoload
 (defun my-image-select-rect (op)
@@ -519,9 +559,7 @@ OP should be a string describing the operation (ex: \"cut\").
 										:width width :height height
 										:right (+ left width)
 										:bottom (+ top height)))))))))
-;; Emacs: Extract part of an image to another file:1 ends here
 
-;; [[file:../Sacha.org::#my-image-write-region][Emacs: Extract part of an image to another file:2]]
 ;;;###autoload
 (defun my-image-write-region ()
   "Copy a section of the image under point to a different file.
@@ -556,9 +594,7 @@ are available:
                              (?w . ,width)
                              (?h . ,height)
                              (?f . ,(cadr (split-string type "/"))))))))
-;; Emacs: Extract part of an image to another file:2 ends here
 
-;; [[file:../Sacha.org::#multimedia-images-imagemagick-make-an-image-square][Make an image square:1]]
 ;;;###autoload
 (defun my-image-square (filename &optional output-filename)
 	(interactive)
@@ -585,9 +621,7 @@ are available:
 								(list output-filename))
 						 (append args (list filename)))
 					 args)))
-;; Make an image square:1 ends here
 
-;; [[file:../Sacha.org::#multimedia-images-imagemagick-animate-highlighting-part-of-an-image][Animate highlighting part of an image:1]]
 ;;;###autoload
 (defun my-image-get-coordinates ()
 	(interactive)
@@ -604,9 +638,7 @@ are available:
 		(when (called-interactively-p 'any)
 			(kill-new x1y1x2y2))
 		x1y1x2y2))
-;; Animate highlighting part of an image:1 ends here
 
-;; [[file:../Sacha.org::#artrage][Artrage:1]]
 ;;;###autoload
 (defun my-artrage-export-png (directory &optional prefix)
   "Change an Artrage script file (arscript) to export images to DIRECTORY.
@@ -625,9 +657,7 @@ are available:
                     ".png\"
       <StrokeEvent>") t t)))
 
-;; Artrage:1 ends here
 
-;; [[file:../Sacha.org::#interactively-recolor][Interactively recolor a sketch:1]]
 (defvar my-recolor-command "/home/sacha/bin/recolor.py")
 
 ;;;###autoload
@@ -691,9 +721,7 @@ are available:
 						 (kill-buffer)
 						 (delete-file temp-file)
 						 (setq done t))))))))
-;; Interactively recolor a sketch:1 ends here
 
-;; [[file:../Sacha.org::#rename-scanned-index-cards][Rename scanned index cards:2]]
 ;;;###autoload
 (defun my-process-tiff (files)
   "Convert, display, rename, and upload FILES."
@@ -809,9 +837,7 @@ are available:
     (switch-to-buffer (current-buffer))
     (delete-other-windows))
   (shell-command "~/bin/copy-sketches"))
-;; Rename scanned index cards:2 ends here
 
-;; [[file:../Sacha.org::#supernote][Supernote:3]]
 ;;;###autoload
 (defun my-image-autorotate (file)
 	(let ((tags (my-image-tags file)))
@@ -823,9 +849,7 @@ are available:
 			(call-process "mogrify" nil nil nil "-rotate" "90" file)
 			(my-image-rename-set file file (delete "cw" tags)))
 		 (t file))))
-;; Supernote:3 ends here
 
-;; [[file:../Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie:1]]
 (defvar my-scan-directory "~/sync/scans/")
 (defvar my-ipad-directory "~/sync/ipad")
 (defvar my-portfolio-directory "~/sync/portfolio")
@@ -849,9 +873,7 @@ are available:
 (defun my-geeqie-insert-file-link ()
   (interactive)
   (insert (org-link-make-string (concat "file:" (string-trim (shell-command-to-string "geeqie --remote --tell"))))))
-;; Manage photos with geeqie:1 ends here
 
-;; [[file:../Sacha.org::my-geeqie-view][my-geeqie-view]]
 ;;;###autoload
 (defun my-geeqie-view (filenames)
   (interactive "f")
@@ -868,9 +890,7 @@ are available:
        (list (car (seq-filter #'file-regular-p (directory-files filenames t)))))
       (t (list filenames)))
      " "))))
-;; my-geeqie-view ends here
 
-;; [[file:../Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie:3]]
 
 (defvar my-rotate-jpeg-using-exiftran nil)
 
@@ -961,17 +981,13 @@ are available:
 		(my-geeqie-next)
 		(delete-file file t)))
 
-;; Manage photos with geeqie:3 ends here
 
-;; [[file:../Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie:5]]
 ;;;###autoload
 (defun my-geeqie-setup ()
   (interactive)
   (shell-command "wmctrl -r :ACTIVE: -b remove,maximized_vert,maximized_horz; xdotool getactivewindow windowsize 50% 100%")
   (shell-command "geeqie &"))
-;; Manage photos with geeqie:5 ends here
 
-;; [[file:../Sacha.org::#manage-photos-with-geeqie][Manage photos with geeqie:7]]
 ;;;###autoload
 (defun my-move-portfolio-files ()
   (interactive)
@@ -986,9 +1002,7 @@ are available:
 				 'file-regular-p
 				 (directory-files my-scan-directory t "^[0-9]+.*#")))
   (shell-command-to-string "make-sketch-thumbnails"))
-;; Manage photos with geeqie:7 ends here
 
-;; [[file:../Sacha.org::#tools-for-organizing][Tools for organizing:1]]
 ;;;###autoload
 (defun my-rename-bank-statements ()
   (interactive)
@@ -1015,7 +1029,3 @@ are available:
         (or (if (derived-mode-p 'dired-mode)
                 (dired-get-marked-files))
             (directory-files default-directory t "^[-_0-9]+\\.jpg"))))
-;; Tools for organizing:1 ends here
-
-(provide 'my-image)
-;;; my-image.el ends here

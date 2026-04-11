@@ -1,96 +1,3 @@
-;;; my-mastodon.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Mastodon
-;;   https://sachachua.com/dotemacs#mastodon
-;;
-;; - Adding Mastodon toots as comments in my 11ty static blog
-;;   https://sachachua.com/dotemacs#mastodon-adding-mastodon-toots-as-comments-in-my-11ty-static-blog
-;;
-;; - mastodon.el: Copy toot content as Org Mode
-;;   https://sachachua.com/dotemacs#mastodon-mastodon-el-copy-toot-content-as-org-mode
-;;
-;; - mastodon.el: Mention people based on regexp
-;;   https://sachachua.com/dotemacs#mastodon-mastodon-el-mention-people-based-on-regexp
-;;
-;; - mastodon.el: Collect handles in clipboard (Emacs kill ring)
-;;   https://sachachua.com/dotemacs#mastodon-mastodon-el-collect-handles-in-kill-ring
-;;
-;; - mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty
-;;   https://sachachua.com/dotemacs#mastodon-mastodon-el-copy-toot-url-after-posting-also-copying-just-this-post-with-11ty
-;;
-;; - Storing Mastodon links in Org mode
-;;   https://sachachua.com/dotemacs#storing-mastodon-links-in-org-mode
-;;
-;; - Collecting Emacs News from Mastodon
-;;   https://sachachua.com/dotemacs#mastodon-news
-;;
-;; - Copy Mastodon link for Emacs News
-;;   https://sachachua.com/dotemacs#copy-mastodon-link-for-emacs-news
-;;
-;; - Combining Mastodon timelines using mastodon.el
-;;   https://sachachua.com/dotemacs#mastodon-combined-timeline
-;;
-;; - Following people
-;;   https://sachachua.com/dotemacs#following-people
-;;
-;; - Tooting a link to the current post
-;;   https://sachachua.com/dotemacs#mastodon-tooting-a-link-to-the-current-post
-;;
-;; - Compose a Mastodon toot with the current Org subtree
-;;   https://sachachua.com/dotemacs#mastodon-toot-subtree
-;;
-;; - Posting the latest screenshot with mastodon.el
-;;   https://sachachua.com/dotemacs#posting-the-latest-screenshot-with-mastodon-el
-;;
-;; - Making it easier to toot my config
-;;   https://sachachua.com/dotemacs#mastodon-toot-config
-;;
-;; - Capture
-;;   https://sachachua.com/dotemacs#mastodon-org-contacts-capture
-;;
-;; - Completion
-;;   https://sachachua.com/dotemacs#mastodon-org-contacts-complete
-;;
-;; - Copy Mastodon toot URL as author link
-;;   https://sachachua.com/dotemacs#mastodon-copy-mastodon-toot-url-as-author-link
-;;
-;; - Collect my recent toots in an Org file so that I can refile them
-;;   https://sachachua.com/dotemacs#mastodon-org-feed
-;;
-;; - Archive toots on my blog
-;;   https://sachachua.com/dotemacs#mastodon-insert-statuses
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#mastodon][Mastodon:2]]
 ;;;###autoload
 (defun my-mastodon-clear-auth ()
 	"Fix alist-get: Wrong type argument: listp, (error . \"The access token is invalid\") error. Then you can use `mastodon-auth--access-token'."
@@ -130,18 +37,14 @@
      (t (insert url)))))
 
 (declare-function 'mastodon-notifications-get-mentions "mastodon-notifications")
-;; Mastodon:2 ends here
 
-;; [[file:../Sacha.org::#mastodon][Mastodon:4]]
 ;;;###autoload
 (defun my-mastodon-browse-url (url &rest _)
   "Open URL."
 	(if (string-match "medium\\.com" url)
 			(funcall browse-url-browser-function url)
 		(mastodon-url-lookup url)))
-;; Mastodon:4 ends here
 
-;; [[file:../Sacha.org::#mastodon-adding-mastodon-toots-as-comments-in-my-11ty-static-blog][Adding Mastodon toots as comments in my 11ty static blog:3]]
 ;;;###autoload
 (defun my-mastodon-toot-comment-json ()
 	(let* ((toot (mastodon-toot--base-toot-or-item-json)))
@@ -156,16 +59,12 @@
 			(message . ,(format "<div class=\"mastodon-body\">%s</div><div class=\"mastodon-source\">From <a href=\"%s\">Mastodon</a></div>"
 													(alist-get 'content toot)
 													(alist-get 'url toot))))))
-;; Adding Mastodon toots as comments in my 11ty static blog:3 ends here
 
-;; [[file:../Sacha.org::#mastodon-adding-mastodon-toots-as-comments-in-my-11ty-static-blog][Adding Mastodon toots as comments in my 11ty static blog:4]]
 ;;;###autoload
 (defun my-mastodon-toot-add-or-update-blog-comment (url)
 	(interactive (list (my-complete-blog-post-url)))
 	(find-file (my-11ty-add-blog-comment (my-mastodon-toot-comment-json))))
-;; Adding Mastodon toots as comments in my 11ty static blog:4 ends here
 
-;; [[file:../Sacha.org::#mastodon-mastodon-el-copy-toot-content-as-org-mode][mastodon.el: Copy toot content as Org Mode:1]]
 ;;;###autoload
 (defun my-mastodon-toot-at-url (&optional url)
 	"Return JSON toot object at URL.
@@ -200,9 +99,7 @@ When called with \\[universal-argument], prompt for a URL."
 				":\n\n#+begin_quote\n"
 				(string-trim (buffer-string)) "\n#+end_quote\n"))
 			(message "Copied."))))
-;; mastodon.el: Copy toot content as Org Mode:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-mastodon-el-mention-people-based-on-regexp][mastodon.el: Mention people based on regexp:1]]
 (defvar my-org-contacts-file "~/sync/orgzly/people.org")
 ;;;###autoload
 (defun my-mastodon-insert-handle-from-contacts ()
@@ -221,9 +118,7 @@ When called with \\[universal-argument], prompt for a URL."
 						"MASTODON={.}"))))
 		(insert (assoc-default (completing-read "Name: " collection)
 													 collection #'string= ""))))
-;; mastodon.el: Mention people based on regexp:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-mastodon-el-mention-people-based-on-regexp][mastodon.el: Mention people based on regexp:3]]
 ;;;###autoload
 (defun my-mastodon-interested-handles (text)
   (seq-uniq
@@ -245,9 +140,7 @@ When called with \\[universal-argument], prompt for a URL."
 		(save-excursion
 			(unless (looking-at " ") (insert " "))
 			(insert (string-join handles " ")))))
-;; mastodon.el: Mention people based on regexp:3 ends here
 
-;; [[file:../Sacha.org::#mastodon-mastodon-el-collect-handles-in-kill-ring][mastodon.el: Collect handles in clipboard (Emacs kill ring):1]]
 (defvar my-mastodon-handle "@sacha@social.sachachua.com")
 ;;;###autoload
 (defun my-mastodon-copy-handle (&optional start-new beg end)
@@ -320,9 +213,7 @@ Omit my own handle, as specified in `my-mastodon-handle'."
 				(unless (member h (split-string " " (car kill-ring)))
 					(setf (car kill-ring) (concat (car kill-ring) " " h)))))
 		(message "%s" (car kill-ring))))
-;; mastodon.el: Collect handles in clipboard (Emacs kill ring):1 ends here
 
-;; [[file:../Sacha.org::#mastodon-mastodon-el-copy-toot-url-after-posting-also-copying-just-this-post-with-11ty][mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:1]]
 (defvar my-mastodon-toot-posted-hook nil "Called with the item.")
 
 ;;;###autoload
@@ -344,9 +235,7 @@ Omit my own handle, as specified in `my-mastodon-handle'."
 							 (mastodon-auth--get-account-id)))
 			nil :silent))))
 
-;; mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-mastodon-el-copy-toot-url-after-posting-also-copying-just-this-post-with-11ty][mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:3]]
 ;;;###autoload
 (defun my-mastodon-org-maybe-set-toot-url (toot)
 	(cond
@@ -387,9 +276,7 @@ Omit my own handle, as specified in `my-mastodon-handle'."
 						(erase-buffer)
 						(insert (json-encode data)))))))))
 (add-hook 'my-mastodon-toot-posted-hook #'my-mastodon-org-maybe-set-toot-url)
-;; mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:3 ends here
 
-;; [[file:../Sacha.org::my-mastodon-store-link][my-mastodon-store-link]]
 ;;;###autoload
 (defun my-mastodon-store-link ()
   "Store links in Mastodon buffers."
@@ -414,9 +301,7 @@ Omit my own handle, as specified in `my-mastodon-handle'."
 						"")
 				))))
 
-;; my-mastodon-store-link ends here
 
-;; [[file:../Sacha.org::#mastodon-news][Collecting Emacs News from Mastodon:1]]
 ;;;###autoload
 (defun my-mastodon-save-toot-for-emacs-news ()
 	(interactive)
@@ -429,9 +314,7 @@ Omit my own handle, as specified in `my-mastodon-handle'."
 					 'boosted-p)
 		(mastodon-toot--toggle-boost-or-favourite 'boost)))
 
-;; Collecting Emacs News from Mastodon:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-news][Collecting Emacs News from Mastodon:5]]
 ;;;###autoload
 (defun my-mastodon-get-note-info ()
 	"Return (:handle ... :url ... :links ... :text) for the current subtree."
@@ -493,9 +376,7 @@ If you can find there something you can use, then I'm happy to be useful to the 
 						 ("https://codeberg.org/jcastp/emacs.d")
 						 :text
 						 "jcastp@mastodon.online - I've shared my emacs config: https://codeberg.org/jcastp/emacs.d\n\nAfter years of reading other's configs, copying really useful snippets, and tinkering a little bit myself, I wanted to give something back, although I'm still an amateur (and it shows, but I want to improve!)\n\nIf you can find there something you can use, then I'm happy to be useful to the community.\n\n#emacs"))))
-;; Collecting Emacs News from Mastodon:5 ends here
 
-;; [[file:../Sacha.org::#copy-mastodon-link-for-emacs-news][Copy Mastodon link for Emacs News:1]]
 ;;;###autoload
 (defun my-mastodon-copy-link-dwim (prefix)
 	(interactive "P")
@@ -552,9 +433,7 @@ If you can find there something you can use, then I'm happy to be useful to the 
 					(insert s)
 				(kill-new s)))
 		s))
-;; Copy Mastodon link for Emacs News:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-combined-timeline][Combining Mastodon timelines using mastodon.el:1]]
 ;;;###autoload
 (defun my-mastodon-fetch-posts-after (base-url after-date)
 	"Page backwards through BASE-URL using max_id for all the posts after AFTER-DATE."
@@ -624,9 +503,12 @@ If you can find there something you can use, then I'm happy to be useful to the 
 				(mastodon-mode))
 			(setq mastodon-tl--buffer-spec `(account ,(cons mastodon-active-user mastodon-instance-url) buffer-name ,(buffer-name)))
 			(display-buffer (current-buffer)))))
-;; Combining Mastodon timelines using mastodon.el:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-combined-timeline][Combining Mastodon timelines using mastodon.el:5]]
+;;;###autoload
+(defun my-mastodon-lookup-toot ()
+  (interactive)
+  (mastodon-url-lookup (mastodon-toot--toot-url)))
+
 ;;;###autoload
 (defun my-mastodon-update-external-item-id (&rest _)
 	(when (mastodon-tl--field 'external (mastodon-tl--property 'item-json))
@@ -644,9 +526,7 @@ If you can find there something you can use, then I'm happy to be useful to the 
 																						(setf (alist-get 'id json) id)
 																						(setf (alist-get 'external json) nil)
 																						json))))))
-;; Combining Mastodon timelines using mastodon.el:5 ends here
 
-;; [[file:../Sacha.org::#following-people][Following people:1]]
 ;;;###autoload
 (defun my-mastodon-follow-user (user-handle)
 	"Follow HANDLE."
@@ -664,9 +544,7 @@ If you can find there something you can use, then I'm happy to be useful to the 
 		(if account
 				(mastodon-tl--do-user-action-function url name user-handle "follow")
 			(message "Cannot find a user with handle %S" user-handle))))
-;; Following people:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-tooting-a-link-to-the-current-post][Tooting a link to the current post:2]]
 ;;;###autoload
 (defun my-mastodon-11ty-toot-post ()
 	"Compose a toot sharing this blog post on Mastodon."
@@ -687,9 +565,7 @@ If you can find there something you can use, then I'm happy to be useful to the 
 												" ")))
 		(unless (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] Emacs News" title)
 			(my-mastodon-insert-interested-handles (concat title "\n" blog-text)))))
-;; Tooting a link to the current post:2 ends here
 
-;; [[file:../Sacha.org::#mastodon-toot-subtree][Compose a Mastodon toot with the current Org subtree:1]]
 ;;;###autoload
 (defun my-mastodon-toot-subtree ()
 	(interactive)
@@ -699,9 +575,7 @@ If you can find there something you can use, then I'm happy to be useful to the 
 		(save-excursion
 			(insert body)
 			(when link (insert "\n\nBlog post: <" my-blog-base-url link ">\n")))))
-;; Compose a Mastodon toot with the current Org subtree:1 ends here
 
-;; [[file:../Sacha.org::#posting-the-latest-screenshot-with-mastodon-el][Posting the latest screenshot with mastodon.el:1]]
 ;;;###autoload
 (defun my-mastodon-toot-screenshot (&optional filename description)
 	"Compose a buffer and attach the latest screenshot.
@@ -742,9 +616,7 @@ Use consult to provide a preview."
 		 (or description
 				 (when (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]-[0-9][0-9]-[0-9][0-9] \\(.+\\)" (save-match-data (file-name-base filename)))
 					 (match-string 1 (save-match-data (file-name-base filename))))))))
-;; Posting the latest screenshot with mastodon.el:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-toot-config][Making it easier to toot my config:1]]
 ;;;###autoload
 (defun my-mastodon-toot-config (&optional include-screenshot)
 	"Toot this part of my config."
@@ -759,9 +631,7 @@ Use consult to provide a preview."
 			(setq text (buffer-substring (point) (org-end-of-subtree))))
 		(mastodon-toot)
 		(insert text "\n\nLink: " link)))
-;; Making it easier to toot my config:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-org-contacts-capture][Capture:1]]
 ;;;###autoload
 (defun my-mastodon-org-contact-add ()
 	"Add current toot author as a contact."
@@ -777,9 +647,7 @@ Use consult to provide a preview."
 												.account.acct
 												.account.username))
 				(message "Added %s" .account.acct)))))
-;; Capture:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-org-contacts-complete][Completion:1]]
 ;;;###autoload
 (defun my-org-contacts-complete-mastodon (string)
 	(let* ((completion-ignore-case org-contacts-completion-ignore-case)
@@ -821,9 +689,7 @@ Use consult to provide a preview."
           (completion-table-dynamic
            (lambda (string)
              (my-org-contacts-complete-mastodon string))))))
-;; Completion:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-copy-mastodon-toot-url-as-author-link][Copy Mastodon toot URL as author link:1]]
 ;;;###autoload
 (defun my-mastodon-copy-toot-as-author-link ()
 	(interactive)
@@ -835,9 +701,7 @@ Use consult to provide a preview."
 		;; figure out how to properly add to org-stored-links someday
 		(kill-new (org-link-make-string url handle))
 		(message "Link stored (%s, %s)." handle url)))
-;; Copy Mastodon toot URL as author link:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-org-feed][Collect my recent toots in an Org file so that I can refile them:2]]
 ;;;###autoload
 (defun my-mastodon-org-feed-formatter (entry)
 	(concat "* " (pandoc-convert-stdio
@@ -860,9 +724,7 @@ Use consult to provide a preview."
     (when (looking-at org-complex-heading-regexp)
 			(org-sort-entries nil ?T))))
 
-;; Collect my recent toots in an Org file so that I can refile them:2 ends here
 
-;; [[file:../Sacha.org::#mastodon-insert-statuses][Archive toots on my blog:1]]
 ;;;###autoload
 (defun my-mastodon-format-my-toots-since (date)
 	(require 'mastodon-auth)
@@ -901,7 +763,3 @@ Use consult to provide a preview."
 	(let ((start (org-read-date nil nil "--wed" nil (date-to-time date))))
 		(insert "Wednesday weblog: Toots ending " start " :review:weblog:\n\n")
 		(my-mastodon-insert-my-toots-since start)))
-;; Archive toots on my blog:1 ends here
-
-(provide 'my-mastodon)
-;;; my-mastodon.el ends here

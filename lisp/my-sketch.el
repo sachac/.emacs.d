@@ -1,84 +1,3 @@
-;;; my-sketch.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Embark and images
-;;   https://sachachua.com/dotemacs#embark-image
-;;
-;; - Completing sketches
-;;   https://sachachua.com/dotemacs#completing-sketches
-;;
-;; - Breaking up a PDF from Supernote
-;;   https://sachachua.com/dotemacs#multimedia-images-svg-animating-svgs-breaking-up-a-pdf-from-supernote
-;;
-;; - Finding sketches
-;;   https://sachachua.com/dotemacs#finding-sketches
-;;
-;; - Renaming and recoloring sketches
-;;   https://sachachua.com/dotemacs#sketch-rename-recolor
-;;
-;; - Button-based interface
-;;   https://sachachua.com/dotemacs#button-based-interface
-;;
-;; - Templates
-;;   https://sachachua.com/dotemacs#templates
-;;
-;; - Get information for sketched books
-;;   https://sachachua.com/dotemacs#get-information-for-sketched-books
-;;
-;; - Make it easy to follow up on a sketch
-;;   https://sachachua.com/dotemacs#make-it-easy-to-follow-up-on-a-sketch
-;;
-;; - Digital index piles with Emacs
-;;   https://sachachua.com/dotemacs#digital-index-piles-with-emacs
-;;
-;; - Sketched books
-;;   https://sachachua.com/dotemacs#insert-point
-;;
-;; - Other sketches
-;;   https://sachachua.com/dotemacs#other-sketches
-;;
-;; - Other sketch-related functions
-;;   https://sachachua.com/dotemacs#other-sketch-related-functions
-;;
-;; - Write about half-page scans
-;;   https://sachachua.com/dotemacs#write-about-half-page-scans
-;;
-;; - Supernote
-;;   https://sachachua.com/dotemacs#supernote
-;;
-;; - org-attaching the latest image from my Supernote via Browse and Access
-;;   https://sachachua.com/dotemacs#supernote-browse
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#embark-image][Embark and images:1]]
 ;;;###autoload
 (defun my-sketch-insert-file-as-link (f)
   (interactive (list (my-complete-sketch-filename)))
@@ -88,9 +7,7 @@
    ((or (derived-mode-p 'html-mode) (derived-mode-p 'web-mode))
     (insert "{% sketchFull \"" (file-name-base f) "\" %}"))
    (t (insert f))))
-;; Embark and images:1 ends here
 
-;; [[file:../Sacha.org::my-image--state][my-image--state]]
 (declare-function 'my-geeqie-view "Sacha.el")
 
 (defvar my-sketch-preview 'text
@@ -125,9 +42,7 @@
                           (and cand
                                (eq action 'preview)
                                (funcall open filename)))))))))))
-;; my-image--state ends here
 
-;; [[file:../Sacha.org::#completing-sketches][Completing sketches:2]]
 ;;;###autoload
 (defun my-complete-sketch-filename (&optional filter)
   (interactive)
@@ -191,9 +106,69 @@
   (interactive "FFile: ")
   (let ((text (my-sketch-text file)))
     (insert (or text ""))))
-;; Completing sketches:2 ends here
 
-;; [[file:../Sacha.org::#multimedia-images-svg-animating-svgs-breaking-up-a-pdf-from-supernote][Breaking up a PDF from Supernote:1]]
+;;;###autoload
+(defun my-insert-sketch-and-text (sketch)
+	(interactive (list (my-complete-sketch-filename)))
+  (when (and (listp sketch) (alist-get 'source_path sketch))
+    (setq sketch (my-get-image-filename (file-name-base (alist-get 'source_path sketch)))))
+	(insert
+	 (if (string= (file-name-extension sketch) "svg")
+			 (format
+				"#+begin_panzoom\n%s\n#+end_panzoom\n\n"
+				(org-link-make-string (concat "file:" sketch)))
+		 (concat (org-link-make-string (concat "sketchFull:" (file-name-base sketch))) "\n\n")))
+	(let ((links (my-org-links-from-file (concat (file-name-sans-extension sketch) ".txt")))
+				(subheading-level (1+ (org-current-level))))
+		(insert (if links
+								"#+begin_my_details Text and links from sketch\n"
+							"#+begin_my_details Text from sketch\n"))
+		(my-sketch-insert-text sketch)
+		(unless (bolp) (insert "\n"))
+		(insert "#+end_my_details")
+		(dolist (section (seq-filter (lambda (entry) (string-match "^#" (cdr entry)))
+																 links))
+			(org-end-of-subtree)
+			(insert "\n\n")
+			(org-insert-heading nil nil subheading-level)
+			(insert (car section))
+			(org-entry-put (point) "CUSTOM_ID" (substring (cdr section) 1)))))
+
+;;;###autoload
+(defun my-write-about-sketch (sketch)
+  (interactive (list (my-complete-sketch-filename)))
+                                        ;(shell-command "make-sketch-thumbnails")
+  (find-file "~/sync/orgzly/posts.org")
+  (goto-char (point-min))
+	(unless (org-at-heading-p) (outline-next-heading))
+  (org-insert-heading nil nil t)
+	(insert (string-trim (replace-regexp-in-string "^[-0-9]+ *" "" (file-name-base sketch))) "\n\n")
+	(my-insert-sketch-and-text sketch)
+	(insert "\n/Feel free to use this sketch under the [[https://creativecommons.org/licenses/by/4.0/][Creative Commons Attribution License]]./\n")
+  (delete-other-windows)
+  (save-excursion
+    (with-selected-window (split-window-horizontally)
+      (find-file sketch))))
+
+;;;###autoload
+(defun my-sketches-export-and-extract (start end &optional do-insert update-db filter)
+  "Create a list of links to sketches."
+  (interactive (list (org-read-date) (org-read-date) t current-prefix-arg (read-string "Filter: ")))
+  (let ((value
+         (mapconcat
+          (lambda (filename)
+            (let ((base (file-name-nondirectory filename)))
+              (format "- %s\n"
+                      (org-link-make-string
+                       (replace-regexp-in-string "#" "%23"
+                                                 (concat "sketch:" base))
+                       base))))
+          (let ((my-sketch-directories '("~/sync/sketches"))) (my-get-sketch-filenames-between-dates start end filter))
+          "")))
+    (if do-insert
+        (insert value)
+      value)))
+
 (defvar my-debug-buffer (get-buffer-create "*temp*"))
 ;;;###autoload
 (defun my-sketch-convert-pdf (pdf-file)
@@ -360,9 +335,64 @@
 																		 t)))
 		(with-temp-file (or new-file file) (svg-print (car dom)))
 		(or new-file file)))
-;; Breaking up a PDF from Supernote:1 ends here
 
-;; [[file:../Sacha.org::#finding-sketches][Finding sketches:1]]
+;;;###autoload
+(defun my-sketch-regroup (dom groups)
+	"Move matching paths to their own group.
+GROUPS is specified as ((id . (lambda (elem) ..)))."
+	(dolist (group groups)
+		(when-let* ((matches (dom-search dom
+																		 (lambda (elem)
+																			 (funcall (cdr group) elem))))
+								(node (dom-node 'g `((id . ,(car group))))))
+			(dolist (p matches)
+				(dom-remove-node dom p)
+				(dom-append-child node p))
+			(dom-append-child dom node)))
+	dom)
+;;;###autoload
+(defun my-sketch-break-apart (dom selector)
+	"Break paths apart.
+SELECTOR can be a function that takes the node as an argument and returns non-nil,
+or a list of nodes."
+	(dolist (path (if (functionp selector) (dom-search dom selector) selector))
+		(let ((parent (dom-parent dom path)))
+			;; break apart
+			(when (dom-attr path 'd)
+				(dolist (part (split-string (dom-attr path 'd) "M " t " +"))
+					(dom-add-child-before
+					 parent
+					 (dom-node 'path `((style . ,(or (dom-attr path 'style) ""))
+														 (fill . ,(or (dom-attr path 'fill) ""))
+														 (d . ,(concat "M " part))))
+					 path))
+				(dom-remove-node dom path))))
+	dom)
+
+;;;###autoload
+(cl-defun my-sketch-convert-pdf-and-break-up-paths (pdf-file &key rotate color-map color-scheme selector)
+	"Convert PDF to SVG and break up paths."
+	(interactive (list (read-file-name
+											(format "PDF (%s): "
+															(my-latest-file "~/Dropbox/Supernote/EXPORT/" "pdf"))
+											"~/Dropbox/Supernote/EXPORT/"
+											(my-latest-file "~/Dropbox/Supernote/EXPORT/" "pdf")
+											t
+											nil
+											(lambda (s) (string-match "pdf" s)))))
+
+	(let (dom
+				(new-file (expand-file-name (concat (file-name-sans-extension pdf-file) "-split.svg"))))
+		(my-sketch-svg-prepare
+		 file :color-map color-map :color-scheme color-scheme :new-file new-file)
+		(setq dom (xml-parse-file new-file))
+		(when rotate (setq dom (my-sketch-rotate dom)))
+		(setq dom (my-sketch-break-apart dom (or selector
+																						 (dom-by-tag dom 'path))))
+		(with-temp-file new-file
+			(svg-print (car dom)))
+		new-file))
+
 (defvar my-sketch-directories
   '("~/sync/sketches"
     "~/sync/private-sketches"))
@@ -439,9 +469,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
                               'file-name-nondirectory)
                             (my-get-sketch-filenames regexp t)))
                    'string>))))
-;; Finding sketches:1 ends here
 
-;; [[file:../Sacha.org::#sketch-rename-recolor][Renaming and recoloring sketches:1]]
 ;;;###autoload
 (defun my-sketch-rename (file)
 	(interactive "FFile: ")
@@ -468,9 +496,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 								(expand-file-name file))
 	file)
 (defalias 'my-image-recolor 'my-sketch-recolor-png)
-;; Renaming and recoloring sketches:1 ends here
 
-;; [[file:../Sacha.org::#button-based-interface][Button-based interface:1]]
 ;;;###autoload
 (defun my-set-up-sketch-buffer ()
   "Populate a widget buffer with a few handy buttons."
@@ -562,9 +588,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
                             ((= degrees 180) "inverted")
                             ((= degrees 90) "left")
                             ((= degrees 270) "right")))))))
-;; Button-based interface:1 ends here
 
-;; [[file:../Sacha.org::#templates][Templates:1]]
 ;;;###autoload
 (defun my-prepare-drawing-template (&optional name date template)
   "Create the image file for NAME. Return the new filename."
@@ -637,18 +661,14 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
       (save-excursion
         (org-refile 4 nil location)
         (my-prepare-index-card-for-subtree)) t)))
-;; Templates:1 ends here
 
-;; [[file:../Sacha.org::#get-information-for-sketched-books][Get information for sketched books:1]]
 ;;;###autoload
 (defun my-prepare-sketchnote-file ()
   (interactive)
   (let* ((base-name (org-entry-get-with-inheritance  "BASENAME")))
     (unless base-name (error "Missing basename property"))
     (my-org-sketch-open (my-prepare-large-template base-name))))
-;; Get information for sketched books:1 ends here
 
-;; [[file:../Sacha.org::#make-it-easy-to-follow-up-on-a-sketch][Make it easy to follow up on a sketch:1]]
 ;;;###autoload
 (defun my-follow-up-on-sketch (filename)
   "Prompt for FILENAME to follow up on.
@@ -671,9 +691,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
                            (shell-quote-argument (expand-file-name index-card))))
     (my-rotate-screen 180)
     (my-set-up-sketch-buffer)))
-;; Make it easy to follow up on a sketch:1 ends here
 
-;; [[file:../Sacha.org::#digital-index-piles-with-emacs][Digital index piles with Emacs:6]]
 ;;;###autoload
 (defun my-refile-sketches-to-questions ()
   (interactive)
@@ -684,9 +702,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
         (if (save-match-data (search-forward (concat "* " title) nil t))
             (progn (forward-line) (insert (match-string 0)) (replace-match ""))
           (forward-line 1))))))
-;; Digital index piles with Emacs:6 ends here
 
-;; [[file:../Sacha.org::#insert-point][Sketched books:2]]
 ;;;###autoload
 (defun my-convert-sketch-title-to-filename (text)
   (setq text (replace-regexp-in-string "[?!]$" "" text))
@@ -747,9 +763,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
            (org-entry-get-with-inheritance "SHORT_TITLE")
            (org-entry-get-with-inheritance "AUTHOR"))))
 
-;; Sketched books:2 ends here
 
-;; [[file:../Sacha.org::#other-sketches][Other sketches:1]]
 ;;;###autoload
 (defun my-get-tile-dimensions (num-items orig-width orig-height target-aspect-ratio)
   (let ((rows 1) (cols 1)
@@ -849,9 +863,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
     (my-rotate-screen 180)
     (my-set-up-sketch-buffer)))
 
-;; Other sketches:1 ends here
 
-;; [[file:../Sacha.org::#other-sketch-related-functions][Other sketch-related functions:1]]
 ;;;###autoload
 (defun my-show-sketches-as-slideshow (list &optional shuffle)
   "Display a quick slideshow of sketches in LIST.
@@ -905,9 +917,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
   (quantified-track "Drawing")
   (my-prepare-index-card "Journal"))
 
-;; Other sketch-related functions:1 ends here
 
-;; [[file:../Sacha.org::#write-about-half-page-scans][Write about half-page scans:1]]
 ;;;###autoload
 (defun my-write-about-half-page-scan (filename)
   (interactive (list (read-file-name (format "Sketch (%s): "
@@ -929,9 +939,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
                                          my-sketches-directory))
         (rename-file filename new-name)))
     (my-write-about-sketch new-name)))
-;; Write about half-page scans:1 ends here
 
-;; [[file:../Sacha.org::#supernote][Supernote:4]]
 ;;;###autoload
 (defun my-sketch-process (file &optional do-crop)
   (interactive (list (read-file-name "File: ")))
@@ -959,9 +967,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 	(find-file file)
 	(find-file-other-window (concat (file-name-sans-extension file) ".txt"))
 	file)
-;; Supernote:4 ends here
 
-;; [[file:../Sacha.org::#supernote-browse][org-attaching the latest image from my Supernote via Browse and Access:2]]
 ;;;###autoload
 (defun my-sketch-insert-latest-doodle ()
 	(interactive)
@@ -973,9 +979,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 %s
 #+end_right-doodle"
 			(org-link-make-string (concat "file:" file))))))
-;; org-attaching the latest image from my Supernote via Browse and Access:2 ends here
 
-;; [[file:../Sacha.org::#supernote-browse][org-attaching the latest image from my Supernote via Browse and Access:4]]
 ;;;###autoload
 (defun my-sketch-insert-latest ()
 	(interactive)
@@ -987,7 +991,3 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 				;; insert the link
 				(org-insert-link nil (concat "file:" renamed)))
 			(org-redisplay-inline-images))))
-;; org-attaching the latest image from my Supernote via Browse and Access:4 ends here
-
-(provide 'my-sketch)
-;;; my-sketch.el ends here

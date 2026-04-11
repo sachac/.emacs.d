@@ -1,42 +1,55 @@
-;;; my-org-yt.el ---  -*- lexical-binding: t -*-
+;;;###autoload
+(defun my-org-link-youtube-time (url beg end)
+  "Link times of the form h:mm to YouTube video at URL.
+       Works on region defined by BEG and END."
+  (interactive (list (read-string "URL: " (org-entry-get-with-inheritance "YOUTUBE")) (point) (mark)))
+  (save-excursion
+    (save-restriction
+      (narrow-to-region beg end)
+      (goto-char (point-min))
+      (let ((char (if (string-match "\\?" url) "&" "?")))
+        (while (re-search-forward "\\(\\([0-9]+\\):\\([0-9]+\\)\\(:\\([0-9]+\\)\\)?\\) ::" nil t)
+          (replace-match
+           (format "[[%s%st=%sh%sm%ss][%s]] "
+                   url
+                   char
+                   (match-string 2)
+                   (match-string 3)
+                   (or (match-string 5) "0")
+                   (match-string 1)) nil t))))))
 
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
+;;;###autoload
+(defun my-clean-up-google-hangout-chat ()
+  (interactive)
+  (save-excursion
+    (while (re-search-forward "<hr.*?div class=\"Kc-Ma-m\".*?>" nil t)
+      (replace-match "\n| ")))
+  (save-excursion
+    (while (re-search-forward "</div><div class=\"Kc-yi-m\">" nil t)
+      (replace-match " | ")))
+  (save-excursion
+    (while (re-search-forward "</div></div><div class=\"Kc-ib\">" nil t)
+      (replace-match " | ")))
+  (save-excursion
+    (while (re-search-forward "<a rel=\"nofollow\" target=\"_blank\" href=\"\\(.*?\\)\">\\(.*?\\)</a>" nil t)
+      (replace-match "[[\\1][\\2]]")))
+  (save-excursion
+    (while (re-search-forward "</div></div></div></div>" nil t)
+      (replace-match " |")))
+  (save-excursion
+    (while (re-search-forward "&nbsp;" nil t)
+      (replace-match " ")))
+  (save-excursion
+    (while (re-search-forward "</div><div class=\"Kc-ib\">" nil t)
+      (replace-match " ")))
+  (save-excursion
+    (while (re-search-forward "<img.*?>" nil t)
+      (replace-match "")))
+  (save-excursion
+    (while (re-search-forward "<wbr>" nil t)
+      (replace-match "")))
+  )
 
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - YouTube
-;;   https://sachachua.com/dotemacs#youtube
-;;
-;; - Org Mode: Insert YouTube video with separate captions
-;;   https://sachachua.com/dotemacs#org-youtube-captions
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::org-yt-link][org-yt-link]]
 (defvar my-org-yt-iframe-format
   (concat "<div class=\"yt-video\"><iframe width=\"456\""
           " height=\"315\""
@@ -144,9 +157,7 @@
 ;;;###autoload
 (defun my-org-yt-open (path)
 	(browse-url path))
-;; org-yt-link ends here
 
-;; [[file:../Sacha.org::#org-youtube-captions][Org Mode: Insert YouTube video with separate captions:2]]
 (require 'dash)
 
 ;;;###autoload
@@ -177,7 +188,3 @@
                   (dom-by-tag (xml-parse-file temp-file-name) 'text)
                   ""))
       (delete-file temp-file-name))))
-;; Org Mode: Insert YouTube video with separate captions:2 ends here
-
-(provide 'my-org-yt)
-;;; my-org-yt.el ends here

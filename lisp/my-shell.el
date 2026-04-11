@@ -1,46 +1,5 @@
-;;; my-shell.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Scan ~/bin and turn the scripts into interactive commands
-;;   https://sachachua.com/dotemacs#scan-bin-and-turn-the-scripts-into-interactive-commands
-;;
-;; - dwim-shell-command
-;;   https://sachachua.com/dotemacs#dwim-shell-command
-;;
-;; - Automation
-;;   https://sachachua.com/dotemacs#automation
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#scan-bin-and-turn-the-scripts-into-interactive-commands][Scan ~/bin and turn the scripts into interactive commands:1]]
 (require 'dash)
+;;;###autoload
 (defmacro my-convert-shell-scripts-to-interactive-commands (directory)
   "Make the shell scripts in DIRECTORY available as interactive commands."
   (cons 'progn
@@ -58,9 +17,7 @@
                   (apply 'call-process ,filename nil (if current-prefix-arg t nil) nil args))))))
          (-filter (-not #'file-directory-p)
                   (-filter #'file-executable-p (directory-files directory t))))))
-;; Scan ~/bin and turn the scripts into interactive commands:1 ends here
 
-;; [[file:../Sacha.org::#dwim-shell-command][dwim-shell-command:1]]
 ;;;###autoload
 (defun my-dwim-shell-command (prefix)
   "Execute DWIM shell command asynchronously using noweb templates.
@@ -146,15 +103,9 @@ Prefix
      :silent-success (string-prefix-p " " script)
      :error-autofocus (not dwim-shell-command-prompt-on-error))))
 
-;; dwim-shell-command:1 ends here
 
-;; [[file:../Sacha.org::#automation][Automation:1]]
 ;;;###autoload
 (defun my-insert-xdotool-click-as-shell-command ()
   (interactive)
   (insert
    (shell-command-to-string "xdotool getmouselocation | sed -E 's/x:([0-9]+) y:([0-9]+) .*/xdotool mousemove \\1 \\2 click 1/'")))
-;; Automation:1 ends here
-
-(provide 'my-shell)
-;;; my-shell.el ends here

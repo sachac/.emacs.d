@@ -1,78 +1,3 @@
-;;; my-org-export.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Changing Org Mode underlines to the HTML mark element
-;;   https://sachachua.com/dotemacs#org-mode-publishing-changing-org-mode-underlines-to-the-html-mark-element
-;;
-;; - Include inline SVGs in Org Mode HTML and Markdown exports
-;;   https://sachachua.com/dotemacs#org-inline-svg
-;;
-;; - Org Mode: Export HTML, copy files, and serve the results via simple-httpd so that media files work
-;;   https://sachachua.com/dotemacs#org-mode-publishing-html-export-html-copy-files-and-serve-via-simple-httpd
-;;
-;; - Moving my Org post subtree to the 11ty directory
-;;   https://sachachua.com/dotemacs#moving-my-org-post-subtree-to-the-11ty-directory
-;;
-;; - Remove heading from TOC
-;;   https://sachachua.com/dotemacs#org-mode-publishing-remove-heading-from-toc
-;;
-;; - Add a note to the bottom of blog posts exported from my config file
-;;   https://sachachua.com/dotemacs#config-footer
-;;
-;; - Cleaning up export
-;;   https://sachachua.com/dotemacs#cleaning-up-export
-;;
-;; - Publish without prompting
-;;   https://sachachua.com/dotemacs#publish-without-prompting
-;;
-;; - Abbreviations
-;;   https://sachachua.com/dotemacs#org-mode-publishing-abbreviations
-;;
-;; - Adding a custom header argument to Org Mode source blocks and using that argument during export
-;;   https://sachachua.com/dotemacs#adding-a-custom-header-argument-to-org-mode-source-blocks-and-using-that-argument-during-export
-;;
-;; - Org Mode: Asynchronous export and tangle of a large file
-;;   https://sachachua.com/dotemacs#org-async-export-and-tangle
-;;
-;; - Plain text
-;;   https://sachachua.com/dotemacs#org-mode-publishing-plain-text
-;;
-;; - Fix elisp links
-;;   https://sachachua.com/dotemacs#fix-elisp-links
-;;
-;; - Save when Emacs loses focus
-;;   https://sachachua.com/dotemacs#save-when-emacs-loses-focus
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#org-mode-publishing-changing-org-mode-underlines-to-the-html-mark-element][Changing Org Mode underlines to the HTML mark element:2]]
 ;;;###autoload
 (defun my-org-highlight-export (link desc format _)
 	(pcase format
@@ -82,9 +7,7 @@
 								 (format " class=\"%s\"" link)
 							 link)
 						 desc))))
-;; Changing Org Mode underlines to the HTML mark element:2 ends here
 
-;; [[file:../Sacha.org::#org-inline-svg][Include inline SVGs in Org Mode HTML and Markdown exports:2]]
 ;;;###autoload
 (defun my-ox-link-path (link _ info)
 	(let* ((raw-path (org-element-property :path link)))
@@ -162,9 +85,7 @@
 								(buffer-string)))
 					(org-11ty-link link desc info)))
 		(org-11ty-link link desc info)))
-;; Include inline SVGs in Org Mode HTML and Markdown exports:2 ends here
 
-;; [[file:../Sacha.org::#org-inline-svg][Include inline SVGs in Org Mode HTML and Markdown exports:3]]
 (with-eval-after-load 'ox-html
 	(setf
 	 (alist-get 'link (org-export-backend-transcoders (org-export-get-backend 'html)))
@@ -177,9 +98,7 @@
 	(setf
 	 (alist-get 'link (org-export-backend-transcoders (org-export-get-backend '11ty)))
 	 'my-org-11ty-link))
-;; Include inline SVGs in Org Mode HTML and Markdown exports:3 ends here
 
-;; [[file:../Sacha.org::#org-mode-publishing-html-export-html-copy-files-and-serve-via-simple-httpd][Org Mode: Export HTML, copy files, and serve the results via simple-httpd so that media files work:4]]
 ;;;###autoload
 (defun my-org-serve-buffer (&optional async _subtreep visible-only body-only ext-plist)
   (my-org-export-and-serve nil))
@@ -261,9 +180,7 @@
     (browse-url (format "http://localhost:%d/%s"
                         httpd-port
                         (file-name-nondirectory html-file)))))
-;; Org Mode: Export HTML, copy files, and serve the results via simple-httpd so that media files work:4 ends here
 
-;; [[file:../Sacha.org::#moving-my-org-post-subtree-to-the-11ty-directory][Moving my Org post subtree to the 11ty directory:2]]
 ;;;###autoload
 (defun my-org-export-filter-body-add-index-link (info)
   (when (and
@@ -278,9 +195,9 @@
 		(insert
 		 (format "<div><a href=\"%sindex.org\">View Org source for this post</a></div>"
 						 (plist-get info :permalink)))))
-;; Moving my Org post subtree to the 11ty directory:2 ends here
 
-;; [[file:../Sacha.org::#moving-my-org-post-subtree-to-the-11ty-directory][Moving my Org post subtree to the 11ty directory:4]]
+(defvar my-org-11ty-export-and-copy nil "*Non-nil means copy to site after specified delay (ex: \"5s\").")
+
 ;;;###autoload
 (defun my-org-11ty-export (&optional async subtreep visible-only body-only ext-plist)
 	(when (and subtreep (not (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
@@ -302,10 +219,21 @@
                 (plist-get (org-11ty--front-matter info) :no_source))
 			(save-window-excursion
 				(my-org-11ty-copy-subtree nil subtreep)))
-		(org-11ty-export-to-11tydata-and-html async subtreep visible-only body-only ext-plist)))
-;; Moving my Org post subtree to the 11ty directory:4 ends here
+		(org-11ty-export-to-11tydata-and-html async subtreep visible-only body-only ext-plist)
+    (when my-org-11ty-export-and-copy
+      (message "%s" "Scheduling copy...")
+      (run-at-time my-org-11ty-export-and-copy nil
+                   (lambda (url)
+                     (my-org-11ty-copy-just-this-post
+                      url))
+                   (plist-get info :permalink)))))
 
-;; [[file:../Sacha.org::#org-mode-publishing-remove-heading-from-toc][Remove heading from TOC:1]]
+;;;###autoload
+(defun my-org-11ty-export-and-copy (&rest args)
+  "Export and copy to website."
+  (let ((my-org-11ty-export-and-copy "10"))
+    (apply #'my-org-11ty-export args)))
+
 ;;;###autoload
 (defun my-org-html-toc (depth info &optional scope)
   "Build a table of contents.
@@ -342,9 +270,7 @@ of contents as a string, or nil if it is empty."
 
 ;; (with-eval-after-load 'org
 ;;   (advice-add 'org-html-toc :override #'my-org-html-toc))
-;; Remove heading from TOC:1 ends here
 
-;; [[file:../Sacha.org::#config-footer][Add a note to the bottom of blog posts exported from my config file:1]]
 ;;;###autoload
 (defun my-org-export-filter-body-add-emacs-configuration-link (string backend info)
   (when (and (plist-get info :input-file) (string-match "\\.emacs\\.d/Sacha\\.org\\|sync/emacs/Sacha\\.org" (plist-get info :input-file)))
@@ -355,9 +281,7 @@ of contents as a string, or nil if it is empty."
 									 "\nThis is part of my [Emacs configuration](https://sachachua.com/dotemacs%s)\n"
 								 "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs%s\">Emacs configuration.</a></div>")
                (if id (concat "#" id) ""))))))
-;; Add a note to the bottom of blog posts exported from my config file:1 ends here
 
-;; [[file:../Sacha.org::#cleaning-up-export][Cleaning up export:2]]
 (defun my-org-11ty-publish-from-project (_ from-file _)
   (with-current-buffer (find-file-noselect from-file)
     (save-excursion
@@ -366,9 +290,7 @@ of contents as a string, or nil if it is empty."
        (my-org-11ty-export)))))
 ;(load "~/proj/dev/emacs-chats/build-site.el" t)
 ;(load "~/proj/dev/emacs-notes/build-site.el" t)
-;; Cleaning up export:2 ends here
 
-;; [[file:../Sacha.org::#cleaning-up-export][Cleaning up export:3]]
 ;;;###autoload
 (defun my-org-publish-maybe ()
   (require 'ox-publish)
@@ -378,18 +300,14 @@ of contents as a string, or nil if it is empty."
          (buffer-file-name (buffer-base-buffer)) 'up)
         (org-publish-current-file t)
       (my-org-html-export-trustingly))))
-;; Cleaning up export:3 ends here
 
-;; [[file:../Sacha.org::#cleaning-up-export][Cleaning up export:4]]
 ;;;###autoload
 (defun my-org-publish-and-browse ()
   (interactive)
   (save-buffer)
   (my-org-publish-maybe)
   (browse-url (org-export-output-file-name ".html" nil default-directory)))
-;; Cleaning up export:4 ends here
 
-;; [[file:../Sacha.org::#publish-without-prompting][Publish without prompting:1]]
 ;;;###autoload
 (defun my-org-html-export-trustingly ()
   (interactive)
@@ -400,9 +318,7 @@ of contents as a string, or nil if it is empty."
 (defun my-org-html-publish-to-html-trustingly (plist filename pub-dir)
   (let ((org-confirm-babel-evaluate nil))
     (org-html-publish-to-html plist filename pub-dir)))
-;; Publish without prompting:1 ends here
 
-;; [[file:../Sacha.org::#org-mode-publishing-abbreviations][Abbreviations:1]]
 ;;;###autoload
 (defun my-org-abbr-export (path desc backend info)
   "Export abbr links for Org mode.
@@ -441,14 +357,10 @@ INFO is a plist holding contextual information."
      (if desc
          (format "%s (%s)" desc path)
        path))))
-;; Abbreviations:1 ends here
 
-;; [[file:../Sacha.org::#org-mode-publishing-abbreviations][Abbreviations:2]]
 (with-eval-after-load 'org
 	(org-link-set-parameters "abbr"	:export #'my-org-abbr-export))
-;; Abbreviations:2 ends here
 
-;; [[file:../Sacha.org::#adding-a-custom-header-argument-to-org-mode-source-blocks-and-using-that-argument-during-export][Adding a custom header argument to Org Mode source blocks and using that argument during export:1]]
 (eval-and-compile
   (require 'org-macs nil t))
 ;;;###autoload
@@ -481,9 +393,7 @@ INFO is a plist holding contextual information."
 			(format "<details><summary>%s</summary>%s</details>"
 							summary
 							result))))
-;; Adding a custom header argument to Org Mode source blocks and using that argument during export:1 ends here
 
-;; [[file:../Sacha.org::#org-async-export-and-tangle][Org Mode: Asynchronous export and tangle of a large file:3]]
 (defmacro my-org-debounce-idle-timer (seconds var body &rest args)
   `(progn
      (defvar ,var nil "Timer.")
@@ -558,9 +468,7 @@ the mode, `toggle' toggles the state."
 		   (lambda (&rest results) (message "Tangled and exported."))))))
 ;(use-package org
 ;  :hook ((org-mode . my-org-save-and-tangle-my-config)))
-;; Org Mode: Asynchronous export and tangle of a large file:3 ends here
 
-;; [[file:../Sacha.org::#org-mode-publishing-plain-text][Plain text:1]]
 ;;;###autoload
 (defun my-plain-text-link (link contents info)
   "Export LINK in 'description URL' format."
@@ -602,18 +510,25 @@ the mode, `toggle' toggles the state."
   (let ((file (org-export-output-file-name ".txt" subtreep)))
     (org-export-to-file 'my-plain-text file
       async subtreep visible-only body-only ext-plist)))
-;; Plain text:1 ends here
 
-;; [[file:../Sacha.org::org-elisp-link][org-elisp-link]]
 ;;;###autoload
 (defun my-org-elisp-link-export (link description format &optional arg)
   (pcase format
    ('html (format "<span title=\"%s\">%s</span>" (replace-regexp-in-string "\"" "&quot;" link) description))
    ((or 'icalendar 'ascii) description)
    ))
-;; org-elisp-link ends here
 
-;; [[file:../Sacha.org::#save-when-emacs-loses-focus][Save when Emacs loses focus:1]]
+;;;###autoload
+(defun my-org-ircs-export (link description format)
+   "Export an ircs link.
+See `org-link-parameters' for details about LINK, DESCRIPTION and
+FORMAT."
+   (let ((desc (or description link)))
+     (pcase format
+       (`html (format "<a href=\"ircs:%s\">%s</a>" link desc))
+       (`md (format "[%s](ircs:%s)" desc link))
+       (_ nil))))
+
 ;;;###autoload
 (defun my-org-save-all-org-buffers ()
   (unless my-unfocusing
@@ -621,7 +536,3 @@ the mode, `toggle' toggles the state."
       (my-org-debounce-idle-timer 10
                                   my-org-save-all-org-buffers-timer
                                   'org-save-all-org-buffers))))
-;; Save when Emacs loses focus:1 ends here
-
-(provide 'my-org-export)
-;;; my-org-export.el ends here

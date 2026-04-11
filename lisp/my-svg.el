@@ -1,51 +1,3 @@
-;;; my-svg.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Identifying paths
-;;   https://sachachua.com/dotemacs#svg-identifying-paths
-;;
-;; - Linking paths
-;;   https://sachachua.com/dotemacs#multimedia-images-svg-animating-svgs-linking-paths
-;;
-;; - Sorting paths
-;;   https://sachachua.com/dotemacs#svg-sorting-paths
-;;
-;; - Animating paths in order
-;;   https://sachachua.com/dotemacs#svg-animating-paths-in-order
-;;
-;; - RevealJS CSS animation of sketches
-;;   https://sachachua.com/dotemacs#reveal-js-sketch-animation
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#svg-identifying-paths][Identifying paths:1]]
 (defvar my-svg-auto-resize-timer nil)
 ;; based on image-mode
 ;;;###autoload
@@ -154,9 +106,7 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 			 (list x1 y1 x2 y2)))
 		)
 	)
-;; Identifying paths:1 ends here
 
-;; [[file:../Sacha.org::#svg-identifying-paths][Identifying paths:3]]
 ;;;###autoload
 (defun my-svg-display (buffer-name svg &optional highlight-id full-window)
 	"HIGHLIGHT-ID is a string ID or a node."
@@ -399,9 +349,7 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 			(svg-print dom))))
 
 
-;; Identifying paths:3 ends here
 
-;; [[file:../Sacha.org::#multimedia-images-svg-animating-svgs-linking-paths][Linking paths:1]]
 ;;;###autoload
 (defun my-dom-closest (dom node tag)
 	(let ((current node))
@@ -573,9 +521,7 @@ Paths should have the title attribute."
 			(goto-char (point-min))
 			(switch-to-buffer (current-buffer)))))
 ;; (my-svg-link-paths (my-latest-file "~/sync/sketches"))
-;; Linking paths:1 ends here
 
-;; [[file:../Sacha.org::#svg-sorting-paths][Sorting paths:1]]
 ;;;###autoload
 (defun my-svg-reorder-paths (filename &optional ids output-filename)
 	"Sort paths in FILENAME."
@@ -614,9 +560,7 @@ Paths should have the title attribute."
 													(unless (string-match "path[0-9]+" (or (dom-attr path 'id) "path0"))
 														(dom-attr path 'id)))
 												(dom-by-tag dom 'path)))))
-;; Sorting paths:1 ends here
 
-;; [[file:../Sacha.org::#svg-animating-paths-in-order][Animating paths in order:1]]
 ;;;###autoload
 (defun my-animate-svg-paths (filename output-dir)
 	"Add one path at a time. Save the resulting SVGs to OUTPUT-DIR."
@@ -656,9 +600,7 @@ Paths should have the title attribute."
 				(setq frame-num (1- frame-num))
 				(xml-print dom)))
 		(reverse result)))
-;; Animating paths in order:1 ends here
 
-;; [[file:../Sacha.org::revealjs-css-animation-code][revealjs-css-animation-code]]
 ;;;###autoload
 (defun my-reveal-svg-animation (slide)
 	(string-join
@@ -714,7 +656,3 @@ map-progression should be a list of lists with the following format:
 								(my-reveal-svg-highlight-different-colors slide)))
 			map-progression
 			"\n"))))
-;; revealjs-css-animation-code ends here
-
-(provide 'my-svg)
-;;; my-svg.el ends here

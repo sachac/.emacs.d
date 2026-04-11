@@ -1,45 +1,3 @@
-;;; my-org-def.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Linking to and exporting function definitions in Org Mode
-;;   https://sachachua.com/dotemacs#linking-to-and-exporting-function-definitions-in-org-mode
-;;
-;; - Still allow linking to the file
-;;   https://sachachua.com/dotemacs#org-mode-linking-to-and-exporting-function-definitions-in-org-mode-still-allow-linking-to-the-file
-;;
-;; - Including variables
-;;   https://sachachua.com/dotemacs#including-variables
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::org-defun-link][org-defun-link]]
 ;;;###autoload
 (defun my-org-defun-complete ()
 	"Return function definitions."
@@ -163,18 +121,14 @@ If it's from a tangled file, follow the link."
 												 :export #'my-org-defun-open-export
 												 :complete #'my-org-defun-open-complete
 												 :insert-description #'my-org-defun-link-description)
-;; org-defun-link ends here
 
-;; [[file:../Sacha.org::#org-mode-linking-to-and-exporting-function-definitions-in-org-mode-still-allow-linking-to-the-file][Still allow linking to the file:1]]
 ;;;###autoload
 (defun my-org-defun-store-file-link ()
 	"Store a link to the file itself."
 	(when (derived-mode-p 'emacs-lisp-mode)
 		(org-link-store-props :type "file"
 													:link (concat "file:" (buffer-file-name)))))
-;; Still allow linking to the file:1 ends here
 
-;; [[file:../Sacha.org::org-defvar-link][org-defvar-link]]
 ;;;###autoload
 (defun my-org-defvar-complete ()
 	"Return variable definitions."
@@ -264,7 +218,3 @@ If it's from a tangled file, follow the link."
 												 :insert-description #'my-org-defvar-link-description
 												 ; :store #'my-org-def-store  ; already added by defun link
 												 )
-;; org-defvar-link ends here
-
-(provide 'my-org-def)
-;;; my-org-def.el ends here

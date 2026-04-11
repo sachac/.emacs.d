@@ -1,45 +1,3 @@
-;;; my-complete.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Extended command list
-;;   https://sachachua.com/dotemacs#keybindings-extended-command-list
-;;
-;; - Emacs completion and handling accented characters with orderless
-;;   https://sachachua.com/dotemacs#completion-emacs-completion-and-handling-accented-characters-with-orderless
-;;
-;; - Snippets
-;;   https://sachachua.com/dotemacs#snippets
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#keybindings-extended-command-list][Extended command list:2]]
 ;;; Mostly the same as my/read-extended-command-from-list
 ;;;###autoload
 (defun my-read-extended-command-from-list (list)
@@ -172,9 +130,7 @@
             (sit-for (if (numberp suggest-key-bindings)
                          suggest-key-bindings
                        2))))))))
-;; Extended command list:2 ends here
 
-;; [[file:../Sacha.org::#completion-emacs-completion-and-handling-accented-characters-with-orderless][Emacs completion and handling accented characters with orderless:1]]
 (defvar my-orderless-accent-replacements
   '(("a" . "[aàáâãäå]")
     ("e" . "[eèéêë]")
@@ -191,9 +147,62 @@
      (replace-regexp-in-string (car val) (cdr val) prev))
    my-orderless-accent-replacements
    pattern))
-;; Emacs completion and handling accented characters with orderless:1 ends here
 
-;; [[file:../Sacha.org::#snippets][Snippets:2]]
+;;;###autoload
+(defun sacha-marginalia-annotate-variable (cand)
+  "Annotate variable CAND with its documentation string.
+Omit values when streaming."
+  (when-let* ((sym (intern-soft cand)))
+    (marginalia--fields
+     ((marginalia--symbol-class sym) :face 'marginalia-type)
+     ((or (documentation-property sym 'variable-documentation)
+          (marginalia--definition-prefix sym))
+      :truncate 1.0 :face 'marginalia-documentation))))
+
+;;;###autoload
+  (defun marginalia-annotate-alias (cand)
+    "Annotate CAND with the function it aliases."
+    (when-let ((sym (intern-soft cand))
+               (alias (car (last (function-alias-p sym))))
+               (name (and (symbolp alias) (symbol-name alias))))
+      (format " (%s)" name)))
+
+;;;###autoload
+  (defun marginalia-annotate-symbol-with-alias (cand)
+    "Annotate symbol CAND with its documentation string.
+      Similar to `marginalia-annotate-symbol'."
+    (when-let (sym (intern-soft cand))
+      (concat
+       (marginalia-annotate-binding cand)
+       (marginalia--fields
+        ((marginalia-annotate-alias cand) :face 'marginalia-function)
+        ((marginalia--symbol-class sym) :face 'marginalia-type)
+        ((cond
+          ((fboundp sym) (marginalia--function-doc sym))
+          ((facep sym) (documentation-property sym 'face-documentation))
+          (t (documentation-property sym 'variable-documentation)))
+         :truncate 1.0 :face 'marginalia-documentation)))))
+
+;;;###autoload
+  (defun my-marginalia-annotate-journal (cand)
+    (when-let ((o (cdr (assoc cand my-journal-search-cache))))
+      (marginalia--fields
+       ((plist-get o :Category)
+        :face 'marginalia-documentation
+        :truncate 13))))
+
+  (use-package marginalia
+    :config
+    (add-to-list 'marginalia-annotators '(journal my-marginalia-annotate-journal builtin none)))
+
+;;;###autoload
+  (defun sanityinc/dabbrev-friend-buffer (other-buffer)
+    (< (buffer-size other-buffer) (* 1 1024 1024)))
+  (setq dabbrev-friend-buffer-function 'sanityinc/dabbrev-friend-buffer)
+
+;;;###autoload
+(defun my-use-yasnippet-capf () (add-to-list 'completion-at-point-functions #'yasnippet-capf))
+
 ;;;###autoload
 (defun shk-yas/helm-prompt (prompt choices &optional display-fn)
   "Use helm to select a snippet. Put this into `yas/prompt-functions.'"
@@ -214,9 +223,7 @@
             (signal 'quit "user quit!")
           (cdr (assoc result rmap))))
     nil))
-;; Snippets:2 ends here
 
-;; [[file:../Sacha.org::#snippets][Snippets:4]]
 ;; It will test whether it can expand, if yes, cursor color -> green.
 ;;;###autoload
 (defun yasnippet-can-fire-p (&optional field)
@@ -251,9 +258,7 @@
   "For binding to the SPC SPC keychord."
   (interactive)
   (condition-case nil (or (my-hippie-expand-maybe nil) (insert "  "))))
-;; Snippets:4 ends here
 
-;; [[file:../Sacha.org::#snippets][Snippets:6]]
 ;;;###autoload
 (defun my-hippie-expand-maybe (arg)
   "Try to expand text before point, using multiple methods.
@@ -297,8 +302,3 @@
           (if (and hippie-expand-verbose
                    (not (window-minibuffer-p)))
               (message "Undoing expansions"))))))
-
-;; Snippets:6 ends here
-
-(provide 'my-complete)
-;;; my-complete.el ends here

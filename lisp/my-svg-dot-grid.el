@@ -1,39 +1,3 @@
-;;; my-svg-dot-grid.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Dot-grid box templates
-;;   https://sachachua.com/dotemacs#multimedia-images-dot-grid-box-templates
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::my-dot-grid-boxes-template][my-dot-grid-boxes-template]]
 (require 'svg)
 (defvar my-dot-grid-boxes-params
 	'(:num-rows 5
@@ -95,9 +59,7 @@ The rest of the image's background is white."
 									:stroke-color grid-color
 									:stroke-width line-width)))
 		svg))
-;; my-dot-grid-boxes-template ends here
 
-;; [[file:../Sacha.org::my-dot-grid-boxes-extract][my-dot-grid-boxes-extract]]
 ;;;###autoload
 (cl-defun my-dot-grid-boxes-list (&key (num-rows 5)
 																			 (num-cols 7)
@@ -181,9 +143,7 @@ The rest of the image's background is white."
 		(goto-char (point-min))
 		(re-search-forward "^ *$")
 		(split-string (string-trim (buffer-substring (point) (point-max))) "\n")))
-;; my-dot-grid-boxes-extract ends here
 
-;; [[file:../Sacha.org::my-dot-grid-boxes-process][my-dot-grid-boxes-process]]
 ;;;###autoload
 (defun my-sketch-icon-update-index (list)
 	(let (data
@@ -230,7 +190,3 @@ The rest of the image's background is white."
 (defun my-dot-grid-boxes-process-all-icons ()
 	(interactive)
 	(dolist (source (my-sketches "icons")) (my-dot-grid-boxes-process source)))
-;; my-dot-grid-boxes-process ends here
-
-(provide 'my-svg-dot-grid)
-;;; my-svg-dot-grid.el ends here

@@ -1,74 +1,9 @@
-;;; my-web.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Org Mode: Export HTML, copy files, and serve the results via simple-httpd so that media files work
-;;   https://sachachua.com/dotemacs#org-mode-publishing-html-export-html-copy-files-and-serve-via-simple-httpd
-;;
-;; - Adding Org Mode link awesomeness elsewhere: my-org-insert-link-dwim
-;;   https://sachachua.com/dotemacs#my-org-insert-link-dwim
-;;
-;; - Emacs: Open URLs or search the web, plus browse-url-handlers
-;;   https://sachachua.com/dotemacs#web-emacs-open-urls-or-search-the-web-plus-browse-url-handlers
-;;
-;; - Checking URLs
-;;   https://sachachua.com/dotemacs#checking-urls
-;;
-;; - Parsing RSS and Atom feeds
-;;   https://sachachua.com/dotemacs#web-parsing-rss-and-atom-feeds
-;;
-;; - Transforming HTML
-;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html
-;;
-;; - Saving images
-;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-saving-images
-;;
-;; - Cleaning up
-;;   https://sachachua.com/dotemacs#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-cleaning-up
-;;
-;; - Removing unneeded styles
-;;   https://sachachua.com/dotemacs#collaboration-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-removing-unneeded-styles
-;;
-;; - Stream notes
-;;   https://sachachua.com/dotemacs#stream-notes
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#org-mode-publishing-html-export-html-copy-files-and-serve-via-simple-httpd][Org Mode: Export HTML, copy files, and serve the results via simple-httpd so that media files work:2]]
 ;;;###autoload
 (defun my-simple-httpd-remove-temporary-root ()
   "Remove `httpd-root' only if it's a temporary directory."
   (when (file-in-directory-p httpd-root temporary-file-directory)
     (delete-directory httpd-root t)))
-;; Org Mode: Export HTML, copy files, and serve the results via simple-httpd so that media files work:2 ends here
 
-;; [[file:../Sacha.org::#my-org-insert-link-dwim][Adding Org Mode link awesomeness elsewhere: my-org-insert-link-dwim:3]]
 ;;;###autoload
 (defun my-page-title (url)
 	"Get the page title for URL. Simplify some titles."
@@ -92,9 +27,7 @@
 																			 'title)))
 							 "")))))))
 		(error nil)))
-;; Adding Org Mode link awesomeness elsewhere: my-org-insert-link-dwim:3 ends here
 
-;; [[file:../Sacha.org::#web-emacs-open-urls-or-search-the-web-plus-browse-url-handlers][Emacs: Open URLs or search the web, plus browse-url-handlers:1]]
 (defcustom my-search-web-handler "https://duckduckgo.com/html/?q="
 	"How to search. Could be a string that accepts the search query at the end (URL-encoded)
 or a function that accepts the text (unencoded)."
@@ -142,9 +75,7 @@ or a function that accepts the text (unencoded)."
 					(funcall my-search-web-handler text-or-url))
 				 ((stringp my-search-web-handler)
 					(browse-url (concat my-search-web-handler (url-hexify-string text-or-url))))))))
-;; Emacs: Open URLs or search the web, plus browse-url-handlers:1 ends here
 
-;; [[file:../Sacha.org::#checking-urls][Checking URLs:1]]
 (defvar my-check-dead-links-skip
   (regexp-opt
    '("news.ycombinator"
@@ -181,9 +112,7 @@ or a function that accepts the text (unencoded)."
                       (goto-char end)
                     (throw 'done (cons url (point)))))))))
     (goto-char (cdr pos))))
-;; Checking URLs:1 ends here
 
-;; [[file:../Sacha.org::#web-parsing-rss-and-atom-feeds][Parsing RSS and Atom feeds:1]]
 ;;;###autoload
 (defun my-rss-get-entries (url)
 	"Return a list of the form ((:title ... :url ... :date ...) ...)."
@@ -227,9 +156,7 @@ or a function that accepts the text (unencoded)."
 			 :key (lambda (o) (plist-get o :date))
 			 :lessp #'time-less-p
 			 :reverse t))))
-;; Parsing RSS and Atom feeds:1 ends here
 
-;; [[file:../Sacha.org::#web-parsing-rss-and-atom-feeds][Parsing RSS and Atom feeds:2]]
 ;;;###autoload
 (defun my-opml-table (xml)
 	(sort
@@ -259,9 +186,7 @@ or a function that accepts the text (unencoded)."
 				(dom-attr o 'text)))))
 	 :key #'car
 	 :reverse t))
-;; Parsing RSS and Atom feeds:2 ends here
 
-;; [[file:../Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html][Transforming HTML:1]]
 ;;;###autoload
 (defun my-transform-html (functions text)
 	"Apply FUNCTIONS to TEXT, which is parsed as HTML.
@@ -307,9 +232,7 @@ If ACTIVATE-APP-AFTERWARDS is non-nil, use xdotool to try to activate that app's
 			(kill-new (buffer-substring-no-properties (point-min) (point-max)))))
 	(when activate-app-afterwards
 		(call-process "xdotool" nil nil nil "search" "--onlyvisible" "--all" activate-app-afterwards "windowactivate" "windowfocus")))
-;; Transforming HTML:1 ends here
 
-;; [[file:../Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-saving-images][Saving images:1]]
 ;; Hmm, now I need to modify it to handle emojis in the text.
 ;; Emojis have :text: in the alt. I need to upload them.
 
@@ -435,9 +358,7 @@ list is a list of alists with the following keys:
 									last-image-filename nil))))))
 		(nreverse results)))
 
-;; Saving images:1 ends here
 
-;; [[file:../Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-saving-images][Saving images:2]]
 ;;;###autoload
 (defun my-transform-html-slugify (s)
 	(downcase
@@ -463,25 +384,19 @@ list is a list of alists with the following keys:
 	 (concat (substring (org-read-date nil nil "+Sun") 0 10)
 					 "-news-")
 	 #'my-transform-html-slugify))
-;; Saving images:2 ends here
 
-;; [[file:../Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-cleaning-up][Cleaning up:1]]
 ;;;###autoload
 (defun my-transform-html-remove-images (dom)
 	(dolist (img (dom-by-tag dom 'img))
 		(dom-remove-node dom img))
 	dom)
-;; Cleaning up:1 ends here
 
-;; [[file:../Sacha.org::#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-transforming-html-cleaning-up][Cleaning up:2]]
 ;;;###autoload
 (defun my-transform-html-remove-italics (dom)
 	(dolist (node (dom-by-tag dom 'i))
 		(dom-remove-node dom node))
 	dom)
-;; Cleaning up:2 ends here
 
-;; [[file:../Sacha.org::#collaboration-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-removing-unneeded-styles][Removing unneeded styles:1]]
 ;;;###autoload
 (defun my-html-extract-css-rules (dom)
   "Extract CSS rules and return a hash table mapping class names to properties."
@@ -543,9 +458,7 @@ list is a list of alists with the following keys:
 										 (cdr (url-path-and-query (url-generic-parse-url (dom-attr node 'href)))))))
 					(dom-set-attribute node 'href (car (assoc-default "q" args 'string=))))))
 		dom))
-;; Removing unneeded styles:1 ends here
 
-;; [[file:../Sacha.org::#stream-notes][Stream notes:3]]
 ;; based on https://www.reddit.com/r/emacs/comments/57nps0/comment/d8umsr4/?context=3
 ;;;###autoload
 (defun my-imp-htmlize-filter (buffer)
@@ -571,7 +484,3 @@ list is a list of alists with the following keys:
     (with-current-buffer buffer
       (let ((output (org-export-as 'html)))
 				(with-current-buffer output-buffer (insert output))))))
-;; Stream notes:3 ends here
-
-(provide 'my-web)
-;;; my-web.el ends here

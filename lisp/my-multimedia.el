@@ -1,78 +1,142 @@
-;;; my-multimedia.el ---  -*- lexical-binding: t -*-
+;;;###autoload
+  (defun my-audio-clip (source start-time end-time destination text)
+    (interactive
+     (let ((s (and (region-active-p) (buffer-substring (region-beginning) (region-end)))))
+       (if (and s
+                (string-match "\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)[ \n\t]+\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)" s))
+           (let ((start (match-string 1 s))
+                 (end (match-string 2 s)))
+             (list
+              (read-file-name "Source: " nil nil t)
+              start
+              end
+              (read-file-name "Destination: ")
+              (read-string "Text: ")))
+         (list (read-file-name "Source: " nil nil t)
+               (read-string "Start time: ")
+               (read-string "End time: ")
+               (read-file-name "Destination: ")
+               (read-string "Text: ")))))
+    (let ((result (call-process "ffmpeg" nil (get-buffer-create "*ffmpeg*") nil
+                                "-y" ; Overwrite output file without asking
+                                "-i" (expand-file-name source) ; Input file
+                                "-ss" start-time ; Start time (e.g., 00:00:10)
+                                "-to" end-time ; End time/Stop time
+                                (expand-file-name destination))))
+      (when result
+        (when (region-active-p) (delete-region (region-beginning) (region-end)))
+        (insert (org-link-make-string
+                 (concat "audio:" (replace-regexp-in-string (getenv "HOME") "~" destination))
+                 text)))))
 
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
+;;;###autoload
+  (defun my-gif-screencast-start-or-stop-and-choose-thumbnail ()
+          "Start a screencast or pause recording."
+          (interactive)
+          (if gif-screencast-mode
+                          (progn
+                                  (gif-screencast-toggle-pause)
+                                  (dired gif-screencast-screenshot-directory)
+                                  (revert-buffer)
+                                  (dired gif-screencast-screenshot-directory)
+                                  (image-dired gif-screencast-screenshot-directory))
+                  (gif-screencast)))
 
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;;;###autoload
+  (defun my-gif-screencast-copy-image-to-first-frame (file)
+          (interactive (list (dired-get-filename)))
+    ;; Determine the timestamp of the first file in this directory
+          (copy-file
+           file
+           (expand-file-name
+                  (format-time-string
+                   "screen-%F-%T-%3N.png"
+                   (time-subtract
+                          (my-gif-screencast-timestamp-from-filename
+                           (car (directory-files gif-screencast-screenshot-directory nil ".png")))
+                          (seconds-to-time 0.001)))
+                  gif-screencast-screenshot-directory)))
 
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - FFmpeg
-;;   https://sachachua.com/dotemacs#multimedia-ffmpeg
-;;
-;; - Transcript editing
-;;   https://sachachua.com/dotemacs#transcript-editing
-;;
-;; - Using word-level timing information when editing subtitles or captions in Emacs
-;;   https://sachachua.com/dotemacs#word-level
-;;
-;; - Showing captions
-;;   https://sachachua.com/dotemacs#showing-captions
-;;
-;; - Org Mode: Insert YouTube video with separate captions
-;;   https://sachachua.com/dotemacs#org-youtube-captions
-;;
-;; - Preparing to record YouTube shorts
-;;   https://sachachua.com/dotemacs#youtube-shorts
-;;
-;; - Simple streaming with FFmpeg
-;;   https://sachachua.com/dotemacs#simple-streaming
-;;
-;; - Controlling my stream audio from Emacs: background music, typing sounds, and push to talk
-;;   https://sachachua.com/dotemacs#controlling-my-stream-audio-from-emacs-background-music-typing-sounds-and-push-to-talk
-;;
-;; - More background music
-;;   https://sachachua.com/dotemacs#more-background-music
-;;
-;; - Stream message
-;;   https://sachachua.com/dotemacs#streaming-stream-message
-;;
-;; - Playing recordings
-;;   https://sachachua.com/dotemacs#playing-recordings
-;;
-;; - Stream notes
-;;   https://sachachua.com/dotemacs#stream-notes
-;;
-;; - Chapters
-;;   https://sachachua.com/dotemacs#streaming-chapters
-;;
-;; - Try continuous streaming and the Google Speech Recognition API
-;;   https://sachachua.com/dotemacs#speech-to-text
-;;
-;;; Code:
+;;;###autoload
+  (defun my-gif-screencast-timestamp-from-filename (file)
+          (setq file (replace-regexp-in-string "^screen-" "" (file-name-base file)))
+          (time-add (date-to-time (format "%s %s" (substring file 0 10) (substring file 11 19)))
+                                                  (float-time (/ (string-to-number (substring file 20 23)) 1000.0))))
+  (cl-assert
+   (string= (format-time-string "test-%F-%T-%3N" (my-gif-screencast-timestamp-from-filename "screen-2024-09-20-13:18:08-024.png"))
+                                          "test-2024-09-20-13:18:08-024"))
 
+;;;###autoload
+  (defun my-gif-screencast-update-frames-from-directory ()
+          (interactive)
+          (let* ((files (directory-files gif-screencast-screenshot-directory nil ".png"))
+                                   (start-time (my-gif-screencast-timestamp-from-filename (car files))))
+                  (setq gif-screencast--frames
+                                          (mapcar (lambda (o)
+                                                                                  (make-gif-screencast-frame
+                                                                                   :timestamp (my-gif-screencast-timestamp-from-filename o)
+                                                                                   :filename o))
+                                                                          files))
+                  (gif-screencast-mode 0)
+                  (gif-screencast--finish)))
 
+  (defvar my-audio-braindump-dir "~/sync/Phone")
+;;;###autoload
+  (defun my-open-latest-braindump ()
+    (interactive)
+    (find-file (my-latest-file my-audio-braindump-dir "\\.txt"))
+    (kill-new (buffer-string)))
 
-;; [[file:../Sacha.org::#multimedia-ffmpeg][FFmpeg:1]]
+;;;###autoload
+  (defun my-insert-latest-braindump ()
+    (interactive)
+    (insert-file-contents (my-latest-file my-audio-braindump-dir "\\.txt")))
+;;;###autoload
+  (defun my-audio-braindump-dired ()
+          (interactive)
+          (dired my-audio-braindump-dir "-lt"))
+  (defalias 'my-phone-dired #'my-audio-braindump-dired)
+
+;;;###autoload
+(defun my-ffmpeg-animate-images (files output-file &optional framerate)
+	"Make an animated GIF or WEBM out of FILES.
+Save it to OUTPUT-FILE.
+If FRAMERATE is specified, use that instead of 30."
+	(setq framerate (or framerate 30))
+	(if (string-match "\\.webm$" output-file)
+			(let ((compile-media-ffmpeg-arguments
+						 (append compile-media-ffmpeg-arguments
+										 (list "-r"
+													 (number-to-string framerate)))))
+				(compile-media `((video ,@(mapcar (lambda (o) (list :source o :duration-ms (/ 1000.0 framerate)
+																														:before-input
+																														(list "-width" compile-media-output-video-width)))
+																					files)))
+											 output-file))
+		(with-current-buffer (get-buffer-create "*gif*")
+			(erase-buffer)
+			(let ((frame-input (seq-mapcat (lambda (o) (list "-i" o)) files))
+						(palette (make-temp-file "palette" nil ".png")))
+				(insert "ffmpeg "
+								(string-join (append frame-input (list "-vf" "palettegen" "-y" palette)) " ")
+								"\n")
+				(apply #'call-process "ffmpeg" nil t t
+							 (append frame-input (list "-vf" "palettegen" "-y" palette)))
+				(insert "ffmpeg "
+								(string-join (append (list "-i" palette "-lavfi" "paletteuse")
+																		 (list "-framerate" (number-to-string framerate))
+																		 frame-input
+																		 (list "-loop" "-1" "-y" output-file)) " ")
+								"\n")
+				(apply #'call-process "ffmpeg" nil t t
+							 (append (list "-i" palette "-lavfi" "paletteuse")
+											 (list "-framerate" (number-to-string framerate))
+											 frame-input
+											 (list "-loop" "-1" "-y" output-file)))
+				(delete-file palette))
+			(display-buffer (current-buffer))))
+	output-file)
+
 ;;;###autoload
 (defun my-ffmpeg-save-last-frame-as-image (input-file output-image)
 	(interactive "FInput: \nFOutput: ")
@@ -90,9 +154,7 @@
 			(insert "\nffmpeg "
 							(mapconcat #'shell-quote-argument args " ") "\n")
 			(apply 'call-process "ffmpeg" nil t nil args))))
-;; FFmpeg:1 ends here
 
-;; [[file:../Sacha.org::#transcript-editing][Transcript editing:2]]
 ;;;###autoload
 (defun my-emms-player-mplayer-set-speed (speed)
   "Depends on mplayer's -slave mode"
@@ -116,9 +178,7 @@
                        (format "speed_incr %f\n" (- 0 my-emms-player-mplayer-speed-increment))))
 
 
-;; Transcript editing:2 ends here
 
-;; [[file:../Sacha.org::#word-level][Using word-level timing information when editing subtitles or captions in Emacs:1]]
 ;;;###autoload
 (defun my-caption-download-srv2 (id)
   (interactive "MID: ")
@@ -128,9 +188,7 @@
     (call-process "yt-dlp" nil nil nil "--write-auto-sub" "--write-sub" "--no-warnings" "--sub-lang" "en" "--skip-download" "--sub-format" "srv2"
                   (concat "https://youtu.be/" id))
     (subed-word-data-load-from-file (my-latest-file "/tmp" "\\.srv2\\'"))))
-;; Using word-level timing information when editing subtitles or captions in Emacs:1 ends here
 
-;; [[file:../Sacha.org::#word-level][Using word-level timing information when editing subtitles or captions in Emacs:2]]
 ;;;###autoload
 (defun my-caption-fix-common-errors (data)
   (mapc (lambda (o)
@@ -142,9 +200,7 @@
                     (map-put! o 'text (replace-match (car (if (listp e) e (list e))) t t (alist-get 'text o)))))
                 my-subed-common-edits))
         data))
-;; Using word-level timing information when editing subtitles or captions in Emacs:2 ends here
 
-;; [[file:../Sacha.org::#word-level][Using word-level timing information when editing subtitles or captions in Emacs:5]]
 (defvar my-caption-breaks
   '("the" "this" "we" "we're" "I" "finally" "but" "and" "when")
   "List of words to try to break at.")
@@ -209,9 +265,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
              (my-caption-make-groups
               (or data (my-caption-fix-common-errors subed-word-data--cache)))
              ""))))
-;; Using word-level timing information when editing subtitles or captions in Emacs:5 ends here
 
-;; [[file:../Sacha.org::#showing-captions][Showing captions:1]]
 ;;;###autoload
 (defun my-caption-show (url)
   (interactive (list
@@ -235,17 +289,13 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 		(unless (file-exists-p (concat (file-name-sans-extension url) ".vtt"))
 			(my-deepgram-recognize-audio url))
 		(find-file (concat (file-name-sans-extension url) ".vtt"))))
-;; Showing captions:1 ends here
 
-;; [[file:../Sacha.org::#org-youtube-captions][Org Mode: Insert YouTube video with separate captions:1]]
 ;;;###autoload
 (defun my-msecs-to-timestamp (msecs)
   "Convert MSECS to string in the format HH:MM:SS.MS."
   (concat (format-seconds "%02h:%02m:%02s" (/ msecs 1000))
           "." (format "%03d" (mod msecs 1000))))
-;; Org Mode: Insert YouTube video with separate captions:1 ends here
 
-;; [[file:../Sacha.org::#youtube-shorts][Preparing to record YouTube shorts:1]]
 ;;;###autoload
 (defun my-youtube-prepare-for-shorts ()
 	(interactive)
@@ -255,9 +305,16 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 				compile-media-output-video-height 1920
 				compile-media-output-video-fps 30)
 	(shell-command "wmctrl -r :ACTIVE: -e 0,300,0,554,984"))
-;; Preparing to record YouTube shorts:1 ends here
 
-;; [[file:../Sacha.org::#simple-streaming][Simple streaming with FFmpeg:4]]
+;;;###autoload
+(defun my-prepare-for-landscape ()
+	(let ((width 6) (height 9))
+		(setq compile-media-output-video-width 1080
+					compile-media-output-video-height 1920
+					compile-media-output-video-fps 30)
+	(shell-command "wmctrl -r :ACTIVE: -e 0,300,0,554,984")
+	))
+
 (defvar my-stream-process nil)
 (defvar my-stream-type nil)
 (defvar my-stream-offset-seconds 2 "Number of seconds to offset timestamps.")
@@ -313,9 +370,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 (defun my-recordings-dired ()
 	(interactive)
 	(dired my-recordings-dir "-lt"))
-;; Simple streaming with FFmpeg:4 ends here
 
-;; [[file:../Sacha.org::#simple-streaming][Simple streaming with FFmpeg:5]]
 ;;;###autoload
 (defun my-stream-insert-timestamp ()
 	(interactive)
@@ -335,9 +390,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 	(interactive)
 	(org-entry-put (point) "RECORDING"
 								 (my-latest-file "~/recordings" "flv")))
-;; Simple streaming with FFmpeg:5 ends here
 
-;; [[file:../Sacha.org::#controlling-my-stream-audio-from-emacs-background-music-typing-sounds-and-push-to-talk][Controlling my stream audio from Emacs: background music, typing sounds, and push to talk:2]]
 (defvar my-background-music-process nil "Process for playing background music")
 ;;;###autoload
 (defun my-stream-toggle-background-music (&optional enable)
@@ -355,9 +408,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
              "*Music*"
              nil
              (append (list "timidity" "-idlr" "--volume=10") files))))))
-;; Controlling my stream audio from Emacs: background music, typing sounds, and push to talk:2 ends here
 
-;; [[file:../Sacha.org::#controlling-my-stream-audio-from-emacs-background-music-typing-sounds-and-push-to-talk][Controlling my stream audio from Emacs: background music, typing sounds, and push to talk:5]]
 ;;;###autoload
 (defun my-pacmd-set-device (regexp status)
   (with-current-buffer (get-buffer-create "*pacmd*")
@@ -428,9 +479,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
    (t (my-push-to-talk-mute))))
 
 ;(global-set-key (kbd "<f12>") #'my-push-to-talk)
-;; Controlling my stream audio from Emacs: background music, typing sounds, and push to talk:5 ends here
 
-;; [[file:../Sacha.org::#more-background-music][More background music:1]]
 ;;;###autoload
 (defun my-stream-emms-toggle-background ()
 	(interactive)
@@ -438,9 +487,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 		(emms-play-directory "~/sync/Phone/music/freepd/"))
 	(emms-pause)
 	(emms-show))
-;; More background music:1 ends here
 
-;; [[file:../Sacha.org::#streaming-stream-message][Stream message:1]]
 ;;;###autoload
 (defun my-stream-message (message)
 	(interactive "MMessage: ")
@@ -448,9 +495,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 		(insert "<style>body { font-size: large; color: white; font-family: sans-serif; padding: 10px; background-color: black }</style>"
 						message))
 	(shell-command "scp ~/proj/stream/message.html web:/var/www/yayemacs.com"))
-;; Stream message:1 ends here
 
-;; [[file:../Sacha.org::#playing-recordings][Playing recordings:2]]
 (defvar my-recordings-dir "~/recordings/")
 ;;;###autoload
 (defun my-delete-latest-recording ()
@@ -495,9 +540,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
                  "--open-link"
                  (format "--title=%s" (shell-quote-argument (file-name-base recording)))
                  (format "--client-secrets=%s" google-video-credentials)))
-;; Playing recordings:2 ends here
 
-;; [[file:../Sacha.org::#stream-notes][Stream notes:1]]
 ;;;###autoload
 (defun my-org-save-and-tangle-stream-notes ()
   (when (and (buffer-file-name)
@@ -513,9 +556,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 					(org-icalendar-date-time-format ":%Y%m%dT%H%M%SZ"))
 			(org-icalendar-export-to-ics))
 		(shell-command "rsync -aze ssh ./ web:/var/www/yayemacs.com")))
-;; Stream notes:1 ends here
 
-;; [[file:../Sacha.org::#streaming-chapters][Chapters:1]]
 ;;;###autoload
 (defun my-youtube-copy-chapters ()
 	"Call from a VTT file with NOTE comments."
@@ -534,9 +575,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 														""))
 												subtitles
 												"")))))
-;; Chapters:1 ends here
 
-;; [[file:../Sacha.org::#speech-to-text][Try continuous streaming and the Google Speech Recognition API:1]]
 (defvar my-stream-captions-websocket nil)
 (defvar my-stream-captions-history nil)
 (defvar my-stream-captions-last-caption nil)
@@ -573,7 +612,26 @@ If WORD-TIMING is non-nil, include word-level timestamps."
   (interactive (list (read-string "Caption: " my-stream-captions-last-caption 'my-stream-captions-history my-stream-captions-last-caption)))
   (when (> (length caption) 0)
     (my-obs-websocket-add-caption caption)))
-;; Try continuous streaming and the Google Speech Recognition API:1 ends here
 
-(provide 'my-multimedia)
-;;; my-multimedia.el ends here
+;;;###autoload
+(defun my-animate-emacs-chat ()
+  (interactive)
+  (text-scale-set 6)
+  (erase-buffer)
+  (sit-for 3)
+  (let ((list '("Emacs Chat: Sacha Chua"
+                "interviewed by Bastien Guerry"
+                ""
+                "July 24, 2013"
+                "sachachua.com/emacs-chat"))
+        (approx-width 41)
+        (approx-height 16)
+        row)
+    (setq row (/ (- approx-height (length list)) 2))
+    (mapcar
+     (lambda (x)
+       (animate-string x
+                       row
+                       (/ (- approx-width (length x)) 2))
+       (setq row (1+ row)))
+     list)))

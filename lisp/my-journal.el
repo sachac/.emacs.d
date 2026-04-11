@@ -1,54 +1,36 @@
-;;; my-journal.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Journal
-;;   https://sachachua.com/dotemacs#journal
-;;
-;; - Working with journal entries
-;;   https://sachachua.com/dotemacs#working-with-journal-entries
-;;
-;; - Tagging journal entries
-;;   https://sachachua.com/dotemacs#tagging-journal-entries
-;;
-;; - Moments
-;;   https://sachachua.com/dotemacs#org-mode-journal-moments
-;;
-;; - Slicing and dicing the journal entries
-;;   https://sachachua.com/dotemacs#org-mode-journal-slicing-and-dicing-the-journal-entries
-;;
-;; - Easily backfill my journal
-;;   https://sachachua.com/dotemacs#easily-backfill-my-journal
-;;
-;;; Code:
+;;;###autoload
+(defun my-org-mark-done-and-add-to-journal (&optional note category)
+  (interactive (list (if current-prefix-arg
+                         (read-string (format "Note (%s): " (org-get-heading t t t t)))
+                       (org-get-heading t t t t))
+                     (or (org-entry-get (point) "JOURNAL_CAT") (my-journal-read-category (my-journal-guess-category)))))
+  (my-org-with-current-task
+   (org-todo "DONE")
+   (org-entry-put (point) "JOURNAL_CAT" category)
+   (let* ((title (or note (org-get-heading t t t t)))
+          (zid (org-entry-get (point) "ZIDSTRING"))
+          (other (if current-prefix-arg (substring-no-properties (my-org-subtree-text))))
+          (date (unless zid
+                  (format-time-string "%Y-%m-%d %H:%M"
+                                      (let ((base-date (org-read-date nil t (org-entry-get (point) "CREATED"))))
+                                        (if (string-match "Yesterday " title)
+                                            (progn
+                                              (setq title (replace-match "" nil nil title))
+                                              (org-read-date nil t "--1" nil (org-time-string-to-time (org-entry-get (point) "CREATED"))))
+                                          base-date))))))
+     (if zid
+         (my-journal-update (list :ZIDString zid :Note title :Category category :Other other))
+       (org-entry-put (point) "ZIDSTRING"
+                      (plist-get
+                       (my-journal-post title
+                                        :Category category
+                                        :Other other
+                                        :Date date)
+                       :ZIDString)))
+     (org-back-to-heading)
+     (my-copy-observation))))
 
 
-
-;; [[file:../Sacha.org::#journal][Journal:1]]
 (defvar my-journal-category-map
   '(("Gross" . "Gross motor")
     ("Fine" . "Fine motor")
@@ -225,9 +207,7 @@
 		(my-json-request (concat my-journal-url "/" url))))
 ;;;###autoload
 (defun my-journal-get-entry (zid) (my-journal-get (format "api/entries/zid/%s" zid)))
-;; Journal:1 ends here
 
-;; [[file:../Sacha.org::helm-journal][helm-journal]]
 (defun my-json-request (url)
   (let ((json-object-type 'plist)
         (url-request-extra-headers (cons '("Content-Type" . "application/json") url-request-extra-headers)))
@@ -316,9 +296,7 @@
     (unless (file-exists-p filename)
       (copy-file my-sketch-large-template-file filename))
     (my-org-sketch-open filename)))
-;; helm-journal ends here
 
-;; [[file:../Sacha.org::#journal][Journal:3]]
 ;;;###autoload
 (defun my-journal-format-entry (type o)
   (cond
@@ -344,9 +322,7 @@
     ((eq type 'list-item-with-zid) "")
     ((eq type 'list-item) "")
     ((eq type 'text) " "))))
-;; Journal:3 ends here
 
-;; [[file:../Sacha.org::org-journal-link][org-journal-link]]
 ;;;###autoload
 (defun my-org-journal-open (id &optional arg)
   (browse-url (format "%s/zid/%s" my-journal-url id)))
@@ -369,9 +345,7 @@
 ;;;###autoload
 (defun my-org-journal-complete (&optional prefix)
   (cdr (assoc 'ZIDString (helm-comp-read "Entry: " 'my-helm-journal-search :volatile t))))
-;; org-journal-link ends here
 
-;; [[file:../Sacha.org::#journal][Journal:6]]
 ;;;###autoload
 (defun my-org-journal-summarize (from to &optional search category-map categories)
   (my-org-group-journal-entries (my-journal-get-entries from to search) category-map categories))
@@ -409,9 +383,7 @@
                 category-map categories)
                include)))
     (if (called-interactively-p 'any) (insert list) list)))
-;; Journal:6 ends here
 
-;; [[file:../Sacha.org::#journal][Journal:7]]
 ;;;###autoload
 (defun my-read-journal-category ()
   (completing-read "Category: " my-journal-categories))
@@ -438,9 +410,7 @@
   (interactive)
   (my-send-intent "com.sachachua.journal.export" '(("a" . "b"))))
 
-;; Journal:7 ends here
 
-;; [[file:../Sacha.org::#journal][Journal:9]]
 ;;;###autoload
 (defun my-prompt-for-uncategorized-entries ()
   (interactive)
@@ -455,9 +425,7 @@
         (if (string= category ".")
             (setq done t)
           (my-update-journal-entry (assoc-default "Note" x nil "") text category))))))
-;; Journal:9 ends here
 
-;; [[file:../Sacha.org::#working-with-journal-entries][Working with journal entries:1]]
 ;;;###autoload
 (defun my-journal-insert-matching-entries (from to match)
   (interactive (list (org-read-date "From: ") (org-read-date "To: ") (read-string "Match: ")))
@@ -525,9 +493,7 @@
 	 (format "https://journal.sachachua.com/day/%s"
 					 (format-time-string "%Y-%m-%d"
 															 (my-filename-timestamp (buffer-file-name))))))
-;; Working with journal entries:1 ends here
 
-;; [[file:../Sacha.org::#tagging-journal-entries][Tagging journal entries:1]]
 ;;;###autoload
 (defun my-journal-list-toggle-monthly-highlight ()
 	(interactive)
@@ -576,16 +542,12 @@
 						 (replace-regexp-in-string "\n" " " (my-journal-other row)))))
 				 (my-journal-get-entries start end filter)))
 	(my-journal-list-mode))
-;; Tagging journal entries:1 ends here
 
-;; [[file:../Sacha.org::#org-mode-journal-moments][Moments:1]]
 ;;;###autoload
 (defun my-journal-moments (date)
 	(interactive (list (org-read-date "Start: ")))
 	(my-journal-post (concat "Moments starting " date " #moment") :Date (concat date " 23:00") :Category "Thoughts"))
-;; Moments:1 ends here
 
-;; [[file:../Sacha.org::#org-mode-journal-slicing-and-dicing-the-journal-entries][Slicing and dicing the journal entries:1]]
 ;;;###autoload
 (defun my-journal-filter-by-category (category list)
 	(reverse (seq-filter (lambda (o) (string= (my-journal-category o) "Eating"))
@@ -634,9 +596,7 @@
 						'string<
 						:key #'car)
 					 "\n"))
-;; Slicing and dicing the journal entries:1 ends here
 
-;; [[file:../Sacha.org::#easily-backfill-my-journal][Easily backfill my journal:1]]
 ;;;###autoload
 (defun my-draw-journal-entry (date)
   "Creates a blank journal entry for DATE and brings up the log."
@@ -697,7 +657,3 @@
        missing-dates)
       (widget-setup)
       (widget-minor-mode))))
-;; Easily backfill my journal:1 ends here
-
-(provide 'my-journal)
-;;; my-journal.el ends here

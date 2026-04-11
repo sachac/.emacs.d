@@ -1,83 +1,10 @@
-;;; my-elisp.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Prefix for writing functions
-;;   https://sachachua.com/dotemacs#coding-emacs-lisp-prefix-for-writing-functions
-;;
-;; - Easily override existing functions
-;;   https://sachachua.com/dotemacs#easily-override-existing-functions
-;;
-;; - Edebug
-;;   https://sachachua.com/dotemacs#edebug
-;;
-;; - ERT
-;;   https://sachachua.com/dotemacs#ert
-;;
-;; - Buttercup
-;;   https://sachachua.com/dotemacs#buttercup
-;;
-;; - Eldoc
-;;   https://sachachua.com/dotemacs#eldoc
-;;
-;; - Sorting
-;;   https://sachachua.com/dotemacs#sorting
-;;
-;; - Evaluation
-;;   https://sachachua.com/dotemacs#evaluation
-;;
-;; - Stubbing
-;;   https://sachachua.com/dotemacs#stubbing
-;;
-;; - Collecting Emacs News from Mastodon
-;;   https://sachachua.com/dotemacs#mastodon-news
-;;
-;; - Combining Mastodon timelines using mastodon.el
-;;   https://sachachua.com/dotemacs#mastodon-combined-timeline
-;;
-;; - Using Spookfox to scroll Firefox up and down from Emacs
-;;   https://sachachua.com/dotemacs#spookfox-scroll
-;;
-;; - Ledger
-;;   https://sachachua.com/dotemacs#ledger-personal-finance-in-my-config
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#coding-emacs-lisp-prefix-for-writing-functions][Prefix for writing functions:1]]
 ;;;###autoload
+(defvar my-function-prefix "my-")
 (defun my-function-prefix ()
   (if (and (buffer-file-name) (string-match "\\.el\\'" (buffer-file-name)))
       (concat (file-name-base (buffer-file-name)) "-")
-    "my-"))
-;; Prefix for writing functions:1 ends here
+    my-function-prefix))
 
-;; [[file:../Sacha.org::#easily-override-existing-functions][Easily override existing functions:1]]
 ;;;###autoload
 (defun my-override-function (symbol)
 	(interactive (list (completing-read
@@ -102,9 +29,7 @@
 			(skip-syntax-forward " ")
 			(forward-char 1))))
 
-;; Easily override existing functions:1 ends here
 
-;; [[file:../Sacha.org::#edebug][Edebug:1]]
 (require 'eros)
 ;;;###autoload
 (defun adviced:edebug-previous-result (_ &rest r)
@@ -122,9 +47,7 @@
               (edebug-unwrap* previous-value)))
     (setq edebug-previous-result
           (edebug-safe-prin1-to-string previous-value))))
-;; Edebug:1 ends here
 
-;; [[file:../Sacha.org::#ert][ERT:1]]
 ;;;###autoload
 (defun my-eval-buf-and-run-ert-test-at-point ()
   "Evaluate the current buffer and run the ERT test at point."
@@ -173,12 +96,12 @@
    (t (goto-char (point-max)))))
 
 (declare-function which-function "which-function")
+(require 'which-func)
 ;;;###autoload
-(defun my-ert-test-from-function-at-point ()
+(defun my-ert-deftest-from-function-at-point ()
   "Create an ERT test template for the function at point."
   (interactive)
-  (let* ((func (or (and (functionp (symbol-at-point)) (symbol-at-point))
-                   (which-function)))
+  (let* ((func (which-function))
          (test-def (and func
                         (format
                          "(ert-deftest %s ()
@@ -193,9 +116,7 @@
       (insert test-def)
       (backward-char 7))))
 
-;; ERT:1 ends here
 
-;; [[file:../Sacha.org::#buttercup][Buttercup:1]]
 (defvar my-buttercup-source-buffer nil)
 (defvar my-buttercup-tests nil)
 ;;;###autoload
@@ -407,9 +328,7 @@ Useful as `imenu-create-index-function'."
 			(expect (assoc "test b 4" tests))
 			(expect (assoc "test c 5" tests))
 			(expect (assoc "test e f 8" tests)))))
-;; Buttercup:1 ends here
 
-;; [[file:../Sacha.org::#eldoc][Eldoc:3]]
 ;;;###autoload
 (defun mp-flycheck-eldoc (callback &rest _ignored)
    "Print flycheck messages at point by calling CALLBACK."
@@ -435,9 +354,100 @@ Useful as `imenu-create-index-function'."
     (setq eldoc-documentation-strategy 'eldoc-documentation-compose-eagerly)
     (setq flycheck-display-errors-function nil)
     (setq flycheck-help-echo-function nil))
-;; Eldoc:3 ends here
 
-;; [[file:../Sacha.org::#sorting][Sorting:1]]
+;;;###autoload
+(defun mp-eglot-eldoc ()
+  (setq eldoc-documentation-strategy
+        'eldoc-documentation-compose-eagerly))
+
+(defvar sacha-elisp-find-function-search-extra
+  nil
+  "List of filenames to search for functions.")
+
+;;;###autoload
+(defun sacha-elisp-find-function-search-for-symbol (fn symbol type library &rest _)
+  "Find SYMBOL with TYPE in Emacs Lisp buffers or `sacha-find-function-search-extra'.
+Prioritize buffers that do not have associated files, such as Org Src
+buffers or *scratch*. Note that the fallback search uses \"^([^ )]+\" so that
+it isn't confused by preceding forms.
+
+If LIBRARY is specified, fall back to FN.
+
+Activate this with:
+
+(advice-add 'find-function-search-for-symbol
+ :around #'sacha-org-babel-find-function-search-for-symbol-in-dotemacs)"
+  (if (null library)
+      ;; Could not find library; search my-dotemacs-file just in case
+      (progn
+        (while (and (symbolp symbol) (get symbol 'definition-name))
+          (setq symbol (get symbol 'definition-name)))
+        (catch 'found
+          (mapc
+           (lambda (buffer-or-file)
+             (with-current-buffer (if (bufferp buffer-or-file)
+                                      buffer-or-file
+                                    (find-file-noselect buffer-or-file))
+               (let* ((regexp-symbol
+                       (or (and (symbolp symbol)
+                                (alist-get type (get symbol 'find-function-type-alist)))
+                           (alist-get type find-function-regexp-alist)))
+                      (form-matcher-factory
+                       (and (functionp (cdr-safe regexp-symbol))
+                            (cdr regexp-symbol)))
+                      (regexp-symbol (if form-matcher-factory
+                                         (car regexp-symbol)
+                                       regexp-symbol))
+
+                      (case-fold-search)
+                      (regexp (if (functionp regexp-symbol) regexp-symbol
+                                (format (symbol-value regexp-symbol)
+                                        ;; Entry for ` (backquote) macro in loaddefs.el,
+                                        ;; (defalias (quote \`)..., has a \ but
+                                        ;; (symbol-name symbol) doesn't.  Add an
+                                        ;; optional \ to catch this.
+                                        (concat "\\\\?"
+                                                (regexp-quote (symbol-name symbol)))))))
+                 (save-restriction
+                   (widen)
+                   (with-syntax-table emacs-lisp-mode-syntax-table
+                     (goto-char (point-min))
+                     (if (if (functionp regexp)
+                             (funcall regexp symbol)
+                           (or (re-search-forward regexp nil t)
+                               ;; `regexp' matches definitions using known forms like
+                               ;; `defun', or `defvar'.  But some functions/variables
+                               ;; are defined using special macros (or functions), so
+                               ;; if `regexp' can't find the definition, we look for
+                               ;; something of the form "(SOMETHING <symbol> ...)".
+                               ;; This fails to distinguish function definitions from
+                               ;; variable declarations (or even uses thereof), but is
+                               ;; a good pragmatic fallback.
+                               (re-search-forward
+                                (concat "^([^ )]+" find-function-space-re "['(]?"
+                                        (regexp-quote (symbol-name symbol))
+                                        "\\_>")
+                                nil t)))
+                         (progn
+                           (beginning-of-line)
+                           (throw 'found
+                                   (cons (current-buffer) (point))))
+                       (when-let* ((find-expanded
+                                    (when (trusted-content-p)
+                                      (find-function--search-by-expanding-macros
+                                       (current-buffer) symbol type
+                                       form-matcher-factory))))
+                         (throw 'found
+                                 (cons (current-buffer)
+                                       find-expanded)))))))))
+           (delq nil
+                 (append
+                  (sort
+                   (match-buffers '(derived-mode . emacs-lisp-mode))
+                   :key (lambda (o) (or (buffer-file-name o) "")))
+                  sacha-elisp-find-function-search-extra)))))
+    (funcall fn symbol type library)))
+
 ;;;###autoload
 (defun my-sort-sexps-in-region (beg end)
   "Can be handy for sorting out duplicates.
@@ -464,9 +474,7 @@ Useful as `imenu-create-index-function'."
         (setq list (sort list (lambda (a b) (string< (car a) (car b)))))
         (delete-region (point-min) (point))
         (insert (mapconcat 'cdr list "\n"))))))
-;; Sorting:1 ends here
 
-;; [[file:../Sacha.org::#evaluation][Evaluation:1]]
 ;;;###autoload
 (defun sanityinc/eval-last-sexp-or-region (prefix)
   "Eval region from BEG to END if active, otherwise the last sexp."
@@ -474,9 +482,7 @@ Useful as `imenu-create-index-function'."
   (if (and (mark) (use-region-p))
       (eval-region (min (point) (mark)) (max (point) (mark)))
     (pp-eval-last-sexp prefix)))
-;; Evaluation:1 ends here
 
-;; [[file:../Sacha.org::#stubbing][Stubbing:1]]
 ;;;###autoload
 (defun my-stub-elisp-defun ()
   "Stub an elisp function from symbol at point."
@@ -496,9 +502,7 @@ Useful as `imenu-create-index-function'."
             (format "%s" (--map (s-concat "arg" (number-to-string it)) (number-sequence 1 (length args))))
             "\n  \"SomeDocs\"\n  nil)\n\n")))))))
 
-;; Stubbing:1 ends here
 
-;; [[file:../Sacha.org::#mastodon-news][Collecting Emacs News from Mastodon:3]]
 ;;;###autoload
 (defun my-match-groups (&optional object)
 	"Return the matching groups, good for debugging regexps."
@@ -511,9 +515,7 @@ Useful as `imenu-create-index-function'."
 									 (seq-partition
 										(match-data t)
 										2)))
-;; Collecting Emacs News from Mastodon:3 ends here
 
-;; [[file:../Sacha.org::#mastodon-combined-timeline][Combining Mastodon timelines using mastodon.el:4]]
 ;;;###autoload
 (defun my-text-property-update-at-point (pos prop value)
 	(let ((start (previous-single-property-change (or pos (point)) prop))
@@ -521,9 +523,7 @@ Useful as `imenu-create-index-function'."
 		(put-text-property (or start (point-min))
 											 (or end (point-max))
 											 prop value)))
-;; Combining Mastodon timelines using mastodon.el:4 ends here
 
-;; [[file:../Sacha.org::mastodon-comparison][mastodon-comparison]]
 ;;;###autoload
 (defun my-three-way-comparison (seq1 seq2 seq3 &optional test-fn)
 	`(("1" ,@(seq-difference seq1 (seq-union seq2 seq3 test-fn) test-fn))
@@ -544,9 +544,7 @@ Useful as `imenu-create-index-function'."
 			(,(format "%s & %s" label1 label3) ,@(assoc-default "1&3" list #'string=))
 			(,(format "%s & %s" label2 label3) ,@(assoc-default "2&3" list #'string=))
 			("all" ,@(assoc-default "1&2&3" list #'string=)))))
-;; mastodon-comparison ends here
 
-;; [[file:../Sacha.org::#spookfox-scroll][Using Spookfox to scroll Firefox up and down from Emacs:5]]
 ;;https://emacs.stackexchange.com/questions/41801/how-to-stop-completing-read-ivy-completing-read-from-sorting
 ;;;###autoload
 (defun my-presorted-completion-table (completions)
@@ -556,9 +554,7 @@ Useful as `imenu-create-index-function'."
 					(cycle-sort-function . identity)
 					(display-sort-function . identity))
       (complete-with-action action completions string pred))))
-;; Using Spookfox to scroll Firefox up and down from Emacs:5 ends here
 
-;; [[file:../Sacha.org::#ledger-personal-finance-in-my-config][Ledger:4]]
 ;;;###autoload
 (defun my-latest-file (path &optional filter)
   "Return the newest file in PATH. Optionally filter by FILTER."
@@ -570,7 +566,3 @@ Useful as `imenu-create-index-function'."
 		 (sort (seq-remove #'file-directory-p
 											 (directory-files path 'full filter t))
 					 #'file-newer-than-file-p))))
-;; Ledger:4 ends here
-
-(provide 'my-elisp)
-;;; my-elisp.el ends here

@@ -1,54 +1,3 @@
-;;; my-similar.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Vector search
-;;   https://sachachua.com/dotemacs#org-mode-vector-search
-;;
-;; - Indexing-related code
-;;   https://sachachua.com/dotemacs#org-mode-vector-search-indexing-related-code
-;;
-;; - Consult-based interface for searching blog posts
-;;   https://sachachua.com/dotemacs#org-mode-vector-search-consult-based-interface-for-searching-blog-posts
-;;
-;; - Handle sketches too
-;;   https://sachachua.com/dotemacs#org-mode-vector-search-consult-based-interface-for-searching-blog-posts-handle-sketches-too
-;;
-;; - Multiple sources
-;;   https://sachachua.com/dotemacs#org-mode-vector-search-consult-based-interface-for-searching-blog-posts-multiple-sources
-;;
-;; - emacs-rag-search?
-;;   https://sachachua.com/dotemacs#org-mode-vector-search-emacs-rag-search
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#org-mode-vector-search][Vector search:2]]
 ;;;###autoload
 (defun my-org-db-v3-to-emacs-rag-search (query &optional limit filename-pattern)
   "Search org-db-v3 and transform the data to look like emacs-rag-search's output."
@@ -68,9 +17,7 @@
                             :as #'json-read))
            :key (lambda (o) (alist-get 'similarity_score o))
            :reverse t)))
-;; Vector search:2 ends here
 
-;; [[file:../Sacha.org::#org-mode-vector-search-indexing-related-code][Indexing-related code:3]]
 ;; Based on org-db-v3-reindex-database
 ;;;###autoload
 (defun my-org-db-v3-remove-missing-files ()
@@ -111,9 +58,7 @@ Skips remote Tramp files."
                 )))
     :else (lambda (error)
             (message "Error fetching file list: %s" (plz-error-message error)))))
-;; Indexing-related code:3 ends here
 
-;; [[file:../Sacha.org::my-blog-similar-link][my-blog-similar-link]]
 ;;;###autoload
 (defun my-blog-similar-link (link)
   "Vector-search blog posts using `emacs-rag-search' and insert a link.
@@ -188,9 +133,7 @@ Returns a list of cons cells (DISPLAY-STRING . PLIST)."
                (lambda (a b) (string= (alist-get 'source_path a)
                                       (alist-get 'source_path b)))))))
 
-;; my-blog-similar-link ends here
 
-;; [[file:../Sacha.org::my-org-db-v3-index-recent-sketches][my-org-db-v3-index-recent-sketches]]
 ;;;###autoload
 (defun my-org-db-v3-index-recent-sketches (after)
   (interactive (list
@@ -201,9 +144,7 @@ Returns a list of cons cells (DISPLAY-STRING . PLIST)."
           (seq-remove
            (lambda (o) (string> after (file-name-base o)))
            (directory-files "~/sync/sketches" t "\\.txt$"))))
-;; my-org-db-v3-index-recent-sketches ends here
 
-;; [[file:../Sacha.org::org-db-v3-sketches][org-db-v3-sketches]]
 ;;;###autoload
 (defun my-org-db-v3-sketch--collection (input)
   "Perform the RAG search and format the results for Consult.
@@ -264,9 +205,7 @@ HIDE-INITIAL means hide the initial query, which is handy if the query is very l
   (when (and (listp link) (alist-get 'source_path link))
     (setq link (my-image-filename (file-name-base link))))
   (insert (org-link-make-string (concat "sketchLink:" link) (file-name-base link))))
-;; org-db-v3-sketches ends here
 
-;; [[file:../Sacha.org::my-consult-similar][my-consult-similar]]
 (defvar my-consult-source-similar-sketches
     (list :name "Sketches"
           :narrow ?s
@@ -306,9 +245,7 @@ HIDE-INITIAL means hide the initial query, which is handy if the query is very l
   (mapc #'org-db-v3-index-file-async
         (my-blog-org-files-except-reviews after))
   (my-org-db-v3-index-recent-sketches after))
-;; my-consult-similar ends here
 
-;; [[file:../Sacha.org::#org-mode-vector-search-emacs-rag-search][emacs-rag-search?:2]]
 ;;;###autoload
 (defun my-emacs-rag-search (query limit)
   (assoc-default 'results
@@ -348,7 +285,3 @@ Start with LIMIT results and keep only unique blog posts."
           (my-blog-post-info-for-url (alist-get 'source_path o) blog-posts)
           nil)))
      results)))
-;; emacs-rag-search?:2 ends here
-
-(provide 'my-similar)
-;;; my-similar.el ends here

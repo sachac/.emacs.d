@@ -1,39 +1,3 @@
-;;; my-writing.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Emacs: Cycle through different paragraph formats: all on one line, wrapped, max one sentence per line, one sentence per line
-;;   https://sachachua.com/dotemacs#unfill-paragraph
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#unfill-paragraph][Emacs: Cycle through different paragraph formats: all on one line, wrapped, max one sentence per line, one sentence per line:1]]
   (defvar my-repeat-counter '()
     "How often `my-repeat-next' was called in a row using the same command.
   This is an alist of (cat count list) so we can use it for different functions.")
@@ -118,7 +82,3 @@
                                   (funcall func)))))
 
   (keymap-global-set "M-q" #'my-reformat-paragraph-or-region)
-;; Emacs: Cycle through different paragraph formats: all on one line, wrapped, max one sentence per line, one sentence per line:1 ends here
-
-(provide 'my-writing)
-;;; my-writing.el ends here

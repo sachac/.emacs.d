@@ -1,48 +1,3 @@
-;;; my-git.el ---  -*- lexical-binding: t -*-
-
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
-
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Magit - nice git interface
-;;   https://sachachua.com/dotemacs#magit
-;;
-;; - Finding repos with uncommitted changes
-;;   https://sachachua.com/dotemacs#coding-magit-nice-git-interface-finding-repos-with-uncommitted-changes
-;;
-;; - Use difftastic
-;;   https://sachachua.com/dotemacs#coding-magit-nice-git-interface-use-difftastic
-;;
-;; - Checking things out
-;;   https://sachachua.com/dotemacs#checking-things-out
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#magit][Magit - nice git interface:1]]
 (defvar my-magit-limit-to-directory nil "Limit magit status to a specific directory.")
 ;;;###autoload
 (defun my-magit-stage-all-and-commit (message)
@@ -62,9 +17,7 @@ so that it's still active even after you stage a change. Very experimental."
                           default-directory))))
     (setq my-magit-limit-to-directory directory)
     (magit-status directory))
-;; Magit - nice git interface:1 ends here
 
-;; [[file:../Sacha.org::#coding-magit-nice-git-interface-finding-repos-with-uncommitted-changes][Finding repos with uncommitted changes:1]]
 ;;;###autoload
 (defun my-git-find-unclean-repo (root-dir)
   "Find repo with modified files."
@@ -103,9 +56,7 @@ so that it's still active even after you stage a change. Very experimental."
 			(insert s)
 			(org-mode))
 		s))
-;; Finding repos with uncommitted changes:1 ends here
 
-;; [[file:../Sacha.org::#coding-magit-nice-git-interface-use-difftastic][Use difftastic:1]]
 ;;;###autoload
 (defun th/magit--with-difftastic (buffer command)
   "Run COMMAND with GIT_EXTERNAL_DIFF=difftastic then show result in BUFFER."
@@ -205,9 +156,7 @@ so that it's still active even after you stage a change. Very experimental."
    ("d" "Difftastic Diff (dwim)" th/magit-diff-with-difftastic)
 	 ("s" "Difftastic Show" th/magit-show-with-difftastic)])
 
-;; Use difftastic:1 ends here
 
-;; [[file:../Sacha.org::#checking-things-out][Checking things out:1]]
 (defvar my-git-clone-destination "~/vendor")
 ;;;###autoload
 (defun my-git-clone-clipboard-url ()
@@ -244,7 +193,3 @@ so that it's still active even after you stage a change. Very experimental."
                                          (dired project-dir))
                                      (user-error (format "%s\n%s" command output))))))
     (set-process-filter proc #'comint-output-filter)))
-;; Checking things out:1 ends here
-
-(provide 'my-git)
-;;; my-git.el ends here

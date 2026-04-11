@@ -1,53 +1,31 @@
-;;; my-fun.el ---  -*- lexical-binding: t -*-
+;;;###autoload
+(defun my-describe-random-interactive-function ()
+  (interactive)
+  "Show the documentation for a random interactive function.
+       Consider only documented, non-obsolete functions."
+  (let (result)
+    (mapatoms
+     (lambda (s)
+       (when (and (commandp s)
+                  (documentation s t)
+                  (null (get s 'byte-obsolete-info)))
+         (setq result (cons s result)))))
+    (describe-function (elt result (random (length result))))))
 
-;; Author: Sacha Chua <sacha@sachachua.com>
-;; URL: https://sachachua.com/dotemacs
+;;;###autoload
+(defun my-shuffle-lines-in-region (beg end)
+  "Randomize the order of lines from BEG to END."
+  (interactive "r")
+  (let ((list (split-string (buffer-substring beg end) "[\r\n]+")))
+    (delete-region beg end)
+    (insert (string-join (seq-sort-by (lambda (_) (random)) #'<= list) "\n"))))
 
-;;; License:
-;;
-;; This file is not part of GNU Emacs.
-;;
-;; This is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-;;
-;; Related Emacs config sections:
-;;
-;; - Controlling my stream audio from Emacs: background music, typing sounds, and push to talk
-;;   https://sachachua.com/dotemacs#controlling-my-stream-audio-from-emacs-background-music-typing-sounds-and-push-to-talk
-;;
-;; - Stardew Valley
-;;   https://sachachua.com/dotemacs#miscellaneous-stardew-valley
-;;
-;; - Diagrams
-;;   https://sachachua.com/dotemacs#diagrams
-;;
-;;; Code:
-
-
-
-;; [[file:../Sacha.org::#controlling-my-stream-audio-from-emacs-background-music-typing-sounds-and-push-to-talk][Controlling my stream audio from Emacs: background music, typing sounds, and push to talk:3]]
 ;;;###autoload
 (defun my-selectric-type-sound ()
   "Make the sound of typing."
   ;; Someday, randomize this or something
   (selectric-make-sound (expand-file-name "selectric-move.wav" selectric-files-path)))
-;; Controlling my stream audio from Emacs: background music, typing sounds, and push to talk:3 ends here
 
-;; [[file:../Sacha.org::#miscellaneous-stardew-valley][Stardew Valley:1]]
 ;;;###autoload
 (defun my-stardew-install-mod (file)
 	(interactive (list (read-file-name "Zip: " "~/Downloads/")))
@@ -64,9 +42,7 @@
 (defun my-stardew-install-latest-mod ()
 	(interactive)
 	(my-stardew-install-mod (my-latest-file "~/Downloads")))
-;; Stardew Valley:1 ends here
 
-;; [[file:../Sacha.org::#diagrams][Diagrams:1]]
 ;; Start of cubing code
 (defun my-cubing-pos (size n i)
 	(list
@@ -240,7 +216,3 @@ Ex: (my-cubing-last-layer-with-sides \"ORRBOOGGGRBB\" \"YYYYYYYYY\" '((3 1 t) (2
 			(svg-print svg)
 			(buffer-string))))
 ;; end of cubing code
-;; Diagrams:1 ends here
-
-(provide 'my-fun)
-;;; my-fun.el ends here

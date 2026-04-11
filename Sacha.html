@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2026-03-14 Sat 16:33 -->
+<!-- 2026-04-11 Sat 09:42 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Export HTML, copy files, and serve via simple-httpd</title>
+<title>Tangle Emacs config snippets to different files and add boilerplate</title>
 <meta name="author" content="Sacha Chua" />
 <meta name="generator" content="Org Mode" />
 <link rel="stylesheet" type="text/css" href="https://sachachua.com/assets/css/htmlize.css"/>
@@ -24,118 +24,224 @@
 </div>
 <div id="content" class="content">
 <header>
-<h1 class="title">Export HTML, copy files, and serve via simple-httpd</h1>
+<h1 class="title">Tangle Emacs config snippets to different files and add boilerplate</h1>
 </header><p>
-In Org Mode, when you use "Export to HTML - As HTML file and open", the resulting HTML file is loaded using a <code>file://</code> URL. This means you can't load any media files. In my post about pronunciation practice, I found myself wanting to test the playback.
+I'm thinking about how to organize the functions in my Emacs configuration so that they are easier for me to test and so that other people can load them from my repository. Right now, if anyone likes one of my ideas, they might have to copy and paste multiple source blocks from my blog posts, take out anything that configures Emacs in a way that doesn't fit their workflow, and miss out on any updates. I don't think people copy that much from my config, but it might still be worth making it easier for people to borrow interesting functions. It would be great to have libraries of functions that people can evaluate without worrying about side effects, and then they can copy or write a shorter piece of code to use those functions.
 </p>
 
 <p>
-<a target="_blank" href="https://melpa.org/#/simple-httpd">simple-httpd</a> lets you run a web server from Emacs. By default, the <code>httpd-root</code> is <code>~/public_html</code> and <code>httpd-port</code> is <code>8085</code>, but you can configure it to be somewhere else. Here I set it up to create a new temporary directory, and to delete that directory afterwards.
+<a href="https://protesilaos.com/emacs/dotemacs#h:fc1ea247-5ef6-4c4e-a807-6c7b2482af90">In Prot's configuration (The custom libraries of my configuration)</a>, he includes each library as in full, in a single code block, with the boilerplate description, keywords, and <code>(provide '...)</code> that make them more like other libraries in Emacs.
+</p>
+
+<p>
+I'm not quite sure my little functions are at that point yet. For now, I like the way that the functions are embedded in the blog posts and notes that explain them, and the org-babel :comments argument can insert links back to the sections of my configuration.
+</p>
+
+<details class="code-details"
+                 style ="padding: 1em;
+                          border-radius: 15px;
+                          font-size: 0.9em;
+                          box-shadow: 0.05em 0.1em 5px 0.01em  #00000057;">
+                  <summary>
+                    <strong>
+                      <font face="Courier" size="3" color="Green">
+                         Thinking through the options...
+                      </font>
+                    </strong>
+                  </summary>
+<p>
+Org tangles blocks in order, so if I want boilerplate or if I want to add require statements, I need to have a section near the beginning of my config that sets those up for each file. Noweb references might help me with common text like the license. Likewise, if I want a <code>(provide ...)</code> line at the end of each file, I need a section near the end of the file.
+</p>
+
+<p>
+If I want to specify things out of sequence, I could use Noweb. By setting <code>:noweb-ref some-id :tangle no</code> on the blocks I want to collect later, I can then tangle them in the middle of the boilerplate. Here's a brief demo:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp"><code>(<span class="org-keyword">use-package</span> simple-httpd
-  <span class="org-builtin">:config</span>
-  (<span class="org-keyword">setq</span> httpd-root (make-temp-file <span class="org-string">"httpd"</span> t))
-  (add-hook <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">httpd-stop-hook</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">my-simple-httpd-remove-root</span>))
-
-(<span class="org-keyword">defun</span> <span class="org-function-name">my-simple-httpd-remove-root</span> ()
-  (delete-directory httpd-root t))
+<pre class="src src-org"><code><span class="org-org-block-begin-line">#+begin_src emacs-lisp :noweb yes :tangle lisp/my-eshell.el :comments no</span>
+<span class="org-org-block"><span class="org-comment-delimiter">;; </span></span><span class="org-org-block"><span class="org-comment">-*- lexical-binding: t; -*-</span></span>
+<span class="org-org-block">&lt;&lt;my-eshell&gt;&gt;</span>
+<span class="org-org-block">(</span><span class="org-org-block"><span class="org-keyword">provide</span></span><span class="org-org-block"> </span><span class="org-org-block"><span class="org-highlight-quoted-quote">'</span></span><span class="org-org-block"><span class="org-constant">my-eshell</span></span><span class="org-org-block">)</span>
+<span class="org-org-block-end-line">#+end_src</span>
 </code></pre>
 </div>
 
 <p>
-The following code exports your Org buffer or subtree to a file in that directory, copies all the referenced local files (if they're newer) and updates the links in the HTML, and then serves it via simple-httpd. Note that it just overwrites everything without confirmation, so if you refer to files with the same name, only the last one will be kept.
+However, I'll lose the comment links that let me jump back to the part of the Org file with the original source block. This means that if I use <code>find-function</code> to jump to the definition of a function and then I want to find the outline section related to it, I have to use a function that checks if this might be my custom code and then looks in my config for "defun &hellip;". It's a little less generic.
+</p>
+
+<p>
+I wonder if I can combine multiple targets with some code that knows what it's being tangled to, so it can write slightly different text. <code>org-babel-tangle-single-block</code> currently calculates the result once and then adds it to the list for each filename, so that doesn't seem likely.
+</p>
+
+<p>
+Alternatively, maybe I can use noweb or my own tangling function and add the link comments from org-babel-tangle-comments.
+</p>
+
+
+</details>
+
+<p>
+Aha, I can fiddle with <code>org-babel-post-tangle-hook</code> to insert the boilerplate after the blocks have been written. That would be perfect: a small change that uses an existing hook. I'll need a list of .el files with descriptions, and it would be even more awesome if I can get it to give me an index of blog posts or sections for each module.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp"><code>(<span class="org-keyword">with-eval-after-load</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">ox</span>
-  (org-export-define-derived-backend <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">my-html-served</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">html</span>
-    <span class="org-builtin">:menu-entry</span>
-    <span class="org-highlight-quoted-quote">'</span>(?s <span class="org-string">"Export to HTML and Serve"</span>
-         ((?b <span class="org-string">"Buffer"</span>  my-org-serve--buffer)
-          (?s <span class="org-string">"Subtree"</span> my-org-serve--subtree)))))
+<pre class="src src-emacs-lisp"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">my-dotemacs-url</span> <span class="org-string">"https://sachachua.com/dotemacs/"</span>)
 
-(<span class="org-keyword">defun</span> <span class="org-function-name">my-org-serve--buffer</span> (<span class="org-type">&amp;optional</span> async _subtreep visible-only body-only ext-plist)
-  (my-org-export-and-serve nil))
+<span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+(<span class="org-keyword">defun</span> <span class="org-function-name">my-dotemacs-link-for-section-at-point</span> (<span class="org-type">&amp;optional</span> combined)
+  <span class="org-doc">"Return the link for the current section."</span>
+  (<span class="org-keyword">let*</span> ((custom-id (org-entry-get-with-inheritance <span class="org-string">"CUSTOM_ID"</span>))
+         (title (org-entry-get (point) <span class="org-string">"ITEM"</span>))
+         (url (<span class="org-keyword">if</span> custom-id
+                  (concat <span class="org-string">"dotemacs:"</span> custom-id)
+                (concat my-dotemacs-url <span class="org-string">":-:text="</span> (url-hexify-string title)))))
+    (<span class="org-keyword">if</span> combined
+        (org-link-make-string
+         url
+         title)
+      (cons url title))))
 
-(<span class="org-keyword">defun</span> <span class="org-function-name">my-org-serve--subtree</span> (<span class="org-type">&amp;optional</span> async _subtreep visible-only body-only ext-plist)
-  (my-org-export-and-serve t))
+(<span class="org-keyword">eval-and-compile</span>
+  (<span class="org-keyword">require</span> <span class="org-highlight-quoted-quote">'</span><span class="org-constant">org-core</span> nil t)
+  (<span class="org-keyword">require</span> <span class="org-highlight-quoted-quote">'</span><span class="org-constant">org-macs</span> nil t)
+  (<span class="org-keyword">require</span> <span class="org-highlight-quoted-quote">'</span><span class="org-constant">org-src</span> nil t))
+(<span class="org-keyword">declare-function</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org-babel-tangle--compute-targets</span> <span class="org-string">"ob-tangle"</span>)
+(<span class="org-keyword">defun</span> <span class="org-function-name">my-org-collect-links-for-tangled-files</span> ()
+  <span class="org-doc">"Return a list of ((filename (link link link link)) ...)."</span>
+  (<span class="org-keyword">let*</span> ((file (buffer-file-name))
+         results)
+    (<span class="org-keyword">org-babel-map-src-blocks</span> (buffer-file-name)
+      (<span class="org-keyword">let*</span> ((info (org-babel-get-src-block-info))
+             (link (my-dotemacs-link-for-section-at-point)))
+        (mapc
+         (<span class="org-keyword">lambda</span> (target)
+           (<span class="org-keyword">let</span> ((list (assoc target results <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">string=</span>)))
+             (<span class="org-keyword">if</span> list
+                 (<span class="org-keyword">cl-pushnew</span> link (cdr list) <span class="org-builtin">:test</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">equal</span>)
+               (<span class="org-keyword">push</span> (list target link) results))))
+         (org-babel-tangle--compute-targets file info))))
+    <span class="org-comment-delimiter">;; </span><span class="org-comment">Put it back in source order</span>
+    (nreverse
+     (mapcar (<span class="org-keyword">lambda</span> (o)
+               (cons (car o)
+                     (nreverse (cdr o))))
+             results))))
+(<span class="org-keyword">defvar</span> <span class="org-variable-name">my-emacs-config-module-links</span> nil <span class="org-doc">"Cache for links from tangled files."</span>)
 
-<span class="org-comment-delimiter">;; </span><span class="org-comment">Based on org-11ty--copy-files-and-replace-links</span>
-<span class="org-comment-delimiter">;; </span><span class="org-comment">Might be a good idea to use something DOM-based instead</span>
-(<span class="org-keyword">defun</span> <span class="org-function-name">my-html-copy-files-and-replace-links</span> (info <span class="org-type">&amp;optional</span> destination-dir)
-  (<span class="org-keyword">let</span> ((file-regexp <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string">src</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">href</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">poster</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">=\"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">file:</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?.*?</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">\""</span>)
-        (destination-dir (<span class="org-keyword">or</span> destination-dir (file-name-directory (plist-get info <span class="org-builtin">:file-path</span>))))
-        file-all-urls file-name beg
-        new-file file-re
-        unescaped)
-    (<span class="org-keyword">unless</span> (file-directory-p destination-dir)
-      (make-directory destination-dir t))
-    (<span class="org-keyword">unless</span> (file-directory-p destination-dir)
-      (<span class="org-warning">error</span> <span class="org-string">"%s is not a directory."</span> destination-dir))
-    (<span class="org-keyword">save-excursion</span>
-      (goto-char (point-min))
-      (<span class="org-keyword">while</span> (re-search-forward file-regexp nil t)
-        (<span class="org-keyword">setq</span> file-name (<span class="org-keyword">or</span> (match-string 1) (match-string 2)))
-        (<span class="org-keyword">unless</span> (<span class="org-keyword">or</span> (string-match <span class="org-string">"^#"</span> file-name)
-                    (get-text-property 0 <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">changed</span> file-name))
-          (<span class="org-keyword">setq</span> file-name
-                (replace-regexp-in-string
-                 <span class="org-string">"\\?.+"</span> <span class="org-string">""</span>
-                 (<span class="org-keyword">save-match-data</span> (<span class="org-keyword">if</span> (string-match <span class="org-string">"^file:"</span> file-name)
-                                      (substring file-name 7)
-                                    file-name))))
-          (<span class="org-keyword">setq</span> unescaped
-                (replace-regexp-in-string
-                 <span class="org-string">"%23"</span> <span class="org-string">"#"</span>
-                 file-name))
-          (<span class="org-keyword">setq</span> new-file (concat
-                          (<span class="org-keyword">if</span> info (plist-get info <span class="org-builtin">:permalink</span>) <span class="org-string">""</span>)
-                          (file-name-nondirectory unescaped)))
-          (<span class="org-keyword">unless</span> (org-url-p file-name)
-            (<span class="org-keyword">let</span> ((new-file-name (expand-file-name (file-name-nondirectory unescaped)
-                                                   destination-dir)))
-              (<span class="org-keyword">condition-case</span> err
-                  (<span class="org-keyword">when</span> (<span class="org-keyword">or</span> (not (file-exists-p new-file-name))
-                            (file-newer-than-file-p unescaped new-file-name))
-                    (copy-file unescaped new-file-name t))
-                (<span class="org-warning">error</span> nil))
-              (<span class="org-keyword">when</span> (file-exists-p new-file-name)
-                (<span class="org-keyword">save-excursion</span>
-                  (goto-char (point-min))
-                  (<span class="org-keyword">setq</span> file-re (concat <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string"> src=\"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string"> href=\"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string"> poster=\"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(?:</span></span><span class="org-string">file://</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?"</span> (regexp-quote file-name) <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span>))
-                  (<span class="org-keyword">while</span> (re-search-forward file-re nil t)
-                    (replace-match
-                     (propertize
-                      (<span class="org-keyword">save-match-data</span> (replace-regexp-in-string <span class="org-string">"#"</span> <span class="org-string">"%23"</span> new-file))
-                      <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">changed</span> t)
-                     t t nil 1)))))))))))
+<span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+(<span class="org-keyword">defun</span> <span class="org-function-name">my-emacs-config-update-module-info</span> ()
+  <span class="org-doc">"Update the list of links."</span>
+  (<span class="org-keyword">interactive</span>)
+  (<span class="org-keyword">setq</span> my-emacs-config-module-links
+        (seq-filter
+         (<span class="org-keyword">lambda</span> (o)
+           (string-match <span class="org-string">"my-"</span> (car o)))
+         (my-org-collect-links-for-tangled-files)))
+  (<span class="org-keyword">setq</span> my-emacs-config-modules-info
+        (mapcar (<span class="org-keyword">lambda</span> (group)
+                  <span class="org-highlight-quoted-quote">`</span>(,(file-name-base (car group))
+                    (commentary
+                     .
+                     ,(replace-regexp-in-string
+                       <span class="org-string">"^"</span>
+                       <span class="org-string">";; "</span>
+                       (concat
+                        <span class="org-string">"Related Emacs config sections:\n\n"</span>
+                        (org-export-string-as
+                         (mapconcat
+                          (<span class="org-keyword">lambda</span> (link)
+                            (concat <span class="org-string">"- "</span> (cdr link) <span class="org-string">"\\\\\n  "</span> (org-link-make-string (car link)) <span class="org-string">"\n"</span>))
+                          (cdr group)
+                          <span class="org-string">"\n"</span>)
+                         <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">ascii</span>
+                         t))))))
+                my-emacs-config-module-links)))
 
-(<span class="org-keyword">defun</span> <span class="org-function-name">my-org-export-and-serve</span> (<span class="org-type">&amp;optional</span> subtreep)
-  <span class="org-doc">"Export current org buffer (or subtree if SUBTREEP) to HTML and serve via simple-httpd."</span>
-  (<span class="org-keyword">interactive</span> <span class="org-string">"P"</span>)
-  (<span class="org-keyword">require</span> <span class="org-highlight-quoted-quote">'</span><span class="org-constant">simple-httpd</span>)
-  (<span class="org-keyword">unless</span> httpd-root (<span class="org-warning">error</span> <span class="org-string">"Set `</span><span class="org-string"><span class="org-constant">httpd-root</span></span><span class="org-string">'."</span>))
-  (<span class="org-keyword">unless</span> (file-directory-p httpd-root)
-    (make-directory httpd-root t))
-  (<span class="org-keyword">unless</span> (file-directory-p httpd-root)
-    (<span class="org-warning">error</span> <span class="org-string">"%s is not a directory."</span> httpd-root))
-  (<span class="org-keyword">let*</span> ((out-file (expand-file-name (concat (file-name-base (buffer-file-name)) <span class="org-string">".html"</span>)
-                                     httpd-root))
-         (html-file (org-export-to-file <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">my-html-served</span> out-file nil subtreep)))
-    <span class="org-comment-delimiter">;; </span><span class="org-comment">Copy all the files and rewrite all the links</span>
-    (<span class="org-keyword">with-temp-file</span> out-file
-      (insert-file-contents out-file)
-      (my-html-copy-files-and-replace-links
-       <span class="org-highlight-quoted-quote">`</span>(<span class="org-builtin">:permalink</span> <span class="org-string">"/"</span>) httpd-root))
-    (httpd-start)
-    (browse-url (format <span class="org-string">"http://localhost:%d/%s"</span>
-                        httpd-port
-                        (file-name-nondirectory html-file)))))
+<span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+(<span class="org-keyword">defun</span> <span class="org-function-name">my-emacs-config-prepare-to-tangle</span> ()
+  <span class="org-doc">"Update module info if tangling my config."</span>
+  (<span class="org-keyword">when</span> (string-match <span class="org-string">"Sacha.org"</span> (buffer-file-name))
+    (my-emacs-config-update-module-info)))
 </code></pre>
 </div>
 
-<div class="note">This is part of my <a href="https://sachachua.com/dotemacs#org-mode-publishing-html-export-html-copy-files-and-serve-via-simple-httpd">Emacs configuration.</a></div></div>
+<p>
+Let's set up the functions for tangling the boilerplate.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">my-emacs-config-modules-dir</span> <span class="org-string">"~/sync/emacs/lisp/"</span>)
+(<span class="org-keyword">defvar</span> <span class="org-variable-name">my-emacs-config-modules-info</span> nil <span class="org-doc">"Alist of module info."</span>)
+(<span class="org-keyword">defvar</span> <span class="org-variable-name">my-emacs-config-url</span> <span class="org-string">"https://sachachua.com/dotemacs"</span>)
+
+<span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+(<span class="org-keyword">defun</span> <span class="org-function-name">my-org-babel-post-tangle-insert-boilerplate-for-my-lisp</span> ()
+  (<span class="org-keyword">when</span> (file-in-directory-p (buffer-file-name) my-emacs-config-modules-dir)
+    (goto-char (point-min))
+    (<span class="org-keyword">let</span> ((base (file-name-base (buffer-file-name))))
+      (insert (format <span class="org-string">";;; %s.el --- %s -*- lexical-binding: t -*-</span>
+
+<span class="org-string">;; Author: %s &lt;%s&gt;</span>
+<span class="org-string">;; URL: %s</span>
+
+<span class="org-string">;;; License:</span>
+<span class="org-string">;;</span>
+<span class="org-string">;; This file is not part of GNU Emacs.</span>
+<span class="org-string">;;</span>
+<span class="org-string">;; This is free software; you can redistribute it and/or modify</span>
+<span class="org-string">;; it under the terms of the GNU General Public License as published by</span>
+<span class="org-string">;; the Free Software Foundation; either version 3, or (at your option)</span>
+<span class="org-string">;; any later version.</span>
+<span class="org-string">;;</span>
+<span class="org-string">;; This is distributed in the hope that it will be useful,</span>
+<span class="org-string">;; but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="org-string">;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="org-string">;; GNU General Public License for more details.</span>
+<span class="org-string">;;</span>
+<span class="org-string">;; You should have received a copy of the GNU General Public License</span>
+<span class="org-string">;; along with GNU Emacs; see the file COPYING.  If not, write to the</span>
+<span class="org-string">;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,</span>
+<span class="org-string">;; Boston, MA 02110-1301, USA.</span>
+
+<span class="org-string">;;; Commentary:</span>
+<span class="org-string">;;</span>
+<span class="org-string">%s</span>
+<span class="org-string">;;; Code:</span>
+
+<span class="org-string">\n\n"</span>
+                      base
+                      (<span class="org-keyword">or</span>
+                       (assoc-default <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">description</span>
+                                      (assoc-default base my-emacs-config-modules-info <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">string=</span>))
+                       <span class="org-string">""</span>)
+                      user-full-name
+                      user-mail-address
+                      my-emacs-config-url
+                      (<span class="org-keyword">or</span>
+                       (assoc-default <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">commentary</span>
+                                      (assoc-default base my-emacs-config-modules-info <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">string=</span>))
+                       <span class="org-string">""</span>)))
+      (goto-char (point-max))
+      (insert (format <span class="org-string">"\n(provide '%s)\n;;; %s.el ends here\n"</span>
+                      base
+                      base))
+      (save-buffer))))
+</code></pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-emacs-lisp"><code>(<span class="org-keyword">setq</span> my-emacs-config-url <span class="org-string">"https://sachachua.com/dotemacs"</span>)
+(<span class="org-keyword">with-eval-after-load</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org</span>
+  (add-hook <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org-babel-pre-tangle-hook</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">my-emacs-config-prepare-to-tangle</span>)
+  (add-hook <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org-babel-post-tangle-hook</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">my-org-babel-post-tangle-insert-boilerplate-for-my-lisp</span>))
+</code></pre>
+</div>
+
+<p>
+You can see the results at <a href="https://github.com/sachac/.emacs.d/tree/gh-pages/lisp">.emacs.d/lisp at gh-pages · sachac/.emacs.d · GitHub</a>.
+</p>
+
+<div class="note">This is part of my <a href="https://sachachua.com/dotemacs#org-mode-org-babel-tangling-my-emacs-config-snippets-to-different-files-and-adding-boilerplate">Emacs configuration.</a></div></div>
 </body>
 </html>

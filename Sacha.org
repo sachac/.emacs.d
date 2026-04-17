@@ -25212,7 +25212,7 @@ Let's try xournal++.
 #+begin_src emacs-lisp
 (use-package org-krita
   :ensure t
-  :vc (:url "https://github.com/lepisma/org-krita" :files ("*.el" "resources"))
+  :vc (:url "https://github.com/lepisma/org-krita")
   :hook (org-mode . org-krita-mode))
 (use-package org-xournalpp
   :disabled t

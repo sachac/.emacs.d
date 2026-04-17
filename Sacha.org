@@ -36798,8 +36798,9 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
           (mapcar
            (lambda (var)
              (prog1 (cons (car var) (symbol-value (car var)))
-               (set (car var)
-                    (cdr var))))
+               (setopt--set
+                (car var)
+                (cdr var))))
            sacha-stream-variables-to-override)))
   (when (featurep 'org)
     (org-refile-cache-clear)))
@@ -36809,7 +36810,7 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
   "Restore values saved in `sacha-stream-old-variable-values'."
   (interactive)
   (mapc
-   (lambda (var) (set (car var) (cdr var)))
+   (lambda (var) (setopt--set (car var) (cdr var)))
    sacha-stream-old-variable-values)
   (setq sacha-stream-old-variable-values nil)
   (when (featurep 'org)
@@ -36833,31 +36834,36 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
 (defun sacha-stream-clean-up-buffers ()
   "Clean up buffers that might be sensitive."
   (interactive)
-  (org-save-all-org-buffers)
-  (let (remaining cleaned)
-    (mapc
-     (lambda (buf)
-       (with-current-buffer buf
-         (when (and (buffer-file-name)
-                    (seq-find (lambda (o) (string-match o (buffer-file-name)))
-                              sacha-stream-sensitive-files-regexps))
-           (if (buffer-modified-p buf)
-               (push (buffer-name buf) remaining)
-             (push (buffer-name buf) cleaned)
-             (kill-buffer buf)))))
-     (buffer-list))
-    (message "%s remaining, %s cleaned" remaining cleaned)))
+	(condition-case nil
+			(progn
+				(org-save-all-org-buffers)
+				(let (remaining cleaned)
+					(mapc
+					 (lambda (buf)
+						 (with-current-buffer buf
+							 (when (and (buffer-file-name)
+													(seq-find (lambda (o) (string-match o (buffer-file-name)))
+																		sacha-stream-sensitive-files-regexps))
+								 (if (buffer-modified-p buf)
+										 (push (buffer-name buf) remaining)
+									 (push (buffer-name buf) cleaned)
+									 (kill-buffer buf)))))
+					 (buffer-list))
+					(message "%s remaining, %s cleaned" remaining cleaned)))
+		(error nil)))
 
+(defvar sacha-stream-or-video-global-mode-done-hook nil "Functions to run after switching out of the mode.")
+(defvar-keymap sacha-stream-or-video-global-mode-map)
 ;;;###autoload
 (define-minor-mode sacha-stream-or-video-global-mode
   "On air or doing a video."
   :init-val nil
+  :keymap sacha-stream-or-video-global-mode-map
   :lighter "🎥"
   (if sacha-stream-or-video-global-mode
       (progn
         (sacha-stream-clean-up-buffers)
         (global-display-line-numbers-mode 1)
-        (load-theme 'modus-vivendi t)
         (fontaine-set-preset 'presentation)
         (keycast-header-line-mode 1)
         (sacha-stream-override-variables)
@@ -36865,9 +36871,6 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
          'sacha-marginalia-annotate-variable
          (alist-get 'variable marginalia-annotators)))
     (global-display-line-numbers-mode -1)
-    ;; TODO: Pick this based on the time? We'll assume light background since I
-    ;; probably won't be doing too much coding late at night anyway.
-    (load-theme 'modus-operandi-tinted t)
     (fontaine-set-preset 'regular)
     (keycast-header-line-mode -1)
     (setf
@@ -36875,7 +36878,8 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
      (remove
       'sacha-marginalia-annotate-variable
       (alist-get 'variable marginalia-annotators)))
-    (sacha-stream-restore-variables))
+    (sacha-stream-restore-variables)
+    (run-hooks 'sacha-stream-or-video-global-mode-done-hook))
   (sacha-navigate-set-up-file-shortcuts))
 #+end_src
 
@@ -36884,8 +36888,248 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
   :config
   (setq fontaine-presets
         '((regular :default-height 100)
-          (presentation :default-height 180))))
+          (presentation :default-height 140))))
 #+end_src
+** Display large text (and maybe QR code?)
+:PROPERTIES:
+:CUSTOM_ID: streaming-display-large-text-and-maybe-qr-code
+:END:
+
+I want to display a short string for emphasis and to make it easier for people to copy.
+
+#+begin_src emacs-lisp
+(defun sacha-stream-calculate-fit-to-width-height (str &optional face)
+  (let* ((window-width (window-body-width nil t))
+         (current-height 100)
+         (margin 10)
+         (current-windows (current-window-configuration))
+         (string-width
+          (with-temp-buffer
+            (insert (propertize str 'face face))
+            (switch-to-buffer (current-buffer))
+            (car (window-text-pixel-size nil (point-min) (point-max))))))
+    (prog1
+        (if (> string-width 0)
+            (round (* current-height (/ (float (- window-width margin)) string-width)))
+          current-height)
+      (set-window-configuration current-windows))))
+
+(defvar sacha-stream-show-string-hook nil "Additional functions to call with the text.")
+
+(declare-function 'qrencode-format "qrencode")
+(declare-function 'qrencode "qrencode")
+
+;;;###autoload
+(defun sacha-stream-show-string (text &optional qr)
+  "Display large TEXT in a buffer, centered.
+If QR is a string, display a QR code for it below.
+Otherwise, if QR is non-nil, display a QR code for TEXT."
+  (interactive (list (read-string "Text: ") t))
+  (with-current-buffer (get-buffer-create "*stream*")
+    (erase-buffer)
+    (let ((char-height (sacha-stream-calculate-fit-to-width-height text))
+          win-height
+          above-space)
+      (switch-to-buffer (current-buffer))
+      (delete-other-windows)
+      (insert (propertize (concat text "\n") 'face `(:height ,char-height) 'display-text t))
+      (setq-local cursor-type nil)
+      (when qr
+        (insert
+         (propertize
+          (qrencode-format
+           (qrencode (if (stringp qr) qr
+                       text)
+                     nil nil
+                     'return-raw))
+          'face 'qrencode-face)))
+			(run-hook-with-args 'sacha-stream-show-string-hook text)
+      ;;(setq win-height (window-body-height nil t))
+      ;;(setq above-space (max 0 (/ (- win-height char-height) 2)))
+      ;;(goto-char (point-min))
+      ;; (put-text-property
+      ;;  (line-beginning-position)
+      ;;  (1+ (line-end-position))
+      ;;  'line-height (+ above-space (/ char-height 2)))
+			)))
+
+;; Let's add a show: org link type
+
+(defun sacha-stream-org-export (path desc format _)
+	"Export stream."
+  (or desc path))
+
+(defun sacha-stream-org-insert-description (link &optional description)
+	(unless description
+    link))
+
+(defun sacha-stream-org-complete ()
+	"Prompt for stream."
+	(interactive)
+  (let* ((v-or-f (symbol-at-point))
+         (found (if v-or-f (cl-some (lambda (x) (funcall (nth 1 x) v-or-f))
+                                    describe-symbol-backends)))
+         (v-or-f (if found v-or-f (function-called-at-point)))
+         (found (or found v-or-f)))
+    (concat "stream:"
+            (completing-read (format-prompt "Describe symbol"
+                                            (and found v-or-f))
+                             #'help--symbol-completion-table
+                             (lambda (vv)
+                               (cl-some (lambda (x) (funcall (nth 1 x) vv))
+                                        describe-symbol-backends))
+                             t nil nil
+                             (if found (symbol-name v-or-f))))))
+
+(defun sacha-stream-org-open (path)
+  (sacha-stream-show-string path t))
+#+end_src
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'org
+  (org-link-set-parameters "stream"
+                           :complete #'sacha-stream-org-complete
+												   :insert-description #'sacha-stream-org-insert-description
+												   :export #'sacha-stream-org-export
+												   :follow #'sacha-stream-org-open))
+#+end_src
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'embark
+  (keymap-set embark-general-map "Z" 'sacha-stream-show-string))
+(with-eval-after-load 'sacha-stream
+	(keymap-set sacha-stream-or-video-global-mode-map "C-M-z" 'sacha-stream-show-string))
+(setq sacha-stream-show-string-hook
+			'((lambda (text)
+					(sacha-socialstream-send-message
+					 (concat (format-time-string "%-H:%M%p: ")
+									 text)))
+				(lambda (text)
+					(org-capture-string text "l")
+					(org-capture-finalize))))
+#+end_src
+
+
+
+** OBS websockets
+:PROPERTIES:
+:CUSTOM_ID: streaming-obs-websockets
+:END:
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'transient
+  (transient-define-prefix sacha-stream-transient ()
+    ["Browse"
+     ("bl" "Live"
+      (lambda () (interactive)
+        (browse-url "https://studio.youtube.com/channel/UClT2UAbC6j7TqOWurVhkuHQ/livestreaming/dashboard")))
+     ("bu" "Upcoming"
+      (lambda () (interactive)
+        (browse-url "https://studio.youtube.com/channel/UClT2UAbC6j7TqOWurVhkuHQ/livestreaming/manage")))
+     ("bd" "Dashboard"
+      (lambda () (interactive)
+        (browse-url "https://studio.youtube.com/channel/UClT2UAbC6j7TqOWurVhkuHQ")))
+     ("bw" "Web"
+      (lambda () (interactive)
+        (browse-url "https://yayemacs.com")))]
+    ["Other"
+     ("o" "OBS" sacha-obs-websocket-transient)
+     ("m" (lambda ()
+            (propertize
+             "Mode"
+             'face
+             (if sacha-stream-or-video-global-mode
+                 'success
+               'error)))
+      sacha-stream-or-video-global-mode)])
+
+  (transient-define-prefix sacha-obs-websocket-transient ()
+    "Transient menu for controlling OBS via websocket."
+    :refresh-suffixes t
+    ["OBS"
+     ("c" (lambda () (propertize "Connect to OBS" 'face 'error))
+      obs-websocket-connect :if-not obs-websocket-connected-p)
+     ("c" (lambda () (propertize "Disconnect from OBS" 'face 'success))
+      obs-websocket-disconnect :if obs-websocket-connected-p)]
+    ["Output"
+     :if obs-websocket-connected-p
+     ("s" (lambda () (propertize "Stream - begin" 'face 'error)) obs-websocket-start-streaming
+      :if-not obs-websocket-streaming-p)
+     ("s" (lambda () (propertize "Stream - end" 'face 'success)) obs-websocket-stop-streaming
+      :if obs-websocket-streaming-p)
+     ("r" (lambda () (propertize "Record - begin" 'face 'error)) obs-websocket-start-recording :if-not obs-websocket-recording-p)
+     ("r" (lambda () (propertize "Record - end" 'face 'success)) obs-websocket-stop-recording :if obs-websocket-recording-p)]
+    ["Scenes"
+     :if obs-websocket-connected-p
+     ("d" "Desktop"
+      (lambda () (interactive)
+        (obs-websocket-send "SetCurrentProgramScene" :sceneName "Desktop")))
+     ("e" "Emacs"
+      (lambda () (interactive)
+        (obs-websocket-send "SetCurrentProgramScene" :sceneName "Emacs")))
+     ("i" "Intermission"
+      (lambda () (interactive)
+        (obs-websocket-send "SetCurrentProgramScene" :sceneName "Intermission")))
+     ("P" "Preview current scene" obs-websocket-preview-current-scene)]
+    ["Items"
+     :if obs-websocket-connected-p
+     ("w" "Toggle webcam" (lambda () (interactive) (obs-websocket-toggle-scene-item-enabled :sourceName "Webcam")))]))
+
+(use-package obs-websocket
+  :load-path "~/proj/obs-websocket-el"
+  :preface (load "~/proj/obs-websocket-el/obs-websocket-autoloads.el" t t)
+  :bind
+	(("C-c v" . sacha-stream-transient)
+	 ("s-v" . sacha-stream-transient)
+	 ("C-h h" . obs-websocket-stop-streaming) ; panic button; Help help!
+	 ))
+#+end_src
+
+Let's have some fun.
+
+#+begin_src emacs-lisp
+(defvar sacha-obs-websocket-transforms
+  `((webcam-big . (:scene-item "Webcam" :positionX 0.0 :positionY 0.0 :scaleX 2.05 :scaleY 2.05))
+    (webcam-small . (:scene-item "Webcam" :positionX 1313.0 :positionY 842.0 :scaleX 0.495 :scaleY 0.495))))
+
+;;;###autoload
+(defun sacha-obs-websocket-webcam-really-big ()
+  (interactive)
+  (let ((transform (assoc-default 'webcam-big sacha-obs-websocket-transforms)))
+    (obs-websocket-set-scene-item-transform
+     (plist-get transform :scene-item)
+     transform)))
+
+;;;###autoload
+(defun sacha-obs-websocket-webcam-normal ()
+  (interactive)
+  (let ((transform (assoc-default 'webcam-small sacha-obs-websocket-transforms)))
+    (obs-websocket-set-scene-item-transform
+     (plist-get transform :scene-item)
+     transform)))
+#+end_src
+** Comment overlay via socialstream.ninja
+:PROPERTIES:
+:CUSTOM_ID: streaming-comment-overlay-via-socialstream-ninja
+:END:
+
+https://socialstream.ninja
+
+#+begin_src emacs-lisp :tangle lisp/sacha-socialstream.el
+(defvar sacha-socialstream-session nil "Session code (not the full URL).")
+
+;;;###autoload
+(defun sacha-socialstream-send-message (text)
+  "Send TEXT."
+  (interactive "MText: ")
+	(url-retrieve
+	 (format "https://io.socialstream.ninja/%s/sendChat/null/%s"
+					 sacha-socialstream-session
+					 (url-hexify-string text))
+	 #'ignore))
+
+#+end_src
+
 ** Custom Org link type for hints (and sound effects)
 :PROPERTIES:
 :CUSTOM_ID: streaming-custom-org-link-type-for-hints-and-sound-effects
@@ -37010,8 +37254,13 @@ CLOCK: [2026-01-23 Fri 12:27]--[2026-01-23 Fri 12:29] =>  0:02
   "Display TEXT in the current task area in my OBS."
   (interactive (list (read-string "Text: ")))
   (when sacha-stream-display-file
-    (write-region (string-join (org-wrap text 100) "\n")
-                  nil sacha-stream-display-file)))
+    (with-temp-buffer
+      (org-mode)
+      (write-region
+       (if (string= text "")
+           ""
+         (string-join (org-wrap text 100) "\n"))
+       nil sacha-stream-display-file))))
 
 ;;;###autoload
 (defun sacha-stream-obs-org-display-current-task ()

@@ -14214,6 +14214,9 @@ CLOSED: [2026-04-01 Wed 10:34]
 :CUSTOM_ID: org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate
 :Effort:   0:30
 :QUANTIFIED: Emacs
+:EXPORT_DATE: 2026-04-11T10:13:19-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2026/04/org-mode-tangle-emacs-config-snippets-to-different-files-and-add-boilerplate/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2026/04/org-mode-tangle-emacs-config-snippets-to-different-files-and-add-boilerplate/
 :END:
 :LOGBOOK:
 - State "DONE"       from "STARTED"    [2026-04-01 Wed 10:34]
@@ -14248,9 +14251,8 @@ Alternatively, maybe I can use noweb or my own tangling function and add the lin
 
 Aha, I can fiddle with =org-babel-post-tangle-hook= to insert the boilerplate after the blocks have been written. Then I can add the =lexical-binding: t= cookie and the structure that makes it look more like the other libraries people define and use. It's always nice when I can get away with a small change that uses an existing hook. For good measure, let's even include a list of links to the sections of my config that affect that file.
 
+#+NAME: sacha-emacs-config-prepare-to-tangle
 #+begin_src emacs-lisp :tangle lisp/sacha-emacs.el
-(defvar sacha-dotemacs-url "https://sachachua.com/dotemacs/")
-
 ;;;###autoload
 (defun sacha-dotemacs-link-for-section-at-point (&optional combined)
   "Return the link for the current section."
@@ -14258,7 +14260,7 @@ Aha, I can fiddle with =org-babel-post-tangle-hook= to insert the boilerplate af
          (title (org-entry-get (point) "ITEM"))
          (url (if custom-id
                   (concat "dotemacs:" custom-id)
-                (concat sacha-dotemacs-url ":-:text=" (url-hexify-string title)))))
+                (concat sacha-emacs-config-url ":-:text=" (url-hexify-string title)))))
     (if combined
         (org-link-make-string
          url
@@ -14330,6 +14332,7 @@ Aha, I can fiddle with =org-babel-post-tangle-hook= to insert the boilerplate af
 
 Let's set up the functions for tangling the boilerplate.
 
+#+NAME: sacha-org-babel-post-tangle-insert-boilerplate-for-sacha-lisp
 #+begin_src emacs-lisp :tangle "lisp/sacha-org-babel.el"
 (defvar sacha-emacs-config-modules-dir "~/sync/emacs/lisp/")
 (defvar sacha-emacs-config-modules-info nil "Alist of module info.")
@@ -14389,6 +14392,7 @@ Let's set up the functions for tangling the boilerplate.
       (save-buffer))))
 #+end_src
 
+#+NAME: tangle-config
 #+begin_src emacs-lisp
 (setq sacha-emacs-config-url "https://sachachua.com/dotemacs")
 (with-eval-after-load 'org
@@ -14396,14 +14400,34 @@ Let's set up the functions for tangling the boilerplate.
   (add-hook 'org-babel-post-tangle-hook #'sacha-org-babel-post-tangle-insert-boilerplate-for-sacha-lisp))
 #+end_src
 
-You can see the results at [[https://github.com/sachac/.emacs.d/tree/gh-pages/lisp][.emacs.d/lisp at gh-pages · sachac/.emacs.d · GitHub]].
+This also means that if I tangle my config from outside Emacs, I need to set things up a little.
+
+#+begin_src emacs-lisp :noweb yes :eval no :tangle batch-tangle.el :lexical t
+(setq load-path (cl-remove-if (lambda (p) (string-match-p "lisp/org$" p)) load-path))
+(add-to-list 'load-path "~/vendor/org-mode/lisp")
+(add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
+(load "~/vendor/org-mode/lisp/org-loaddefs.el" nil t)
+(setq user-lisp-directory "~/sync/emacs/lisp")
+(add-to-list 'load-path "~/sync/emacs/lisp")
+(load "~/sync/emacs/lisp/.user-lisp-autoloads.el" nil t)
+(package-initialize)
+(setq safe-local-variable-directories '("/home/sacha/sync/orgzly/" "/home/sacha/sync/emacs/"))
+(require 'ert)
+(setq sacha-exporting t)
+<<sacha-emacs-config-prepare-to-tangle>>
+<<sacha-org-babel-post-tangle-insert-boilerplate-for-sacha-lisp>>
+<<tangle-config>>
+<<org-link-dotemacs>>
+#+end_src
+
+You can see the results at [[emacsd:lisp/][.emacs.d/lisp]]. For example, the function definitions in this post are at [[emacsd:lisp/sacha-emacs.el]].
 
 *** Org Babel: Detangle just the current block
 :PROPERTIES:
 :CUSTOM_ID: org-mode-org-babel-detangle-just-the-current-block
 :END:
 
-One of the little points of friction when it comes to editing code that's been entangled out of my literate configuration file is that if I use the usual functions for jumping to a definition, like =lispy-goto-symbol=, I usually end up file that's been exported But I hope that they want my changes saved in the in-measured config file. I can override the function for finding the definitional function to go to the source instead, but then I have to edit the source block in order to have all the usual emac-slit shortcuts and conveniences like like Eldog. There is a way to update the other thread file from the exported changes. If I export them with links back to the original source, but by default this updates the whole file, which I'm a little bit nervous about. So I wrote some functions that let me narrow to just this block of code and also update just this block of code back in my literate config file.
+By default, Org Babel updates all the blocks tangled in the current file, which I'm a little bit nervous about. So I wrote some functions that let me narrow to just this block of code and also update just this block of code back in my literate config file.
 
 [2026-03-31 Tue]
 
@@ -14615,6 +14639,13 @@ Then I should be able to use =literate-elisp-load-file= and still be able to jum
 :PROPERTIES:
 :CUSTOM_ID: org-mode-publishing-html
 :END:
+
+[[https://sachachua.com/blog/2026/04/org-mode-js-for-translating-times-to-people-s-local-timezones/][Org Mode: JS for translating times to people's local timezones]]
+
+#+begin_src emacs-lisp
+(setq org-html-datetime-formats '("%F" . "%FT%T%z"))
+#+end_src
+
 **** Changing Org Mode underlines to the HTML mark element              :org:
 :PROPERTIES:
 :CREATED: [2024-11-17 Sun 16:16]

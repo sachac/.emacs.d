@@ -715,6 +715,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 (defvar sacha-stream-captions-websocket nil)
 (defvar sacha-stream-captions-history nil)
 (defvar sacha-stream-captions-last-caption nil)
+(defvar sacha-stream-captions-insert nil "Non-nil means insert into the current buffer.")
 ;;;###autoload
 (defun sacha-stream-captions-insert () (interactive) (setq sacha-stream-captions-insert (not sacha-stream-captions-insert)))
 

@@ -158,9 +158,6 @@
 ;; - Linking to blog posts
 ;;   https://sachachua.com/dotemacs#linking-to-blog-posts
 ;;
-;; - Moving my Org post subtree to the 11ty directory
-;;   https://sachachua.com/dotemacs#moving-sacha-org-post-subtree-to-the-11ty-directory
-;;
 ;; - Include Mastodon, HN, Reddit fields in front matter
 ;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-include-mastodon-field-in-front-matter
 ;;
@@ -280,6 +277,9 @@
 ;;
 ;; - Show Emacs-related tasks
 ;;   https://sachachua.com/dotemacs#show-emacs-related-tasks
+;;
+;; - Capture timestamps
+;;   https://sachachua.com/dotemacs#streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream-capture-timestamps
 ;;
 ;; - Making it easier to execute commands
 ;;   https://sachachua.com/dotemacs#making-it-easier-to-execute-commands
@@ -1405,16 +1405,17 @@ This function is heavily adapted from `org-between-regexps-p'."
                 (setq temp-list nil)))
           (setq temp-list (cdr temp-list)))))))
 
-(ert-deftest sacha-extract-tasks-from-agenda ()
-  (let (list-a list-b (line-re "\\([^:]+\\):\\( \\)\\(.*\\)"))
-    (sacha-extract-tasks-from-agenda
-     "listA: Task 1\nother: Task 2\nlistA: Task 3"
-     '(("listA" . list-a)
-       ("." . list-b))
-     "- [ ] "
-     line-re)
-    (should (equal list-a '("- [ ] Task 1" "- [ ] Task 3")))
-    (should (equal list-b '("- [ ] Task 2")))))
+(with-eval-after-load 'ert
+	(ert-deftest sacha-extract-tasks-from-agenda ()
+		(let (list-a list-b (line-re "\\([^:]+\\):\\( \\)\\(.*\\)"))
+			(sacha-extract-tasks-from-agenda
+			 "listA: Task 1\nother: Task 2\nlistA: Task 3"
+			 '(("listA" . list-a)
+				 ("." . list-b))
+			 "- [ ] "
+			 line-re)
+			(should (equal list-a '("- [ ] Task 1" "- [ ] Task 3")))
+			(should (equal list-b '("- [ ] Task 2"))))))
 
 ;;;###autoload
 (defun sacha-get-upcoming-tasks ()
@@ -1993,66 +1994,6 @@ This function is heavily adapted from `org-between-regexps-p'."
 					 (or (org-entry-get (point) "ITEM")
 							 (car (assoc-default "TITLE" props #'string=)))))))))
 ;; org-blog-link ends here
-
-;; [[file:../Sacha.org::#moving-sacha-org-post-subtree-to-the-11ty-directory][Moving my Org post subtree to the 11ty directory:1]]
-;;;###autoload
-(defun sacha-org-11ty-copy-subtree (&optional do-cut subtreep)
-	"Copy the subtree for the current post to the 11ty export directory.
-With prefix arg, move the subtree."
-	(interactive (list current-prefix-arg))
-	(let* ((info (org-combine-plists
-								(org-export--get-export-attributes '11ty subtreep)
-								(org-export--get-buffer-attributes)
-								(org-export-get-environment '11ty subtreep)))
-				 (file-properties
-					(seq-filter (lambda (entry)
-												(string-match (regexp-opt
-																			 '("ELEVENTY_COLLECTIONS"
-                                         "ELEVENTY_BASE_DIR"
-                                         "ELEVENTY_BASE_URL"
-																				 "TITLE"
-																				 "ELEVENTY_CATEGORIES"
-																				 "ELEVENTY_LAYOUT"))
-																			(car entry)))
-					            (org-element-map (org-element-parse-buffer) 'keyword
-						            (lambda (el) (cons (org-element-property :key el)
-																           (org-element-property :value el))))))
-				 (entry-properties (org-entry-properties))
-				 (filename (expand-file-name
-										"index.org"
-										(expand-file-name
-										 (plist-get info :file-name)
-										 (plist-get info :base-dir))))
-				 (parent-pos
-					(org-find-property
-           "EXPORT_ELEVENTY_FILE_NAME"
-					 (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")))
-				 body)
-		(unless (string= (buffer-file-name)
-										 filename)
-			(unless (file-directory-p (file-name-directory filename))
-				(make-directory (file-name-directory filename) t))
-			;; find the heading that sets the current EXPORT_ELEVENTY_FILE_NAME
-			(if parent-pos
-					(save-excursion
-						(goto-char parent-pos)
-						(org-copy-subtree 1 (if do-cut 'cut)))
-				(setq body (buffer-string)))
-			(with-temp-file filename
-				(org-mode)
-				(if subtreep
-						(progn
-							(insert
-               (or
-								(mapconcat
-                 (lambda (o) (format "#+%s: %s" (car o) (cdr o)))
-                 file-properties
-                 "\n")
-								"")
-							 "\n")
-							(org-yank))
-					(insert body))))))
-;; Moving my Org post subtree to the 11ty directory:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-include-mastodon-field-in-front-matter][Include Mastodon, HN, Reddit fields in front matter:1]]
 ;;;###autoload
@@ -2752,11 +2693,11 @@ This uses :insert-description if defined."
 ;; [[file:../Sacha.org::#youtube][YouTube:2]]
 ;;;###autoload
 (defun sacha-org-copy-region-as-plain-text (beg end)
-	"Copy as plain text, removing links."
+	"Copy as plain text."
 	(interactive "r")
 	(save-restriction
 		(narrow-to-region beg end)
-		(kill-new (org-export-as 'ascii nil nil t))))
+		(kill-new (org-export-as 'sacha-plain-text nil nil t))))
 
 ;; YouTube:2 ends here
 
@@ -3851,6 +3792,12 @@ Use the region if active."
     :sort '(date priority todo)
     :super-groups '((:auto-parent t))))
 ;; Show Emacs-related tasks:1 ends here
+
+;; [[file:../Sacha.org::sacha-org-time-at-point][sacha-org-time-at-point]]
+(defun sacha-org-time-at-point ()
+	"Return Emacs time object for timestamp at point."
+	(org-timestamp-to-time (org-timestamp-from-string (org-element-property :raw-value (org-element-context)))))
+;; sacha-org-time-at-point ends here
 
 ;; [[file:../Sacha.org::#making-it-easier-to-execute-commands][Making it easier to execute commands:2]]
 ;;;###autoload

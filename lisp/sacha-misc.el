@@ -162,15 +162,15 @@
   (define-key global-map (kbd "C-g") #'prot/keyboard-quit-dwim)
 ;; C-g improvement:1 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing][Writing and editing:2]]
+;; [[file:../Sacha.org::#writing-and-editing][Writing and editing:3]]
   (defun sacha-capitalize-dwim ()
-    "Capitalize the previous word if at the end of a word."
+    "Capitalize the previous word if typing and at the end of a word."
     (interactive)
     (if (region-active-p)
         (capitalize-region (region-beginning) (region-end))
       (when (and (not (bolp))
                  (looking-back "\\w" 1)
-                 (not (eq last-command 'sacha-capitalize-dwim)))
+                 (eq last-command 'self-insert-command))
         (backward-word))
       (capitalize-word 1)))
 
@@ -180,7 +180,7 @@
     (cond
      ((derived-mode-p 'dired-mode) (dired-copy-filename-as-kill 0))
      (t (kill-new (buffer-file-name)))))
-;; Writing and editing:2 ends here
+;; Writing and editing:3 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document][Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document:5]]
 ;;;###autoload

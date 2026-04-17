@@ -41,8 +41,17 @@
 ;; - Stream agenda
 ;;   https://sachachua.com/dotemacs#streaming-stream-agenda
 ;;
+;; - Playing recordings
+;;   https://sachachua.com/dotemacs#playing-recordings
+;;
+;; - Download and post-process
+;;   https://sachachua.com/dotemacs#streaming-download-and-post-process
+;;
 ;; - Try continuous streaming and the Google Speech Recognition API
 ;;   https://sachachua.com/dotemacs#speech-to-text
+;;
+;; - Create YouTube livestream broadcasts from Emacs Lisp
+;;   https://sachachua.com/dotemacs#streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream
 ;;
 ;;; Code:
 
@@ -171,29 +180,32 @@
 ;; [[file:../Sacha.org::#streaming-mode-for-streaming][Mode for streaming:2]]
 (defvar sacha-stream-old-variable-values nil "Alist of values to save.")
 (defvar sacha-stream-inbox-file nil "File to save new items to.")
+(defvar sacha-stream-url nil "*URL of current livestream.")
 (defvar sacha-stream-inbox-target
   `(file+headline ,sacha-stream-inbox-file "Current / notes for next time"))
 (defvar sacha-stream-variables-to-override
-  `((org-agenda-files . ("~/sync/stream/index.org" "~/sync/topics/live.org" "~/sync/stream/inbox.org"))
+  `((custom-enabled-themes . (ef-trio-dark))
+    (org-agenda-files . ("~/sync/stream/index.org" "~/sync/topics/live.org" "~/sync/stream/inbox.org"))
     (org-refile-targets
      .
      ((("~/sync/stream/index.org"
         "~/sync/stream/inbox.org"
         "~/sync/topics/live.org"
+        "~/sync/orgzly/posts.org"
         "~/sync/emacs/Sacha.org"
         "~/sync/orgzly/news.org") . t)))
     (sacha-org-inbox-file . ,sacha-stream-inbox-file)
     (sacha-file-shortcuts .
-     (("C" "~/proj/emacs-calendar/README.org" "Emacs calendar")
-      ("e" "~/sync/emacs/Sacha.org" "Config")
-      ("E" "~/sync/emacs-news/index.org" "Emacs News")
-      ("f" "~/sync/orgzly/journal-fr.org" "French journal")
-      ("F" "~/sync/orgzly/french.org" "French")
-      ("i" "~/sync/topics/live.org" "Live")
-      ("s" "~/proj/stream/index.org" "Yay Emacs")
-      ("p" "~/sync/orgzly/posts.org" "Posts")
-      ("n" "~/sync/topics/now.org" "Now")
-      ("w" "~/sync/topics/workflows.org" "Workflows")))
+                          (("C" "~/proj/emacs-calendar/README.org" "Emacs calendar")
+                           ("e" "~/sync/emacs/Sacha.org" "Config")
+                           ("E" "~/sync/emacs-news/index.org" "Emacs News")
+                           ("f" "~/sync/orgzly/journal-fr.org" "French journal")
+                           ("F" "~/sync/orgzly/french.org" "French")
+                           ("i" "~/sync/topics/live.org" "Live")
+                           ("s" "~/proj/stream/index.org" "Yay Emacs")
+                           ("p" "~/sync/orgzly/posts.org" "Posts")
+                           ("n" "~/sync/topics/now.org" "Now")
+                           ("w" "~/sync/topics/workflows.org" "Workflows")))
     (org-capture-templates
      .
      (("r" "Note" entry
@@ -258,10 +270,12 @@
        ,sacha-stream-inbox-target
        "* %a :website:\n:PROPERTIES:\n:CREATED: %U\n:END:\n#+begin_quote\n%i\n#+end_quote\n\n%?\n"
        :prepend t)
-      ("S" "Screenshot" entry
-       ,sacha-stream-inbox-target
-       "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n[[file:%(sacha-latest-screenshot)]]\n"
-       :prepend t)
+      ("S" "Screenshot" item
+       (file+headline ,sacha-stream-inbox-file "Timestamps")
+       "- %U [[file:%(sacha-latest-screenshot)]]%i%?")
+      ("l" "Timestamp" item
+       (file+headline ,sacha-stream-inbox-file "Timestamps")
+       "- %U %i%?")
       ("q" "Quick note" item
        ,sacha-stream-inbox-target)
       ("w" "Web" entry (file ,sacha-stream-inbox-file)
@@ -285,8 +299,9 @@
           (mapcar
            (lambda (var)
              (prog1 (cons (car var) (symbol-value (car var)))
-               (set (car var)
-                    (cdr var))))
+               (setopt--set
+                (car var)
+                (cdr var))))
            sacha-stream-variables-to-override)))
   (when (featurep 'org)
     (org-refile-cache-clear)))
@@ -296,7 +311,7 @@
   "Restore values saved in `sacha-stream-old-variable-values'."
   (interactive)
   (mapc
-   (lambda (var) (set (car var) (cdr var)))
+   (lambda (var) (setopt--set (car var) (cdr var)))
    sacha-stream-old-variable-values)
   (setq sacha-stream-old-variable-values nil)
   (when (featurep 'org)
@@ -320,31 +335,36 @@
 (defun sacha-stream-clean-up-buffers ()
   "Clean up buffers that might be sensitive."
   (interactive)
-  (org-save-all-org-buffers)
-  (let (remaining cleaned)
-    (mapc
-     (lambda (buf)
-       (with-current-buffer buf
-         (when (and (buffer-file-name)
-                    (seq-find (lambda (o) (string-match o (buffer-file-name)))
-                              sacha-stream-sensitive-files-regexps))
-           (if (buffer-modified-p buf)
-               (push (buffer-name buf) remaining)
-             (push (buffer-name buf) cleaned)
-             (kill-buffer buf)))))
-     (buffer-list))
-    (message "%s remaining, %s cleaned" remaining cleaned)))
+	(condition-case nil
+			(progn
+				(org-save-all-org-buffers)
+				(let (remaining cleaned)
+					(mapc
+					 (lambda (buf)
+						 (with-current-buffer buf
+							 (when (and (buffer-file-name)
+													(seq-find (lambda (o) (string-match o (buffer-file-name)))
+																		sacha-stream-sensitive-files-regexps))
+								 (if (buffer-modified-p buf)
+										 (push (buffer-name buf) remaining)
+									 (push (buffer-name buf) cleaned)
+									 (kill-buffer buf)))))
+					 (buffer-list))
+					(message "%s remaining, %s cleaned" remaining cleaned)))
+		(error nil)))
 
+(defvar sacha-stream-or-video-global-mode-done-hook nil "Functions to run after switching out of the mode.")
+(defvar-keymap sacha-stream-or-video-global-mode-map)
 ;;;###autoload
 (define-minor-mode sacha-stream-or-video-global-mode
   "On air or doing a video."
   :init-val nil
+  :keymap sacha-stream-or-video-global-mode-map
   :lighter "🎥"
   (if sacha-stream-or-video-global-mode
       (progn
         (sacha-stream-clean-up-buffers)
         (global-display-line-numbers-mode 1)
-        (load-theme 'modus-vivendi t)
         (fontaine-set-preset 'presentation)
         (keycast-header-line-mode 1)
         (sacha-stream-override-variables)
@@ -352,9 +372,6 @@
          'sacha-marginalia-annotate-variable
          (alist-get 'variable marginalia-annotators)))
     (global-display-line-numbers-mode -1)
-    ;; TODO: Pick this based on the time? We'll assume light background since I
-    ;; probably won't be doing too much coding late at night anyway.
-    (load-theme 'modus-operandi-tinted t)
     (fontaine-set-preset 'regular)
     (keycast-header-line-mode -1)
     (setf
@@ -362,7 +379,8 @@
      (remove
       'sacha-marginalia-annotate-variable
       (alist-get 'variable marginalia-annotators)))
-    (sacha-stream-restore-variables))
+    (sacha-stream-restore-variables)
+    (run-hooks 'sacha-stream-or-video-global-mode-done-hook))
   (sacha-navigate-set-up-file-shortcuts))
 ;; Mode for streaming:2 ends here
 
@@ -405,8 +423,13 @@
   "Display TEXT in the current task area in my OBS."
   (interactive (list (read-string "Text: ")))
   (when sacha-stream-display-file
-    (write-region (string-join (org-wrap text 100) "\n")
-                  nil sacha-stream-display-file)))
+    (with-temp-buffer
+      (org-mode)
+      (write-region
+       (if (string= text "")
+           ""
+         (string-join (org-wrap text 100) "\n"))
+       nil sacha-stream-display-file))))
 
 ;;;###autoload
 (defun sacha-stream-obs-org-display-current-task ()
@@ -421,7 +444,6 @@
 (defun sacha-org-clear-streaming-task ()
   "Clear the text."
   (sacha-stream-obs-display-text ""))
-
 ;; Send currently-clocked task title to file, include in stream:1 ends here
 
 ;; [[file:../Sacha.org::#streaming-stream-agenda][Stream agenda:1]]
@@ -430,6 +452,56 @@
   (interactive)
   (org-agenda nil "s"))
 ;; Stream agenda:1 ends here
+
+;; [[file:../Sacha.org::#playing-recordings][Playing recordings:3]]
+;;;###autoload
+(defun sacha-stream-test-recording ()
+  "Start recording, stop recording, and play it back."
+  (interactive)
+  (obs-websocket-start-recording)
+  (read-key "Press any key to stop recording.")
+  (obs-websocket-stop-recording)
+  (sit-for 1)
+  (sacha-play-latest-recording)
+  (let (file (sacha-latest-file sacha-recordings-dir))
+    (when (y-or-n-p (format "Delete %s?" file))
+      (delete-file file))))
+;; Playing recordings:3 ends here
+
+;; [[file:../Sacha.org::#streaming-download-and-post-process][Download and post-process:1]]
+(defvar sacha-stream-download-dir "~/proj/yay-emacs/" "Directory to save files into.")
+(defvar sacha-stream-transcribe-command "~/bin/whisperx-large" "Command to use for transcription.")
+;;;###autoload
+(defun sacha-stream-download-and-process (&optional url title)
+  "Download MP3 and MP4 versions, and rename to TITLE."
+  (interactive (list sacha-stream-url (org-entry-get (point) "ITEM")))
+	(let ((base (expand-file-name (sacha-make-slug title) sacha-stream-download-dir))
+				(default-directory sacha-stream-download-dir))
+		(with-current-buffer (get-buffer-create "*Download MP3")
+			(let ((download-process
+						 (start-process "download-mp3" (current-buffer) "yt-dlp" "-x" "--audio-format" "mp3"
+													 url
+													 "-o"
+													 (concat base ".mp3"))))
+				(set-process-sentinel
+				 download-process
+				 (lambda (process event)
+					 (message "Downloading MP3")
+					 (start-process "transcribe" (get-buffer-create "*Download MP3")
+													sacha-stream-transcribe-command
+													(concat base ".mp3"))))))
+		(with-current-buffer (get-buffer-create "*Download MP4")
+			(set-process-sentinel
+			 (start-process "download-mp4" (current-buffer) "yt-dlp"
+											"-S" "res,ext:mp4:m4a" "--recode" "mp4"
+											url
+											"-o"
+											(concat base ".mp4"))
+			 (lambda (process event)
+				 (message "Downloading MP4: %s" (string-trim event)))))))
+
+
+;; Download and post-process:1 ends here
 
 ;; [[file:../Sacha.org::#speech-to-text][Try continuous streaming and the Google Speech Recognition API:3]]
 ;;;###autoload
@@ -466,6 +538,79 @@
   (interactive)
   (stop-process sacha-stream-captions-process))
 ;; Try continuous streaming and the Google Speech Recognition API:3 ends here
+
+;; [[file:../Sacha.org::*Create YouTube livestream broadcasts from Emacs Lisp][Create YouTube livestream broadcasts from Emacs Lisp:2]]
+(declare-function sacha-date-to-iso-utc "sacha-lisp")
+
+(cl-defun sacha-stream-youtube-format-broadcast (&key time title description privacy
+																											end-time
+																											(auto-start :json-false)
+																											(auto-stop :json-false))
+	"Format arguments as a broadcast object for YouTube data API."
+	(setq time (sacha-date-to-iso-utc time))
+	(when end-time (setq end-time (sacha-date-to-iso-utc end-time)))
+	`((snippet
+		 (title . ,title)
+		 (scheduledStartTime . ,time)
+		 (scheduledEndTime . ,end-time)
+		 (description . ,description))
+		(status
+		 (privacyStatus . ,privacy))
+		(contentDetails
+		 (enableAutoStart . ,auto-start)
+		 (enableAutoStop . ,auto-stop))))
+
+;;;###autoload
+(cl-defun sacha-stream-youtube-schedule-livestream (&key time title description privacy
+																								 end-time
+																								 (auto-start :json-false)
+																								 (auto-stop :json-false)
+																								 thumbnail)
+  "Schedule a livestream at TIME with TITLE, DESCRIPTION, and PRIVACY.
+You can also set AUTO-START and AUTO-STOP."
+  (interactive)
+	(let ((body (json-encode (sacha-stream-youtube-format-broadcast
+														:time time
+														:title title
+														:description description
+														:privacy privacy
+														:end-time end-time
+														:auto-start auto-start
+														:auto-stop auto-stop)))
+				response)
+		(setq response
+					(request-response-data
+					 (request "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,contentDetails,status"
+						 :type "POST"
+						 :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token)))
+												("Accept" . "application/json")
+												("Content-Type" . "application/json"))
+						 :data body
+						 :sync t
+						 :parser #'json-read)))
+		(when thumbnail
+			(sacha-stream-youtube-set-video-thumbnail (alist-get 'id response) thumbnail))
+		response))
+
+;;;###autoload
+(defun sacha-stream-youtube-set-video-thumbnail (video-id thumbnail)
+	"Set VIDEO-ID to THUMBNAIL."
+	(request "https://www.googleapis.com/upload/youtube/v3/thumbnails/set"
+    :type "POST"
+    :params `(("videoId" . ,video-id))
+    :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token)))
+               ("Content-Type" .
+								,(mailcap-file-name-to-mime-type thumbnail))
+               ("Accept" . "application/json"))
+    :data (with-temp-buffer
+						(set-buffer-multibyte nil)
+						(insert-file-contents-literally thumbnail)
+						(buffer-string))
+    :sync t))
+
+;; (sacha-stream-youtube-schedule-livestream :time "2026-04-23 10:30" :end-time "2026-04-23 11:30" :title "Emacs Chat: James Endres Howell" :description "I chat with James Endres Howell (https://jamesendreshowell.com/ , https://fediscience.org/@jameshowell) about Emacs and life.\n\nhttps://sachachua.com/topic/emacs-chat" :privacy "public" :auto-start json-false :auto-stop json-false :thumbnail "~/recordings/2026-04-17-07-53-05 Emacs Chat thumbnail - James.png")
+;; (sacha-stream-youtube-schedule-livestream :time "2026-05-07 10:30" :end-time "2026-05-07 11:30" :title "Emacs Chat: Shae Erisson" :description "I chat with Shae Erisson (https://shapr.github.io/ , https://recurse.social/@shapr) about Emacs and life.\n\nhttps://sachachua.com/topic/emacs-chat" :privacy "public" :auto-start json-false :auto-stop json-false :thumbnail "~/recordings/2026-04-17-07-54-23 Emacs Chat thumbnail - Shae.png")
+;; Create YouTube livestream broadcasts from Emacs Lisp:2 ends here
 
 (provide 'sacha-stream)
 ;;; sacha-stream.el ends here

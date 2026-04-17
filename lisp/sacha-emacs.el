@@ -79,6 +79,7 @@
 (defun sacha-reset-transients ()
   (interactive)
   (setq overriding-terminal-local-map nil))
+(keymap-global-set "s-x" #'sacha-reset-transients)
 ;; which-key and which-key-posframe:2 ends here
 
 ;; [[file:../Sacha.org::#org-mode-org-babel-make-it-easier-to-split-sacha-literate-config-into-files][Make it easier to split my literate config into files:1]]
@@ -127,7 +128,7 @@
 
       (goto-char (point-min))
       (forward-line)
-      (when (re-search-forward "^(\\(setq\\|use-package\\|with-eval-after-load\\|bind-key\\|keymap-set\\|keymap-global-set\\)" nil t)
+      (when (re-search-forward "^(\\(setq\\|use-package\\|with-eval-after-load\\|keymap-global-set\\|keymap-set\\|keymap-global-set\\)" nil t)
         (goto-char (match-beginning 0))
         (sacha-org-demarcate-block))
       ;; Add the tangle
@@ -139,9 +140,7 @@
         (insert " :tangle " (file-relative-name filename (file-name-directory (buffer-file-name))))))))
 ;; Make it easier to split my literate config into files:1 ends here
 
-;; [[file:../Sacha.org::#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Org Mode: Tangle Emacs config snippets to different files and add boilerplate:2]]
-(defvar sacha-dotemacs-url "https://sachachua.com/dotemacs/")
-
+;; [[file:../Sacha.org::sacha-emacs-config-prepare-to-tangle][sacha-emacs-config-prepare-to-tangle]]
 ;;;###autoload
 (defun sacha-dotemacs-link-for-section-at-point (&optional combined)
   "Return the link for the current section."
@@ -149,7 +148,7 @@
          (title (org-entry-get (point) "ITEM"))
          (url (if custom-id
                   (concat "dotemacs:" custom-id)
-                (concat sacha-dotemacs-url ":-:text=" (url-hexify-string title)))))
+                (concat sacha-emacs-config-url ":-:text=" (url-hexify-string title)))))
     (if combined
         (org-link-make-string
          url
@@ -217,7 +216,7 @@
   "Update module info if tangling my config."
   (when (string-match "Sacha.org" (buffer-file-name))
     (sacha-emacs-config-update-module-info)))
-;; Org Mode: Tangle Emacs config snippets to different files and add boilerplate:2 ends here
+;; sacha-emacs-config-prepare-to-tangle ends here
 
 ;; [[file:../Sacha.org::#key-chord][Key chords:1]]
 ;;;###autoload

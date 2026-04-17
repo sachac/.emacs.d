@@ -29,6 +29,9 @@
 ;; - 11ty static site generation
 ;;   https://sachachua.com/dotemacs#11ty
 ;;
+;; - Moving my Org post subtree to the 11ty directory
+;;   https://sachachua.com/dotemacs#moving-sacha-org-post-subtree-to-the-11ty-directory
+;;
 ;;; Code:
 
 
@@ -242,6 +245,140 @@ This is extracted from lines like:
 		(insert "#+CAPTION: " caption "\n"
 						(org-link-make-string (concat "file:" path)) "\n")))
 ;; 11ty static site generation:2 ends here
+
+;; [[file:../Sacha.org::#moving-sacha-org-post-subtree-to-the-11ty-directory][Moving my Org post subtree to the 11ty directory:1]]
+;;;###autoload
+(defun sacha-org-11ty-copy-subtree (&optional do-cut subtreep)
+	"Copy the subtree for the current post to the 11ty export directory.
+With prefix arg, move the subtree."
+	(interactive (list current-prefix-arg))
+	(let* ((info (org-combine-plists
+								(org-export--get-export-attributes '11ty subtreep)
+								(org-export--get-buffer-attributes)
+								(org-export-get-environment '11ty subtreep)))
+				 (file-properties
+					(seq-filter (lambda (entry)
+												(string-match (regexp-opt
+																			 '("ELEVENTY_COLLECTIONS"
+                                         "ELEVENTY_BASE_DIR"
+                                         "ELEVENTY_BASE_URL"
+																				 "TITLE"
+																				 "ELEVENTY_CATEGORIES"
+																				 "ELEVENTY_LAYOUT"))
+																			(car entry)))
+					            (org-element-map (org-element-parse-buffer) 'keyword
+						            (lambda (el) (cons (org-element-property :key el)
+																           (org-element-property :value el))))))
+				 (entry-properties (org-entry-properties))
+				 (filename (expand-file-name
+										"index.org"
+										(expand-file-name
+										 (plist-get info :file-name)
+										 (plist-get info :base-dir))))
+				 (parent-pos
+					(org-find-property
+           "EXPORT_ELEVENTY_FILE_NAME"
+					 (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")))
+				 body)
+		(unless (string= (buffer-file-name)
+										 filename)
+			(unless (file-directory-p (file-name-directory filename))
+				(make-directory (file-name-directory filename) t))
+			;; find the heading that sets the current EXPORT_ELEVENTY_FILE_NAME
+			(if parent-pos
+					(save-excursion
+						(goto-char parent-pos)
+						(org-copy-subtree 1 (if do-cut 'cut)))
+				(setq body (buffer-string)))
+			(with-temp-file filename
+				(org-mode)
+				(if subtreep
+						(progn
+							(insert
+               (or
+								(mapconcat
+                 (lambda (o) (format "#+%s: %s" (car o) (cdr o)))
+                 file-properties
+                 "\n")
+								"")
+							 "\n")
+							(org-yank))
+					(insert body))))))
+;; Moving my Org post subtree to the 11ty directory:1 ends here
+
+;; [[file:../Sacha.org::#moving-sacha-org-post-subtree-to-the-11ty-directory][Moving my Org post subtree to the 11ty directory:4]]
+(defvar sacha-org-11ty-export-and-copy nil "*Non-nil means copy to site after specified delay (ex: \"5s\").")
+(defvar sacha-org-11ty-export-and-copy-browse nil "Non-nil means browse after copying.")
+
+;;;###autoload
+(defun sacha-org-11ty-export (&optional async subtreep visible-only body-only ext-plist)
+	(when (and subtreep (not (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
+		(sacha-org-11ty-prepare-subtree))
+  (let* ((info (org-11ty--get-info subtreep visible-only))
+         (file (org-11ty--base-file-name subtreep visible-only))
+				 (permalink-slug (sacha-make-slug (plist-get info :permalink)))
+				 (org-html-footnotes-section
+					(format
+					 "<div id=\"%s-footnotes\">\n<h3 class=\"footnotes\">%%s</h3>\n<div id=\"%s-text-footnotes\">\n%%s\n</div>\n</div>"
+					 permalink-slug
+					 permalink-slug)))
+		(unless (or (string= (plist-get info :input-file)
+										     (expand-file-name
+											    "index.org"
+											    (expand-file-name
+											     (plist-get info :file-name)
+											     (plist-get info :base-dir))))
+                (plist-get (org-11ty--front-matter info) :no_source))
+			(save-window-excursion
+				(sacha-org-11ty-copy-subtree nil subtreep)))
+		(org-11ty-export-to-11tydata-and-html async subtreep visible-only body-only ext-plist)
+    (when sacha-org-11ty-export-and-copy
+      (message "%s" "Scheduling copy...")
+      (run-at-time sacha-org-11ty-export-and-copy nil
+                   (lambda (url)
+                     (sacha-org-11ty-copy-just-this-post
+                      url))
+                   (plist-get info :permalink)))))
+
+;;;###autoload
+(defun sacha-org-11ty-export-and-copy (&rest args)
+  "Export and copy to website."
+  (let ((sacha-org-11ty-export-and-copy "10"))
+    (apply #'sacha-org-11ty-export args)))
+
+;;;###autoload
+(defun sacha-org-11ty-export-copy-browse (&rest args)
+  "Export and copy to website."
+  (let ((sacha-org-11ty-export-and-copy "10")
+				(sacha-org-11ty-export-and-copy-browse t))
+    (apply #'sacha-org-11ty-export args)))
+;; Moving my Org post subtree to the 11ty directory:4 ends here
+
+;; [[file:../Sacha.org::#moving-sacha-org-post-subtree-to-the-11ty-directory][Moving my Org post subtree to the 11ty directory:6]]
+;;;###autoload
+(define-minor-mode sacha-org-11ty-auto-export-mode
+  ""
+	:lighter ""
+	(if sacha-org-11ty-auto-export-mode
+			(progn
+				(setq-local sacha-org-11ty-export-and-copy "10")
+				(add-hook 'after-save-hook #'sacha-org-11ty-export-and-copy nil t))
+		(setq-local sacha-org-11ty-export-and-copy nil)
+		(remove-hook 'after-save-hook #'sacha-org-11ty-export-and-copy t)))
+;; Moving my Org post subtree to the 11ty directory:6 ends here
+
+;; [[file:../Sacha.org::#moving-sacha-org-post-subtree-to-the-11ty-directory][Moving my Org post subtree to the 11ty directory:7]]
+;;;###autoload
+(defun sacha-org-11ty-update-modified ()
+  "Update modified date."
+  (interactive)
+	(if (or (org-before-first-heading-p)
+					(not (org-entry-get-with-inheritance "ELEVENTY_PERMALINK")))
+			(sacha-org-set-file-property "MODIFIED" (format-time-string "%Y-%m-%d"))
+		(save-excursion
+			(goto-char (org-find-property "ELEVENTY_PERMALINK" (org-entry-get-with-inheritance "ELEVENTY_PERMALINK")))
+			(org-entry-put (point) "MODIFIED" (format-time-string "%Y-%m-%d")))))
+;; Moving my Org post subtree to the 11ty directory:7 ends here
 
 (provide 'sacha-org-11ty)
 ;;; sacha-org-11ty.el ends here

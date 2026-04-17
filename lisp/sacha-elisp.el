@@ -73,11 +73,11 @@
 
 
 ;; [[file:../Sacha.org::#coding-emacs-lisp-prefix-for-writing-functions][Prefix for writing functions:1]]
+(defvar sacha-function-prefix "sacha")
 ;;;###autoload
-(defvar sacha-function-prefix "sacha-")
 (defun sacha-function-prefix ()
   (if (and (buffer-file-name) (string-match "\\.el\\'" (buffer-file-name)))
-      (concat (file-name-base (buffer-file-name)) "-")
+      (concat (file-name-base (buffer-file-name)) "")
     sacha-function-prefix))
 ;; Prefix for writing functions:1 ends here
 

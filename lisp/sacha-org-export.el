@@ -283,46 +283,6 @@
 						 (plist-get info :permalink)))))
 ;; Moving my Org post subtree to the 11ty directory:2 ends here
 
-;; [[file:../Sacha.org::#moving-sacha-org-post-subtree-to-the-11ty-directory][Moving my Org post subtree to the 11ty directory:4]]
-(defvar sacha-org-11ty-export-and-copy nil "*Non-nil means copy to site after specified delay (ex: \"5s\").")
-
-;;;###autoload
-(defun sacha-org-11ty-export (&optional async subtreep visible-only body-only ext-plist)
-	(when (and subtreep (not (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
-		(sacha-org-11ty-prepare-subtree))
-  (let* ((info (org-11ty--get-info subtreep visible-only))
-         (file (org-11ty--base-file-name subtreep visible-only))
-				 (permalink-slug (sacha-make-slug (plist-get info :permalink)))
-				 (org-html-footnotes-section
-					(format
-					 "<div id=\"%s-footnotes\">\n<h3 class=\"footnotes\">%%s</h3>\n<div id=\"%s-text-footnotes\">\n%%s\n</div>\n</div>"
-					 permalink-slug
-					 permalink-slug)))
-		(unless (or (string= (plist-get info :input-file)
-										     (expand-file-name
-											    "index.org"
-											    (expand-file-name
-											     (plist-get info :file-name)
-											     (plist-get info :base-dir))))
-                (plist-get (org-11ty--front-matter info) :no_source))
-			(save-window-excursion
-				(sacha-org-11ty-copy-subtree nil subtreep)))
-		(org-11ty-export-to-11tydata-and-html async subtreep visible-only body-only ext-plist)
-    (when sacha-org-11ty-export-and-copy
-      (message "%s" "Scheduling copy...")
-      (run-at-time sacha-org-11ty-export-and-copy nil
-                   (lambda (url)
-                     (sacha-org-11ty-copy-just-this-post
-                      url))
-                   (plist-get info :permalink)))))
-
-;;;###autoload
-(defun sacha-org-11ty-export-and-copy (&rest args)
-  "Export and copy to website."
-  (let ((sacha-org-11ty-export-and-copy "10"))
-    (apply #'sacha-org-11ty-export args)))
-;; Moving my Org post subtree to the 11ty directory:4 ends here
-
 ;; [[file:../Sacha.org::#org-mode-publishing-remove-heading-from-toc][Remove heading from TOC:1]]
 ;;;###autoload
 (defun sacha-org-html-toc (depth info &optional scope)
@@ -559,18 +519,18 @@ the mode, `toggle' toggles the state."
 	(when (string= (buffer-file-name) (expand-file-name "~/sync/emacs/Sacha.org")) (sacha-org-export-and-tangle-when-saved-in-focus-mode 1)))
 
 ;;;###autoload
-(defun sacha-export-dotemacs (&optional sync)
-	(interactive)
+(defun sacha-emacs-export (&optional sync)
+	(interactive (list current-prefix-arg))
 	(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
-		(org-babel-tangle)
     (if sync
-        (org-export-to-file 'html "index.html")
+				(progn
+					(org-babel-tangle)
+					(org-export-to-file 'html "index.html"))
 		  (async-start
 		   `(lambda ()
-				  ;; make async emacs aware of packages (for byte-compilation)
-				  (package-initialize)
-				  (setq sacha-exporting t)
-				  (load-file "~/sync/emacs/Sacha.el")
+					(load-file "~/sync/emacs/batch-tangle.el")
+					(org-babel-tangle-file "~/sync/emacs/Sacha.org")
+					(load-file "~/sync/emacs/Sacha.el")
 				  (find-file "~/sync/emacs/Sacha.org")
 				  (org-export-to-file 'html "index.html"))
 		   (lambda (&rest results) (message "Tangled and exported."))))))

@@ -59,7 +59,10 @@
 								 (/ (compile-media-timestamp-to-msecs
 										 (match-string 0 link)) 1000.0))
 							 (match-string 0 link))))
-		('org link)))
+		('sacha-plain-text
+		 (when (string-match "\\([0-9]+:\\)?[0-9]+:[0-9]+" link)
+			 (match-string 0 link)))
+		('org (org-link-make-string (concat "vtime:" link) desc))))
 ;; Linking to a specific time in a video:2 ends here
 
 ;; [[file:../Sacha.org::#org-mode-links-linking-to-a-specific-time-in-a-video][Linking to a specific time in a video:3]]

@@ -29,6 +29,9 @@
 ;; - Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document
 ;;
+;; - Calculate an Org timestamp's offset into a YouTube stream
+;;   https://sachachua.com/dotemacs#streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream-calculate-an-org-timestamp-s-offset-into-a-youtube-stream
+;;
 ;;; Code:
 
 
@@ -82,6 +85,92 @@
     "Return DOC-ID in Org Mode format."
     (pandoc-convert-stdio (sacha-google-doc-clean-html (sacha-google-doc-html doc-id)) "html" "org"))
 ;; Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document:1 ends here
+
+;; [[file:../Sacha.org::#streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream-calculate-an-org-timestamp-s-offset-into-a-youtube-stream][Calculate an Org timestamp's offset into a YouTube stream:2]]
+;;;###autoload
+(defun sacha-google-youtube-stream-offset (time)
+	"Return the offset from the start of the stream.
+When called interactively, copy it."
+	(interactive (list (sacha-org-time-at-point)))
+	(when (and (stringp time)
+						 (string-match org-element--timestamp-regexp time))
+		(setq time (org-timestamp-to-time (org-timestamp-from-string (match-string 0 time)))))
+	(let ((result
+				 (emacstv-format-seconds (sacha-google-youtube-live-seconds-offset-from-start-of-stream
+																	time))))
+		(when (called-interactively-p 'any)
+			(kill-new result)
+			(message "%s" result))
+		result))
+
+(defvar sacha-google-access-token nil "Cached access token.")
+
+;;;###autoload
+(defun sacha-google-access-token ()
+	"Return Google access token."
+	(or sacha-google-access-token
+			(setq sacha-google-access-token
+						(string-trim (shell-command-to-string "gcloud auth application-default print-access-token")))))
+
+(defvar sacha-google-youtube-live-broadcasts nil "Cache.")
+(defvar sacha-google-youtube-stream-offset-seconds 10 "Number of seconds to offset.")
+
+;;;###autoload
+(defun sacha-google-youtube-live-broadcasts ()
+	"Return the list of broadcasts."
+	(or sacha-google-youtube-live-broadcasts
+			(setq sacha-google-youtube-live-broadcasts
+						(request-response-data
+						 (request "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet&mine=true&maxResults=10"
+							 :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token))))
+							 :sync t
+							 :parser #'json-read)))))
+
+(defun sacha-google-youtube-live-get-broadcast-at-time (time)
+	"Return the broadcast encompassing TIME."
+	(seq-find (lambda (o)
+							(or
+							 ;; actual
+							 (and
+								(alist-get 'actualStartTime (alist-get 'snippet o))
+								(alist-get 'actualEndTime (alist-get 'snippet o))
+								(not (time-less-p time (date-to-time (alist-get 'actualStartTime (alist-get 'snippet o)))))
+								(time-less-p time (date-to-time (alist-get 'actualEndTime (alist-get 'snippet o)))))
+							 ;; actual, not done yet
+							 (and
+								(alist-get 'actualStartTime (alist-get 'snippet o))
+								(null (alist-get 'actualEndTime (alist-get 'snippet o)))
+								(not (time-less-p time (date-to-time (alist-get 'actualStartTime (alist-get 'snippet o))))))
+							 ;; scheduled
+							 (and
+								(null (alist-get 'actualStartTime (alist-get 'snippet o)))
+								(null (alist-get 'actualEndTime (alist-get 'snippet o)))
+								(not (time-less-p time (date-to-time (alist-get 'scheduledStartTime (alist-get 'snippet o))))))))
+						(sort
+						 (alist-get 'items (sacha-google-youtube-live-broadcasts))
+						 :key (or
+									 (alist-get 'actualStartTime (alist-get 'snippet o))
+									 (alist-get 'scheduledStartTime (alist-get 'snippet o))))))
+
+(defun sacha-google-youtube-live-seconds-offset-from-start-of-stream (wall-time)
+	"Return number of seconds for WALL-TIME from the start of the stream that contains it.
+Offset by `sacha-google-youtube-stream-offset-seconds'."
+	(+ sacha-google-youtube-stream-offset-seconds
+		 (time-to-seconds
+			(time-subtract
+			 wall-time
+			 (date-to-time
+				(alist-get 'actualStartTime
+									 (alist-get 'snippet
+															(sacha-google-youtube-live-get-broadcast-at-time wall-time))))))))
+
+;;;###autoload
+(defun sacha-google-clear-cache ()
+	"Clear cached Google access tokens and data."
+	(interactive)
+	(setq sacha-google-access-token nil)
+	(setq sacha-google-youtube-live-broadcasts nil))
+;; Calculate an Org timestamp's offset into a YouTube stream:2 ends here
 
 (provide 'sacha-google)
 ;;; sacha-google.el ends here

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2026-04-11 Sat 09:42 -->
+<!-- 2026-04-17 Fri 09:18 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Tangle Emacs config snippets to different files and add boilerplate</title>
+<title>Create a Google Calendar event from an Org timestamp</title>
 <meta name="author" content="Sacha Chua" />
 <meta name="generator" content="Org Mode" />
 <link rel="stylesheet" type="text/css" href="https://sachachua.com/assets/css/htmlize.css"/>
@@ -24,224 +24,53 @@
 </div>
 <div id="content" class="content">
 <header>
-<h1 class="title">Tangle Emacs config snippets to different files and add boilerplate</h1>
+<h1 class="title">Create a Google Calendar event from an Org timestamp</h1>
 </header><p>
-I'm thinking about how to organize the functions in my Emacs configuration so that they are easier for me to test and so that other people can load them from my repository. Right now, if anyone likes one of my ideas, they might have to copy and paste multiple source blocks from my blog posts, take out anything that configures Emacs in a way that doesn't fit their workflow, and miss out on any updates. I don't think people copy that much from my config, but it might still be worth making it easier for people to borrow interesting functions. It would be great to have libraries of functions that people can evaluate without worrying about side effects, and then they can copy or write a shorter piece of code to use those functions.
-</p>
-
-<p>
-<a href="https://protesilaos.com/emacs/dotemacs#h:fc1ea247-5ef6-4c4e-a807-6c7b2482af90">In Prot's configuration (The custom libraries of my configuration)</a>, he includes each library as in full, in a single code block, with the boilerplate description, keywords, and <code>(provide '...)</code> that make them more like other libraries in Emacs.
-</p>
-
-<p>
-I'm not quite sure my little functions are at that point yet. For now, I like the way that the functions are embedded in the blog posts and notes that explain them, and the org-babel :comments argument can insert links back to the sections of my configuration.
-</p>
-
-<details class="code-details"
-                 style ="padding: 1em;
-                          border-radius: 15px;
-                          font-size: 0.9em;
-                          box-shadow: 0.05em 0.1em 5px 0.01em  #00000057;">
-                  <summary>
-                    <strong>
-                      <font face="Courier" size="3" color="Green">
-                         Thinking through the options...
-                      </font>
-                    </strong>
-                  </summary>
-<p>
-Org tangles blocks in order, so if I want boilerplate or if I want to add require statements, I need to have a section near the beginning of my config that sets those up for each file. Noweb references might help me with common text like the license. Likewise, if I want a <code>(provide ...)</code> line at the end of each file, I need a section near the end of the file.
-</p>
-
-<p>
-If I want to specify things out of sequence, I could use Noweb. By setting <code>:noweb-ref some-id :tangle no</code> on the blocks I want to collect later, I can then tangle them in the middle of the boilerplate. Here's a brief demo:
+Time zones are hard, so I let calendaring systems take care of the conversion and confirmation. I've been using Google Calendar because it synchronizes with my phone and people know what to do with the event invite. This function lets me start from a timestamp and create an event based on a template.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-org"><code><span class="org-org-block-begin-line">#+begin_src emacs-lisp :noweb yes :tangle lisp/my-eshell.el :comments no</span>
-<span class="org-org-block"><span class="org-comment-delimiter">;; </span></span><span class="org-org-block"><span class="org-comment">-*- lexical-binding: t; -*-</span></span>
-<span class="org-org-block">&lt;&lt;my-eshell&gt;&gt;</span>
-<span class="org-org-block">(</span><span class="org-org-block"><span class="org-keyword">provide</span></span><span class="org-org-block"> </span><span class="org-org-block"><span class="org-highlight-quoted-quote">'</span></span><span class="org-org-block"><span class="org-constant">my-eshell</span></span><span class="org-org-block">)</span>
-<span class="org-org-block-end-line">#+end_src</span>
+<pre class="src src-emacs-lisp"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha-emacs-chat-schedule</span> (<span class="org-type">&amp;optional</span> time)
+  <span class="org-doc">"Create a Google Calendar invite based on TIME or the Org timestamp at point."</span>
+  (<span class="org-keyword">interactive</span> (list (sacha-org-time-at-point)))
+  (browse-url
+   (format
+    <span class="org-string">"https://calendar.google.com/calendar/render?action=TEMPLATE&amp;text=%s&amp;details=%s&amp;dates=%s&amp;ctz=%s"</span>
+    (url-hexify-string sacha-emacs-chat-title)
+    (url-hexify-string sacha-emacs-chat-description)
+    (format-time-string
+     <span class="org-string">"%Y%m%dT%H%M%S"</span> time)
+    sacha-timezone)))
+
+(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-emacs-chat-title</span> <span class="org-string">"Emacs Chat"</span> <span class="org-doc">"Title of calendar entry."</span>)
+(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-emacs-chat-description</span>
+  <span class="org-string">"All right, let's try this! =) See the calendar invite for the Google Meet link.</span>
+
+<span class="org-string">Objective: Share cool stuff about Emacs workflows that's not obvious from reading configs, and have fun chatting about Emacs</span>
+
+<span class="org-string">Some ideas for things to talk about:</span>
+<span class="org-string">- Which keyboard shortcuts or combinations of functions work really well for you?</span>
+<span class="org-string">- What's something you love about your setup?</span>
+<span class="org-string">- What are you looking forward to tweaking next?</span>
+
+<span class="org-string">Let me know if you want to do it on stream (more people can ask questions) or off stream (we can clean up the video in case there are hiccups). Also, please feel free to send me links to things you'd like me to read ahead of time, like your config!"</span>
+  <span class="org-doc">"Description."</span>)
 </code></pre>
 </div>
 
 <p>
-However, I'll lose the comment links that let me jump back to the part of the Org file with the original source block. This means that if I use <code>find-function</code> to jump to the definition of a function and then I want to find the outline section related to it, I have to use a function that checks if this might be my custom code and then looks in my config for "defun &hellip;". It's a little less generic.
+It uses this function to convert the timestamp at point:
 </p>
 
 <p>
-I wonder if I can combine multiple targets with some code that knows what it's being tangled to, so it can write slightly different text. <code>org-babel-tangle-single-block</code> currently calculates the result once and then adds it to the list for each filename, so that doesn't seem likely.
+<details open><summary>sacha-org-time-at-point: Return Emacs time object for timestamp at point.</summary><div class="org-src-container"><pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-time-at-point</span> ()
+  <span class="org-doc">"Return Emacs time object for timestamp at point."</span>
+  (org-timestamp-to-time (org-timestamp-from-string (org-element-property <span class="org-builtin">:raw-value</span> (org-element-context)))))
+
+</pre></div></details>
 </p>
 
-<p>
-Alternatively, maybe I can use noweb or my own tangling function and add the link comments from org-babel-tangle-comments.
-</p>
-
-
-</details>
-
-<p>
-Aha, I can fiddle with <code>org-babel-post-tangle-hook</code> to insert the boilerplate after the blocks have been written. That would be perfect: a small change that uses an existing hook. I'll need a list of .el files with descriptions, and it would be even more awesome if I can get it to give me an index of blog posts or sections for each module.
-</p>
-
-<div class="org-src-container">
-<pre class="src src-emacs-lisp"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">my-dotemacs-url</span> <span class="org-string">"https://sachachua.com/dotemacs/"</span>)
-
-<span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
-(<span class="org-keyword">defun</span> <span class="org-function-name">my-dotemacs-link-for-section-at-point</span> (<span class="org-type">&amp;optional</span> combined)
-  <span class="org-doc">"Return the link for the current section."</span>
-  (<span class="org-keyword">let*</span> ((custom-id (org-entry-get-with-inheritance <span class="org-string">"CUSTOM_ID"</span>))
-         (title (org-entry-get (point) <span class="org-string">"ITEM"</span>))
-         (url (<span class="org-keyword">if</span> custom-id
-                  (concat <span class="org-string">"dotemacs:"</span> custom-id)
-                (concat my-dotemacs-url <span class="org-string">":-:text="</span> (url-hexify-string title)))))
-    (<span class="org-keyword">if</span> combined
-        (org-link-make-string
-         url
-         title)
-      (cons url title))))
-
-(<span class="org-keyword">eval-and-compile</span>
-  (<span class="org-keyword">require</span> <span class="org-highlight-quoted-quote">'</span><span class="org-constant">org-core</span> nil t)
-  (<span class="org-keyword">require</span> <span class="org-highlight-quoted-quote">'</span><span class="org-constant">org-macs</span> nil t)
-  (<span class="org-keyword">require</span> <span class="org-highlight-quoted-quote">'</span><span class="org-constant">org-src</span> nil t))
-(<span class="org-keyword">declare-function</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org-babel-tangle--compute-targets</span> <span class="org-string">"ob-tangle"</span>)
-(<span class="org-keyword">defun</span> <span class="org-function-name">my-org-collect-links-for-tangled-files</span> ()
-  <span class="org-doc">"Return a list of ((filename (link link link link)) ...)."</span>
-  (<span class="org-keyword">let*</span> ((file (buffer-file-name))
-         results)
-    (<span class="org-keyword">org-babel-map-src-blocks</span> (buffer-file-name)
-      (<span class="org-keyword">let*</span> ((info (org-babel-get-src-block-info))
-             (link (my-dotemacs-link-for-section-at-point)))
-        (mapc
-         (<span class="org-keyword">lambda</span> (target)
-           (<span class="org-keyword">let</span> ((list (assoc target results <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">string=</span>)))
-             (<span class="org-keyword">if</span> list
-                 (<span class="org-keyword">cl-pushnew</span> link (cdr list) <span class="org-builtin">:test</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">equal</span>)
-               (<span class="org-keyword">push</span> (list target link) results))))
-         (org-babel-tangle--compute-targets file info))))
-    <span class="org-comment-delimiter">;; </span><span class="org-comment">Put it back in source order</span>
-    (nreverse
-     (mapcar (<span class="org-keyword">lambda</span> (o)
-               (cons (car o)
-                     (nreverse (cdr o))))
-             results))))
-(<span class="org-keyword">defvar</span> <span class="org-variable-name">my-emacs-config-module-links</span> nil <span class="org-doc">"Cache for links from tangled files."</span>)
-
-<span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
-(<span class="org-keyword">defun</span> <span class="org-function-name">my-emacs-config-update-module-info</span> ()
-  <span class="org-doc">"Update the list of links."</span>
-  (<span class="org-keyword">interactive</span>)
-  (<span class="org-keyword">setq</span> my-emacs-config-module-links
-        (seq-filter
-         (<span class="org-keyword">lambda</span> (o)
-           (string-match <span class="org-string">"my-"</span> (car o)))
-         (my-org-collect-links-for-tangled-files)))
-  (<span class="org-keyword">setq</span> my-emacs-config-modules-info
-        (mapcar (<span class="org-keyword">lambda</span> (group)
-                  <span class="org-highlight-quoted-quote">`</span>(,(file-name-base (car group))
-                    (commentary
-                     .
-                     ,(replace-regexp-in-string
-                       <span class="org-string">"^"</span>
-                       <span class="org-string">";; "</span>
-                       (concat
-                        <span class="org-string">"Related Emacs config sections:\n\n"</span>
-                        (org-export-string-as
-                         (mapconcat
-                          (<span class="org-keyword">lambda</span> (link)
-                            (concat <span class="org-string">"- "</span> (cdr link) <span class="org-string">"\\\\\n  "</span> (org-link-make-string (car link)) <span class="org-string">"\n"</span>))
-                          (cdr group)
-                          <span class="org-string">"\n"</span>)
-                         <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">ascii</span>
-                         t))))))
-                my-emacs-config-module-links)))
-
-<span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
-(<span class="org-keyword">defun</span> <span class="org-function-name">my-emacs-config-prepare-to-tangle</span> ()
-  <span class="org-doc">"Update module info if tangling my config."</span>
-  (<span class="org-keyword">when</span> (string-match <span class="org-string">"Sacha.org"</span> (buffer-file-name))
-    (my-emacs-config-update-module-info)))
-</code></pre>
-</div>
-
-<p>
-Let's set up the functions for tangling the boilerplate.
-</p>
-
-<div class="org-src-container">
-<pre class="src src-emacs-lisp"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">my-emacs-config-modules-dir</span> <span class="org-string">"~/sync/emacs/lisp/"</span>)
-(<span class="org-keyword">defvar</span> <span class="org-variable-name">my-emacs-config-modules-info</span> nil <span class="org-doc">"Alist of module info."</span>)
-(<span class="org-keyword">defvar</span> <span class="org-variable-name">my-emacs-config-url</span> <span class="org-string">"https://sachachua.com/dotemacs"</span>)
-
-<span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
-(<span class="org-keyword">defun</span> <span class="org-function-name">my-org-babel-post-tangle-insert-boilerplate-for-my-lisp</span> ()
-  (<span class="org-keyword">when</span> (file-in-directory-p (buffer-file-name) my-emacs-config-modules-dir)
-    (goto-char (point-min))
-    (<span class="org-keyword">let</span> ((base (file-name-base (buffer-file-name))))
-      (insert (format <span class="org-string">";;; %s.el --- %s -*- lexical-binding: t -*-</span>
-
-<span class="org-string">;; Author: %s &lt;%s&gt;</span>
-<span class="org-string">;; URL: %s</span>
-
-<span class="org-string">;;; License:</span>
-<span class="org-string">;;</span>
-<span class="org-string">;; This file is not part of GNU Emacs.</span>
-<span class="org-string">;;</span>
-<span class="org-string">;; This is free software; you can redistribute it and/or modify</span>
-<span class="org-string">;; it under the terms of the GNU General Public License as published by</span>
-<span class="org-string">;; the Free Software Foundation; either version 3, or (at your option)</span>
-<span class="org-string">;; any later version.</span>
-<span class="org-string">;;</span>
-<span class="org-string">;; This is distributed in the hope that it will be useful,</span>
-<span class="org-string">;; but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
-<span class="org-string">;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
-<span class="org-string">;; GNU General Public License for more details.</span>
-<span class="org-string">;;</span>
-<span class="org-string">;; You should have received a copy of the GNU General Public License</span>
-<span class="org-string">;; along with GNU Emacs; see the file COPYING.  If not, write to the</span>
-<span class="org-string">;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,</span>
-<span class="org-string">;; Boston, MA 02110-1301, USA.</span>
-
-<span class="org-string">;;; Commentary:</span>
-<span class="org-string">;;</span>
-<span class="org-string">%s</span>
-<span class="org-string">;;; Code:</span>
-
-<span class="org-string">\n\n"</span>
-                      base
-                      (<span class="org-keyword">or</span>
-                       (assoc-default <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">description</span>
-                                      (assoc-default base my-emacs-config-modules-info <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">string=</span>))
-                       <span class="org-string">""</span>)
-                      user-full-name
-                      user-mail-address
-                      my-emacs-config-url
-                      (<span class="org-keyword">or</span>
-                       (assoc-default <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">commentary</span>
-                                      (assoc-default base my-emacs-config-modules-info <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">string=</span>))
-                       <span class="org-string">""</span>)))
-      (goto-char (point-max))
-      (insert (format <span class="org-string">"\n(provide '%s)\n;;; %s.el ends here\n"</span>
-                      base
-                      base))
-      (save-buffer))))
-</code></pre>
-</div>
-
-<div class="org-src-container">
-<pre class="src src-emacs-lisp"><code>(<span class="org-keyword">setq</span> my-emacs-config-url <span class="org-string">"https://sachachua.com/dotemacs"</span>)
-(<span class="org-keyword">with-eval-after-load</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org</span>
-  (add-hook <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org-babel-pre-tangle-hook</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">my-emacs-config-prepare-to-tangle</span>)
-  (add-hook <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org-babel-post-tangle-hook</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">my-org-babel-post-tangle-insert-boilerplate-for-my-lisp</span>))
-</code></pre>
-</div>
-
-<p>
-You can see the results at <a href="https://github.com/sachac/.emacs.d/tree/gh-pages/lisp">.emacs.d/lisp at gh-pages · sachac/.emacs.d · GitHub</a>.
-</p>
-
-<div class="note">This is part of my <a href="https://sachachua.com/dotemacs#org-mode-org-babel-tangling-my-emacs-config-snippets-to-different-files-and-adding-boilerplate">Emacs configuration.</a></div></div>
+<div class="note">This is part of my <a href="https://sachachua.com/dotemacs#streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream">Emacs configuration.</a></div></div>
 </body>
 </html>

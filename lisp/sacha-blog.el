@@ -388,9 +388,10 @@ COMMENT should be an alist with author, date (ISO8901 format), and message (HTML
             (call-process "rsync" nil (get-buffer-create "*rsync*") nil "--chmod=ugo=rX" "-avzpe" "ssh"
                           local
                           remote)
-            (if (string-match "^https://" url)
-                (browse-url url)
-              (browse-url (concat sacha-blog-base-url url))))
+						(when (or (called-interactively-p 'any) sacha-org-11ty-export-and-copy-browse)
+							(if (string-match "^https://" url)
+									(browse-url url)
+								(browse-url (concat (replace-regexp-in-string "/$" "" sacha-blog-base-url) url)))))
         (error "Could not find %s" local))))
 	 ((derived-mode-p 'org-mode)
 		(let* ((subtreep (not (org-before-first-heading-p)))
@@ -411,8 +412,9 @@ COMMENT should be an alist with author, date (ISO8901 format), and message (HTML
 						(call-process "rsync" nil (get-buffer-create "*rsync*") nil "--chmod=ugo=rX" "-avzpe" "ssh"
 													local
 													remote)
-						(browse-url (concat (replace-regexp-in-string "/$" "" sacha-blog-base-url)
-																permalink)))
+						(when (or (called-interactively-p 'any) sacha-org-11ty-export-and-copy-browse)
+							(browse-url (concat (replace-regexp-in-string "/$" "" sacha-blog-base-url)
+																	permalink))))
 				(error "Could not find %s" local))))
 	 ((or (derived-mode-p 'html-mode)
         (derived-mode-p 'web-mode))
@@ -424,8 +426,9 @@ COMMENT should be an alist with author, date (ISO8901 format), and message (HTML
 			(call-process "rsync" nil (get-buffer-create "*rsync*") nil "--chmod=ugo=rX" "-avzpe" "ssh"
 										local
 										remote)
-			(browse-url (concat (replace-regexp-in-string "/$" "" sacha-blog-base-url)
-													permalink))))))
+			(when (or (called-interactively-p 'any) sacha-org-11ty-export-and-copy-browse)
+				(browse-url (concat (replace-regexp-in-string "/$" "" sacha-blog-base-url)
+														permalink)))))))
 ;; mastodon.el: Copy toot URL after posting; also, copying just this post with 11ty:4 ends here
 
 ;; [[file:../Sacha.org::#mastodon-tooting-a-link-to-the-current-post][Tooting a link to the current post:1]]

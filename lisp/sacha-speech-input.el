@@ -788,11 +788,9 @@ Call with \\[universal-argument] to specify the input."
         (seq-remove (lambda (o)
                       (string= (cdr o) pad-id))
                     sacha-speech-etherpads)))
-
-(add-to-list 'sacha-speech-functions #'sacha-speech-append-to-etherpad)
 ;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:4 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:5]]
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:6]]
 (defvar sacha-speech-erc nil "Alist of (session . channel)")
 ;; (setq sacha-speech-erc '(("#chrome-HP7k8I" . "#emacsconf-test")))
 
@@ -821,11 +819,9 @@ Call with \\[universal-argument] to specify the input."
         (seq-remove (lambda (o)
                       (string= (cdr o) channel))
                     sacha-speech-erc)))
+;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:6 ends here
 
-(add-to-list 'sacha-speech-functions #'sacha-speech-send-to-erc)
-;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:5 ends here
-
-;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:6]]
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:8]]
 ;;;###autoload
 (defun sacha-speech-fix-common-errors (info)
   (with-temp-buffer
@@ -834,17 +830,16 @@ Call with \\[universal-argument] to specify the input."
     (sacha-subed-fix-common-errors-from-start)
     (setf (alist-get 'content info) (buffer-string)))
   info)
-(add-hook 'sacha-speech-functions #'sacha-speech-fix-common-errors -100)
-;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:6 ends here
+;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:8 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:7]]
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:10]]
 ;;;###autoload
 (defun sacha-speech-insert-at-markers (info)
   (when (and sacha-whisper-target-markers info)
     (sacha-whisper-insert (alist-get 'content info))))
 (add-hook 'sacha-speech-functions #'sacha-speech-insert-at-markers 100)
 
-;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:7 ends here
+;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:10 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api-speech-and-subed-record][speech and subed-record:1]]
 (defvar sacha-speech-timestamp-adjust-before 1000)
@@ -939,8 +934,6 @@ Call with \\[universal-argument] to specify the input."
              (not sacha-speech-subed-ignore))
     (sacha-speech-subed-record-process info))
   info)
-
-(add-to-list 'sacha-speech-functions #'sacha-speech-subed-record)
 ;; speech and subed-record:1 ends here
 
 (provide 'sacha-speech-input)

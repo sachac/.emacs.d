@@ -65,7 +65,7 @@
 ;; - Open files externally
 ;;   https://sachachua.com/dotemacs#open-files-externally
 ;;
-;; - Toggle
+;; - Emacs: Toggle a buffer for quick reference
 ;;   https://sachachua.com/dotemacs#toggle
 ;;
 ;; - Randomness for serendipity
@@ -73,6 +73,9 @@
 ;;
 ;; - Touch gestures
 ;;   https://sachachua.com/dotemacs#touch
+;;
+;; - Applications
+;;   https://sachachua.com/dotemacs#navigation-applications
 ;;
 ;; - Link-related convenience functions
 ;;   https://sachachua.com/dotemacs#link-related-convenience-functions
@@ -211,32 +214,17 @@
 ;; Navigation:2 ends here
 
 ;; [[file:../Sacha.org::#navigation-focus-on-the-current-window][Focus on the current window:1]]
-    (defvar prot/window-configuration nil
-      "Current window configuration.
-  Intended for use by `prot/window-monocle'.")
-
-    (define-minor-mode prot/window-single-toggle
-      "Toggle between multiple windows and single window.
-  This is the equivalent of maximising a window.  Tiling window
-  managers such as DWM, BSPWM refer to this state as 'monocle'."
-      :lighter " [M]"
-      :global nil
-      (if (one-window-p)
-          (when prot/window-configuration
-            (set-window-configuration prot/window-configuration))
-        (setq prot/window-configuration (current-window-configuration))
-        (delete-other-windows)))
-
 ;;;###autoload
-    (defun prot/kill-buffer-current (&optional arg)
-      "Kill current buffer or abort recursion when in minibuffer."
-      (interactive "P")
-      (if (minibufferp)
-          (abort-recursive-edit)
-        (kill-buffer (current-buffer)))
-      (when (and arg
-                 (not (one-window-p)))
-        (delete-window)))
+(defun sacha-toggle-delete-other-windows ()
+  "Delete other windows in frame if any, or restore previous window config.
+
+From https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
+and Steve Purcell's configuration."
+  (interactive)
+  (if (and winner-mode
+           (equal (selected-window) (next-window)))
+      (winner-undo)
+    (delete-other-windows)))
 ;; Focus on the current window:1 ends here
 
 ;; [[file:../Sacha.org::#sort-read-file-name][Sort files in read-file-name:1]]
@@ -473,28 +461,28 @@
                     (shell-quote-argument buffer-file-name)))))
 ;; Open files externally:1 ends here
 
-;; [[file:../Sacha.org::#toggle][Toggle:1]]
+;; [[file:../Sacha.org::#toggle][Emacs: Toggle a buffer for quick reference:1]]
 ;;;###autoload
-(defun sacha-toggle-or-create (buffer-name &optional  buffer-create-fn switch-cont)
+(defun sacha-toggle-or-create (buffer-name &optional buffer-create-fn switch-cont)
   "Raises or hides BUFFER-NAME.
-If BUFFER-CREATE-FN"
+If BUFFER-CREATE-FN is specified, use that when creating a function.
+Use SWITCH-CONT for additional setup if needed."
   (interactive)
   (let ((target-buf
          (if (file-exists-p buffer-name)
              (find-file-noselect buffer-name)
            (get-buffer buffer-name))))
-    (prin1 target-buf)
     (cond
      ((equal (current-buffer) target-buf)
       (bury-buffer))
      (target-buf
       (switch-to-buffer target-buf)
-      (if switch-cont (funcall switch-cont)))
+      (when switch-cont (funcall switch-cont)))
      (t (if buffer-create-fn
             (funcall buffer-create-fn)
           (switch-to-buffer
            (get-buffer-create buffer-name)))
-        (if switch-cont (funcall switch-cont))))))
+        (when switch-cont (funcall switch-cont))))))
 
 ;;;###autoload
 (defmacro sacha-make-toggle-buffer-function (function-name buffer-name &optional buffer-create-fn switch-cont)
@@ -510,7 +498,7 @@ after the buffer has been created or switched to.  This allows
 running further actions that setup the state of the buffer or
 modify it.
 
-From https://www.reddit.com/r/emacs/comments/l4v1ux/one_of_the_most_useful_small_lisp_functions_in_my/"
+Based on https://www.reddit.com/r/emacs/comments/l4v1ux/one_of_the_most_useful_small_lisp_functions_in_my/"
   (declare (debug t))
   `(defun ,function-name ()
      ,(format "Toggle %s." buffer-name)
@@ -519,7 +507,7 @@ From https://www.reddit.com/r/emacs/comments/l4v1ux/one_of_the_most_useful_small
       ,buffer-name
       ,buffer-create-fn
       ,switch-cont)))
-;; Toggle:1 ends here
+;; Emacs: Toggle a buffer for quick reference:1 ends here
 
 ;; [[file:../Sacha.org::#random][Randomness for serendipity:1]]
 ;;;###autoload
@@ -548,6 +536,19 @@ From https://www.reddit.com/r/emacs/comments/l4v1ux/one_of_the_most_useful_small
     (run-at-time "1 sec" nil (lambda ()
                                (setq sacha-navigate-swipe-debounce t)))))
 ;; Touch gestures:1 ends here
+
+;; [[file:../Sacha.org::#navigation-applications][Applications:1]]
+;;;###autoload
+(defun sacha-navigate-focus-or-launch (app &optional start)
+  "Switch to the specified APP or START it."
+  (interactive)
+	(apply
+	 'call-process
+	 "~/bin/focus_or_launch" nil t nil
+	 (delq nil
+				 (list
+					app start))))
+;; Applications:1 ends here
 
 ;; [[file:../Sacha.org::#link-related-convenience-functions][Link-related convenience functions:1]]
 ;;;###autoload

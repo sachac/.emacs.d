@@ -203,6 +203,7 @@
 ;; Emacs completion and handling accented characters with orderless:1 ends here
 
 ;; [[file:../Sacha.org::#marginalia][Marginalia:1]]
+(eval-when-compile (require 'marginalia))
 ;;;###autoload
 (defun sacha-marginalia-annotate-variable (cand)
   "Annotate variable CAND with its documentation string.

@@ -48,7 +48,7 @@
 
 
 
-;; [[file:../Sacha.org::#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Org Mode: Tangle Emacs config snippets to different files and add boilerplate:3]]
+;; [[file:../Sacha.org::sacha-org-babel-post-tangle-insert-boilerplate-for-sacha-lisp][sacha-org-babel-post-tangle-insert-boilerplate-for-sacha-lisp]]
 (defvar sacha-emacs-config-modules-dir "~/sync/emacs/lisp/")
 (defvar sacha-emacs-config-modules-info nil "Alist of module info.")
 (defvar sacha-emacs-config-url "https://sachachua.com/dotemacs")
@@ -105,7 +105,7 @@
                       base
                       base))
       (save-buffer))))
-;; Org Mode: Tangle Emacs config snippets to different files and add boilerplate:3 ends here
+;; sacha-org-babel-post-tangle-insert-boilerplate-for-sacha-lisp ends here
 
 ;; [[file:../Sacha.org::#org-mode-org-babel-detangle-just-the-current-block][Org Babel: Detangle just the current block:1]]
 ;;;###autoload

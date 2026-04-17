@@ -371,22 +371,22 @@
 ;; Saving photos:1 ends here
 
 ;; [[file:../Sacha.org::#screenshot][Screenshot:1]]
+(defvar sacha-screenshot-hook nil "Functions to run after a screenshot. Called with the filename as the arg.")
+
 ;;;###autoload
 (defun sacha-screenshot (&optional filename current-screen caption)
   "Save a screenshot of the current frame as an SVG image.
 Saves to a temp file and puts the filename in the kill ring.
 Prompt for a caption afterwards."
-  (interactive (list nil current-prefix-arg))
+  (interactive (list nil t))
   (if current-screen
       (setq filename (sacha-screenshot-current-screen filename))
-    (let* ((filename
-            (or filename
-                (expand-file-name
-                 (format-time-string "%Y-%m-%d-%H-%M-%S.svg")
-                 sacha-recordings-dir)))
-           (data (x-export-frames nil 'svg)))
-      (with-temp-file filename
-        (insert data))))
+    (setq filename (or filename
+                       (expand-file-name
+                        (format-time-string "%Y-%m-%d-%H-%M-%S.svg")
+                        sacha-recordings-dir)))
+    (with-temp-file filename
+      (insert (x-export-frames nil 'svg))))
   (when (called-interactively-p 'any)
     (unless caption
       (save-window-excursion
@@ -401,6 +401,7 @@ Prompt for a caption afterwards."
         (setq filename new-filename)))
     (kill-new filename)
     (message filename))
+  (run-hook-with-args 'sacha-screenshot-hook filename)
   filename)
 
 ;;;###autoload
@@ -411,11 +412,13 @@ Prompt for a caption afterwards."
              (expand-file-name
               (format-time-string "%Y-%m-%d-%H-%M-%S.png")
               sacha-recordings-dir))))
-    (make-process
-     :name "spectacle"
-     :command
-     (list "spectacle" "-b" "-m" "-n" "-o" new-file))
+    (call-process
+     "spectacle"
+     nil nil nil
+      "-b" "-m" "-n" "-o" new-file)
     new-file))
+(defun sacha-save-screenshot (filename)
+  (org-capture-string filename "S"))
 ;; Screenshot:1 ends here
 
 ;; [[file:../Sacha.org::sacha-org-insert-screenshot][sacha-org-insert-screenshot]]

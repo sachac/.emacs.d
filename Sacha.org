@@ -34038,7 +34038,7 @@ Emacs), but sometimes I just want to add a link at point.
 #+end_src
 
 #+begin_src emacs-lisp
-(with-eval-after-load 'org
+(with-eval-after-load 'org-capture
 	(cl-pushnew
 	 `("f" "Firefox" entry
 			(file ,sacha-org-inbox-file)
@@ -37653,43 +37653,6 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
     :super-groups '((:auto-parent t))))
 #+end_src
 
-** General streaming configuration
-:PROPERTIES:
-:CUSTOM_ID: general-streaming-configuration
-:END:
-#+begin_src emacs-lisp
-(defvar sacha-stream-captions-insert nil "Non-nil means insert into the current buffer.")
-(defhydra sacha-stream ()
-	("w" (org-open-link-from-string "[[file:~/proj/stream/index.org::#streaming-workflow][Streaming]]") "Workflow" :column "Setup")
-  ;("a" sacha-show-emacs-tasks "Agenda")
-	;("t" sacha-stream-insert-timestamp "Timestamp" :exit t)
-  ;("bt" selectric-mode "Typing sounds")
-  ;("bm" sacha-stream-toggle-background-music "Background music")
-  ("y" (browse-url "https://studio.youtube.com/channel/UClT2UAbC6j7TqOWurVhkuHQ/livestreaming/dashboard") "Youtube")
-	("ts" (browse-url "https://twitch.tv/sachachua") "View stream")
-  ("tv" (browse-url "https://dashboard.twitch.tv/u/sachachua/stream-manager") "View manager")
-  ;; ("s" sacha-stream-toggle
-	 ;; 	(format "Streaming [%s]"
-	 ;; 					(if (eq sacha-stream-type 'stream) "X" " "))
-	 ;; 	:exit t
-	 ;; 	:column "Streaming/recording")
-  ("r" sacha-recording-toggle
-		(format "Recording [%s]"
-						(if (eq sacha-stream-type 'record) "X" " "))
-		:exit t)
-  ("r" (org-capture nil "y") "Capture" :column "During")
-	("o" (org-open-link-from-string "[[file:~/proj/stream/index.org::#plans]]")
-	 "Notes"
-	 :exit t)
-	("m" sacha-stream-message "Message" :exit t)
-	("p" sacha-stream-publish-and-sync-notes "Publish" :exit t)
-  ("v" (sacha-play-latest-recording) "Play last" :exit t))
-(keymap-global-set "<f8>" #'sacha-stream/body)
-(keymap-global-set "s-r" #'sacha-stream/body)
-(keymap-global-set "s-R" #'ignore)
-(keymap-global-set "s-v" #'sacha-stream/body)
-(keymap-global-set "s-SPC" #'sacha-stream/body)
-#+end_src
 ** Stream message
 :PROPERTIES:
 :CUSTOM_ID: streaming-stream-message
@@ -37759,6 +37722,29 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
                  (format "--title=%s" (shell-quote-argument (file-name-base recording)))
                  (format "--client-secrets=%s" google-video-credentials)))
     #+end_src
+
+With a [[https://github.com/obs-websocket-el/obs-websocket-el][websocket connection to OBS]], this allows me to iterate over my audio setup a little more conveniently. The workflow is:
+
+- Press a key to start recording.
+- Say something.
+- Press a key to stop recording.
+- Play back the recording after a brief delay.
+
+#+begin_src emacs-lisp :tangle lisp/sacha-stream.el
+;;;###autoload
+(defun sacha-stream-test-recording ()
+  "Start recording, stop recording, and play it back."
+  (interactive)
+  (obs-websocket-start-recording)
+  (read-key "Press any key to stop recording.")
+  (obs-websocket-stop-recording)
+  (sit-for 1)
+  (sacha-play-latest-recording)
+  (let (file (sacha-latest-file sacha-recordings-dir))
+    (when (y-or-n-p (format "Delete %s?" file))
+      (delete-file file))))
+#+end_src
+
 ** Stream notes
 :PROPERTIES:
 :CUSTOM_ID: stream-notes
@@ -37852,6 +37838,50 @@ changes that happen outside Emacs, but it'll do for now. I used =pacmd list-sour
 												subtitles
 												"")))))
 #+end_src
+** STARTED Download and post-process
+:PROPERTIES:
+:Effort:   0:30
+:QUANTIFIED: Emacs
+:CUSTOM_ID: streaming-download-and-post-process
+:END:
+:LOGBOOK:
+CLOCK: [2026-04-15 Wed 16:35]--[2026-04-15 Wed 20:35] =>  4:00
+:END:
+
+#+begin_src emacs-lisp :tangle lisp/sacha-stream.el
+(defvar sacha-stream-download-dir "~/proj/yay-emacs/" "Directory to save files into.")
+(defvar sacha-stream-transcribe-command "~/bin/whisperx-large" "Command to use for transcription.")
+;;;###autoload
+(defun sacha-stream-download-and-process (&optional url title)
+  "Download MP3 and MP4 versions, and rename to TITLE."
+  (interactive (list sacha-stream-url (org-entry-get (point) "ITEM")))
+	(let ((base (expand-file-name (sacha-make-slug title) sacha-stream-download-dir))
+				(default-directory sacha-stream-download-dir))
+		(with-current-buffer (get-buffer-create "*Download MP3")
+			(let ((download-process
+						 (start-process "download-mp3" (current-buffer) "yt-dlp" "-x" "--audio-format" "mp3"
+													 url
+													 "-o"
+													 (concat base ".mp3"))))
+				(set-process-sentinel
+				 download-process
+				 (lambda (process event)
+					 (message "Downloading MP3")
+					 (start-process "transcribe" (get-buffer-create "*Download MP3")
+													sacha-stream-transcribe-command
+													(concat base ".mp3"))))))
+		(with-current-buffer (get-buffer-create "*Download MP4")
+			(set-process-sentinel
+			 (start-process "download-mp4" (current-buffer) "yt-dlp"
+											"-S" "res,ext:mp4:m4a" "--recode" "mp4"
+											url
+											"-o"
+											(concat base ".mp4"))
+			 (lambda (process event)
+				 (message "Downloading MP4: %s" (string-trim event)))))))
+
+
+#+end_src
 ** CANCELLED Try continuous streaming and the Google Speech Recognition API
 CLOSED: [2023-03-23 Thu 22:27]
     :PROPERTIES:
@@ -37864,6 +37894,7 @@ With data logging $0.004 USD / 15 seconds
 (defvar sacha-stream-captions-websocket nil)
 (defvar sacha-stream-captions-history nil)
 (defvar sacha-stream-captions-last-caption nil)
+(defvar sacha-stream-captions-insert nil "Non-nil means insert into the current buffer.")
 ;;;###autoload
 (defun sacha-stream-captions-insert () (interactive) (setq sacha-stream-captions-insert (not sacha-stream-captions-insert)))
 
@@ -37937,6 +37968,539 @@ With data logging $0.004 USD / 15 seconds
 (defun sacha-stream-captions-stop ()
   (interactive)
   (stop-process sacha-stream-captions-process))
+#+end_src
+** Make chapter markers and video time hyperlinks easier to note while I livestream   :org:emacs:
+:PROPERTIES:
+:CUSTOM_ID: streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream
+:EXPORT_DATE: 2026-04-17T00:27:43-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2026/04/make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2026/04/make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream/
+:END:
+
+I want to make it easier to add chapter markers to my YouTube video descriptions and hyperlinks to specific times in videos in my blog posts.
+
+*** Capture timestamps
+:PROPERTIES:
+:ID:       20260416T212547.404353
+:CUSTOM_ID: streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream-capture-timestamps
+:END:
+
+Using wall-clock time via Org Mode timestamps like [2026-04-16 Thu 10:40] makes more sense to me than using video offsets because they're independent of any editing I might do.
+
+=C-u C-c C-!= (=org-timestamp-inactive=) creates a timestamp with a time. I probably do often enough that I should create a Yasnippet for it:
+
+#+begin_src yasnippet
+# -*- mode: snippet -*-
+# name: insert time
+# key: zt
+# --
+`(format-time-string "[%Y-%m-%d %a %H:%M]")`
+#+end_src
+
+I also have [[https://orgmode.org/manual/Capture.html][Org capture]] templates, like this:
+
+#+begin_src emacs-lisp :eval no :tangle no
+(with-eval-after-load 'org-capture
+	(add-to-list
+	 'org-capture-templates
+	 `("l" "Timestamp" item
+  	 (file+headline ,sacha-stream-inbox-file "Timestamps")
+  	 "- %U %i%?")))
+#+end_src
+
+I've been experimenting with a [[dotemacs:streaming-display-large-text-and-maybe-qr-code][custom Org Mode link type "stream:"]] which:
+
+- displays the text in a larger font with a QR code for easier copying
+- sends the text to the YouTube chat via [[https://socialstream.ninja][socialstream.ninja]]
+- adds a timestamped note using the org-capture template above
+
+Here is an example of that link in action. It's the =(Log)= link that I clicked on.
+
+#+begin_src emacs-lisp :eval never-export :tangle no :summary Let's extract that clip
+(compile-media-sync
+ '((combined (:source
+							"/home/sacha/proj/yay-emacs/ye16-sacha-and-prot-talk-emacs.mp4"
+							:original-start-ms "51:09"
+							:original-stop-ms "51:16"))
+	 (combined (:source
+							"/home/sacha/proj/yay-emacs/ye16-sacha-and-prot-talk-emacs-link-overlay.png"
+							:output-start-ms "0:03"
+							:output-stop-ms "0:04"))
+	 (combined (:source
+							"/home/sacha/proj/yay-emacs/ye16-sacha-and-prot-talk-emacs-qr-chat-overlay.png"
+							:output-start-ms "0:05"
+							:output-stop-ms "0:06")))
+ "/home/sacha/proj/yay-emacs/ye16.1-stream-show-string-and-calculate-offset.mp4")
+#+end_src
+
+#+begin_media-post
+video:/home/sacha/proj/yay-emacs/ye16.1-stream-show-string-and-calculate-offset.mp4
+#+end_media-post
+
+I used it in [[https://sachachua.com/blog/2026/04/ye16-sacha-and-prot-talk-emacs/][YE16: Sacha and Prot talk Emacs]]. It was handy to have a link that I could click on instead of trying to remember a keyboard shortcut and type text.
+For example, these are the timestamps that were filed under org-capture:
+
+#+NAME: ye16-sample-timestamps
+- [2026-04-16 Thu 10:39] Getting more out of livestreams
+- [2026-04-16 Thu 10:57] Announcing livestreams
+- [2026-04-16 Thu 11:05] Processing the recordings
+- [2026-04-16 Thu 11:11] Non-packaged code
+
+Here's a short function for getting those times:
+
+#+NAME: sacha-org-time-at-point
+#+begin_src emacs-lisp :tangle lisp/sacha-org.el
+(defun sacha-org-time-at-point ()
+	"Return Emacs time object for timestamp at point."
+	(org-timestamp-to-time (org-timestamp-from-string (org-element-property :raw-value (org-element-context)))))
+#+end_src
+
+Next, I wanted to turn those timestamps into a hh:mm:ss offset into the streamed video.
+
+*** Calculate an Org timestamp's offset into a YouTube stream
+:PROPERTIES:
+:CUSTOM_ID: streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream-calculate-an-org-timestamp-s-offset-into-a-youtube-stream
+:END:
+
+I post my YouTube videos under a brand account so that just in case I lose access to my main sacha@sachachua.com Google account, I still have access via my @gmail.com account. To enable YouTube API access to my channel, I needed to get my brand account's email address and set it up as a test user.
+
+1. Go to https://myaccount.google.com/brandaccounts.
+2. Select the account.
+3. Click on *View general account info*
+4. Copy the =...@pages.plusgoogle.com= email address there.
+5. Go to https://console.cloud.google.com/
+6. Enable the YouTube data API for my project.
+7. Download the credentials.json.
+8. Go to *Data Access - Audience*
+9. Set the *User type* to *External*
+10. Add my brand account as one of the *Test users*.
+11. Log in at the command line:
+    #+begin_src sh :eval no :tangle no
+ gcloud auth application-default login \
+     --client-id-file=credentials.json \
+     --scopes="https://www.googleapis.com/auth/youtube"
+    #+end_src
+
+Then the following code calculates the offset of the timestamp at point based on the livestream that contains it.
+
+#+begin_src emacs-lisp :tangle lisp/sacha-google.el
+;;;###autoload
+(defun sacha-google-youtube-stream-offset (time)
+	"Return the offset from the start of the stream.
+When called interactively, copy it."
+	(interactive (list (sacha-org-time-at-point)))
+	(when (and (stringp time)
+						 (string-match org-element--timestamp-regexp time))
+		(setq time (org-timestamp-to-time (org-timestamp-from-string (match-string 0 time)))))
+	(when-let*
+			((seconds (sacha-google-youtube-live-seconds-offset-from-start-of-stream
+								 time))
+			 (result (emacstv-format-seconds seconds)))
+		(when (called-interactively-p 'any)
+			(kill-new result)
+			(message "%s" result))
+		result))
+
+(defvar sacha-google-access-token nil "Cached access token.")
+
+;;;###autoload
+(defun sacha-google-access-token ()
+	"Return Google access token."
+	(or sacha-google-access-token
+			(setq sacha-google-access-token
+						(string-trim (shell-command-to-string "gcloud auth application-default print-access-token")))))
+
+(defvar sacha-google-youtube-live-broadcasts nil "Cache.")
+(defvar sacha-google-youtube-stream-offset-seconds 10 "Number of seconds to offset.")
+
+;;;###autoload
+(defun sacha-google-youtube-live-broadcasts ()
+	"Return the list of broadcasts."
+	(or sacha-google-youtube-live-broadcasts
+			(setq sacha-google-youtube-live-broadcasts
+						(request-response-data
+						 (request "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet&mine=true&maxResults=50"
+							 :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token))))
+							 :sync t
+							 :parser #'json-read)))))
+
+(defun sacha-google-youtube-live-get-broadcast-at-time (time)
+	"Return the broadcast encompassing TIME."
+	(seq-find
+	 (lambda (o)
+		 (or
+			;; actual
+			(and
+			 (alist-get 'actualStartTime (alist-get 'snippet o))
+			 (alist-get 'actualEndTime (alist-get 'snippet o))
+			 (not (time-less-p time (date-to-time (alist-get 'actualStartTime (alist-get 'snippet o)))))
+			 (time-less-p time (date-to-time (alist-get 'actualEndTime (alist-get 'snippet o)))))
+			;; actual, not done yet
+			(and
+			 (alist-get 'actualStartTime (alist-get 'snippet o))
+			 (null (alist-get 'actualEndTime (alist-get 'snippet o)))
+			 (not (time-less-p time (date-to-time (alist-get 'actualStartTime (alist-get 'snippet o))))))
+			;; scheduled
+			(and
+			 (null (alist-get 'actualStartTime (alist-get 'snippet o)))
+			 (null (alist-get 'actualEndTime (alist-get 'snippet o)))
+			 (not (time-less-p time (date-to-time (alist-get 'scheduledStartTime (alist-get 'snippet o))))))))
+	 (sort
+		(seq-filter
+		 (lambda (o)
+			 (or
+				(alist-get 'actualStartTime (alist-get 'snippet o))
+				(alist-get 'scheduledStartTime (alist-get 'snippet o))))
+		 (alist-get 'items
+
+								(sacha-google-youtube-live-broadcasts)))
+		:key (lambda (o)
+					 (or
+						(alist-get 'actualStartTime (alist-get 'snippet o))
+						(alist-get 'scheduledStartTime (alist-get 'snippet o))))
+		:lessp #'string<)))
+
+(defun sacha-google-youtube-live-seconds-offset-from-start-of-stream (wall-time)
+	"Return number of seconds for WALL-TIME from the start of the stream that contains it.
+Offset by `sacha-google-youtube-stream-offset-seconds'."
+	(when (and wall-time
+						 (alist-get 'actualStartTime
+												(alist-get 'snippet
+																	 (sacha-google-youtube-live-get-broadcast-at-time wall-time))))
+		(+ sacha-google-youtube-stream-offset-seconds
+			 (time-to-seconds
+				(time-subtract
+				 wall-time
+				 (date-to-time
+					(alist-get 'actualStartTime
+										 (alist-get 'snippet
+																(sacha-google-youtube-live-get-broadcast-at-time wall-time)))))))))
+
+(defun sacha-google-youtube-convert-timestamps-to-chapters (timestamps)
+	"Return a string of chapters for the Youtube video.
+Use this when there is no embedded player."
+	(mapconcat
+	 (lambda (o)
+		 (concat
+			(sacha-google-youtube-stream-offset
+			 o)
+			" "
+			(replace-regexp-in-string "^\\[.+?\\] " "" o)))
+	 timestamps
+	 "\n"))
+
+;;;###autoload
+(defun sacha-google-clear-cache ()
+	"Clear cached Google access tokens and data."
+	(interactive)
+	(setq sacha-google-access-token nil)
+	(setq sacha-google-youtube-live-broadcasts nil))
+#+end_src
+
+For example:
+
+#+begin_src emacs-lisp :var timestamps=ye16-sample-timestamps :results list replace :eval never-export :tangle no :exports both
+(mapcar
+ (lambda (o)
+	 (concat
+		"vtime:"
+		(sacha-google-youtube-stream-offset
+		 o)
+		" "
+		(replace-regexp-in-string "^\\[.+?\\] " "" o)))
+ timestamps)
+#+end_src
+
+#+RESULTS:
+:results:
+- [[vtime:19:09]] Getting more out of livestreams
+- [[vtime:37:09]] Announcing livestreams
+- [[vtime:45:09]] Processing the recordings
+- [[vtime:51:09]] Non-packaged code
+:end:
+
+It's not exact, but it gets me in the right neighbourhood. Then I can use the MPV player to figure out a better timestamp if I want, and I can use my custom vtime Org link time to make those clickable when people have Javascript enabled. See [[https://sachachua.com/blog/2026/04/ye16-sacha-and-prot-talk-emacs/][YE16: Sacha and Prot talk Emacs]] for examples.
+
+It could be nice to log seconds someday for even finer timestamps. Still, this is handy already!
+
+** Create a Google Calendar event from an Org Mode timestamp     :org:emacs:
+:PROPERTIES:
+:CREATED: [2026-04-16 Thu 15:03]
+:EXPORT_DATE: 2026-04-17T09:26:41-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2026/04/create-a-google-calendar-event-from-an-org-mode-timestamp/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2026/04/create-a-google-calendar-event-from-an-org-mode-timestamp/
+:ID:       20260417T092931.519759
+:END:
+
+Time zones are hard, so I let calendaring systems take care of the conversion and confirmation. I've been using Google Calendar because it synchronizes with my phone and people know what to do with the event invite.
+[[https://orgmode.org/manual/iCalendar-Export.html][Org Mode has iCalendar export]], but I sometimes have a hard time getting .ics files into Google Calendar on my laptop, so I might as well just create the calendar entry in Google Calendar directly. Well. Emacs is a lot more fun than Google Calendar, so I'd rather create the calendar entry from Emacs and put it into Google Calendar.
+
+This function lets me start from a timestamp like =[2026-04-24 Fri 10:30]= (inserted with =C-u C-c C-!=, or =org-timestamp-inactive=) and create an event based on a template.
+
+#+begin_src emacs-lisp :tangle lisp/sacha-emacs-chat.el :results silent
+(defvar sacha-time-zone "America/Toronto" "Full name of time zone.")
+
+;;;###autoload
+(defun sacha-emacs-chat-schedule (&optional time)
+  "Create a Google Calendar invite based on TIME or the Org timestamp at point."
+  (interactive (list (sacha-org-time-at-point)))
+	(browse-url
+	 (format
+		"https://calendar.google.com/calendar/render?action=TEMPLATE&text=%s&details=%s&dates=%s&ctz=%s"
+		(url-hexify-string sacha-emacs-chat-title)
+		(url-hexify-string sacha-emacs-chat-description)
+		(format-time-string
+		 "%Y%m%dT%H%M%S" time)
+		sacha-time-zone)))
+
+(defvar sacha-emacs-chat-title "Emacs Chat" "Title of calendar entry.")
+(defvar sacha-emacs-chat-description
+	"All right, let's try this! =) See the calendar invite for the Google Meet link.
+
+Objective: Share cool stuff about Emacs workflows that's not obvious from reading configs, and have fun chatting about Emacs
+
+Some ideas for things to talk about:
+- Which keyboard shortcuts or combinations of functions work really well for you?
+- What's something you love about your setup?
+- What are you looking forward to tweaking next?
+
+Let me know if you want to do it on stream (more people can ask questions) or off stream (we can clean up the video in case there are hiccups). Also, please feel free to send me links to things you'd like me to read ahead of time, like your config!"
+	"Description.")
+#+end_src
+
+It uses this function to convert the timestamp at point:
+
+defun-open:sacha-org-time-at-point
+
+** Create YouTube livestream broadcasts from Emacs Lisp
+
+I want to take advantage of this relatively predictable focus time while the kiddo is in school by getting back into the swing of scheduling conversations with people. I've been experimenting with [[https://sachachua.com/live][livestreaming these]]
+
+#+begin_src emacs-lisp :tangle lisp/sacha-stream.el
+(declare-function sacha-date-to-iso-utc "sacha-lisp")
+
+(cl-defun sacha-stream-youtube-format-broadcast (&key time title description privacy
+																											end-time
+																											(auto-start :json-false)
+																											(auto-stop :json-false))
+	"Format arguments as a broadcast object for YouTube data API."
+	(setq time (sacha-date-to-iso-utc time))
+	(when end-time (setq end-time (sacha-date-to-iso-utc end-time)))
+	`((snippet
+		 (title . ,title)
+		 (scheduledStartTime . ,time)
+		 (scheduledEndTime . ,end-time)
+		 (description . ,description))
+		(status
+		 (privacyStatus . ,privacy))
+		(contentDetails
+		 (enableAutoStart . ,auto-start)
+		 (enableAutoStop . ,auto-stop))))
+
+
+;;;###autoload
+(cl-defun sacha-stream-youtube-schedule-livestream (&key time title description privacy
+																												 end-time
+																												 (auto-start json-false)
+																												 (auto-stop json-false)
+																												 thumbnail)
+  "Schedule a livestream at TIME with TITLE, DESCRIPTION, and PRIVACY.
+You can also set AUTO-START and AUTO-STOP."
+  (interactive
+	 (let ((start (org-read-date
+								 t t nil "Start: " nil
+								 (when (eq 'timestamp (org-element-type (org-element-context)))
+									 (org-element-property :raw-value
+																				 (org-element-context))))))
+		 (list :time start
+					 :end-time (org-read-date t t nil "End: " start)
+					 :title (read-string "Title: ")
+					 :description (read-string "Description: ")
+					 :privacy "public"
+					 :auto-start json-false
+					 :auto-start t
+					 :thumbnail (read-file-name "Thumbnail: "))))
+	(let ((body (json-encode (sacha-stream-youtube-format-broadcast
+														:time time
+														:title title
+														:description description
+														:privacy privacy
+														:end-time end-time
+														:auto-start auto-start
+														:auto-stop auto-stop)))
+				response)
+		(setq response
+					(request-response-data
+					 (request "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,contentDetails,status"
+						 :type "POST"
+						 :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token)))
+												("Accept" . "application/json")
+												("Content-Type" . "application/json"))
+						 :data body
+						 :sync t
+						 :parser #'json-read)))
+		(push response (alist-get 'items sacha-google-youtube-live-broadcasts))
+		(when thumbnail
+			(sacha-stream-youtube-set-video-thumbnail (alist-get 'id response) thumbnail))
+		(when (called-interactively-p 'any)
+			(let ((url (concat "https://youtube.com/live/" (alist-get 'id response))))
+				(message "%s" url)
+				(kill-new url)))
+		response))
+
+;;;###autoload
+(defun sacha-stream-youtube-set-video-thumbnail (video-id thumbnail)
+	"Set VIDEO-ID to THUMBNAIL."
+	(request "https://www.googleapis.com/upload/youtube/v3/thumbnails/set"
+    :type "POST"
+    :params `(("videoId" . ,video-id))
+    :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token)))
+               ("Content-Type" .
+								,(mailcap-file-name-to-mime-type thumbnail))
+               ("Accept" . "application/json"))
+    :data (with-temp-buffer
+						(set-buffer-multibyte nil)
+						(insert-file-contents-literally thumbnail)
+						(buffer-string))
+    :sync t))
+
+;; (sacha-stream-youtube-schedule-livestream :time "2026-04-23 10:30" :end-time "2026-04-23 11:30" :title "Emacs Chat: James Endres Howell" :description "I chat with James Endres Howell (https://jamesendreshowell.com/ , https://fediscience.org/@jameshowell) about Emacs and life.\n\nhttps://sachachua.com/topic/emacs-chat" :privacy "public" :auto-start json-false :auto-stop json-false :thumbnail "~/recordings/2026-04-17-07-53-05 Emacs Chat thumbnail - James.png")
+;; (sacha-stream-youtube-schedule-livestream :time "2026-05-07 10:30" :end-time "2026-05-07 11:30" :title "Emacs Chat: Shae Erisson" :description "I chat with Shae Erisson (https://shapr.github.io/ , https://recurse.social/@shapr) about Emacs and life.\n\nhttps://sachachua.com/topic/emacs-chat" :privacy "public" :auto-start json-false :auto-stop json-false :thumbnail "~/recordings/2026-04-17-07-54-23 Emacs Chat thumbnail - Shae.png")
+#+end_src
+
+Now we can quickly schedule a livestream based on the Org entry at point.
+
+#+begin_src emacs-lisp :tangle lisp/sacha-stream-org.el
+;;;###autoload
+(defun sacha-stream-org-schedule-livestream-for-entry-at-point ()
+  "Schedule a livestream for the entry at point."
+  (interactive)
+	(let* ((time (org-timestamp-from-string (org-entry-get (point) "SCHEDULED")))
+				 (start-time (org-timestamp-to-time (org-timestamp-split-range time)))
+				 (end-time (org-timestamp-to-time (org-timestamp-split-range time t)))
+				 (response (sacha-stream-youtube-schedule-livestream
+										:title (org-entry-get (point) "ITEM")
+										:description (org-export-string-as (sacha-org-subtree-text) 'sacha-plain-text t)
+										:time start-time
+										:end-time end-time
+										:privacy "public"
+										:auto-start json-false
+										:auto-stop json-false
+										:thumbnail "~/proj/yay-emacs/thumbnail.png"))
+				 (url (concat "https://youtube.com/live/" (alist-get 'id response))))
+		(org-entry-put (point) "YOUTUBE_URL" url)
+		(insert "yt:" url)
+		(cl-pushnew
+		 response
+		 (alist-get 'items sacha-google-youtube-live-broadcasts))
+		response))
+#+end_src
+
+#+begin_src emacs-lisp :tangle lisp/sacha-lisp.el
+(defun sacha-date-to-time (time)
+	"Return Emacs time object for TIME."
+	(when (stringp time)
+		(if (and (stringp time)
+						 (boundp 'org-ts-regexp)
+						 (string-match org-ts-regexp time))
+				(setq time (org-timestamp-to-time (org-timestamp-from-string (match-string 0 time))))
+			(setq time (date-to-time time))))
+	time)
+
+;;;###autoload
+(defun sacha-date-to-iso-utc (time)
+	"Return ISO8601 for TIME."
+	(format-time-string "%FT%TZ" (sacha-date-to-time time) t))
+#+end_src
+
+** Insert an Org Mode link to an upcoming YouTube broadcast
+
+#+begin_src emacs-lisp
+(defun sacha-google-youtube-complete-broadcast (&optional prompt)
+	"Return the ID from recent or upcoming broadcasts."
+	(let ((items (mapcar (lambda (o)
+												 (let-alist o
+													 (cons (concat .snippet.title
+																				 (if-let* ((time
+																										(or
+																										 .snippet.actualStartTime
+																										 .snippet.scheduledStartTime)))
+																						 (format-time-string
+																							" %-m/%d %H:%M"
+																							(date-to-time time))
+																					 ""))
+																 o)))
+											 (alist-get 'items (sacha-google-youtube-live-broadcasts)))))
+		(assoc-default (completing-read (or prompt "Broadcast: ")
+																		items)
+									 items
+									 #'string=)))
+
+;;;###autoload
+(defun sacha-google-youtube-insert-embed (broadcast)
+	"Insert YT embed."
+	(interactive (list (sacha-google-youtube-complete-broadcast)))
+	(insert (concat "yt:https://youtube.com/live/" (alist-get 'id broadcast))))
+
+;;;###autoload
+(defun sacha-google-youtube-current-or-next (&optional filter)
+	"Return the current or next broadcast."
+	(let ((now (format-time-string "%Y-%m-%dT%H:%M:%SZ" nil t)))
+		(car
+		 (sort
+			(seq-filter
+			 (lambda (o)
+				 (let-alist o
+					 (and
+						(or (null filter)
+								(string-match filter .snippet.title))
+						(or (and .snippet.actualStartTime
+										 (not .snippet.actualEndTime))
+								(not (string< .snippet.scheduledStartTime now))))))
+			 (alist-get 'items
+									(sacha-google-youtube-live-broadcasts)))
+			:key (lambda (o) (let-alist o .snippet.scheduledStartTime))
+			:lessp #'string<))))
+
+;;;###autoload
+(defun sacha-google-youtube-upcoming-broadcasts ()
+	"Return upcoming broadcasts."
+	(sort
+	 (seq-remove
+ 		(lambda (o)
+			(let-alist o
+				(or (null .snippet.scheduledStartTime) .snippet.actualStartTime)))
+		(alist-get 'items
+							 (sacha-google-youtube-live-broadcasts)))
+	 :key (lambda (o) (let-alist o .snippet.scheduledStartTime)) :lessp 'string<))
+
+(defun sacha-google-youtube-org-format-medium (o)
+	"Timestamp, title, and description for O."
+	(let-alist o
+		 (let ((url (concat "https://youtube.com/live/" .id)))
+			 (format "[%s] %s\n\n%s"
+							 (format-time-string "%Y-%m-%d %H:%M" (date-to-time .snippet.scheduledStartTime))
+							 (org-link-make-string
+								url
+								.snippet.title)
+							 .snippet.description))))
+
+(defun sacha-google-youtube-org-format-embed (video)
+	"Current or upcoming embed for VIDEO."
+	(let-alist video
+		(let ((url (concat "https://youtube.com/live/" .id)))
+			(if .snippet.actualStartTime
+					(format "Watch the current stream on YouTube: %s\n\n%s\n\n%s"
+									(org-link-make-string url .snippet.title)
+									(concat "yt:" url)
+									.snippet.description)
+				(format "At [%s] (%s): %s\n\n%s\n\n%s"
+								(format-time-string (cdr org-timestamp-formats)
+																		(date-to-time .snippet.scheduledStartTime))
+								sacha-time-zone
+								(org-link-make-string url .snippet.title)
+								(concat "yt:" url)
+								.snippet.description)))))
 #+end_src
 * Miscellaneous
 :PROPERTIES:

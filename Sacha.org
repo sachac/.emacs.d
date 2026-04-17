@@ -4110,7 +4110,7 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
         ("o" "~/sync/orgzly/organizer.org" "Main org file")
         ("s" "~/proj/stream/index.org" "Yay Emacs")
         ("b" "~/sync/orgzly/business.org" "Business")
-        ("P" "/ssh:web:/mnt/prev/home/sacha/planet/data/feeds.json" "Planet Emacsen")
+        ("P" "/ssh:web:/home/sacha/planet/data/feeds.json" "Planet Emacsen")
         ("p" "~/sync/orgzly/posts.org" "Posts")
         ("m" "~/sync/web/beginner-map.org" "Map")
         ("n" "~/sync/topics/now.org" "Now")

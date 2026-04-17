@@ -4888,15 +4888,25 @@ Ex: (sacha-navigate-focus-or-launch "obs")
   (keymap-global-set "M-T" #'transpose-sentences)  ; https://www.matem.unam.mx/~omar/apropos-emacs.html#writing-experience
 #+end_src
 
+https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
+#+begin_src emacs-lisp
+(setq-default bidi-display-reordering 'left-to-right
+              bidi-paragraph-direction 'left-to-right)
+(setq bidi-inhibit-bpa t)
+(setq redisplay-skip-fontification-on-input t)
+(setq save-interprogram-paste-before-kill t)
+(setq kill-do-not-save-duplicates t)
+#+end_src
+
 #+begin_src emacs-lisp :tangle lisp/sacha-misc.el
   (defun sacha-capitalize-dwim ()
-    "Capitalize the previous word if at the end of a word."
+    "Capitalize the previous word if typing and at the end of a word."
     (interactive)
     (if (region-active-p)
         (capitalize-region (region-beginning) (region-end))
       (when (and (not (bolp))
                  (looking-back "\\w" 1)
-                 (not (eq last-command 'sacha-capitalize-dwim)))
+                 (eq last-command 'self-insert-command))
         (backward-word))
       (capitalize-word 1)))
 

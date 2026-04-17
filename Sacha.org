@@ -17520,18 +17520,18 @@ the mode, `toggle' toggles the state."
 	(when (string= (buffer-file-name) (expand-file-name "~/sync/emacs/Sacha.org")) (sacha-org-export-and-tangle-when-saved-in-focus-mode 1)))
 
 ;;;###autoload
-(defun sacha-export-dotemacs (&optional sync)
-	(interactive)
+(defun sacha-emacs-export (&optional sync)
+	(interactive (list current-prefix-arg))
 	(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
-		(org-babel-tangle)
     (if sync
-        (org-export-to-file 'html "index.html")
+				(progn
+					(org-babel-tangle)
+					(org-export-to-file 'html "index.html"))
 		  (async-start
 		   `(lambda ()
-				  ;; make async emacs aware of packages (for byte-compilation)
-				  (package-initialize)
-				  (setq sacha-exporting t)
-				  (load-file "~/sync/emacs/Sacha.el")
+					(load-file "~/sync/emacs/batch-tangle.el")
+					(org-babel-tangle-file "~/sync/emacs/Sacha.org")
+					(load-file "~/sync/emacs/Sacha.el")
 				  (find-file "~/sync/emacs/Sacha.org")
 				  (org-export-to-file 'html "index.html"))
 		   (lambda (&rest results) (message "Tangled and exported."))))))
@@ -18176,14 +18176,16 @@ With prefix argument, also display headlines without a TODO keyword."
 		 :description (org-entry-get (point) "ITEM"))))
 #+end_src
 
+#+NAME: org-link-dotemacs
 #+begin_src emacs-lisp
-(org-link-set-parameters
- "dotemacs"
- :complete #'sacha-org-dotemacs-complete
- :store #'sacha-org-dotemacs-store
- :insert-description #'sacha-org-dotemacs-insert-description
- :export #'sacha-org-dotemacs-export
- :follow #'sacha-org-dotemacs-open)
+(with-eval-after-load 'org
+	(org-link-set-parameters
+	 "dotemacs"
+	 :complete #'sacha-org-dotemacs-complete
+	 :store #'sacha-org-dotemacs-store
+	 :insert-description #'sacha-org-dotemacs-insert-description
+	 :export #'sacha-org-dotemacs-export
+	 :follow #'sacha-org-dotemacs-open))
 #+end_src
 
 **** TODO add dotemacs completion
@@ -18327,11 +18329,11 @@ With prefix argument, also display headlines without a TODO keyword."
 #+begin_src emacs-lisp :tangle "lisp/sacha-org.el"
 ;;;###autoload
 (defun sacha-org-copy-region-as-plain-text (beg end)
-	"Copy as plain text, removing links."
+	"Copy as plain text."
 	(interactive "r")
 	(save-restriction
 		(narrow-to-region beg end)
-		(kill-new (org-export-as 'ascii nil nil t))))
+		(kill-new (org-export-as 'sacha-plain-text nil nil t))))
 
 #+end_src
 
@@ -18483,7 +18485,10 @@ With prefix argument, also display headlines without a TODO keyword."
 								 (/ (compile-media-timestamp-to-msecs
 										 (match-string 0 link)) 1000.0))
 							 (match-string 0 link))))
-		('org link)))
+		('sacha-plain-text
+		 (when (string-match "\\([0-9]+:\\)?[0-9]+:[0-9]+" link)
+			 (match-string 0 link)))
+		('org (org-link-make-string (concat "vtime:" link) desc))))
 #+end_src
 
 #+begin_src emacs-lisp :tangle "lisp/sacha-org-vtime.el"

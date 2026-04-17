@@ -3319,7 +3319,10 @@ repeating just the last keystroke.
 
 #+begin_src emacs-lisp
 (use-package substitute
-  :bind ("C-;" . substitute-target-in-buffer))
+  :bind ("C-;" . substitute-target-in-buffer)
+	:hook
+	(substitute-post-replace . #'substitute-report-operation)
+	)
 #+end_src
 ** Expand region
 :PROPERTIES:

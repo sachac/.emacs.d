@@ -11592,8 +11592,9 @@ This defines keyboard shortcuts for those, too.
 That way, it's easy to see short tasks that I can finish.
 
 #+begin_src emacs-lisp
-(add-to-list 'org-global-properties
-             '("Effort_ALL". "0:05 0:15 0:30 1:00 2:00 3:00 4:00"))
+(with-eval-after-load 'org
+	(add-to-list 'org-global-properties
+							 '("Effort_ALL". "0:05 0:15 0:30 1:00 2:00 3:00 4:00")))
 #+end_src
 
 **** Track time

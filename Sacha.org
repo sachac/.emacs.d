@@ -1937,6 +1937,7 @@ Sometimes ~C-h~ gets weird and calls ~which-key-C-h-dispatch~, probably from a t
 (defun sacha-reset-transients ()
   (interactive)
   (setq overriding-terminal-local-map nil))
+(keymap-global-set "s-x" #'sacha-reset-transients)
 #+end_src
 ** Casual
 :PROPERTIES:

@@ -2903,6 +2903,7 @@ Let's try these shortcuts...
 [[https://www.reddit.com/r/emacs/comments/196pvtx/comment/khxa8ip/?share_id=-4IBSwNFQR_-Gd744ZcrH&utm_content=2&utm_medium=android_app&utm_name=androidcss&utm_source=share&utm_term=2][Marginalia - add function name for aliases]]
 
 #+begin_src emacs-lisp :tangle lisp/sacha-complete.el
+(eval-when-compile (require 'marginalia))
 ;;;###autoload
 (defun sacha-marginalia-annotate-variable (cand)
   "Annotate variable CAND with its documentation string.
@@ -2926,11 +2927,11 @@ Omit values when streaming."
   (add-to-list 'marginalia-censor-variables "-api-key")
   (add-to-list 'marginalia-censor-variables "-private")
   (cl-pushnew #'marginalia-annotate-symbol-with-alias
-              (alist-get 'command marginalia-annotator-registry))
+              (alist-get 'command marginalia-annotators))
   (cl-pushnew #'marginalia-annotate-symbol-with-alias
-              (alist-get 'function marginalia-annotator-registry))
+              (alist-get 'function marginalia-annotators))
   (cl-pushnew #'marginalia-annotate-symbol-with-alias
-              (alist-get 'symbol marginalia-annotator-registry)))
+              (alist-get 'symbol marginalia-annotators)))
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/sacha-complete.el
@@ -3286,6 +3287,7 @@ repeating just the last keystroke.
 
 #+begin_src emacs-lisp
 (transient-mark-mode 1)
+(minibuffer-regexp-mode 1)
 (keymap-global-set "C-x !" #'delete-other-windows-vertically)
 #+end_src
 

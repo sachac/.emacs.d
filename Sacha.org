@@ -1505,6 +1505,19 @@ Link: http://yummymelon.com/devnull/announcing-casual-symbol-overlay.html
   (keymap-set embark-command-map "r" #'sacha-embark-erefactor-rename-symbol-in-buffer)
   (keymap-set embark-symbol-map "r" #'sacha-embark-erefactor-rename-symbol-in-buffer))
 #+end_src
+*** Embark and Org Mode timestamps
+:PROPERTIES:
+:CUSTOM_ID: keybindings-embark-embark-and-org-mode-timestamps
+:END:
+
+#+begin_src emacs-lisp
+(defvar-keymap sacha-embark-org-timestamp-map
+	:parent embark-general-map
+	:doc "Keymap for Org timestamps."
+	"W" #'sacha-org-timestamp-in-time-zones)
+(with-eval-after-load 'embark
+	(add-to-list 'embark-keymap-alist '(org-timestamp . sacha-embark-org-timestamp-map)))
+#+end_src
 ** Extended command list
    CLOSED: [2022-01-03 Mon 21:01]
    :PROPERTIES:
@@ -10194,6 +10207,97 @@ stuff.
 	(org-export-with-sub-superscripts nil)
 	(org-footnote-section nil)
 	(org-fold-catch-invisible-edits 'smart))
+#+end_src
+** Time zones
+:PROPERTIES:
+:CUSTOM_ID: org-mode-time-zones
+:END:
+
+#+begin_src emacs-lisp :tangle lisp/sacha-embark.el
+(defvar sacha-time-zones nil "List of time-zones (ex: America/Toronto) to translate time to.")
+;;;###autoload
+(defun sacha-summarize-times (time &optional time-zones)
+	"Return TIME in TIME-ZONES."
+  (let (prev-day)
+    (mapconcat
+     (lambda (tz)
+       (let ((cur-day (format-time-string "%a %b %-e" time tz))
+             (cur-time (format-time-string "%H%MH %Z" time tz)))
+         (if (equal prev-day cur-day)
+             cur-time
+           (setq prev-day cur-day)
+           (concat cur-day " " cur-time))))
+     (or time-zones sacha-time-zones)
+     " / ")))
+
+;;;###autoload
+(defun sacha-org-timestamp-in-time-zones (&optional s)
+	"Copy the current timestamp in `sacha-time-zones'."
+	(interactive)
+	(let* ((s (or s (org-element-property :raw-value (org-element-context))))
+				 (time (org-timestamp-to-time (org-timestamp-from-string s)))
+				 (result (format "%s (%s) = %s"
+												 s
+												 (format-time-string "%z")
+												 (sacha-summarize-times time))))
+		(when (called-interactively-p)
+			(message "%s" result)
+			(kill-new result))
+		result))
+#+end_src
+
+#+begin_src emacs-lisp
+(setq sacha-timezones '("US/Eastern" "US/Central" "US/Mountain" "US/Pacific" "UTC" "Europe/Paris" "Europe/Athens" "Asia/Kolkata" "Asia/Singapore" "Asia/Tokyo"))
+#+end_src
+
+** Set file property
+:PROPERTIES:
+:CUSTOM_ID: org-mode-set-file-property
+:END:
+
+#+begin_src emacs-lisp
+;;;###autoload
+(defun sacha-org-set-file-property (property value)
+	"Set PROPERTY to VALUE using #+keywords."
+	(save-restriction
+		(save-excursion
+			(widen)
+			(goto-char (point-min))
+			(if (re-search-forward (concat (regexp-quote (concat "#+" property)) ": \\(.+\\)") nil t)
+					(replace-match value t t nil 1)
+				(goto-char (point-min))
+				(while (looking-at "^#")
+					(forward-line 1))
+				(insert "#+" property ": " value "\n")))))
+
+(ert-deftest sacha-org-set-file-property ()
+	;; Add new
+	(should
+	 (equal
+		(with-temp-buffer
+			(org-mode)
+			(insert "* This is a heading")
+			(sacha-org-set-file-property "MODIFIED" "2026-01-01")
+			(buffer-substring-no-properties (point-min) (point-max)))
+		"#+MODIFIED: 2026-01-01\n* This is a heading"))
+	(should
+	 ;; Replace existing
+	 (equal
+		(with-temp-buffer
+			(org-mode)
+			(insert "* This is a heading\n\n#+MODIFIED: 2025-01-01\n")
+			(sacha-org-set-file-property "MODIFIED" "2026-01-01")
+			(buffer-substring-no-properties (point-min) (point-max)))
+		"* This is a heading\n\n#+MODIFIED: 2026-01-01\n"))
+	;; Add after
+	(should
+	 (equal
+		(with-temp-buffer
+			(org-mode)
+			(insert "#+OTHER: 1\n* This is a heading\n")
+			(sacha-org-set-file-property "MODIFIED" "2026-01-01")
+			(buffer-substring-no-properties (point-min) (point-max)))
+		"#+OTHER: 1\n#+MODIFIED: 2026-01-01\n* This is a heading\n")))
 #+end_src
 ** Automatically continue lists
 :PROPERTIES:

@@ -3435,7 +3435,26 @@ This makes it easier to pick up text from my annotated PDFs.
 #+begin_src emacs-lisp
   (use-package ace-link)
 #+end_src
-** Jumping between windows
+** Manage windows
+:PROPERTIES:
+:CUSTOM_ID: navigation-manage-windows
+:END:
+
+https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
+#+begin_src emacs-lisp
+(setq window-combination-resize t)
+#+end_src
+*** Rotate windows
+:PROPERTIES:
+:CUSTOM_ID: navigation-manage-windows-rotate-windows
+:END:
+
+#+begin_src emacs-lisp
+(keymap-global-set "M-r" #'window-layout-transpose) ; Emacs 31: override move-to-window-line-top-bottom
+(keymap-global-set "M-S-r" #'rotate-windows-back) ; Emacs 31
+#+end_src
+
+*** Jump between windows
 :PROPERTIES:
 :CUSTOM_ID: navigation-jumping-between-windows
 :END:

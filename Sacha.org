@@ -15093,8 +15093,10 @@ to export a subtree to a webserver and have all the media files work. This took 
 		(when (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
 			(let ((filename (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")))
 				(dolist (dir (list sacha-11ty-site-dir sacha-11ty-local-dir sacha-11ty-remote-dir sacha-11ty-base-dir))
-					(when (and dir (file-directory-p (expand-file-name filename dir)))
-						(delete-directory (expand-file-name filename dir) t)))
+					(condition-case nil
+							(when (and dir (file-directory-p (expand-file-name filename dir)))
+								(delete-directory (expand-file-name filename dir) t))
+						(error nil)))
 				(org-delete-property "EXPORT_ELEVENTY_FILE_NAME")
 				(org-delete-property "EXPORT_DATE")
 				(org-delete-property "EXPORT_ELEVENTY_PERMALINK"))))
@@ -15108,9 +15110,11 @@ to export a subtree to a webserver and have all the media files work. This took 
 			;; delete the published files
 			(when (alist-get 'permalink json-data)
 				(dolist (dir (list sacha-11ty-site-dir sacha-11ty-local-dir sacha-11ty-remote-dir))
-					(when (and dir (file-directory-p
-													(expand-file-name (concat "." (alist-get 'permalink json-data)) dir)))
-						(delete-directory (expand-file-name (concat "." (alist-get 'permalink json-data)) dir) t))))
+					(condition-case nil
+							(when (and dir (file-directory-p
+															(expand-file-name (concat "." (alist-get 'permalink json-data)) dir)))
+								(delete-directory (expand-file-name (concat "." (alist-get 'permalink json-data)) dir) t))
+						(error nil))))
 			;; delete the .json and the .html file
 			(when (file-exists-p json-file)
 				(delete-file json-file))

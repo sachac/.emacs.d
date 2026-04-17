@@ -12794,16 +12794,17 @@ then breaking it down into previous/next week.
                 (setq temp-list nil)))
           (setq temp-list (cdr temp-list)))))))
 
-(ert-deftest sacha-extract-tasks-from-agenda ()
-  (let (list-a list-b (line-re "\\([^:]+\\):\\( \\)\\(.*\\)"))
-    (sacha-extract-tasks-from-agenda
-     "listA: Task 1\nother: Task 2\nlistA: Task 3"
-     '(("listA" . list-a)
-       ("." . list-b))
-     "- [ ] "
-     line-re)
-    (should (equal list-a '("- [ ] Task 1" "- [ ] Task 3")))
-    (should (equal list-b '("- [ ] Task 2")))))
+(with-eval-after-load 'ert
+	(ert-deftest sacha-extract-tasks-from-agenda ()
+		(let (list-a list-b (line-re "\\([^:]+\\):\\( \\)\\(.*\\)"))
+			(sacha-extract-tasks-from-agenda
+			 "listA: Task 1\nother: Task 2\nlistA: Task 3"
+			 '(("listA" . list-a)
+				 ("." . list-b))
+			 "- [ ] "
+			 line-re)
+			(should (equal list-a '("- [ ] Task 1" "- [ ] Task 3")))
+			(should (equal list-b '("- [ ] Task 2"))))))
 
 ;;;###autoload
 (defun sacha-get-upcoming-tasks ()
@@ -13894,7 +13895,7 @@ shortcuts when I'm at headings.
 #+begin_src emacs-lisp
 (use-package org-contacts
 	:commands org-contacts-filter
-	:config
+	:init
 	(setq org-contacts-files '("~/sync/orgzly/people.org" "~/proj/emacsconf/2025/private/conf.org"))
 	:hook
 	(message-setup . sacha-message-greet-contacts))
@@ -14142,7 +14143,7 @@ Uses the info from `sacha-org-bookmark-file'."
 
       (goto-char (point-min))
       (forward-line)
-      (when (re-search-forward "^(\\(setq\\|use-package\\|with-eval-after-load\\|bind-key\\|keymap-set\\|keymap-global-set\\)" nil t)
+      (when (re-search-forward "^(\\(setq\\|use-package\\|with-eval-after-load\\|keymap-global-set\\|keymap-set\\|keymap-global-set\\)" nil t)
         (goto-char (match-beginning 0))
         (sacha-org-demarcate-block))
       ;; Add the tangle

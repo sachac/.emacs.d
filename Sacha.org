@@ -9361,8 +9361,11 @@ Oooh, let's add it to an EmacsConf Etherpad...
         (seq-remove (lambda (o)
                       (string= (cdr o) pad-id))
                     sacha-speech-etherpads)))
+#+end_src
 
-(add-to-list 'sacha-speech-functions #'sacha-speech-append-to-etherpad)
+#+begin_src emacs-lisp
+(with-eval-after-load 'sacha-speech
+  (add-to-list 'sacha-speech-functions #'sacha-speech-append-to-etherpad))
 #+end_src
 
 And let's do the same with IRC:
@@ -9396,8 +9399,11 @@ And let's do the same with IRC:
         (seq-remove (lambda (o)
                       (string= (cdr o) channel))
                     sacha-speech-erc)))
+#+end_src
 
-(add-to-list 'sacha-speech-functions #'sacha-speech-send-to-erc)
+#+begin_src emacs-lisp
+(with-eval-after-load 'sacha-speech
+  (add-to-list 'sacha-speech-functions #'sacha-speech-send-to-erc))
 #+end_src
 
 Ooooh! Let's run it through my common edits process as well!
@@ -9411,7 +9417,11 @@ Ooooh! Let's run it through my common edits process as well!
     (sacha-subed-fix-common-errors-from-start)
     (setf (alist-get 'content info) (buffer-string)))
   info)
-(add-hook 'sacha-speech-functions #'sacha-speech-fix-common-errors -100)
+#+end_src
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'sacha-speech
+  (add-hook 'sacha-speech-functions #'sacha-speech-fix-common-errors -100))
 #+end_src
 
 And let's try it with the markers...
@@ -9522,8 +9532,11 @@ And let's try it with the markers...
              (not sacha-speech-subed-ignore))
     (sacha-speech-subed-record-process info))
   info)
+#+end_src
 
-(add-to-list 'sacha-speech-functions #'sacha-speech-subed-record)
+#+begin_src emacs-lisp
+(with-eval-after-load 'sacha-speech
+(add-to-list 'sacha-speech-functions #'sacha-speech-subed-record))
 #+end_src
 
 

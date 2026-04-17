@@ -15056,8 +15056,10 @@ to export a subtree to a webserver and have all the media files work. This took 
 (use-package ox-11ty
   :if sacha-laptop-p
   :load-path "~/proj/ox-11ty"
+	:preface (load "~/proj/ox-11ty-autoloads.el" nil t)
 	:config
 	(setq org-html-toplevel-hlevel 3)
+	(setq org-11ty-skip-private-files-regexp "\\(Inbox\\|organizer\\|business\\)\.org\\|gpg$\\|private\\|secret")
 	(advice-add 'org-11ty--front-matter :filter-return #'sacha-org-11ty-rewrite-tags))
 #+end_src
 

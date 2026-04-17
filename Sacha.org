@@ -30536,6 +30536,16 @@ Make files executable if the first file has a shebang (ex: =#!/bin/bash#=)
 (add-hook 'after-save-hook
           'executable-make-buffer-file-executable-if-script-p)
 #+end_src
+
+Don't let me mess with the prompts.
+
+#+begin_src emacs-lisp
+(setq comint-prompt-read-only t)
+(setq comint-completion-autolist t)
+(setq comint-input-ignoredups t)
+
+#+end_src
+
 *** Shellcheck
 :PROPERTIES:
 :CUSTOM_ID: shellcheck

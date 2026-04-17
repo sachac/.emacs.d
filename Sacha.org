@@ -1,5 +1,5 @@
-# [[elisp:sacha-export-dotemacs][Export this file asynchronously]]
-# [[elisp:(sacha-export-dotemacs 'sync)][Export this file synchronously]]
+# [[elisp:sacha-emacs-export][Export this file asynchronously]]
+# [[elisp:(sacha-emacs-export 'sync)][Export this file synchronously]]
 #+TITLE: Sacha Chua's Emacs configuration
 #+OPTIONS: toc:nil h:4 html-style:nil html-postamble:nil
 #+SETUPFILE: ~/vendor/org-html-themes/org/theme-readtheorg-sachac.setup
@@ -27,8 +27,8 @@ This is my personal config. It's really long, but that's partly
 because I sometimes leave blog posts in it as commentary, and also
 because I've got a lot of little customizations that I might not even
 remember. =) If you want to see a table of contents and other
-useful niceties, go to http://sachachua.com/dotemacs . Other links for
-this page: [[https://raw.githubusercontent.com/sachac/.emacs.d/gh-pages/Sacha.org][Org Mode version]], [[http://github.com/sachac/.emacs.d/][Github repository]]
+useful niceties, go to https://sachachua.com/dotemacs . Other links for
+this page: [[https://raw.githubusercontent.com/sachac/.emacs.d/gh-pages/Sacha.org][Org Mode version]], [[https://codeberg.org/sachac/.emacs.d][Codeberg repository]], [[http://github.com/sachac/.emacs.d/][Github repository]]
 
 If you're new to Emacs Lisp, you probably don't want to copy and paste
 large chunks of this code. Instead, copy small parts of it (always
@@ -95,26 +95,6 @@ upgrading Org easy. All I have to do is =git pull; make=, and stuff
 happens in an external Emacs process. Since I create =Sacha.el= via
 =org-babel-tangle=, my Emacs config can load =Sacha.el= without
 loading Org first.
-** Update: I'm working on moving code to function libraries
-:PROPERTIES:
-:CUSTOM_ID: about-this-file-update-i-m-working-on-moving-code-to-function-libraries
-:END:
-
-I'm slowly moving function definitions to the [[file:lisp/][lisp/]] subdirectory.
-
-#+begin_src emacs-lisp :tangle no :results replace
-(format "%s functions to go."
-        (string-trim (shell-command-to-string "grep --count \\(defun Sacha.el")))
-#+end_src
-
-#+RESULTS:
-:results:
-241 functions to go.
-:end:
-
-#+begin_comment
-[[elisp:(grep "grep --color=auto -nH --null -e \"(defun\" ~/sync/emacs/Sacha.el")]]
-#+end_comment
 
 ** Debugging tips
 :PROPERTIES:

@@ -12697,7 +12697,9 @@ sketches, and links. I want to try out grouping tasks by topic first,
 then breaking it down into previous/next week.
 
 #+begin_src emacs-lisp
-(use-package quantified :ensure nil :load-path "~/proj/quantified/lisp" :unless sacha-phone-p)
+  (use-package quantified :ensure nil :load-path "~/proj/quantified/lisp"
+    :preface (load-file "~/proj/quantified/quantified-autoloads.el")
+    :unless sacha-phone-p)
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/sacha-quantified.el

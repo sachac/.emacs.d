@@ -482,18 +482,23 @@ May backup-walker save you from a future oops!
 :CUSTOM_ID: history
 :END:
 
-From http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html:
+From http://www.wisdomandwonder.com/wp-content/uploads/2014/03/C3F.html and https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
 #+BEGIN_SRC emacs-lisp
-  (setq savehist-file "~/.config/emacs/savehist")
-  (savehist-mode 1)
-  (setq history-length t)
-  (setq history-delete-duplicates t)
-  (setq savehist-save-minibuffer-history 1)
-  (setq savehist-additional-variables
-        '(kill-ring
-          search-ring
-          sacha-stream-number
-          regexp-search-ring))
+(setq savehist-file "~/.config/emacs/savehist")
+(savehist-mode 1)
+(setq history-length t)
+(setq history-delete-duplicates t)
+(setq savehist-save-minibuffer-history 1)
+(setq savehist-additional-variables
+      '(kill-ring
+        search-ring
+        sacha-stream-number
+        regexp-search-ring))
+(add-hook 'savehist-save-hook
+          (lambda ()
+            (setq kill-ring
+                  (mapcar #'substring-no-properties
+                          (cl-remove-if-not #'stringp kill-ring)))))
 #+END_SRC
 
 ** Disabling the toolbar

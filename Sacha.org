@@ -3965,7 +3965,7 @@ From https://karthinks.com/software/simple-folding-with-hideshow/ :
 Handy way of getting back to previous places.
 
 #+BEGIN_SRC emacs-lisp
-  (bind-key "C-x p" 'pop-to-mark-command)
+  (keymap-global-set "C-x p" 'pop-to-mark-command)
   (setq set-mark-command-repeat-pop t)
 #+END_SRC
 
@@ -4430,8 +4430,9 @@ Allow my use of =C-x C-q= while in peep-dired mode.
 #+end_src
 
 #+begin_src emacs-lisp
-(bind-key "b" 'sacha-save-photo dired-mode-map)
-(bind-key "r" 'sacha-backup-media dired-mode-map)
+(with-eval-after-load 'dired
+	(keymap-set dired-mode-map "b" 'sacha-save-photo)
+	(keymap-set dired-mode-map "r" 'sacha-backup-media))
 #+end_src
 
 ** Move to beginning of line
@@ -7530,8 +7531,8 @@ Related:
   (defmacro sacha-insert-unicode (unicode-name)
     `(lambda () (interactive)
        (insert-char (cdr (assoc-string ,unicode-name (ucs-names))))))
-  (bind-key "C-x 8 s" (sacha-insert-unicode "ZERO WIDTH SPACE"))
-  (bind-key "C-x 8 S" (sacha-insert-unicode "SNOWMAN"))
+  (keymap-global-set "C-x 8 s" (sacha-insert-unicode "ZERO WIDTH SPACE"))
+  (keymap-global-set "C-x 8 S" (sacha-insert-unicode "SNOWMAN"))
 #+END_SRC
 
 ** Clean up spaces
@@ -7540,7 +7541,7 @@ Related:
 :END:
 
 #+BEGIN_SRC emacs-lisp
-  (bind-key "M-SPC" 'cycle-spacing)
+  (keymap-global-set "M-SPC" 'cycle-spacing)
 #+END_SRC
 
 ** Expand
@@ -7550,7 +7551,7 @@ Related:
 
 #+BEGIN_SRC emacs-lisp
   (setq save-abbrevs 'silently)
-  (bind-key "M-/" 'hippie-expand)
+  (keymap-global-set "M-/" 'hippie-expand)
 #+END_SRC
 
 From https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-complete.el - Exclude very large buffers from dabbrev
@@ -10645,36 +10646,35 @@ currently experimenting with.
 :END:
 
 #+BEGIN_SRC emacs-lisp
-(bind-key "C-c r" 'org-capture)
-(bind-key "C-c a" 'org-agenda)
-(bind-key "C-c l" 'org-store-link)
-(bind-key "C-c L" 'org-insert-link-global)
-(bind-key "C-c O" 'org-open-at-point-global)
+(keymap-global-set "C-c r" 'org-capture)
+(keymap-global-set "C-c a" 'org-agenda)
+(keymap-global-set "C-c l" 'org-store-link)
+(keymap-global-set "C-c L" 'org-insert-link-global)
+(keymap-global-set "C-c O" 'org-open-at-point-global)
 #+END_SRC
 
 =append-next-kill= is more useful to me than =org-table-copy-region=.
 
 #+BEGIN_SRC emacs-lisp
 (with-eval-after-load 'org
-  (bind-key "C-M-w" 'append-next-kill org-mode-map)
-  (bind-key "C-TAB" 'org-cycle org-mode-map)
-  (bind-key "C-c v" 'org-show-todo-tree org-mode-map)
-  (bind-key "C-c C-r" 'org-refile org-mode-map)
-  (bind-key "C-c R" 'org-reveal org-mode-map)
-  (bind-key "C-c d" 'sacha-org-move-line-to-destination org-mode-map)
-  (bind-key "C-c t s"  'sacha-split-sentence-and-capitalize org-mode-map)
-  (bind-key "C-c t -"  'sacha-split-sentence-delete-word-and-capitalize org-mode-map)
-  (bind-key "C-c t d"  'sacha-delete-word-and-capitalize org-mode-map)
+  (keymap-set org-mode-map "C-M-w" 'append-next-kill)
+  (keymap-set org-mode-map "C-TAB" 'org-cycle)
+  (keymap-set org-mode-map "C-c C-r" 'org-refile)
+  (keymap-set org-mode-map "C-c R" 'org-reveal)
+  (keymap-set org-mode-map "C-c d" 'sacha-org-move-line-to-destination)
+  (keymap-set org-mode-map "C-c t s"  'sacha-split-sentence-and-capitalize)
+  (keymap-set org-mode-map "C-c t -"  'sacha-split-sentence-delete-word-and-capitalize)
+  (keymap-set org-mode-map "C-c t d"  'sacha-delete-word-and-capitalize)
 
-  (bind-key "C-c C-p C-p" 'sacha-org-publish-maybe org-mode-map)
-  (bind-key "C-c C-r" 'sacha-org-refile-and-jump org-mode-map))
+  (keymap-set org-mode-map "C-c C-p C-p" 'sacha-org-publish-maybe)
+  (keymap-set org-mode-map "C-c C-r" 'sacha-org-refile-and-jump))
 #+END_SRC
 
 I don't use the diary, but I do use the clock a lot.
 
 #+begin_src emacs-lisp
 (with-eval-after-load 'org-agenda
-  (bind-key "i" 'org-agenda-clock-in org-agenda-mode-map))
+  (keymap-set org-agenda-mode-map "i" 'org-agenda-clock-in))
 #+end_src
 
 *** Speed commands
@@ -10855,7 +10855,7 @@ You can find out a little more about [[https://orgmode.org/manual/Speed-Keys.htm
     (add-to-list listvar '("i" call-interactively 'org-clock-in))
     (add-to-list listvar '("o" call-interactively 'org-clock-out))
     (add-to-list listvar '("$" call-interactively 'org-archive-subtree)))
-  (bind-key "!" 'sacha-org-clock-in-and-track org-agenda-mode-map))
+  (keymap-set org-agenda-mode-map "!" 'sacha-org-clock-in-and-track))
 #+end_src
 
 ** Org navigation
@@ -10871,8 +10871,8 @@ From http://stackoverflow.com/questions/15011703/is-there-an-emacs-org-mode-comm
 (setq org-startup-folded nil)
 (setq org-startup-with-inline-images nil)
 (setq org-startup-with-link-previews nil)
-(bind-key "C-c j" 'org-clock-goto) ;; jump to current task from anywhere
-(bind-key "C-c C-w" 'org-refile)
+(keymap-global-set "C-c j" 'org-clock-goto) ;; jump to current task from anywhere
+(keymap-global-set "C-c C-w" 'org-refile)
 (setq org-cycle-include-plain-lists 'integrate)
 (setq org-catch-invisible-edits 'show-and-error)
 #+end_src
@@ -10915,7 +10915,7 @@ I often cut and paste subtrees. This makes it easier to cut
 something and paste it elsewhere in the hierarchy.
 #+begin_src emacs-lisp
 (with-eval-after-load 'org
-  (bind-key "C-c k" 'org-cut-subtree org-mode-map)
+  (keymap-set org-mode-map "C-c k" 'org-cut-subtree)
   (setq org-yank-adjusted-subtrees t))
 #+end_src
 
@@ -11163,11 +11163,11 @@ entries, notes, and other semi-structured pieces of information.
 %a
 "))
 			org-capture-templates))))
-(bind-key "C-M-r" 'org-capture)
+(keymap-global-set "C-M-r" 'org-capture)
 
 
 
-;;(bind-key (kbd "<f5>") 'org-capture)
+;;(keymap-global-set (kbd "<f5>") 'org-capture)
 #+end_src
 
 **** Allow refiling in the middle(ish) of a capture
@@ -11192,8 +11192,8 @@ able to clock in on them.
 #+end_src
 
 #+begin_src emacs-lisp
-(eval-after-load 'org-capture
-  '(bind-key "C-c C-r" 'sacha-org-refile-and-jump org-capture-mode-map))
+(with-eval-after-load 'org-capture
+  (keymap-set org-capture-mode-map "C-c C-r" 'sacha-org-refile-and-jump))
 #+end_src
 
 *** Try out this capture command
@@ -11205,7 +11205,7 @@ From https://takeonrules.com/2022/10/16/adding-another-function-to-sacha-workflo
 
 #+begin_src emacs-lisp
 (use-package git-link :defer t)
-(bind-key "C-c c" 'jf/capture-region-contents-with-metadata)
+(keymap-global-set "C-c c" 'jf/capture-region-contents-with-metadata)
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/sacha-org.el
@@ -11910,7 +11910,8 @@ I can get a sense of how appointments are spread out.
 Some other keyboard shortcuts:
 
 #+begin_src emacs-lisp
-(bind-key "Y" 'org-agenda-todo-yesterday org-agenda-mode-map)
+(with-eval-after-load 'org
+	(keymap-set org-agenda-mode-map "Y" 'org-agenda-todo-yesterday))
 #+end_src
 
 # <<project_subtasks>>
@@ -12097,7 +12098,7 @@ hang of using these more!
 | 2           | Projects with tasks                                                                            |
 
 #+begin_src emacs-lisp
-  (bind-key "<apps> a" 'org-agenda)
+  (keymap-global-set "<apps> a" 'org-agenda)
   (setq sacha-org-agenda-contexts
         '((tags-todo "phone")
   	(tags-todo "work")
@@ -16787,7 +16788,7 @@ Make it easy to publish and browse a file.
 (I'm not sure I have an Apps keybinding at the moment...)
 
 #+begin_src emacs-lisp
-(bind-key "<apps> b" 'sacha-org-publish-and-browse)
+(keymap-global-set "<apps> b" 'sacha-org-publish-and-browse)
 #+end_src
 
 *** Publish without prompting
@@ -28420,7 +28421,7 @@ From https://github.com/purcell/emacs.d/blob/master/lisp/init-editing-utils.el"
 #+end_src
 
 #+begin_src emacs-lisp
-(bind-key "C-M-<backspace>" 'sanityinc/kill-back-to-indentation)
+(keymap-global-set "C-M-<backspace>" 'sanityinc/kill-back-to-indentation)
 #+end_src
 ** Alignment
 :PROPERTIES:
@@ -28469,7 +28470,7 @@ This is something I have to get the hang of too. It gradually expands the select
 
 #+begin_src emacs-lisp
 (eval-after-load 'python-mode
-  '(bind-key "C-c C-c" 'compile python-mode-map))
+  '(keymap-set python-mode-map "C-c C-c" 'compile))
 #+end_src
 
 ** Emacs Lisp
@@ -29715,8 +29716,8 @@ Borrowed from Steve Purcell's config. This pretty-prints the results.
 #+end_src
 
 #+begin_src emacs-lisp
-(bind-key "M-:" 'pp-eval-expression)
-(bind-key "C-x C-e" 'sanityinc/eval-last-sexp-or-region emacs-lisp-mode-map)
+(keymap-global-set "M-:" 'pp-eval-expression)
+(keymap-set emacs-lisp-mode-map "C-x C-e" 'sanityinc/eval-last-sexp-or-region)
 #+end_src
 *** Auto insert
 :PROPERTIES:
@@ -29812,7 +29813,7 @@ From https://ag91.github.io/blog/2020/12/31/top-down-elisping-a-simple-snippet-t
 #+end_src
 
 #+begin_src emacs-lisp
-(bind-key "C-:" #'sacha-stub-elisp-defun emacs-lisp-mode-map)
+(keymap-set emacs-lisp-mode-map "C-:" #'sacha-stub-elisp-defun)
 #+end_src
 *** Helpful
 :PROPERTIES:
@@ -29825,6 +29826,17 @@ From https://ag91.github.io/blog/2020/12/31/top-down-elisping-a-simple-snippet-t
   ([remap describe-command] . helpful-command)
   ([remap describe-variable] . helpful-variable)
   ([remap describe-function] . helpful-callable))
+#+end_src
+*** Looking up help
+:PROPERTIES:
+:CUSTOM_ID: coding-emacs-lisp-looking-up-help
+:END:
+
+From [[https://protesilaos.com/emacs/dotemacs][GNU Emacs configuration | Protesilaos Stavrou]]:
+
+#+begin_src emacs-lisp
+(keymap-global-set "C-h K" #'describe-keymap)
+(keymap-global-set "C-h c" #'describe-char)
 #+end_src
 *** elisp-demos
 :PROPERTIES:
@@ -33895,8 +33907,9 @@ This uses ~sacha-spookfox-complete-link~ from [[dotemacs:spookfox]].
 #+end_src
 
 #+begin_src emacs-lisp
-(bind-key "C-c q" 'sacha-org-quick-clock-in-task)
-(bind-key "!" 'sacha-org-clock-in-and-track org-agenda-mode-map)
+(keymap-global-set "C-c q" 'sacha-org-quick-clock-in-task)
+(with-eval-after-load 'org
+	(keymap-set org-agenda-mode-map "!" 'sacha-org-clock-in-and-track))
 #+end_src
 *** Child time!
 :PROPERTIES:
@@ -39132,7 +39145,7 @@ Now let's set up the actual keychords.
 Hmm, good point about =C-t= being more useful as a Hydra than as =transpose-char=. It turns out I actually do use =C-t= a fair bit, but I can always add it back as an option.
 
 #+begin_src emacs-lisp
-  (bind-key "C-t" 'sacha-key-chord-commands/body)
+  (keymap-global-set "C-t" 'sacha-key-chord-commands/body)
 #+end_src
 
 ** Exwm

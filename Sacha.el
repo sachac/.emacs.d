@@ -705,7 +705,16 @@
   (use-package ace-link)
 ;; Links:1 ends here
 
-;; [[file:Sacha.org::#navigation-jumping-between-windows][Jumping between windows:1]]
+;; [[file:Sacha.org::#navigation-manage-windows][Manage windows:1]]
+(setq window-combination-resize t)
+;; Manage windows:1 ends here
+
+;; [[file:Sacha.org::#navigation-manage-windows-rotate-windows][Rotate windows:1]]
+(keymap-global-set "M-r" #'window-layout-transpose) ; Emacs 31: override move-to-window-line-top-bottom
+(keymap-global-set "M-S-r" #'rotate-windows-back) ; Emacs 31
+;; Rotate windows:1 ends here
+
+;; [[file:Sacha.org::#navigation-jumping-between-windows][Jump between windows:1]]
   (use-package ace-window
           :config
           (setq aw-keys '(?a ?o ?e ?u ?h ?t ?n ?s))
@@ -993,8 +1002,9 @@
 ;; Dired:3 ends here
 
 ;; [[file:Sacha.org::#saving-photos][Saving photos:2]]
-(bind-key "b" 'sacha-save-photo dired-mode-map)
-(bind-key "r" 'sacha-backup-media dired-mode-map)
+(with-eval-after-load 'dired
+	(keymap-set dired-mode-map "b" 'sacha-save-photo)
+	(keymap-set dired-mode-map "r" 'sacha-backup-media))
 ;; Saving photos:2 ends here
 
 ;; [[file:Sacha.org::#move-to-beginning-of-line][Move to beginning of line:2]]
@@ -1254,17 +1264,17 @@
   (defmacro sacha-insert-unicode (unicode-name)
     `(lambda () (interactive)
        (insert-char (cdr (assoc-string ,unicode-name (ucs-names))))))
-  (bind-key "C-x 8 s" (sacha-insert-unicode "ZERO WIDTH SPACE"))
-  (bind-key "C-x 8 S" (sacha-insert-unicode "SNOWMAN"))
+  (keymap-global-set "C-x 8 s" (sacha-insert-unicode "ZERO WIDTH SPACE"))
+  (keymap-global-set "C-x 8 S" (sacha-insert-unicode "SNOWMAN"))
 ;; Unicode:1 ends here
 
 ;; [[file:Sacha.org::#clean-up-spaces][Clean up spaces:1]]
-  (bind-key "M-SPC" 'cycle-spacing)
+  (keymap-global-set "M-SPC" 'cycle-spacing)
 ;; Clean up spaces:1 ends here
 
 ;; [[file:Sacha.org::#expand][Expand:1]]
   (setq save-abbrevs 'silently)
-  (bind-key "M-/" 'hippie-expand)
+  (keymap-global-set "M-/" 'hippie-expand)
 ;; Expand:1 ends here
 
 ;; [[file:Sacha.org::#expand][Expand:3]]
@@ -1477,32 +1487,31 @@
 ;; Modules:1 ends here
 
 ;; [[file:Sacha.org::#keyboard-shortcuts][Keyboard shortcuts:1]]
-(bind-key "C-c r" 'org-capture)
-(bind-key "C-c a" 'org-agenda)
-(bind-key "C-c l" 'org-store-link)
-(bind-key "C-c L" 'org-insert-link-global)
-(bind-key "C-c O" 'org-open-at-point-global)
+(keymap-global-set "C-c r" 'org-capture)
+(keymap-global-set "C-c a" 'org-agenda)
+(keymap-global-set "C-c l" 'org-store-link)
+(keymap-global-set "C-c L" 'org-insert-link-global)
+(keymap-global-set "C-c O" 'org-open-at-point-global)
 ;; Keyboard shortcuts:1 ends here
 
 ;; [[file:Sacha.org::#keyboard-shortcuts][Keyboard shortcuts:2]]
 (with-eval-after-load 'org
-  (bind-key "C-M-w" 'append-next-kill org-mode-map)
-  (bind-key "C-TAB" 'org-cycle org-mode-map)
-  (bind-key "C-c v" 'org-show-todo-tree org-mode-map)
-  (bind-key "C-c C-r" 'org-refile org-mode-map)
-  (bind-key "C-c R" 'org-reveal org-mode-map)
-  (bind-key "C-c d" 'sacha-org-move-line-to-destination org-mode-map)
-  (bind-key "C-c t s"  'sacha-split-sentence-and-capitalize org-mode-map)
-  (bind-key "C-c t -"  'sacha-split-sentence-delete-word-and-capitalize org-mode-map)
-  (bind-key "C-c t d"  'sacha-delete-word-and-capitalize org-mode-map)
+  (keymap-set org-mode-map "C-M-w" 'append-next-kill)
+  (keymap-set org-mode-map "C-TAB" 'org-cycle)
+  (keymap-set org-mode-map "C-c C-r" 'org-refile)
+  (keymap-set org-mode-map "C-c R" 'org-reveal)
+  (keymap-set org-mode-map "C-c d" 'sacha-org-move-line-to-destination)
+  (keymap-set org-mode-map "C-c t s"  'sacha-split-sentence-and-capitalize)
+  (keymap-set org-mode-map "C-c t -"  'sacha-split-sentence-delete-word-and-capitalize)
+  (keymap-set org-mode-map "C-c t d"  'sacha-delete-word-and-capitalize)
 
-  (bind-key "C-c C-p C-p" 'sacha-org-publish-maybe org-mode-map)
-  (bind-key "C-c C-r" 'sacha-org-refile-and-jump org-mode-map))
+  (keymap-set org-mode-map "C-c C-p C-p" 'sacha-org-publish-maybe)
+  (keymap-set org-mode-map "C-c C-r" 'sacha-org-refile-and-jump))
 ;; Keyboard shortcuts:2 ends here
 
 ;; [[file:Sacha.org::#keyboard-shortcuts][Keyboard shortcuts:3]]
 (with-eval-after-load 'org-agenda
-  (bind-key "i" 'org-agenda-clock-in org-agenda-mode-map))
+  (keymap-set org-agenda-mode-map "i" 'org-agenda-clock-in))
 ;; Keyboard shortcuts:3 ends here
 
 ;; [[file:Sacha.org::#org-mode-keyboard-shortcuts-speed-commands-org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command][Org Mode: Cutting the current list item (including nested lists) with a speed command:2]]
@@ -1533,7 +1542,7 @@
     (add-to-list listvar '("i" call-interactively 'org-clock-in))
     (add-to-list listvar '("o" call-interactively 'org-clock-out))
     (add-to-list listvar '("$" call-interactively 'org-archive-subtree)))
-  (bind-key "!" 'sacha-org-clock-in-and-track org-agenda-mode-map))
+  (keymap-set org-agenda-mode-map "!" 'sacha-org-clock-in-and-track))
 ;; Other speed commands:4 ends here
 
 ;; [[file:Sacha.org::#org-navigation][Org navigation:1]]
@@ -1543,15 +1552,15 @@
 (setq org-startup-folded nil)
 (setq org-startup-with-inline-images nil)
 (setq org-startup-with-link-previews nil)
-(bind-key "C-c j" 'org-clock-goto) ;; jump to current task from anywhere
-(bind-key "C-c C-w" 'org-refile)
+(keymap-global-set "C-c j" 'org-clock-goto) ;; jump to current task from anywhere
+(keymap-global-set "C-c C-w" 'org-refile)
 (setq org-cycle-include-plain-lists 'integrate)
 (setq org-catch-invisible-edits 'show-and-error)
 ;; Org navigation:1 ends here
 
 ;; [[file:Sacha.org::#viewing-navigating-and-editing-the-org-tree][Viewing, navigating, and editing the Org tree:1]]
 (with-eval-after-load 'org
-  (bind-key "C-c k" 'org-cut-subtree org-mode-map)
+  (keymap-set org-mode-map "C-c k" 'org-cut-subtree)
   (setq org-yank-adjusted-subtrees t))
 ;; Viewing, navigating, and editing the Org tree:1 ends here
 
@@ -1726,21 +1735,21 @@
 %a
 "))
 			org-capture-templates))))
-(bind-key "C-M-r" 'org-capture)
+(keymap-global-set "C-M-r" 'org-capture)
 
 
 
-;;(bind-key (kbd "<f5>") 'org-capture)
+;;(keymap-global-set (kbd "<f5>") 'org-capture)
 ;; Templates:2 ends here
 
 ;; [[file:Sacha.org::#allow-refiling-in-the-middle-ish-of-a-capture][Allow refiling in the middle(ish) of a capture:2]]
-(eval-after-load 'org-capture
-  '(bind-key "C-c C-r" 'sacha-org-refile-and-jump org-capture-mode-map))
+(with-eval-after-load 'org-capture
+  (keymap-set org-capture-mode-map "C-c C-r" 'sacha-org-refile-and-jump))
 ;; Allow refiling in the middle(ish) of a capture:2 ends here
 
 ;; [[file:Sacha.org::#try-out-this-capture-command][Try out this capture command:1]]
 (use-package git-link :defer t)
-(bind-key "C-c c" 'jf/capture-region-contents-with-metadata)
+(keymap-global-set "C-c c" 'jf/capture-region-contents-with-metadata)
 ;; Try out this capture command:1 ends here
 
 ;; [[file:Sacha.org::#org-mode-tasks-managing-tasks-get-things-to-be-set-to-todo-when-they-repeat][Get things to be set to TODO when they repeat:1]]
@@ -1948,7 +1957,8 @@
 ;; Basic configuration:2 ends here
 
 ;; [[file:Sacha.org::#project_subtasks][Basic configuration:3]]
-(bind-key "Y" 'org-agenda-todo-yesterday org-agenda-mode-map)
+(with-eval-after-load 'org
+	(keymap-set org-agenda-mode-map "Y" 'org-agenda-todo-yesterday))
 ;; Basic configuration:3 ends here
 
 ;; [[file:Sacha.org::#starting-sacha-weeks-on-saturday][Starting my weeks on Saturday:1]]
@@ -1956,7 +1966,7 @@
 ;; Starting my weeks on Saturday:1 ends here
 
 ;; [[file:Sacha.org::#org-agenda-custom-commands][Org agenda custom commands:1]]
-  (bind-key "<apps> a" 'org-agenda)
+  (keymap-global-set "<apps> a" 'org-agenda)
   (setq sacha-org-agenda-contexts
         '((tags-todo "phone")
   	(tags-todo "work")
@@ -2493,7 +2503,7 @@
 ;; org-clean-up-export ends here
 
 ;; [[file:Sacha.org::#cleaning-up-export][Cleaning up export:5]]
-(bind-key "<apps> b" 'sacha-org-publish-and-browse)
+(keymap-global-set "<apps> b" 'sacha-org-publish-and-browse)
 ;; Cleaning up export:5 ends here
 
 ;; [[file:Sacha.org::org-special-blocks][org-special-blocks]]
@@ -3731,7 +3741,7 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
 ;; Tab width of 2 is compact and readable:1 ends here
 
 ;; [[file:Sacha.org::#more-indentation-things][More indentation things:2]]
-(bind-key "C-M-<backspace>" 'sanityinc/kill-back-to-indentation)
+(keymap-global-set "C-M-<backspace>" 'sanityinc/kill-back-to-indentation)
 ;; More indentation things:2 ends here
 
 ;; [[file:Sacha.org::#yaml][YAML:1]]
@@ -3752,7 +3762,7 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
 
 ;; [[file:Sacha.org::#compilation][Compilation:1]]
 (eval-after-load 'python-mode
-  '(bind-key "C-c C-c" 'compile python-mode-map))
+  '(keymap-set python-mode-map "C-c C-c" 'compile))
 ;; Compilation:1 ends here
 
 ;; [[file:Sacha.org::#emacs-lisp][Emacs Lisp:1]]
@@ -4089,8 +4099,8 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
 ;; YE11: Fix find-function for Emacs Lisp from org-babel or scratch:3 ends here
 
 ;; [[file:Sacha.org::#evaluation][Evaluation:2]]
-(bind-key "M-:" 'pp-eval-expression)
-(bind-key "C-x C-e" 'sanityinc/eval-last-sexp-or-region emacs-lisp-mode-map)
+(keymap-global-set "M-:" 'pp-eval-expression)
+(keymap-set emacs-lisp-mode-map "C-x C-e" 'sanityinc/eval-last-sexp-or-region)
 ;; Evaluation:2 ends here
 
 ;; [[file:Sacha.org::#auto-insert][Auto insert:1]]
@@ -4155,7 +4165,7 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
 ;; Auto insert:1 ends here
 
 ;; [[file:Sacha.org::#stubbing][Stubbing:2]]
-(bind-key "C-:" #'sacha-stub-elisp-defun emacs-lisp-mode-map)
+(keymap-set emacs-lisp-mode-map "C-:" #'sacha-stub-elisp-defun)
 ;; Stubbing:2 ends here
 
 ;; [[file:Sacha.org::#helpful][Helpful:1]]
@@ -4166,6 +4176,11 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
   ([remap describe-variable] . helpful-variable)
   ([remap describe-function] . helpful-callable))
 ;; Helpful:1 ends here
+
+;; [[file:Sacha.org::#coding-emacs-lisp-looking-up-help][Looking up help:1]]
+(keymap-global-set "C-h K" #'describe-keymap)
+(keymap-global-set "C-h c" #'describe-char)
+;; Looking up help:1 ends here
 
 ;; [[file:Sacha.org::#elisp-demos][elisp-demos:1]]
 (use-package elisp-demos
@@ -4899,8 +4914,9 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 ;; Emacs and Spookfox: org-capture the current tab from Firefox or a link from the page:2 ends here
 
 ;; [[file:Sacha.org::#clock-in][Quantified Awesome:2]]
-(bind-key "C-c q" 'sacha-org-quick-clock-in-task)
-(bind-key "!" 'sacha-org-clock-in-and-track org-agenda-mode-map)
+(keymap-global-set "C-c q" 'sacha-org-quick-clock-in-task)
+(with-eval-after-load 'org
+	(keymap-set org-agenda-mode-map "!" 'sacha-org-clock-in-and-track))
 ;; Quantified Awesome:2 ends here
 
 ;; [[file:Sacha.org::#using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs][Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:1]]
@@ -5311,7 +5327,7 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 ;; Key chords:3 ends here
 
 ;; [[file:Sacha.org::#key-chord][Key chords:4]]
-  (bind-key "C-t" 'sacha-key-chord-commands/body)
+  (keymap-global-set "C-t" 'sacha-key-chord-commands/body)
 ;; Key chords:4 ends here
 
 ;; [[file:Sacha.org::#emacspeak][Emacspeak:1]]

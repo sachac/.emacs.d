@@ -762,15 +762,26 @@ from [[dotemacs:web-link]] so that I can get the regular
 (defun sacha-embark-video ()
   "Match video."
   (let ((extensions "youtu\\.?be\\|\\(webm\\|mp4\\|flv\\)$"))
-    (if-let ((link (and (derived-mode-p 'org-mode)
-                        (org-element-context))))
-        (when (eq (org-element-type link) 'link)
-          (cond
-           ((string-match extensions (org-element-property :path link))
-            (cons 'video (org-element-property :path link)))))
-      (when (and (derived-mode-p 'dired-mode)
-                 (string-match extensions (dired-get-filename)))
-        (cons 'video (dired-get-filename))))))
+    (or (if-let* ((link (and (derived-mode-p 'org-mode)
+														 (org-element-context))))
+						(when (eq (org-element-type link) 'link)
+							(cond
+							 ((string-match extensions (org-element-property :path link))
+								(cons 'video (org-element-property :raw-link link))))))
+				(and (url-get-url-at-point)
+						 (string-match extensions (url-get-url-at-point))
+						 (cons 'video (url-get-url-at-point)))
+				(and (derived-mode-p 'dired-mode)
+						 (string-match extensions (dired-get-filename))
+						 (cons 'video (dired-get-filename))))))
+
+;;;###autoload
+(defun sacha-embark-video-edit-youtube (url)
+  "Go to the YouTube edit page for VIDEO."
+  (interactive "MURL: ")
+	(when (or (string-match "youtu\\.?be\\(?:\\.com\\)?/\\(?:live/\\|watch/\\)?\\([-A-Za-z0-9_]+\\)" url)
+            (string-match "watch\\?v=\\([-A-Za-z0-9_]+\\)" url))
+    (browse-url (format "https://studio.youtube.com/video/%s/edit" (match-string 1 url)))))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -781,11 +792,15 @@ from [[dotemacs:web-link]] so that I can get the regular
                   "d" #'sacha-deepgram-recognize-audio
                   "$" #'sacha-deepgram-cost
                   "m" #'mpv-play
+                  "w" #'embark-copy-as-kill
                   "c" #'sacha-caption-show
-                  "w" #'sacha-audio-text
+									"e" #'sacha-embark-video-edit-youtube
+                  "t" #'sacha-audio-text
                   "W" #'waveform-show)
           (add-to-list 'embark-keymap-alist '(video . sacha-embark-video-actions)))
 #+end_src
+
+
 *** Using Embark to act on audio
 :PROPERTIES:
 :CUSTOM_ID: embark-audio

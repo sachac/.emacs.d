@@ -16168,13 +16168,13 @@ AFTER-DATE is in the form yyyy, yyyy-mm, or yyyy-mm-dd."
 
 #+begin_src emacs-lisp
 (with-eval-after-load 'ox-11ty
-	(pushnew
+	(cl-pushnew
 	 '(:mastodon "MASTODON" nil nil)
 	 (org-export-backend-options (org-export-get-backend '11ty)))
-	(pushnew
+	(cl-pushnew
 	 '(:hn "HN" nil nil)
 	 (org-export-backend-options (org-export-get-backend '11ty)))
-	(pushnew
+	(cl-pushnew
 	 '(:reddit "REDDIT" nil nil)
 	 (org-export-backend-options (org-export-get-backend '11ty)))
 	(add-hook 'org-11ty-front-matter-functions #'sacha-org-11ty-add-mastodon-to-front-matter))

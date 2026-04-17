@@ -3300,6 +3300,18 @@ repeating just the last keystroke.
         (delete (current-buffer)
                 (buffer-list))))
 #+end_src
+** Going to the last change
+:PROPERTIES:
+:CUSTOM_ID: navigation-going-to-the-last-change
+:END:
+
+#+begin_src emacs-lisp
+(use-package goto-chg
+	:bind
+	(("C-(" . goto-last-change)
+	 ("C-)" . goto-last-change-reverse)))
+#+end_src
+
 ** Substitution
 :PROPERTIES:
 :CUSTOM_ID: navigation-substitution

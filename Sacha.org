@@ -32256,9 +32256,10 @@ of the blog, which takes a number of minutes.
             (call-process "rsync" nil (get-buffer-create "*rsync*") nil "--chmod=ugo=rX" "-avzpe" "ssh"
                           local
                           remote)
-            (if (string-match "^https://" url)
-                (browse-url url)
-              (browse-url (concat sacha-blog-base-url url))))
+						(when (or (called-interactively-p 'any) sacha-org-11ty-export-and-copy-browse)
+							(if (string-match "^https://" url)
+									(browse-url url)
+								(browse-url (concat (replace-regexp-in-string "/$" "" sacha-blog-base-url) url)))))
         (error "Could not find %s" local))))
 	 ((derived-mode-p 'org-mode)
 		(let* ((subtreep (not (org-before-first-heading-p)))
@@ -32279,8 +32280,9 @@ of the blog, which takes a number of minutes.
 						(call-process "rsync" nil (get-buffer-create "*rsync*") nil "--chmod=ugo=rX" "-avzpe" "ssh"
 													local
 													remote)
-						(browse-url (concat (replace-regexp-in-string "/$" "" sacha-blog-base-url)
-																permalink)))
+						(when (or (called-interactively-p 'any) sacha-org-11ty-export-and-copy-browse)
+							(browse-url (concat (replace-regexp-in-string "/$" "" sacha-blog-base-url)
+																	permalink))))
 				(error "Could not find %s" local))))
 	 ((or (derived-mode-p 'html-mode)
         (derived-mode-p 'web-mode))
@@ -32292,8 +32294,9 @@ of the blog, which takes a number of minutes.
 			(call-process "rsync" nil (get-buffer-create "*rsync*") nil "--chmod=ugo=rX" "-avzpe" "ssh"
 										local
 										remote)
-			(browse-url (concat (replace-regexp-in-string "/$" "" sacha-blog-base-url)
-													permalink))))))
+			(when (or (called-interactively-p 'any) sacha-org-11ty-export-and-copy-browse)
+				(browse-url (concat (replace-regexp-in-string "/$" "" sacha-blog-base-url)
+														permalink)))))))
 #+end_src
 
 The proper blog updates (index page, RSS/ATOM

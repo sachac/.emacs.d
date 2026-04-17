@@ -33120,7 +33120,7 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 
     ("A" mastodon-profile--get-toot-author)
     ("P" mastodon-profile--show-user)
-    ("O" mastodon-profile-sacha-profile)
+    ("O" mastodon-profile-my-profile)
     ("U" mastodon-profile--update-user-profile-note)
 
     ("W" mastodon-tl--follow-user)

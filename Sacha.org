@@ -3468,6 +3468,45 @@ https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
           ("C-x o" . 'ace-window)
           )
 #+end_src
+*** Focus on the current window
+:PROPERTIES:
+:CUSTOM_ID: navigation-focus-on-the-current-window
+:END:
+
+From https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
+
+#+begin_src emacs-lisp :tangle lisp/sacha-navigate.el
+;;;###autoload
+(defun sacha-toggle-delete-other-windows ()
+  "Delete other windows in frame if any, or restore previous window config.
+
+From https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
+and Steve Purcell's configuration."
+  (interactive)
+  (if (and winner-mode
+           (equal (selected-window) (next-window)))
+      (winner-undo)
+    (delete-other-windows)))
+#+end_src
+
+#+begin_src emacs-lisp
+(keymap-global-set "C-x 1" #'sacha-toggle-delete-other-windows)
+#+end_src
+
+
+*** Winner mode - undo and redo window configuration
+:PROPERTIES:
+:CUSTOM_ID: winner-mode-undo-and-redo-window-configuration
+:END:
+
+=winner-mode= lets you use =C-c <left>= and =C-c <right>= to switch between window configurations. This is handy when something has popped up a buffer that you want to look at briefly before returning to whatever you were working on. When you're done, press =C-c <left>=.
+
+#+BEGIN_SRC emacs-lisp
+(use-package winner
+  :init
+  (winner-mode 1))
+#+END_SRC
+
 ** TODO Get the hang of using vundo
     :PROPERTIES:
     :CREATED:  [2024-10-14 Mon 10:40]
@@ -3478,51 +3517,6 @@ https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
   (use-package vundo)
 #+end_src
 [[https://mastodon.online/@arialdo/113282285763018537]]
-** Focus on the current window
-:PROPERTIES:
-:CUSTOM_ID: navigation-focus-on-the-current-window
-:END:
-
-From https://protesilaos.com/codelog/2020-08-03-emacs-custom-functions-galore/
-
-#+begin_src emacs-lisp :tangle lisp/sacha-navigate.el
-    (defvar prot/window-configuration nil
-      "Current window configuration.
-  Intended for use by `prot/window-monocle'.")
-
-    (define-minor-mode prot/window-single-toggle
-      "Toggle between multiple windows and single window.
-  This is the equivalent of maximising a window.  Tiling window
-  managers such as DWM, BSPWM refer to this state as 'monocle'."
-      :lighter " [M]"
-      :global nil
-      (if (one-window-p)
-          (when prot/window-configuration
-            (set-window-configuration prot/window-configuration))
-        (setq prot/window-configuration (current-window-configuration))
-        (delete-other-windows)))
-
-;;;###autoload
-    (defun prot/kill-buffer-current (&optional arg)
-      "Kill current buffer or abort recursion when in minibuffer."
-      (interactive "P")
-      (if (minibufferp)
-          (abort-recursive-edit)
-        (kill-buffer (current-buffer)))
-      (when (and arg
-                 (not (one-window-p)))
-        (delete-window)))
-#+end_src
-
-#+begin_src emacs-lisp
-  ;; `prot/window-single-toggle' is based on `windower' by Pierre
-  ;; Neidhardt (ambrevar on GitLab)
-  (use-package emacs
-    :bind (("C-x 1" . prot/window-single-toggle)
-           ("s-k" . prot/kill-buffer-current)))
-#+end_src
-
-
 ** Get scroll-other-window to work with PDFs
 :PROPERTIES:
 :CUSTOM_ID: navigation-get-scroll-other-window-to-work-with-pdfs
@@ -3536,8 +3530,24 @@ Thanks to [[https://www.reddit.com/r/emacs/comments/10pkhko/how_to_navigate_to_p
           :commands sow-mode
           :init (sow-mode 1))
 #+end_src
+** Manage positions
+:PROPERTIES:
+:CUSTOM_ID: navigation-manage-positions
+:END:
+*** Save place between sessions
+:PROPERTIES:
+:CUSTOM_ID: navigation-manage-positions-save-place-between-sessions
+:END:
 
-** Quickly jump to positions  :embark:
+Based on [[https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/][Stealing from the Best Emacs Configs | Emacs Redux]]
+
+#+begin_src emacs-lisp
+(save-place-mode 1)
+(advice-add 'save-place-find-file-hook
+            :after (lambda (&rest _) (when buffer-file-name (ignore-errors (recenter)))))
+#+end_src
+
+*** Quickly jump to positions                                      :embark:
 :PROPERTIES:
 :ID:       56f173e7-d2a2-4589-84d7-c6b435c8a5f8
 :DRILL_LAST_INTERVAL: 0.0
@@ -3572,14 +3582,43 @@ Quickly jump to a position in the current view.
       t)
 #+end_src
 
+#+begin_src emacs-lisp :tangle lisp/sacha-avy.el
+;;;###autoload
+(defun sacha-avy-action-copy-whole-line (pt)
+	"From https://karthinks.com/software/avy-can-do-anything/"
+  (save-excursion
+    (goto-char pt)
+    (cl-destructuring-bind (start . end)
+        (bounds-of-thing-at-point 'line)
+      (copy-region-as-kill start end)))
+  (select-window
+   (cdr
+    (ring-ref avy-ring 0)))
+  t)
+
+;;;###autoload
+(defun sacha-avy-action-yank-whole-line (pt)
+	"From https://karthinks.com/software/avy-can-do-anything/"
+  (sacha-avy-action-copy-whole-line pt)
+  (save-excursion (yank))
+  t)
+#+end_src
+
 #+begin_src emacs-lisp
 (use-package avy
   :if sacha-laptop-p
   :config
   (add-to-list 'avy-dispatch-alist '(?e . avy-action-exchange))
   (setf (alist-get ?. avy-dispatch-alist) 'avy-action-embark)
+  (setf (alist-get ?W avy-dispatch-alist) 'sacha-avy-action-copy-whole-line)
+  (setf (alist-get ?Y avy-dispatch-alist) 'sacha-avy-action-yank-whole-line)
+	(setf (alist-get ?w avy-dispatch-alist) 'avy-action-copy)
+	(with-eval-after-load 'lispy
+		(keymap-set lispy-mode-map
+								"M-j" #'avy-goto-char-timer))
   :bind
-  ("M-j" . avy-goto-char-timer))
+  ("M-j" . avy-goto-char-timer)
+	)
 
 (use-package avy-zap
   :if sacha-laptop-p
@@ -3590,19 +3629,6 @@ Quickly jump to a position in the current view.
   (("M-z" . avy-zap-up-to-char-dwim)
    ("M-Z" . avy-zap-to-char-dwim)))
 #+end_src
-
-** Winner mode - undo and redo window configuration
-:PROPERTIES:
-:CUSTOM_ID: winner-mode-undo-and-redo-window-configuration
-:END:
-
-=winner-mode= lets you use =C-c <left>= and =C-c <right>= to switch between window configurations. This is handy when something has popped up a buffer that you want to look at briefly before returning to whatever you were working on. When you're done, press =C-c <left>=.
-
-#+BEGIN_SRC emacs-lisp
-(use-package winner
-  :init
-  (winner-mode 1))
-#+END_SRC
 
 ** TODO Sort files in read-file-name
 :PROPERTIES:

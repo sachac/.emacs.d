@@ -18678,20 +18678,34 @@ With prefix argument, also display headlines without a TODO keyword."
 #+begin_src emacs-lisp :tangle "lisp/sacha-org-captions.el"
 ;;;###autoload
 (defun sacha-org-captions-format (file &optional separator)
-	(let ((cues (subed-parse-file file)))
-		(mapconcat (lambda (cue)
-                 (concat
-                  (if (and (elt cue 4) (not (string= (elt cue 4) "")))
-                      (format "<div class=\"transcript-heading\"><span class=\"audio-time\" data-start=\"%f\">%s</span> <strong>%s</strong></div>"
-                              (floor (/ (elt cue 1) 1000))
-                              (format-seconds "%02h:%02m:%02s" (floor (/ (elt cue 1) 1000)))
-                              (elt cue 4))
-                    "")
-								  (format "<span class=\"audio-time caption\" data-start=\"%f\" data-stop=\"%f\" >%s</span>"
-												  (/ (elt cue 1) 1000.0)
-												  (/ (elt cue 2) 1000.0)
-												  (elt cue 3))))
-							 cues (or separator " "))))
+	(let ((cues (subed-parse-file file))
+				last-speaker)
+		(mapconcat
+		 (lambda (cue)
+			 (let ((text (elt cue 3))
+						 break)
+				 (when (elt cue 4)
+					 (setq last-speaker nil))
+				 (when (and (string-match "^\\[\\(.+?\\)\\]: " text))
+					 (if (string= last-speaker (match-string 1 text))
+							 (setq text (replace-match "" nil nil text 0))
+						 (setq last-speaker (match-string 1 text))
+						 (setq break t)))
+				 (concat
+					(if (and (elt cue 4) (not (string= (elt cue 4) "")))
+							(format "<p></p><div class=\"transcript-heading\"><span class=\"audio-time\" data-start=\"%f\">%s</span> <strong>%s</strong></div>"
+											(floor (/ (elt cue 1) 1000))
+											(format-seconds "%02h:%02m:%02s" (floor (/ (elt cue 1) 1000)))
+											(elt cue 4))
+						"")
+					(if break "<p></p>" "")
+					(format "<span class=\"audio-time caption\" data-speaker=\"%s\" data-start=\"%f\" data-stop=\"%f\" >%s</span>"
+									(or last-speaker "")
+									(/ (elt cue 1) 1000.0)
+									(/ (elt cue 2) 1000.0)
+									text))))
+		 cues
+		 (or separator " "))))
 
 ;;;###autoload
 (defun sacha-org-captions-export (link desc format _)

@@ -28760,16 +28760,16 @@ https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
 :END:
 
 #+begin_src emacs-lisp :tangle lisp/sacha-elisp.el
+(defvar sacha-function-prefix "sacha")
 ;;;###autoload
-(defvar sacha-function-prefix "sacha-")
 (defun sacha-function-prefix ()
   (if (and (buffer-file-name) (string-match "\\.el\\'" (buffer-file-name)))
-      (concat (file-name-base (buffer-file-name)) "-")
+      (concat (file-name-base (buffer-file-name)) "")
     sacha-function-prefix))
 #+end_src
 
 #+begin_src emacs-lisp
-(setq sacha-function-prefix "sacha-")
+(setq sacha-function-prefix "sacha")
 #+end_src
 
 *** Easily override existing functions

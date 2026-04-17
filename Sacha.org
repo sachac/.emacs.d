@@ -29701,10 +29701,9 @@ CLOCK: [2026-04-05 Sun 14:59]
 CLOCK: [2026-04-05 Sun 14:59]--[2026-04-05 Sun 14:59] =>  0:00
 :END:
 
-[[video:https://archive.org/download/yay-emacs-11-fix-find-function-for-emacs-lisp-from-org-babel-or-scratch/ye11-find-function.mp4?captions=/home/sacha/sync/recordings/Yay Emacs 11: Fix find-function for Emacs Lisp from org-babel or scratch.vtt&thumbnail=~/recordings/2026-04-05-19-25-03.png]]
+[[video:https://archive.org/download/yay-emacs-11-fix-find-function-for-emacs-lisp-from-org-babel-or-scratch/ye11-find-function.mp4?captions=/home/sacha/proj/yay-emacs/transcripts/2026-04-05-ye11-find-function.vtt&thumbnail=~/recordings/2026-04-05-19-25-03.png]]
 
-[[https://archive.org/details/yay-emacs-11-fix-find-function-for-emacs-lisp-from-org-babel-or-scratch][Watch on Internet Archive]], [[https://youtube.com/live/PKkV1Tbev_Y][watch/comment on YouTube]], [[file:~/sync/recordings/Yay Emacs 11: Fix find-function for Emacs Lisp from org-babel or scratch.vtt][download captions]], or [[mailto:sacha@sachachua.com][email me]]
-
+[[https://archive.org/details/yay-emacs-11-fix-find-function-for-emacs-lisp-from-org-babel-or-scratch][Watch on Internet Archive]], [[https://youtube.com/live/PKkV1Tbev_Y][watch/comment on YouTube]], [[file:~/proj/yay-emacs/transcripts/2026-04-05-ye11-find-function.vtt][download captions]], or [[mailto:sacha@sachachua.com][email me]]
 
 Where can you define an Emacs Lisp function so
 that you can use =find-function= to jump to it

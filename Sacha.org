@@ -31184,7 +31184,7 @@ Based on [[https://shreyas.ragavan.co/post/8f702ce2-8bb7-40a3-b44b-a47222c02909/
   :config
   (progn
     (setq rspec-command-options "--fail-fast --format documentation")
-    (bind-key "C-c , ," 'rspec-rerun rspec-mode-map)
+    (keymap-set rspec-mode-map "C-c , ," 'rspec-rerun)
     (fset 'rspec-verify-single 'sacha-rspec-verify-single)))
 
 #+end_src

@@ -4193,6 +4193,16 @@ register. Using registers for all these file shortcuts is probably a bit of a wa
           sacha-file-shortcuts))
 #+end_src
 
+Let's borrow Prot's way of working with registers too.
+
+#+begin_src emacs-lisp
+(use-package prot-register
+  :load-path "~/vendor/prot-dotfiles/emacs/.emacs.d/prot-lisp"
+	:commands (prot-register-add-dwim)
+	:bind
+	(("C-, a" . prot-register-add-dwim)))
+#+end_src
+
 ** C-g improvement
 :PROPERTIES:
 :CUSTOM_ID: navigation-c-g-improvement

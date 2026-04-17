@@ -11188,7 +11188,7 @@ entries, notes, and other semi-structured pieces of information.
 				 :prepend t)
 				("S" "Screenshot" entry
 				 (file ,sacha-org-inbox-file)
-				 "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n#+CAPTION: %(file-name-nondirectory (sacha-latest-screenshot))\n[[file:%(sacha-latest-screenshot)]]\n"
+				 "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n#+CAPTION: %(file-name-nondirectory (sacha-latest-screenshot))\n[[file:%(sacha-latest-screenshot)]]\n"
 				 :prepend t)
         ("b" "Business task" entry
          (file+headline "~/personal/business.org" "Tasks")
@@ -11208,20 +11208,20 @@ entries, notes, and other semi-structured pieces of information.
          "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
         ("q" "Quick note" item
          (file+headline "~/sync/orgzly/organizer.org" "Quick notes"))
-        ("l" "Ledger")
-        ("lc" "Cash expense" plain
+        ("L" "Ledger")
+        ("Lc" "Cash expense" plain
          (file ,sacha-ledger-file)
          "%(ledger-read-date \"Date: \") * %^{Payee}
              Expenses:Cash
              Expenses:%^{Account}  %^{Amount}
            ")
-        ("lb" "BDO CAD" plain
+        ("Lb" "BDO CAD" plain
          (file ,sacha-ledger-file)
          "%(ledger-read-date \"Date: \") * %^{Payee}
              Expenses:Play    $ %^{Amount}
              Assets:BDO
            ")
-        ("lp" "BDO PHP" plain
+        ("Lp" "BDO PHP" plain
          (file ,sacha-ledger-file)
          "%(ledger-read-date \"Date: \") * %^{Payee}
              Expenses:Play    PHP %^{Amount}
@@ -32254,8 +32254,7 @@ defined elsewhere in [[https://sachachua.com/dotemacs/#mastodon][my config]].
 #+end_src
 
 #+begin_src emacs-lisp
-(use-package org
-	:config
+(with-eval-after-load 'org-capture
 	(add-to-list
 	 'org-capture-templates
    '("📰" "Emacs News" entry (file+headline "~/sync/orgzly/news.org" "Collect Emacs News")
@@ -36517,40 +36516,46 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
 
 #+begin_src emacs-lisp
   (setq sacha-stream-inbox-file "~/sync/topics/live.org")
-  (with-eval-after-load 'org
+  (with-eval-after-load 'org-capture
     (add-to-list 'org-capture-templates
   	       `("u" "Update" item  ; Update for the livestream
   		 (file+headline ,sacha-stream-inbox-file "Updates")
-  		 "- %U %?")))
-
+  		 "- %U %?"))
+    (add-to-list 'org-capture-templates
+  	       `("l" "Timestamp" item
+  		 (file+headline ,sacha-stream-inbox-file "Timestamps")
+  		 "- %U %i%?")))
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/sacha-stream.el
 (defvar sacha-stream-old-variable-values nil "Alist of values to save.")
 (defvar sacha-stream-inbox-file nil "File to save new items to.")
+(defvar sacha-stream-url nil "*URL of current livestream.")
 (defvar sacha-stream-inbox-target
   `(file+headline ,sacha-stream-inbox-file "Current / notes for next time"))
 (defvar sacha-stream-variables-to-override
-  `((org-agenda-files . ("~/sync/stream/index.org" "~/sync/topics/live.org" "~/sync/stream/inbox.org"))
+  `((custom-enabled-themes . (ef-trio-dark))
+    (org-agenda-files . ("~/sync/stream/index.org" "~/sync/topics/live.org" "~/sync/stream/inbox.org"))
     (org-refile-targets
      .
      ((("~/sync/stream/index.org"
         "~/sync/stream/inbox.org"
         "~/sync/topics/live.org"
+        "~/sync/orgzly/posts.org"
         "~/sync/emacs/Sacha.org"
         "~/sync/orgzly/news.org") . t)))
     (sacha-org-inbox-file . ,sacha-stream-inbox-file)
     (sacha-file-shortcuts .
-     (("C" "~/proj/emacs-calendar/README.org" "Emacs calendar")
-      ("e" "~/sync/emacs/Sacha.org" "Config")
-      ("E" "~/sync/emacs-news/index.org" "Emacs News")
-      ("f" "~/sync/orgzly/journal-fr.org" "French journal")
-      ("F" "~/sync/orgzly/french.org" "French")
-      ("i" "~/sync/topics/live.org" "Live")
-      ("s" "~/proj/stream/index.org" "Yay Emacs")
-      ("p" "~/sync/orgzly/posts.org" "Posts")
-      ("n" "~/sync/topics/now.org" "Now")
-      ("w" "~/sync/topics/workflows.org" "Workflows")))
+                          (("C" "~/proj/emacs-calendar/README.org" "Emacs calendar")
+                           ("e" "~/sync/emacs/Sacha.org" "Config")
+                           ("E" "~/sync/emacs-news/index.org" "Emacs News")
+                           ("f" "~/sync/orgzly/journal-fr.org" "French journal")
+                           ("F" "~/sync/orgzly/french.org" "French")
+                           ("i" "~/sync/topics/live.org" "Live")
+                           ("s" "~/proj/stream/index.org" "Yay Emacs")
+                           ("p" "~/sync/orgzly/posts.org" "Posts")
+                           ("n" "~/sync/topics/now.org" "Now")
+                           ("w" "~/sync/topics/workflows.org" "Workflows")))
     (org-capture-templates
      .
      (("r" "Note" entry
@@ -36615,10 +36620,12 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
        ,sacha-stream-inbox-target
        "* %a :website:\n:PROPERTIES:\n:CREATED: %U\n:END:\n#+begin_quote\n%i\n#+end_quote\n\n%?\n"
        :prepend t)
-      ("S" "Screenshot" entry
-       ,sacha-stream-inbox-target
-       "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n[[file:%(sacha-latest-screenshot)]]\n"
-       :prepend t)
+      ("S" "Screenshot" item
+       (file+headline ,sacha-stream-inbox-file "Timestamps")
+       "- %U [[file:%(sacha-latest-screenshot)]]%i%?")
+      ("l" "Timestamp" item
+       (file+headline ,sacha-stream-inbox-file "Timestamps")
+       "- %U %i%?")
       ("q" "Quick note" item
        ,sacha-stream-inbox-target)
       ("w" "Web" entry (file ,sacha-stream-inbox-file)

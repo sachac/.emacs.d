@@ -18807,45 +18807,60 @@ Then I can define projects this way:
 
 #+begin_src emacs-lisp
 (with-eval-after-load 'org
-  (sacha-org-project-link "subed"
-										   "~/proj/subed/subed/"
-										   "https://github.com/sachac/subed/blob/main/subed/"
-										   ;; "https://codeberg.org/sachac/subed/src/branch/main/subed/"
-										   )
-  (sacha-org-project-link "emacsconf-el"
-										   "~/proj/emacsconf/lisp/"
-										   "https://git.emacsconf.org/emacsconf-el/tree/")
-  (sacha-org-project-link "subed-record"
-										   "~/proj/subed-record/"
-										   "https://github.com/sachac/subed-record/blob/main/"
-										   ;; "https://codeberg.org/sachac/subed-record/src/branch/main/"
-										   )
-  (sacha-org-project-link "compile-media"
-										   "~/proj/compile-media/"
-										   "https://github.com/sachac/compile-media/blob/main/"
-										   ;; "https://codeberg.org/sachac/compile-media/src/branch/main/"
-										   )
-  (sacha-org-project-link "ox-11ty"
-										   "~/proj/ox-11ty/"
-										   "https://github.com/sachac/ox-11ty/blob/master/")
-  (sacha-org-project-link "11ty"
-										   "~/proj/static-blog/"
-										   "https://github.com/sachac/eleventy-blog-setup/blob/master/")
-  (sacha-org-project-link "emacstv"
-										   "~/proj/emacstv.github.io/"
-										   "https://github.com/emacstv/emacstv.github.io/blob/master/")
-  (sacha-org-project-link "quantified"
-										   "~/proj/quantified/"
-										   "https://github.com/sachac/quantified/blob/master/")
-  (sacha-org-project-link "emacs-news"
-										   "~/sync/emacs-news/"
-										   "https://github.com/sachac/emacs-news/blob/master/")
-  (sacha-org-project-link "speech-input"
-										   "~/proj/speech-input/"
-										   "https://codeberg.org/sachac/speech-input/src/branch/main/")
-  (sacha-org-project-link "learn-lang"
-										   "~/proj/learn-lang/"
-										   "https://codeberg.org/sachac/learn-lang/src/branch/main/"))
+  (sacha-org-project-link
+   "subed"
+   "~/proj/subed/subed/"
+   "https://github.com/sachac/subed/blob/main/subed/"
+   ;; "https://codeberg.org/sachac/subed/src/branch/main/subed/"
+   )
+  (sacha-org-project-link
+   "emacsconf-el"
+   "~/proj/emacsconf/lisp/"
+   "https://git.emacsconf.org/emacsconf-el/tree/")
+  (sacha-org-project-link
+   "subed-record"
+   "~/proj/subed-record/"
+   "https://github.com/sachac/subed-record/blob/main/"
+   ;; "https://codeberg.org/sachac/subed-record/src/branch/main/"
+   )
+  (sacha-org-project-link
+   "compile-media"
+   "~/proj/compile-media/"
+   "https://github.com/sachac/compile-media/blob/main/"
+   ;; "https://codeberg.org/sachac/compile-media/src/branch/main/"
+   )
+  (sacha-org-project-link
+   "ox-11ty"
+   "~/proj/ox-11ty/"
+   "https://github.com/sachac/ox-11ty/blob/master/")
+  (sacha-org-project-link
+   "11ty"
+   "~/proj/static-blog/"
+   "https://github.com/sachac/eleventy-blog-setup/blob/master/")
+  (sacha-org-project-link
+   "emacstv"
+   "~/proj/emacstv.github.io/"
+   "https://github.com/emacstv/emacstv.github.io/blob/master/")
+  (sacha-org-project-link
+   "quantified"
+   "~/proj/quantified/"
+   "https://github.com/sachac/quantified/blob/master/")
+  (sacha-org-project-link
+   "emacs-news"
+   "~/sync/emacs-news/"
+   "https://github.com/sachac/emacs-news/blob/master/")
+  (sacha-org-project-link
+   "speech-input"
+   "~/proj/speech-input/"
+   "https://codeberg.org/sachac/speech-input/src/branch/main/")
+  (sacha-org-project-link
+   "learn-lang"
+   "~/proj/learn-lang/"
+   "https://codeberg.org/sachac/learn-lang/src/branch/main/")
+  (sacha-org-project-link
+   "emacsd"
+   "~/sync/emacs/"
+   "https://codeberg.org/sachac/.emacs.d/src/branch/gh-pages/"))
 #+end_src
 
 #+RESULTS:

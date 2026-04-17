@@ -30178,8 +30178,7 @@ I've moved this to the function =learn-lang-string-list-diff= in [[https://codeb
   (setq yas-key-syntaxes '("w_" "w_." "^ "))
   (setq yas-installed-snippets-dir "~/elisp/yasnippet-snippets")
   (setq yas-expand-only-for-last-commands nil)
-  (yas-global-mode 1)
-  (bind-key "\t" 'hippie-expand yas-minor-mode-map))
+  (yas-global-mode 1))
 
 (use-package yasnippet-capf
   :after cape

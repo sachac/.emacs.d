@@ -27130,7 +27130,7 @@ the files faster than real-time:
 I used this command to get word-level timing data. ([[https://medium.com/@didierlacroix/the-power-of-single-word-subtitles-662f8c3891bd][Experimenting with options from this post]])
 
 #+begin_src sh :eval no :tangle "~/bin/whisperx" :shebang "#!/bin/zsh"
-MODEL="${MODEL:-medium}"
+MODEL="${MODEL:-small}"
 VENV_NVIDIA="/home/sacha/vendor/whisperx/.venv/lib/python3.12/site-packages/nvidia"
 export LD_LIBRARY_PATH="$VENV_NVIDIA/cudnn/lib:$VENV_NVIDIA/cublas/lib:$VENV_NVIDIA/cuda_runtime/lib:$LD_LIBRARY_PATH"
 LANGUAGE="${LANGUAGE:-en}"

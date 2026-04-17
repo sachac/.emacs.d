@@ -28320,6 +28320,20 @@ I have ~elfeed-protocol-feeds~ set in my
 #+begin_src emacs-lisp
 (editorconfig-mode 1)
 (add-to-list 'exec-path "~/.local/bin")
+(setq which-func-modes '(prog-mode org-mode))
+#+end_src
+** Comments
+:PROPERTIES:
+:CUSTOM_ID: coding-comments
+:END:
+
+#+begin_src emacs-lisp
+(use-package prot-comment
+  :load-path "~/vendor/prot-dotfiles/emacs/.emacs.d/prot-lisp"
+	:commands (prot-comment-timestamp-keyword)
+	:bind
+	(:map prog-mode-map
+				("C-x M-;" . prot-comment-timestamp-keyword)))
 #+end_src
 
 ** DONE Scan ~/bin and turn the scripts into interactive commands
@@ -28710,7 +28724,7 @@ Autocompile, but don't interrupt me with native compilation warnings.
     :if sacha-laptop-p
     :config (auto-compile-on-load-mode)
 		:defer t)
-  (setq native-comp-async-report-warnings-errors nil)
+  (setq native-comp-async-report-warnings-errors 'silent)
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/sacha-misc.el
@@ -28725,6 +28739,12 @@ Autocompile, but don't interrupt me with native compilation warnings.
 (setq edebug-print-length nil)
 (add-hook 'emacs-lisp-mode-hook
 					'sacha-set-sentence-end-double-space)
+#+end_src
+
+https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
+
+#+begin_src emacs-lisp
+(setq reb-re-syntax 'string)
 #+end_src
 
 #+begin_src emacs-lisp

@@ -1,7 +1,7 @@
 # [[elisp:sacha-emacs-export][Export this file asynchronously]]
 # [[elisp:(sacha-emacs-export 'sync)][Export this file synchronously]]
 #+TITLE: Sacha Chua's Emacs configuration
-#+OPTIONS: toc:nil h:4 html-style:nil html-postamble:nil
+#+OPTIONS: toc:nil h:4 html-style:nil html-postamble:nil author:nil date:nil
 #+SETUPFILE: ~/vendor/org-html-themes/org/theme-readtheorg-sachac.setup
 #+STARTUP: showeverything
 #+PROPERTY: header-args+   :results silent :exports code :eval never-export
@@ -12,8 +12,57 @@
 #+ELEVENTY_CATEGORIES+: emacs
 #+ELEVENTY_LAYOUT: layouts/post
 #+ELEVENTY_BASE_URL: https://sachachua.com
-
-Last exported:  {{{time(%Y-%m-%d)}}}
+#+LATEX_COMPILER: xelatex
+#+OPTIONS: num:t
+#+LATEX_HEADER: \setcounter{secnumdepth}{3}
+#+LATEX_HEADER: \usepackage[T1]{fontenc}
+#+LATEX_HEADER: \usepackage{titlesec}
+#+LATEX_HEADER: \usepackage{svg}
+#+LATEX_HEADER: \usepackage{titletoc}
+#+LATEX_HEADER: \newfontfamily\headingfont[Path=./]{sachacHand-Bold.otf}
+#+LATEX_HEADER: \titleformat*{\section}{\LARGE\headingfont}
+#+LATEX_HEADER: \titleformat*{\subsection}{\Large\headingfont}
+#+LATEX_HEADER: \titleformat*{\subsubsection}{\large\headingfont}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LATEX_HEADER: \definecolor{modus-fg-prose-verbatim}{HTML}{721045}   % magenta
+#+LATEX_HEADER: \definecolor{modus-fg-link}{HTML}{3548cf}   % blue-warmer
+#+LATEX_HEADER: \usepackage{relsize}
+#+LATEX_HEADER: \let\oldtexttt\texttt
+#+LATEX_HEADER: \urlstyle{same} % Prevents hyperref from forcing standard monospace
+#+LATEX_HEADER: \renewcommand{\texttt}[1]{\oldtexttt{{\textcolor{modus-fg-prose-verbatim}{#1}}}}
+#+LATEX_HEADER: \usepackage{xurl}
+#+LATEX_HEADER: \hypersetup{colorlinks=true, urlcolor=modus-fg-link}
+#+LATEX_HEADER: \setmonofont[Scale=0.8]{Fira Code}
+#+LATEX_HEADER: \usepackage{microtype}
+#+LATEX_HEADER: \setlength{\emergencystretch}{3em}
+#+LATEX_HEADER: \usepackage[most]{tcolorbox}
+#+LATEX_HEADER: \newtcolorbox{update}{
+#+LATEX_HEADER:   enhanced,
+#+LATEX_HEADER:   breakable,
+#+LATEX_HEADER:   colback=green!5!white,
+#+LATEX_HEADER:   colframe=green,
+#+LATEX_HEADER:   arc=0pt, outer arc=0pt,
+#+LATEX_HEADER:   boxrule=0pt,
+#+LATEX_HEADER:   leftrule=4pt,
+#+LATEX_HEADER:   fontupper=\itshape,
+#+LATEX_HEADER:   fonttitle=\bfseries,
+#+LATEX_HEADER:   coltext=black,
+#+LATEX_HEADER:   left=10pt,
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \usepackage{amssymb}
+#+LATEX_HEADER: \lstset{
+#+LATEX_HEADER:   breaklines=true,
+#+LATEX_HEADER:   breakatwhitespace=true,
+#+LATEX_HEADER:   % Symbol at the end of the line being wrapped
+#+LATEX_HEADER:   prebreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\hookleftarrow}},
+#+LATEX_HEADER:   % Symbol at the start of the continuation line
+#+LATEX_HEADER:   postbreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\hookrightarrow}\space},
+#+LATEX_HEADER:   breakindent=20pt, % Indent the wrapped part to distinguish it
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \usepackage{tocloft}
+#+LATEX_HEADER: \setlength{\cftsecnumwidth}{3em}    % Space for "1."
+#+LATEX_HEADER: \setlength{\cftsubsecnumwidth}{3.5em} % Space for "1.1."
+#+LATEX_HEADER: \setlength{\cftsubsubsecnumwidth}{4em} % Space for "1.1.1."
 
 #+TOC: headlines 4
 
@@ -30,6 +79,11 @@ remember. =) If you want to see a table of contents and other
 useful niceties, go to https://sachachua.com/dotemacs . Other links for
 this page: [[https://raw.githubusercontent.com/sachac/.emacs.d/gh-pages/Sacha.org][Org Mode version]], [[https://codeberg.org/sachac/.emacs.d][Codeberg repository]], [[http://github.com/sachac/.emacs.d/][Github repository]]
 
+I've installed a lot of packages. See the [[dotemacs:add-package-sources][package sources]] section to
+add the repositories to your configuration. When you see ~use-package~
+and a package name you might like, you can use ~M-x package-install~
+to install the package of that name.
+
 If you're new to Emacs Lisp, you probably don't want to copy and paste
 large chunks of this code. Instead, copy small parts of it (always
 making sure to copy a complete set of parentheses) into your
@@ -38,11 +92,6 @@ eval-buffer~ to evaluate the code and see if you like the way that
 Emacs behaves. See [[https://www.gnu.org/software/emacs/manual/html_mono/eintr.html][An Introduction to Programming in Emacs Lisp]] for
 more details on Emacs Lisp. You can also find the manual by using ~C-h
 i~ (~info~) and choosing "Emacs Lisp Intro".
-
-I've installed a lot of packages. See the [[dotemacs:add-package-sources][package sources]] section to
-add the repositories to your configuration. When you see ~use-package~
-and a package name you might like, you can use ~M-x package-install~
-to install the package of that name.
 
 If you're viewing the Org file, you can open source code blocks (those
 are the ones in ~begin_src~) in a separate buffer by moving your point
@@ -4883,7 +4932,7 @@ Ex: (sacha-navigate-focus-or-launch "obs")
 
 #+begin_src emacs-lisp
   (keymap-global-set "M-c" #'sacha-capitalize-dwim)
-  (setq-default fill-column 50)
+  (setq-default fill-column 70)
   (keymap-global-set "M-o" #'join-line)
   (keymap-global-set "M-T" #'transpose-sentences)  ; https://www.matem.unam.mx/~omar/apropos-emacs.html#writing-experience
 #+end_src
@@ -15774,7 +15823,7 @@ Then it makes sense to be able to work with blog URLs from an Embark action:
 
 ;;;###autoload
 (defun sacha-blog-post--state ()
-  "Blog post RAG search state function, managing preview window and cleanup."
+  "Blog post search state function, managing preview window and cleanup."
   ;; These functions are closures captured when the state is initialized by consult--read
   (let ((preview (consult--jump-preview))
         (open (consult--temporary-files))
@@ -15783,12 +15832,12 @@ Then it makes sense to be able to work with blog URLs from an Embark action:
     (lambda (action cand)
       (unless cand
         (funcall open))
-      (funcall preview action
-               (and (or (eq action 'preview))
-										(message "cand: %s %s" cand (text-properties-at 0 cand))
-										nil
-										;;
-                    (sacha-blog-post--position cand (and (not (eq action 'return)) open)))))))
+      (funcall
+			 preview action
+       (and (or (eq action 'preview))
+						(sacha-blog-post--position
+						 (car (split-string cand " "))
+						 (and (not (eq action 'return)) open)))))))
 
 ;;;###autoload
 (defun sacha-11ty-current-post ()
@@ -16215,6 +16264,26 @@ COMMENT should be an alist with author, date (ISO8901 format), and message (HTML
 			 (json-encode comments))
 			(json-pretty-print (point-min) (point-max)))
 		filename))
+#+end_src
+*** LaTeX
+:PROPERTIES:
+:CUSTOM_ID: org-mode-publishing-latex
+:END:
+
+#+begin_src emacs-lisp
+(setq org-latex-listings t)
+(setq org-export-with-tags 'not-in-toc)
+(add-to-list 'org-latex-packages-alist '("" "listings"))
+(setq org-latex-listings-options
+      '(("breaklines" "true")
+        ("breakatwhitespace" "true")
+        ("basicstyle" "\\small\\ttfamily")))
+(setq org-latex-toc-include-unnumbered t)
+(setq org-latex-pdf-process
+      '("xelatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+        "xelatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+        "xelatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
+(setq org-latex-prefer-user-labels t)
 #+end_src
 
 *** TODO Copy Tasker task
@@ -16684,14 +16753,14 @@ This code displays the images inline.
      #+BEGIN_SRC emacs-lisp :tangle "lisp/sacha-org-export.el"
 ;;;###autoload
 (defun sacha-org-export-filter-body-add-emacs-configuration-link (string backend info)
-  (when (and (plist-get info :input-file) (string-match "\\.emacs\\.d/Sacha\\.org\\|sync/emacs/Sacha\\.org" (plist-get info :input-file)))
-    (concat string
-            (let ((id (org-entry-get-with-inheritance "CUSTOM_ID")))
-              (format
+	(when (and (member backend '(md html 11ty)) (plist-get info :input-file) (string-match "\\.emacs\\.d/Sacha\\.org\\|sync/emacs/Sacha\\.org" (plist-get info :input-file)))
+		(concat string
+						(let ((id (org-entry-get-with-inheritance "CUSTOM_ID")))
+							(format
 							 (if (eq backend 'md)
 									 "\nThis is part of my [Emacs configuration](https://sachachua.com/dotemacs%s)\n"
 								 "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs%s\">Emacs configuration.</a></div>")
-               (if id (concat "#" id) ""))))))
+							 (if id (concat "#" id) ""))))))
      #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
@@ -17051,12 +17120,19 @@ Details that will be displayed when the summary is clicked.
       (if (string= open "") "" " open") title-color title contents))))
 	(defalias 'org-block/details #'org-block/my_details)
 
-  (org-defblock columns nil nil
-								"Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
-								(format "<div class=\"row\">%s</div>" contents))
-  (org-defblock column50 nil nil
-								"Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns."
-								(format "<div class=\"columns small-12 medium-6 large-6\">%s</div>" contents))
+  (org-defblock
+	 columns nil nil
+	 "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns using Foundation."
+	 (if (member backend '(html 11ty))
+			 (format "<div class=\"row\">%s</div>" contents)
+		 contents))
+  (org-defblock
+	 column50 nil nil
+	 "Top level (HTML & wp & 11ty)OSPE-RESPECT-NEWLINES? Split into columns."
+	 (if (member backend '(html 11ty))
+			 (format "<div class=\"columns small-12 medium-6 large-6\">%s</div>"
+							 contents)
+		 contents))
 	(org-defblock short (yt nil video nil audio nil thumbnail nil)
 								"Top level (HTML & 11ty)OSPE-RESPECT-NEWLINES? Mark up a YouTube short."
 								(let ((yt-link (and yt (format "<a href=\"https://youtube.com/watch?v=%s\">watch this on YouTube</a>"
@@ -18132,15 +18208,18 @@ With prefix argument, also display headlines without a TODO keyword."
 	  (format "<a href=\"%s#%s\">%s</a>"
             sacha-emacs-config-url
             path (or desc path)))
-	('ascii
-   (if desc
-	     (format "%s %s#%s"
-               desc
-               sacha-emacs-config-url
-               path)
-     (format "%s#%s"
-               sacha-emacs-config-url
-               path)))))
+	 ('latex
+		 (format "\\hyperref[%s]{%s} (p.~\\pageref{%s})"
+             path (or desc path) path))
+	 ('ascii
+		(if desc
+				(format "%s %s#%s"
+								desc
+								sacha-emacs-config-url
+								path)
+			(format "%s#%s"
+              sacha-emacs-config-url
+              path)))))
 
 ;;;###autoload
 (defun sacha-org-dotemacs-complete ()
@@ -18545,17 +18624,18 @@ With prefix argument, also display headlines without a TODO keyword."
 
 #+NAME: org-audio-link
 #+begin_src emacs-lisp
-(org-link-set-parameters
- "audio"
- :export #'sacha-org-audio-export
- :follow #'sacha-org-video-follow
- :complete #'sacha-org-audio-complete)
+(with-eval-after-load 'org
+	(org-link-set-parameters
+	 "audio"
+	 :export #'sacha-org-audio-export
+	 :follow #'sacha-org-video-follow
+	 :complete #'sacha-org-audio-complete)
 
-(org-link-set-parameters
- "audioi"
- :export #'sacha-org-audio-export
- :follow #'sacha-org-video-follow
- :complete #'sacha-org-audio-icon-complete)
+	(org-link-set-parameters
+	 "audioi"
+	 :export #'sacha-org-audio-export
+	 :follow #'sacha-org-video-follow
+	 :complete #'sacha-org-audio-icon-complete))
 #+end_src
 
 #+begin_src emacs-lisp :tangle "lisp/sacha-org-audio.el"
@@ -18572,7 +18652,7 @@ With prefix argument, also display headlines without a TODO keyword."
 																	description))))
 
 ;;;###autoload
-(defun sacha-org-audio-export (link desc format info)
+(defun sacha-org-audio-export (link desc format &optional info)
 	"Export PATH to FORMAT using the specified wrap parameter."
 	(pcase format
 		((or 'html '11ty 'md 'sacha-html-served)
@@ -18633,7 +18713,12 @@ With prefix argument, also display headlines without a TODO keyword."
 					  "")))))
     ('org
      (org-link-make-string (concat "audio:" link) desc))
-		(_ path)))
+		('latex
+		 (let* ((parsed-url (url-generic-parse-url link))
+            (path-and-query (url-path-and-query parsed-url))
+						(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query)))))
+			 (org-latex-link (car path-and-query) desc info)))
+		(_ (or desc link))))
 
 (ert-deftest sacha-org-audio-export ()
   (should
@@ -21679,8 +21764,8 @@ Luhmann’s only real help was a housekeeper who cooked for him and his children
 	(interactive)
 	(let ((point (point)))
 		(goto-char (point-min))
+		(setq org-outline-path-cache nil)
 		(let* ((paths (make-hash-table :test 'equal))
-           (org-outline-path-cache nil)
 					 (found (catch 'found
 										(org-map-entries
 										 (lambda ()
@@ -38074,12 +38159,14 @@ I post my YouTube videos under a brand account so that just in case I lose acces
 8. Go to *Data Access - Audience*
 9. Set the *User type* to *External*
 10. Add my brand account as one of the *Test users*.
-11. Log in at the command line:
+11. Log in at the command line. Here's a sample command that uses the emacs-stuff project I created and the credentials.json I downloaded:
     #+begin_src sh :eval no :tangle no
  gcloud auth application-default login \
      --client-id-file=credentials.json \
      --scopes="https://www.googleapis.com/auth/youtube"
     #+end_src
+
+
 
 Then the following code calculates the offset of the timestamp at point based on the livestream that contains it.
 
@@ -38230,6 +38317,7 @@ It could be nice to log seconds someday for even finer timestamps. Still, this i
 :EXPORT_ELEVENTY_PERMALINK: /blog/2026/04/create-a-google-calendar-event-from-an-org-mode-timestamp/
 :EXPORT_ELEVENTY_FILE_NAME: blog/2026/04/create-a-google-calendar-event-from-an-org-mode-timestamp/
 :ID:       20260417T092931.519759
+:CUSTOM_ID: streaming-create-a-google-calendar-event-from-an-org-mode-timestamp
 :END:
 
 Time zones are hard, so I let calendaring systems take care of the conversion and confirmation. I've been using Google Calendar because it synchronizes with my phone and people know what to do with the event invite.
@@ -38273,6 +38361,9 @@ It uses this function to convert the timestamp at point:
 defun-open:sacha-org-time-at-point
 
 ** Create YouTube livestream broadcasts from Emacs Lisp
+:PROPERTIES:
+:CUSTOM_ID: streaming-create-youtube-livestream-broadcasts-from-emacs-lisp
+:END:
 
 I want to take advantage of this relatively predictable focus time while the kiddo is in school by getting back into the swing of scheduling conversations with people. I've been experimenting with [[https://sachachua.com/live][livestreaming these]]
 
@@ -38414,6 +38505,9 @@ Now we can quickly schedule a livestream based on the Org entry at point.
 #+end_src
 
 ** Insert an Org Mode link to an upcoming YouTube broadcast
+:PROPERTIES:
+:CUSTOM_ID: streaming-insert-an-org-mode-link-to-an-upcoming-youtube-broadcast
+:END:
 
 #+begin_src emacs-lisp
 (defun sacha-google-youtube-complete-broadcast (&optional prompt)
@@ -38430,7 +38524,10 @@ Now we can quickly schedule a livestream based on the Org entry at point.
 																							(date-to-time time))
 																					 ""))
 																 o)))
-											 (alist-get 'items (sacha-google-youtube-live-broadcasts)))))
+											 (alist-get 'items (sacha-google-youtube-live-broadcasts))))
+				(completion-extra-properties
+				 (or completion-extra-properties
+						 (list :display-sort-function 'identity))))
 		(assoc-default (completing-read (or prompt "Broadcast: ")
 																		items)
 									 items
@@ -41537,7 +41634,8 @@ window.addEventListener('DOMContentLoaded', function() {
 <div class="skip-collapsible"></div>
 #+end_export
 
-You can [[mailto:sacha@sachachua.com][e-mail me]] or @@html:<a rel="me" href="https://social.sachachua.com/@sacha">find me on Mastodon</a>@@.
+You can [[mailto:sacha@sachachua.com][e-mail me]] or [[https://social.sachachua.com/@sacha][find me on Mastodon]].
+
 * Index of sections by module
 :PROPERTIES:
 :CUSTOM_ID: index-of-sections-by-module
@@ -41567,7 +41665,7 @@ This uses code defined in [[dotemacs:org-mode-org-babel-tangling-sacha-emacs-con
 [[elisp:sacha-emacs-config-update-module-info]]
 
 #+NAME: sacha-emacs-config-index-by-module
-#+begin_src emacs-lisp :results raw replace :eval never-export :tangle no
+#+begin_src emacs-lisp :results raw replace :eval never-export :tangle no :exports results
 (org-list-to-org
  (cons
   'unordered

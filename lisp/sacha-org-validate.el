@@ -83,8 +83,8 @@
 	(interactive)
 	(let ((point (point)))
 		(goto-char (point-min))
+		(setq org-outline-path-cache nil)
 		(let* ((paths (make-hash-table :test 'equal))
-           (org-outline-path-cache nil)
 					 (found (catch 'found
 										(org-map-entries
 										 (lambda ()

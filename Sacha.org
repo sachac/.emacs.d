@@ -314,7 +314,12 @@ Disk space is cheap. Save lots.
 :EXPORT_ELEVENTY_FILE_NAME: blog/2025/09/obscure-emacs-package-appreciation-backup-walker/
 :EXPORT_MASTODON: https://social.sachachua.com/@sacha/statuses/01K5EHNVSHPHMAXFQPZYWJ1D1H
 :CUSTOM_ID: about-this-file-backups-obscure-emacs-package-appreciation-backup-walker
+:EXPORT_MODIFIED: 2026-05-11T15:03:19-0400
 :END:
+
+#+begin_update
+[2026-05-11]: Switching to [[https://github.com/sachac/backup-walker][my fork of backup-walker]] in preparation for other changes.
+#+end_update
 
 The [[https://www.emacswiki.org/emacs/Carnival][Emacs Carnival]] theme for September is [[https://goritskov.com/posts/obscure_packages.html][obscure
 packages]], which made me think of how the
@@ -363,8 +368,7 @@ function, but it wasn't easy to see what changed
 between versions.
 
 I had learned about backup-walker in the process
-of writing about [[https://sachachua.com/blog/2025/06/thinking-about-time-travel-with-the-emacs-text-editor-and-org-mode/][Thinking about time travel with
-the Emacs text editor, Org Mode, and backups]]. So I
+of writing about [[https://sachachua.com/blog/2025/06/thinking-about-time-travel-with-the-emacs-text-editor-and-org-mode/][Thinking about time travel with the Emacs text editor, Org Mode, and backups]]. So I
 used [[https://github.com/lewang/backup-walker][backup-walker]] to flip through my file's
 numbered backups in much the same way that
 [[package:git-timemachine][git-timemachine]] lets you flip through Git versions
@@ -394,78 +398,17 @@ time, kind of like the [[https://www.gnu.org/software/emacs/manual/html_node/eli
 mind doesn't quite work that way. I wanted it to
 look like a regular diff, with the additions in
 newer versions marked with ~+~. Emacs being Emacs,
-I changed it. Here's an example showing what it
-looks like now:
+[[https://github.com/lewang/backup-walker/pull/3][someone fixed it]], so I copied that change into [[https://github.com/sachac/backup-walker][my fork]].
 
 #+CAPTION: backup-walker diffs going the direction I want them to: additions (+) marked in green, deletions (-) in red
 [[file:images/2025-09-17_13-46-12.png]]
-
-The following code makes it behave the way I
-expect:
-
-#+begin_src emacs-lisp :tangle "lisp/sacha-navigate.el"
-(defvar backup-walker-data-alist)
-(declare-function diff-no-select "diff" (old new &optional switches noasync bufname))
-(declare-function backup-walker-get-version "backup-walker")
-;;;###autoload
-(defun sacha-backup-walker-refresh ()
-  (let* ((index (cdr (assq :index backup-walker-data-alist)))
-         (suffixes (cdr (assq :backup-suffix-list backup-walker-data-alist)))
-         (prefix (cdr (assq :backup-prefix backup-walker-data-alist)))
-         (right-file (concat prefix (nth index suffixes)))
-         (right-version (format "%i" (backup-walker-get-version right-file)))
-         diff-buf left-file left-version)
-    (if (eq index 0)
-        (setq left-file (cdr (assq :original-file backup-walker-data-alist))
-              left-version "orig")
-      (setq left-file (concat prefix (nth (1- index) suffixes))
-            left-version (format "%i" (backup-walker-get-version left-file))))
-    ;; we change this to go the other way here
-    (setq diff-buf (diff-no-select right-file left-file nil 'noasync))
-    (setq buffer-read-only nil)
-    (delete-region (point-min) (point-max))
-    (insert-buffer-substring diff-buf)
-    (set-buffer-modified-p nil)
-    (setq buffer-read-only t)
-    (force-mode-line-update)
-    (setq header-line-format
-          (concat (format "{{ ~%s~ → ~%s~ }} "
-                          (propertize left-version 'face 'font-lock-variable-name-face)
-                          (propertize right-version 'face 'font-lock-variable-name-face))
-                  (if (nth (1+ index) suffixes)
-                      (concat (propertize "<p>" 'face 'italic)
-                              " ~"
-                              (propertize (int-to-string
-                                           (backup-walker-get-version (nth (1+ index) suffixes)))
-                                          'face 'font-lock-keyword-face)
-                              "~ ")
-                    "")
-                  (if (eq index 0)
-                      ""
-                    (concat (propertize "<n>" 'face 'italic)
-                            " ~"
-                            (propertize (int-to-string (backup-walker-get-version (nth (1- index) suffixes)))
-                                        'face 'font-lock-keyword-face)
-                            "~ "))
-                  (propertize "<return>" 'face 'italic)
-                  " open ~"
-                  (propertize (propertize (int-to-string (backup-walker-get-version right-file))
-                                          'face 'font-lock-keyword-face))
-                  "~"))
-    (kill-buffer diff-buf)))
-#+end_src
-
-#+begin_src emacs-lisp
-  (with-eval-after-load 'backup-walker
-    (advice-add 'backup-walker-refresh :override #'sacha-backup-walker-refresh))
-#+end_src
 
 ~backup-walker~ is not actually a real package in
 the sense of ~M-x package-install~, but
 fortunately, recent Emacs makes it easier to
 install from a repository. I needed to
 install it from
-[[https://github.com/lewang/backup-walker]]. It was
+[[https://github.com/sachac/backup-walker]]. It was
 written so long ago that I needed to
 ~defalias~ some functions that were removed in
 Emacs 26.1. Here's the use-package snippet from my
@@ -473,17 +416,13 @@ configuration:
 
 #+begin_src emacs-lisp
   (use-package backup-walker
-          :vc (:url "https://github.com/lewang/backup-walker")
-          :commands backup-walker-start
-          :init
-          (defalias 'string-to-int 'string-to-number)  ; removed in 26.1
-          (defalias 'display-buffer-other-window 'display-buffer))
+          :vc (:url "https://github.com/sachac/backup-walker")
+					:load-path "~/vendor/backup-walker"
+          :commands backup-walker-start)
 #+end_src
 
 So there's an obscure package recommendation:
-[[https://github.com/lewang/backup-walker][backup-walker]]. It hasn't been updated for more
-than a decade, and it's not even installable the
-regular way, but it's still handy.
+[[https://github.com/lewang/backup-walker][backup-walker]].
 
 I can imagine all sorts of ways this workflow
 could be even better. It might be nice to dust off

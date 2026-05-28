@@ -1532,13 +1532,14 @@ Link: http://yummymelon.com/devnull/announcing-casual-symbol-overlay.html
 :END:
 
 #+begin_src emacs-lisp
-(defvar-keymap sacha-embark-org-timestamp-map
-	:parent embark-general-map
-	:doc "Keymap for Org timestamps."
-	"W" #'sacha-org-timestamp-in-time-zones)
 (with-eval-after-load 'embark
+	(defvar-keymap sacha-embark-org-timestamp-map
+		:parent embark-general-map
+		:doc "Keymap for Org timestamps."
+		"W" #'sacha-org-timestamp-in-time-zones)
 	(add-to-list 'embark-keymap-alist '(org-timestamp . sacha-embark-org-timestamp-map)))
 #+end_src
+
 ** Extended command list
    CLOSED: [2022-01-03 Mon 21:01]
    :PROPERTIES:

@@ -20,6 +20,7 @@
 #+LATEX_HEADER: \usepackage{svg}
 #+LATEX_HEADER: \usepackage{titletoc}
 #+LATEX_HEADER: \newfontfamily\headingfont[Path=./]{sachacHand-Bold.otf}
+#+LATEX_HEADER: \setmonofont[Scale=0.8]{Fira Code}
 #+LATEX_HEADER: \titleformat*{\section}{\LARGE\headingfont}
 #+LATEX_HEADER: \titleformat*{\subsection}{\Large\headingfont}
 #+LATEX_HEADER: \titleformat*{\subsubsection}{\large\headingfont}
@@ -32,15 +33,28 @@
 #+LATEX_HEADER: \renewcommand{\texttt}[1]{\oldtexttt{{\textcolor{modus-fg-prose-verbatim}{#1}}}}
 #+LATEX_HEADER: \usepackage{xurl}
 #+LATEX_HEADER: \hypersetup{colorlinks=true, urlcolor=modus-fg-link}
-#+LATEX_HEADER: \setmonofont[Scale=0.8]{Fira Code}
 #+LATEX_HEADER: \usepackage{microtype}
 #+LATEX_HEADER: \setlength{\emergencystretch}{3em}
+
 #+LATEX_HEADER: \usepackage[most]{tcolorbox}
 #+LATEX_HEADER: \newtcolorbox{update}{
 #+LATEX_HEADER:   enhanced,
 #+LATEX_HEADER:   breakable,
 #+LATEX_HEADER:   colback=green!5!white,
 #+LATEX_HEADER:   colframe=green,
+#+LATEX_HEADER:   arc=0pt, outer arc=0pt,
+#+LATEX_HEADER:   boxrule=0pt,
+#+LATEX_HEADER:   leftrule=4pt,
+#+LATEX_HEADER:   fontupper=\itshape,
+#+LATEX_HEADER:   fonttitle=\bfseries,
+#+LATEX_HEADER:   coltext=black,
+#+LATEX_HEADER:   left=10pt,
+#+LATEX_HEADER: }
+#+LATEX_HEADER: \newtcolorbox{my_details}[1]{
+#+LATEX_HEADER:   enhanced,
+#+LATEX_HEADER:   breakable,
+#+LATEX_HEADER:   colback=#1!5!white,
+#+LATEX_HEADER:   colframe=#1,
 #+LATEX_HEADER:   arc=0pt, outer arc=0pt,
 #+LATEX_HEADER:   boxrule=0pt,
 #+LATEX_HEADER:   leftrule=4pt,
@@ -63,14 +77,15 @@
 #+LATEX_HEADER: \setlength{\cftsecnumwidth}{3em}    % Space for "1."
 #+LATEX_HEADER: \setlength{\cftsubsecnumwidth}{3.5em} % Space for "1.1."
 #+LATEX_HEADER: \setlength{\cftsubsubsecnumwidth}{4em} % Space for "1.1.1."
+#+LATEX_HEADER: \newenvironment{media-post}{}{}
 
 #+TOC: headlines 4
 
 * About this file
 :PROPERTIES:
 :CUSTOM_ID: babel-init
+:ID:       20260424T160144.440528
 :END:
-<<babel-init>>
 
 This is my personal config. It's really long, but that's partly
 because I sometimes leave blog posts in it as commentary, and also
@@ -124,11 +139,13 @@ Here's my early-init.el:
 Here's my init.el:
 
 #+begin_src emacs-lisp :tangle "~/.config/emacs/init.el" :eval never-export
+(setq custom-file "~/.config/emacs/custom-settings.el")
+(load custom-file t)
 (load-file "~/sync/emacs/Sacha.el")
 (load-file "~/sync/cloud/.emacs.secrets")
-(load custom-file t)
 (put 'narrow-to-region 'disabled nil)
 (put 'list-timers 'disabled nil)
+(setopt multiple-terminals-merge-keyboards t)
 (server-mode 1)
 #+end_src
 

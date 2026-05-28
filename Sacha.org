@@ -3896,6 +3896,25 @@ nil
 :CUSTOM_ID: searching
 :END:
 
+Treat isearch space as a wildcard, [[https://kelar.org/~bandali/gnu/emacs/ffs-emacs-ext-prot.html][from Prot by way of Amin]]:
+
+#+begin_src emacs-lisp
+(setq search-whitespace-regexp ".*?")
+(setq isearch-lax-whitespace t)
+(setq isearch-regexp-lax-whitespace nil)
+#+end_src
+
+Inspired by https://github.com/oantolin/emacs-config
+#+begin_src emacs-lisp
+(use-package isearch  ; built-in
+	:bind
+	(:map isearch-mode-map
+				("M-c") ; unbind the toggle for case sensitivity, still bound to M-s c
+				("M-r") ; unbind the toggle for regexps, still bound to M-s r
+
+	))
+#+end_src
+
 https://emacsredux.com/blog/2026/03/15/isearch-lazy-count/
 #+begin_src emacs-lisp
   (setopt isearch-lazy-count t)

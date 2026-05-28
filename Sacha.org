@@ -966,10 +966,16 @@ From https://github.com/oantolin/embark/wiki/Additional-Configuration#use-which-
       (which-key--show-keymap
        (if (eq (plist-get (car targets) :type) 'embark-become)
            "Become"
-         (format "Act on %s '%s'%s"
+				 (propertize
+					(format "Act on %s '%s'%s"
                  (plist-get (car targets) :type)
                  (embark--truncate-target (plist-get (car targets) :target))
-                 (if (cdr targets) "…" "")))
+                 (if (cdr targets) "…" ""))
+					'face
+					`(:height 300
+										:background ,(modus-themes-get-color-value
+															 'bg-term-blue))
+					))
        (if prefix
            (pcase (lookup-key keymap prefix 'accept-default)
              ((and (pred keymapp) km) km)

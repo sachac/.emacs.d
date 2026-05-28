@@ -3272,7 +3272,7 @@ This is what it looks like:
 :PROPERTIES:
 :CUSTOM_ID: modeline
 :END:
-*** Time in the modeline
+*** Time in the header line
 :PROPERTIES:
 :CUSTOM_ID: time-in-the-modeline
 :END:
@@ -3280,7 +3280,8 @@ This is what it looks like:
 I like having the clock.
 
 #+begin_src emacs-lisp
-  (display-time-mode 1)
+(display-time-mode 1)
+(setq header-line-format '((t display-time-string)))
 #+end_src
 
 *** Diminish mode names in modeline

@@ -3455,11 +3455,24 @@ repeating just the last keystroke.
 :END:
 
 #+begin_src emacs-lisp
+(defvar sacha-substitute-changes nil "List of changes made with substitute.")
+
+(defun sacha-substitute-save-common-edits (target sub count scope)
+	"Keep track of changes so I can add them to `sacha-subed-common-edits'."
+	(when (and (derived-mode-p 'text-mode)
+						 (not (string-match "SPEAKER_" target)))
+		(customize-save-variable
+		 'sacha-subed-common-edits
+		 (cons (list sub target)
+					 sacha-subed-common-edits))))
+#+end_src
+#+begin_src emacs-lisp
 (use-package substitute
   :bind ("C-;" . substitute-target-in-buffer)
-	:hook
-	(substitute-post-replace . #'substitute-report-operation)
-	)
+	:config
+	(setq substitute-fixed-letter-case t)
+	(add-hook 'substitute-post-replace-functions #'substitute-report-operation)
+	(add-hook 'substitute-post-replace-functions #'sacha-substitute-save-common-edits))
 #+end_src
 ** Expand region
 :PROPERTIES:

@@ -2463,106 +2463,125 @@ This is an entry for [[https://sachachua.com/blog/2026/01/emacs-carnival-februar
 *** consult-omni
 :PROPERTIES:
 :CUSTOM_ID: consult-omni
+:EXPORT_MODIFIED: 2026-04-23T07:31:55-0400
 :END:
 
 For some reason, installing [[https://github.com/armindarvish/consult-omni][consult-omni]] using the ~:vc~ keyword was giving me problems, so I checked it out from Github instead.
 
 I also needed to create a Google custom search JSON API key at https://developers.google.com/custom-search/v1/introduction .
 
+#+begin_update
+[2026-04-23]: According to [[https://programmablesearchengine.google.com/controlpanel/overview][the Google Programmable Search Engine control panel overview]]:
+
+#+begin_quote
+Full web search via the "Search the entire web" feature will be discontinued on January 1, 2027. Please update your search engine to specify specific sites to search.
+#+end_quote
+
+I guess I need to find a different API instead of Google Search.
+#+end_update
+
 #+begin_src emacs-lisp :tangle lisp/sacha-org.el
-  (defun sacha-insert-or-replace-link (url &optional title)
-          "Insert a link, wrap the current region in a link, or replace the current link."
-          (interactive (list (read-string "URL: ")))
-          (cond
-           ((derived-mode-p 'org-mode)
-                  (cond
-                   ((org-in-regexp org-link-bracket-re 1)
-                          (when (match-end 2) (setq title (match-string-no-properties 2)))
-                          (delete-region (match-beginning 0) (match-end 0)))
-                   ((org-in-regexp org-link-any-re 1)
-                          (delete-region (match-beginning 0) (match-end 0)))
-                   ((region-active-p)
-                          (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
-                          (delete-region (region-beginning) (region-end))))
-                  ;; update link
-                  (insert (org-link-make-string url title)))
-           ((derived-mode-p 'org-mode)		 ; not in a link
-                  (insert (org-link-make-string url title)))
-           ((and (region-active-p) (derived-mode-p 'markdown-mode))
-                  (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
-                  (delete-region (region-beginning) (region-end))
-                  (insert (format "[%s](%s)" title url)))
-           ((derived-mode-p 'markdown-mode)
-                  (insert (format "[%s](%s)" title url)))
-           ((and (region-active-p) (string-match (regexp-quote "*new toot*") (buffer-name)))
-                  (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
-                  (delete-region (region-beginning) (region-end))
-                  (insert (format "[%s](%s)" title url)))
-           ((string-match (regexp-quote "*new toot*") (buffer-name))
-                  (insert (format "[%s](%s)" (read-string "Title: " (sacha-page-title url))
-                                                                                  url)))
-           (t
-                  (insert (format "%s (%s)" title url)))))
+;;;###autoload
+(defun sacha-insert-or-replace-link (url &optional title)
+  "Insert a link, wrap the current region in a link, or replace the current link."
+  (interactive (list (read-string "URL: ")))
+  (cond
+   ((derived-mode-p 'org-mode)
+    (cond
+     ((org-in-regexp org-link-bracket-re 1)
+      (when (match-end 2) (setq title (match-string-no-properties 2)))
+      (delete-region (match-beginning 0) (match-end 0)))
+     ((org-in-regexp org-link-any-re 1)
+      (delete-region (match-beginning 0) (match-end 0)))
+     ((region-active-p)
+      (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+      (delete-region (region-beginning) (region-end))))
+    ;; update link
+    (insert (org-link-make-string url title)))
+   ((derived-mode-p 'org-mode)					; not in a link
+    (insert (org-link-make-string url title)))
+   ((and (region-active-p) (derived-mode-p 'markdown-mode))
+    (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+    (delete-region (region-beginning) (region-end))
+    (insert (format "[%s](%s)" title url)))
+   ((derived-mode-p 'markdown-mode)
+    (insert (format "[%s](%s)" title url)))
+   ((and (region-active-p) (string-match (regexp-quote "*new toot*") (buffer-name)))
+    (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+    (delete-region (region-beginning) (region-end))
+    (insert (format "[%s](%s)" title url)))
+   ((string-match (regexp-quote "*new toot*") (buffer-name))
+    (insert (format "[%s](%s)" (read-string "Title: " (sacha-page-title url))
+                    url)))
+   (t
+    (insert (format "%s (%s)" title url)))))
 
-  ;; override the embark actions
-  (defun sacha-consult-omni-embark-copy-url-as-kill (cand)
-          "Don't add spaces."
-          (when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
-                  (kill-new (string-trim s))))
+;; override the embark actions
+;;;###autoload
+(defun sacha-consult-omni-embark-copy-url-as-kill (cand)
+  "Don't add spaces."
+  (when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
+    (kill-new (string-trim s))))
 
-  (defun sacha-consult-omni-embark-insert-url (cand)
-          "Don't add spaces."
-          (when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
-                  (insert (string-trim s))))
+;;;###autoload
+(defun sacha-consult-omni-embark-insert-url (cand)
+  "Don't add spaces."
+  (when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
+    (insert (string-trim s))))
 
-  (defun sacha-consult-omni-embark-copy-title-as-kill (cand)
-          "Don't add spaces."
-          (when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
-                  (kill-new (string-trim s))))
+;;;###autoload
+(defun sacha-consult-omni-embark-copy-title-as-kill (cand)
+  "Don't add spaces."
+  (when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
+    (kill-new (string-trim s))))
 
-  (defun sacha-consult-omni-embark-insert-title (cand)
-          "Don't add spaces."
-          (when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
-                  (insert (string-trim s))))
+;;;###autoload
+(defun sacha-consult-omni-embark-insert-title (cand)
+  "Don't add spaces."
+  (when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
+    (insert (string-trim s))))
 
-  (defun sacha-consult-omni-embark-insert-link (cand)
-          "Don't add spaces."
-          (let ((url (and (stringp cand) (get-text-property 0 :url cand)))
-                                  (title (and (stringp cand) (get-text-property 0 :title cand))))
-                  (sacha-insert-or-replace-link url title)))
+;;;###autoload
+(defun sacha-consult-omni-embark-insert-link (cand)
+  "Don't add spaces."
+  (let ((url (and (stringp cand) (get-text-property 0 :url cand)))
+        (title (and (stringp cand) (get-text-property 0 :title cand))))
+    (sacha-insert-or-replace-link url title)))
+#+end_src
 
-  (use-package consult-omni
-          :defer t
-          :commands consult-omni
-          :load-path "~/vendor/consult-omni"
-    :after (consult embark)
-    :custom
-    (consult-omni-show-preview t) ;;; show previews
-    (consult-omni-preview-key "C-o") ;;; set the preview key to C-o
-    :config
-          (add-to-list 'load-path "~/vendor/consult-omni/sources")
-    (require 'consult-omni-sources)
-    (require 'consult-omni-embark)
-    (setq consult-omni-sources-modules-to-load (list 'consult-omni-wikipedia 'consult-omni-google))
-    (consult-omni-sources-load-modules)
-          (setq consult-omni-dynamic-input-debounce 1.0)
-          (setq consult-omni-dynamic-refresh-delay consult-omni-dynamic-input-debounce)
-    (setq consult-omni-default-interactive-command #'consult-omni-multi)
-          (setq consult-omni-multi-sources
-                                  '(consult-omni--source-google
-                                          consult-omni--source-sacha-org-bookmarks
-                                          consult-omni--source-blog))
-          :bind
-          (("M-g w" . consult-omni)
-           ("M-g f" . consult-omni-sacha-org-bookmarks)
-           :map consult-omni-embark-general-actions-map
-           ("i l" .  #'sacha-consult-omni-embark-insert-link)
-           ("i u" .  #'sacha-consult-omni-embark-insert-url)
-           ("i t" .  #'sacha-consult-omni-embark-insert-title)
-           ("w u" . #'sacha-consult-omni-embark-copy-url-as-kill)
-           ("w t" . #'sacha-consult-omni-embark-copy-title-as-kill)))
-  #+end_src
-**** SOMEDAY Using web searches and bookmarks to quickly link placeholders in Org Mode :org:emacs:
+#+begin_src emacs-lisp :tangle lisp/sacha-org.el
+(use-package consult-omni
+  :defer t
+  :commands consult-omni
+  :load-path "~/vendor/consult-omni"
+  :after (consult embark)
+  :custom
+  (consult-omni-show-preview t) ;;; show previews
+  (consult-omni-preview-key "C-o") ;;; set the preview key to C-o
+  :config
+  (add-to-list 'load-path "~/vendor/consult-omni/sources")
+  (require 'consult-omni-sources)
+  (require 'consult-omni-embark)
+  (setq consult-omni-sources-modules-to-load (list 'consult-omni-wikipedia 'consult-omni-duckduckgo))
+  (consult-omni-sources-load-modules)
+  (setq consult-omni-dynamic-input-debounce 1.0)
+  (setq consult-omni-dynamic-refresh-delay consult-omni-dynamic-input-debounce)
+  (setq consult-omni-default-interactive-command #'consult-omni-multi)
+  (setq consult-omni-multi-sources
+        '(consult-omni--source-duckduckgo-api
+          consult-omni--source-sacha-org-favorites
+          consult-omni--source-blog))
+  :bind
+  (("M-g w" . consult-omni)
+   ("M-g f" . consult-omni-sacha-org-favorites)
+   :map consult-omni-embark-general-actions-map
+   ("i l" .  #'sacha-consult-omni-embark-insert-link)
+   ("i u" .  #'sacha-consult-omni-embark-insert-url)
+   ("i t" .  #'sacha-consult-omni-embark-insert-title)
+   ("w u" . #'sacha-consult-omni-embark-copy-url-as-kill)
+   ("w t" . #'sacha-consult-omni-embark-copy-title-as-kill)))
+#+end_src
+**** SOMEDAY Using web searches and favorites to quickly link placeholders in Org Mode :org:emacs:
 :PROPERTIES:
 :CREATED:  [2025-07-17 Thu 09:22]
 :EXPORT_DATE: 2025-07-22T19:52:42-0400
@@ -2581,9 +2600,9 @@ I also needed to create a Google custom search JSON API key at https://developer
 
 I want to make it easy to write with more hyperlinks. This lets me [[https://sachachua.com/blog/2013/12/update-developing-thoughts-further/][develop thoughts over time]], building them out of small chunks that I can squeeze into my day. It also makes it easy for you to dig into things that pique your curiosity without wading through lots of irrelevant details. Looking up the right URLs as I go along tends to disrupt my train of thought. I want to make it easier to write down my thoughts first and then go back and add the URLs. I might have 5 links in a post. I might have 15. Sounds like an automation opportunity.
 
-If I use double square brackets around text to indicate where I want to add links, [[https://www.orgzlyrevived.com/][Orgzly Revived]] and [[https://orgmode.org/][Org Mode]] both display those as links, so I can preview what the paragraph might feel like. They're valid links. Org Mode prompts me to create new headings if I follow them. I never use these types of links to point to headings, though. Since I only use custom IDs for links, any =[[some text]]= links must be a placeholder waiting for a URL. I want to turn =[[some text]]= into something like =[[https://example.com][some text]]= in the Org Mode markup, which gets exported as a hyperlink like this: [[https://example.com][some text]]. To figure out the target, I might search the web, my blog, or my bookmarks, or use the custom link types I've defined for Org Mode with their own completion functions.
+If I use double square brackets around text to indicate where I want to add links, [[https://www.orgzlyrevived.com/][Orgzly Revived]] and [[https://orgmode.org/][Org Mode]] both display those as links, so I can preview what the paragraph might feel like. They're valid links. Org Mode prompts me to create new headings if I follow them. I never use these types of links to point to headings, though. Since I only use custom IDs for links, any =[[some text]]= links must be a placeholder waiting for a URL. I want to turn =[[some text]]= into something like =[[https://example.com][some text]]= in the Org Mode markup, which gets exported as a hyperlink like this: [[https://example.com][some text]]. To figure out the target, I might search the web, my blog, or my favorites, or use the custom link types I've defined for Org Mode with their own completion functions.
 
-Most of my targets can be found with a web search. I can do that with [[https://github.com/armindarvish/consult-omni][consult-omni]] with a default search based on the link text, prioritizing my [[dotemacs:completion-consult-consult-omni-bookmarks][bookmarks]] and [[https://sachachua.com/blog/2025/07/finding-sacha-blog-posts-with-consult-omni/][blog posts]]. Then I don't even have to retype the search keywords.
+Most of my targets can be found with a web search. I can do that with [[https://github.com/armindarvish/consult-omni][consult-omni]] with a default search based on the link text, prioritizing my [[dotemacs:completion-consult-consult-omni-favorites][favorites]] and [[https://sachachua.com/blog/2025/07/finding-sacha-blog-posts-with-consult-omni/][blog posts]]. Then I don't even have to retype the search keywords.
 
 #+begin_src emacs-lisp :tangle "lisp/sacha-org.el"
 ;; we're in a bracketed link with no description and the target doesn't look like a link;
@@ -2703,10 +2722,10 @@ Here's how that works:
 
 #+begin_my_details Play by play
 1. vtime:0:00:00 I started with a search for "build thoughts out of smaller chunks" and deleted the default text to put in "developing" so that I could select my post on developing thoughts further.
-2. vtime:0:00:08 I linked to Orgzly Revived from my bookmarks.
+2. vtime:0:00:08 I linked to Orgzly Revived from my favorites.
 3. vtime:0:00:10 I selected the Org Mode website from the Google search results.
 4. vtime:0:00:12 I selected the consult-omni Github page from the search results.
-5. vtime:0:00:18 I used ~<up> RET~ to skip the web search instead of selecting a candidate, and then I selected the bookmarks section of my configuration using Org link completion.
+5. vtime:0:00:18 I used ~<up> RET~ to skip the web search instead of selecting a candidate, and then I selected the favorites section of my configuration using Org link completion.
 6. vtime:0:00:25 I changed the search query and selected the post about using consult-omni with blog posts.
 7. vtime:0:00:31 I chose the p-search Github repository from the Google search results.
 #+end_my_details
@@ -2719,61 +2738,63 @@ If ~sacha-org-scan-for-untargeted-links~ doesn't find anything, then the post is
 :CUSTOM_ID: completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode-next-steps
 :END:
 
-I can look at the code for the web search and add the same kind of preview function for my bookmarks and blog posts.
+I can look at the code for the web search and add the same kind of preview function for my favorites and blog posts.
 
-I can modify my ~C-c C-l~ binding ([[dotemacs:org-links][sacha-org-insert-link-dwim]]) to have the same kind of behaviour: do a web/bookmark/blog search first, and fall back to Org link completion.
+I can modify my ~C-c C-l~ binding ([[dotemacs:org-links][sacha-org-insert-link-dwim]]) to have the same kind of behaviour: do a web/favorite/blog search first, and fall back to Org link completion.
 
 Someday it might be nice to add a font-locking rule so that links without proper targets can be shown in a different colour. ~org-export-with-broken-links~ and ~org-link-search~ both know about these types of links, so there might be a way to figure out font-locking.
 
-I might not use the exact words from the title, so it would be good to be able to specify additional keywords and rank by relevance. The [[https://github.com/zkry/p-search][p-search]] talk from EmacsConf 2024 showed a possible approach that I haven't dug into yet. If I want to get really fancy, it would be neat to use the embedding of the link text to look up the most similar things (blog posts, bookmarks) and use that as the default.
+I might not use the exact words from the title, so it would be good to be able to specify additional keywords and rank by relevance. The [[https://github.com/zkry/p-search][p-search]] talk from EmacsConf 2024 showed a possible approach that I haven't dug into yet. If I want to get really fancy, it would be neat to use the embedding of the link text to look up the most similar things (blog posts, favorites) and use that as the default.
 
 I'm looking forward to experimenting with this. I think it will simplify linking to things when I'm editing my drafts on my computer. That way, it might be easier for me to write about whatever nifty idea I'm curious about while helping people pick up whatever background information they need to make sense of it all.
-**** Bookmarks
+**** Favorites
 :PROPERTIES:
 :CUSTOM_ID: completion-consult-consult-omni-bookmarks
 :END:
 
-I've been putting my bookmarks in an Org file. Let's add [[dotemacs:org-bookmarks][my bookmarks]] as a consult-omni source.
+I've been putting my favorites in an Org file. Let's add [[dotemacs:org-bookmarks][my favorites]] as a consult-omni source.
 
 #+begin_src emacs-lisp :tangle lisp/sacha-consult.el
 ;;;###autoload
-  (defun sacha-consult-omni-bookmarks-builder (input &rest args &key callback &allow-other-keys)
-          (let* ((quoted (when input (regexp-quote input)))
-                                   (list (sacha-org-bookmarks))
-                                   (candidates
-                                          (mapcar
-                                           (lambda (o)
-                                                   (propertize
-                                                          (concat (plist-get o :title) "\s"
-                                                                                          (plist-get o :url))
-                                                          :source "Bookmarks"
-                                                          :on-callback 'sacha-consult-org-bookmark-visit
-                                                          :title (plist-get o :title)
-                                                          :url (plist-get o :url)))
-                                           (if quoted
-                                                           (seq-filter
-                                                                  (lambda (o)
-                                                                          (string-match quoted (concat (plist-get o :title) " - " (plist-get o :title))))
-                                                                  list)
-                                                   list))))
-                  (when callback (funcall callback candidates))
-                  candidates))
+(defun sacha-consult-omni-favorites-builder (input &rest args &key callback &allow-other-keys)
+  (let* ((quoted (when input (regexp-quote input)))
+         (list (sacha-org-favorites))
+         (candidates
+          (mapcar
+           (lambda (o)
+             (propertize
+              (concat (plist-get o :title) "\s"
+                      (plist-get o :url))
+              :source "Favorites"
+              :on-callback 'sacha-consult-org-favorite-visit
+              :title (plist-get o :title)
+              :url (plist-get o :url)))
+           (if quoted
+               (seq-filter
+                (lambda (o)
+                  (string-match quoted (concat (plist-get o :title) " - " (plist-get o :title))))
+                list)
+             list))))
+    (when callback (funcall callback candidates))
+    candidates))
 
 ;;;###autoload
-  (defun sacha-consult-org-bookmark-visit (o)
-          (browse-url (get-text-property 0 :url o)))
+(defun sacha-consult-org-favorite-visit (o)
+  (browse-url (get-text-property 0 :url o)))
+#+end_src
 
-  ;; (consult--multi (list sacha-consult--source-org-bookmark))
-  (with-eval-after-load 'consult-omni
-    (consult-omni-define-source
-           "My Org bookmarks"
-     :narrow-char ?b
-     :type 'sync
-           :request #'sacha-consult-omni-bookmarks-builder
-           :on-return 'sacha-consult-org-bookmark-visit
-           :group #'consult-omni--group-function
-     :min-input 1
-     :require-match t))
+#+begin_src emacs-lisp
+;; (consult--multi (list sacha-consult--source-org-favorite))
+(with-eval-after-load 'consult-omni
+  (consult-omni-define-source
+   "Sacha Org favorites"
+   :narrow-char ?b
+   :type 'sync
+   :request #'sacha-consult-omni-favorites-builder
+   :on-return 'sacha-consult-org-favorite-visit
+   :group #'consult-omni--group-function
+   :min-input 1
+   :require-match t))
 #+end_src
 **** DONE Finding my blog posts with consult-omni                  :emacs:
 CLOSED: [2025-07-21 Mon 23:37]
@@ -2795,64 +2816,66 @@ Sometimes I just want to quickly get to a blog post by title. I use [[https://sa
 
 #+begin_src emacs-lisp :tangle lisp/sacha-consult.el
 ;;;###autoload
-  (defun sacha-consult-omni-blog-data ()
-          (let ((base (replace-regexp-in-string "/$" "" sacha-blog-base-url))
-                                  (json-object-type 'alist)
-                                  (json-array-type 'list))
-                  (mapcar
-                   (lambda (o)
-                           (list :url (concat base (alist-get 'permalink o))
-                                                   :title (alist-get 'title o)
-                                                   :date (alist-get 'date o)))
-                   (sort (json-read-file "~/sync/static-blog/_site/blog/all/index.json")
-                                           (lambda (a b)
-                                                   (string< (or (alist-get 'date b) "")
-                                                                                          (or (alist-get 'date a) "")))))))
-  (unless (get 'sacha-consult-omni-blog-data :memoize-original-function)
-          (memoize #'sacha-consult-omni-blog-data "5 minutes"))
+(defun sacha-consult-omni-blog-data ()
+  (let ((base (replace-regexp-in-string "/$" "" sacha-blog-base-url))
+        (json-object-type 'alist)
+        (json-array-type 'list))
+    (mapcar
+     (lambda (o)
+       (list :url (concat base (alist-get 'permalink o))
+             :title (alist-get 'title o)
+             :date (alist-get 'date o)))
+     (sort (json-read-file "~/sync/static-blog/_site/blog/all/index.json")
+           (lambda (a b)
+             (string< (or (alist-get 'date b) "")
+                      (or (alist-get 'date a) "")))))))
+(unless (get 'sacha-consult-omni-blog-data :memoize-original-function)
+  (memoize #'sacha-consult-omni-blog-data "5 minutes"))
 
 ;;;###autoload
-  (defun sacha-consult-omni-blog-titles-builder (input &rest args &key callback &allow-other-keys)
-          (let* ((quoted (when input (regexp-quote input)))
-                                   (list
-                                          (if quoted
-                                                          (seq-filter
-                                                           (lambda (o)
-                                                                   ;; TODO: Someday figure out orderless?
-                                                                   (string-match quoted (concat (plist-get o :title) " - " (plist-get o :title))))
-                                                           (sacha-consult-omni-blog-data))
-                                                  (sacha-consult-omni-blog-data)))
-                                   (candidates
-                                          (mapcar
-                                           (lambda (o)
-                                                   (propertize
-                                                          (concat (plist-get o :title))
-                                                          :source "Blog"
-                                                          :date (plist-get o :date)
-                                                          :title (plist-get o :title)
-                                                          :url (plist-get o :url)))
-                                           (if quoted (seq-take list 3) list))))
-                  (when callback (funcall callback candidates))
-                  candidates))
+(defun sacha-consult-omni-blog-titles-builder (input &rest args &key callback &allow-other-keys)
+  (let* ((quoted (when input (regexp-quote input)))
+         (list
+          (if quoted
+              (seq-filter
+               (lambda (o)
+                 ;; TODO: Someday figure out orderless?
+                 (string-match quoted (concat (plist-get o :title) " - " (plist-get o :title))))
+               (sacha-consult-omni-blog-data))
+            (sacha-consult-omni-blog-data)))
+         (candidates
+          (mapcar
+           (lambda (o)
+             (propertize
+              (concat (plist-get o :title))
+              :source "Blog"
+              :date (plist-get o :date)
+              :title (plist-get o :title)
+              :url (plist-get o :url)))
+           (if quoted (seq-take list 3) list))))
+    (when callback (funcall callback candidates))
+    candidates))
 
 ;;;###autoload
-  (defun sacha-consult-omni-blog-annotation (s)
-          (format " (%s)"
-                                          (propertize (substring (or (get-text-property 0 :date s) "") 0 4)
-                                                                                          'face 'completions-annotations)))
+(defun sacha-consult-omni-blog-annotation (s)
+  (format " (%s)"
+          (propertize (substring (or (get-text-property 0 :date s) "") 0 4)
+                      'face 'completions-annotations)))
+#+end_src
 
-  (with-eval-after-load 'consult-omni
-    (consult-omni-define-source
-           "Blog"
-           :narrow-char ?b
-     :type 'sync
-           :request #'sacha-consult-omni-blog-titles-builder
-           :on-return 'sacha-consult-org-bookmark-visit
-     :group #'consult-omni--group-function
-           :annotate #'sacha-consult-omni-blog-annotation
-     :min-input 3
-           :sort nil
-     :require-match t))
+#+begin_src emacs-lisp :tangle lisp/sacha-consult.el
+(with-eval-after-load 'consult-omni
+  (consult-omni-define-source
+   "Blog"
+   :narrow-char ?b
+   :type 'sync
+   :request #'sacha-consult-omni-blog-titles-builder
+   :on-return 'sacha-consult-org-favorite-visit
+   :group #'consult-omni--group-function
+   :annotate #'sacha-consult-omni-blog-annotation
+   :min-input 3
+   :sort nil
+   :require-match t))
 #+end_src
 
 Here's what it looks like by itself when I call ~consult-omni-sacha-blog~:
@@ -2865,11 +2888,11 @@ Then I can add it as one of the sources used by ~consult-omni~:
 #+begin_src emacs-lisp :tangle no :eval no
 	(setq consult-omni-multi-sources
 				'(consult-omni--source-google
-					consult-omni--source-sacha-org-bookmarks
+					consult-omni--source-sacha-org-favorites
 					consult-omni--source-blog))
 #+end_src
 
-Here's what it looks like when I call ~consult-omni~ to search my bookmarks, blog posts, and Google results at the same time.
+Here's what it looks like when I call ~consult-omni~ to search my favorites, blog posts, and Google results at the same time.
 
 #+CAPTION: Screenshot of a consult-omni search with multiple sources
 [[file:images/2025-07-21_23-29-06.png]]
@@ -2877,13 +2900,13 @@ Here's what it looks like when I call ~consult-omni~ to search my bookmarks, blo
 Then I can press ~RET~ to open the blog post in my browser or ~C-. i l~ to [[dotemacs:consult-omni][insert the link using Embark]] (~sacha-consult-omni-embark-insert-link~).
 
 Related:
-- [[dotemacs:completion-consult-consult-omni-bookmarks][consult-omni--source-sacha-org-bookmarks]]
+- [[dotemacs:completion-consult-consult-omni-bookmarks][consult-omni--source-sacha-org-favorites]]
 - [[dotemacs:completing-blog-posts][Completing blog posts]] (Org link type with completion)
-- [[https://sachachua.com/blog/2025/07/finding-unlinked-text/#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode]]
+- [[https://sachachua.com/blog/2025/07/finding-unlinked-text/#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and favorites to quickly link placeholders in Org Mode]]
 
 _Next steps:_ I want to find out how to get ~:sort nil~ to be respected so that more recent blog posts are listed first. Also, it might be fun to define a similar source for the sections of my Emacs configuration, like the way I can use my [[dotemacs:links-to-sacha-config][dotemacs: Org Mode link type with completion]].
 
-*** STARTED Searching my blog, notes, and sketches with consult-ripgrep and consult-omni
+*** Searching my blog, notes, and sketches with consult-ripgrep and consult-omni
 :PROPERTIES:
 :CREATED: [2024-11-05 Tue 09:17]
 :Effort:   0:30
@@ -11363,7 +11386,7 @@ entries, notes, and other semi-structured pieces of information.
 
 %i
 ")
-				("W" "Web bookmark" entry (file "~/sync/orgzly/resources.org")
+				("W" "Web favorite" entry (file "~/sync/orgzly/resources.org")
 				 "* %a
 :PROPERTIES:
 :CREATED: %U
@@ -14082,22 +14105,22 @@ shortcuts when I'm at headings.
   (setq org-edit-src-content-indentation 0)
   (setq org-src-preserve-indentation t))
 #+end_src
-** Bookmarks
+** Favorites
 :PROPERTIES:
 :CUSTOM_ID: org-bookmarks
 :END:
 
 This lets me easily insert links with completion.
 
-#+begin_src emacs-lisp :tangle lisp/sacha-org-bookmarks.el
-(defvar sacha-org-bookmark-file "~/sync/orgzly/resources.org")
+#+begin_src emacs-lisp :tangle lisp/sacha-org-favorites.el
+(defvar sacha-org-favorite-file "~/sync/orgzly/resources.org")
 
 ;;;###autoload
-(defun sacha-org-bookmarks ()
+(defun sacha-org-favorites ()
 	"Returns a list of plists like this: ((:title ... :url ...) ...).
-Uses the info from `sacha-org-bookmark-file'."
+Uses the info from `sacha-org-favorite-file'."
 	(delq nil
-        (with-current-buffer (find-file-noselect sacha-org-bookmark-file)
+        (with-current-buffer (find-file-noselect sacha-org-favorite-file)
           (org-map-entries
            (lambda ()
              (let ((title (org-entry-get (point) "ITEM"))
@@ -14115,16 +14138,16 @@ Uses the info from `sacha-org-bookmark-file'."
                  (list :title title :url url))))))))
 
 ;;;###autoload
-(defun sacha-org-bookmark-match (s)
-  "Return the first bookmark that matches S."
+(defun sacha-org-favorite-match (s)
+  "Return the first favorite that matches S."
   (setq s (downcase s))
-  (plist-get (seq-find (lambda (bookmark)
-                         (string= (downcase (plist-get bookmark :title))
+  (plist-get (seq-find (lambda (favorite)
+                         (string= (downcase (plist-get favorite :title))
                                   s))
-                       (sacha-org-bookmarks))
+                       (sacha-org-favorites))
              :url))
 
-(defun sacha-org-bookmarks-for-completion ()
+(defun sacha-org-favorites-for-completion ()
 	(mapcar
 	 (lambda (o)
 		 (cons (propertize (format "%s - %s"
@@ -14138,30 +14161,30 @@ Uses the info from `sacha-org-bookmark-file'."
 						:url (plist-get o :url)
 						'title (plist-get o :title)
 						'url (plist-get o :url))))
-	 (sacha-org-bookmarks)))
+	 (sacha-org-favorites)))
 
 ;;;###autoload
-(defun sacha-org-bookmark-complete (&optional initial-text)
-	"Complete a bookmark."
+(defun sacha-org-favorite-complete (&optional initial-text)
+	"Complete a favorite."
   (when (region-active-p)
     (setq initial-text (or initial-text (buffer-substring (region-beginning)
                                                           (region-end)))))
-	(let ((bookmarks (sacha-org-bookmarks-for-completion)))
+	(let ((favorites (sacha-org-favorites-for-completion)))
 		(assoc-default
 		 (completing-read
-			"Bookmark: " bookmarks nil nil initial-text)
-		 bookmarks
+			"Favorite: " favorites nil nil initial-text)
+		 favorites
 		 #'string=)))
 
 ;;;###autoload
-(defun sacha-org-bookmark-insert-description (link &optional description)
+(defun sacha-org-favorite-insert-description (link &optional description)
 	"Provide a default description."
 	(or description
 			(get-text-property 0 'title link)
 			(sacha-page-title link)))
 
 ;;;###autoload
-(defun sacha-org-bookmark-save-link (link title)
+(defun sacha-org-favorite-save-link (link title)
   "Save the current link to my resources file."
   (interactive
    (or
@@ -14174,7 +14197,7 @@ Uses the info from `sacha-org-bookmark-file'."
     (let* ((url (read-string "URL: "))
            (title (sacha-page-title url)))
       (list url (read-string "Title: " title)))))
-  (with-current-buffer (find-file-noselect sacha-org-bookmark-file)
+  (with-current-buffer (find-file-noselect sacha-org-favorite-file)
     (goto-char (point-max))
     (unless (bolp) (insert "\n"))
     (insert "** " title "\n" link "\n")
@@ -14184,14 +14207,36 @@ Uses the info from `sacha-org-bookmark-file'."
 #+begin_src emacs-lisp
 (with-eval-after-load
  'embark
- (keymap-set embark-org-link-map "s" #'sacha-org-bookmark-save-link))
+ (keymap-set embark-org-link-map "s" #'sacha-org-favorite-save-link))
 
 (with-eval-after-load 'org
 	(org-link-set-parameters
-	 "bookmark"
-	 :complete #'sacha-org-bookmark-complete
+	 "favorite"
+	 :complete #'sacha-org-favorite-complete
 	 :insert-description #'sacha-org-link-insert-description))
 #+end_src
+
+*** DONE Copy a link from my resources.org to the kill ring
+CLOSED: [2026-05-11 Mon 09:13]
+:PROPERTIES:
+:CREATED: [2026-05-11 Mon 09:10]
+:Effort:   0:30
+:CUSTOM_ID: org-mode-favorites-copy-a-link-from-my-resources-org-to-the-kill-ring
+:END:
+:LOGBOOK:
+- State "DONE"       from "STARTED"    [2026-05-11 Mon 09:13]
+CLOCK: [2026-05-11 Mon 09:10]--[2026-05-11 Mon 09:13] =>  0:03
+:END:
+
+#+begin_src emacs-lisp :tangle lisp/sacha-org-favorites.el
+;;;###autoload
+(defun sacha-org-copy-favorite-url (favorite)
+  "Copy the URL for the favorite."
+  (interactive (list (sacha-org-favorite-complete)))
+	(kill-new favorite)
+	(message "%s" favorite))
+#+end_src
+
 
 ** Org Babel
 :PROPERTIES:
@@ -17983,15 +18028,36 @@ Play by play:
 1. vtime:0:00:00 inserting a custom dotemacs link with completion
 2. vtime:0:00:11 inserting a link to a blog post
 3. vtime:0:00:28 selecting text in an HTML export block and adding a link to it
-4. vtime:0:00:48 adding a bookmark link as a plain text link in a Python src block
+4. vtime:0:00:48 adding a favorite link as a plain text link in a Python src block
 #+end_media-post
 
-Here's the ~sacha-org-insert-link-dwim~ function, using ~sacha-org-link-as-url~ from [[dotemacs:web-link][Copy web link]] and ~sacha-org-set-link-target-with-search~ from [[dotemacs:completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode]]:
+Here's the ~sacha-org-insert-link-dwim~ function, using ~sacha-org-link-as-url~ from [[dotemacs:web-link][Copy web link]] and ~sacha-org-set-link-target-with-search~ from [[dotemacs:completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and favorites to quickly link placeholders in Org Mode]]:
 
 #+begin_src emacs-lisp :tangle "lisp/sacha-org.el"
 ;;;###autoload
+(defun sacha-clean-link (s)
+  "Remove Google tracking information."
+  (when (string-match "https://www.google.com/url" s)
+    (setq s
+          (car
+           (cdr
+            (assoc-string
+             "url"
+             (url-parse-query-string
+              (cdr
+               (url-path-and-query (url-generic-parse-url s)))))))))
+  s)
+
+(ert-deftest sacha-clean-link ()
+  "Tests `sacha-clean-link'."
+  (should (equal (sacha-clean-link "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=http://www.gnu.org/s/emacs/manual/html_node/emacs/Imenu.html")
+                 "http://www.gnu.org/s/emacs/manual/html_node/emacs/Imenu.html")))
+
+;;;###autoload
 (defun sacha-org-insert-link-dwim (&optional url title)
-	"Like `org-insert-link' but with personal dwim preferences."
+	"Like `org-insert-link' but with personal dwim preferences.
+
+Call with \\[universal-argument] to manually specify the title."
 	(interactive)
 	(let* ((point-in-link (and (derived-mode-p 'org-mode) (org-in-regexp org-link-any-re 1)))
 				 (point-in-html-block (and (derived-mode-p 'org-mode)
@@ -18009,16 +18075,16 @@ Here's the ~sacha-org-insert-link-dwim~ function, using ~sacha-org-link-as-url~ 
 				 (region-content (when (region-active-p)
 													 (buffer-substring-no-properties (region-beginning)
 																													 (region-end))))
-         (bookmark-match (when region-content (sacha-org-bookmark-match region-content)))
+         (favorite-match (when region-content (sacha-org-favorite-match region-content)))
          (url (cond
                (url url)
 							 ((sacha-org-in-bracketed-text-link-p) nil)
-               (bookmark-match bookmark-match)
+               (favorite-match favorite-match)
 							 ((not point-in-link)
                 (sacha-org-read-link
 								 ;; clipboard
 								 (when (string-match-p "^http" (current-kill 0))
-									 (current-kill 0))))))
+									 (sacha-clean-link (current-kill 0)))))))
 				 (title (or title
                     region-content
 										(when (or (string-match (regexp-quote "*new toot*") (buffer-name))
@@ -18058,7 +18124,7 @@ Here's the ~sacha-org-insert-link-dwim~ function, using ~sacha-org-link-as-url~ 
 									 (read-string "Title: "
 																(or (sacha-org-link-default-description url nil)
 																		(sacha-page-title url)))))))
-		 ;; bracketed [[plain text]]; see Using web searches and bookmarks to quickly link placeholders in Org Mode https://sachachua.com/dotemacs#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode
+		 ;; bracketed [[plain text]]; see Using web searches and favorites to quickly link placeholders in Org Mode https://sachachua.com/dotemacs#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode
 		 ((sacha-org-set-link-target-with-search))
 		 ;; In Org Mode, edit the link
 		 ((call-interactively 'org-insert-link)))))
@@ -18210,7 +18276,7 @@ Now I want an Emacs Lisp function that interactively reads a link with completio
 So now the ~sacha-org-insert-link-dwim~ function can read a link with completion (unless I'm getting it from the clipboard), get the default description from the link (using custom links' ~:insert-description~ or the webpage's title), and either wrap the link around the region or insert it in whatever syntax makes sense.
 
 On a related note, you might also enjoy:
-- [[dotemacs:org-bookmarks][Bookmarks]] - my custom link type for bookmark: that offers completion from resources.org
+- [[dotemacs:org-bookmarks][Bookmarks]] - my custom link type for favorite: that offers completion from resources.org
 - [[dotemacs:linking-to-blog-posts][Linking to blog posts]] - my custom link type for blog posts
 - [[dotemacs:git-projects][Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search]]
 
@@ -33620,7 +33686,7 @@ or a function that accepts the text (unencoded)."
 
 I've been really liking how [[https://sachachua.com/blog/2024/10/yay-emacs-inserting-links-with-consult-omni/][consult-omni lets me do quick searches as I type from within Emacs]],
 which is actually really cool. I've even extended
-it to search my bookmarks as well, so that I can
+it to search my favorites as well, so that I can
 find things using my words for them and not trust
 the internet's words for them. So if I wanted to
 search using consult-omni, this is how I would do
@@ -36925,7 +36991,7 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
        ,sacha-stream-inbox-target)
       ("w" "Web" entry (file ,sacha-stream-inbox-file)
        "* %a\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n")
-      ("W" "Web bookmark" entry
+      ("W" "Web favorite" entry
        (file "~/sync/orgzly/resources.org")
        "* %a\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n"
        :prepend t)
@@ -41932,8 +41998,8 @@ This uses code defined in [[dotemacs:org-mode-org-babel-tangling-sacha-emacs-con
   - [[dotemacs:execute-named-babel-block][Execute named babel block]]
   - [[dotemacs:json][JSON]]
   - [[dotemacs:org-block-indentation][Fix block indentation]]
-- [[file:lisp/sacha-org-bookmarks.el][sacha-org-bookmarks]]
-  - [[dotemacs:org-bookmarks][Bookmarks]]
+- [[file:lisp/sacha-org-bookmarks.el][sacha-org-favorites]]
+  - [[dotemacs:org-bookmarks][Favorites]]
 - [[file:lisp/sacha-org-captions.el][sacha-org-captions]]
   - [[dotemacs:org-captions][Captions]]
 - [[file:lisp/sacha-org-contacts.el][sacha-org-contacts]]
@@ -41987,7 +42053,7 @@ This uses code defined in [[dotemacs:org-mode-org-babel-tangling-sacha-emacs-con
   - [[dotemacs:keybindings-embark-renaming-and-storing][Renaming and storing]]
   - [[dotemacs:hydras][Hydra keyboard shortcuts]]
   - [[dotemacs:consult-omni][consult-omni]]
-  - [[dotemacs:completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode]]
+  - [[dotemacs:completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and favorites to quickly link placeholders in Org Mode]]
   - [[dotemacs:inserting-code][Inserting code]]
   - [[dotemacs:11ty][11ty static site generation]]
   - [[dotemacs:org-mode-publishing-11ty-static-site-generation-linking-to-blog-topics][Linking to blog topics]]

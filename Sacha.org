@@ -2040,7 +2040,75 @@ https://emacsredux.com/blog/2026/04/04/read-extended-command-predicate/
   (use-package prescient :config (prescient-persist-mode +1))
                                           ;(use-package company-prescient :init (company-prescient-mode +1))
 #+end_src
-*** Emacs completion and handling accented characters with orderless  :emacs:
+** Define abbreviations
+:PROPERTIES:
+:CUSTOM_ID: completion-define-abbreviations
+:END:
+
+I want these abbreviations to expand as soon as I type SPC, even without the TAB that expands yasnippet snippets.
+
+#+NAME: global-abbrev
+| meweb | https://sachachua.com       |
+| mehub | https://github.com/sachac   |
+| mem   | sacha@sachachua.com         |
+| mema  | @sacha@social.sachachua.com |
+
+#+begin_src emacs-lisp :var abbrevs=global-abbrev
+(setq-default abbrev-mode 1)
+(define-abbrev global-abbrev-table "ot" ""
+  (lambda () (insert (format-time-string "[%Y-%m-%d %a %H:%M]"))))
+(define-abbrev global-abbrev-table "ots" ""
+  (lambda () (insert (format-time-string "[%Y-%m-%d %a %H:%M:%S]"))))
+(dolist (row abbrevs)
+	(define-abbrev global-abbrev-table (elt row 0) (elt row 1)))
+#+end_src
+
+I want an interactive command that looks up both abbrev and yasnippets. Based on https://github.com/davep/unabbrev.el :
+
+#+begin_src emacs-lisp :tangle lisp/sacha-complete.el
+(eval-when-compile (require 'cl-lib))
+;;;###autoload
+(defun sacha-insert-abbrev-or-yasnippet ()
+  "Prompt for and expand an abbrev or yasnippet.
+
+From https://github.com/davep/unabbrev.el and yas-insert-snippet."
+  (interactive)
+	(let* ((abbreviations
+					(sort
+					 (cl-loop
+						for table in (list local-abbrev-table global-abbrev-table)
+						nconc (cl-loop
+									 for abbrev being the symbols of table
+									 for shortcut = (symbol-name abbrev)
+									 for expansion = (abbrev-expansion shortcut table)
+									 when expansion collect (list (format "%-10s %s" shortcut expansion)
+																								'abbrev shortcut)))))
+				 (yas-templates
+					(mapcar
+					 (lambda (o)
+						 (list (format "%-10s %s" (yas--template-key o) (yas--template-name o))
+									 'yas
+									 o))
+					 (yas--all-templates (yas--get-snippet-tables))))
+				 (where (if (region-active-p)
+                    (cons (region-beginning) (region-end))
+                  (cons (point) (point))))
+				 (combined (append abbreviations yas-templates))
+				 (choice (assoc-default (completing-read "Expand: " combined)
+																combined #'string=)))
+		(pcase (elt choice 0)
+			('abbrev
+			 (insert (elt choice 1))
+			 (expand-abbrev))
+			('yas (yas-expand-snippet (elt choice 1) (car where) (cdr where))))))
+(defalias 'sacha-unabbrev 'sacha-insert-abbrev-or-yasnippet)
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package unabbrev :vc (:url "https://github.com/davep/unabbrev.el"))
+#+end_src
+
+** Emacs completion and handling accented characters with orderless  :emacs:
 :PROPERTIES:
 :EXPORT_DATE: 2026-02-26T15:10:16-0500
 :EXPORT_ELEVENTY_PERMALINK: /blog/2026/02/emacs-completion-and-handling-accented-characters-with-orderless/

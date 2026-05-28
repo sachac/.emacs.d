@@ -39020,14 +39020,54 @@ From https://github.com/nhoffman/.emacs.d/blob/master/init.org
   :ensure nil
   :config (oddmuse-mode-initialize)
 	:commands oddmuse-edit
-  :hook (oddmuse-mode-hook .
-                           (lambda ()
-                             (unless (string-match "question" oddmuse-post)
-                               (when (string-match "EmacsWiki" oddmuse-wiki)
-                                 (setq oddmuse-post (concat "uihnscuskc=1;" oddmuse-post)))
-                               (when (string-match "OddmuseWiki" oddmuse-wiki)
-                                 (setq oddmuse-post (concat "ham=1;" oddmuse-post)))))))
+  :hook (oddmuse-mode .
+                      (lambda ()
+                        (unless (string-match "question" oddmuse-post)
+                          (when (string-match "EmacsWiki" oddmuse-wiki)
+                            (setq oddmuse-post (concat "uihnscuskc=1;" oddmuse-post)))
+                          (when (string-match "OddmuseWiki" oddmuse-wiki)
+                            (setq oddmuse-post (concat "ham=1;" oddmuse-post)))))))
 #+end_src
+
+I want to make it easy to link to EmacsWiki pages. Completion helps.
+
+#+begin_src emacs-lisp :tangle lisp/sacha-org.el
+(declare-function oddmuse-compute-pagename-completion-table "oddmuse")
+;;;###autoload
+(defun sacha-org-emacswiki-complete ()
+	"Prompt for emacswiki."
+	(interactive)
+	(concat "https://emacswiki.org/emacs/"
+					(completing-read
+					 "Page: "
+					 (oddmuse-compute-pagename-completion-table "EmacsWiki"))))
+
+(defun sacha-org-emacswiki-insert-description (link &optional description)
+	(unless description
+		(replace-regexp-in-string "^https://emacswiki\\.org/emacs/" "" link)))
+
+;;;###autoload
+(defun sacha-emacswiki-open (path)
+	(when (string-match "https?://emacswiki\\.org/emacs/\\(.+\\)" path)
+		(oddmuse-edit "EmacsWiki" (match-string 1 path))))
+#+end_src
+
+I added =sacha-emacswiki-open= to =browse-url-handlers=. ([[dotemacs:web-emacs-open-urls-or-search-the-web-plus-browse-url-handlers][Emacs: Open URLs or search the web, plus browse-url-handlers]])
+
+#+begin_src emacs-lisp
+(org-link-set-parameters "ew" :complete #'sacha-org-emacswiki-complete
+												 :insert-description #'sacha-org-emacswiki-insert-description)
+(with-eval-after-load 'memoize
+  (with-eval-after-load 'oddmuse
+	(memoize #'oddmuse-compute-pagename-completion-table
+					 "1 hour")))
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package ox-oddmuse
+	:vc (:url "https://github.com/mbork/ox-oddmuse/"))
+#+end_src
+
 ** Beeminder
 :PROPERTIES:
 :CUSTOM_ID: beeminder

@@ -740,7 +740,7 @@ from [[dotemacs:web-link]] so that I can get the regular
 #+begin_src emacs-lisp
   (use-package qrencode
           :defer t
-          :commands qrencode--encode-to-buffer
+          :commands (qrencode--encode-to-buffer qrencode-format qrencode)
           :config
           (with-eval-after-load 'embark-org
                   (define-key embark-org-link-map (kbd "q") #'sacha-org-link-qr)))

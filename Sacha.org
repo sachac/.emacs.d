@@ -3258,9 +3258,9 @@ a light background. I wanted it to adapt when I use
     :after modus-themes
     :hook
     ((emacs-lisp-mode . highlight-sexp-mode)
-           (modus-themes-after-load-theme . sacha-hl-sexp-update-all-overlays))
-          :config
-          (advice-add 'hl-sexp-create-overlay :after 'sacha-hl-sexp-update-overlay))
+     (modus-themes-after-load-theme . sacha-hl-sexp-update-all-overlays))
+    :config
+    (advice-add 'hl-sexp-create-overlay :after 'sacha-hl-sexp-update-overlay))
 #+end_src
 
 This is what it looks like:

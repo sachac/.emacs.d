@@ -1470,7 +1470,24 @@ I want to:
   ("<up>" sacha-subed-adjust-timestamp-up "Up" :exit nil)
   ("<down>" sacha-subed-adjust-timestamp-down "Down" :exit nil))
 #+end_src
+*** Use Embark to copy the name of a defun or defvar
+:PROPERTIES:
+:CUSTOM_ID: keybindings-embark-use-embark-to-copy-the-name-of-a-defun-or-defvar
+:END:
 
+#+begin_src emacs-lisp :tangle lisp/sacha-embark.el
+(defun sacha-embark-copy-def-name (target)
+  "Extract and copy the name from a TARGET."
+  (let* ((name (symbol-name (cadr (read target)))))
+    (kill-new name)
+    (message "%s" name)))
+#+end_src
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'embark
+	(keymap-set embark-defun-map "W" #'sacha-embark-copy-def-name)
+	(keymap-set embark-variable-map "W" #'sacha-embark-copy-def-name))
+#+end_src
 *** Embark, symbols, and casual-symbol-overlay
 :PROPERTIES:
 :CUSTOM_ID: casual-symbol-overlay

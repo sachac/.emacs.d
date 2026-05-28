@@ -3494,34 +3494,35 @@ I like context-sensitive keyboard shortcuts, so when I came across [[https://git
 
 #+NAME: selected-config
 #+begin_src emacs-lisp
-  (use-package ctrlf
-    ;:init (ctrlf-mode +1)   ; I'm also getting used to isearch-lazy-count, though.
-    )
-  (use-package selected
-    :init (selected-global-mode 1)
-    :bind (:map selected-keymap
-                            ("q" . selected-off)
-                            ("u" . upcase-dwim)
-                            ("d" . downcase-dwim)
-                            ("w" . kill-ring-save)
-                            ("n" . next-line)
-                            ("p" . previous-line)
-                            ("f" . forward-char)
-                            ("b" . backward-char)
-                            ("F" . forward-word)
-                            ("B" . backward-word)
-                            ("a" . beginning-of-visual-line)
-                            ("e" . end-of-visual-line)
-                            ("{" . backward-paragraph)
-                            ("}" . forward-paragraph)
-                            ("(" . backward-sentence)
-                            (")" . forward-sentence)
-                            ("r" . ctrlf-backward-fuzzy)
-                            ("[" . scroll-down-line)
-                            ("]" . scroll-up-line)
-                            ("M" . rectangle-mark-mode)
-                            ("R" . replace-rectangle)
-                            ("x" . exchange-point-and-mark)))
+(use-package ctrlf
+	;;:init (ctrlf-mode +1)   ; I'm also getting used to isearch-lazy-count, though.
+	)
+(use-package selected
+	:init (selected-global-mode 1)
+	:bind (:map selected-keymap
+							("q" . selected-off)
+							("u" . upcase-dwim)
+							("d" . downcase-dwim)
+							("w" . kill-ring-save)
+							("n" . next-line)
+							("p" . previous-line)
+							("f" . forward-char)
+							("b" . backward-char)
+							("F" . forward-word)
+							("B" . backward-word)
+							("a" . beginning-of-visual-line)
+							("e" . end-of-visual-line)
+							("{" . backward-paragraph)
+							("}" . forward-paragraph)
+							("-" . org-toggle-item)
+							("(" . backward-sentence)
+							(")" . forward-sentence)
+							("r" . ctrlf-backward-fuzzy)
+							("[" . scroll-down-line)
+							("]" . scroll-up-line)
+							("M" . rectangle-mark-mode)
+							("R" . replace-rectangle)
+							("x" . exchange-point-and-mark)))
 #+end_src
 
 ** Copy and append string

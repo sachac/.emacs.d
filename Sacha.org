@@ -3146,7 +3146,10 @@ The following code annotates journal entries with their categories.
 * Appearance
 :PROPERTIES:
 :CUSTOM_ID: appearance
+:ID:       20260424T160148.803856
 :END:
+
+
 ** color-theme sometimes comes across lists. Odd!
 :PROPERTIES:
 :CUSTOM_ID: color-theme-sometimes-comes-across-lists-odd

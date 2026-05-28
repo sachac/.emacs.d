@@ -462,6 +462,19 @@ this:
 #+end_example
 
 May backup-walker save you from a future oops!
+*** Search backups
+:PROPERTIES:
+:CUSTOM_ID: about-this-file-backups-search-backups
+:END:
+
+#+begin_src emacs-lisp :tangle lisp/sacha-navigate.el
+;;;###autoload
+(defun sacha-search-file-backups (&optional file)
+  "Search through backup files."
+	(interactive)
+	(let ((consult-ripgrep-args "rg --null --line-buffered --color=never --max-columns=1000 --path-separator /   --smart-case --no-heading --with-filename --line-number --search-zip --sortr modified"))
+		(consult-ripgrep (file-backup-file-names (or file (buffer-file-name))))))
+#+end_src
 ** History
 :PROPERTIES:
 :CUSTOM_ID: history

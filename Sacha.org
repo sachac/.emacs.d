@@ -187,7 +187,6 @@ Here's how we start:
 ;; This sets up the load path so that we can override it
 (setq warning-suppress-log-types '((package reinitialization)))  (package-initialize)
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
-(setq custom-file "~/.config/emacs/custom-settings.el")
 (setq use-package-always-ensure t)
 #+END_SRC
 

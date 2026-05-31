@@ -621,62 +621,101 @@ If I use =M-w= (=kill-ring-save=) without a region, I usually mean the current s
 :CUSTOM_ID: embark
 :END:
 #+begin_src emacs-lisp
-  (use-package embark
-    :after org
-    :load-path "~/vendor/embark"
-    :config
-          (setq embark-prompter 'embark-keymap-prompter)
-          (add-to-list 'embark-target-finders 'sacha-embark-org-element)
-          (add-to-list 'embark-target-finders 'sacha-embark-subed-timestamp)
-          (add-to-list 'embark-target-injection-hooks '(sacha-journal-post embark--allow-edit))
-          (with-eval-after-load 'subed
-            (defvar-keymap embark-subed-timestamp-actions
-              :doc "Subed timestamp actions"
-              :parent subed-mode-map
-              "." #'sacha-subed-set-timestamp-to-mpv-position
-              "w" #'sacha-subed-copy-timestamp-dwim
-              "<up>" #'sacha-subed-adjust-timestamp/sacha-subed-adjust-timestamp-up
-              "f" #'sacha-waveform-subed-show-after-time
-              "<down>" #'sacha-subed-adjust-timestamp/sacha-subed-adjust-timestamp-down))
-          (defvar-keymap embark-sketch-actions
-            :doc "Org Mode sketch-related actions"
-            :parent org-mode-map
-            "o" #'sacha-sketch-insert-file-as-link
-                  "i" #'sacha-sketch-insert-file-as-link
-            "v" #'sacha-geeqie-view)
-          (defvar-keymap embark-journal-actions
-            :doc "Journal"
-            "e" #'sacha-journal-edit)
-          (add-to-list 'embark-keymap-alist '(sketch . embark-sketch-actions))
-          (add-to-list 'embark-keymap-alist '(subed-timestamp . embark-subed-timestamp-actions))
-          (add-to-list 'embark-keymap-alist '(journal . embark-journal-actions))
-          :bind
-          (("C-." . embark-act)
-           :map vertico-map
-           (("M-e" . embark-export))
-           :map minibuffer-local-map
-           (("C-c e" . embark-act)
-                  ("M-e" . embark-export)
-            ("C-;" . embark-act)
-                  ("C-<tab>" . embark-select)
-                  ("C-S-<tab>" . (lambda () (interactive) (embark-select) (vertico-next))))
-           :map embark-collect-mode-map
-           (("C-c e" . embark-act)
-            ("C-;" . embark-act)
-                  ("C-<tab>" . embark-select))
-           :map embark-general-map
-           (("j" . sacha-journal-post)
-            ("m" . sacha-stream-message)
-            ("M-w" . (lambda (s) (interactive "MString: ") (kill-new s))))
-           :map embark-symbol-map
-           ("r" . erefactor-rename-symbol-in-buffer)
-           :map embark-url-map
-           ("c" . sacha-caption-show)
-           ))
-  (with-eval-after-load 'embark-org
-    (define-key embark-org-src-block-map
-           "i" #'sacha-org-fix-block-indentation))
+(use-package embark
+  :after org
+  :load-path "~/vendor/embark"
+  :config
+  (setq embark-prompter 'embark-keymap-prompter)
+  (add-to-list 'embark-target-finders 'sacha-embark-org-element)
+  (add-to-list 'embark-target-finders 'sacha-embark-subed-timestamp)
+  (add-to-list 'embark-target-injection-hooks '(sacha-journal-post embark--allow-edit))
+  (embark-define-thingatpt-target symbol
+    text-mode)
+  (embark-define-thingatpt-target sentence
+    text-mode help-mode Info-mode man-common mastodon-mode
+    lem-mode emacs-news-view-mode)
+  (embark-define-thingatpt-target paragraph
+    text-mode help-mode Info-mode man-common mastodon-mode
+    lem-mode emacs-news-view-mode)
+  (with-eval-after-load 'subed
+    (defvar-keymap embark-subed-timestamp-actions
+      :doc "Subed timestamp actions"
+      :parent subed-mode-map
+      "." #'sacha-subed-set-timestamp-to-mpv-position
+      "w" #'sacha-subed-copy-timestamp-dwim
+      "<up>" #'sacha-subed-adjust-timestamp/sacha-subed-adjust-timestamp-up
+      "f" #'sacha-waveform-subed-show-after-time
+      "<down>" #'sacha-subed-adjust-timestamp/sacha-subed-adjust-timestamp-down))
+  (defvar-keymap embark-sketch-actions
+    :doc "Org Mode sketch-related actions"
+    :parent org-mode-map
+    "o" #'sacha-sketch-insert-file-as-link
+    "i" #'sacha-sketch-insert-file-as-link
+    "v" #'sacha-geeqie-view)
+  (defvar-keymap embark-journal-actions
+    :doc "Journal"
+    "e" #'sacha-journal-edit)
+  (add-to-list 'embark-keymap-alist '(sketch . embark-sketch-actions))
+  (add-to-list 'embark-keymap-alist '(subed-timestamp . embark-subed-timestamp-actions))
+  (add-to-list 'embark-keymap-alist '(journal . embark-journal-actions))
+	(dolist (cmd '(kmacro-end-or-call-macro
+                 kmacro-end-and-call-macro))
+    (push #'sacha-embark--goto-location (alist-get cmd embark-pre-action-hooks)))
+  :bind
+  (("C-." . embark-act)
+   :map vertico-map
+   (("M-e" . embark-export))
+   :map minibuffer-local-map
+   (("C-c e" . embark-act)
+    ("M-e" . embark-export)
+    ("C-;" . embark-act)
+    ("C-<tab>" . embark-select)
+    ("C-S-<tab>" . (lambda () (interactive) (embark-select) (vertico-next))))
+   :map embark-collect-mode-map
+   (("C-c e" . embark-act)
+    ("C-;" . embark-act)
+    ("C-<tab>" . embark-select))
+   :map embark-general-map
+   (("j" . sacha-journal-post)
+    ("m" . sacha-stream-message)
+		("SPC" . mark)  										; from oantolin
+		("C-SPC" . embark-select)  					; from oantolin
+    ("M-w" . (lambda (s) (interactive "MString: ") (kill-new s))))
+   :map embark-symbol-map
+   ("r" . erefactor-rename-symbol-in-buffer)
+	 :map embark-identifier-map
+	 ("(" . insert-parenthesis)
+	 :map embark-heading-map
+	 ("SPC" . outline-mark-subtree)
+   :map embark-url-map
+   ("c" . sacha-caption-show)
+	 :map help-map ; Inspired by https://github.com/oantolin/emacs-config
+	 ("b" . embark-bindings)
+   ("B" . embark-bindings-at-point)
+   ("M" . embark-bindings-in-keymap)
+   ("E" . sacha-embark-on-last-message)
+   ))
+
+
+(with-eval-after-load 'embark-org
+  (define-key embark-org-src-block-map
+							"i" #'sacha-org-fix-block-indentation))
 	 #+end_src
+
+#+begin_src emacs-lisp
+  (defun sacha-embark-on-last-message (arg)
+    "Act on the last message displayed in the echo area.
+From https://github.com/oantolin/emacs-config"
+    (interactive "P")
+    (with-current-buffer "*Messages*"
+      (goto-char (1- (point-max)))
+      (cl-letf (((symbol-function #'embark--end-of-target) #'ignore))
+        (embark-act arg))))
+  (cl-defun sacha-embark--goto-location (&key target &allow-other-keys)
+    "Jump to location of the TARGET.
+From https://github.com/oantolin/emacs-config"
+    (goto-char (car (consult--get-location target))))
+#+end_src
 
 This allows me to use C-h with completion in general.
 
@@ -2106,6 +2145,16 @@ From https://github.com/davep/unabbrev.el and yas-insert-snippet."
 #+begin_src emacs-lisp
 (use-package unabbrev :vc (:url "https://github.com/davep/unabbrev.el"))
 #+end_src
+** Remove defaults from minibuffer
+
+Inspired by https://github.com/oantolin/emacs-config
+#+begin_src emacs-lisp
+(use-package minibuf-eldef ; built-in
+	:init
+	(minibuffer-electric-default-mode 1)
+	:config
+	(setopt minibuffer-eldef-shorten-default t))
+#+end_src
 
 ** Emacs completion and handling accented characters with orderless  :emacs:
 :PROPERTIES:
@@ -2152,6 +2201,18 @@ I like using the [[package:orderless][orderless]] completion package for Emacs b
 [[file:~/recordings/2026-02-26_15-08-34.png][file:~/recordings/2026-02-26_15-08-34.png]]
 
 This is an entry for [[https://sachachua.com/blog/2026/01/emacs-carnival-february-2026-completion/][Emacs Carnival February 2026: Completion]].
+** Placeholders
+
+#+begin_src emacs-lisp
+(use-package placeholder
+  :vc (:url "https://github.com/oantolin/placeholder")
+	:config
+	(setq placeholder-string "zzz")
+	:bind
+	("C-S-n" . placeholder-forward)
+	("C-S-p" . placeholder-backward)
+	("C-S-x" . placeholder-insert))
+#+end_src
 
 ** Consult
 :PROPERTIES:
@@ -2170,50 +2231,55 @@ This is an entry for [[https://sachachua.com/blog/2026/01/emacs-carnival-februar
            ("M-#" . consult-register-load)
            ("M-'" . consult-register-store) ;; orig. abbrev-prefix-mark (unrelated)
            ("C-M-#" . consult-register)
-           ("M-g o" . consult-outline)
-           ("M-g h" . consult-org-heading)
-           ("M-g a" . consult-org-agenda)
-           ("M-g m" . consult-mark)
            ("C-x b" . consult-buffer)
-           ("M-g M-g" . consult-goto-line) ;; orig. goto-line
-           ("M-g o" . consult-outline)
-           ("M-g m" . consult-mark)
-           ("M-g k" . consult-global-mark)
-           ("M-g i" . consult-imenu)
-           ("M-g I" . consult-project-imenu)
-           ("M-g e" . consult-error)
-           ;; M-s bindings (search-map)
-           ("M-s f" . consult-find)
-           ("M-s i" . consult-info)
-           ("M-s L" . consult-locate)
-           ("M-s g" . consult-grep)
-           ("M-s G" . consult-git-grep)
-           ("M-s r" . consult-ripgrep)
-           ("M-s l" . consult-line)
-           ("M-s m" . consult-multi-occur)
-           ("M-s k" . consult-keep-lines)
-           ("M-s u" . consult-focus-lines)
            ;; Isearch integration
-           ("M-s e" . consult-isearch)
-           ("M-g l" . consult-line)
-           ("M-g L" . ace-link)
-           ("M-s m" . consult-multi-occur)
            ("C-x c o" . consult-multi-occur)
            ("C-x c SPC" . consult-mark)
            :map isearch-mode-map
-           ("M-e" . consult-isearch) ;; orig. isearch-edit-string
+           ("M-e" . consult-isearch)	 ;; orig. isearch-edit-string
            ("M-s e" . consult-isearch) ;; orig. isearch-edit-string
-           ("M-s l" . consult-line))
+           ("M-s l" . consult-line)
+					 (:map search-map							; M-s; from oantolin's config
+								 ("f" . consult-find)
+								 ("g" . consult-grep)
+								 ("G" . consult-git-grep)
+								 ("r" . consult-ripgrep)
+								 ("i" . consult-info)
+								 ("s" . consult-isearch)
+								 ("l" . consult-line)
+								 ("L" . consult-locate)
+								 ("m" . consult-multi-occur)
+								 ("K" . consult-keep-lines)
+								 ("F" . consult-focus-lines))
+					 (:map goto-map								; M-g; from oantolin's config
+								 ("l" . consult-line)
+								 ("L" . consult-line-multi)
+								 ("O" . ace-link)
+								 ("o" . consult-outline)
+								 ("a" . consult-org-agenda)
+								 ("M-g" . consult-goto-line) ; orig. goto-line
+								 ("h" . consult-org-heading)
+								 ("i" . consult-imenu)
+								 ("e" . consult-error)
+								 ("I" . consult-project-imenu)
+								 ("C-i" . consult-imenu-multi)
+								 ("m" . consult-mark)
+								 ("k" . consult-global-mark)
+								 ("f"  . consult-find)))
     :init
     (setq register-preview-delay 0
           register-preview-function #'consult-register-format)
     :custom
-    consult-preview-key '(:debounce 0.2 any)
-    consult-narrow-key "<"
-    consult-preview-excluded-files '("\\`/[^/|:]+:"
-                                     "\\.gpg\\'")
+    (consult-preview-key '(:debounce 0.2 any))
+    (consult-narrow-key "<")
+    (consult-preview-excluded-files '("\\`/[^/|:]+:"
+																			"\\.gpg\\'"))
     :config
-    (setq consult-project-root-function #'projectile-project-root))
+    (setopt consult-project-root-function #'projectile-project-root)
+		(setopt register-preview-function #'consult-register-format) ; oantolin
+		(advice-add #'register-preview :override #'consult-register-window) ; oantolin
+
+		)
 #+end_src
 
 *** Completing blog posts
@@ -3141,6 +3207,20 @@ The following code annotates journal entries with their categories.
                                           ;(setq embark-prompter 'embark-completing-read-prompter)
     (advice-add 'embark-keymap-prompter :filter-return #'sacha-store-action-key+cmd)
     (add-to-list 'embark-target-injection-hooks '(sacha-stream-message embark--allow-edit)))
+
+
+(with-eval-after-load 'keycast
+	(with-eval-after-load 'embark
+		;; From oantolin
+		(define-advice embark-keymap-prompter
+				(:filter-return (cmd) store-action-key+cmd)
+			(force-mode-line-update t)
+			(setq this-command cmd
+						keycast--this-command-keys (this-single-command-keys)
+						keycast--this-command-desc cmd))
+		(define-advice embark-act (:before (&rest _) force-keycast-update)
+			(keycast--update))
+		))
     #+end_src
 * Appearance
 :PROPERTIES:
@@ -3271,6 +3351,21 @@ This is what it looks like:
 :PROPERTIES:
 :CUSTOM_ID: modeline
 :END:
+
+#+begin_src emacs-lisp
+(use-package window-extras
+	:load-path "~/vendor/oantolin-config/user-lisp"
+	:vc (:url "https://github.com/oantolin/emacs-config/user-lisp")
+	:commands (toggle-mode-line)
+	:config
+	(defalias 'oantolin-toggle-mode-line 'toggle-mode-line)
+	:bind
+	(:map sacha-toggle-map
+ 	("s" . oantolin-toggle-mode-line)
+	))
+#+end_src
+
+
 *** Time in the header line
 :PROPERTIES:
 :CUSTOM_ID: time-in-the-modeline
@@ -3419,12 +3514,18 @@ repeating just the last keystroke.
 * Navigation
 :PROPERTIES:
 :CUSTOM_ID: navigation
+:ID:       20260424T160149.542077
 :END:
 
 #+begin_src emacs-lisp
 (transient-mark-mode 1)
 (minibuffer-regexp-mode 1)
-(keymap-global-set "C-x !" #'delete-other-windows-vertically)
+#+end_src
+
+Inspired by https://github.com/oantolin/emacs-config
+#+begin_src emacs-lisp
+(bind-key "C-x !" #'delete-other-windows-vertically)
+(bind-key "M-H" #'mark-paragraph)
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/sacha-navigate.el
@@ -3447,7 +3548,47 @@ repeating just the last keystroke.
 	(("C-(" . goto-last-change)
 	 ("C-)" . goto-last-change-reverse)))
 #+end_src
+** Narrow
 
+Inspired by https://github.com/oantolin/emacs-config
+
+#+begin_src emacs-lisp
+(use-package narrow-extras
+	:load-path "~/vendor/oantolin-config/user-lisp"
+	:vc (:url "https://github.com/oantolin/emacs-config/user-lisp")
+	:commands (narrow-or-widen-dwim narrow-to-point)
+	:config
+	(defalias 'oantolin-narrow-or-widen-dwim 'narrow-or-widen-dwim)
+	(defalias 'oantolin-narrow-to-point
+		'narrow-to-point)
+	:bind
+	(:map ctl-x-map
+				("C-n" . oantolin-narrow-or-widen-dwim))
+	(:map narrow-map
+ 	("s" . sp-narrow-to-sexp)
+	  ("r" . narrow-to-region)
+		("." . oantolin-narrow-to-point)
+	))
+#+end_src
+
+** Rectangles
+
+Inspired by https://github.com/oantolin/emacs-config
+
+#+begin_src emacs-lisp
+(use-package rect  ; built-in
+	:bind
+	(:map rectangle-mark-mode-map  ; C-x r
+        ("t" . string-rectangle)
+        ("o" . open-rectangle)
+        ("c" . clear-rectangle)
+        ("n" . rectangle-number-lines)
+        ("x" . rectangle-exchange-point-and-mark)
+        ("*" . calc-grab-rectangle)
+        (":" . calc-grab-sum-down)
+        ("_" . calc-grab-sum-across)
+        (" " . delete-whitespace-rectangle)))
+#+end_src
 ** Substitution
 :PROPERTIES:
 :CUSTOM_ID: navigation-substitution
@@ -3910,8 +4051,19 @@ Inspired by https://github.com/oantolin/emacs-config
 	(:map isearch-mode-map
 				("M-c") ; unbind the toggle for case sensitivity, still bound to M-s c
 				("M-r") ; unbind the toggle for regexps, still bound to M-s r
-
+				("C-<backspace>" . oantolin-isearch-delete-wrong)
+				("C-M-w" . isearch-yank-region)
+				("M-t" . transpose-words)
 	))
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package isearch-extras
+	:load-path "~/vendor/oantolin-config/user-lisp"
+	:vc (:url "https://github.com/oantolin/emacs-config/user-lisp")
+	:commands (isearch-delete-wrong)
+	:config
+	(defalias 'oantolin-isearch-delete-wrong 'isearch-delete-wrong))
 #+end_src
 
 https://emacsredux.com/blog/2026/03/15/isearch-lazy-count/
@@ -4114,6 +4266,17 @@ http://yummymelon.com/devnull/surprise-and-emacs-defaults.html
 (defun sacha-restore-pre-ediff-winconfig ()
   "Restore window configuration to stored value in `sacha-ediff-last-windows'."
   (set-window-configuration sacha-ediff-last-windows))
+
+;;;###autoload
+(defun sacha-ediff-with-org-show-all ()
+	"Expand all headings prior to ediffing org buffers.
+From oantolin."
+	(add-hook 'ediff-prepare-buffer-hook #'org-fold-show-all nil t))
+#+end_src
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'org
+	(add-hook 'org-mode-hook 'sacha-ediff-with-org-show-all))
 #+end_src
 ** Hideshow
 :PROPERTIES:
@@ -4705,7 +4868,26 @@ Allow my use of =C-x C-q= while in peep-dired mode.
 	(keymap-set dired-mode-map "b" 'sacha-save-photo)
 	(keymap-set dired-mode-map "r" 'sacha-backup-media))
 #+end_src
+** Open files externally
 
+  #+begin_src emacs-lisp :tangle lisp/sacha-dired.el
+;;;###autoload
+(defun dired-open-externally (&optional arg)
+  "Open marked or current file in operating system's default application.
+
+From oantolin's config."
+  (interactive "P")
+  (dired-map-over-marks
+   (embark-open-externally (dired-get-filename))
+   arg))
+  #+end_src
+
+  #+begin_src emacs-lisp
+(use-package dired ; built-in
+	:bind
+	(:map dired-mode-map
+        ("e" . dired-open-externally)))
+  #+end_src
 ** Move to beginning of line
 :PROPERTIES:
 :CUSTOM_ID: move-to-beginning-of-line
@@ -4931,8 +5113,29 @@ http://yummymelon.com/devnull/using-bookmarks-in-emacs-like-you-do-in-web-browse
 ;;;###autoload
 (defun sacha-goto-random-char ()
   (interactive)
-  (goto-char (random (point-max))))
+  (push-mark)
+  (goto-char (+ (point-min) (random (- (point-max) (point-min))))))
+
+;;;###autoload
+(defun sacha-goto-random-line ()
+  "Go to a random line in the buffer.
+Inspired by https://github.com/oantolin/emacs-config"
+  (interactive)
+  (push-mark)
+  (goto-char (point-min))
+  (forward-line (random (count-lines (point-min) (point-max))))
+	(set-transient-map sacha-random-line-map))
+
+(defvar-keymap sacha-random-line-map
+  :doc "Repeat map for `sacha-goto-random-line'
+Inspired by https://github.com/oantolin/emacs-config"
+  :repeat t
+  "R" #'sacha-goto-random-line)
 #+END_SRC
+
+#+begin_src emacs-lisp
+(bind-key "M-g R" #'sacha-goto-random-line)
+#+end_src
 
 *** Building a today-I-learned habit, and displaying the documentation for random Emacs commands :emacs:
 :PROPERTIES:
@@ -5077,9 +5280,33 @@ Based on https://kitchingroup.cheme.cmu.edu/blog/2014/08/31/Using-Mac-gestures-i
 #+end_src
 
 Ex: (sacha-navigate-focus-or-launch "obs")
+* Keyboard macros
+
+Inspired by https://github.com/oantolin/emacs-config
+
+#+begin_src emacs-lisp
+(bind-key "M-r" #'kmacro-start-macro-or-insert-counter) ; replace window-layout-transpose
+(bind-key "M-m" #'kmacro-end-or-call-macro)  ; replace back-to-indentation
+(bind-key "M-M" #'apply-macro-to-lines-of-paragraph)
+#+end_src
+* Settings
+
+Inspired by https://github.com/oantolin/emacs-config
+#+begin_src emacs-lisp
+(bind-keys :prefix-map sacha-toggle-map
+					 :prefix "C-c x"
+					 ("d" . toggle-debug-on-error)
+					 ("v" . variable-pitch-mode)
+					 ("k" . keycast-header-line-mode)
+					 ("f" . fontaine-toggle-preset)
+					 ("o" . sacha-stream-obs-toggle-current-task)
+					 ("m" . modus-themes-toggle))
+
+#+end_src
 * Reading
 :PROPERTIES:
 :CUSTOM_ID: reading
+:ID:       20260424T160150.428126
 :END:
 
 #+begin_src emacs-lisp
@@ -5117,32 +5344,71 @@ https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/sacha-misc.el
-  (defun sacha-capitalize-dwim ()
-    "Capitalize the previous word if typing and at the end of a word."
-    (interactive)
-    (if (region-active-p)
-        (capitalize-region (region-beginning) (region-end))
-      (when (and (not (bolp))
-                 (looking-back "\\w" 1)
-                 (eq last-command 'self-insert-command))
-        (backward-word))
-      (capitalize-word 1)))
+;;;###autoload
+(defmacro sacha-inserter (string)
+  "Command that inserts given STRING.
+From oantolin."
+  `(lambda () ,string (interactive) (insert ,string)))
 
-  (defun sacha-copy-filename ()
-    "Copy the current buffer file name to the clipboard."
-    (interactive)
-    (cond
-     ((derived-mode-p 'dired-mode) (dired-copy-filename-as-kill 0))
-     (t (kill-new (buffer-file-name)))))
+;;;###autoload
+(defun sacha-capitalize-dwim ()
+	"Capitalize the previous word if typing and at the end of a word."
+	(interactive)
+	(if (region-active-p)
+			(capitalize-region (region-beginning) (region-end))
+		(when (and (not (bolp))
+							 (looking-back "\\w" 1)
+							 (eq last-command 'self-insert-command))
+			(backward-word))
+		(capitalize-word 1)))
+
+;;;###autoload
+(defun sacha-copy-filename ()
+	"Copy the current buffer file name to the clipboard."
+	(interactive)
+	(cond
+	 ((derived-mode-p 'dired-mode) (dired-copy-filename-as-kill 0))
+	 (t (kill-new (buffer-file-name)))))
 #+end_src
 
 #+begin_src emacs-lisp
   ;; Bind it to the original M-c key
   (global-set-key (kbd "M-c") 'sacha-capitalize-dwim)
 #+end_src
+
+** Check for capitalization
+
+#+begin_src emacs-lisp :tangle lisp/sacha-misc.el
+;;;###autoload
+(defun sacha-query-capitalize ()
+  "Capitalize the first letter of sentences interactively."
+  (interactive)
+	(let ((case-fold-search nil) overlay)
+		(while (re-search-forward "\\([\\.?!] \\| \"\\)\\([a-z]\\)" nil t)
+			(unwind-protect
+					(progn
+						(setq overlay (make-overlay (match-beginning 2)
+																				(match-end 2)))
+						(overlay-put overlay 'face 'next-error)
+						(when (save-match-data (y-or-n-p "Capitalize?"))
+							(replace-match (upcase (match-string 2)) t t nil 2)))
+				(delete-overlay overlay)))))
+#+end_src
+
+** Use Emacs everywhere
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-use-emacs-everywhere
+:END:
+
+[[https://github.com/tecosaur/emacs-everywhere?tab=readme-ov-file][tecosaur/emacs-everywhere: Mirror of https://git.tecosaur.net/tec/emacs-everywhere · GitHub]]
+
+#+begin_src emacs-lisp
+(use-package emacs-everywhere)
+#+end_src
 ** Learning French  :french:
 :PROPERTIES:
 :CUSTOM_ID: multimedia-learning-french
+:ID:       20260424T160154.686776
 :END:
 
 #+begin_src emacs-lisp

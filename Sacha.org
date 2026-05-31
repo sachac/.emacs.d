@@ -2366,7 +2366,7 @@ This is an entry for [[https://sachachua.com/blog/2026/01/emacs-carnival-februar
 
 #+name: sacha-image--state
 #+begin_src emacs-lisp :lexical t :tangle "lisp/sacha-sketch.el"
-(declare-function 'sacha-geeqie-view "Sacha.el")
+(declare-function sacha-geeqie-view "Sacha.el")
 
 (defvar sacha-sketch-preview 'text
   "*Preview sketches.
@@ -9510,7 +9510,7 @@ This is handled by the following code:
 
 #+begin_src emacs-lisp :tangle lisp/sacha-whisper.el
 
-(declare-function 'subed-word-data-compare-normalized-string-distance "subed-word-data")
+(declare-function subed-word-data-compare-normalized-string-distance "subed-word-data")
 
 ;;;###autoload
 (defun sacha-whisper-maybe-expand-snippet (text)
@@ -14777,7 +14777,7 @@ Aha, I can fiddle with =org-babel-post-tangle-hook= to insert the boilerplate af
   (require 'org-core nil t)
   (require 'org-macs nil t)
   (require 'org-src nil t))
-(declare-function 'org-babel-tangle--compute-targets "ob-tangle")
+(declare-function org-babel-tangle--compute-targets "ob-tangle")
 (defun sacha-org-collect-links-for-tangled-files ()
   "Return a list of ((filename (link link link link)) ...)."
   (let* ((file (buffer-file-name))
@@ -32256,7 +32256,7 @@ IRC is a great way to hang out with other Emacs geeks.
                                          "@" (url-host url-parsed) "]]"))
      (t (insert url)))))
 
-(declare-function 'mastodon-notifications-get-mentions "mastodon-notifications")
+(declare-function mastodon-notifications-get-mentions "mastodon-notifications")
 #+end_src
 
 I use [[https://tusky.app/][Tusky]] on my Android phone in order to share post content with
@@ -37464,23 +37464,21 @@ I want to display a short string for emphasis and to make it easier for people t
 (defun sacha-stream-calculate-fit-to-width-height (str &optional face)
   (let* ((window-width (window-body-width nil t))
          (current-height 100)
-         (margin 10)
-         (current-windows (current-window-configuration))
+				 (current-window (selected-window))
+         (margin 60)
          (string-width
           (with-temp-buffer
             (insert (propertize str 'face face))
-            (switch-to-buffer (current-buffer))
+            (set-window-buffer current-window (current-buffer))
             (car (window-text-pixel-size nil (point-min) (point-max))))))
-    (prog1
-        (if (> string-width 0)
-            (round (* current-height (/ (float (- window-width margin)) string-width)))
-          current-height)
-      (set-window-configuration current-windows))))
+    (if (> string-width 0)
+        (round (* current-height (/ (float (- window-width margin)) string-width)))
+      current-height)))
 
 (defvar sacha-stream-show-string-hook nil "Additional functions to call with the text.")
 
-(declare-function 'qrencode-format "qrencode")
-(declare-function 'qrencode "qrencode")
+(declare-function qrencode-format "qrencode")
+(declare-function qrencode "qrencode")
 
 ;;;###autoload
 (defun sacha-stream-show-string (text &optional qr)
@@ -37812,8 +37810,14 @@ CLOCK: [2026-01-23 Fri 12:27]--[2026-01-23 Fri 12:29] =>  0:02
 #+begin_src emacs-lisp :tangle lisp/sacha-stream.el
 (defvar sacha-stream-display-file nil)
 
+(defvar sacha-stream-obs-current-task-source "Current task web")
+(defvar sacha-stream-obs-current-task-duration "5 seconds")
+(defvar sacha-stream-obs-current-task-timer nil)
+
+(defvar obs-websocket-connected-p)
+(declare-function obs-websocket-connected-p "obs-websocket")
 ;;;###autoload
-(defun sacha-stream-obs-display-text (text)
+(defun sacha-stream-obs-display-text-ongoing (text)
   "Display TEXT in the current task area in my OBS."
   (interactive (list (read-string "Text: ")))
   (when sacha-stream-display-file

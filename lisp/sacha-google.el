@@ -88,16 +88,20 @@
 
 ;; [[file:../Sacha.org::#streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream-calculate-an-org-timestamp-s-offset-into-a-youtube-stream][Calculate an Org timestamp's offset into a YouTube stream:2]]
 ;;;###autoload
-(defun sacha-google-youtube-stream-offset (time)
+(defun sacha-google-youtube-stream-offset (time &optional round)
 	"Return the offset from the start of the stream.
 When called interactively, copy it."
 	(interactive (list (sacha-org-time-at-point)))
 	(when (and (stringp time)
 						 (string-match org-element--timestamp-regexp time))
 		(setq time (org-timestamp-to-time (org-timestamp-from-string (match-string 0 time)))))
-	(let ((result
-				 (emacstv-format-seconds (sacha-google-youtube-live-seconds-offset-from-start-of-stream
-																	time))))
+	(when-let*
+			((seconds (sacha-google-youtube-live-seconds-offset-from-start-of-stream
+								 time))
+			 (result (emacstv-format-seconds
+								(if round
+										(- (floor seconds) (% (floor seconds) 60))
+									seconds))))
 		(when (called-interactively-p 'any)
 			(kill-new result)
 			(message "%s" result))
@@ -121,48 +125,90 @@ When called interactively, copy it."
 	(or sacha-google-youtube-live-broadcasts
 			(setq sacha-google-youtube-live-broadcasts
 						(request-response-data
-						 (request "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet&mine=true&maxResults=10"
+						 (request "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet&mine=true&maxResults=50"
 							 :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token))))
 							 :sync t
 							 :parser #'json-read)))))
 
 (defun sacha-google-youtube-live-get-broadcast-at-time (time)
 	"Return the broadcast encompassing TIME."
-	(seq-find (lambda (o)
-							(or
-							 ;; actual
-							 (and
-								(alist-get 'actualStartTime (alist-get 'snippet o))
-								(alist-get 'actualEndTime (alist-get 'snippet o))
-								(not (time-less-p time (date-to-time (alist-get 'actualStartTime (alist-get 'snippet o)))))
-								(time-less-p time (date-to-time (alist-get 'actualEndTime (alist-get 'snippet o)))))
-							 ;; actual, not done yet
-							 (and
-								(alist-get 'actualStartTime (alist-get 'snippet o))
-								(null (alist-get 'actualEndTime (alist-get 'snippet o)))
-								(not (time-less-p time (date-to-time (alist-get 'actualStartTime (alist-get 'snippet o))))))
-							 ;; scheduled
-							 (and
-								(null (alist-get 'actualStartTime (alist-get 'snippet o)))
-								(null (alist-get 'actualEndTime (alist-get 'snippet o)))
-								(not (time-less-p time (date-to-time (alist-get 'scheduledStartTime (alist-get 'snippet o))))))))
-						(sort
-						 (alist-get 'items (sacha-google-youtube-live-broadcasts))
-						 :key (or
-									 (alist-get 'actualStartTime (alist-get 'snippet o))
-									 (alist-get 'scheduledStartTime (alist-get 'snippet o))))))
+	(seq-find
+	 (lambda (o)
+		 (or
+			;; actual
+			(and
+			 (alist-get 'actualStartTime (alist-get 'snippet o))
+			 (alist-get 'actualEndTime (alist-get 'snippet o))
+			 (not (time-less-p time (date-to-time (alist-get 'actualStartTime (alist-get 'snippet o)))))
+			 (time-less-p time (date-to-time (alist-get 'actualEndTime (alist-get 'snippet o)))))
+			;; actual, not done yet
+			(and
+			 (alist-get 'actualStartTime (alist-get 'snippet o))
+			 (null (alist-get 'actualEndTime (alist-get 'snippet o)))
+			 (not (time-less-p time (date-to-time (alist-get 'actualStartTime (alist-get 'snippet o))))))
+			;; scheduled
+			(and
+			 (null (alist-get 'actualStartTime (alist-get 'snippet o)))
+			 (null (alist-get 'actualEndTime (alist-get 'snippet o)))
+			 (not (time-less-p time (date-to-time (alist-get 'scheduledStartTime (alist-get 'snippet o))))))))
+	 (sort
+		(seq-filter
+		 (lambda (o)
+			 (or
+				(alist-get 'actualStartTime (alist-get 'snippet o))
+				(alist-get 'scheduledStartTime (alist-get 'snippet o))))
+		 (alist-get 'items
+
+								(sacha-google-youtube-live-broadcasts)))
+		:key (lambda (o)
+					 (or
+						(alist-get 'actualStartTime (alist-get 'snippet o))
+						(alist-get 'scheduledStartTime (alist-get 'snippet o))))
+		:lessp #'string<)))
 
 (defun sacha-google-youtube-live-seconds-offset-from-start-of-stream (wall-time)
 	"Return number of seconds for WALL-TIME from the start of the stream that contains it.
 Offset by `sacha-google-youtube-stream-offset-seconds'."
-	(+ sacha-google-youtube-stream-offset-seconds
-		 (time-to-seconds
-			(time-subtract
-			 wall-time
-			 (date-to-time
-				(alist-get 'actualStartTime
-									 (alist-get 'snippet
-															(sacha-google-youtube-live-get-broadcast-at-time wall-time))))))))
+	(when (and wall-time
+						 (alist-get 'actualStartTime
+												(alist-get 'snippet
+																	 (sacha-google-youtube-live-get-broadcast-at-time wall-time))))
+		(+ sacha-google-youtube-stream-offset-seconds
+			 (time-to-seconds
+				(time-subtract
+				 wall-time
+				 (date-to-time
+					(alist-get 'actualStartTime
+										 (alist-get 'snippet
+																(sacha-google-youtube-live-get-broadcast-at-time wall-time)))))))))
+
+(defun sacha-google-youtube-convert-timestamps-to-chapters (timestamps)
+	"Return a string of chapters for the Youtube video.
+Use this when there is no embedded player."
+	(mapconcat
+	 (lambda (o)
+		 (concat
+			(sacha-google-youtube-stream-offset
+			 o)
+			" "
+			(replace-regexp-in-string "^\\[.+?\\] " "" o)))
+	 timestamps
+	 "\n"))
+
+(defun sacha-stream-org-convert-timestamps-to-youtube-offsets (beg end)
+	"Convert timestamps to stream offsets from BEG to END."
+	(interactive (if (region-active-p)
+							     (list (region-beginning)
+												 (region-end))
+							   (list (progn (org-back-to-heading) (org-end-of-meta-data t) (point))
+											 (progn (org-end-of-subtree) (point)))))
+	(goto-char beg)
+	(while (re-search-forward org-ts-regexp-inactive end t)
+		(when-let*
+				((new-time
+					(save-match-data
+						(sacha-google-youtube-stream-offset (match-string 0) t))))
+			(replace-match (concat "vtime:" new-time)))))
 
 ;;;###autoload
 (defun sacha-google-clear-cache ()
@@ -170,6 +216,37 @@ Offset by `sacha-google-youtube-stream-offset-seconds'."
 	(interactive)
 	(setq sacha-google-access-token nil)
 	(setq sacha-google-youtube-live-broadcasts nil))
+
+;;;###autoload
+(defun sacha-stream-org-format-chat (beg end)
+  "Format pasted chat."
+  (interactive (if (region-active-p)
+							     (list (region-beginning)
+												 (region-end))
+							   (list (progn (org-back-to-heading) (point))
+											 (progn (org-end-of-subtree) (point)))))
+	(goto-char beg)
+	(while (re-search-forward "^#[0-9]+\n" end t)
+		(replace-match ""))
+	(goto-char beg)
+	(flush-lines "^​?$" beg end)
+	(goto-char beg)
+	(while (re-search-forward "^\\([0-9:]+ [AP]M\\)\n@\\(.+?\\)\n\\(.+\\)" end t)
+		(replace-match "- nick:\\2 \\3")))
+
+(defvar sacha-stream-pages
+	'("~/sync/topics/live.org"
+		"~/sync/topics/emacs-chat.org"))
+
+;;;###autoload
+(defun sacha-stream-regenerate-live-pages ()
+  "Clear the cache and regenerate stream pages."
+  (interactive)
+	(sacha-google-clear-cache)
+	(dolist (file sacha-stream-pages)
+		(with-current-buffer (find-file-noselect file)
+			(org-babel-execute-buffer)
+			(sacha-org-11ty-export-and-copy))))
 ;; Calculate an Org timestamp's offset into a YouTube stream:2 ends here
 
 (provide 'sacha-google)

@@ -69,14 +69,18 @@
 							(url
                (if (string-match "^https://" link)
                    (concat (url-type parsed-url) "://" (url-domain parsed-url) (car path-and-query))
-                 (concat "file://" (if (file-name-absolute-p (car path-and-query))
-																		   (expand-file-name (car path-and-query))
-																	   (car path-and-query)))))
+								 (if (or (file-name-absolute-p (car path-and-query)) (eq format '11ty))
+										 (concat "file://" (if (file-name-absolute-p (car path-and-query))
+																					 (expand-file-name (car path-and-query))
+																				 (car path-and-query)))
+									 ;; relative path
+									 (car path-and-query))))
 							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query))))
 							body)
 				 (setq body
 							 (format
-								"<video%s%s src=\"%s\" %stype=\"%s\">%s%s%s</video>%s"
+								"<video preload=\"%s\"%s%s src=\"%s\" %stype=\"%s\">%s%s%s</video>%s"
+								(or (car (assoc-default "preload" params 'string= '("none"))) "none")
 								(if (string= (or (car (assoc-default "controls" params 'string= '("1"))) "1") "0")
 										""
 									" controls=\"1\"")
@@ -116,6 +120,25 @@
 															body
 															(car (assoc-default "caption" params)))))
 				 body))
+			('latex
+			 (let* ((parsed-url (url-generic-parse-url link))
+              (path-and-query (url-path-and-query parsed-url))
+							(url
+               (if (string-match "^https://" link)
+                   (concat (url-type parsed-url) "://" (url-domain parsed-url) (car path-and-query))
+                 (concat "file://" (if (file-name-absolute-p (car path-and-query))
+																		   (expand-file-name (car path-and-query))
+																	   (car path-and-query)))))
+							(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query)))))
+				 (format "\\href{%s}{%s}"
+								 url
+								 (if (assoc-default "thumbnail" params #'string=)
+										 (format "\\includegraphics[width=\\textwidth, height=\\textheight, keepaspectratio]{%s}"
+														 (car (assoc-default "thumbnail" params #'string=)))
+									 (concat "(Play external video)"
+													 (if desc
+															 (concat " " desc)
+														 ""))))))
 			(_ link))))
 
 ;;;###autoload

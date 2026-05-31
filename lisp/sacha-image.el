@@ -41,7 +41,7 @@
 ;; - Saving photos
 ;;   https://sachachua.com/dotemacs#saving-photos
 ;;
-;; - Screenshot
+;; - Take screenshots in different ways
 ;;   https://sachachua.com/dotemacs#screenshot
 ;;
 ;; - Org Mode: Create a quick timestamped note and capture a screenshot
@@ -49,6 +49,12 @@
 ;;
 ;; - Photos
 ;;   https://sachachua.com/dotemacs#photos
+;;
+;; - Use Tesseract to OCR an image and get line/word coordinates
+;;   https://sachachua.com/dotemacs#multimedia-images-use-tesseract-to-ocr-an-image-and-get-line-word-coordinates
+;;
+;; - Copy coordinates for an image
+;;   https://sachachua.com/dotemacs#multimedia-images-copy-coordinates-for-an-image
 ;;
 ;; - Rotate clockwise or counterclockwise
 ;;   https://sachachua.com/dotemacs#multimedia-images-imagemagick-rotate-clockwise-or-counterclockwise
@@ -370,7 +376,7 @@
           (dired-get-marked-files)))
 ;; Saving photos:1 ends here
 
-;; [[file:../Sacha.org::#screenshot][Screenshot:1]]
+;; [[file:../Sacha.org::#screenshot][Take screenshots in different ways:1]]
 (defvar sacha-screenshot-hook nil "Functions to run after a screenshot. Called with the filename as the arg.")
 
 ;;;###autoload
@@ -418,8 +424,19 @@ Prompt for a caption afterwards."
       "-b" "-m" "-n" "-o" new-file)
     new-file))
 (defun sacha-save-screenshot (filename)
+	"Save FILENAME as an Org capture."
   (org-capture-string filename "S"))
-;; Screenshot:1 ends here
+
+;;;###autoload
+(defun sacha-screenshot-current-frame (filename &optional frame)
+  "Take a screenshot of FRAME."
+  (interactive)
+	(redisplay)
+	(shell-command
+	 (format "import -frame -window %s %s"
+					 (frame-parameter frame 'window-id)
+					 (shell-quote-argument (expand-file-name filename)))))
+;; Take screenshots in different ways:1 ends here
 
 ;; [[file:../Sacha.org::sacha-org-insert-screenshot][sacha-org-insert-screenshot]]
 ;;;###autoload
@@ -460,9 +477,15 @@ Prompt for a caption afterwards."
 (defun sacha-copy-last-screenshot-and-insert-into-org (new-filename caption)
   (interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (sacha-latest-screenshot))))
                      (read-string "Caption: ")))
-  (copy-file (sacha-latest-screenshot) new-filename t)
-  (insert "#+CAPTION: " caption "\n"
-          (org-link-make-string (concat "file:" (file-relative-name new-filename))) "\n"))
+	(let ((screenshot (sacha-latest-screenshot)))
+		(copy-file screenshot new-filename t)
+		(insert "#+CAPTION: " caption "\n"
+						(org-link-make-string (concat "file:"
+																					(file-relative-name
+																					 (expand-file-name
+																						(file-name-nondirectory screenshot)
+																						new-filename))))
+						"\n")))
 
 ;;;###autoload
 (defun sacha-convert-latest-recording ()
@@ -556,6 +579,266 @@ Prompt for a caption afterwards."
                     "\n")))
     (if (called-interactively-p 'any) (insert result) result)))
 ;; Photos:2 ends here
+
+;; [[file:../Sacha.org::#multimedia-images-use-tesseract-to-ocr-an-image-and-get-line-word-coordinates][Use Tesseract to OCR an image and get line/word coordinates:1]]
+(eval-when-compile
+	(require 'dom))
+(defun sacha-image-ocr-tesseract-parse-hocr (dom)
+	"Parse DOM.
+Items are returned in this hierarchy: area, paragraph, line, word."
+	(when (stringp dom)
+		(with-temp-buffer
+			(if (file-exists-p dom)
+					(insert-file-contents dom)
+				(insert dom))
+			(setq dom (libxml-parse-html-region))))
+	(seq-keep
+	 (lambda (area)
+		 (when (string= (dom-attr area 'class) "ocr_carea")
+			 (list
+				(cons 'bbox
+							(when (string-match "bbox \\(.+\\)" (dom-attr area 'title))
+								(match-string 1 (dom-attr area 'title))))
+				(cons 'paragraphs
+							(seq-map
+							 (lambda (par)
+								 (list
+									(cons 'bbox
+												(when (string-match "bbox \\(.+\\)" (dom-attr par 'title))
+													(match-string 1 (dom-attr par 'title))))
+									(cons 'lines
+												(seq-keep
+												 (lambda (line)
+													 (when (listp line)
+														 (list
+															(cons 'bbox (when (string-match "bbox \\(.+?\\);" (dom-attr line 'title))
+																						(match-string 1 (dom-attr line 'title))))
+															(cons 'words
+																		(seq-keep
+																		 (lambda (word)
+																			 (when (and (listp word)
+																									(string-match "bbox \\(.+?\\); x_wconf \\(.+\\)" (dom-attr word 'title)))
+																				 (let ((bbox (match-string 1 (dom-attr word 'title)))
+																							 (wconf (match-string 2 (dom-attr word 'title))))
+																					 (list
+																						(cons 'bbox bbox)
+																						(cons 'text (dom-text word))
+																						(cons 'wconf wconf)))))
+																		 (dom-children line))))))
+												 (dom-children par)))))
+							 (dom-by-tag area 'p))))))
+	 (dom-by-tag dom 'div)))
+
+(defun sacha-image-ocr-tesseract-insert-formatted-text (results)
+	"Insert RESULTS as formatted text in the current buffer."
+	(dolist (area results)
+		(dolist (par (alist-get 'paragraphs area))
+			(dolist (line (alist-get 'lines par))
+				(dolist (word (alist-get 'words line))
+					(insert (apply #'propertize (or (alist-get 'text word) "??")
+												 (seq-mapcat (lambda (o) (list (car o) (cdr o))) word)))
+					(insert " "))
+				(insert "\n"))
+			(insert "\n"))
+		(insert "\n")))
+
+(defvar sacha-image-ocr-cache t "Non-nil means save HOCR results beside the file.")
+(defun sacha-image-ocr-with-tesseract (filename)
+  "Use Tesseract to analyze FILENAME.
+Items are returned in this hierarchy: area, paragraph, line, word."
+  (interactive)
+	(let* ((hocr-filename (concat (file-name-sans-extension filename) ".hocr"))
+				 (dom
+					(with-temp-buffer
+						(if (and sacha-image-ocr-cache (file-exists-p hocr-filename))
+								(insert-file-contents hocr-filename)
+							(call-process "tesseract" nil t nil
+														(expand-file-name filename)
+														"stdout"
+														"hocr")
+							(when sacha-image-ocr-cache
+								(write-region (point-min) (point-max)
+															hocr-filename)))
+						(libxml-parse-html-region))))
+		(sacha-image-ocr-tesseract-parse-hocr dom)
+		))
+
+;;;###autoload
+(defun sacha-image-ocr-tesseract-as-buffer (filename)
+  "OCR FILENAME and display it in a buffer.
+Coordinates are saved as text properties."
+  (interactive "FFile: ")
+	(with-current-buffer (get-buffer-create "*tesseract*")
+		(erase-buffer)
+		(sacha-image-ocr-tesseract-insert-formatted-text
+		 (sacha-image-ocr-with-tesseract filename))
+		(display-buffer (current-buffer))))
+
+(defvar sacha-subed-record-redact-regexps nil)
+;;;###autoload
+(defun sacha-subed-record-redact-subtitle ()
+	(interactive)
+	(let* ((new-coords
+					(sacha-image-redact-format-coords
+					 (sacha-image-ocr-tesseract-redact-get-coordinates
+						(subed-record-get-directive "#+SCREENSHOT") sacha-subed-record-redact-regexps)))
+				 (combined
+					(if (subed-record-get-directive "#+SCREENSHOT_REDACT")
+							(string-join
+							 (seq-uniq
+								(split-string
+								 (concat
+									(subed-record-get-directive "#+SCREENSHOT_REDACT")
+									", "
+									new-coords)
+								 ", "))
+							 ", ")
+						new-coords)))
+		(when (and new-coords (not (string= new-coords "")))
+			(subed-record-set-directive
+			 "#+SCREENSHOT_REDACT"
+			 combined)
+			(subed-record-regenerate-screenshot))))
+
+;;;###autoload
+(defun sacha-subed-record-redact-all-subtitles (beg end)
+  "Redact and regenerate all subtitles with screenshots."
+  (interactive (if (region-active-p)
+							     (list (region-beginning)
+												 (region-end))
+							   (list (point-min) (point-max))))
+	(save-excursion
+		(subed-for-each-subtitle beg end nil
+			(when (subed-record-get-directive "#+SCREENSHOT")
+				(sacha-subed-record-redact-subtitle)))))
+
+(defun sacha-read-regexps-from-file (filename)
+	"Read lines from FILENAME and make a regexp opt that matches them."
+	(with-temp-buffer
+		(insert-file-contents filename)
+		(regexp-opt (split-string (string-trim (buffer-string)) "\n"))))
+
+(defun sacha-image-ocr-tesseract-redact-get-coordinates (image-file regexps)
+  "OCR image and return a list of x1 y1 x2 y2 coordinates.
+Redact words or phrases that match REGEXP."
+	(when (and (stringp regexps)
+						 (file-exists-p regexps))
+		(with-temp-buffer
+			(insert-file-contents regexps)
+			(setq regexps (regexp-opt (split-string (string-trim (buffer-string)) "\n")))))
+	(when (listp regexps)
+		(setq regexps (regexp-opt regexps)))
+	(let (results)
+		(with-current-buffer (get-buffer-create "*tesseract*")
+			(erase-buffer)
+			(sacha-image-ocr-tesseract-insert-formatted-text
+			 (sacha-image-ocr-with-tesseract image-file))
+			(goto-char (point-min))
+			(while (re-search-forward (format "\\(?:\\<\\|^\\|[ \t\n]\\)\\(%s\\)\\(?:\\>\\|[ \t\n]\\)" regexps) nil t)
+				(push
+				 (cons (get-text-property (or (match-beginning 2) (match-beginning 1)) 'bbox)
+							 (get-text-property (1- (or (match-end 2) (match-end 1))) 'bbox))
+				 results)))
+		(sacha-image-redact-enlarge
+		 (mapcar
+			(lambda (entry)
+				(mapcar
+				 #'string-to-number
+				 (append
+					(seq-take (split-string (car entry)) 2)
+					(seq-drop (split-string (cdr entry)) 2))))
+			(nreverse results)))))
+
+(defun sacha-image-redact-enlarge (coords &optional margin)
+	"Make COORDS larger by MARGIN.
+COORDS is a list of x1 y1 x2 y2 coordinates."
+	(setq margin (or margin 5))
+	(mapcar
+	 (lambda (o)
+		 (when (stringp o)
+			 (setq o (mapcar #'string-to-number (split-string o " "))))
+		 (cl-destructuring-bind (x1 y1 x2 y2) o
+				 (list
+					(- x1 margin)
+					(- y1 margin)
+					(+ x2 margin)
+					(+ y2 margin))))
+	 coords))
+
+(defun sacha-image-redact-format-coords (coords)
+	"Return COORDS formatted for inclusion as a directive."
+	(mapconcat
+	 (lambda (o)
+		 (cond
+			((stringp o) o)
+			((numberp (car o))
+			 (mapconcat #'number-to-string o " "))
+			((stringp (car o))
+			 (string-join o " "))))
+	 coords
+	 ", "))
+
+;; Use Tesseract to OCR an image and get line/word coordinates:1 ends here
+
+;; [[file:../Sacha.org::#multimedia-images-copy-coordinates-for-an-image][Copy coordinates for an image:1]]
+(defun sacha-image-get-scaled-coordinates (&optional event)
+	"Return x1 y1 scaled to image size for EVENT."
+	(let* ((image-scaling-factor 1)
+				 (position (if event (event-start event)
+										 (mouse-pixel-position)))
+				 (coords (if event (posn-object-x-y position)))
+				 (image (with-current-buffer (window-buffer (posn-window position))
+									(get-char-property (point-min) 'display)))
+				 (displayed-size (image-size image t))
+				 (original-image (create-image (or (plist-get (cdr image) :file)
+																					 (plist-get (cdr image) :data))
+																			 nil
+																			 (and (plist-get (cdr image) :data) t)))
+				 (orig-size
+					(progn
+					 (image-flush original-image)
+					 (image-size original-image t))))
+		(cons
+     (round (* (/ (* 1.0 (car coords)) (car displayed-size)) (car orig-size)))
+     (round (* (/ (* 1.0 (cdr coords)) (cdr displayed-size)) (cdr orig-size))))))
+
+;;;###autoload
+(defun sacha-image-copy-coordinates (event)
+  "Copy the X and Y coordinates at point based on the image."
+  (interactive "e")
+	(let* ((scaled-coordinates
+					(sacha-image-get-scaled-coordinates event))
+				 (result (format "%s %s " (car scaled-coordinates) (cdr scaled-coordinates))))
+		(when (called-interactively-p 'any)
+		  (kill-new result)
+			(message "%s" result))
+		scaled-coordinates))
+
+;;;###autoload
+(defun sacha-image-insert-coordinates (event)
+  "Copy the X and Y coordinates at point based on the image."
+  (interactive "e")
+	(let* ((scaled-coordinates
+					(sacha-image-get-scaled-coordinates event))
+				 (result (format "%s %s" (car scaled-coordinates) (cdr scaled-coordinates))))
+		(when (called-interactively-p 'any)
+		  (insert result " "))
+		scaled-coordinates))
+
+;;;###autoload
+(defun sacha-image-insert-global (event)
+  "Copy the X and Y coordinates at point based on the image.
+Does not require clicking."
+  (interactive "e")
+	(let* ((scaled-coordinates
+					(sacha-image-get-scaled-coordinates))
+				 (result (format "%s %s" (car scaled-coordinates) (cdr scaled-coordinates))))
+		(when (called-interactively-p 'any)
+		  (insert result " "))
+		scaled-coordinates))
+
+
+;; Copy coordinates for an image:1 ends here
 
 ;; [[file:../Sacha.org::#multimedia-images-imagemagick-rotate-clockwise-or-counterclockwise][Rotate clockwise or counterclockwise:1]]
 ;;;###autoload

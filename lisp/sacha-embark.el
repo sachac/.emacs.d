@@ -44,6 +44,9 @@
 ;; - Embark and subed
 ;;   https://sachachua.com/dotemacs#embark-subed
 ;;
+;; - Use Embark to copy the name of a defun or defvar
+;;   https://sachachua.com/dotemacs#keybindings-embark-use-embark-to-copy-the-name-of-a-defun-or-defvar
+;;
 ;; - Embark and erefactor-rename-symbol-in-buffer
 ;;   https://sachachua.com/dotemacs#keybindings-embark-embark-and-erefactor-rename-symbol-in-buffer
 ;;
@@ -55,6 +58,9 @@
 ;;
 ;; - Insert a link to an Org Mode heading from an org-refile prompt
 ;;   https://sachachua.com/dotemacs#org-refile-insert-link
+;;
+;; - Other speed commands
+;;   https://sachachua.com/dotemacs#org-mode-keyboard-shortcuts-other-speed-commands
 ;;
 ;; - Making it easier to add a category to a blog post
 ;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-making-it-easier-to-add-a-category-to-a-blog-post
@@ -189,10 +195,16 @@
       (which-key--show-keymap
        (if (eq (plist-get (car targets) :type) 'embark-become)
            "Become"
-         (format "Act on %s '%s'%s"
+				 (propertize
+					(format "Act on %s '%s'%s"
                  (plist-get (car targets) :type)
                  (embark--truncate-target (plist-get (car targets) :target))
-                 (if (cdr targets) "…" "")))
+                 (if (cdr targets) "…" ""))
+					'face
+					`(:height 300
+										:background ,(modus-themes-get-color-value
+															 'bg-term-blue))
+					))
        (if prefix
            (pcase (lookup-key keymap prefix 'accept-default)
              ((and (pred keymapp) km) km)
@@ -253,6 +265,14 @@
              'ms (compile-media-timestamp-to-msecs (match-string 0))
              'position (if (bolp) 'start 'stop))))))
 ;; Embark and subed:2 ends here
+
+;; [[file:../Sacha.org::#keybindings-embark-use-embark-to-copy-the-name-of-a-defun-or-defvar][Use Embark to copy the name of a defun or defvar:1]]
+(defun sacha-embark-copy-def-name (target)
+  "Extract and copy the name from a TARGET."
+  (let* ((name (symbol-name (cadr (read target)))))
+    (kill-new name)
+    (message "%s" name)))
+;; Use Embark to copy the name of a defun or defvar:1 ends here
 
 ;; [[file:../Sacha.org::#keybindings-embark-embark-and-erefactor-rename-symbol-in-buffer][Embark and erefactor-rename-symbol-in-buffer:1]]
 ;;;###autoload
@@ -343,20 +363,35 @@
 	"L" #'sacha-embark-org-insert-link-from-path)
 ;; Insert a link to an Org Mode heading from an org-refile prompt:1 ends here
 
+;; [[file:../Sacha.org::#org-mode-keyboard-shortcuts-other-speed-commands][Other speed commands:3]]
+;;;###autoload
+(defun sacha-embark-org-copy-subtree-text (target)
+  "Copy the subtree text for TARGET."
+	(if (and (stringp target)
+					 (derived-mode-p 'org-mode))
+			(sacha-org-copy-subtree-text)
+		(embark-org--in-source-window
+		 target
+		 (lambda (marker)
+			 (org-with-point-at marker
+				 (sacha-org-copy-subtree-text))))))
+;; Other speed commands:3 ends here
+
 ;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-making-it-easier-to-add-a-category-to-a-blog-post][Making it easier to add a category to a blog post:2]]
 ;;;###autoload
 (defun sacha-embark-org-blog-target ()
   "Identify when we're looking at a blog link."
-  (cond
-   ((and (derived-mode-p 'org-mode)
-  			 (let ((context (org-element-context)))
-  				 (and (org-element-type-p context 'link)
-  							(cond
-  							 ((string= (org-element-property :type context) "blog")
-  								(cons 'sacha-blog (org-element-property :path (org-element-context))))
-  							 ((string-match "//sachachua.com\\(.+\\)" (org-element-property :path context))
-  								(cons 'sacha-blog (match-string 1 (org-element-property :path context))))))))
-    )))
+  (or
+	 (when-let* ((context (and (derived-mode-p 'org-mode) (org-element-context))))
+  	 (and (org-element-type-p context 'link)
+  				(cond
+  				 ((string= (org-element-property :type context) "blog")
+  					(cons 'sacha-blog (org-element-property :path (org-element-context))))
+  				 ((string-match "//sachachua.com\\(.+\\)" (org-element-property :path context))
+  					(cons 'sacha-blog (match-string 1 (org-element-property :path context)))))))
+	 (when (and (derived-mode-p 'org-mode)
+							(org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK"))
+		 (cons 'sacha-blog (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))))
 
 ;;;###autoload
 (defun sacha-embark-org-blog-add-category (blog &optional category)
@@ -403,43 +438,52 @@
        (.inputPath
         (expand-file-name .inputPath sacha-11ty-base-dir))))))
 
+(defvar sacha-topic-dir "~/sync/topics" "Directory with topics.")
 ;;;###autoload
 (defun sacha-blog-post--position (info &optional find-file)
   "Return the file position marker for a blog post INFO.
   FIND-FILE is the file open function, defaulting to `consult--file-action'."
   (when (stringp info) (setq info (sacha-blog-post-info-for-url info)))
 	(when info
-		(let (pos
-					(files (delq nil
-											 (list "~/sync/emacs/Sacha.org"
-														 "~/sync/orgzly/posts.org"
-														 (alist-get 'source_path info)
-														 (sacha-11ty-exported-org-filename info))))
-					(line-number (alist-get 'line_number info 0)))
-			(when-let* ((source-path
-									 (seq-find
-										(lambda (filename)
-											(with-current-buffer (find-file-noselect filename)
-												(save-excursion
-													(save-restriction
-														(widen)
-														(if (assoc-default 'anchor info)
-																(when-let* ((pos (org-find-property "CUSTOM_ID" (assoc-default 'anchor info))))
-																	(goto-char pos)
-																	(setq line-number (line-number-at-pos nil t))
-																	(buffer-file-name))
-  														(setq pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" (assoc-default 'permalink info)))
-  														(when pos
-																(progn
-																	(goto-char pos)
-																	(when line-number
-																		(forward-line line-number))
-																	(setq line-number (line-number-at-pos nil t))
-  																(buffer-file-name))))))))
-										files)))
+		;; Handle topics
+		(if (string-match "/topic/\\(.+?\\)/" (alist-get 'permalink info))
 				(consult--marker-from-line-column
-				 (funcall (or find-file #'consult--file-action) (file-truename source-path))
-				 line-number 0)))))
+				 (funcall (or find-file #'consult--file-action)
+									(expand-file-name (concat (match-string 1 (alist-get 'permalink info))
+																						".org")
+																		sacha-topic-dir))
+				 1 0)
+			(let (pos
+						(files (delq nil
+												 (list "~/sync/emacs/Sacha.org"
+															 "~/sync/orgzly/posts.org"
+															 (alist-get 'source_path info)
+															 (sacha-11ty-exported-org-filename info))))
+						(line-number (alist-get 'line_number info 0)))
+				(when-let* ((source-path
+										 (seq-find
+											(lambda (filename)
+												(with-current-buffer (find-file-noselect filename)
+													(save-excursion
+														(save-restriction
+															(widen)
+															(if (assoc-default 'anchor info)
+																	(when-let* ((pos (org-find-property "CUSTOM_ID" (assoc-default 'anchor info))))
+																		(goto-char pos)
+																		(setq line-number (line-number-at-pos nil t))
+																		(buffer-file-name))
+																(setq pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" (assoc-default 'permalink info)))
+																(when pos
+																	(progn
+																		(goto-char pos)
+																		(when line-number
+																			(forward-line line-number))
+																		(setq line-number (line-number-at-pos nil t))
+																		(buffer-file-name))))))))
+											files)))
+					(consult--marker-from-line-column
+					 (funcall (or find-file #'consult--file-action) (file-truename source-path))
+					 line-number 0))))))
 
 ;;;###autoload
 (defun sacha-blog-post-info-for-url (url &optional all-posts)
@@ -467,6 +511,8 @@
         (setq url (substring url 0 (match-beginning 0))))
       (unless (string-match "^/" url)
         (setq url (concat "/" url)))
+      (unless (string-match "/$" url)
+        (setq url (concat url "/")))
       (setq entry
             (seq-find (lambda (o) (string= (alist-get 'permalink o) url))
                       (or all-posts (sacha-blog-posts))))
@@ -509,7 +555,7 @@
 
 ;;;###autoload
 (defun sacha-blog-post--state ()
-  "Blog post RAG search state function, managing preview window and cleanup."
+  "Blog post search state function, managing preview window and cleanup."
   ;; These functions are closures captured when the state is initialized by consult--read
   (let ((preview (consult--jump-preview))
         (open (consult--temporary-files))
@@ -518,12 +564,12 @@
     (lambda (action cand)
       (unless cand
         (funcall open))
-      (funcall preview action
-               (and (or (eq action 'preview))
-										(message "cand: %s %s" cand (text-properties-at 0 cand))
-										nil
-										;;
-                    (sacha-blog-post--position cand (and (not (eq action 'return)) open)))))))
+      (funcall
+			 preview action
+       (and (or (eq action 'preview))
+						(sacha-blog-post--position
+						 (car (split-string cand " "))
+						 (and (not (eq action 'return)) open)))))))
 
 ;;;###autoload
 (defun sacha-11ty-current-post ()
@@ -594,6 +640,17 @@
                     (propertize year 'face 'font-lock-comment-face) title categories)))
       (put-text-property 0 1 'consult--candidate result final-display)
 			(cons final-display result))))
+
+;;;###autoload
+(defun sacha-embark-blog-copy-link (permalink)
+  "Copy the URL to this blog post."
+  (interactive "MPermalink: ")
+	(kill-new
+	 (if (string-match (regexp-quote sacha-blog-base-url) permalink)
+			 permalink
+		 (concat sacha-blog-base-url
+						 (replace-regexp-in-string "^/" ""
+																			 permalink)))))
 ;; Making it easier to add a category to a blog post:2 ends here
 
 ;; [[file:../Sacha.org::#org-mode-links-using-an-emacs-lisp-macro-to-define-quick-custom-org-mode-links-to-project-files-plus-urls-and-search-quickly-search-sacha-code-tip-from-omar-embark-around-action-hooks][Tip from Omar: embark-around-action-hooks:1]]

@@ -100,11 +100,24 @@
 	(setq mastodon-auth--token-alist nil))
 
 ;;;###autoload
-(defun sacha-mastodon-toot-public-string (message)
+(defun sacha-mastodon-toot-public-string (message &optional scheduled-time)
+	"Send MESSAGE.
+If SCHEDULED-TIME is non-nil, send it at that time.
+SCHEDULED-TIME can be an ISO8601 string or Emacs time object."
   (interactive "sMessage: ")
 	(mastodon-toot--compose-buffer
 	 nil nil nil
 	 message)
+	(when scheduled-time
+		(setq-local
+		 mastodon-toot--scheduled-for
+		 (cond
+			((and (stringp scheduled-time)
+						(string-match "Z$" scheduled-time))
+			 scheduled-time)
+			((stringp scheduled-time)
+			 (sacha-date-to-iso-utc (org-read-date t t scheduled-time)))
+			(t (sacha-date-to-iso-utc scheduled-time)))))
 	(condition-case nil (mastodon-toot-send)
 		(error nil)))
 
@@ -129,7 +142,7 @@
                                          "@" (url-host url-parsed) "]]"))
      (t (insert url)))))
 
-(declare-function 'mastodon-notifications-get-mentions "mastodon-notifications")
+(declare-function mastodon-notifications-get-mentions "mastodon-notifications")
 ;; Mastodon:2 ends here
 
 ;; [[file:../Sacha.org::#mastodon][Mastodon:4]]
@@ -209,7 +222,7 @@ When called with \\[universal-argument], prompt for a URL."
 	(interactive)
 	(let ((collection
 				 (with-temp-buffer
-					 (insert-file-contents sacha-org-contacts-file)
+					 (insert-file-contents (car org-contacts-file))
 					 (org-mode)
 					 (goto-char (point-min))
 					 (org-map-entries
@@ -417,17 +430,57 @@ Omit my own handle, as specified in `sacha-mastodon-handle'."
 ;; sacha-mastodon-store-link ends here
 
 ;; [[file:../Sacha.org::#mastodon-news][Collecting Emacs News from Mastodon:1]]
+(defvar sacha-emacs-news-inbox-file "~/sync/orgzly/news.org")
+
+(defun sacha-mastodon-links-in-toot (&optional toot)
+  "Extract links from TOOT."
+	(setq toot (or toot (mastodon-toot--base-toot-or-item-json)))
+	(let ((text (mastodon-tl--content toot)))
+		(with-temp-buffer
+			(insert text)
+			(goto-char (point-min))
+			(cl-loop while (re-search-forward ffap-url-regexp nil t)
+							 collect (thing-at-point 'url)))))
+
 ;;;###autoload
 (defun sacha-mastodon-save-toot-for-emacs-news ()
 	(interactive)
 	;; store a link and capture the note
-	(org-capture nil "📰")
+	(let* ((toot (mastodon-toot--base-toot-or-item-json))
+				 (url (mastodon-toot--toot-url))
+				 (handle (concat "@"
+												 (let-alist (or (mastodon-tl--property 'base-toot)
+																				(mastodon-tl--property 'item-json))
+													 .account.acct)))
+				 (text (mastodon-tl--content toot))
+				 (links (sacha-mastodon-links-in-toot toot))
+				 (link
+					(completing-read
+					 "Link: "
+					 links))
+				 (note
+					(read-string
+					 "Note: "
+					 (if (and link (not (string= link "")))
+							 (sacha-page-title link)))))
+		(with-current-buffer (find-file-noselect sacha-emacs-news-inbox-file)
+			(goto-char (point-max))
+			(insert (if (and link (not (string= link "")))
+									(format "- %s (%s)\n"
+													(org-link-make-string link note)
+													(org-link-make-string url handle))
+								(format "- %s\n"
+												(org-link-make-string
+												 url
+												 (format "%s (%s)" note handle)))))))
+
 	;; boost if not already boosted
-	(unless (get-text-property
-					 (car
-						(mastodon-tl--find-property-range 'byline (point)))
-					 'boosted-p)
-		(mastodon-toot--toggle-boost-or-favourite 'boost)))
+	(let ((mastodon-async-mode t))
+		(unless (get-text-property
+						 (car
+							(mastodon-tl--find-property-range 'byline (point)))
+						 'boosted-p)
+			(mastodon-toot--toggle-boost-or-favourite 'boost))))
 
 ;; Collecting Emacs News from Mastodon:1 ends here
 

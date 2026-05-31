@@ -47,7 +47,7 @@
 																	description))))
 
 ;;;###autoload
-(defun sacha-org-audio-export (link desc format info)
+(defun sacha-org-audio-export (link desc format &optional info)
 	"Export PATH to FORMAT using the specified wrap parameter."
 	(pcase format
 		((or 'html '11ty 'md 'sacha-html-served)
@@ -108,7 +108,12 @@
 					  "")))))
     ('org
      (org-link-make-string (concat "audio:" link) desc))
-		(_ path)))
+		('latex
+		 (let* ((parsed-url (url-generic-parse-url link))
+            (path-and-query (url-path-and-query parsed-url))
+						(params (and (cdr path-and-query) (url-parse-query-string (cdr path-and-query)))))
+			 (org-latex-link (car path-and-query) desc info)))
+		(_ (or desc link))))
 
 (ert-deftest sacha-org-audio-export ()
   (should

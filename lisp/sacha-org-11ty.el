@@ -59,6 +59,27 @@
 (defvar sacha-11ty-local-dir (expand-file-name "_local" sacha-11ty-base-dir))
 
 ;;;###autoload
+(defun sacha-org-11ty-unpublish-file (file-name)
+  "Remove file from local exports and web server."
+  (interactive (list (read-file-name "File: ")))
+	(when-let* ((base-dir
+							 (or
+								(and (not (org-before-first-heading-p))
+										 (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME"))
+								(cdr
+								 (assoc-string
+									"ELEVENTY_FILE_NAME"
+									(sacha-org-keywords))))))
+		(dolist (dir (list sacha-11ty-site-dir sacha-11ty-local-dir sacha-11ty-remote-dir sacha-11ty-base-dir))
+			(condition-case nil
+					(when (and dir (file-directory-p (expand-file-name base-dir dir))
+										 (file-exists-p (expand-file-name (file-name-nondirectory file-name)
+																											(expand-file-name base-dir dir))))
+						(delete-file (expand-file-name (file-name-nondirectory file-name)
+																					 (expand-file-name base-dir dir))))
+				(error nil)))))
+
+;;;###autoload
 (defun sacha-org-11ty-unpublish-current-post ()
 	(interactive)
 	(cond
@@ -66,8 +87,10 @@
 		(when (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")
 			(let ((filename (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")))
 				(dolist (dir (list sacha-11ty-site-dir sacha-11ty-local-dir sacha-11ty-remote-dir sacha-11ty-base-dir))
-					(when (and dir (file-directory-p (expand-file-name filename dir)))
-						(delete-directory (expand-file-name filename dir) t)))
+					(condition-case nil
+							(when (and dir (file-directory-p (expand-file-name filename dir)))
+								(delete-directory (expand-file-name filename dir) t))
+						(error nil)))
 				(org-delete-property "EXPORT_ELEVENTY_FILE_NAME")
 				(org-delete-property "EXPORT_DATE")
 				(org-delete-property "EXPORT_ELEVENTY_PERMALINK"))))
@@ -81,9 +104,11 @@
 			;; delete the published files
 			(when (alist-get 'permalink json-data)
 				(dolist (dir (list sacha-11ty-site-dir sacha-11ty-local-dir sacha-11ty-remote-dir))
-					(when (and dir (file-directory-p
-													(expand-file-name (concat "." (alist-get 'permalink json-data)) dir)))
-						(delete-directory (expand-file-name (concat "." (alist-get 'permalink json-data)) dir) t))))
+					(condition-case nil
+							(when (and dir (file-directory-p
+															(expand-file-name (concat "." (alist-get 'permalink json-data)) dir)))
+								(delete-directory (expand-file-name (concat "." (alist-get 'permalink json-data)) dir) t))
+						(error nil))))
 			;; delete the .json and the .html file
 			(when (file-exists-p json-file)
 				(delete-file json-file))
@@ -276,9 +301,10 @@ With prefix arg, move the subtree."
 										 (plist-get info :file-name)
 										 (plist-get info :base-dir))))
 				 (parent-pos
-					(org-find-property
-           "EXPORT_ELEVENTY_FILE_NAME"
-					 (org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME")))
+					(and subtreep
+							 (org-find-property
+								"EXPORT_ELEVENTY_FILE_NAME"
+								(org-entry-get-with-inheritance "EXPORT_ELEVENTY_FILE_NAME"))))
 				 body)
 		(unless (string= (buffer-file-name)
 										 filename)

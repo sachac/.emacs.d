@@ -51,7 +51,7 @@
 
 
 
-;; [[file:../Sacha.org::#org-mode-keyboard-shortcuts-other-speed-commands][Other speed commands:3]]
+;; [[file:../Sacha.org::#org-mode-keyboard-shortcuts-other-speed-commands][Other speed commands:5]]
 ;;;###autoload
 (defun sacha-org-mark-done-and-add-to-journal (&optional note category)
   (interactive (list (if current-prefix-arg
@@ -84,7 +84,7 @@
      (org-back-to-heading)
      (sacha-copy-observation))))
 
-;; Other speed commands:3 ends here
+;; Other speed commands:5 ends here
 
 ;; [[file:../Sacha.org::#journal][Journal:1]]
 (defvar sacha-journal-category-map
@@ -191,8 +191,7 @@
 (defun sacha-journal-post (note &rest plist)
   (interactive (list (read-string "Note: ")
                      :Date (concat (org-read-date "Date: ") " 23:00")
-                     :Category (sacha-journal-read-category (condition-case nil (sacha-journal-guess-category) (error nil)))
-                     :Other (read-string "Other: ")))
+                     :Category (sacha-journal-read-category (condition-case nil (sacha-journal-guess-category) (error nil)))))
   (setq plist (append `(:Note ,note) plist))
   (let ((url-request-method "POST")
         (url-request-extra-headers `(("Content-Type" . "application/json")

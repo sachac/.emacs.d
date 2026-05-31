@@ -32,6 +32,12 @@
 ;; - Mode for streaming
 ;;   https://sachachua.com/dotemacs#streaming-mode-for-streaming
 ;;
+;; - Prepare thumbnails
+;;   https://sachachua.com/dotemacs#streaming-prepare-thumbnails
+;;
+;; - OBS: A dump button for dropping the last ~10 seconds before it hits the stream
+;;   https://sachachua.com/dotemacs#streaming-obs-a-dump-button-for-dropping-the-last-10-seconds-before-it-hits-the-stream
+;;
 ;; - Chat
 ;;   https://sachachua.com/dotemacs#streaming-chat
 ;;
@@ -47,11 +53,17 @@
 ;; - Download and post-process
 ;;   https://sachachua.com/dotemacs#streaming-download-and-post-process
 ;;
+;; - Fix up transcript
+;;   https://sachachua.com/dotemacs#streaming
+;;
 ;; - Try continuous streaming and the Google Speech Recognition API
 ;;   https://sachachua.com/dotemacs#speech-to-text
 ;;
+;; - Schedule Mastodon toots for an upcoming event
+;;   https://sachachua.com/dotemacs#streaming-schedule-mastodon-toots-for-an-upcoming-event
+;;
 ;; - Create YouTube livestream broadcasts from Emacs Lisp
-;;   https://sachachua.com/dotemacs#streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream
+;;   https://sachachua.com/dotemacs#streaming-create-youtube-livestream-broadcasts-from-emacs-lisp
 ;;
 ;;; Code:
 
@@ -186,11 +198,13 @@
 (defvar sacha-stream-variables-to-override
   `((custom-enabled-themes . (ef-trio-dark))
     (org-agenda-files . ("~/sync/stream/index.org" "~/sync/topics/live.org" "~/sync/stream/inbox.org"))
+		(message-setup-hook . ,(remove 'org-contacts-email-setup-completion-at-point message-setup-hook))
     (org-refile-targets
      .
      ((("~/sync/stream/index.org"
         "~/sync/stream/inbox.org"
         "~/sync/topics/live.org"
+				"/home/sacha/sync/web/beginner-map.org"
         "~/sync/orgzly/posts.org"
         "~/sync/emacs/Sacha.org"
         "~/sync/orgzly/news.org") . t)))
@@ -272,7 +286,7 @@
        :prepend t)
       ("S" "Screenshot" item
        (file+headline ,sacha-stream-inbox-file "Timestamps")
-       "- %U [[file:%(sacha-latest-screenshot)]]%i%?")
+       "- %U [[file:%(sacha-latest-screenshot)]]%?")
       ("l" "Timestamp" item
        (file+headline ,sacha-stream-inbox-file "Timestamps")
        "- %U %i%?")
@@ -280,7 +294,7 @@
        ,sacha-stream-inbox-target)
       ("w" "Web" entry (file ,sacha-stream-inbox-file)
        "* %a\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n")
-      ("W" "Web bookmark" entry
+      ("W" "Web favorite" entry
        (file "~/sync/orgzly/resources.org")
        "* %a\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n"
        :prepend t)
@@ -358,7 +372,8 @@
 ;;;###autoload
 (define-minor-mode sacha-stream-or-video-global-mode
   "On air or doing a video."
-  :init-val nil
+  :init-value nil
+	:global t
   :keymap sacha-stream-or-video-global-mode-map
   :lighter "🎥"
   (if sacha-stream-or-video-global-mode
@@ -368,6 +383,8 @@
         (fontaine-set-preset 'presentation)
         (keycast-header-line-mode 1)
         (sacha-stream-override-variables)
+				(add-hook 'image-mode-hook
+									'sacha-disable-display-line-number-mode)
         (cl-pushnew
          'sacha-marginalia-annotate-variable
          (alist-get 'variable marginalia-annotators)))
@@ -379,10 +396,53 @@
      (remove
       'sacha-marginalia-annotate-variable
       (alist-get 'variable marginalia-annotators)))
+		(remove-hook 'image-mode-hook 'sacha-disable-display-line-number-mode)
     (sacha-stream-restore-variables)
     (run-hooks 'sacha-stream-or-video-global-mode-done-hook))
   (sacha-navigate-set-up-file-shortcuts))
 ;; Mode for streaming:2 ends here
+
+;; [[file:../Sacha.org::#streaming-prepare-thumbnails][Prepare thumbnails:1]]
+;;;###autoload
+(defun sacha-stream-prepare-thumbnail (text)
+  "Prepare a buffer showing TEXT."
+  (interactive "MText: ")
+	(sacha-stream-or-video-global-mode 1)
+	(with-current-buffer (get-buffer-create "*Display*")
+		(let* ((by-length (sort (split-string text "\n") :key 'length :reverse t))
+					 (height (sacha-stream-calculate-fit-to-width-height
+										(car by-length))))
+			(erase-buffer)
+			(setq-local fill-column (+ 2 (length (car by-length))))
+			(setq-local cursor-type nil)
+			(insert
+			 (propertize "\n\n" 'face (list :height height))
+			 (mapconcat
+				(lambda (s)
+					(propertize
+					 (concat
+						(make-string (/ (- fill-column (length s))
+														2) ?\ )
+						s)
+					 'face (list :height height)))
+				(split-string text "\n")
+				"\n"))
+			(display-line-numbers-mode -1)
+			(switch-to-buffer (current-buffer))
+			(delete-other-windows))))
+
+;; Prepare thumbnails:1 ends here
+
+;; [[file:../Sacha.org::#streaming-obs-a-dump-button-for-dropping-the-last-10-seconds-before-it-hits-the-stream][OBS: A dump button for dropping the last ~10 seconds before it hits the stream:4]]
+;;;###autoload
+(defun sacha-obs-panic ()
+  "Stop streaming and discard the delay buffer.
+This uses a hotkey I defined in OBS."
+  (interactive)
+	(shell-command "~/bin/panic")
+	(org-capture-string "Panicked" "l")
+	(org-capture-finalize))
+;; OBS: A dump button for dropping the last ~10 seconds before it hits the stream:4 ends here
 
 ;; [[file:../Sacha.org::#streaming-chat][Chat:1]]
 (defvar sacha-stream-chat-process nil)
@@ -418,8 +478,14 @@
 ;; [[file:../Sacha.org::#streaming-send-currently-clocked-task-title-to-file-include-in-stream][Send currently-clocked task title to file, include in stream:1]]
 (defvar sacha-stream-display-file nil)
 
+(defvar sacha-stream-obs-current-task-source "Current task web")
+(defvar sacha-stream-obs-current-task-duration "5 seconds")
+(defvar sacha-stream-obs-current-task-timer nil)
+
+(defvar obs-websocket-connected-p)
+(declare-function obs-websocket-connected-p "obs-websocket")
 ;;;###autoload
-(defun sacha-stream-obs-display-text (text)
+(defun sacha-stream-obs-display-text-ongoing (text)
   "Display TEXT in the current task area in my OBS."
   (interactive (list (read-string "Text: ")))
   (when sacha-stream-display-file
@@ -429,7 +495,51 @@
        (if (string= text "")
            ""
          (string-join (org-wrap text 100) "\n"))
-       nil sacha-stream-display-file))))
+       nil sacha-stream-display-file))
+		(when (obs-websocket-connected-p)
+			(obs-websocket-send "PressInputPropertiesButton"
+													:inputName sacha-stream-obs-current-task-source
+													:propertyName "refreshnocache")
+			(obs-websocket-set-scene-item-enabled
+			 :sourceName sacha-stream-obs-current-task-source
+			 :sceneItemEnabled t)
+			(when sacha-stream-obs-current-task-timer
+				(cancel-timer sacha-stream-obs-current-task-timer)))))
+
+;;;###autoload
+(defun sacha-stream-obs-display-text (text)
+  "Display TEXT in the current task area in my OBS temporarily."
+  (interactive (list (read-string "Text: ")))
+  (when sacha-stream-display-file
+    (with-temp-buffer
+      (org-mode)
+      (write-region
+       (if (string= text "")
+           ""
+         (string-join (org-wrap text 100) "\n"))
+       nil sacha-stream-display-file))
+		(when (obs-websocket-connected-p)
+			(obs-websocket-send "PressInputPropertiesButton"
+													:inputName sacha-stream-obs-current-task-source
+													:propertyName "refreshnocache")
+			(obs-websocket-set-scene-item-enabled
+			 :sourceName sacha-stream-obs-current-task-source
+			 :sceneItemEnabled t)
+			(when sacha-stream-obs-current-task-timer
+				(cancel-timer sacha-stream-obs-current-task-timer))
+			(setq sacha-stream-obs-current-task-timer
+						(run-at-time sacha-stream-obs-current-task-duration
+												 nil (lambda ()
+															 (obs-websocket-set-scene-item-enabled
+																:sourceName sacha-stream-obs-current-task-source
+																:sceneItemEnabled nil)))))))
+
+;;;###autoload
+(defun sacha-stream-obs-toggle-current-task ()
+  "Toggle display."
+  (interactive)
+	(obs-websocket-toggle-scene-item-enabled
+	 :sourceName sacha-stream-obs-current-task-source))
 
 ;;;###autoload
 (defun sacha-stream-obs-org-display-current-task ()
@@ -444,6 +554,7 @@
 (defun sacha-org-clear-streaming-task ()
   "Clear the text."
   (sacha-stream-obs-display-text ""))
+
 ;; Send currently-clocked task title to file, include in stream:1 ends here
 
 ;; [[file:../Sacha.org::#streaming-stream-agenda][Stream agenda:1]]
@@ -468,40 +579,210 @@
       (delete-file file))))
 ;; Playing recordings:3 ends here
 
-;; [[file:../Sacha.org::#streaming-download-and-post-process][Download and post-process:1]]
+;; [[file:../Sacha.org::#streaming-download-and-post-process][Download and post-process:2]]
 (defvar sacha-stream-download-dir "~/proj/yay-emacs/" "Directory to save files into.")
 (defvar sacha-stream-transcribe-command "~/bin/whisperx-large" "Command to use for transcription.")
 ;;;###autoload
 (defun sacha-stream-download-and-process (&optional url title)
   "Download MP3 and MP4 versions, and rename to TITLE."
-  (interactive (list sacha-stream-url (org-entry-get (point) "ITEM")))
-	(let ((base (expand-file-name (sacha-make-slug title) sacha-stream-download-dir))
-				(default-directory sacha-stream-download-dir))
-		(with-current-buffer (get-buffer-create "*Download MP3")
-			(let ((download-process
-						 (start-process "download-mp3" (current-buffer) "yt-dlp" "-x" "--audio-format" "mp3"
-													 url
-													 "-o"
-													 (concat base ".mp3"))))
-				(set-process-sentinel
-				 download-process
-				 (lambda (process event)
-					 (message "Downloading MP3")
-					 (start-process "transcribe" (get-buffer-create "*Download MP3")
-													sacha-stream-transcribe-command
-													(concat base ".mp3"))))))
-		(with-current-buffer (get-buffer-create "*Download MP4")
-			(set-process-sentinel
-			 (start-process "download-mp4" (current-buffer) "yt-dlp"
-											"-S" "res,ext:mp4:m4a" "--recode" "mp4"
-											url
-											"-o"
-											(concat base ".mp4"))
-			 (lambda (process event)
-				 (message "Downloading MP4: %s" (string-trim event)))))))
+  (interactive (list (org-entry-get (point) "YOUTUBE_URL")
+										 (org-entry-get (point) "ITEM")))
+	(with-current-buffer (get-buffer-create "*download*")
+		(start-process "download" (current-buffer) "/home/sacha/bin/process-stream"
+									 url
+									 (sacha-make-slug title)
+									 title)))
 
+;;;###autoload
+(defun sacha-stream-preprocess-transcript ()
+  "Prepare transcript for editing.
+Remove duplicate speaker tags, wrap subtitles,
+align with word data, and fix common errors."
+  (interactive)
+	;; Verify that we have the files we want
+	(cl-assert
+	 (file-exists-p
+		(concat (file-name-sans-extension (buffer-file-name)) ".json")))
+	(cl-assert
+	 (file-exists-p
+		(concat (file-name-sans-extension (buffer-file-name)) ".txt")))
+	(when (file-exists-p
+				 (concat (file-name-sans-extension (buffer-file-name)) ".vtt"))
+		(delete-file
+		 (concat (file-name-sans-extension (buffer-file-name)) ".vtt")))
+	(with-current-buffer
+			(find-file-noselect
+			 (concat (file-name-sans-extension (buffer-file-name)) ".txt"))
+		(goto-char (point-min))
+		(subed-remove-duplicate-speakers)
+		(subed-fill-subtitles)
+		(save-buffer)
+		(subed-align-word-data
+		 (concat (file-name-sans-extension (buffer-file-name)) ".json")
+		 (concat (file-name-sans-extension (buffer-file-name)) ".txt")
+		 "VTT"))
+	(with-current-buffer
+			(find-file-noselect
+			 (concat (file-name-sans-extension (buffer-file-name)) ".vtt"))
+		(sacha-subed-fix-common-errors-from-start)
+		(save-buffer)
+		(switch-to-buffer (current-buffer))))
+;; Download and post-process:2 ends here
 
-;; Download and post-process:1 ends here
+;; [[file:../Sacha.org::*Fix up transcript][Fix up transcript:1]]
+;;;###autoload
+(defun sacha-stream-preprocess-edited-transcript ()
+  "Use simple symbols.
+Headings: * or = at the beginning of the line
+-`...`: format as Emacs Lisp symbol
+!: toggle caps
+!!: all-caps
+"
+  (interactive)
+	(goto-char (point-min))
+	(while (re-search-forward "^= " nil t)
+		(replace-match "* "))
+	(goto-char (point-min))
+	(while (re-search-forward "\\( \\|^\\)-\\(`.+?`\\)" nil t)
+		(replace-match
+		 (concat (match-string 1)
+						 (downcase
+							(save-match-data
+								(replace-regexp-in-string " " "-" (match-string 2)))))))
+	(goto-char (point-min))
+	(while (re-search-forward "\\( \\|^\\)!!\\(.+?\\)\\b" nil t)
+		(replace-match
+		 (concat (match-string 1)
+						 (upcase
+							(match-string 2)))))
+	(goto-char (point-min))
+	(while (re-search-forward "\\( \\|^\\)!\\(.\\)" nil t)
+		(replace-match
+		 (concat
+			(match-string 1)
+			(if (string= (match-string 2) (upcase (match-string 2)))
+					(downcase (match-string 2))
+				(upcase (match-string 2)))))))
+
+(defun sacha-stream-apply-chapter-headings ()
+	(interactive)
+	(save-restriction
+		(narrow-to-region (line-beginning-position)
+											(point-max))
+		(org-map-entries
+		 (lambda ()
+			 (forward-line 1)
+			 (skip-syntax-forward " ")
+			 (save-window-excursion
+				 (let ((heading (org-entry-get (point) "ITEM")))
+					 (if (sacha-stream-find-approximate-match-for-current-line-in-other-window)
+							 (subed-set-subtitle-comment heading)
+						 (error "Could not find line."))))
+			 (undo-boundary)))))
+
+(defun sacha-stream-find-approximate-match-for-current-line-in-other-window ()
+	"Look for a line approximately matching the current line."
+	(interactive)
+	(let ((line
+				 (subed-align-remove-speaker-tags
+					(buffer-substring (line-beginning-position)
+														(line-end-position))))
+				pos)
+		(other-window 1)
+		(setq pos (point))
+		(catch 'found
+			(while (not (eobp))
+				(forward-line 1)
+				(when (subed-word-data-compare-normalized-string-distance
+							 line
+							 (or (subed-align-remove-speaker-tags
+										(buffer-substring (line-beginning-position)
+																			(line-end-position)))
+									 ""))
+					(throw 'found t)))
+			(goto-char pos)
+			(when (called-interactively-p 'any)
+				(error "Not found."))
+			nil)))
+
+;;;###autoload
+(defun sacha-subed-set-subtitle-text-to-line-in-other-window-and-advance (&optional edited-text-window line)
+  "Set the current subtitle text to the line in the other window.
+Move point forward."
+  (interactive)
+	(setq edited-text-window
+				(or edited-text-window (next-window)))
+	(setq line (or line (with-selected-window edited-text-window
+													(goto-char (line-beginning-position))
+													(while (looking-at "^\\* \\|\n")
+														(forward-line))
+													(buffer-substring-no-properties
+													 (line-beginning-position)
+													 (line-end-position)))))
+	(subed-set-subtitle-text line)
+	(or (subed-forward-subtitle-text)
+			(goto-char (point-max)))
+	(with-selected-window edited-text-window
+		(forward-line 1)
+		(when hl-line-mode (hl-line-highlight))))
+
+;;;###autoload
+(defun sacha-stream-apply-changes ()
+  "Call from the VTT file with the edited text in the other window."
+  (interactive)
+	(let ((edited-text-window (next-window))
+				(deletion-window 3)
+				match-after
+				overlay)
+		(unwind-protect
+				(catch 'done
+					(while (not (eobp))
+						(let ((line (with-selected-window edited-text-window
+													(goto-char (line-beginning-position))
+													(while (looking-at "^\\* \\|\n")
+														(forward-line))
+													(buffer-substring-no-properties
+													 (line-beginning-position)
+													 (line-end-position)))))
+							(cond
+							 ;; Good match, replace current line
+							 ((subed-word-data-compare-normalized-string-distance
+								 (subed-subtitle-text)
+								 line)
+								(sacha-subed-set-subtitle-text-to-line-in-other-window-and-advance
+								 edited-text-window
+								 line)
+								(undo-boundary))
+							 ;; Might be a deletion
+							 ((setq match-after
+											(catch 'found
+												(save-excursion
+													(dotimes (i deletion-window)
+														(when (and (subed-forward-subtitle-text)
+																			 (subed-word-data-compare-normalized-string-distance
+																				(subed-subtitle-text)
+																				line))
+															(throw 'found i))))))
+								(dotimes (i (1+ match-after))
+									(subed-kill-subtitle))
+								(sacha-subed-set-subtitle-text-to-line-in-other-window-and-advance
+								 edited-text-window
+								 line)
+								(undo-boundary))
+							 ((progn
+									(setq overlay (make-overlay (line-beginning-position)
+																							(line-end-position)))
+									(overlay-put overlay 'face 'error)
+									(overlay-put overlay 'after-string (concat "\n" line))
+									(prog1 (y-or-n-p "Apply? ")
+										(delete-overlay overlay)))
+								(sacha-subed-set-subtitle-text-to-line-in-other-window-and-advance
+								 edited-text-window
+								 line))
+							 (t
+								(throw 'done (point)))))))
+			(when overlay (delete-overlay overlay)))))
+;; Fix up transcript:1 ends here
 
 ;; [[file:../Sacha.org::#speech-to-text][Try continuous streaming and the Google Speech Recognition API:3]]
 ;;;###autoload
@@ -539,7 +820,50 @@
   (stop-process sacha-stream-captions-process))
 ;; Try continuous streaming and the Google Speech Recognition API:3 ends here
 
-;; [[file:../Sacha.org::*Create YouTube livestream broadcasts from Emacs Lisp][Create YouTube livestream broadcasts from Emacs Lisp:2]]
+;; [[file:../Sacha.org::#streaming-schedule-mastodon-toots-for-an-upcoming-event][Schedule Mastodon toots for an upcoming event:1]]
+(defun sacha-stream-mastodon-schedule-remove-toots (regexp)
+	(dolist (scheduled (car (mastodon-http--get-response (mastodon-http--api "scheduled_statuses"))))
+		(let-alist scheduled
+			(when (string-match regexp .params.text)
+				(mastodon-http--delete
+				 (mastodon-http--api (format "scheduled_statuses/%s" .id)))))))
+
+;;;###autoload
+(defun sacha-stream-mastodon-schedule-toots ()
+  "Schedule 4-hour and 5-minute announcements for the event at point."
+  (interactive)
+	(let* ((time (save-excursion
+								 (org-back-to-heading)
+								 (org-end-of-meta-data t)
+								 (when (re-search-forward
+												org-element--timestamp-regexp
+												(save-excursion (org-end-of-subtree)) t)
+									 (org-timestamp-from-string (match-string 0)))))
+				 (start-time (org-timestamp-to-time (org-timestamp-split-range time)))
+				 (permalink
+					(concat
+					 sacha-blog-base-url
+					 (org-entry-get (point) "EXPORT_ELEVENTY_FILE_NAME")))
+				 (offsets (list (cons (* -4 60 60) "In about 4 hours: ")
+												(cons (* -5 60) "In about 5 minutes: ")))
+				 (translated-times (sacha-summarize-times start-time)))
+		(sacha-stream-mastodon-schedule-remove-toots (regexp-quote permalink))
+		(dolist (offset offsets)
+			(let ((sched-time (time-add
+												 start-time
+												 (seconds-to-time (car offset)))))
+				(when (time-less-p (current-time) sched-time)
+					(sacha-mastodon-toot-public-string
+					 (concat (cdr offset)
+									 (org-entry-get (point) "ITEM")
+									 " "
+									 permalink
+									 " "
+									 translated-times)
+					 sched-time))))))
+;; Schedule Mastodon toots for an upcoming event:1 ends here
+
+;; [[file:../Sacha.org::#streaming-create-youtube-livestream-broadcasts-from-emacs-lisp][Create YouTube livestream broadcasts from Emacs Lisp:1]]
 (declare-function sacha-date-to-iso-utc "sacha-lisp")
 
 (cl-defun sacha-stream-youtube-format-broadcast (&key time title description privacy
@@ -560,15 +884,29 @@
 		 (enableAutoStart . ,auto-start)
 		 (enableAutoStop . ,auto-stop))))
 
+
 ;;;###autoload
 (cl-defun sacha-stream-youtube-schedule-livestream (&key time title description privacy
-																								 end-time
-																								 (auto-start :json-false)
-																								 (auto-stop :json-false)
-																								 thumbnail)
+																												 end-time
+																												 (auto-start json-false)
+																												 (auto-stop json-false)
+																												 thumbnail)
   "Schedule a livestream at TIME with TITLE, DESCRIPTION, and PRIVACY.
 You can also set AUTO-START and AUTO-STOP."
-  (interactive)
+  (interactive
+	 (let ((start (org-read-date
+								 t t nil "Start: " nil
+								 (when (eq 'timestamp (org-element-type (org-element-context)))
+									 (org-element-property :raw-value
+																				 (org-element-context))))))
+		 (list :time start
+					 :end-time (org-read-date t t nil "End: " start)
+					 :title (read-string "Title: ")
+					 :description (read-string "Description: ")
+					 :privacy "public"
+					 :auto-start json-false
+					 :auto-start t
+					 :thumbnail (read-file-name "Thumbnail: "))))
 	(let ((body (json-encode (sacha-stream-youtube-format-broadcast
 														:time time
 														:title title
@@ -588,8 +926,13 @@ You can also set AUTO-START and AUTO-STOP."
 						 :data body
 						 :sync t
 						 :parser #'json-read)))
+		(push response (alist-get 'items sacha-google-youtube-live-broadcasts))
 		(when thumbnail
 			(sacha-stream-youtube-set-video-thumbnail (alist-get 'id response) thumbnail))
+		(when (called-interactively-p 'any)
+			(let ((url (concat "https://youtube.com/live/" (alist-get 'id response))))
+				(message "%s" url)
+				(kill-new url)))
 		response))
 
 ;;;###autoload
@@ -610,7 +953,7 @@ You can also set AUTO-START and AUTO-STOP."
 
 ;; (sacha-stream-youtube-schedule-livestream :time "2026-04-23 10:30" :end-time "2026-04-23 11:30" :title "Emacs Chat: James Endres Howell" :description "I chat with James Endres Howell (https://jamesendreshowell.com/ , https://fediscience.org/@jameshowell) about Emacs and life.\n\nhttps://sachachua.com/topic/emacs-chat" :privacy "public" :auto-start json-false :auto-stop json-false :thumbnail "~/recordings/2026-04-17-07-53-05 Emacs Chat thumbnail - James.png")
 ;; (sacha-stream-youtube-schedule-livestream :time "2026-05-07 10:30" :end-time "2026-05-07 11:30" :title "Emacs Chat: Shae Erisson" :description "I chat with Shae Erisson (https://shapr.github.io/ , https://recurse.social/@shapr) about Emacs and life.\n\nhttps://sachachua.com/topic/emacs-chat" :privacy "public" :auto-start json-false :auto-stop json-false :thumbnail "~/recordings/2026-04-17-07-54-23 Emacs Chat thumbnail - Shae.png")
-;; Create YouTube livestream broadcasts from Emacs Lisp:2 ends here
+;; Create YouTube livestream broadcasts from Emacs Lisp:1 ends here
 
 (provide 'sacha-stream)
 ;;; sacha-stream.el ends here

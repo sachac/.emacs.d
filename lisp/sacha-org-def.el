@@ -77,49 +77,49 @@
 	(sacha-org-defun-export (concat link (if (string-match "\\?" link) "&open=1" "?open=1")) description format _))
 
 ;;;###autoload
-(defun sacha-org-defun-export (link description format _)
+(defun sacha-org-defun-export (link description format info)
 	"Export the function."
 	(let (symbol params path-and-query
-        sacha-org-defun-open-special)
+							 sacha-org-defun-open-special
+							 function-body body)
 		(if (string-match "\\?" link)
 				(setq path-and-query (url-path-and-query (url-generic-parse-url link))
 							symbol (car path-and-query)
 							params (url-parse-query-string (cdr path-and-query)))
 			(setq symbol link))
+
 		(save-window-excursion
 			(sacha-org-defun-open symbol t)
-			(let ((function-body
-						 ;; get the whole babel block instead of the sexp at point
-             (if (derived-mode-p 'org-mode)
-						     (nth 2 (org-src--contents-area (org-element-at-point)))
-               (thing-at-point 'defun)))
-						body)
-				(pcase format
-					((or '11ty 'html)
-					 (setq body
-								 (if (assoc-default "bare" params 'string=)
-										 (format "<div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div>"
-														 (org-html-do-format-code function-body "emacs-lisp" nil nil nil nil))
-									 (format "<details%s><summary>%s</summary><div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div></details>"
-													 (if (assoc-default "open" params 'string=) " open"
-														 "")
-													 (or description
-															 (and (documentation (intern symbol))
-																		(concat
-																		 symbol
-																		 ": "
-																		 (car (split-string (documentation (intern symbol)) "\n"))))
-															 symbol)
-													 (org-html-do-format-code function-body "emacs-lisp" nil nil nil nil))))
-					 (when (assoc-default "link" params)
-						 (setq body (format "%s<div><a href=\"%s\">Context</a></div>" body (sacha-copy-link))))
-					 body)
-					('latex
-					 (org-latex-src-block `(test
-																	(:language "emacs-lisp" :value ,function-body))
-																function-body nil))
-					('ascii function-body)
-					(_ function-body))))))
+			(setq function-body
+						(if (derived-mode-p 'org-mode)
+								(nth 2 (org-src--contents-area (org-element-at-point)))
+							(thing-at-point 'defun))))
+		(pcase format
+			((or '11ty 'html)
+			 (setq body
+						 (if (assoc-default "bare" params 'string=)
+								 (format "<div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div>"
+												 (org-html-do-format-code function-body "emacs-lisp" nil nil nil nil))
+							 (format "<details%s><summary>%s</summary><div class=\"org-src-container\"><pre class=\"src src-emacs-lisp\">%s</pre></div></details>"
+											 (if (assoc-default "open" params 'string=) " open"
+												 "")
+											 (or description
+													 (and (documentation (intern symbol))
+																(concat
+																 symbol
+																 ": "
+																 (car (split-string (documentation (intern symbol)) "\n"))))
+													 symbol)
+											 (org-html-do-format-code function-body "emacs-lisp" nil nil nil nil))))
+			 (when (assoc-default "link" params)
+				 (setq body (format "%s<div><a href=\"%s\">Context</a></div>" body (sacha-copy-link))))
+			 body)
+			('latex
+			 (org-latex-src-block `(test
+															(:language "emacs-lisp" :value ,function-body))
+														function-body info))
+			('ascii function-body)
+			(_ function-body))))
 
 ;;;###autoload
 (defun sacha-org-defun-store ()

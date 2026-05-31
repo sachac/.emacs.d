@@ -97,7 +97,7 @@
 ;; Embark and images:1 ends here
 
 ;; [[file:../Sacha.org::sacha-image--state][sacha-image--state]]
-(declare-function 'sacha-geeqie-view "Sacha.el")
+(declare-function sacha-geeqie-view "Sacha.el")
 
 (defvar sacha-sketch-preview 'text
   "*Preview sketches.
@@ -493,7 +493,7 @@ or a list of nodes."
 		new-file))
 ;; Breaking up a PDF from Supernote:2 ends here
 
-;; [[file:../Sacha.org::#finding-sketches][Finding sketches:1]]
+;; [[file:../Sacha.org::#finding-sketches][Finding sketches:2]]
 (defvar sacha-sketch-directories
   '("~/sync/sketches"
     "~/sync/private-sketches"))
@@ -570,7 +570,7 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
                               'file-name-nondirectory)
                             (sacha-get-sketch-filenames regexp t)))
                    'string>))))
-;; Finding sketches:1 ends here
+;; Finding sketches:2 ends here
 
 ;; [[file:../Sacha.org::#sketch-rename-recolor][Renaming and recoloring sketches:1]]
 ;;;###autoload

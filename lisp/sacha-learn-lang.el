@@ -62,7 +62,7 @@
 ;; - Lexique
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-lexique
 ;;
-;; - Write a completion-at-point function for French
+;; - Complete word at point for French
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-write-a-completion-at-point-function-for-french
 ;;
 ;; - Highlight and count new words in journal entries
@@ -81,12 +81,27 @@
 
 
 
-;; [[file:../Sacha.org::#multimedia-learning-french][Learning French:3]]
+;; [[file:../Sacha.org::#multimedia-learning-french][Learning French:2]]
+;;;###autoload
+(defun sacha-learn-lang-format-virelangues (beg end)
+  "Prepare tongue twisters."
+  (interactive "r")
+	(save-restriction
+		(narrow-to-region beg end)
+		(goto-char beg)
+		(flush-lines "Raphael\\|PM$\\|^$")
+		(kill-new (buffer-string))
+		(goto-char (point-min))
+		(while (re-search-forward "^" nil t)
+			(replace-match "- "))))
+;; Learning French:2 ends here
+
+;; [[file:../Sacha.org::#multimedia-learning-french][Learning French:4]]
 ;;;###autoload
   (defun sacha-learn-lang-chrome-speech-new-session ()
     (interactive)
     (sacha-speech-chrome-new-session "french" "fr-FR"))
-;; Learning French:3 ends here
+;; Learning French:4 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-practice-pronunciation][Practice pronunciation:1]]
   (defvar sacha-learn-lang-practice-dir "~/proj/french/audio")
@@ -673,88 +688,89 @@
 ;; Lexique:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-lexique][Lexique:4]]
-  (defvar sacha-learn-lang-csv-path "/home/sacha/proj/french/french_vocabulary_list.csv")
-  (defvar sacha-learn-lang-known-lemmas nil)
+(defvar sacha-learn-lang-csv-path "/home/sacha/proj/french/french_vocabulary_list.csv")
+(defvar sacha-learn-lang-known-lemmas nil)
 ;;;###autoload
-  (defun sacha-learn-lang-lexique-lookup-db-exact (input)
-    "Query the Lexique SQLite database for INPUT."
-    (let ((db (sqlite-open sacha-learn-lang-lexique-db)))
-      (prog1 (sqlite-select db
-                            "SELECT ortho, lemme, genre, nombre, phon, syll, infover FROM lexique
+(defun sacha-learn-lang-lexique-lookup-db-exact (input)
+  "Query the Lexique SQLite database for INPUT."
+  (let ((db (sqlite-open sacha-learn-lang-lexique-db)))
+    (prog1 (sqlite-select db
+                          "SELECT ortho, lemme, genre, nombre, phon, syll, infover FROM lexique
                       WHERE ortho=? ORDER BY freqfilms2 DESC LIMIT 1"
-                            (list input))
-        (sqlite-close db))))
+                          (list input))
+      (sqlite-close db))))
 
 ;;;###autoload
-  (defun sacha-learn-lang-lexique-lookup-db-flat (input)
-    "Query the Lexique SQLite database for INPUT."
-    (let ((db (sqlite-open sacha-learn-lang-lexique-db)))
-      (prog1 (sqlite-select db
-                            "SELECT ortho, lemme, genre, nombre, phon, syll, infover FROM lexique
+(defun sacha-learn-lang-lexique-lookup-db-flat (input)
+  "Query the Lexique SQLite database for INPUT."
+  (let ((db (sqlite-open sacha-learn-lang-lexique-db)))
+    (prog1 (sqlite-select db
+                          "SELECT ortho, lemme, genre, nombre, phon, syll, infover FROM lexique
                       WHERE ortho_flat LIKE ? OR ortho LIKE ? ORDER BY freqfilms2 DESC LIMIT 50"
-                            (list (concat (downcase input) "%")
-                                  (concat (downcase input) "%")))
-        (sqlite-close db))))
+                          (list (concat (downcase input) "%")
+                                (concat (downcase input) "%")))
+      (sqlite-close db))))
 
 ;;;###autoload
-  (defun sacha-learn-lang-lexique-lookup-db-lemma (input)
-    "Query the Lexique SQLite database for INPUT."
-    (let ((db (sqlite-open sacha-learn-lang-lexique-db)))
-      (prog1 (sqlite-select db
-                            "SELECT ortho, lemme, genre, nombre, infover, phon, syll, ortho_flat FROM lexique
+(defun sacha-learn-lang-lexique-lookup-db-lemma (input)
+  "Query the Lexique SQLite database for INPUT."
+  (let ((db (sqlite-open sacha-learn-lang-lexique-db)))
+    (prog1 (sqlite-select db
+                          "SELECT ortho, lemme, genre, nombre, infover, phon, syll, ortho_flat FROM lexique
                       WHERE lemme LIKE ? ORDER BY freqfilms2 DESC LIMIT 50"
-                            (list (concat input "%")))
-        (sqlite-close db))))
+                          (list (concat input "%")))
+      (sqlite-close db))))
 
+(eval-when-compile (require 'modus-themes))
 ;;;###autoload
-  (defun sacha-learn-lang-lexique-complete-word ()
-    (interactive)
-    (let* ((selection
-            (consult--read
-             (consult--dynamic-collection
-                 (lambda (input)
-                   (modus-themes-with-colors
-                     (mapcar (lambda (row)
-                               (let ((word (nth 0 row))
-                                     (gender (nth 2 row))
-                                     (number (nth 3 row))
-                                     (ipa (sacha-learn-lang-lexique-to-ipa (nth 5 row)))
-                                     (infover (nth 6 row)))
-                                 ;; Format the string for the completion buffer
-                                 (cons
-                                  (propertize
-                                   (format "%-20s [%s] (%s)" word ipa
-                                           (string-join
-                                            (delq nil (list gender number infover))
-                                            ", "))
-                                   'consult--candidate word
-                                   'face
-                                   `(:background
+(defun sacha-learn-lang-lexique-complete-word ()
+  (interactive)
+  (let* ((selection
+          (consult--read
+           (consult--dynamic-collection
+               (lambda (input)
+                 (modus-themes-with-colors
+                   (mapcar (lambda (row)
+                             (let ((word (nth 0 row))
+                                   (gender (nth 2 row))
+                                   (number (nth 3 row))
+                                   (ipa (sacha-learn-lang-lexique-to-ipa (nth 5 row)))
+                                   (infover (nth 6 row)))
+                               ;; Format the string for the completion buffer
+                               (cons
+                                (propertize
+                                 (format "%-20s [%s] (%s)" word ipa
+                                         (string-join
+                                          (delq nil (list gender number infover))
+                                          ", "))
+                                 'consult--candidate word
+                                 'face
+                                 `(:background
 
-                                     ,(pcase gender
-                                        ("m" bg-blue-subtle)
-                                        ("f" bg-magenta-subtle))))
-                                  word)))
-                             (sacha-learn-lang-lexique-lookup-db-flat input)))))
-             :prompt "French word: "
-             :initial (word-at-point)
-             :sort nil
-             :lookup #'consult--lookup-cdr
-             :category 'french-word)))
-      (when selection
-        (when (called-interactively-p 'any)
-          (when (word-at-point)
-            (delete-region (save-excursion
-                             (skip-syntax-backward "w")
-                             (point))
-                           (save-excursion
-                             (skip-syntax-forward "w")
-                             (point))))
-          (insert selection))
-        selection)))
+                                   ,(pcase gender
+                                      ("m" (modus-themes-get-color-value 'bg-blue-subtle))
+                                      ("f" (modus-themes-get-color-value 'bg-magenta-subtle)))))
+                                word)))
+                           (sacha-learn-lang-lexique-lookup-db-flat input)))))
+           :prompt "French word: "
+           :initial (word-at-point)
+           :sort nil
+           :lookup #'consult--lookup-cdr
+           :category 'french-word)))
+    (when selection
+      (when (called-interactively-p 'any)
+        (when (word-at-point)
+          (delete-region (save-excursion
+                           (skip-syntax-backward "w")
+                           (point))
+                         (save-excursion
+                           (skip-syntax-forward "w")
+                           (point))))
+        (insert selection))
+      selection)))
 ;; Lexique:4 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing-learning-french-write-a-completion-at-point-function-for-french][Write a completion-at-point function for French:1]]
+;; [[file:../Sacha.org::#writing-and-editing-learning-french-write-a-completion-at-point-function-for-french][Complete word at point for French:1]]
 ;;;###autoload
   (defun sacha-learn-lang-lexique-completion-at-point ()
     (let ((bounds (bounds-of-thing-at-point 'word)))
@@ -778,7 +794,7 @@
               (lambda ()
                 (when (and (buffer-file-name) (string-match "journal-fr\\|french" (buffer-file-name)))
                   (add-hook 'completion-at-point-functions 'sacha-learn-lang-lexique-completion-at-point)))))
-;; Write a completion-at-point function for French:1 ends here
+;; Complete word at point for French:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-highlight-and-count-new-words-in-journal-entries][Highlight and count new words in journal entries:1]]
 ;;;###autoload

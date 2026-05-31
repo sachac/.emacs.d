@@ -26,8 +26,8 @@
 ;;
 ;; Related Emacs config sections:
 ;;
-;; - Obscure Emacs package appreciation: backup-walker
-;;   https://sachachua.com/dotemacs#about-this-file-backups-obscure-emacs-package-appreciation-backup-walker
+;; - Search backups
+;;   https://sachachua.com/dotemacs#about-this-file-backups-search-backups
 ;;
 ;; - Killing text
 ;;   https://sachachua.com/dotemacs#killing-text
@@ -87,57 +87,14 @@
 
 
 
-;; [[file:../Sacha.org::#about-this-file-backups-obscure-emacs-package-appreciation-backup-walker][Obscure Emacs package appreciation: backup-walker:2]]
-(defvar backup-walker-data-alist)
-(declare-function diff-no-select "diff" (old new &optional switches noasync bufname))
-(declare-function backup-walker-get-version "backup-walker")
+;; [[file:../Sacha.org::#about-this-file-backups-search-backups][Search backups:1]]
 ;;;###autoload
-(defun sacha-backup-walker-refresh ()
-  (let* ((index (cdr (assq :index backup-walker-data-alist)))
-         (suffixes (cdr (assq :backup-suffix-list backup-walker-data-alist)))
-         (prefix (cdr (assq :backup-prefix backup-walker-data-alist)))
-         (right-file (concat prefix (nth index suffixes)))
-         (right-version (format "%i" (backup-walker-get-version right-file)))
-         diff-buf left-file left-version)
-    (if (eq index 0)
-        (setq left-file (cdr (assq :original-file backup-walker-data-alist))
-              left-version "orig")
-      (setq left-file (concat prefix (nth (1- index) suffixes))
-            left-version (format "%i" (backup-walker-get-version left-file))))
-    ;; we change this to go the other way here
-    (setq diff-buf (diff-no-select right-file left-file nil 'noasync))
-    (setq buffer-read-only nil)
-    (delete-region (point-min) (point-max))
-    (insert-buffer-substring diff-buf)
-    (set-buffer-modified-p nil)
-    (setq buffer-read-only t)
-    (force-mode-line-update)
-    (setq header-line-format
-          (concat (format "{{ ~%s~ → ~%s~ }} "
-                          (propertize left-version 'face 'font-lock-variable-name-face)
-                          (propertize right-version 'face 'font-lock-variable-name-face))
-                  (if (nth (1+ index) suffixes)
-                      (concat (propertize "<p>" 'face 'italic)
-                              " ~"
-                              (propertize (int-to-string
-                                           (backup-walker-get-version (nth (1+ index) suffixes)))
-                                          'face 'font-lock-keyword-face)
-                              "~ ")
-                    "")
-                  (if (eq index 0)
-                      ""
-                    (concat (propertize "<n>" 'face 'italic)
-                            " ~"
-                            (propertize (int-to-string (backup-walker-get-version (nth (1- index) suffixes)))
-                                        'face 'font-lock-keyword-face)
-                            "~ "))
-                  (propertize "<return>" 'face 'italic)
-                  " open ~"
-                  (propertize (propertize (int-to-string (backup-walker-get-version right-file))
-                                          'face 'font-lock-keyword-face))
-                  "~"))
-    (kill-buffer diff-buf)))
-;; Obscure Emacs package appreciation: backup-walker:2 ends here
+(defun sacha-search-file-backups (&optional file)
+  "Search through backup files."
+	(interactive)
+	(let ((consult-ripgrep-args "rg --null --line-buffered --color=never --max-columns=1000 --path-separator /   --smart-case --no-heading --with-filename --line-number --search-zip --sortr modified"))
+		(consult-ripgrep (file-backup-file-names (or file (buffer-file-name))))))
+;; Search backups:1 ends here
 
 ;; [[file:../Sacha.org::#killing-text][Killing text:2]]
 ;;;###autoload
@@ -203,7 +160,7 @@
           (consult-ripgrep '("~/sync/static-blog/blog" "~/sync/sketches" "~/sync/topics")))
 ;; Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:1 ends here
 
-;; [[file:../Sacha.org::#navigation][Navigation:2]]
+;; [[file:../Sacha.org::#navigation][Navigation:3]]
 (defun sacha-close-other-buffers ()
   (interactive)
   (mapc (lambda (buf)
@@ -211,7 +168,7 @@
             (kill-buffer buf)))
         (delete (current-buffer)
                 (buffer-list))))
-;; Navigation:2 ends here
+;; Navigation:3 ends here
 
 ;; [[file:../Sacha.org::#navigation-focus-on-the-current-window][Focus on the current window:1]]
 ;;;###autoload
@@ -313,6 +270,12 @@ and Steve Purcell's configuration."
 (defun sacha-restore-pre-ediff-winconfig ()
   "Restore window configuration to stored value in `sacha-ediff-last-windows'."
   (set-window-configuration sacha-ediff-last-windows))
+
+;;;###autoload
+(defun sacha-ediff-with-org-show-all ()
+	"Expand all headings prior to ediffing org buffers.
+From oantolin."
+	(add-hook 'ediff-prepare-buffer-hook #'org-fold-show-all nil t))
 ;; Ediff:2 ends here
 
 ;; [[file:../Sacha.org::#hideshow][Hideshow:2]]
@@ -513,7 +476,24 @@ Based on https://www.reddit.com/r/emacs/comments/l4v1ux/one_of_the_most_useful_s
 ;;;###autoload
 (defun sacha-goto-random-char ()
   (interactive)
-  (goto-char (random (point-max))))
+  (push-mark)
+  (goto-char (+ (point-min) (random (- (point-max) (point-min))))))
+
+;;;###autoload
+(defun sacha-goto-random-line ()
+  "Go to a random line in the buffer.
+Inspired by https://github.com/oantolin/emacs-config"
+  (interactive)
+  (push-mark)
+  (goto-char (point-min))
+  (forward-line (random (count-lines (point-min) (point-max))))
+	(set-transient-map sacha-random-line-map))
+
+(defvar-keymap sacha-random-line-map
+  :doc "Repeat map for `sacha-goto-random-line'
+Inspired by https://github.com/oantolin/emacs-config"
+  :repeat t
+  "R" #'sacha-goto-random-line)
 ;; Randomness for serendipity:1 ends here
 
 ;; [[file:../Sacha.org::#touch][Touch gestures:1]]

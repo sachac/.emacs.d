@@ -135,9 +135,9 @@
 				 (if time
 						 (format "<a href=\"%s\">%s</a>" path (or desc path))
 					 (format "<div class=\"yt-video\"><iframe width=\"%s\" height=\"%s\" title=\"YouTube video player\" src=\"https://www.youtube-nocookie.com/embed/%s?enablejsapi=1\" frameborder=\"0\" allowfullscreen>%s</iframe><a href=\"%s\">Watch on YouTube</a></div>"
-									 width height id desc path))))))
-		('ascii
-		 desc)))
+									 width height id (or desc "") path))))))
+		((or 'sacha-plain-text 'ascii)
+		 (or desc path))))
 
 ;;;###autoload
 (defun sacha-org-yt-convert-time (time)

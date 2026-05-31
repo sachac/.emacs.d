@@ -35,7 +35,7 @@
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-expanding-yasnippet-by-voice][Expanding yasnippets by voice in Emacs and other applications:1]]
 
-(declare-function 'subed-word-data-compare-normalized-string-distance "subed-word-data")
+(declare-function subed-word-data-compare-normalized-string-distance "subed-word-data")
 
 ;;;###autoload
 (defun sacha-whisper-maybe-expand-snippet (text)

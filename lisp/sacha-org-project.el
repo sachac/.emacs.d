@@ -64,11 +64,15 @@
 				 ('texinfo (format "@uref{%s,%s}" link desc))
 				 ('ascii (format "%s (%s)" desc link))
 				 (_ (format "%s (%s)" desc link))))
-		 (org-link-set-parameters
+		 (with-eval-after-load 'org
+			 (org-link-set-parameters
 				,type
 				:complete (quote ,(intern (format "sacha-org-project-%s-complete" type)))
 				:export (quote ,(intern (format "sacha-org-project-%s-export" type)))
-				:follow (quote ,(intern (format "sacha-org-project-%s-follow" type))))
+				:follow (quote ,(intern (format "sacha-org-project-%s-follow" type)))))
+		 (with-eval-after-load 'magit
+			 (add-to-list 'magit-repository-directories
+										(cons ,file-path 0)))
 		 (cl-pushnew (cons (expand-file-name ,file-path) ,git-url)
 								 sacha-project-web-base-list
 								 :test 'equal)))

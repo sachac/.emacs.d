@@ -38,7 +38,7 @@
 ;; - consult-omni
 ;;   https://sachachua.com/dotemacs#consult-omni
 ;;
-;; - Using web searches and bookmarks to quickly link placeholders in Org Mode
+;; - Using web searches and favorites to quickly link placeholders in Org Mode
 ;;   https://sachachua.com/dotemacs#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode
 ;;
 ;; - Downloaded files
@@ -149,6 +149,12 @@
 ;; - Inserting code
 ;;   https://sachachua.com/dotemacs#inserting-code
 ;;
+;; - Write about Emacs Lisp variables
+;;   https://sachachua.com/dotemacs#org-mode-org-babel-write-about-emacs-lisp-variables
+;;
+;; - Exclude heading by tag based on backend
+;;   https://sachachua.com/dotemacs#publishing
+;;
 ;; - 11ty static site generation
 ;;   https://sachachua.com/dotemacs#11ty
 ;;
@@ -193,6 +199,9 @@
 ;;
 ;; - YouTube
 ;;   https://sachachua.com/dotemacs#youtube
+;;
+;; - Format nicks in chats
+;;   https://sachachua.com/dotemacs#org-mode-links-format-nicks-in-chats
 ;;
 ;; - Copy web link
 ;;   https://sachachua.com/dotemacs#web-link
@@ -280,6 +289,9 @@
 ;;
 ;; - Capture timestamps
 ;;   https://sachachua.com/dotemacs#streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream-capture-timestamps
+;;
+;; - Oddmuse
+;;   https://sachachua.com/dotemacs#oddmuse
 ;;
 ;; - Making it easier to execute commands
 ;;   https://sachachua.com/dotemacs#making-it-easier-to-execute-commands
@@ -376,100 +388,108 @@
 ;; Hydra keyboard shortcuts:7 ends here
 
 ;; [[file:../Sacha.org::#consult-omni][consult-omni:1]]
-  (defun sacha-insert-or-replace-link (url &optional title)
-          "Insert a link, wrap the current region in a link, or replace the current link."
-          (interactive (list (read-string "URL: ")))
-          (cond
-           ((derived-mode-p 'org-mode)
-                  (cond
-                   ((org-in-regexp org-link-bracket-re 1)
-                          (when (match-end 2) (setq title (match-string-no-properties 2)))
-                          (delete-region (match-beginning 0) (match-end 0)))
-                   ((org-in-regexp org-link-any-re 1)
-                          (delete-region (match-beginning 0) (match-end 0)))
-                   ((region-active-p)
-                          (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
-                          (delete-region (region-beginning) (region-end))))
-                  ;; update link
-                  (insert (org-link-make-string url title)))
-           ((derived-mode-p 'org-mode)		 ; not in a link
-                  (insert (org-link-make-string url title)))
-           ((and (region-active-p) (derived-mode-p 'markdown-mode))
-                  (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
-                  (delete-region (region-beginning) (region-end))
-                  (insert (format "[%s](%s)" title url)))
-           ((derived-mode-p 'markdown-mode)
-                  (insert (format "[%s](%s)" title url)))
-           ((and (region-active-p) (string-match (regexp-quote "*new toot*") (buffer-name)))
-                  (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
-                  (delete-region (region-beginning) (region-end))
-                  (insert (format "[%s](%s)" title url)))
-           ((string-match (regexp-quote "*new toot*") (buffer-name))
-                  (insert (format "[%s](%s)" (read-string "Title: " (sacha-page-title url))
-                                                                                  url)))
-           (t
-                  (insert (format "%s (%s)" title url)))))
+;;;###autoload
+(defun sacha-insert-or-replace-link (url &optional title)
+  "Insert a link, wrap the current region in a link, or replace the current link."
+  (interactive (list (read-string "URL: ")))
+  (cond
+   ((derived-mode-p 'org-mode)
+    (cond
+     ((org-in-regexp org-link-bracket-re 1)
+      (when (match-end 2) (setq title (match-string-no-properties 2)))
+      (delete-region (match-beginning 0) (match-end 0)))
+     ((org-in-regexp org-link-any-re 1)
+      (delete-region (match-beginning 0) (match-end 0)))
+     ((region-active-p)
+      (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+      (delete-region (region-beginning) (region-end))))
+    ;; update link
+    (insert (org-link-make-string url title)))
+   ((derived-mode-p 'org-mode)					; not in a link
+    (insert (org-link-make-string url title)))
+   ((and (region-active-p) (derived-mode-p 'markdown-mode))
+    (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+    (delete-region (region-beginning) (region-end))
+    (insert (format "[%s](%s)" title url)))
+   ((derived-mode-p 'markdown-mode)
+    (insert (format "[%s](%s)" title url)))
+   ((and (region-active-p) (string-match (regexp-quote "*new toot*") (buffer-name)))
+    (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+    (delete-region (region-beginning) (region-end))
+    (insert (format "[%s](%s)" title url)))
+   ((string-match (regexp-quote "*new toot*") (buffer-name))
+    (insert (format "[%s](%s)" (read-string "Title: " (sacha-page-title url))
+                    url)))
+   (t
+    (insert (format "%s (%s)" title url)))))
 
-  ;; override the embark actions
-  (defun sacha-consult-omni-embark-copy-url-as-kill (cand)
-          "Don't add spaces."
-          (when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
-                  (kill-new (string-trim s))))
+;; override the embark actions
+;;;###autoload
+(defun sacha-consult-omni-embark-copy-url-as-kill (cand)
+  "Don't add spaces."
+  (when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
+    (kill-new (string-trim s))))
 
-  (defun sacha-consult-omni-embark-insert-url (cand)
-          "Don't add spaces."
-          (when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
-                  (insert (string-trim s))))
+;;;###autoload
+(defun sacha-consult-omni-embark-insert-url (cand)
+  "Don't add spaces."
+  (when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
+    (insert (string-trim s))))
 
-  (defun sacha-consult-omni-embark-copy-title-as-kill (cand)
-          "Don't add spaces."
-          (when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
-                  (kill-new (string-trim s))))
+;;;###autoload
+(defun sacha-consult-omni-embark-copy-title-as-kill (cand)
+  "Don't add spaces."
+  (when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
+    (kill-new (string-trim s))))
 
-  (defun sacha-consult-omni-embark-insert-title (cand)
-          "Don't add spaces."
-          (when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
-                  (insert (string-trim s))))
+;;;###autoload
+(defun sacha-consult-omni-embark-insert-title (cand)
+  "Don't add spaces."
+  (when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
+    (insert (string-trim s))))
 
-  (defun sacha-consult-omni-embark-insert-link (cand)
-          "Don't add spaces."
-          (let ((url (and (stringp cand) (get-text-property 0 :url cand)))
-                                  (title (and (stringp cand) (get-text-property 0 :title cand))))
-                  (sacha-insert-or-replace-link url title)))
-
-  (use-package consult-omni
-          :defer t
-          :commands consult-omni
-          :load-path "~/vendor/consult-omni"
-    :after (consult embark)
-    :custom
-    (consult-omni-show-preview t) ;;; show previews
-    (consult-omni-preview-key "C-o") ;;; set the preview key to C-o
-    :config
-          (add-to-list 'load-path "~/vendor/consult-omni/sources")
-    (require 'consult-omni-sources)
-    (require 'consult-omni-embark)
-    (setq consult-omni-sources-modules-to-load (list 'consult-omni-wikipedia 'consult-omni-google))
-    (consult-omni-sources-load-modules)
-          (setq consult-omni-dynamic-input-debounce 1.0)
-          (setq consult-omni-dynamic-refresh-delay consult-omni-dynamic-input-debounce)
-    (setq consult-omni-default-interactive-command #'consult-omni-multi)
-          (setq consult-omni-multi-sources
-                                  '(consult-omni--source-google
-                                          consult-omni--source-sacha-org-bookmarks
-                                          consult-omni--source-blog))
-          :bind
-          (("M-g w" . consult-omni)
-           ("M-g f" . consult-omni-sacha-org-bookmarks)
-           :map consult-omni-embark-general-actions-map
-           ("i l" .  #'sacha-consult-omni-embark-insert-link)
-           ("i u" .  #'sacha-consult-omni-embark-insert-url)
-           ("i t" .  #'sacha-consult-omni-embark-insert-title)
-           ("w u" . #'sacha-consult-omni-embark-copy-url-as-kill)
-           ("w t" . #'sacha-consult-omni-embark-copy-title-as-kill)))
+;;;###autoload
+(defun sacha-consult-omni-embark-insert-link (cand)
+  "Don't add spaces."
+  (let ((url (and (stringp cand) (get-text-property 0 :url cand)))
+        (title (and (stringp cand) (get-text-property 0 :title cand))))
+    (sacha-insert-or-replace-link url title)))
 ;; consult-omni:1 ends here
 
-;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode:1]]
+;; [[file:../Sacha.org::#consult-omni][consult-omni:2]]
+(use-package consult-omni
+  :defer t
+  :commands consult-omni
+  :load-path "~/vendor/consult-omni"
+  :after (consult embark)
+  :custom
+  (consult-omni-show-preview t) ;;; show previews
+  (consult-omni-preview-key "C-o") ;;; set the preview key to C-o
+  :config
+  (add-to-list 'load-path "~/vendor/consult-omni/sources")
+  (require 'consult-omni-sources)
+  (require 'consult-omni-embark)
+  (setq consult-omni-sources-modules-to-load (list 'consult-omni-wikipedia 'consult-omni-duckduckgo))
+  (consult-omni-sources-load-modules)
+  (setq consult-omni-dynamic-input-debounce 1.0)
+  (setq consult-omni-dynamic-refresh-delay consult-omni-dynamic-input-debounce)
+  (setq consult-omni-default-interactive-command #'consult-omni-multi)
+  (setq consult-omni-multi-sources
+        '(consult-omni--source-duckduckgo-api
+          consult-omni--source-sacha-org-favorites
+          consult-omni--source-blog))
+  :bind
+  (("M-g w" . consult-omni)
+   ("M-g f" . consult-omni-sacha-org-favorites)
+   :map consult-omni-embark-general-actions-map
+   ("i l" .  #'sacha-consult-omni-embark-insert-link)
+   ("i u" .  #'sacha-consult-omni-embark-insert-url)
+   ("i t" .  #'sacha-consult-omni-embark-insert-title)
+   ("w u" . #'sacha-consult-omni-embark-copy-url-as-kill)
+   ("w t" . #'sacha-consult-omni-embark-copy-title-as-kill)))
+;; consult-omni:2 ends here
+
+;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and favorites to quickly link placeholders in Org Mode:1]]
 ;; we're in a bracketed link with no description and the target doesn't look like a link;
 ;; likely I've actually added the text for the description and now we need to include the link
 (defun sacha-org-in-bracketed-text-link-p ()
@@ -506,9 +526,9 @@
           (delete-region (car bracket-pos) (cdr bracket-pos))
           (insert result)
           result)))))
-;; Using web searches and bookmarks to quickly link placeholders in Org Mode:1 ends here
+;; Using web searches and favorites to quickly link placeholders in Org Mode:1 ends here
 
-;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode:2]]
+;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and favorites to quickly link placeholders in Org Mode:2]]
 ;;;###autoload
   (defun sacha-org-set-link-target-with-org-completion ()
           "Replace the current link's target with `org-insert-link' completion.
@@ -534,17 +554,17 @@
                                   (goto-char (cdr bracket-pos))
                                   (org-insert-link nil nil bracket-target))
                           (delete-region (car bracket-pos) (cdr bracket-pos)))))
-;; Using web searches and bookmarks to quickly link placeholders in Org Mode:2 ends here
+;; Using web searches and favorites to quickly link placeholders in Org Mode:2 ends here
 
-;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode:3]]
+;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and favorites to quickly link placeholders in Org Mode:3]]
 ;;;###autoload
   (defun sacha-org-set-link-target-dwim ()
           (interactive)
           (or (sacha-org-set-link-target-with-search)
                           (sacha-org-set-link-target-with-org-completion)))
-;; Using web searches and bookmarks to quickly link placeholders in Org Mode:3 ends here
+;; Using web searches and favorites to quickly link placeholders in Org Mode:3 ends here
 
-;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and bookmarks to quickly link placeholders in Org Mode:4]]
+;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and favorites to quickly link placeholders in Org Mode:4]]
 ;;;###autoload
   (defun sacha-org-scan-for-untargeted-links ()
           "Look for [[some text]] and prompt for the actual targets."
@@ -556,7 +576,7 @@
                                            (org-element-lineage (org-element-context) '(link) t)) ; ignore text in code blocks, etc.
                           (undo-boundary)
                           (sacha-org-set-link-target-dwim))))
-;; Using web searches and bookmarks to quickly link placeholders in Org Mode:4 ends here
+;; Using web searches and favorites to quickly link placeholders in Org Mode:4 ends here
 
 ;; [[file:../Sacha.org::#navigation-downloaded-files][Downloaded files:1]]
   (defvar sacha-download-dir "~/Downloads")
@@ -592,7 +612,7 @@
           (dired sacha-download-dir "-lt"))
 ;; Downloaded files:1 ends here
 
-;; [[file:../Sacha.org::#searching][Searching:2]]
+;; [[file:../Sacha.org::#searching][Searching:5]]
 ;;;###autoload
   (defun sacha-helm-org-rifle-org-directory ()
     (interactive)
@@ -601,7 +621,7 @@
   (defun sacha-consult-recoll-without-emacs-news ()
     (interactive)
     (consult-recoll--open (consult-recoll--search "-\"Emacs News\" ")))
-;; Searching:2 ends here
+;; Searching:5 ends here
 
 ;; [[file:../Sacha.org::sacha-org-image-dired-store-link][sacha-org-image-dired-store-link]]
 ;;;###autoload
@@ -815,7 +835,10 @@ See `sacha-org-cut-subtree-or-list-item'.")
 ;;;###autoload
 (defun sacha-org-copy-subtree-text ()
   (interactive)
-  (kill-new (sacha-org-subtree-text)))
+	(let ((text (sacha-org-subtree-text)))
+		(when (called-interactively-p 'any)
+			(message "%s" text))
+		(kill-new text)))
 
 ;;;###autoload
 (defun sacha-org-mark-done ()
@@ -1828,6 +1851,73 @@ This function is heavily adapted from `org-between-regexps-p'."
                   (key-description keys))))
 ;; Inserting code:1 ends here
 
+;; [[file:../Sacha.org::#org-mode-org-babel-write-about-emacs-lisp-variables][Write about Emacs Lisp variables:1]]
+;;;###autoload
+(defun sacha-org-insert-variable-description (variable)
+  "Insert a description of VARIABLE."
+  (interactive
+	 (let ((orig-buffer (current-buffer))
+         (v (variable-at-point)) val)
+		 (setq val (completing-read
+								(format-prompt "Describe variable" (and (symbolp v) v))
+								#'help--symbol-completion-table
+								(lambda (vv)
+									(or (get vv 'variable-documentation)
+											(and (not (keywordp vv))
+													 ;; Since the variable may only exist in the
+													 ;; original buffer, we have to look for it
+													 ;; there.
+													 (buffer-local-boundp vv orig-buffer))))
+								t nil nil
+								(if (symbolp v) (symbol-name v))))
+		 (list (if (equal val "")
+							 v
+						 (intern val)))))
+  (push-mark)
+	(insert
+   (let* ((alias (condition-case nil
+                     (indirect-variable variable)
+                   (error variable))))
+		 (or (documentation-property
+					variable 'variable-documentation)
+         (documentation-property
+          alias 'variable-documentation))))
+  (save-excursion
+    (insert
+     (format
+	    "\n\n#+begin_src emacs-lisp\n(setopt %s %s)\n#+end_src\n\n"
+	    (symbol-name variable)
+	    (symbol-value variable)))))
+
+;; Write about Emacs Lisp variables:1 ends here
+
+;; [[file:../Sacha.org::*Exclude heading by tag based on backend][Exclude heading by tag based on backend:1]]
+;;;###autoload
+(defun sacha-org-export-exclude-by-backend (backend)
+  "Excludes subtrees dynamically based on the current export backend."
+  (let ((backend-name (symbol-name backend)))
+    (setq-local org-export-exclude-tags
+                (append org-export-exclude-tags
+                        (list (concat "noexport_" backend-name))))
+
+		))
+(defvar sacha-org-hide-tags-regexp "noexport_"
+	"Regexp matching tags to remove from headings.")
+;;;###autoload
+(defun sacha-org-export-hide-tags (tree backend channel)
+  "Remove tags matching a specific pattern from headlines in TREE during export."
+  (org-element-map tree 'headline
+    (lambda (headline)
+      (let* ((current-tags (org-element-property :tags headline))
+             (filtered-tags (seq-remove
+                             (lambda (tag)
+                               (string-match-p
+																sacha-org-hide-tags-regexp tag))
+                             current-tags)))
+        (org-element-put-property headline :tags filtered-tags))))
+  tree)
+;; Exclude heading by tag based on backend:1 ends here
+
 ;; [[file:../Sacha.org::#11ty][11ty static site generation:3]]
 ;;;###autoload
 (defun sacha-org-replace-with-permalink ()
@@ -2479,8 +2569,29 @@ This function is heavily adapted from `org-between-regexps-p'."
 
 ;; [[file:../Sacha.org::#sacha-org-insert-link-dwim][Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:1]]
 ;;;###autoload
+(defun sacha-clean-link (s)
+  "Remove Google tracking information."
+  (when (string-match "https://www.google.com/url" s)
+    (setq s
+          (car
+           (cdr
+            (assoc-string
+             "url"
+             (url-parse-query-string
+              (cdr
+               (url-path-and-query (url-generic-parse-url s)))))))))
+  s)
+
+(ert-deftest sacha-clean-link ()
+  "Tests `sacha-clean-link'."
+  (should (equal (sacha-clean-link "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=http://www.gnu.org/s/emacs/manual/html_node/emacs/Imenu.html")
+                 "http://www.gnu.org/s/emacs/manual/html_node/emacs/Imenu.html")))
+
+;;;###autoload
 (defun sacha-org-insert-link-dwim (&optional url title)
-	"Like `org-insert-link' but with personal dwim preferences."
+	"Like `org-insert-link' but with personal dwim preferences.
+
+Call with \\[universal-argument] to manually specify the title."
 	(interactive)
 	(let* ((point-in-link (and (derived-mode-p 'org-mode) (org-in-regexp org-link-any-re 1)))
 				 (point-in-html-block (and (derived-mode-p 'org-mode)
@@ -2498,16 +2609,16 @@ This function is heavily adapted from `org-between-regexps-p'."
 				 (region-content (when (region-active-p)
 													 (buffer-substring-no-properties (region-beginning)
 																													 (region-end))))
-         (bookmark-match (when region-content (sacha-org-bookmark-match region-content)))
+         (favorite-match (when region-content (sacha-org-favorite-match region-content)))
          (url (cond
                (url url)
 							 ((sacha-org-in-bracketed-text-link-p) nil)
-               (bookmark-match bookmark-match)
+               (favorite-match favorite-match)
 							 ((not point-in-link)
                 (sacha-org-read-link
 								 ;; clipboard
 								 (when (string-match-p "^http" (current-kill 0))
-									 (current-kill 0))))))
+									 (sacha-clean-link (current-kill 0)))))))
 				 (title (or title
                     region-content
 										(when (or (string-match (regexp-quote "*new toot*") (buffer-name))
@@ -2517,8 +2628,10 @@ This function is heavily adapted from `org-between-regexps-p'."
 															(not (and (derived-mode-p 'org-mode)
 																				point-in-link)))
 											(read-string "Title: "
-																	 (or (sacha-org-link-default-description url nil)
-																			 (sacha-page-title url)))))))
+																	 (if current-prefix-arg
+																			 nil
+																		 (or (sacha-org-link-default-description url nil)
+																				 (sacha-page-title url))))))))
 		;; resolve the links; see sacha-org-link-as-url in  https://sachachua.com/dotemacs#web-link
 		(unless (and (derived-mode-p 'org-mode)
 								 (not (or point-in-html-block point-in-src-or-export-block)))
@@ -2531,7 +2644,12 @@ This function is heavily adapted from `org-between-regexps-p'."
 		 ((or (derived-mode-p '(web-mode html-mode)) point-in-html-block)
 			(insert (format "<a href=\"%s\">%s</a>" url title)))
 		 ((derived-mode-p 'oddmuse-mode)
-			(insert (format "[%s %s]" url title)))
+			(if (and (string-match "https://emacswiki.org/emacs/\\(.+\\)" url)
+							 (or (null title)
+									 (string= title "")
+									 (string= (match-string 1 url) title)))
+					(insert (match-string 1 url))
+				(insert (format "[%s %s]" url title))))
 		 ((or point-in-src-or-export-block
 					(not (derived-mode-p 'org-mode)))
 			(insert title " " url))
@@ -2547,7 +2665,7 @@ This function is heavily adapted from `org-between-regexps-p'."
 									 (read-string "Title: "
 																(or (sacha-org-link-default-description url nil)
 																		(sacha-page-title url)))))))
-		 ;; bracketed [[plain text]]; see Using web searches and bookmarks to quickly link placeholders in Org Mode https://sachachua.com/dotemacs#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode
+		 ;; bracketed [[plain text]]; see Using web searches and favorites to quickly link placeholders in Org Mode https://sachachua.com/dotemacs#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode
 		 ((sacha-org-set-link-target-with-search))
 		 ;; In Org Mode, edit the link
 		 ((call-interactively 'org-insert-link)))))
@@ -2646,15 +2764,18 @@ This uses :insert-description if defined."
 	  (format "<a href=\"%s#%s\">%s</a>"
             sacha-emacs-config-url
             path (or desc path)))
-	('ascii
-   (if desc
-	     (format "%s %s#%s"
-               desc
-               sacha-emacs-config-url
-               path)
-     (format "%s#%s"
-               sacha-emacs-config-url
-               path)))))
+	 ('latex
+		 (format "\\hyperref[%s]{%s} (p.~\\pageref{%s})"
+             path (or desc path) path))
+	 ('ascii
+		(if desc
+				(format "%s %s#%s"
+								desc
+								sacha-emacs-config-url
+								path)
+			(format "%s#%s"
+              sacha-emacs-config-url
+              path)))))
 
 ;;;###autoload
 (defun sacha-org-dotemacs-complete ()
@@ -2699,7 +2820,27 @@ This uses :insert-description if defined."
 		(narrow-to-region beg end)
 		(kill-new (org-export-as 'sacha-plain-text nil nil t))))
 
+
+;;;###autoload
+(defun sacha-org-copy-region-as-oddmuse (beg end)
+	"Copy as oddmuse."
+	(interactive "r")
+	(save-restriction
+		(narrow-to-region beg end)
+		(kill-new (org-export-as 'oddmuse nil nil t))))
+
 ;; YouTube:2 ends here
+
+;; [[file:../Sacha.org::#org-mode-links-format-nicks-in-chats][Format nicks in chats:1]]
+;;;###autoload
+(defun sacha-org-nick-export (path desc format _)
+	"Export nick."
+	(pcase format
+		((or 'html '11ty 'md)
+	   (format "<span class=\"nick\">%s:</span>" (or desc path)))
+		(_
+		 (concat (or desc path) ":"))))
+;; Format nicks in chats:1 ends here
 
 ;; [[file:../Sacha.org::#web-link][Copy web link:1]]
 ;;;###autoload
@@ -3796,8 +3937,31 @@ Use the region if active."
 ;; [[file:../Sacha.org::sacha-org-time-at-point][sacha-org-time-at-point]]
 (defun sacha-org-time-at-point ()
 	"Return Emacs time object for timestamp at point."
-	(org-timestamp-to-time (org-timestamp-from-string (org-element-property :raw-value (org-element-context)))))
+	(if (eq (org-element-type (org-element-context)) 'timestamp)
+			(org-timestamp-to-time (org-timestamp-from-string (org-element-property :raw-value (org-element-context))))
+		(org-read-date t t)))
 ;; sacha-org-time-at-point ends here
+
+;; [[file:../Sacha.org::#oddmuse][Oddmuse:2]]
+(declare-function oddmuse-compute-pagename-completion-table "oddmuse")
+;;;###autoload
+(defun sacha-org-emacswiki-complete ()
+	"Prompt for emacswiki."
+	(interactive)
+	(concat "https://emacswiki.org/emacs/"
+					(completing-read
+					 "Page: "
+					 (oddmuse-compute-pagename-completion-table "EmacsWiki"))))
+
+(defun sacha-org-emacswiki-insert-description (link &optional description)
+	(unless description
+		(replace-regexp-in-string "^https://emacswiki\\.org/emacs/" "" link)))
+
+;;;###autoload
+(defun sacha-emacswiki-open (path)
+	(when (string-match "https?://emacswiki\\.org/emacs/\\(.+\\)" path)
+		(oddmuse-edit "EmacsWiki" (match-string 1 path))))
+;; Oddmuse:2 ends here
 
 ;; [[file:../Sacha.org::#making-it-easier-to-execute-commands][Making it easier to execute commands:2]]
 ;;;###autoload

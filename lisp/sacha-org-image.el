@@ -134,7 +134,9 @@
       (if description
           (format "<figure><a target=\"_blank\" href=\"%s\"><img src=\"%s\" /><br /></a><figcaption>%s</figcaption></figure>" path image desc)
         (format "<figure><a target=\"_blank\" href=\"%s\"><img src=\"%s\" /><br /><figcaption>%s</figcaption></a></figure>" path image desc)))
-     ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
+     ((eq format 'latex)
+			(format "\\href{\\includegraphics{%s}}{%s}"
+							path desc))
      ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
      ((eq format 'md)
       (if (file-exists-p (expand-file-name link "~/sketches"))

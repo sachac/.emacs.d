@@ -26,14 +26,16 @@
 ;;
 ;; Related Emacs config sections:
 ;;
-;; - Create a Google Calendar event from an Org timestamp
-;;   https://sachachua.com/dotemacs#streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream
+;; - Create a Google Calendar event from an Org Mode timestamp
+;;   https://sachachua.com/dotemacs#streaming-create-a-google-calendar-event-from-an-org-mode-timestamp
 ;;
 ;;; Code:
 
 
 
-;; [[file:../Sacha.org::*Create a Google Calendar event from an Org timestamp][Create a Google Calendar event from an Org timestamp:1]]
+;; [[file:../Sacha.org::#streaming-create-a-google-calendar-event-from-an-org-mode-timestamp][Create a Google Calendar event from an Org Mode timestamp:2]]
+(defvar sacha-time-zone "America/Toronto" "Full name of time zone.")
+
 ;;;###autoload
 (defun sacha-emacs-chat-schedule (&optional time)
   "Create a Google Calendar invite based on TIME or the Org timestamp at point."
@@ -45,7 +47,7 @@
 		(url-hexify-string sacha-emacs-chat-description)
 		(format-time-string
 		 "%Y%m%dT%H%M%S" time)
-		sacha-timezone)))
+		sacha-time-zone)))
 
 (defvar sacha-emacs-chat-title "Emacs Chat" "Title of calendar entry.")
 (defvar sacha-emacs-chat-description
@@ -60,7 +62,7 @@ Some ideas for things to talk about:
 
 Let me know if you want to do it on stream (more people can ask questions) or off stream (we can clean up the video in case there are hiccups). Also, please feel free to send me links to things you'd like me to read ahead of time, like your config!"
 	"Description.")
-;; Create a Google Calendar event from an Org timestamp:1 ends here
+;; Create a Google Calendar event from an Org Mode timestamp:2 ends here
 
 (provide 'sacha-emacs-chat)
 ;;; sacha-emacs-chat.el ends here

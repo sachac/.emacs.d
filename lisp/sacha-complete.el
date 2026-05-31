@@ -29,6 +29,9 @@
 ;; - Extended command list
 ;;   https://sachachua.com/dotemacs#keybindings-extended-command-list
 ;;
+;; - Define abbreviations
+;;   https://sachachua.com/dotemacs#completion-define-abbreviations
+;;
 ;; - Emacs completion and handling accented characters with orderless
 ;;   https://sachachua.com/dotemacs#completion-emacs-completion-and-handling-accented-characters-with-orderless
 ;;
@@ -182,6 +185,45 @@
                          suggest-key-bindings
                        2))))))))
 ;; Extended command list:2 ends here
+
+;; [[file:../Sacha.org::#completion-define-abbreviations][Define abbreviations:2]]
+(eval-when-compile (require 'cl-lib))
+;;;###autoload
+(defun sacha-insert-abbrev-or-yasnippet ()
+  "Prompt for and expand an abbrev or yasnippet.
+
+From https://github.com/davep/unabbrev.el and yas-insert-snippet."
+  (interactive)
+	(let* ((abbreviations
+					(sort
+					 (cl-loop
+						for table in (list local-abbrev-table global-abbrev-table)
+						nconc (cl-loop
+									 for abbrev being the symbols of table
+									 for shortcut = (symbol-name abbrev)
+									 for expansion = (abbrev-expansion shortcut table)
+									 when expansion collect (list (format "%-10s %s" shortcut expansion)
+																								'abbrev shortcut)))))
+				 (yas-templates
+					(mapcar
+					 (lambda (o)
+						 (list (format "%-10s %s" (yas--template-key o) (yas--template-name o))
+									 'yas
+									 o))
+					 (yas--all-templates (yas--get-snippet-tables))))
+				 (where (if (region-active-p)
+                    (cons (region-beginning) (region-end))
+                  (cons (point) (point))))
+				 (combined (append abbreviations yas-templates))
+				 (choice (assoc-default (completing-read "Expand: " combined)
+																combined #'string=)))
+		(pcase (elt choice 0)
+			('abbrev
+			 (insert (elt choice 1))
+			 (expand-abbrev))
+			('yas (yas-expand-snippet (elt choice 1) (car where) (cdr where))))))
+(defalias 'sacha-unabbrev 'sacha-insert-abbrev-or-yasnippet)
+;; Define abbreviations:2 ends here
 
 ;; [[file:../Sacha.org::#completion-emacs-completion-and-handling-accented-characters-with-orderless][Emacs completion and handling accented characters with orderless:1]]
 (defvar sacha-orderless-accent-replacements

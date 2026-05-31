@@ -537,13 +537,14 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 (defun sacha-pacmd-set-device (regexp status)
   (with-current-buffer (get-buffer-create "*pacmd*")
     (erase-buffer)
-    (shell-command "pacmd list-sources" (current-buffer))
+    (shell-command "pactl list sources short" (current-buffer))
     (goto-char (point-max))
     (let (results)
       (while (re-search-backward regexp nil t)
-        (when (re-search-backward "index: \\([[:digit:]]+\\)" nil t)
+				(goto-char (line-beginning-position))
+        (when (looking-at "\\([[:digit:]]+\\)")
           (setq results (cons (match-string 1) results))
-          (shell-command-to-string (format "pacmd set-source-mute %s %d"
+          (shell-command-to-string (format "pactl set-source-mute %s %d"
                                            (match-string 1)
                                            (if (equal status 'on) 0 1)))))
       results)))
@@ -553,13 +554,13 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 ;;;###autoload
 (defun sacha-mic-off ()
   (interactive)
-  (sacha-pacmd-set-device "Yeti" 'off)
+  (sacha-pacmd-set-device "input.*Yeti" 'off)
   (sacha-pacmd-set-device "Internal Microphone" 'off)
   (setq sacha-mic-p nil))
 ;;;###autoload
 (defun sacha-mic-on ()
   (interactive)
-  (sacha-pacmd-set-device "Yeti" 'on)
+  (sacha-pacmd-set-device "input.*Yeti" 'on)
   (sacha-pacmd-set-device "Internal Microphone" 'on)
   (setq sacha-mic-p t))
 ;;;###autoload
@@ -602,7 +603,9 @@ If WORD-TIMING is non-nil, include word-level timestamps."
    ;; It's been a while since I turned the mic on.
    (t (sacha-push-to-talk-mute))))
 
-;(global-set-key (kbd "<f12>") #'sacha-push-to-talk)
+(global-set-key (kbd "<XF86Launch5>") #'sacha-push-to-talk)
+(keymap-global-set "<kp-7>" #'sacha-push-to-talk)
+
 ;; Controlling my stream audio from Emacs: background music, typing sounds, and push to talk:5 ends here
 
 ;; [[file:../Sacha.org::#more-background-music][More background music:1]]
@@ -692,23 +695,31 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 
 ;; [[file:../Sacha.org::#streaming-chapters][Chapters:1]]
 ;;;###autoload
-(defun sacha-youtube-copy-chapters ()
+(defun sacha-youtube-copy-chapters (&optional use-vtime)
 	"Call from a VTT file with NOTE comments."
-	(interactive)
-	(let ((subtitles (subed-subtitle-list)))
+	(interactive (list current-prefix-arg))
+	(let ((subtitles (subed-record-remove-directives (subed-subtitle-list))))
 		(kill-new
-		 (concat (if (elt (car subtitles) 4)
-								 ""
-							 "0:00 Intro\n")
-						 (mapconcat (lambda (o)
-													(if (elt o 4)
-															(concat (format-seconds "%m:%.2s" (/ (elt o 2) 1000))
-																			" "
-																			(elt o 4)
-																			"\n")
-														""))
-												subtitles
-												"")))))
+		 (mapconcat
+			(if use-vtime
+					(lambda (s) (concat "- vtime:" s))
+				#'identity)
+			(append
+			 (list
+				(if (and (elt (car subtitles) 4)
+								 (< (elt (car subtitles) 1) 1000))
+						""
+					"0:00 Intro\n"))
+			 (mapconcat (lambda (o)
+										(if (and (elt o 4) (not (string= (string-trim (elt o 4)) "")))
+												(concat (emacstv-format-seconds (/ (elt o 2) 1000))
+																" "
+																(string-trim (elt o 4))
+																"\n")
+											""))
+									subtitles
+									""))
+			""))))
 ;; Chapters:1 ends here
 
 ;; [[file:../Sacha.org::#speech-to-text][Try continuous streaming and the Google Speech Recognition API:1]]

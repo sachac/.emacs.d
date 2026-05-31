@@ -159,7 +159,7 @@
   (require 'org-core nil t)
   (require 'org-macs nil t)
   (require 'org-src nil t))
-(declare-function 'org-babel-tangle--compute-targets "ob-tangle")
+(declare-function org-babel-tangle--compute-targets "ob-tangle")
 (defun sacha-org-collect-links-for-tangled-files ()
   "Return a list of ((filename (link link link link)) ...)."
   (let* ((file (buffer-file-name))

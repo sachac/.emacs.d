@@ -27,13 +27,13 @@
 ;; Related Emacs config sections:
 ;;
 ;; - Create YouTube livestream broadcasts from Emacs Lisp
-;;   https://sachachua.com/dotemacs#streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream
+;;   https://sachachua.com/dotemacs#streaming-create-youtube-livestream-broadcasts-from-emacs-lisp
 ;;
 ;;; Code:
 
 
 
-;; [[file:../Sacha.org::*Create YouTube livestream broadcasts from Emacs Lisp][Create YouTube livestream broadcasts from Emacs Lisp:1]]
+;; [[file:../Sacha.org::#streaming-create-youtube-livestream-broadcasts-from-emacs-lisp][Create YouTube livestream broadcasts from Emacs Lisp:3]]
 (defun sacha-date-to-time (time)
 	"Return Emacs time object for TIME."
 	(when (stringp time)
@@ -47,8 +47,13 @@
 ;;;###autoload
 (defun sacha-date-to-iso-utc (time)
 	"Return ISO8601 for TIME."
-	(format-time-string "%FT%TZ" (sacha-date-to-time time) t))
-;; Create YouTube livestream broadcasts from Emacs Lisp:1 ends here
+	(interactive (list (org-read-date t t nil "Time: ")))
+	(let ((result (format-time-string "%FT%TZ" (sacha-date-to-time time) t)))
+		(when (called-interactively-p 'any)
+			(kill-new result)
+			(message "%s" result))
+		result))
+;; Create YouTube livestream broadcasts from Emacs Lisp:3 ends here
 
 (provide 'sacha-lisp)
 ;;; sacha-lisp.el ends here

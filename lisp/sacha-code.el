@@ -29,6 +29,9 @@
 ;; - Format source
 ;;   https://sachachua.com/dotemacs#format-source
 ;;
+;; - Coding
+;;   https://sachachua.com/dotemacs#coding
+;;
 ;; - Python
 ;;   https://sachachua.com/dotemacs#python
 ;;
@@ -60,6 +63,19 @@
   (ignore-errors               ; in case there's no language support
     (format-all-buffer)))
 ;; Format source:1 ends here
+
+;; [[file:../Sacha.org::#coding][Coding:2]]
+;;;###autoload
+(defun sacha-code-kebab-words (num-words)
+  "Join this word and the next one with a dash.
+Lowercase it."
+  (interactive "p")
+	(dotimes (_ (1- (if (eq num-words 1) 2 num-words)))
+		(downcase-word 1)
+		(when (looking-at " +")
+			(replace-match "-")))
+	(downcase-word 1))
+;; Coding:2 ends here
 
 ;; [[file:../Sacha.org::#python][Python:2]]
 ;;;###autoload

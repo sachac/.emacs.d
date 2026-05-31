@@ -44,6 +44,9 @@
 ;; - Remove underlining from WhisperX VTT
 ;;   https://sachachua.com/dotemacs#remove-whisperx-underline
 ;;
+;; - Retranscribe a section
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-retranscribe-a-section
+;;
 ;; - Adjust subtitles
 ;;   https://sachachua.com/dotemacs#adjust-subtitles
 ;;
@@ -310,6 +313,54 @@ If you called whisperx with --highlight_words, this function can remove the unde
 		(delete-region (point) (point-max))
 		(subed-append-subtitle-list (reverse results))))
 ;; Remove underlining from WhisperX VTT:1 ends here
+
+;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-retranscribe-a-section][Retranscribe a section:1]]
+(defvar sacha-whisperx-command "/home/sacha/bin/whisperx")
+;;;###autoload
+(defun sacha-subed-whisper-retranscribe ()
+	"Retranscribe current subtitle."
+	(interactive)
+	(subed-jump-to-subtitle-start-pos)
+	(let* ((start-ms (subed-subtitle-msecs-start))
+				 (stop-ms (subed-subtitle-msecs-stop))
+				 (temp-dir (make-temp-file "subed-whisper" t))
+				 (output-audio (expand-file-name "output.wav" temp-dir))
+				 (default-directory temp-dir)
+				 (process-environment
+					(cons "MODEL=large-v3" process-environment))
+				 (args (append
+								(list "-i" (subed-media-file))
+								(if (> start-ms 0)
+										(list "-ss" (number-to-string  (/ start-ms 1000.0)))
+									nil)
+								(list "-to" (number-to-string (/ stop-ms 1000.0)))
+								(list "-y" output-audio)))
+				 subtitles)
+		(with-current-buffer (get-buffer-create "*ffmpeg*")
+			(erase-buffer)
+			(let ((default-directory temp-dir))
+				(apply #'call-process subed-ffmpeg-executable nil t t args)
+				(call-process sacha-whisperx-command nil t nil output-audio))
+			;; Now there's an output.txt and an output.json
+			(setq subtitles (subed-parse-file (expand-file-name "output.vtt" temp-dir)))
+			(prin1 subtitles))
+
+		(when subtitles
+			(subed-append-subtitle-list
+			 (mapcar
+				(lambda (o)
+					(setf (elt o 1) (+ start-ms (elt o 1)))
+					(setf (elt o 2) (+ start-ms (elt o 2)))
+					o)
+				subtitles))
+			(subed-kill-subtitle))
+
+		;; TODO: Align based on word timing data, do this in background
+		;; (delete-directory temp-dir t)
+
+		))
+
+;; Retranscribe a section:1 ends here
 
 ;; [[file:../Sacha.org::#adjust-subtitles][Adjust subtitles:1]]
 ;;;###autoload
@@ -811,6 +862,7 @@ FILE should be a VTT or SRT file produced by whisperx with the
 
 ;; [[file:../Sacha.org::#edit-text][Edit text:1]]
 ;; Use the saved version of this instead of forcing the reevaluation
+;;;###autoload
 (defcustom sacha-subed-common-edits
 	'("I"
     "I've"
@@ -934,23 +986,27 @@ FILE should be a VTT or SRT file produced by whisperx with the
 
 ;;;###autoload
 (defun sacha-subed-fix-common-errors ()
-  (interactive)
+  (interactive )
   (let (done entry correction)
     (while (and
             (not done)
             (setq entry (sacha-subed-find-next-fix-point)))
       (setq correction (if (listp entry) (car entry) entry))
-			(if (called-interactively-p 'any)
-					(let* ((c (read-char (format "%s (yn.): " correction))))
-						(cond
-						 ((= c ?y) (replace-match correction t t))
-						 ((= c ?n) (goto-char (match-end 0)))
-						 ((= c ?j) (subed-mpv-jump-to-current-subtitle))
-						 ((= c ?.) (setq done t))))
-				(replace-match correction t t)))))
+			(if (let ((case-fold-search nil))
+						(looking-at (regexp-quote correction)))
+					(forward-word 1)
+				(if (called-interactively-p 'any)
+						(let* ((c (read-char (format "%s (yn.): " correction))))
+							(cond
+							 ((= c ?y) (replace-match correction t t))
+							 ((= c ?n) (goto-char (match-end 0)))
+							 ((= c ?j) (subed-mpv-jump-to-current-subtitle))
+							 ((= c ?.) (setq done t))))
+					(replace-match correction t t))))))
 
 ;;;###autoload
 (defun sacha-subed-fix-common-errors-from-start ()
+	(interactive)
   (goto-char (point-min))
   (sacha-subed-fix-common-errors))
 ;; Edit text:2 ends here
@@ -1203,7 +1259,8 @@ Speaker: text ...
 	"Remove gaps between cues below threshold.
 If threshold is 0, remove all gaps."
 	(interactive "NThreshold: ")
-	(goto-char (point-min))
+	(goto-char (point-min)
+						 )
 	(unless (subed-jump-to-subtitle-time-start)
 		(subed-forward-subtitle-time-start))
 	(subed-set-subtitle-time-start 0)

@@ -325,17 +325,51 @@ of contents as a string, or nil if it is empty."
 ;; [[file:../Sacha.org::#config-footer][Add a note to the bottom of blog posts exported from my config file:1]]
 ;;;###autoload
 (defun sacha-org-export-filter-body-add-emacs-configuration-link (string backend info)
-  (when (and (plist-get info :input-file) (string-match "\\.emacs\\.d/Sacha\\.org\\|sync/emacs/Sacha\\.org" (plist-get info :input-file)))
-    (concat string
-            (let ((id (org-entry-get-with-inheritance "CUSTOM_ID")))
-              (format
+	(when (and (member backend '(md html 11ty)) (plist-get info :input-file) (string-match "\\.emacs\\.d/Sacha\\.org\\|sync/emacs/Sacha\\.org" (plist-get info :input-file)))
+		(concat string
+						(let ((id (org-entry-get-with-inheritance "CUSTOM_ID")))
+							(format
 							 (if (eq backend 'md)
 									 "\nThis is part of my [Emacs configuration](https://sachachua.com/dotemacs%s)\n"
 								 "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs%s\">Emacs configuration.</a></div>")
-               (if id (concat "#" id) ""))))))
+							 (if id (concat "#" id) ""))))))
 ;; Add a note to the bottom of blog posts exported from my config file:1 ends here
 
-;; [[file:../Sacha.org::#cleaning-up-export][Cleaning up export:2]]
+;; [[file:../Sacha.org::#cleaning-up-export][Cleaning up export:1]]
+(defun sacha-org-export-resolve-id-link (link info)
+  "Return headline referenced as LINK destination.
+
+INFO is a plist used as a communication channel.
+
+Return value can be the headline element matched in current parse
+tree or a file name.  Assume LINK type is either \"id\" or
+\"custom-id\".  Throw an error if no match is found."
+  (let ((id (org-element-property :path link)))
+    ;; First check if id is within the current parse tree.
+    (or (let ((local-ids (or (plist-get info :id-local-cache)
+                             (let ((table (make-hash-table :test #'equal)))
+                               (org-element-map
+                                   (plist-get info :parse-tree)
+                                   'headline
+                                 (lambda (headline)
+                                   (let ((id (org-element-property :ID headline))
+                                         (custom-id (org-element-property :CUSTOM_ID headline)))
+                                     (when id
+                                       (unless (gethash id table)
+                                         (puthash id headline table)))
+                                     (when custom-id
+                                       (unless (gethash custom-id table)
+                                         (puthash custom-id headline table)))))
+                                 info)
+                               (plist-put info :id-local-cache table)
+                               table))))
+          (gethash id local-ids))
+        ;; Otherwise, look for external files.
+        (cdr (assoc id (plist-get info :id-alist)))
+				"")))
+;; Cleaning up export:1 ends here
+
+;; [[file:../Sacha.org::#cleaning-up-export][Cleaning up export:4]]
 (defun sacha-org-11ty-publish-from-project (_ from-file _)
   (with-current-buffer (find-file-noselect from-file)
     (save-excursion
@@ -344,9 +378,9 @@ of contents as a string, or nil if it is empty."
        (sacha-org-11ty-export)))))
 ;(load "~/proj/dev/emacs-chats/build-site.el" t)
 ;(load "~/proj/dev/emacs-notes/build-site.el" t)
-;; Cleaning up export:2 ends here
+;; Cleaning up export:4 ends here
 
-;; [[file:../Sacha.org::#cleaning-up-export][Cleaning up export:3]]
+;; [[file:../Sacha.org::#cleaning-up-export][Cleaning up export:5]]
 ;;;###autoload
 (defun sacha-org-publish-maybe ()
   (require 'ox-publish)
@@ -356,16 +390,16 @@ of contents as a string, or nil if it is empty."
          (buffer-file-name (buffer-base-buffer)) 'up)
         (org-publish-current-file t)
       (sacha-org-html-export-trustingly))))
-;; Cleaning up export:3 ends here
+;; Cleaning up export:5 ends here
 
-;; [[file:../Sacha.org::#cleaning-up-export][Cleaning up export:4]]
+;; [[file:../Sacha.org::#cleaning-up-export][Cleaning up export:6]]
 ;;;###autoload
 (defun sacha-org-publish-and-browse ()
   (interactive)
   (save-buffer)
   (sacha-org-publish-maybe)
   (browse-url (org-export-output-file-name ".html" nil default-directory)))
-;; Cleaning up export:4 ends here
+;; Cleaning up export:6 ends here
 
 ;; [[file:../Sacha.org::#publish-without-prompting][Publish without prompting:1]]
 ;;;###autoload
@@ -546,8 +580,7 @@ the mode, `toggle' toggles the state."
          (path (org-element-property :path link))
          (raw-link (org-element-property :raw-link link))
          (description (or contents
-													(and (string= type "fuzzy") path)
-													path))
+													(and (string= type "fuzzy") path)))
          (url (cond
                ((member type '("http" "https"))
                 (concat type ":" path))
@@ -559,6 +592,13 @@ the mode, `toggle' toggles the state."
 			(if description
 					(format "%s %s" description url)
 				url)))))
+
+(defun sacha-plain-text-timestamp (timestamp _contents info)
+  "Transcode a TIMESTAMP object from Org to ASCII.
+CONTENTS is nil.  INFO is a plist holding contextual information."
+	(replace-regexp-in-string
+	 "<\\|>" ""
+	 (org-ascii-plain-text (org-timestamp-translate timestamp) info)))
 
 ;;;###autoload
 (defun sacha-plain-text-item (item contents info)

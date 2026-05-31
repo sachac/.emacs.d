@@ -47,6 +47,9 @@
 ;; - Writing and editing
 ;;   https://sachachua.com/dotemacs#writing-and-editing
 ;;
+;; - Check for capitalization
+;;   https://sachachua.com/dotemacs#writing-and-editing
+;;
 ;; - Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document
 ;;
@@ -67,6 +70,9 @@
 ;;
 ;; - Emacs and my phone
 ;;   https://sachachua.com/dotemacs#on-sacha-phone
+;;
+;; - Turn off display-line-number-mode for images
+;;   https://sachachua.com/dotemacs#streaming-turn-off-display-line-number-mode-for-images
 ;;
 ;;; Code:
 
@@ -163,24 +169,49 @@
 ;; C-g improvement:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing][Writing and editing:3]]
-  (defun sacha-capitalize-dwim ()
-    "Capitalize the previous word if typing and at the end of a word."
-    (interactive)
-    (if (region-active-p)
-        (capitalize-region (region-beginning) (region-end))
-      (when (and (not (bolp))
-                 (looking-back "\\w" 1)
-                 (eq last-command 'self-insert-command))
-        (backward-word))
-      (capitalize-word 1)))
+;;;###autoload
+(defmacro sacha-inserter (string)
+  "Command that inserts given STRING.
+From oantolin."
+  `(lambda () ,string (interactive) (insert ,string)))
 
-  (defun sacha-copy-filename ()
-    "Copy the current buffer file name to the clipboard."
-    (interactive)
-    (cond
-     ((derived-mode-p 'dired-mode) (dired-copy-filename-as-kill 0))
-     (t (kill-new (buffer-file-name)))))
+;;;###autoload
+(defun sacha-capitalize-dwim ()
+	"Capitalize the previous word if typing and at the end of a word."
+	(interactive)
+	(if (region-active-p)
+			(capitalize-region (region-beginning) (region-end))
+		(when (and (not (bolp))
+							 (looking-back "\\w" 1)
+							 (eq last-command 'self-insert-command))
+			(backward-word))
+		(capitalize-word 1)))
+
+;;;###autoload
+(defun sacha-copy-filename ()
+	"Copy the current buffer file name to the clipboard."
+	(interactive)
+	(cond
+	 ((derived-mode-p 'dired-mode) (dired-copy-filename-as-kill 0))
+	 (t (kill-new (buffer-file-name)))))
 ;; Writing and editing:3 ends here
+
+;; [[file:../Sacha.org::*Check for capitalization][Check for capitalization:1]]
+;;;###autoload
+(defun sacha-query-capitalize ()
+  "Capitalize the first letter of sentences interactively."
+  (interactive)
+	(let ((case-fold-search nil) overlay)
+		(while (re-search-forward "\\([\\.?!] \\| \"\\)\\([a-z]\\)" nil t)
+			(unwind-protect
+					(progn
+						(setq overlay (make-overlay (match-beginning 2)
+																				(match-end 2)))
+						(overlay-put overlay 'face 'next-error)
+						(when (save-match-data (y-or-n-p "Capitalize?"))
+							(replace-match (upcase (match-string 2)) t t nil 2)))
+				(delete-overlay overlay)))))
+;; Check for capitalization:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document][Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document:5]]
 ;;;###autoload
@@ -284,11 +315,11 @@
   (align-regexp beg end "\\(\\s-*\\)\\S-+" 1 1 t))
 ;; Alignment:1 ends here
 
-;; [[file:../Sacha.org::#emacs-lisp][Emacs Lisp:2]]
+;; [[file:../Sacha.org::#emacs-lisp][Emacs Lisp:3]]
 ;;;###autoload
 (defun sacha-set-sentence-end-double-space ()
 	(setq-local sentence-end-double-space t))
-;; Emacs Lisp:2 ends here
+;; Emacs Lisp:3 ends here
 
 ;; [[file:../Sacha.org::#coding-emacs-lisp-other-useful-functions][Other useful functions:1]]
 ;;;###autoload
@@ -323,6 +354,13 @@
       (shell-command (format "ssh phone %s" (shell-quote-argument command))))))
 
 ;; Emacs and my phone:2 ends here
+
+;; [[file:../Sacha.org::#streaming-turn-off-display-line-number-mode-for-images][Turn off display-line-number-mode for images:1]]
+;;;###autoload
+(defun sacha-disable-display-line-number-mode ()
+	"Disable `display-line-number-mode'."
+	(display-line-numbers-mode -1))
+;; Turn off display-line-number-mode for images:1 ends here
 
 (provide 'sacha-misc)
 ;;; sacha-misc.el ends here

@@ -4152,9 +4152,10 @@ I should get the hang of using =helm-org-rifle= and =ripgrep=.
 #+begin_src emacs-lisp
   (use-package helm-org-rifle
     :bind
-    ("M-g r r" . helm-org-rifle)
-    ("M-g r a" . helm-org-rifle-org-agenda-files)
-    ("M-g r o" . helm-org-rifle-org-directory)
+		(:map goto-map
+					("r r" . helm-org-rifle)
+					("r a" . helm-org-rifle-org-agenda-files)
+					("r o" . helm-org-rifle-org-directory))
     )
 
   (use-package consult-recoll
@@ -5102,6 +5103,43 @@ Now for some shortcuts to quickly bring up my livestream notes, my current focus
   sacha-toggle-now
   "~/sync/topics/now.org"))
 #+end_src
+** Navigating by points of interest
+:PROPERTIES:
+:CUSTOM_ID: navigation-navigating-by-points-of-interest
+:END:
+
+#+begin_src emacs-lisp
+(use-package poi
+	:load-path "~/vendor/karthink-emacs-d/plugins"
+	:commands (poi-register poi-next poi-previous)
+	:bind
+	(:map goto-map
+				("n" . poi-next)
+				("p" . poi-previous))
+	(:repeat-map sacha-poi-repeat-map
+							 ("n" . poi-next)
+							 ("p" . poi-previous))
+	:init
+	(with-eval-after-load 'flymake
+		(add-hook 'flymake-mode-hook (poi-register 'flymake-goto-next-error)))
+	(add-hook 'text-mode-hook (poi-register 'next-error))
+	(add-hook 'prog-mode-hook (poi-register 'next-error))
+	)
+#+end_src
+** Make pop-to-buffer jump across windows
+:PROPERTIES:
+:CUSTOM_ID: navigation-make-pop-to-buffer-jump-across-windows
+:END:
+
+[[https://karthinks.com/software/emacs-window-management-almanac/#windows-are-made-up-let-s-ignore-them][The Emacs Window Management Almanac | Karthinks]]
+
+#+begin_src emacs-lisp
+(define-advice pop-global-mark (:around (pgm) use-display-buffer)
+  "Make `pop-to-buffer' jump buffers via `display-buffer'."
+  (cl-letf (((symbol-function 'switch-to-buffer)
+                         #'pop-to-buffer))
+                (funcall pgm)))
+#+end_src
 ** Pop buffers up or down
 :PROPERTIES:
 :CUSTOM_ID: navigation-pop-buffers-up-or-down
@@ -5149,8 +5187,9 @@ This should make it easier to jump to a link.
 #+begin_src emacs-lisp
   (use-package link-hint
     :bind
-    ("M-g u" . link-hint-open-link)
-    ("M-g U" . link-hint-open-multiple-links))
+		(:map goto-map
+					("u" . link-hint-open-link)
+					("U" . link-hint-open-multiple-links)))
 #+end_src
 ** Bookmarks
 :PROPERTIES:
@@ -5189,12 +5228,12 @@ http://yummymelon.com/devnull/using-bookmarks-in-emacs-like-you-do-in-web-browse
     #+begin_src emacs-lisp
       (use-package dogears
         ;; These bindings are optional, of course:
-        :bind (:map global-map
-                    ("M-g d" . dogears-go)
-                    ("M-g M-b" . dogears-back)
-                    ("M-g M-f" . dogears-forward)
-                    ("M-g M-d" . dogears-list)
-                    ("M-g M-D" . dogears-sidebar)))
+        :bind (:map goto-map
+                    ("d" . dogears-go)
+                    ("M-b" . dogears-back)
+                    ("M-f" . dogears-forward)
+                    ("M-d" . dogears-list)
+                    ("M-D" . dogears-sidebar)))
               #+end_src
 ** Randomness for serendipity
 :PROPERTIES:
@@ -5206,7 +5245,8 @@ http://yummymelon.com/devnull/using-bookmarks-in-emacs-like-you-do-in-web-browse
 (defun sacha-goto-random-char ()
   (interactive)
   (push-mark)
-  (goto-char (+ (point-min) (random (- (point-max) (point-min))))))
+  (goto-char (+ (point-min) (random (- (point-max) (point-min)))))
+	(recenter-top-bottom '(4)))
 
 ;;;###autoload
 (defun sacha-goto-random-line ()
@@ -5226,7 +5266,7 @@ Inspired by https://github.com/oantolin/emacs-config"
 #+END_SRC
 
 #+begin_src emacs-lisp
-(bind-key "M-g R" #'sacha-goto-random-line)
+(bind-key "R" #'sacha-goto-random-line goto-map)
 #+end_src
 
 *** Building a today-I-learned habit, and displaying the documentation for random Emacs commands :emacs:
@@ -43035,7 +43075,8 @@ references.
 (use-package emacsconf
   :after hydra
   :bind (("C-c e" . emacsconf/body)
-         ("M-g t" . emacsconf-go-to-talk))
+				 :map goto-map
+         ("t" . emacsconf-go-to-talk))
 	:init
 	(require 'emacsconf-autoloads)
 	:hook
@@ -43068,7 +43109,7 @@ references.
 		("vie" emacsconf-volunteer-insert-email "volunteer email")
 		("U" emacsconf-res-upload-dired "upload"))
   :load-path "~/proj/emacsconf/lisp")
-(keymap-global-set "M-g t" 'emacsconf-go-to-talk)
+(bind-key "t" 'emacsconf-go-to-talk goto-map)
 #+end_src
 ** ChatGPT, AI, and large-language models
 :PROPERTIES:

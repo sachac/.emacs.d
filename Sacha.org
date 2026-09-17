@@ -35297,6 +35297,9 @@ Based on https://karthinks.com/software/even-more-batteries-included-with-emacs/
           (browse-url-generic url)
         (browse-url url)))))
 #+end_src
+
+Hmm. I've mapped =M-g u= to =link-hint-open-link=, so maybe I should use that too...
+
 ** Emacs: Open URLs or search the web, plus browse-url-handlers  :emacs:org:
 :PROPERTIES:
 :EXPORT_DATE: 2025-07-11T17:09:24-0400

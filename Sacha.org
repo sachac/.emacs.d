@@ -894,6 +894,18 @@ from [[dotemacs:web-link]] so that I can get the regular
 (defun sacha-open-in-audacity (file)
   (interactive "FFile: ")
   (start-process "audacity" nil "audacity" file))
+
+;;;###autoload
+(defun sacha-delete-file-and-link (file)
+  "Delete file and the current Org Mode link."
+  (interactive "FFile: ")
+	(when (file-exists-p file) (delete-file file))
+	(when-let* ((elem (and (derived-mode-p 'org-mode) (org-element-context))))
+		(delete-region (org-element-begin elem) (org-element-end elem))
+		(save-excursion
+			(beginning-of-line)
+			(when (looking-at "^\\s*-* *$")
+				(delete-region (line-beginning-position) (1+ (line-end-position)))))))
 #+end_src
 
 #+begin_src emacs-lisp

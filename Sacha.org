@@ -1547,6 +1547,15 @@ I want to:
 	(keymap-set embark-defun-map "W" #'sacha-embark-copy-def-name)
 	(keymap-set embark-variable-map "W" #'sacha-embark-copy-def-name))
 #+end_src
+
+#+begin_src emacs-lisp
+(use-package vared
+	:vc (:url "https://codeberg.org/imarko/vared.el")
+	:bind
+	(:map embark-variable-map
+				("V" . vared))
+	)
+#+end_src
 *** Embark, symbols, and casual-symbol-overlay
 :PROPERTIES:
 :CUSTOM_ID: casual-symbol-overlay

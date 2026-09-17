@@ -3707,6 +3707,56 @@ I like context-sensitive keyboard shortcuts, so when I came across [[https://git
 :PROPERTIES:
 :CUSTOM_ID: pdf
 :END:
+*** Emacs PDF View: Replace current page with file using PDFtk      :emacs:
+:PROPERTIES:
+:CUSTOM_ID: navigation-pdf-view-emacs-pdf-view-replace-current-page-with-file-using-pdftk
+:EXPORT_DATE: 2026-06-06T20:35:27-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2026/06/emacs-pdf-view-replace-current-page-with-file-using-pdftk/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2026/06/emacs-pdf-view-replace-current-page-with-file-using-pdftk/
+:END:
+
+I needed to replace a page in a PDF with another PDF. This was a bit
+of an annoying process on my iPad involving copying and pasting pages
+in Noteful and then re-exporting them as a PDF, but it was easy to do
+in Emacs thanks to package:pdf-tools and [[https://www.pdflabs.com/tools/pdftk-server/][PDFtk]].
+
+#+begin_src emacs-lisp :tangle lisp/sacha-misc.el
+
+
+(declare-function pdf-view-current-page "pdf-view")
+;;;###autoload
+(defun sacha-pdf-view-replace-current-page-with-file (file)
+  "Replace the current page in PDF View with FILE.
+Requires pdftk."
+  (interactive "FFile to insert: ")
+	(let ((temp-file (concat (make-temp-name "pdf-view") ".pdf"))
+				(base-file (expand-file-name (buffer-file-name)))
+				(page (pdf-view-current-page))
+				(total-pages (pdf-cache-number-of-pages)))
+		(with-current-buffer (get-buffer-create "*pdftk*")
+			(apply #'call-process
+						 (append
+							(list
+							 "pdftk"
+							 nil t nil
+							 (concat "A=" base-file)
+							 (concat "B=" (expand-file-name file))
+							 "cat")
+							(delq
+							 nil
+							 (list
+								(and (> page 1)
+										 (format "A%d-%d"
+														 1
+														 (1- page)))
+								"B"
+								(and (< page total-pages)
+										 (format "A%d-end"
+														 (1+ page)))
+								"output"
+								temp-file)))))
+		(rename-file temp-file (buffer-file-name) t)))
+#+end_src
 *** TOBLOG Copy text from current PDFview page in other window
 :PROPERTIES:
 :Effort:   0:15

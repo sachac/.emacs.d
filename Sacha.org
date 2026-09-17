@@ -2254,7 +2254,12 @@ This is an entry for [[https://sachachua.com/blog/2026/01/emacs-carnival-februar
     :after projectile
     :bind (("C-x r x" . consult-register)
            ("C-x r b" . consult-bookmark)
-           ("C-c k" . consult-kmacro)
+					 ("C-c M-x" . consult-mode-command)
+					 ("C-c k" . consult-kmacro)
+					 ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+					 ("C-c h" . consult-history)
+					 ("C-c m" . consult-man)
+					 ("C-c i" . consult-info)
            ("C-x M-:" . consult-complex-command) ;; orig. repeat-complet-command
            ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
            ("C-x 5 b" . consult-buffer-other-frame)
@@ -2269,33 +2274,36 @@ This is an entry for [[https://sachachua.com/blog/2026/01/emacs-carnival-februar
            ("M-e" . consult-isearch)	 ;; orig. isearch-edit-string
            ("M-s e" . consult-isearch) ;; orig. isearch-edit-string
            ("M-s l" . consult-line)
-					 (:map search-map							; M-s; from oantolin's config
-								 ("f" . consult-find)
-								 ("g" . consult-grep)
-								 ("G" . consult-git-grep)
-								 ("r" . consult-ripgrep)
-								 ("i" . consult-info)
-								 ("s" . consult-isearch)
-								 ("l" . consult-line)
-								 ("L" . consult-locate)
-								 ("m" . consult-multi-occur)
-								 ("K" . consult-keep-lines)
-								 ("F" . consult-focus-lines))
-					 (:map goto-map								; M-g; from oantolin's config
-								 ("l" . consult-line)
-								 ("L" . consult-line-multi)
-								 ("O" . ace-link)
-								 ("o" . consult-outline)
-								 ("a" . consult-org-agenda)
-								 ("M-g" . consult-goto-line) ; orig. goto-line
-								 ("h" . consult-org-heading)
-								 ("i" . consult-imenu)
-								 ("e" . consult-error)
-								 ("I" . consult-project-imenu)
-								 ("C-i" . consult-imenu-multi)
-								 ("m" . consult-mark)
-								 ("k" . consult-global-mark)
-								 ("f"  . consult-find)))
+					 :map search-map							; M-s; from oantolin's config
+					 ("f" . consult-find)
+					 ("g" . consult-grep)
+					 ("G" . consult-git-grep)
+					 ("r" . consult-ripgrep)
+					 ("i" . consult-info)
+					 ("s" . consult-isearch)
+					 ("l" . consult-line)
+					 ("L" . consult-locate)
+					 ("m" . consult-multi-occur)
+					 ("K" . consult-keep-lines)
+					 ("F" . consult-focus-lines)
+					 :map goto-map								; M-g; from oantolin's config
+					 ("l" . consult-line)
+					 ("L" . consult-line-multi)
+					 ("O" . ace-link)
+					 ("o" . consult-outline)
+					 ("a" . consult-org-agenda)
+					 ("M-g" . consult-goto-line) ; orig. goto-line
+					 ("h" . consult-org-heading)
+					 ("i" . consult-imenu)
+					 ("e" . consult-error)
+					 ("I" . consult-project-imenu)
+					 ("C-i" . consult-imenu-multi)
+					 ("m" . consult-mark)
+					 ("k" . consult-global-mark)
+					 ("f"  . consult-find)
+					 :map minibuffer-local-map
+					 ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+					 ("M-r" . consult-history))
     :init
     (setq register-preview-delay 0
           register-preview-function #'consult-register-format)
@@ -2667,8 +2675,9 @@ I guess I need to find a different API instead of Google Search.
           consult-omni--source-sacha-org-favorites
           consult-omni--source-blog))
   :bind
-  (("M-g w" . consult-omni)
-   ("M-g f" . consult-omni-sacha-org-favorites)
+  (:map goto-map
+	 ("w" . consult-omni)
+   ("f" . consult-omni-sacha-org-favorites)
    :map consult-omni-embark-general-actions-map
    ("i l" .  #'sacha-consult-omni-embark-insert-link)
    ("i u" .  #'sacha-consult-omni-embark-insert-url)
@@ -3119,9 +3128,9 @@ To get more results, I can add parameters like ~-- --count 10~ and ~--page 2~. I
 Let's try these shortcuts...
 
 #+begin_src emacs-lisp :results silent
-  (keymap-global-set "M-g b" #'sacha-search-public-notes)
-  (keymap-global-set "M-g N" #'sacha-search-notes)
-  (keymap-global-set "M-g B" #'consult-omni-google-sacha-blog)
+  (bind-key "b" #'sacha-search-public-notes goto-map)
+  (bind-key "N" #'sacha-search-notes goto-map)
+  (bind-key "B" #'consult-omni-google-sacha-blog goto-map)
 #+end_src
 
 ** Marginalia

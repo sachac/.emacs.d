@@ -292,8 +292,9 @@ in a directory in my =load-path=, Emacs can find them.
 This is one of the things people usually want to change right away. By default, Emacs saves backup files in the current directory. These are the files ending in =~= that are cluttering up your directory lists. The following code stashes them all in =~/.config/emacs/backups=, where I can find them with =C-x C-f= (=find-file=) if I really need to.
 
 #+BEGIN_SRC emacs-lisp
-  (setq backup-directory-alist '(("\\.env$" . nil)
-                                                                                                                           ("." . "~/.config/emacs/backups")))
+  (setq backup-directory-alist
+				'(("\\.env$" . nil)
+					("." . "~/.config/emacs/backups")))
   (with-eval-after-load 'tramp
           (setq tramp-backup-directory-alist nil))
 #+END_SRC

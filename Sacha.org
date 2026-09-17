@@ -40971,6 +40971,107 @@ When called interactively, insert at point."
 			text)))
 #+end_src
 
+** Replace YouTube captions from Emacs Lisp                          :emacs:
+:PROPERTIES:
+:CUSTOM_ID: streaming-and-videos-replace-youtube-captions-from-emacs-lisp
+:EXPORT_DATE: 2026-08-09T10:11:30-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2026/08/replace-youtube-captions-from-emacs-lisp/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2026/08/replace-youtube-captions-from-emacs-lisp/
+:END:
+
+I want to be able to easily update YouTube captions from my VTT files. Adding a comment like this:
+
+#+begin_src subed-vtt :eval no :exports code :tangle no
+NOTE
+#+YOUTUBE_URL: https://youtu.be/sxqsIgXYkVw
+#+LANGUAGE: en
+#+end_src
+
+to the first subtitle in my VTT file lets me programmatically replace the captions for the specified language without needing to click through the YouTube interface, saving me at least 9 clicks, a slight delay, and the selection of the file. Now I can just bind it to ~C-c C-c~ when I'm working on correcting or translating captions.
+
+#+begin_src emacs-lisp :tangle lisp/sacha-youtube.el
+;;;###autoload
+(defun sacha-youtube-replace-captions (url language vtt-file)
+  "Replace captions for URL in LANGUAGE with VTT-FILE."
+  (interactive
+	 (let ((params (and (derived-mode-p 'subed-vtt-mode)
+											(sacha-subed-record-youtube-params))))
+		 (list
+			(or (plist-get params :url)
+					(read-string "YouTube URL: "))
+			(or (plist-get params :language)
+					(read-string "Language (ex: fr): "))
+			(if (derived-mode-p 'subed-vtt-mode)
+					(buffer-file-name)
+				(read-file-name "VTT file: ")))))
+  (let* ((video-id (sacha-org-yt-id url))
+         (existing-captions (sacha-youtube-get-captions video-id))
+         (boundary "---------------------------sacha_yt_caption_boundary"))
+    (dolist (item existing-captions)
+      (let ((snippet (alist-get 'snippet item)))
+        (when (string= (alist-get 'language snippet) language)
+          (sacha-youtube-delete-caption (alist-get 'id item)))))
+    (let* ((metadata (json-encode `((snippet . ((videoId . ,video-id)
+																								(language . ,language)
+																								(name . ,language))))))
+           (text (with-temp-buffer
+									 (insert-file-contents vtt-file)
+									 (buffer-string)))
+           (body (concat "--" boundary "\r\n"
+                         "Content-Type: application/json; charset=UTF-8\r\n\r\n"
+                         metadata "\r\n"
+                         "--" boundary "\r\n"
+                         "Content-Type: text/vtt\r\n\r\n"
+                         (encode-coding-string text 'utf-8) "\r\n"
+                         "--" boundary "--\r\n"))
+           (response (request-response-data
+                      (request "https://www.googleapis.com/upload/youtube/v3/captions?uploadType=multipart&part=snippet"
+                        :type "POST"
+                        :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token)))
+                                   ("Content-Type" . ,(format "multipart/related; boundary=%s" boundary))
+                                   ("Accept" . "application/json"))
+                        :data body
+                        :sync t
+                        :parser #'json-read))))
+			(prin1 response)
+			(message "Uploaded.")
+      response)))
+
+(defun sacha-youtube-get-captions (video-id)
+  "Return the list of existing caption tracks for VIDEO-ID."
+  (let ((response (request-response-data
+                   (request (format "https://www.googleapis.com/youtube/v3/captions?part=snippet&videoId=%s" video-id)
+                            :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token))))
+                            :sync t
+                            :parser #'json-read))))
+    (alist-get 'items response)))
+
+(defun sacha-youtube-delete-caption (caption-id)
+  "Delete the caption track identified by CAPTION-ID."
+  (request (format "https://www.googleapis.com/youtube/v3/captions?id=%s" caption-id)
+           :type "DELETE"
+           :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token))))
+           :sync t))
+
+(defun sacha-subed-record-youtube-params ()
+	"Return directives related to YouTube."
+	(save-excursion
+		(goto-char (point-min))
+		(unless (subed-subtitle-msecs-start) (subed-forward-subtitle-start-pos))
+		(list
+		 :url (subed-record-get-directive "#+YOUTUBE_URL")
+		 :language (or (subed-record-get-directive "#+LANGUAGE")
+									 (progn (goto-char (point-min))
+													(when (re-search-forward "^Language: \\(.+\\)\n" (or (save-excursion (re-search-forward "\n\n" nil t))
+																																							 (point-max)))
+														(match-string 1)))))))
+#+end_src
+
+The code uses some functions defined elsewhere in my configuration:
+
+- [[dotemacs:streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream-calculate-an-org-timestamp-s-offset-into-a-youtube-stream][Calculate an Org timestamp's offset into a YouTube stream]]: ~sacha-google-access-token~ and the gcloud auth command-line to get the ~https://www.googleapis.com/auth/youtube~ and ~https://www.googleapis.com/auth/youtube.force-ssl~ scopes
+- [[dotemacs:youtube][YouTube]]: ~sacha-org-yt-id~
+
 * Miscellaneous
 :PROPERTIES:
 :CUSTOM_ID: file-misc

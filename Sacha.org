@@ -35229,7 +35229,74 @@ subtrees so that I can move them around easily.
 #+begin_src emacs-lisp
 (setq browse-url-firefox-program "firefox")
 #+end_src
+** Open link in buffer
+:PROPERTIES:
+:CUSTOM_ID: web-open-link-in-buffer
+:END:
 
+From [[https://karthinks.com/software/even-more-batteries-included-with-emacs/][Even More Batteries Included with Emacs | Karthinks]]:
+
+#+begin_src emacs-lisp
+(defvar sacha-search-url-regexp "\\(news\\(post\\)?:\\|mailto:\\|file:\\|\\(ftp\\|https?\\|telnet\\|gopher\\|gemini\\|www\\|wais\\)://\\)")
+
+;;;###autoload
+(defun sacha-search-occur-browse-url (&optional use-generic-p)
+  "Point browser at a URL in the buffer using completion.
+Which web browser to use depends on the value of the variable
+`browse-url-browser-function'.
+
+Based on https://karthinks.com/software/even-more-batteries-included-with-emacs/"
+  (interactive "P")
+  (let* ((match nil)
+				 (match-data nil)
+				 (context-chars 30)
+				 (context
+					(lambda (beg &optional shrp)
+						(let* ((before
+										(string-pad
+										 (string-replace
+											"\n" ""
+											(buffer-substring-no-properties
+											 beg (max (line-beginning-position) (- beg context-chars))))
+										 context-chars nil t))
+									 (link (string-replace
+													"\n" "" (buffer-substring-no-properties beg (point))))
+									 (after (buffer-substring-no-properties
+													 (point) (min (line-end-position) (+ (point) context-chars)))))
+							(concat ;; (propertize " " 'display '(space :align-to context-chars))
+											(propertize (concat "…" before) 'face 'shadow)
+											(if shrp
+													(propertize link 'face '(:inherit shadow :weight bold
+																														:underline t))
+												link)
+											(propertize (concat after "…") 'face 'shadow))))))
+    (save-excursion
+      (goto-char (point-min))
+      (while (search-forward-regexp sacha-search-url-regexp nil t)
+        (push (cons (match-string-no-properties 0)
+                    (funcall context (match-beginning 0)))
+              match-data))
+      (goto-char (point-min))
+      (while (setq match (text-property-search-forward 'shr-url nil nil))
+        (push (cons (prop-match-value match)
+                    (funcall context (prop-match-beginning match) 'shrp))
+              match-data))
+			(when org-link-any-re
+				(goto-char (point-min))
+				(while (setq match (re-search-forward org-link-any-re nil t))
+					(push (cons (or (match-string 2) (match-string 0))
+											(funcall context (match-beginning 0)))
+								match-data))))
+    (let* ((completion-extra-properties
+            `(:annotation-function
+              ,(lambda (cand) (concat " " (cdr (assoc cand match-data))))
+							:display-sort-function
+							identity))
+           (url (completing-read "Browse URL: " match-data nil t)))
+      (if use-generic-p
+          (browse-url-generic url)
+        (browse-url url)))))
+#+end_src
 ** Emacs: Open URLs or search the web, plus browse-url-handlers  :emacs:org:
 :PROPERTIES:
 :EXPORT_DATE: 2025-07-11T17:09:24-0400

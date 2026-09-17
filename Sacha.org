@@ -829,6 +829,7 @@ from [[dotemacs:web-link]] so that I can get the regular
                   "d" #'sacha-deepgram-recognize-audio
                   "$" #'sacha-deepgram-cost
                   "m" #'mpv-play
+									"M" #'mpv-play-url
                   "w" #'embark-copy-as-kill
                   "c" #'sacha-caption-show
 									"e" #'sacha-embark-video-edit-youtube
@@ -862,7 +863,7 @@ from [[dotemacs:web-link]] so that I can get the regular
 (defun sacha-audio-text (file &optional insert)
   "Get the text for FILE audio.
   If called interactively, copy to the kill ring."
-  (interactive (list (read-file-name "Audio: ")))
+  (interactive (list (read-file-name "Audio: ") current-prefix-arg))
   (let (text)
     (cond
      ((file-exists-p (concat (file-name-sans-extension file) ".txt"))
@@ -875,12 +876,15 @@ from [[dotemacs:web-link]] so that I can get the regular
                   (subed-parse-file (concat (file-name-sans-extension file) ".vtt")))))
      ;; no VTT, let's recognize it
      (t
-      (sacha-deepgram-recognize-audio file)
-      (when (file-exists-p (concat (file-name-sans-extension file) ".vtt"))
-        (setq text (subed-subtitle-list-text
-                    (subed-parse-file (concat (file-name-sans-extension file) ".vtt")))))))
+			(setq text (speech-input-transcribe file))
+			;; ; (sacha-deepgram-recognize-audio file)
+      ;; (when (file-exists-p (concat (file-name-sans-extension file) ".vtt"))
+      ;;   (setq text (subed-subtitle-list-text
+      ;;               (subed-parse-file (concat (file-name-sans-extension file) ".vtt")))))
+			))
     (when text
       (when (called-interactively-p 'any)
+				(message "%s" text)
         (if insert
             (insert text "\n")
           (kill-new text)))
@@ -901,8 +905,12 @@ from [[dotemacs:web-link]] so that I can get the regular
     "d" #'sacha-deepgram-recognize-audio
     "$" #'sacha-deepgram-cost
     "D" #'sacha-audio-braindump-reprocess
+		"x" #'sacha-delete-file-and-link
+		"c" #'copy-file
+		"r" #'rename-file
     "m" #'mpv-play
-    "w" #'sacha-audio-text
+    "w" #'kill-new
+		"t" #'sacha-audio-text
     "W" #'waveform-show)
   (add-to-list 'embark-keymap-alist '(audio . sacha-embark-audio-actions)))
 #+end_src
@@ -19487,17 +19495,26 @@ With prefix argument, also display headlines without a TODO keyword."
 	(org-link-set-parameters
 	 "audio"
 	 :export #'sacha-org-audio-export
-	 :follow #'sacha-org-video-follow
+	 :follow #'sacha-org-audio-follow
 	 :complete #'sacha-org-audio-complete)
 
 	(org-link-set-parameters
 	 "audioi"
 	 :export #'sacha-org-audio-export
-	 :follow #'sacha-org-video-follow
+	 :follow #'sacha-org-audio-follow
 	 :complete #'sacha-org-audio-icon-complete))
 #+end_src
 
 #+begin_src emacs-lisp :tangle "lisp/sacha-org-audio.el"
+;;;###autoload
+(defun sacha-org-audio-follow (path)
+  "Play audio on both microphone and headphones."
+  (interactive)
+	(let ((mpv-default-options (append
+															(list "--vid=no" "--no-video" "--window-minimized=yes"
+																		"--audio-device=pulse/SnippetBridge")
+															mpv-default-options)))
+		(mpv-play path)))
 
 ;;;###autoload
 (defun sacha-org-audio-replace-with-permalink ()

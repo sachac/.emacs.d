@@ -3393,13 +3393,13 @@ From https://github.com/oantolin/emacs-config"
 	(org-link-set-parameters
 	 "audio"
 	 :export #'sacha-org-audio-export
-	 :follow #'sacha-org-video-follow
+	 :follow #'sacha-org-audio-follow
 	 :complete #'sacha-org-audio-complete)
 
 	(org-link-set-parameters
 	 "audioi"
 	 :export #'sacha-org-audio-export
-	 :follow #'sacha-org-video-follow
+	 :follow #'sacha-org-audio-follow
 	 :complete #'sacha-org-audio-icon-complete))
 ;; org-audio-link ends here
 

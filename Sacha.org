@@ -9882,8 +9882,15 @@ yt:https://youtu.be/j2YSbH6OMD8
 I'd like to be able to dictate to Org Mode more fluidly, which includes being able to break thoughts up into paragraphs or add to lists. Here's a possible starting point that works with my other experiments in [[https://sachachua.com/topic/speech-recognition/][speech recognition]]
 
 #+begin_src emacs-lisp :tangle lisp/sacha-speech-input.el
+(defun sacha-whisper-defun-clip (seconds regexp)
+	(cons (concat "\\(?:clip\\|click\\)? \\(?:the last \\)?" regexp)
+				(lambda ()
+					(sacha-clip-seconds seconds)
+					(sacha-whisper-audio-feedback "Clipping")
+					"")))
+
 (defvar sacha-whisper-commands
-  '(("scroll up" . scroll-down-command)
+  `(("scroll up" . scroll-down-command)
     ("scrolling up" . scroll-down-command)
     ("page up" . scroll-down-command)
     ("scroll down" . scroll-up-command)
@@ -9931,6 +9938,15 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 		("\\(?:man,?\\|I command you to\\) \\(.+\\)" . sacha-whisper-execute-extended-command)
 		("start streaming\\|start screaming\\|let's go live" . sacha-whisper-start-streaming)
 		("stop streaming\\|stop screaming\\|over and out" . sacha-whisper-stop-streaming)
+		;; someday it would be nice to have a number parser
+		,(sacha-whisper-defun-clip 10 "\\(?:ten\\|10\\) seconds")
+		,(sacha-whisper-defun-clip 30 "\\(?:thirty\\|30\\) seconds")
+		,(sacha-whisper-defun-clip 60 "\\(?:one\\|1\\) minute")
+		,(sacha-whisper-defun-clip 180 "\\(?:three\\|3\\) minutes")
+		,(sacha-whisper-defun-clip 300 "\\(?:five\\|5\\) minutes")
+		,(sacha-whisper-defun-clip 600 "\\(?:ten\\|10\\) minutes")
+		("rename clip,? \\(.+\\)" . ,(lambda (text) (message "%s" (file-name-base (sacha-clip-add-note-to-latest text))) ""))
+		("instant replay" . sacha-clip-play-latest)
 		("panic button" . sacha-obs-panic))
   "Commands for speech recognition.")
 
@@ -10007,7 +10023,7 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
   (interactive)
 	(obs-websocket-stop-recording)
 	(obs-websocket-update-recording-status)
-	(sit-for 0.2)
+	(sit-for 1)
 	(sacha-whisper-audio-feedback
 	 (if obs-websocket-recording-p
 			 "Weird"
@@ -24557,7 +24573,7 @@ Start with LIMIT results and keep only unique blog posts."
 	(setq file (replace-regexp-in-string "^screen-" "" (file-name-base file)))
 	(cond
 	 ((string-match
-		 "\\([0-9][0-9][0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)"
+		 "\\([0-9][0-9][0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)[-_ ]?\\([0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)"
 		 file)
 		(date-to-time (format "%s-%s-%s %s:%s:%s"
 													(match-string 1 file)
@@ -41074,15 +41090,76 @@ I want to be able to quickly save the last thirty seconds or the last five minut
   "Clip the specified number of seconds from the current recording.
 Save it to another file in my recordings directory, possibly with a note."
   (interactive)
-	(let* ((latest-recording (sacha-latest-file sacha-recordings-dir
-																							"\\.mkv\\'"))
-				 (recording-start (file-attributes latest-recording))
+	(let* ((latest-recording (sacha-latest-file
+														sacha-recordings-dir
+														(lambda (o)
+															(string-match
+															 "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][_ ][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\.mkv"
+															 (file-name-nondirectory o)))))
+				 (recording-start (sacha-filename-timestamp latest-recording))
 				 (now (current-time))
-				 (since-wall-time (time-subtract now (seconds-to-time seconds)))
+				 (file-offset (- (time-to-seconds now) seconds recording-start))
+				 (new-filename (concat (file-name-sans-extension
+																latest-recording)
+															 "-clip-"
+															 (format-time-string "%Y-%m-%d-%H-%M-%S"
+																									 (seconds-to-time
+																										(- (time-to-seconds now)
+																											 seconds)))
+															 "-to-"
+															 (format-time-string "%Y-%m-%d-%H-%M-%S" now)
+															 (if note (concat "-note-" note) "")
+															 ".mkv")))
+		(make-process
+		 :name "clip"
+		 :buffer (get-buffer-create "*ffmpeg*")
+		 :command
+		 (list "ffmpeg"
+					 "-err_detect" "ignore_err" "-flags" "low_delay"
+					 "-i" latest-recording
+					 "-ss"
+					 (format "%.3f" file-offset)
+					 "-to" (format "%.3f" (+ file-offset seconds))
 
-				 )
-		)
-  )
+					 "-c:a" "copy"
+					 "-c:v" "copy"
+					 "-y"
+					 new-filename))
+		(message "Clipped %d to %s" seconds new-filename)
+		new-filename))
+
+(defun sacha-latest-clip ()
+  "Return the latest clip."
+	(sacha-latest-file
+	 sacha-recordings-dir
+	 (lambda (o)
+		 (string-match
+			"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][_ ][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-clip.*\\.mkv"
+			(file-name-nondirectory o)))))
+
+(defvar mpv-default-options)
+
+;;;###autoload
+(defun sacha-clip-play-latest ()
+  "Play the latest clip on microphone and headphones."
+  (interactive)
+	(let ((mpv-default-options (append (list "--audio-device=pulse/SnippetBridge")
+																		 mpv-default-options)))
+		(mpv-play (sacha-latest-clip))))
+
+;; (sacha-clip-seconds 10 "-test")
+
+(defun sacha-clip-add-note-to-latest (note)
+	"Rename the latest clip."
+	(interactive (list (read-string (format "Note (%s): " (file-name-base (sacha-latest-clip))))))
+	(when-let* ((filename (sacha-latest-clip))
+							(new-filename (if (string-match "-note-\\(.+\\)\\.mkv" filename)
+																(replace-match note nil nil filename 1)
+															(concat (file-name-sans-extension filename)
+																			"-note-" note ".mkv"))))
+		(rename-file filename new-filename)
+		(message "%s" (file-name-base new-filename))
+		new-filename))
 #+end_src
 ** Stream notes
 :PROPERTIES:

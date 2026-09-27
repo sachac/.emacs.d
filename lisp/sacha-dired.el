@@ -30,7 +30,7 @@
 ;;   https://sachachua.com/dotemacs#navigation-dired-mark-today-s-files-or-other-recent-files
 ;;
 ;; - Open files externally
-;;   https://sachachua.com/dotemacs#navigation
+;;   https://sachachua.com/dotemacs#navigation-open-files-externally
 ;;
 ;;; Code:
 
@@ -73,7 +73,7 @@ From https://mbork.pl/2026-05-18_Marking_today%e2%80%99s_files_in_Dired"
      msg)))
 ;; Mark today's files or other recent files:1 ends here
 
-;; [[file:../Sacha.org::*Open files externally][Open files externally:1]]
+;; [[file:../Sacha.org::#navigation-open-files-externally][Open files externally:1]]
 ;;;###autoload
 (defun dired-open-externally (&optional arg)
   "Open marked or current file in operating system's default application.

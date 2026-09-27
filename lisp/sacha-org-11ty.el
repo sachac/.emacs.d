@@ -29,6 +29,9 @@
 ;; - 11ty static site generation
 ;;   https://sachachua.com/dotemacs#11ty
 ;;
+;; - Making podcasts easier to publish
+;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-making-podcasts-easier-to-publish
+;;
 ;; - Moving my Org post subtree to the 11ty directory
 ;;   https://sachachua.com/dotemacs#moving-sacha-org-post-subtree-to-the-11ty-directory
 ;;
@@ -270,6 +273,33 @@ This is extracted from lines like:
 		(insert "#+CAPTION: " caption "\n"
 						(org-link-make-string (concat "file:" path)) "\n")))
 ;; 11ty static site generation:2 ends here
+
+;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-making-podcasts-easier-to-publish][Making podcasts easier to publish:1]]
+;;;###autoload
+(defun sacha-org-11ty-add-podcast-frontmatter (front-matter info)
+  "Add podcast-related frontmatter."
+  (interactive)
+	(when (org-entry-get-with-inheritance "AUDIO_URL")
+		(setq front-matter (plist-put front-matter :audioUrl (org-entry-get-with-inheritance "AUDIO_URL")))
+		(setq front-matter (plist-put front-matter :audioType "audio/mpeg"))
+		(when (org-entry-get-with-inheritance "AUDIO_LENGTH")
+			(setq front-matter (plist-put front-matter :audioLength (org-entry-get-with-inheritance "AUDIO_LENGTH")))))
+	(when (org-entry-get-with-inheritance "POST_CLASS")
+		(setq front-matter (plist-put front-matter :postClass (org-entry-get-with-inheritance "POST_CLASS"))))
+	front-matter)
+
+(defvar sacha-podcast-file-directory "~/proj/yay-emacs" "Directory with podcast files.")
+
+;;;###autoload
+(defun sacha-stream-add-podcast-info ()
+	(interactive)
+	(let ((slug (sacha-make-slug (org-entry-get (point) "ITEM"))))
+		(when (file-exists-p (expand-file-name (concat slug ".mp3") sacha-podcast-file-directory))
+			(org-entry-put (point) "AUDIO_LENGTH"
+										 (number-to-string (file-attribute-size (file-attributes (expand-file-name (concat slug ".mp3") sacha-podcast-file-directory)))))
+			(org-entry-put (point) "AUDIO_URL"
+										 (format "https://archive.org/details/%s/%s.mp3" slug slug)))))
+;; Making podcasts easier to publish:1 ends here
 
 ;; [[file:../Sacha.org::#moving-sacha-org-post-subtree-to-the-11ty-directory][Moving my Org post subtree to the 11ty directory:1]]
 ;;;###autoload

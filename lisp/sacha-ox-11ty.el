@@ -27,13 +27,13 @@
 ;; Related Emacs config sections:
 ;;
 ;; - Making podcasts easier to publish
-;;   https://sachachua.com/dotemacs#11ty
+;;   https://sachachua.com/dotemacs#org-mode-publishing-11ty-static-site-generation-making-podcasts-easier-to-publish
 ;;
 ;;; Code:
 
 
 
-;; [[file:../Sacha.org::*Making podcasts easier to publish][Making podcasts easier to publish:1]]
+;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-making-podcasts-easier-to-publish][Making podcasts easier to publish:1]]
 ;;;###autoload
 (defun sacha-org-11ty-add-podcast-frontmatter (front-matter info)
   "Add podcast-related frontmatter."

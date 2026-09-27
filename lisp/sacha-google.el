@@ -118,6 +118,32 @@ When called interactively, copy it."
 
 (defvar sacha-google-youtube-live-broadcasts nil "Cache.")
 (defvar sacha-google-youtube-stream-offset-seconds 10 "Number of seconds to offset.")
+(defvar sacha-google-youtube-stream-keys nil "Stream keys.")
+(defun sacha-google-youtube-create-video-stream ()
+	(request-response-data
+	 (request "https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn"
+		 :method "POST"
+		 :body (json-encode
+						`((snippet (title . "Spontaneous"))
+							(cdn (frameRate . "variable")
+									 (ingestionType . "rtmp")
+									 (resolution . "variable"))))
+		 :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token)))
+								("Accept" . "application/json")
+								("Content-Type" . "application/json"))
+		 :sync t
+		 :parser #'json-read)))
+
+(defun sacha-google-youtube-default-broadcast ()
+	"Return the current broadcast or the default one."
+	(or
+	 (sacha-google-youtube-live-get-broadcast-at-time (current-time))
+	 (seq-find
+		(lambda (o)
+			(let-alist o
+				(and (null .snippet.scheduledStartTime)
+						 (null .snippet.actualStartTime))))
+		(alist-get 'items (sacha-google-youtube-live-broadcasts)))))
 
 ;;;###autoload
 (defun sacha-google-youtube-live-broadcasts ()
@@ -125,7 +151,7 @@ When called interactively, copy it."
 	(or sacha-google-youtube-live-broadcasts
 			(setq sacha-google-youtube-live-broadcasts
 						(request-response-data
-						 (request "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet&mine=true&maxResults=50"
+						 (request "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet&mine=true&maxResults=100"
 							 :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token))))
 							 :sync t
 							 :parser #'json-read)))))
@@ -229,9 +255,9 @@ Use this when there is no embedded player."
 	(while (re-search-forward "^#[0-9]+\n" end t)
 		(replace-match ""))
 	(goto-char beg)
-	(flush-lines "^​?$" beg end)
+	(flush-lines "^​$" beg end)
 	(goto-char beg)
-	(while (re-search-forward "^\\([0-9:]+ [AP]M\\)\n@\\(.+?\\)\n\\(.+\\)" end t)
+	(while (re-search-forward "^\\([0-9:]+ [AP]M\\)\n?@\\(.+?\\)\n\\(.+\\)" end t)
 		(replace-match "- nick:\\2 \\3")))
 
 (defvar sacha-stream-pages

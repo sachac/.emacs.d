@@ -54,13 +54,16 @@
 ;;   https://sachachua.com/dotemacs#streaming-download-and-post-process
 ;;
 ;; - Fix up transcript
-;;   https://sachachua.com/dotemacs#streaming
+;;   https://sachachua.com/dotemacs#streaming-fix-up-transcript
 ;;
 ;; - Try continuous streaming and the Google Speech Recognition API
 ;;   https://sachachua.com/dotemacs#speech-to-text
 ;;
 ;; - Schedule Mastodon toots for an upcoming event
 ;;   https://sachachua.com/dotemacs#streaming-schedule-mastodon-toots-for-an-upcoming-event
+;;
+;; - Set up a spontaneous livestream on YouTube
+;;   https://sachachua.com/dotemacs#streaming
 ;;
 ;; - Create YouTube livestream broadcasts from Emacs Lisp
 ;;   https://sachachua.com/dotemacs#streaming-create-youtube-livestream-broadcasts-from-emacs-lisp
@@ -245,15 +248,34 @@
        ,sacha-stream-inbox-target
        "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n%a"
        :prepend t)
-
+			("wT" "Task for today" entry
+       (file ,sacha-stream-inbox-target)
+       "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \".\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       :prepend t :immediate-finish t)
+			("w>" "Task for tomorrow" entry
+       (file ,sacha-stream-inbox-target)
+       "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       :prepend t :immediate-finish t)
+			("ww" "Task for next week" entry
+       (file ,sacha-stream-inbox-target)
+       "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       :prepend t :immediate-finish t)
+			("wt" "Task for someday" entry
+       (file ,sacha-stream-inbox-target)
+       "* SOMEDAY %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       :prepend t :immediate-finish t)
+			("wn" "Note" entry
+       (file ,sacha-stream-inbox-target)
+       "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       :prepend t :immediate-finish t)
       ("t" "Task with annotation" entry
        ,sacha-stream-inbox-target
        "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
        :prepend t)
       ("i" "Interrupting task" entry
        ,sacha-stream-inbox-target
-       "* STARTED %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
-       :clock-in :clock-resume :prepend t)
+       "* STARTED %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       :clock-in :clock-resume :prepend t )
       ("T" "Task without annotation" entry
        ,sacha-stream-inbox-target
        "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n"
@@ -484,6 +506,7 @@ This uses a hotkey I defined in OBS."
 
 (defvar obs-websocket-connected-p)
 (declare-function obs-websocket-connected-p "obs-websocket")
+
 ;;;###autoload
 (defun sacha-stream-obs-display-text-ongoing (text)
   "Display TEXT in the current task area in my OBS."
@@ -594,42 +617,43 @@ This uses a hotkey I defined in OBS."
 									 title)))
 
 ;;;###autoload
-(defun sacha-stream-preprocess-transcript ()
+(defun sacha-stream-prepare-transcript-for-editing (&optional filename)
   "Prepare transcript for editing.
 Remove duplicate speaker tags, wrap subtitles,
 align with word data, and fix common errors."
   (interactive)
-	;; Verify that we have the files we want
-	(cl-assert
-	 (file-exists-p
-		(concat (file-name-sans-extension (buffer-file-name)) ".json")))
-	(cl-assert
-	 (file-exists-p
-		(concat (file-name-sans-extension (buffer-file-name)) ".txt")))
-	(when (file-exists-p
-				 (concat (file-name-sans-extension (buffer-file-name)) ".vtt"))
-		(delete-file
-		 (concat (file-name-sans-extension (buffer-file-name)) ".vtt")))
-	(with-current-buffer
-			(find-file-noselect
-			 (concat (file-name-sans-extension (buffer-file-name)) ".txt"))
-		(goto-char (point-min))
-		(subed-remove-duplicate-speakers)
-		(subed-fill-subtitles)
-		(save-buffer)
-		(subed-align-word-data
-		 (concat (file-name-sans-extension (buffer-file-name)) ".json")
-		 (concat (file-name-sans-extension (buffer-file-name)) ".txt")
-		 "VTT"))
-	(with-current-buffer
-			(find-file-noselect
-			 (concat (file-name-sans-extension (buffer-file-name)) ".vtt"))
-		(sacha-subed-fix-common-errors-from-start)
-		(save-buffer)
-		(switch-to-buffer (current-buffer))))
+	(let ((base (file-name-sans-extension (or filename (buffer-file-name)))))
+		;; Verify that we have the files we want
+		(cl-assert
+		 (file-exists-p
+			(concat base ".json")))
+		(cl-assert
+		 (file-exists-p
+			(concat base ".txt")))
+		(when (file-exists-p
+					 (concat base ".vtt"))
+			(delete-file
+			 (concat base ".vtt")))
+		(with-current-buffer
+				(find-file-noselect
+				 (concat base ".txt"))
+			(goto-char (point-min))
+			(subed-remove-duplicate-speakers)
+			(subed-fill-subtitles)
+			(save-buffer)
+			(subed-align-word-data
+			 (concat base ".json")
+			 (concat base ".txt")
+			 "VTT"))
+		(with-current-buffer
+				(find-file-noselect
+				 (concat base ".vtt"))
+			(sacha-subed-fix-common-errors-from-start)
+			(save-buffer)
+			(switch-to-buffer (current-buffer)))))
 ;; Download and post-process:2 ends here
 
-;; [[file:../Sacha.org::*Fix up transcript][Fix up transcript:1]]
+;; [[file:../Sacha.org::#streaming-fix-up-transcript][Fix up transcript:1]]
 ;;;###autoload
 (defun sacha-stream-preprocess-edited-transcript ()
   "Use simple symbols.
@@ -737,13 +761,14 @@ Move point forward."
 		(unwind-protect
 				(catch 'done
 					(while (not (eobp))
-						(let ((line (with-selected-window edited-text-window
-													(goto-char (line-beginning-position))
-													(while (looking-at "^\\* \\|\n")
-														(forward-line))
-													(buffer-substring-no-properties
-													 (line-beginning-position)
-													 (line-end-position)))))
+						(let* ((line (with-selected-window edited-text-window
+													 (goto-char (line-beginning-position))
+													 (while (looking-at "^\\* \\|\n")
+														 (forward-line))
+													 (buffer-substring
+														(line-beginning-position)
+														(line-end-position))))
+									 (replacement (string-trim  (subed-wdiff-calculate-based-on-text-properties line))))
 							(cond
 							 ;; Good match, replace current line
 							 ((subed-word-data-compare-normalized-string-distance
@@ -751,7 +776,7 @@ Move point forward."
 								 line)
 								(sacha-subed-set-subtitle-text-to-line-in-other-window-and-advance
 								 edited-text-window
-								 line)
+								 replacement)
 								(undo-boundary))
 							 ;; Might be a deletion
 							 ((setq match-after
@@ -767,7 +792,7 @@ Move point forward."
 									(subed-kill-subtitle))
 								(sacha-subed-set-subtitle-text-to-line-in-other-window-and-advance
 								 edited-text-window
-								 line)
+								 replacement)
 								(undo-boundary))
 							 ((progn
 									(setq overlay (make-overlay (line-beginning-position)
@@ -778,7 +803,7 @@ Move point forward."
 										(delete-overlay overlay)))
 								(sacha-subed-set-subtitle-text-to-line-in-other-window-and-advance
 								 edited-text-window
-								 line))
+								 replacement))
 							 (t
 								(throw 'done (point)))))))
 			(when overlay (delete-overlay overlay)))))
@@ -859,37 +884,140 @@ Move point forward."
 									 " "
 									 permalink
 									 " "
-									 translated-times)
+									 translated-times
+									 " "
+									 (mapconcat (lambda (tag) (concat "#" tag))
+												(seq-remove (lambda (tag) (string-match "^_" tag))
+																		(org-get-tags))
+												" "))
 					 sched-time))))))
 ;; Schedule Mastodon toots for an upcoming event:1 ends here
+
+;; [[file:../Sacha.org::*Set up a spontaneous livestream on YouTube][Set up a spontaneous livestream on YouTube:1]]
+;;;###autoload
+(defun sacha-stream-update-details (title description privacy)
+  "Update the title and description of the default or current stream.
+Use the current Org subtree for details.
+If called with a prefix argument, prompt for the string instead.
+Check for property PRIVACY as well."
+  (interactive (if current-prefix-arg
+									 (list (read-string "Title: ")
+												 (read-string "Description: ")
+												 (let ((completion-extra-properties (list :display-sort-function 'identity)))
+													 (completing-read "Privacy: " '("public" "unlisted" "private"))))
+								 (list (org-entry-get (point) "ITEM")
+											 (org-export-string-as
+												(sacha-org-subtree-text)
+												'sacha-plain-text t)
+											 (or (org-entry-get-with-inheritance "PRIVACY")
+													 "public"))))
+	(sacha-stream-youtube-update-default-livestream-details
+	 :title title
+	 :description description
+	 :privacy privacy))
+
+(defvar sacha-stream-livestreaming-control "https://studio.youtube.com/channel/.../livestreaming/dashboard"
+	"URL to control room.")
+
+(defun sacha-whisper-prepare-to-stream ()
+	(interactive)
+	(sacha-stream-or-video-global-mode 1)
+	(if (org-entry-get-with-inheritance "YOUTUBE_URL")
+			(progn
+				;; scheduled
+				(browse-url (format "https://studio.youtube.com/video/%s/livestreaming"
+														(sacha-org-yt-id (org-entry-get-with-inheritance "YOUTUBE_URL"))))
+				(obs-websocket-set-current-profile
+				 "Scheduled"
+				 (lambda ()
+					 (sacha-whisper-audio-feedback
+						(if (string= obs-websocket-profile-name "Scheduled")
+								"Scheduled"
+							"Weird")))))
+		(call-interactively #'sacha-stream-prepare-spontaneous-stream)
+		(sit-for 1)
+		(browse-url sacha-stream-livestreaming-control)))
+
+;;;###autoload
+(defun sacha-stream-prepare-spontaneous-stream (title description privacy)
+  "Set up a spontaneous broadcast.
+Use the current Org subtree for details.
+If called with a prefix argument, prompt for the string instead."
+  (interactive (if current-prefix-arg
+									 (list (read-string "Title: ")
+												 (read-string "Description: ")
+												 (let ((completion-extra-properties (list :display-sort-function 'identity)))
+													 (completing-read "Privacy: " '("public" "unlisted" "private"))))
+								 (list (org-entry-get (point) "ITEM")
+											 (org-export-string-as
+												(sacha-org-subtree-text)
+												'sacha-plain-text t)
+											 (or (org-entry-get-with-inheritance "PRIVACY")
+													 "public"))))
+	(sacha-stream-update-details title description privacy)
+  (obs-websocket-set-current-profile
+	 "Spontaneous"
+	 (lambda ()
+		 (sacha-whisper-audio-feedback
+			(if (string= obs-websocket-profile-name "Spontaneous")
+					"Ready"
+				"Weird")))))
+;; Set up a spontaneous livestream on YouTube:1 ends here
 
 ;; [[file:../Sacha.org::#streaming-create-youtube-livestream-broadcasts-from-emacs-lisp][Create YouTube livestream broadcasts from Emacs Lisp:1]]
 (declare-function sacha-date-to-iso-utc "sacha-lisp")
 
 (cl-defun sacha-stream-youtube-format-broadcast (&key time title description privacy
 																											end-time
-																											(auto-start :json-false)
-																											(auto-stop :json-false))
-	"Format arguments as a broadcast object for YouTube data API."
-	(setq time (sacha-date-to-iso-utc time))
+																											(auto-start t) ; :json-false
+																											(auto-stop t) ; or :json-false
+																											id
+																											base)
+	"Format arguments as a broadcast object for YouTube data API.
+BASE is a broadcast object."
+	(when time (setq time (sacha-date-to-iso-utc time)))
 	(when end-time (setq end-time (sacha-date-to-iso-utc end-time)))
-	`((snippet
-		 (title . ,title)
-		 (scheduledStartTime . ,time)
-		 (scheduledEndTime . ,end-time)
-		 (description . ,description))
-		(status
-		 (privacyStatus . ,privacy))
-		(contentDetails
-		 (enableAutoStart . ,auto-start)
-		 (enableAutoStop . ,auto-stop))))
+	(let-alist base
+		`(,@base
+			(id . ,(or id .id))
+			(snippet
+			 (title . ,(or title .snippet.title))
+			 (scheduledStartTime
+				.
+				,(or
+					time .snippet.scheduledStartTime))
+			 (scheduledEndTime . ,(or end-time .snippet.scheduledEndTime))
+			 (description . ,(or description .snippet.description)))
+			(status (privacyStatus . ,(or privacy .status.privacyStatus)))
+			(contentDetails
+			 (monitorStream
+				(enableMonitorStream . ,(or .contentDetails.monitorStream.enableMonitorStream t))
+				(broadcastStreamDelayMs . ,(or .contentDetails.monitorStream.broadcastStreamDelayMs 0)))
+			 (enableAutoStart . ,(or auto-start .contentDetails.enableAutoStart))
+			 (enableAutoStop . ,(or auto-start .contentDetails.enableAutoStop))))))
 
+(cl-defun sacha-stream-youtube-update-livestream-details (&rest args)
+	(request-response-data
+	 (request "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,contentDetails,status"
+		 :type "PUT"
+		 :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token)))
+								("Accept" . "application/json")
+								("Content-Type" . "application/json"))
+		 :data (json-encode (apply 'sacha-stream-youtube-format-broadcast args))
+		 :sync t
+		 :parser #'json-read)))
+
+(defun sacha-stream-youtube-update-default-livestream-details (&rest args)
+	"Update the default or current livestream."
+	(apply 'sacha-stream-youtube-update-livestream-details
+				 :base (sacha-google-youtube-default-broadcast)
+				 args))
 
 ;;;###autoload
 (cl-defun sacha-stream-youtube-schedule-livestream (&key time title description privacy
 																												 end-time
-																												 (auto-start json-false)
-																												 (auto-stop json-false)
+																												 (auto-start t) ; or :json-false
+																												 (auto-stop t) ; or :json-false
 																												 thumbnail)
   "Schedule a livestream at TIME with TITLE, DESCRIPTION, and PRIVACY.
 You can also set AUTO-START and AUTO-STOP."
@@ -934,6 +1062,7 @@ You can also set AUTO-START and AUTO-STOP."
 				(message "%s" url)
 				(kill-new url)))
 		response))
+
 
 ;;;###autoload
 (defun sacha-stream-youtube-set-video-thumbnail (video-id thumbnail)

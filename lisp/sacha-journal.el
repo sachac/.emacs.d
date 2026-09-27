@@ -26,6 +26,9 @@
 ;;
 ;; Related Emacs config sections:
 ;;
+;; - Update journal entry from paragraph
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-update-journal-entry-from-paragraph
+;;
 ;; - Other speed commands
 ;;   https://sachachua.com/dotemacs#org-mode-keyboard-shortcuts-other-speed-commands
 ;;
@@ -50,6 +53,77 @@
 ;;; Code:
 
 
+
+;; [[file:../Sacha.org::#writing-and-editing-learning-french-update-journal-entry-from-paragraph][Update journal entry from paragraph:1]]
+(defun sacha-insert-journal-entries-for-french (date)
+	"Insert entries starting DATE."
+	(interactive (list (org-read-date nil t nil "Start date: " nil "-mon")))
+	(let* ((system-time-locale "fr_FR.UTF-8")
+				 (end-date (time-add date (days-to-time 6)))
+				 (filter-end-date (time-add date (days-to-time 7)))
+				 (entries
+					(seq-group-by
+					 #'sacha-journal-date
+					 (sacha-journal-get-entries (format-time-string "%Y-%m-%d" date)
+																			(format-time-string "%Y-%m-%d" filter-end-date))))
+				 s)
+		(setq s
+					(concat
+					 (if (string= (format-time-string "%B" date)
+												(format-time-string "%B" end-date))
+							 (format "** Semaine du %s au %s %s\n"
+											 (format-time-string "%-d" date)
+											 (format-time-string "%-d" end-date)
+											 (format-time-string "%B" end-date))
+						 (format "** Semaine du %s au %s\n"
+										 (format-time-string "%-d %B" date)
+										 (format-time-string "%-d %B" end-date)))
+					 (cl-loop for i from 0 to 6
+										concat
+										(let ((day (time-add date (days-to-time i))))
+											(concat
+											 (format-time-string "*** %A %-d\n:PROPERTIES:\n:DATE: %Y-%m-%d\n:END:\n\n" day)
+											 (mapconcat
+												(lambda (o)
+													(format "%s journal:%s\n\n"
+																	(sacha-journal-note o)
+																	(sacha-journal-zidstring o)))
+												(reverse
+												 (cdr
+													(assoc-string (format-time-string "%Y-%m-%d" day)
+																				entries)))))))))
+		(insert s)))
+;;;###autoload
+(defun sacha-journal-update-from-paragraph ()
+  "Update journal entry from paragraph."
+  (interactive)
+	(save-excursion
+		(let ((text (string-trim (thing-at-point 'paragraph)))
+					id)
+			(when (string-match " *journal:\\([-0-9]+\\)" text)
+				(setq id (match-string 1 text))
+				(setq text (replace-match "" nil nil text))
+				(sacha-journal-update
+				 (list
+					:ZIDString id
+					:Note text))))))
+
+;;;###autoload
+(defun sacha-journal-update-paragraphs ()
+	(interactive)
+	(while (not (eobp))
+		(while (and (looking-at "^\\*+")
+								(not (eobp)))
+			(org-end-of-meta-data t)
+			(skip-syntax-forward " "))
+		(sacha-journal-update-from-paragraph)
+		(forward-paragraph)
+		(skip-syntax-forward " ")
+		(while (and (looking-at "^\\*+")
+								(not (eobp)))
+			(org-end-of-meta-data)
+			(skip-syntax-forward " "))))
+;; Update journal entry from paragraph:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-keyboard-shortcuts-other-speed-commands][Other speed commands:5]]
 ;;;###autoload
@@ -189,15 +263,20 @@
 
 ;;;###autoload
 (defun sacha-journal-post (note &rest plist)
-  (interactive (list (read-string "Note: ")
-                     :Date (concat (org-read-date "Date: ") " 23:00")
-                     :Category (sacha-journal-read-category (condition-case nil (sacha-journal-guess-category) (error nil)))))
+  (interactive (list
+								(if current-prefix-arg
+										(string-trim (thing-at-point 'paragraph))
+									(read-string "Note: "))
+                :Date (concat (org-read-date nil nil nil "Date: " nil (when (derived-mode-p 'org-mode)
+																																				(org-entry-get (point) "DATE")))
+															" 23:00")
+                :Category (sacha-journal-read-category (condition-case nil (sacha-journal-guess-category) (error nil)))))
   (setq plist (append `(:Note ,note) plist))
   (let ((url-request-method "POST")
         (url-request-extra-headers `(("Content-Type" . "application/json")
-																		("Authorization" . ,(concat "Basic "
-																																(base64-encode-string
-																																 (concat sacha-journal-user ":" sacha-journal-password))))))
+																		 ("Authorization" . ,(concat "Basic "
+																																 (base64-encode-string
+																																	(concat sacha-journal-user ":" sacha-journal-password))))))
         (json-object-type 'plist)
         (url-request-data (encode-coding-string (json-encode-plist plist) 'utf-8))
         data)
@@ -206,7 +285,11 @@
       (re-search-forward "^$")
       (setq data (json-read))
       (message "%s" (plist-get data :ZIDString))
-      data)))
+      data)
+		(when (and (called-interactively-p 'any)
+							 current-prefix-arg))
+		(unless (looking-at "\n") (end-of-paragraph-text))
+		(insert " journal:" (plist-get data :ZIDString))))
 
 ;;;###autoload
 (defun sacha-journal-get-by-zidstring (zidstring)
@@ -235,7 +318,10 @@
 (defun sacha-journal-update (plist)
   "Update journal entry using PLIST."
   (let ((url-request-method "PUT")
-        (url-request-data (json-encode-plist plist)))
+        (url-request-data
+				 (encode-coding-string
+					(json-encode-plist plist)
+					'utf-8)))
     (sacha-json-request (concat sacha-journal-url "/api/entries/" (plist-get plist :ZIDString)))))
 ;; (sacha-journal-post "Hello, world")
 
@@ -389,19 +475,23 @@
   (browse-url (format "%s/zid/%s" sacha-journal-url id)))
 
 ;;;###autoload
+(defvar sacha-org-journal-include-ids nil "Non-nil means export the ID.")
+
 (defun sacha-org-journal-export (link description format &optional arg)
   (let* ((path (concat "%s/zid/" sacha-journal-url link))
          (image (concat "%s/zid/" sacha-journal-url link))
          (desc (or description link)))
-    (cond
-     ((or (eq format 'html) (eq format 'wp))
-      (if description
-          (format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc)
-        (format "<a target=\"_blank\" href=\"%s\"><img src=\"%s\"><br />%s</a>" path image desc)))
-     ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
-     ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
-     ((eq format 'ascii) (format "%s <%s>" desc path))
-     (t path))))
+		(if sacha-org-journal-include-ids
+				(cond
+				 ((or (eq format 'html) (eq format 'wp))
+					(if description
+							(format "<a target=\"_blank\" href=\"%s\">%s</a>" path desc)
+						(format "<a target=\"_blank\" href=\"%s\"><img src=\"%s\"><br />%s</a>" path image desc)))
+				 ((eq format 'latex) (format "\\href{%s}{%s}" path desc))
+				 ((eq format 'texinfo) (format "@uref{%s,%s}" path desc))
+				 ((eq format 'ascii) (format "%s <%s>" desc path))
+				 (t path))
+			"")))
 
 ;;;###autoload
 (defun sacha-org-journal-complete (&optional prefix)

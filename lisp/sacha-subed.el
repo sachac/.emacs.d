@@ -29,6 +29,9 @@
 ;; - Embark and subed
 ;;   https://sachachua.com/dotemacs#embark-subed
 ;;
+;; - Searching transcripts
+;;   https://sachachua.com/dotemacs#multimedia-learning-french
+;;
 ;; - Reformat speaker in a two-speaker transcript
 ;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-reformat-speaker-in-a-two-speaker-transcript
 ;;
@@ -89,6 +92,9 @@
 ;; - Removing gaps and merging subtitles
 ;;   https://sachachua.com/dotemacs#subed-gaps
 ;;
+;; - Save a tsv.txt for easy uploading to Gemini Notebook
+;;   https://sachachua.com/dotemacs#subed
+;;
 ;; - Editing subtitles
 ;;   https://sachachua.com/dotemacs#editing-subtitles
 ;;
@@ -146,6 +152,22 @@
         (sacha-subed-copy-timestamp-from-previous)
       (sacha-subed-copy-timestamp-to-next))))
 ;; Embark and subed:1 ends here
+
+;; [[file:../Sacha.org::*Searching transcripts][Searching transcripts:1]]
+;;;###autoload
+(defun sacha-subed-clean-up-youtube-vtt-and-convert-to-sentence-lines ()
+  "Remove duplicate lines and convert to text without tags."
+  (interactive)
+	(let ((file (buffer-file-name)))
+		(subed-delete-duplicate-lines)
+		(subed-convert "TXT")
+		(goto-char (point-min))
+		(while (re-search-forward "<.+?>" nil t)
+			(replace-match ""))
+		(let ((fill-column most-positive-fixnum))
+			(fill-paragraph-semlf))
+		(subed-align-word-data file (buffer-file-name) "VTT")))
+;; Searching transcripts:1 ends here
 
 ;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-reformat-speaker-in-a-two-speaker-transcript][Reformat speaker in a two-speaker transcript:1]]
 ;;;###autoload
@@ -962,21 +984,28 @@ FILE should be a VTT or SRT file produced by whisperx with the
 ;;;###autoload
 (defun sacha-subed-find-next-fix-point ()
   (when (re-search-forward
-         (format "\\<%s\\>"
+         (format "\\_<\\(%s\\)\\_>"
                  (downcase
-                  (regexp-opt (seq-mapcat
-                               (lambda (o)
-                                 (if (listp o)
-                                     (if (string= (car o) "") (cdr o) o)
-                                   (list o)))
-                               sacha-subed-common-edits))))
+                  (string-join
+									 (seq-mapcat
+										(lambda (o)
+											(if (listp o)
+													(if (string= (car o) "") (cdr o) o)
+												(list o)))
+										sacha-subed-common-edits)
+									 "\\|")))
          nil t)
     (goto-char (match-beginning 0))
-    (seq-find (lambda (o)
-                (if (listp o)
-                    (seq-find (lambda (s) (string= (downcase s) (downcase (match-string 0)))) o)
-                  (string= (downcase o) (downcase (match-string 0)))))
-              sacha-subed-common-edits)))
+    (seq-find
+		 (lambda (o)
+       (if (listp o)
+           (seq-find (lambda (s)
+											 (save-match-data
+												 (string-match
+													(format "\\_<%s\\>" (downcase s))
+													(downcase (match-string 0))))) o)
+         (string= (downcase o) (downcase (match-string 0)))))
+     sacha-subed-common-edits)))
 
 ;;;###autoload
 (defun sacha-subed-fix-common-error ()
@@ -1295,6 +1324,22 @@ If threshold is 0, remove all gaps."
 				(goto-char (point-max))))))
 
 ;; Removing gaps and merging subtitles:1 ends here
+
+;; [[file:../Sacha.org::*Save a tsv.txt for easy uploading to Gemini Notebook][Save a tsv.txt for easy uploading to Gemini Notebook:1]]
+;;;###autoload
+(defun sacha-subed-convert-tsv-txt ()
+  "Convert to tsv with a .txt extension."
+  (interactive)
+	(let ((file (concat (file-name-base (buffer-file-name)) ".tsv.txt")))
+		(subed-create-file
+		 file
+		 (subed-subtitle-list)
+		 t
+		 'subed-tsv-mode)
+		(kill-new file)
+		(message "%s" file)
+		file))
+;; Save a tsv.txt for easy uploading to Gemini Notebook:1 ends here
 
 ;; [[file:../Sacha.org::#editing-subtitles][Editing subtitles:1]]
 ;;;###autoload

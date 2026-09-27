@@ -71,6 +71,9 @@
 ;; - Playing recordings
 ;;   https://sachachua.com/dotemacs#playing-recordings
 ;;
+;; - Clip something from the current recording
+;;   https://sachachua.com/dotemacs#streaming
+;;
 ;; - Stream notes
 ;;   https://sachachua.com/dotemacs#stream-notes
 ;;
@@ -308,7 +311,7 @@ If FRAMERATE is specified, use that instead of 30."
         data))
 ;; Using word-level timing information when editing subtitles or captions in Emacs:2 ends here
 
-;; [[file:../Sacha.org::#word-level][Using word-level timing information when editing subtitles or captions in Emacs:5]]
+;; [[file:../Sacha.org::#word-level][Using word-level timing information when editing subtitles or captions in Emacs:4]]
 (defvar sacha-caption-breaks
   '("the" "this" "we" "we're" "I" "finally" "but" "and" "when")
   "List of words to try to break at.")
@@ -373,7 +376,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
              (sacha-caption-make-groups
               (or data (sacha-caption-fix-common-errors subed-word-data--cache)))
              ""))))
-;; Using word-level timing information when editing subtitles or captions in Emacs:5 ends here
+;; Using word-level timing information when editing subtitles or captions in Emacs:4 ends here
 
 ;; [[file:../Sacha.org::#showing-captions][Showing captions:1]]
 ;;;###autoload
@@ -630,6 +633,19 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 
 ;; [[file:../Sacha.org::#playing-recordings][Playing recordings:2]]
 (defvar sacha-recordings-dir "~/recordings/")
+
+;;;###autoload
+(defun sacha-mpv-screenshot ()
+	"Screenshot the current frame, timestamped, to `sacha-recordings-dir'."
+	(interactive)
+	(let ((flags 'video)
+				(file (expand-file-name (format-time-string "%Y-%m-%d-%H-%M-%S.jpg")
+																sacha-recordings-dir)))
+		(mpv--enqueue `(screenshot-to-file ,file ,flags) #'ignore)
+		(when (called-interactively-p 'any)
+			(kill-new file)
+			(message "%s" file))))
+
 ;;;###autoload
 (defun sacha-delete-latest-recording ()
 	(interactive)
@@ -638,8 +654,17 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 (defun sacha-open-latest-recording ()
 	(interactive)
 	(find-file (sacha-latest-file sacha-recordings-dir)))
+
+;;;###autoload
+(defun sacha-link-latest-recording ()
+	"Insert an Org Mode link to the latest recording."
+	(interactive)
+	(org-insert-link nil
+									 (concat "file:" (sacha-latest-file sacha-recordings-dir))))
+
 ;;;###autoload
 (defun sacha-play-latest-recording (&optional arg)
+	"Play the latest recording."
   (interactive "P")
   (let ((latest (sacha-latest-file sacha-recordings-dir)))
     (if (and arg (file-exists-p (sacha-obs-websocket-caption-file latest)))
@@ -674,6 +699,84 @@ If WORD-TIMING is non-nil, include word-level timestamps."
                  (format "--title=%s" (shell-quote-argument (file-name-base recording)))
                  (format "--client-secrets=%s" google-video-credentials)))
 ;; Playing recordings:2 ends here
+
+;; [[file:../Sacha.org::*Clip something from the current recording][Clip something from the current recording:1]]
+;;;###autoload
+(defun sacha-clip-seconds (seconds &optional note)
+  "Clip the specified number of seconds from the current recording.
+Save it to another file in my recordings directory, possibly with a note."
+  (interactive)
+	(let* ((latest-recording (sacha-latest-file
+														sacha-recordings-dir
+														(lambda (o)
+															(string-match
+															 "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][_ ][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\.mkv"
+															 (file-name-nondirectory o)))))
+				 (recording-start (sacha-filename-timestamp latest-recording))
+				 (now (current-time))
+				 (file-offset (- (time-to-seconds now) seconds recording-start))
+				 (new-filename (concat (file-name-sans-extension
+																latest-recording)
+															 "-clip-"
+															 (format-time-string "%Y-%m-%d-%H-%M-%S"
+																									 (seconds-to-time
+																										(- (time-to-seconds now)
+																											 seconds)))
+															 "-to-"
+															 (format-time-string "%Y-%m-%d-%H-%M-%S" now)
+															 (if note (concat "-note-" note) "")
+															 ".mkv")))
+		(make-process
+		 :name "clip"
+		 :buffer (get-buffer-create "*ffmpeg*")
+		 :command
+		 (list "ffmpeg"
+					 "-err_detect" "ignore_err" "-flags" "low_delay"
+					 "-i" latest-recording
+					 "-ss"
+					 (format "%.3f" file-offset)
+					 "-to" (format "%.3f" (+ file-offset seconds))
+
+					 "-c:a" "copy"
+					 "-c:v" "copy"
+					 "-y"
+					 new-filename))
+		(message "Clipped %d to %s" seconds new-filename)
+		new-filename))
+
+(defun sacha-latest-clip ()
+  "Return the latest clip."
+	(sacha-latest-file
+	 sacha-recordings-dir
+	 (lambda (o)
+		 (string-match
+			"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][_ ][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-clip.*\\.mkv"
+			(file-name-nondirectory o)))))
+
+(defvar mpv-default-options)
+
+;;;###autoload
+(defun sacha-clip-play-latest ()
+  "Play the latest clip on microphone and headphones."
+  (interactive)
+	(let ((mpv-default-options (append (list "--audio-device=pulse/SnippetBridge")
+																		 mpv-default-options)))
+		(mpv-play (sacha-latest-clip))))
+
+;; (sacha-clip-seconds 10 "-test")
+
+(defun sacha-clip-add-note-to-latest (note)
+	"Rename the latest clip."
+	(interactive (list (read-string (format "Note (%s): " (file-name-base (sacha-latest-clip))))))
+	(when-let* ((filename (sacha-latest-clip))
+							(new-filename (if (string-match "-note-\\(.+\\)\\.mkv" filename)
+																(replace-match note nil nil filename 1)
+															(concat (file-name-sans-extension filename)
+																			"-note-" note ".mkv"))))
+		(rename-file filename new-filename)
+		(message "%s" (file-name-base new-filename))
+		new-filename))
+;; Clip something from the current recording:1 ends here
 
 ;; [[file:../Sacha.org::#stream-notes][Stream notes:1]]
 ;;;###autoload

@@ -666,8 +666,13 @@ Activate this with:
 			 (sort (mapcar (lambda (dir) (sacha-latest-file dir)) path)
 						 #'file-newer-than-file-p))
 		(car
-		 (sort (seq-remove #'file-directory-p
-											 (directory-files path 'full filter t))
+		 (sort (seq-remove
+						(if filter
+								(lambda (o)
+									(or (funcall filter o)
+											(file-directory-p o)))
+							#'file-directory-p)
+						(directory-files path 'full (and (stringp filter) filter) t))
 					 #'file-newer-than-file-p))))
 ;; Ledger:5 ends here
 

@@ -32,9 +32,6 @@
 ;; - Set up a color scheme
 ;;   https://sachachua.com/dotemacs#set-up-a-light-on-dark-color-scheme
 ;;
-;; - Making highlight-sexp follow modus-themes-toggle
-;;   https://sachachua.com/dotemacs#making-highlight-sexp-follow-modus-themes-toggle
-;;
 ;; - Highlight the active modeline using colours from modus-themes
 ;;   https://sachachua.com/dotemacs#highlight-the-active-modeline-using-colours-from-modus-themes
 ;;
@@ -67,21 +64,6 @@
     (when (display-graphic-p)
       (load-theme (car modus-themes-to-toggle) t)))
 ;; Set up a color scheme:1 ends here
-
-;; [[file:../Sacha.org::#making-highlight-sexp-follow-modus-themes-toggle][Making highlight-sexp follow modus-themes-toggle:1]]
-(defun sacha-hl-sexp-update-overlay ()
-  (when (overlayp hl-sexp-overlay)
-    (overlay-put
-     hl-sexp-overlay
-     'face
-     `(:background
-       ,(modus-themes-get-color-value 'bg-inactive)))))
-(defun sacha-hl-sexp-update-all-overlays (&rest args)
-  (dolist (buf (buffer-list))
-    (with-current-buffer buf
-      (when highlight-sexp-mode
-        (sacha-hl-sexp-update-overlay)))))
-;; Making highlight-sexp follow modus-themes-toggle:1 ends here
 
 ;; [[file:../Sacha.org::#highlight-the-active-modeline-using-colours-from-modus-themes][Highlight the active modeline using colours from modus-themes:1]]
 ;;;###autoload

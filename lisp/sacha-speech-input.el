@@ -44,6 +44,9 @@
 ;; - Okay, track...
 ;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-okay-track
 ;;
+;; - Keep track of files and stats
+;;   https://sachachua.com/dotemacs#speech-recognition
+;;
 ;; - Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results
 ;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results
 ;;
@@ -320,11 +323,24 @@ Add this function to `whisper-insert-text-at-point'."
 
 ;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:18]]
 ;;;###autoload
+(defun sacha-save-to-kill-ring-after-current (text)
+	"Save TEXT to the kill ring, but not at the top spot."
+	(when text
+		(if kill-ring
+				(let ((temp (pop kill-ring)))
+					(kill-new text)
+					(push temp kill-ring))
+			(kill-new text)))
+	text)
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:18 ends here
+
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:19]]
+;;;###autoload
 (defun sacha-whisper-redo ()
   (interactive)
   (setq whisper--marker (point-marker))
   (whisper--transcribe-audio))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:18 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:19 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models][Emacs and whisper.el: Trying out different speech-to-text backends and models:1]]
 (defvar sacha-whisper-url-format "http://%s:%d/transcribe")
@@ -363,7 +379,8 @@ Use `sacha-speech-input-model-aliases' for aliases."
   (when (assoc-default model-name sacha-speech-input-model-aliases #'string=)
     (setq model-name (assoc-default model-name sacha-speech-input-model-aliases #'string=)))
   (setq whisper-model model-name)
-  (setq speech-input-model model-name))
+  (setq speech-input-model model-name
+				speech-input-transcribe-model model-name))
 ;; Emacs and whisper.el: Trying out different speech-to-text backends and models:6 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-queue-multiple-transcriptions-with-whisper-el-speech-recognition][Queuing multiple transcriptions with whisper.el speech recognition:1]]
@@ -505,7 +522,9 @@ Call with \\[universal-argument] to signal that we can stop."
             (sacha-whisper-process-queue-result))))
         (plist-put o :command (string-join command " "))
         (with-current-buffer (process-buffer (plist-get o :process))
-          (setq-local sacha-whisper--queue-item o))))))
+          (setq-local sacha-whisper--queue-item o)
+					(setq-local whisper--temp-file (plist-get o :file))
+					(whisper--store-process-info (current-buffer)))))))
 (defvar-local sacha-whisper--queue-item nil)
 
 ;;;###autoload
@@ -558,44 +577,214 @@ Call with \\[universal-argument] to signal that we can stop."
 ;; Using Silero voice activity detection to automatically queue multiple transcriptions with natrys/whisper.el:3 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-slowly-building-speech-based-commands-for-emacs][Slowly building speech-based commands for Emacs:1]]
+(defun sacha-whisper-defun-clip (seconds regexp)
+	(cons (concat "\\(?:clip\\|click\\)? \\(?:the last \\)?" regexp)
+				(lambda ()
+					(sacha-clip-seconds seconds)
+					(sacha-whisper-audio-feedback "Clipping")
+					"")))
+
 (defvar sacha-whisper-commands
-  '(("scroll up" . scroll-down-command)
+  `(("scroll up" . scroll-down-command)
     ("scrolling up" . scroll-down-command)
     ("page up" . scroll-down-command)
     ("scroll down" . scroll-up-command)
     ("scroll down" . scroll-up-command)
     ("page down" . scroll-up-command)
     ("next page" . scroll-up-command)
+    ("go back" . winner-undo)
+		("okay,? push" . magit-push-current-to-pushremote)
     ("close other windows" . delete-other-windows)
     ("run the buffer" . eval-buffer)
     ("mark buffer" . mark-whole-buffer)
+    ("run buffer" . eval-buffer)
+		("save buffer" . save-buffer)
     ("mark paragraph" . mark-paragraph)
     ("expand" . expand-region)
     ("start emacs news" . sacha-workflow-emacs-news-start)
     ("update emacs calendar" . sacha-workflow-emacs-calendar-update)
-    )
+		("\\(?:new task\\|switch to\\|change gears\\|switch gears\\|okay, now I'm going to \\)\\(.+\\)" . sacha-whisper-switch-task-to)
+		("task today" . sacha-whisper-task-today)
+		("task someday" . sacha-whisper-task-someday)
+		("remind me today\\(?: to\\)? \\(.+\\)" . sacha-whisper-task-today)
+		("remind me someday\\(?: to\\)? \\(.+\\)" . sacha-whisper-task-someday)
+		("remind me next week\\(?: to\\)? \\(.+\\)" . sacha-whisper-task-next-week)
+		("remind me tomorrow\\(?: to\\)? \\(.+\\)" . sacha-whisper-task-tomorrow)
+		("clip audio" . sacha-org-subed-record-audio-insert-link-and-replay)
+		("remind me\\(?: to\\)?" . sacha-whisper-note)
+		("\\(?:rappelle\\|rappellez\\)-moi aujourd'hui\\(?: de\\| que\\)? \\(.+\\)" . sacha-whisper-task-today)
+		("\\(?:rappelle\\|rappellez\\)-moi un jour\\(?: de\\| que\\)? \\(.+\\)" . sacha-whisper-task-someday)
+		("\\(?:rappelle\\|rappellez\\)-moi demain\\(?: de\\| que\\)? \\(.+\\)" . sacha-whisper-task-tomorrow)
+		("\\(?:rappelle\\|rappellez\\)-moi la semaine prochaine\\(?: de\\| que\\)? \\(.+\\)" . sacha-whisper-task-next-week)
+		("\\(?:rappelle\\|rappellez\\)-moi\\(?: que\\| de\\)? \\(.+\\)" . sacha-whisper-note)
+		("remind me\\(?: to\\)? \\(.+\\)" . sacha-whisper-note)
+		("new note\\(?: to\\)? \\(.+\\)" . sacha-whisper-note)
+		("agenda" . sacha-org-check-agenda)
+		("inbox" . sacha-whisper-inbox)
+		("current task" . sacha-whisper-current-task)
+		("what was I doing" . sacha-whisper-current-task)
+		("what's \\(?:the\\|a\\) stack\\|where was I" . sacha-whisper-clocked-tasks)
+		("what can I say" . sacha-whisper-what-can-i-say)
+		("toot" . sacha-whisper-draft-toot)
+		("start recording" . sacha-whisper-start-recording)
+		("stop recording" . sacha-whisper-stop-recording)
+		("go to refiled?,? \\(.+\\)" . sacha-whisper-org-goto-refiled)
+		("let's get ready\\|prepare to s[tc]ream" . sacha-whisper-prepare-to-stream)
+		("\\(?:man,?\\|I command you to\\) \\(.+\\)" . sacha-whisper-execute-extended-command)
+		("start streaming\\|start screaming\\|let's go live" . sacha-whisper-start-streaming)
+		("stop streaming\\|stop screaming\\|over and out" . sacha-whisper-stop-streaming)
+		;; someday it would be nice to have a number parser
+		,(sacha-whisper-defun-clip 10 "\\(?:ten\\|10\\) seconds")
+		,(sacha-whisper-defun-clip 30 "\\(?:thirty\\|30\\) seconds")
+		,(sacha-whisper-defun-clip 60 "\\(?:one\\|1\\) minute")
+		,(sacha-whisper-defun-clip 180 "\\(?:three\\|3\\) minutes")
+		,(sacha-whisper-defun-clip 300 "\\(?:five\\|5\\) minutes")
+		,(sacha-whisper-defun-clip 600 "\\(?:ten\\|10\\) minutes")
+		("rename clip,? \\(.+\\)" . ,(lambda (text) (message "%s" (file-name-base (sacha-clip-add-note-to-latest text))) ""))
+		("instant replay" . sacha-clip-play-latest)
+		("panic button" . sacha-obs-panic))
   "Commands for speech recognition.")
 
 ;;;###autoload
+(defun sacha-whisper-inbox ()
+  "Open my inbox file."
+  (interactive)
+	(jump-to-register ?i)
+	"") ; TODO: remove the need for the register
+
+
+;;;###autoload
+(defun sacha-whisper-org-goto-refiled (text)
+  "Go to a heading based on refile."
+	(setq unread-command-events (listify-key-sequence (concat text (kbd "RET"))))
+	(let ((current-prefix-arg '(4)))
+		(call-interactively #'org-refile))
+	"")
+
+;;;###autoload
+(defun sacha-whisper-execute-extended-command (text)
+  "Run Emacs command."
+	(setq unread-command-events (listify-key-sequence (concat text (kbd "RET"))))
+	(let ((current-prefix-arg '(4)))
+		(call-interactively #'execute-extended-command))
+	"")
+
+(defun sacha-whisper-audio-feedback (text)
+	"Give me TEXT as basic audio feedback."
+	(let ((learn-lang-language "en")
+				(learn-lang-tts-function 'learn-lang-tts-gtts-say))
+		(learn-lang-tts-say text)))
+
+;;;###autoload
+(defun sacha-whisper-start-streaming ()
+  "Start streaming and let me know."
+  (interactive)
+	(obs-websocket-start-streaming)
+	(obs-websocket-update-stream-status)
+	(sit-for 1)
+	(let ((learn-lang-language "en")
+				(learn-lang-tts-function 'learn-lang-tts-gtts-say))
+		(if obs-websocket-streaming-p
+				(learn-lang-tts-say "Live")
+			(learn-lang-tts-say "Weird"))))
+
+;;;###autoload
+(defun sacha-whisper-stop-streaming ()
+  "Stop streaming and let me know."
+  (interactive)
+	(obs-websocket-stop-streaming)
+	(obs-websocket-update-stream-status)
+	(sit-for 1)
+	(let ((learn-lang-language "en")
+				(learn-lang-tts-function 'learn-lang-tts-gtts-say))
+		(if obs-websocket-streaming-p
+				(learn-lang-tts-say "Weird")
+			(learn-lang-tts-say "Off"))))
+
+;;;###autoload
+(defun sacha-whisper-start-recording ()
+  "Stop recording and let me know."
+  (interactive)
+	(obs-websocket-start-recording)
+	(obs-websocket-update-recording-status)
+	(sit-for 0.2)
+	(if obs-websocket-recording-p
+			(message "Recording")
+		(sacha-whisper-audio-feedback "Weird")))
+
+;;;###autoload
+(defun sacha-whisper-stop-recording ()
+  "Stop recording and let me know."
+  (interactive)
+	(obs-websocket-stop-recording)
+	(obs-websocket-update-recording-status)
+	(sit-for 1)
+	(sacha-whisper-audio-feedback
+	 (if obs-websocket-recording-p
+			 "Weird"
+		 "Stopped")))
+
+;;;###autoload
+(defun sacha-whisper-what-can-i-say ()
+	(interactive)
+	(pop-to-buffer (find-file-noselect "~/sync/orgzly/speech.org"))
+	(view-mode)
+	"")
+
+;;;###autoload
+(defun sacha-whisper-current-task ()
+	(interactive)
+	(org-clock-goto)
+	"")
+
+;;;###autoload
+(defun sacha-whisper-clocked-tasks ()
+	(interactive)
+	(org-clock-goto t)
+	"")
+
+;;;###autoload
+(defun sacha-whisper-draft-toot (text)
+	(if (get-buffer "*new toot*")
+			(switch-to-buffer (get-buffer "*new toot*"))
+		(mastodon-toot))
+	(goto-char (point-max))
+	(unless (looking-back "^\\| " 5)
+		(insert " ")
+		(insert text))
+	"")
+
+;;;###autoload
 (defun sacha-whisper-handle-commands (text)
-  ;; Let's do commands at the beginning of a speech segment for now
-  (if (string-match (concat "^" (regexp-opt (mapcar 'car sacha-whisper-commands)) "\\>")
-                    text)
-      (progn
-        (while (string-match (concat "^\\(" (regexp-opt (mapcar 'car sacha-whisper-commands)) "\\)\\>[,\\.\\?]? *")
-                             text)
-          (let* ((match (match-string 1 text))
-                 (func (assoc-default (downcase match) sacha-whisper-commands #'string=)))
-            (when func
-              (message "Command: %s" match)
-              (setq text (replace-match "" nil nil text))
-              (cond
-               ((commandp func)
-                (call-interactively func))
-               ((functionp func)
-                (funcall func))))))
-        text)
-    text))
+	(interactive (list (if (region-active-p)
+												 (buffer-substring (region-beginning) (region-end))
+											 (buffer-substring (line-beginning-position) (line-end-position)))))
+	(let (done entry func num-args)
+		(while (and text (not (string= text "")) (not done))
+			(setq entry
+						(seq-find
+						 (lambda (row)
+							 (string-match (format "^\\(?:%s\\)\\>" (car row)) text))
+						 sacha-whisper-commands))
+			(if (null entry)
+					(setq done t)
+				(setq func (cdr entry))
+				(setq num-args (and func (func-arity func)))
+				(cond
+				 ((commandp func)
+					(setq text (replace-match "" nil nil text))
+					(call-interactively func))
+				 ((and (functionp func) (>= (cdr num-args) 1))
+					(unless (match-string 1 text)
+						(setq text (replace-match "" nil nil text)))
+					(setq text (funcall func (or (match-string 1 text) text))))
+				 ((functionp func)
+					(setq text (replace-match "" nil nil text))
+					(funcall func))))
+			(when (string-match "^[ \\.?,]+\\(?:and \\)?" text)
+				(setq text (replace-match "" nil nil text))))
+		(when (string= text "") (setq text nil))
+		text))
 
 (defvar sacha-whisper-replacements
   '((" *\\<start \\(list\\|next\\) item\\>[\\.,] *" . "\n- ")
@@ -645,6 +834,40 @@ Call with \\[universal-argument] to signal that we can stop."
         nil)
     text))
 ;; Okay, track...:1 ends here
+
+;; [[file:../Sacha.org::*Keep track of files and stats][Keep track of files and stats:1]]
+;;;###autoload
+(defun sacha-whisper-add-text-properties ()
+	"Calculate time elapsed and keep track of filename."
+	(when (and whisper--temp-file whisper--time-started)
+		(goto-char (point-min))
+		(let* ((time-elapsed
+						(- (float-time) whisper--time-started))
+					 (duration
+						(/ (compile-media-get-file-duration-ms whisper--temp-file) 1000.0)))
+			(add-text-properties
+			 (point-min) (point-max)
+			 `(file ,whisper--temp-file
+							time-elapsed ,time-elapsed
+							orig-duration ,duration
+							ratio ,(/ time-elapsed duration))))))
+
+;;;###autoload
+(defun sacha-whisper-replay-file-from-text ()
+  "Replay the file at point."
+  (interactive)
+	(if (get-text-property (point) 'file)
+			(let ((mpv-default-options
+						 (append
+							(list "--vid=no" "--no-video" "--window-minimized=yes" )
+							(when (get-text-property (point) 'start)
+								(list (format "--start=%f" (get-text-property (point) 'start))))
+							(when (get-text-property (point) 'end)
+								(list (format "--end=%f" (get-text-property (point) 'end))))
+							mpv-default-options)))
+				(mpv-play (get-text-property (point) 'file)))
+		(message "No file data.")))
+;; Keep track of files and stats:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results][Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results:2]]
 ;;;###autoload

@@ -35,6 +35,9 @@
 ;; - Copy and append string
 ;;   https://sachachua.com/dotemacs#navigation-copy-and-append-string
 ;;
+;; - Emacs PDF View: Replace current page with file using PDFtk
+;;   https://sachachua.com/dotemacs#navigation-pdf-view-emacs-pdf-view-replace-current-page-with-file-using-pdftk
+;;
 ;; - Copy text from current PDFview page in other window
 ;;   https://sachachua.com/dotemacs#pdf-copy
 ;;
@@ -48,13 +51,16 @@
 ;;   https://sachachua.com/dotemacs#writing-and-editing
 ;;
 ;; - Check for capitalization
-;;   https://sachachua.com/dotemacs#writing-and-editing
+;;   https://sachachua.com/dotemacs#writing-and-editing-check-for-capitalization
 ;;
 ;; - Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document
 ;;
 ;; - Formatting the subtitles into Org Mode subtrees
 ;;   https://sachachua.com/dotemacs#formatting-the-subtitles-into-org-mode-subtrees
+;;
+;; - Expand
+;;   https://sachachua.com/dotemacs#expand
 ;;
 ;; - Web development
 ;;   https://sachachua.com/dotemacs#web-development
@@ -111,6 +117,44 @@
                   (setq sacha-copy-append-string append))
           (kill-new (concat (buffer-substring beg end) append)))
 ;; Copy and append string:1 ends here
+
+;; [[file:../Sacha.org::#navigation-pdf-view-emacs-pdf-view-replace-current-page-with-file-using-pdftk][Emacs PDF View: Replace current page with file using PDFtk:1]]
+
+
+(declare-function pdf-view-current-page "pdf-view")
+;;;###autoload
+(defun sacha-pdf-view-replace-current-page-with-file (file)
+  "Replace the current page in PDF View with FILE.
+Requires pdftk."
+  (interactive "FFile to insert: ")
+	(let ((temp-file (concat (make-temp-name "pdf-view") ".pdf"))
+				(base-file (expand-file-name (buffer-file-name)))
+				(page (pdf-view-current-page))
+				(total-pages (pdf-cache-number-of-pages)))
+		(with-current-buffer (get-buffer-create "*pdftk*")
+			(apply #'call-process
+						 (append
+							(list
+							 "pdftk"
+							 nil t nil
+							 (concat "A=" base-file)
+							 (concat "B=" (expand-file-name file))
+							 "cat")
+							(delq
+							 nil
+							 (list
+								(and (> page 1)
+										 (format "A%d-%d"
+														 1
+														 (1- page)))
+								"B"
+								(and (< page total-pages)
+										 (format "A%d-end"
+														 (1+ page)))
+								"output"
+								temp-file)))))
+		(rename-file temp-file (buffer-file-name) t)))
+;; Emacs PDF View: Replace current page with file using PDFtk:1 ends here
 
 ;; [[file:../Sacha.org::#pdf-copy][Copy text from current PDFview page in other window:1]]
 ;;;###autoload
@@ -196,7 +240,7 @@ From oantolin."
 	 (t (kill-new (buffer-file-name)))))
 ;; Writing and editing:3 ends here
 
-;; [[file:../Sacha.org::*Check for capitalization][Check for capitalization:1]]
+;; [[file:../Sacha.org::#writing-and-editing-check-for-capitalization][Check for capitalization:1]]
 ;;;###autoload
 (defun sacha-query-capitalize ()
   "Capitalize the first letter of sentences interactively."
@@ -285,6 +329,20 @@ From oantolin."
    (time-equal-p (sacha-file-start-time "Sunday at 12-49.txt")
                  (org-read-date t t "-sun 12:49"))))
 ;; Formatting the subtitles into Org Mode subtrees:2 ends here
+
+;; [[file:../Sacha.org::#expand][Expand:4]]
+(defun sacha-he-subst-suffix-overlap (ins rem)
+  "The longest suffix of the string INS that is a prefix of REM.
+This is intended to be used when INS is a newly inserted string and REM is the
+remainder of the line, to allow for handling potentially duplicated content.
+
+From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
+  (let ((len (min (length ins) (length rem))))
+    (while (and (> len 0)
+                (not (eq t (compare-strings ins (- len) nil rem 0 len))))
+      (setq len (1- len)))
+    len))
+;; Expand:4 ends here
 
 ;; [[file:../Sacha.org::#web-development][Web development:3]]
 (defvar sacha-copy-append "" "String to append.")

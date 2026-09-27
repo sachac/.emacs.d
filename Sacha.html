@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2026-04-17 Fri 09:18 -->
+<!-- 2026-06-24 Wed 11:07 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Create a Google Calendar event from an Org timestamp</title>
-<meta name="author" content="Sacha Chua" />
+<title>Warn if I'm exporting placeholders or private information</title>
 <meta name="generator" content="Org Mode" />
 <link rel="stylesheet" type="text/css" href="https://sachachua.com/assets/css/htmlize.css"/>
 <link rel="stylesheet" type="text/css" href="https://sachachua.com/assets/css/readtheorg.css"/>
@@ -24,53 +23,14 @@
 </div>
 <div id="content" class="content">
 <header>
-<h1 class="title">Create a Google Calendar event from an Org timestamp</h1>
+<h1 class="title">Warn if I'm exporting placeholders or private information</h1>
 </header><p>
-Time zones are hard, so I let calendaring systems take care of the conversion and confirmation. I've been using Google Calendar because it synchronizes with my phone and people know what to do with the event invite. This function lets me start from a timestamp and create an event based on a template.
+uffer-string))
+						 (not (y-or-n-p (format "Warning: %s found. Continue? " (match-string 0) (buffer-string)))))
+		(error "Stopping as requested")))
+#+end_src
 </p>
 
-<div class="org-src-container">
-<pre class="src src-emacs-lisp"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
-(<span class="org-keyword">defun</span> <span class="org-function-name">sacha-emacs-chat-schedule</span> (<span class="org-type">&amp;optional</span> time)
-  <span class="org-doc">"Create a Google Calendar invite based on TIME or the Org timestamp at point."</span>
-  (<span class="org-keyword">interactive</span> (list (sacha-org-time-at-point)))
-  (browse-url
-   (format
-    <span class="org-string">"https://calendar.google.com/calendar/render?action=TEMPLATE&amp;text=%s&amp;details=%s&amp;dates=%s&amp;ctz=%s"</span>
-    (url-hexify-string sacha-emacs-chat-title)
-    (url-hexify-string sacha-emacs-chat-description)
-    (format-time-string
-     <span class="org-string">"%Y%m%dT%H%M%S"</span> time)
-    sacha-timezone)))
-
-(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-emacs-chat-title</span> <span class="org-string">"Emacs Chat"</span> <span class="org-doc">"Title of calendar entry."</span>)
-(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-emacs-chat-description</span>
-  <span class="org-string">"All right, let's try this! =) See the calendar invite for the Google Meet link.</span>
-
-<span class="org-string">Objective: Share cool stuff about Emacs workflows that's not obvious from reading configs, and have fun chatting about Emacs</span>
-
-<span class="org-string">Some ideas for things to talk about:</span>
-<span class="org-string">- Which keyboard shortcuts or combinations of functions work really well for you?</span>
-<span class="org-string">- What's something you love about your setup?</span>
-<span class="org-string">- What are you looking forward to tweaking next?</span>
-
-<span class="org-string">Let me know if you want to do it on stream (more people can ask questions) or off stream (we can clean up the video in case there are hiccups). Also, please feel free to send me links to things you'd like me to read ahead of time, like your config!"</span>
-  <span class="org-doc">"Description."</span>)
-</code></pre>
-</div>
-
-<p>
-It uses this function to convert the timestamp at point:
-</p>
-
-<p>
-<details open><summary>sacha-org-time-at-point: Return Emacs time object for timestamp at point.</summary><div class="org-src-container"><pre class="src src-emacs-lisp">(<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-time-at-point</span> ()
-  <span class="org-doc">"Return Emacs time object for timestamp at point."</span>
-  (org-timestamp-to-time (org-timestamp-from-string (org-element-property <span class="org-builtin">:raw-value</span> (org-element-context)))))
-
-</pre></div></details>
-</p>
-
-<div class="note">This is part of my <a href="https://sachachua.com/dotemacs#streaming-make-chapter-markers-and-video-time-hyperlinks-easier-to-note-while-i-livestream">Emacs configuration.</a></div></div>
+<div class="note">This is part of my <a href="https://sachachua.com/dotemacs#publishing">Emacs configuration.</a></div></div>
 </body>
 </html>

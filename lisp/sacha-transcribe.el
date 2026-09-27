@@ -457,79 +457,85 @@
 
 ;; [[file:../Sacha.org::#writing-and-editing-updating-sacha-audio-braindump-workflow-to-take-advantage-of-whisperx][Updating my audio braindump workflow to take advantage of WhisperX:1]]
 ;;;###autoload
-  (defun sacha-whisperx-word-list (file)
-          (let* ((json-object-type 'alist)
-                                   (jmson-array-type 'list))
-                  (seq-mapcat (lambda (seg)
-                                                                          (alist-get 'words seg))
-                                                                  (alist-get 'segments (json-read-file file)))))
+(defun sacha-whisperx-word-list (file)
+  (let* ((json-object-type 'alist)
+         (jmson-array-type 'list))
+    (seq-mapcat (lambda (seg)
+                  (alist-get 'words seg))
+                (alist-get 'segments (json-read-file file)))))
 
-  ;; (seq-take (sacha-whisperx-word-list (sacha-latest-file "~/sync/recordings" "\\.json")) 10)
+;; (seq-take (sacha-whisperx-word-list (sacha-latest-file "~/sync/recordings" "\\.json")) 10)
 ;;;###autoload
-  (defun sacha-whisperx-insert-word-list (words)
-          "Inserts WORDS with text properties."
-          (require 'subed-word-data)
-          (mapc (lambda (word)
-                                                  (let ((start (point)))
-                                                          (insert
-                                                           (alist-get 'word word))
-                                                          (subed-word-data--add-word-properties start (point) word)
-                                                          (insert " ")))
-                                  words))
-
-;;;###autoload
-  (defun sacha-audio-braindump-turn-sections-into-headings ()
-          (interactive)
-          (goto-char (point-min))
-          (while (re-search-forward "START SECTION \\(.+?\\) STOP SECTION" nil t)
-                  (replace-match
-                   (save-match-data
-                           (format
-                                  "\n*** %s\n"
-                                  (save-match-data (string-trim (replace-regexp-in-string "^[,\\.]\\|[,\\.]$" "" (match-string 1))))))
-                   nil t)
-                  (let ((prop-match (save-excursion (text-property-search-forward 'subed-word-data-start))))
-                          (when prop-match
-                                  (org-entry-put (point) "START" (format-seconds "%02h:%02m:%02s" (prop-match-value prop-match)))))))
+(defun sacha-whisperx-insert-word-list (words)
+  "Inserts WORDS with text properties."
+  (require 'subed-word-data)
+  (mapc (lambda (word)
+          (let ((start (point)))
+            (insert
+             (alist-get 'word word))
+            (subed-word-data--add-word-properties start (point) word)
+            (insert " ")))
+        words))
 
 ;;;###autoload
-  (defun sacha-audio-braindump-split-sentences ()
-          (interactive)
-          (goto-char (point-min))
-          (while (re-search-forward "[a-z]\\. " nil t)
-                  (replace-match (concat (string-trim (match-string 0)) "\n") )))
+(defun sacha-audio-braindump-turn-sections-into-headings ()
+  (interactive)
+  (goto-char (point-min))
+  (while (re-search-forward "START SECTION \\(.+?\\) STOP SECTION" nil t)
+    (replace-match
+     (save-match-data
+       (format
+        "\n*** %s\n"
+        (save-match-data (string-trim (replace-regexp-in-string "^[,\\.]\\|[,\\.]$" "" (match-string 1))))))
+     nil t)
+    (let ((prop-match (save-excursion (text-property-search-forward 'subed-word-data-start))))
+      (when prop-match
+        (org-entry-put (point) "START" (format-seconds "%02h:%02m:%02s" (prop-match-value prop-match)))))))
 
 ;;;###autoload
-  (defun sacha-audio-braindump-restructure ()
-          (interactive)
-          (goto-char (point-min))
-          (sacha-subed-fix-common-errors)
-          (org-mode)
-          (sacha-audio-braindump-prepare-alignment-breaks)
-          (sacha-audio-braindump-turn-sections-into-headings)
-          (sacha-audio-braindump-split-sentences)
-          (goto-char (point-min))
-          (sacha-remove-filler-words-at-start))
+(defun sacha-audio-braindump-split-sentences ()
+  (interactive)
+  (goto-char (point-min))
+  (while (re-search-forward "[a-z]\\. " nil t)
+    (replace-match (concat (string-trim (match-string 0)) "\n") )))
 
 ;;;###autoload
-  (defun sacha-audio-braindump-from-whisperx-json (file)
-          (interactive (list (read-file-name "JSON: " "~/sync/recordings/" nil nil nil (lambda (f) (string-match "\\.json\\'" f)))))
-          ;; put them all into a buffer
-          (with-current-buffer (get-buffer-create "*Words*")
-                  (erase-buffer)
-                  (fundamental-mode)
-                  (sacha-whisperx-insert-word-list (sacha-whisperx-word-list file))
-                  (sacha-audio-braindump-restructure)
-                  (goto-char (point-min))
-                  (switch-to-buffer (current-buffer))))
+(defun sacha-audio-braindump-restructure ()
+  (interactive)
+  (goto-char (point-min))
+  (sacha-subed-fix-common-errors)
+  (org-mode)
+  (sacha-audio-braindump-prepare-alignment-breaks)
+  (sacha-audio-braindump-turn-sections-into-headings)
+  (sacha-audio-braindump-split-sentences)
+  (goto-char (point-min))
+  (sacha-remove-filler-words-at-start))
 
 ;;;###autoload
-  (defun sacha-audio-braindump-process-text (file)
-          (interactive (list (read-file-name "Text: " "~/sync/recordings/" nil nil nil (lambda (f) (string-match "\\.txt\\'" f)))))
-          (with-current-buffer (find-file-noselect file)
-                  (sacha-audio-braindump-restructure)
-                  (save-buffer)))
-  ;; (sacha-audio-braindump-from-whisperx-json (sacha-latest-file "~/sync/recordings" "\\.json"))
+(defun sacha-audio-braindump-from-whisperx-json (file)
+  (interactive (list (read-file-name "JSON: " "~/sync/recordings/" nil nil nil (lambda (f) (string-match "\\.json\\'" f)))))
+  ;; put them all into a buffer
+  (with-current-buffer (get-buffer-create "*Words*")
+    (erase-buffer)
+    (fundamental-mode)
+    (sacha-whisperx-insert-word-list (sacha-whisperx-word-list file))
+    (sacha-audio-braindump-restructure)
+    (goto-char (point-min))
+    (switch-to-buffer (current-buffer))))
+
+;;;###autoload
+(defun sacha-audio-braindump-process-text (file)
+  (interactive (list (read-file-name "Text: " "~/sync/recordings/" nil nil nil (lambda (f) (string-match "\\.txt\\'" f)))))
+  (with-current-buffer (find-file-noselect file)
+    (sacha-audio-braindump-restructure)
+    (save-buffer)))
+;; (sacha-audio-braindump-from-whisperx-json (sacha-latest-file "~/sync/recordings" "\\.json"))
+
+;;;###autoload
+(defun sacha-audio-transcribe-latest-recording ()
+  "Transcribe the latest recording and insert text at point."
+  (interactive)
+	(whisper-run (sacha-latest-file sacha-recordings-dir)))
 ;; Updating my audio braindump workflow to take advantage of WhisperX:1 ends here
 
 ;; [[file:../Sacha.org::#rerecognize][Rerecognize this audio and reprocess it:1]]

@@ -34,6 +34,15 @@
 
 
 ;; [[file:../Sacha.org::#org-captions][Captions:2]]
+(defun sacha-org-captions-format-maybe-quoted (s)
+	"Try to handle < and > inside S."
+	(save-match-data
+		(replace-regexp-in-string
+		 "&lt;" "<"
+		 (replace-regexp-in-string
+			"&gt;" ">"
+			s))))
+
 ;;;###autoload
 (defun sacha-org-captions-format (file &optional separator format info)
 	(let ((cues (subed-parse-file file))
@@ -63,39 +72,55 @@
 																			(save-match-data
 																				(replace-regexp-in-string "^SPEAKER_" "" last-speaker))))
 												(setq text
-															(concat formatted-last-speaker " "
+															(concat (if (plist-get info :timed)
+																					(format "[%s] " time)
+																				"")
+																			formatted-last-speaker " "
 																			(save-match-data
 																				(cond
 																				 ((save-match-data (string-match "[~=*%]" (match-string 2 text)))
-																					(match-string 2 text))
+																					(org-export-string-as (match-string 2 text) format t))
 																				 ((save-match-data (string-match "`" (match-string 2 text)))
 																					(replace-regexp-in-string
 																					 "<p>\\|</p>\n" ""
-																					 (pandoc-convert-stdio (match-string 2 text) "markdown" "html")))
+																					 (pandoc-convert-stdio
+																						(sacha-org-captions-format-maybe-quoted (match-string 2 text))
+																						"markdown" "html")))
 																				 (t (match-string 2 text))))))
 												(setq break t)))
 										 ((and without-directives last-speaker)
 											(setq text (concat formatted-last-speaker
 																				 (save-match-data
 																					 (cond
-																						((string-match "[~=*%]" text)
-																						 text)
 																						((string-match "`" text)
 																						 (replace-regexp-in-string
 																							"<p>\\|</p>\n" ""
 																							(pandoc-convert-stdio text "markdown" "html")))
+																						((string-match "[~=*%]" text)
+																						 (replace-regexp-in-string
+																							"<p>\n*\\|</p>\n*" ""
+																							(org-export-string-as text format t)))
+
 																						(t text))))))
 										 ((string-match "`" text)
 											(setq text
 														(replace-regexp-in-string
 														 "<p>\\|</p>\n" ""
-														 (pandoc-convert-stdio text "markdown" "html")))))
+														 (pandoc-convert-stdio (sacha-org-captions-format-maybe-quoted text)
+																									 "markdown" "html"))))
+										 ((string-match "[~=*%]" text)
+											(setq text (replace-regexp-in-string
+																	"<p>\n*\\|</p>\n*" ""
+																	(org-export-string-as text format t)))))
 										(concat
 										 (if (and without-directives (not (string= without-directives "")))
-												 (format "<p></p><div class=\"transcript-heading\"><span class=\"audio-time\" data-start=\"%f\">%s</span> <strong>%s</strong></div>"
-																 (floor (/ (elt cue 1) 1000))
-																 time
-																 without-directives)
+												 (if (plist-get info :untimed)
+														 (format "<p></p><div class=\"transcript-heading\">%s</div>"
+																		 without-directives)
+													 (format "<p></p><div class=\"transcript-heading\"><span class=\"audio-time\" data-start=\"%f\">%s</span> <strong>%s</strong></div>"
+																	 (floor (/ (elt cue 1) 1000))
+																	 time
+																	 without-directives))
 											 "")
 										 (if (and (null break) (null without-directives))
 												 ""
@@ -120,7 +145,7 @@
 																 (or (subed-record-get-directive "#+SCREENSHOT_TIME" (elt cue 4)) "")
 																 (or (subed-record-get-directive "#+SCREENSHOT_TIME" (elt cue 4)) ""))
 											 "")
-										 (format "<span class=\"audio-time caption\" data-speaker=\"%s\" data-start=\"%f\" data-stop=\"%f\" >%s</span>"
+										 (format "<span class=\"audio-time caption\" data-speaker=\"%s\" data-start=\"%f\" data-stop=\"%f\">%s</span>"
 														 (or last-speaker "")
 														 (/ (elt cue 1) 1000.0)
 														 (/ (elt cue 2) 1000.0)
@@ -149,7 +174,9 @@
 											(lambda (cue)
 												(let ((text (elt cue 3))
 															(time (emacstv-format-seconds (floor (/ (elt cue 1) 1000))))
-															break)
+															break
+															prefix)
+
 													(cond
 													 ((string-match "^\\[\\(.+?\\)\\]: " text)
 														(if (and (string= last-speaker (match-string 1 text))
@@ -157,7 +184,7 @@
 																(setq text (replace-match "" nil nil text 0))
 															(setq last-speaker (match-string 1 text))
 															(setq formatted-last-speaker
-																		(format "@@latex:\\item[\\textbf{%s:}] \\timestamp{%s}@@"
+																		(format "\\item[\\textbf{%s:}] \\timestamp{%s}"
 																						(save-match-data
 																							(replace-regexp-in-string "^SPEAKER_" "" last-speaker))
 																						(if (plist-get info :url)
@@ -166,7 +193,8 @@
 																												(/ (elt cue 1) 1000.0)
 																												time)
 																							time)))
-															(setq text (replace-match formatted-last-speaker t t text))
+															(setq prefix formatted-last-speaker)
+															(setq text (replace-match "" t t text))
 															(setq break t)))
 													 ((and first
 																 formatted-last-speaker)
@@ -179,6 +207,7 @@
 																				(subed-record-get-directive "#+SCREENSHOT" (elt cue 4))
 																				dir))
 														 "")
+													 (or prefix "")
 													 (cond
 														((string-match "[~=*%]" text)
 														 (org-export-string-as text format t info))
@@ -297,6 +326,10 @@
 			 nil
 			 format
 			 (append
+				(and (assoc-string "timed" params)
+						 (list :timed (assoc-string "timed" params)))
+				(and (assoc-string "untimed" params)
+						 (list :untimed (assoc-string "untimed" params)))
 				(and (assoc-string "skip" params)
 						 (list :skip (assoc-string "skip" params)))
 				(and (assoc-string "url" params)

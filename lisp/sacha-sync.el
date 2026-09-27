@@ -106,7 +106,7 @@
 ;;;###autoload
 (defun ibizaman/ediff-files (&optional files quit-hook)
   (interactive)
-  (lexical-let ((files (or files (dired-get-marked-files)))
+  (let ((files (or files (dired-get-marked-files)))
                 (quit-hook quit-hook)
                 (wnd (current-window-configuration)))
     (if (<= (length files) 2)

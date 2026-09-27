@@ -42,8 +42,19 @@
 ;; [[file:../Sacha.org::#multimedia-timestamps][Timestamps:1]]
 ;;;###autoload
 (defun sacha-filename-timestamp (file)
+	"Return a Unix timestamp."
 	(setq file (replace-regexp-in-string "^screen-" "" (file-name-base file)))
 	(cond
+	 ((string-match
+		 "\\([0-9][0-9][0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)[-_ ]?\\([0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)[-_]?\\([0-9][0-9]\\)"
+		 file)
+		(date-to-time (format "%s-%s-%s %s:%s:%s"
+													(match-string 1 file)
+													(match-string 2 file)
+													(match-string 3 file)
+													(match-string 4 file)
+													(match-string 5 file)
+													(match-string 6 file))))
 	 ((string-match
 		 "\\([0-9][0-9][0-9][0-9]\\)_?\\([0-9][0-9]\\)_?\\([0-9][0-9]\\)_\\([0-9][0-9]\\)_?\\([0-9][0-9]\\)_?\\([0-9][0-9]\\)"
 		 file)
@@ -204,13 +215,14 @@
 
 ;; [[file:../Sacha.org::#using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs][Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs:8]]
 ;; https://stackoverflow.com/questions/9547912/emacs-calendar-show-more-than-3-months
+(eval-when-compile (require 'calendar))
 (defmacro lawlist-calendar-for-loop (var from init to final do &rest body)
   "Execute a for loop.
 Evaluate BODY with VAR bound to successive integers from INIT to FINAL,
 inclusive.  The standard macro `dotimes' is preferable in most cases."
   `(let ((,var (1- ,init)))
-    (while (>= ,final (setq ,var (1+ ,var)))
-      ,@body)))
+     (while (>= ,final (setq ,var (1+ ,var)))
+       ,@body)))
 
 ;;;###autoload
 (defun year-calendar (&optional month year)

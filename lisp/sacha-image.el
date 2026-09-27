@@ -450,8 +450,15 @@ Prompt for a caption afterwards."
                      :category 'file)
 									(sacha-latest-screenshot))))
 	(cond
-	 ((derived-mode-p 'mastodon-toot-mode)
-		(mastodon-toot--attach-media file (or note (read-string "Caption: "))))
+	 (mastodon-toot-mode
+		(setq mastodon-toot--media-attachments
+					(nconc mastodon-toot--media-attachments
+                 `(((:contents . ,(mastodon-http--read-file-as-string file))
+                    (:description . ,(or note (read-string "Caption: ")))
+                    (:filename . ,file)))))
+		(mastodon-toot--refresh-attachments-display)
+    (mastodon-toot--upload-attached-media
+     (car (last mastodon-toot--media-attachments))))
 	 ((derived-mode-p 'subed-mode)
 		(insert "NOTE\n" (org-link-make-string (concat "file:" file)) "\n"))
 	 (t

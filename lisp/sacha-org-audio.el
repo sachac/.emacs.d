@@ -34,6 +34,15 @@
 
 
 ;; [[file:../Sacha.org::#audio][Audio:2]]
+;;;###autoload
+(defun sacha-org-audio-follow (path)
+  "Play audio on both microphone and headphones."
+  (interactive)
+	(let ((mpv-default-options (append
+															(list "--vid=no" "--no-video" "--window-minimized=yes"
+																		"--audio-device=pulse/SnippetBridge")
+															mpv-default-options)))
+		(mpv-play path)))
 
 ;;;###autoload
 (defun sacha-org-audio-replace-with-permalink ()

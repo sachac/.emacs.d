@@ -26,12 +26,91 @@
 ;;
 ;; Related Emacs config sections:
 ;;
+;; - Switch task
+;;   https://sachachua.com/dotemacs#speech-recognition
+;;
+;; - Scratch that
+;;   https://sachachua.com/dotemacs#speech-recognition
+;;
 ;; - Expanding yasnippets by voice in Emacs and other applications
 ;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-expanding-yasnippet-by-voice
 ;;
 ;;; Code:
 
 
+
+;; [[file:../Sacha.org::*Switch task][Switch task:1]]
+(defmacro sacha-whisper-org-capture (filename function docstring template message)
+	"Register FUNCTION to be autoloaded from FILENAME to capture to TEMPLATE.
+Display MESSAGE."
+	`(progn
+		 (autoload ',function ,filename ,docstring nil)
+		 (defun ,function (text)
+			 ,docstring
+			 (let ((sacha-org-quick-task t))
+				 (org-capture-string
+					(if (get-text-property 0 'file text)
+							(concat text " " (org-link-make-string (concat "audio:" (get-text-property 0'file text))
+																										 "▶️"))
+						text)
+					,template))
+			 (message ,message text)
+			 "")))
+
+(sacha-whisper-org-capture
+ "sacha-whisper"
+ sacha-whisper-switch-task-to
+ "Save the rest of this text to my inbox and clock into it."
+ "wi"
+ "Switched to: %s")
+
+(sacha-whisper-org-capture
+ "sacha-whisper"
+ sacha-whisper-task-today
+ "Make a task for today."
+ "wT"
+ "Today: %s")
+
+(sacha-whisper-org-capture
+ "sacha-whisper"
+ sacha-whisper-task-someday
+ "Make a task for someday."
+ "wt"
+ "Someday: %s")
+
+(sacha-whisper-org-capture
+ "sacha-whisper"
+ sacha-whisper-note
+ "Make a note."
+ "wn"
+ "Note: %s")
+
+(sacha-whisper-org-capture
+ "sacha-whisper"
+ sacha-whisper-task-tomorrow
+ "Make a task for tomorrow."
+ "w>"
+ "Tomorrow: %s")
+
+
+(sacha-whisper-org-capture
+ "sacha-whisper"
+ sacha-whisper-task-next-week
+ "Make a task for next-week."
+ "ww"
+ "Next week: %s")
+
+;; Switch task:1 ends here
+
+;; [[file:../Sacha.org::*Scratch that][Scratch that:1]]
+(defun sacha-whisper-scratch-that (text)
+  "Cancel the utterance if I end it with \"scratch that.\""
+  (when (string-match "^\\(.*\\)scratch that\\.? *$" text)
+		(message "Scratched: %s (%s)" (or (match-string 1 text) "")
+						 whisper--temp-file)
+		(setq text nil))
+	text)
+;; Scratch that:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-expanding-yasnippet-by-voice][Expanding yasnippets by voice in Emacs and other applications:1]]
 

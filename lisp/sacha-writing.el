@@ -118,6 +118,7 @@
                                   (funcall func)))))
 
   (keymap-global-set "M-q" #'sacha-reformat-paragraph-or-region)
+
 ;; Emacs: Cycle through different paragraph formats: all on one line, wrapped, max one sentence per line, one sentence per line:1 ends here
 
 (provide 'sacha-writing)

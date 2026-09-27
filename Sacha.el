@@ -49,8 +49,9 @@
 ;; system-info ends here
 
 ;; [[file:Sacha.org::#backups][Backups:1]]
-  (setq backup-directory-alist '(("\\.env$" . nil)
-                                                                                                                           ("." . "~/.config/emacs/backups")))
+  (setq backup-directory-alist
+				'(("\\.env$" . nil)
+					("." . "~/.config/emacs/backups")))
   (with-eval-after-load 'tramp
           (setq tramp-backup-directory-alist nil))
 ;; Backups:1 ends here
@@ -241,6 +242,7 @@ From https://github.com/oantolin/emacs-config"
                   "d" #'sacha-deepgram-recognize-audio
                   "$" #'sacha-deepgram-cost
                   "m" #'mpv-play
+									"M" #'mpv-play-url
                   "w" #'embark-copy-as-kill
                   "c" #'sacha-caption-show
 									"e" #'sacha-embark-video-edit-youtube
@@ -258,8 +260,12 @@ From https://github.com/oantolin/emacs-config"
     "d" #'sacha-deepgram-recognize-audio
     "$" #'sacha-deepgram-cost
     "D" #'sacha-audio-braindump-reprocess
+		"x" #'sacha-delete-file-and-link
+		"c" #'copy-file
+		"r" #'rename-file
     "m" #'mpv-play
-    "w" #'sacha-audio-text
+    "w" #'kill-new
+		"t" #'sacha-audio-text
     "W" #'waveform-show)
   (add-to-list 'embark-keymap-alist '(audio . sacha-embark-audio-actions)))
 ;; Using Embark to act on audio:2 ends here
@@ -351,6 +357,15 @@ From https://github.com/oantolin/emacs-config"
 	(keymap-set embark-defun-map "W" #'sacha-embark-copy-def-name)
 	(keymap-set embark-variable-map "W" #'sacha-embark-copy-def-name))
 ;; Use Embark to copy the name of a defun or defvar:2 ends here
+
+;; [[file:Sacha.org::#keybindings-embark-use-embark-to-copy-the-name-of-a-defun-or-defvar][Use Embark to copy the name of a defun or defvar:3]]
+(use-package vared
+	:vc (:url "https://codeberg.org/imarko/vared.el")
+	:bind
+	(:map embark-variable-map
+				("V" . vared))
+	)
+;; Use Embark to copy the name of a defun or defvar:3 ends here
 
 ;; [[file:Sacha.org::#casual-symbol-overlay][Embark, symbols, and casual-symbol-overlay:1]]
   (use-package casual-symbol-overlay
@@ -522,7 +537,7 @@ From https://github.com/oantolin/emacs-config"
 (use-package unabbrev :vc (:url "https://github.com/davep/unabbrev.el"))
 ;; Define abbreviations:3 ends here
 
-;; [[file:Sacha.org::*Remove defaults from minibuffer][Remove defaults from minibuffer:1]]
+;; [[file:Sacha.org::#completion-remove-defaults-from-minibuffer][Remove defaults from minibuffer:1]]
 (use-package minibuf-eldef ; built-in
 	:init
 	(minibuffer-electric-default-mode 1)
@@ -538,7 +553,7 @@ From https://github.com/oantolin/emacs-config"
     (orderless-style-dispatchers '(sacha-orderless-accent-dispatch orderless-affix-dispatch)))
 ;; Emacs completion and handling accented characters with orderless:2 ends here
 
-;; [[file:Sacha.org::*Placeholders][Placeholders:1]]
+;; [[file:Sacha.org::#completion-placeholders][Placeholders:1]]
 (use-package placeholder
   :vc (:url "https://github.com/oantolin/placeholder")
 	:config
@@ -555,7 +570,12 @@ From https://github.com/oantolin/emacs-config"
     :after projectile
     :bind (("C-x r x" . consult-register)
            ("C-x r b" . consult-bookmark)
-           ("C-c k" . consult-kmacro)
+					 ("C-c M-x" . consult-mode-command)
+					 ("C-c k" . consult-kmacro)
+					 ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+					 ("C-c h" . consult-history)
+					 ("C-c m" . consult-man)
+					 ("C-c i" . consult-info)
            ("C-x M-:" . consult-complex-command) ;; orig. repeat-complet-command
            ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
            ("C-x 5 b" . consult-buffer-other-frame)
@@ -570,33 +590,36 @@ From https://github.com/oantolin/emacs-config"
            ("M-e" . consult-isearch)	 ;; orig. isearch-edit-string
            ("M-s e" . consult-isearch) ;; orig. isearch-edit-string
            ("M-s l" . consult-line)
-					 (:map search-map							; M-s; from oantolin's config
-								 ("f" . consult-find)
-								 ("g" . consult-grep)
-								 ("G" . consult-git-grep)
-								 ("r" . consult-ripgrep)
-								 ("i" . consult-info)
-								 ("s" . consult-isearch)
-								 ("l" . consult-line)
-								 ("L" . consult-locate)
-								 ("m" . consult-multi-occur)
-								 ("K" . consult-keep-lines)
-								 ("F" . consult-focus-lines))
-					 (:map goto-map								; M-g; from oantolin's config
-								 ("l" . consult-line)
-								 ("L" . consult-line-multi)
-								 ("O" . ace-link)
-								 ("o" . consult-outline)
-								 ("a" . consult-org-agenda)
-								 ("M-g" . consult-goto-line) ; orig. goto-line
-								 ("h" . consult-org-heading)
-								 ("i" . consult-imenu)
-								 ("e" . consult-error)
-								 ("I" . consult-project-imenu)
-								 ("C-i" . consult-imenu-multi)
-								 ("m" . consult-mark)
-								 ("k" . consult-global-mark)
-								 ("f"  . consult-find)))
+					 :map search-map							; M-s; from oantolin's config
+					 ("f" . consult-find)
+					 ("g" . consult-grep)
+					 ("G" . consult-git-grep)
+					 ("r" . consult-ripgrep)
+					 ("i" . consult-info)
+					 ("s" . consult-isearch)
+					 ("l" . consult-line)
+					 ("L" . consult-locate)
+					 ("m" . consult-multi-occur)
+					 ("K" . consult-keep-lines)
+					 ("F" . consult-focus-lines)
+					 :map goto-map								; M-g; from oantolin's config
+					 ("l" . consult-line)
+					 ("L" . consult-line-multi)
+					 ("O" . ace-link)
+					 ("o" . consult-outline)
+					 ("a" . consult-org-agenda)
+					 ("M-g" . consult-goto-line) ; orig. goto-line
+					 ("h" . consult-org-heading)
+					 ("i" . consult-imenu)
+					 ("e" . consult-error)
+					 ("I" . consult-project-imenu)
+					 ("C-i" . consult-imenu-multi)
+					 ("m" . consult-mark)
+					 ("k" . consult-global-mark)
+					 ("f"  . consult-find)
+					 :map minibuffer-local-map
+					 ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+					 ("M-r" . consult-history))
     :init
     (setq register-preview-delay 0
           register-preview-function #'consult-register-format)
@@ -652,9 +675,9 @@ From https://github.com/oantolin/emacs-config"
 ;; Favorites:2 ends here
 
 ;; [[file:Sacha.org::#searching-sacha-blog][Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:3]]
-  (keymap-global-set "M-g b" #'sacha-search-public-notes)
-  (keymap-global-set "M-g N" #'sacha-search-notes)
-  (keymap-global-set "M-g B" #'consult-omni-google-sacha-blog)
+  (bind-key "b" #'sacha-search-public-notes goto-map)
+  (bind-key "N" #'sacha-search-notes goto-map)
+  (bind-key "B" #'consult-omni-google-sacha-blog goto-map)
 ;; Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:3 ends here
 
 ;; [[file:Sacha.org::#marginalia][Marginalia:2]]
@@ -708,9 +731,9 @@ From https://github.com/oantolin/emacs-config"
 ;; Cargo-culted stuff:2 ends here
 
 ;; [[file:Sacha.org::#color-theme-sometimes-comes-across-lists-odd][color-theme sometimes comes across lists. Odd!:1]]
-  (defadvice face-attribute (around sacha activate)
-    (if (symbolp (ad-get-arg 0))
-        ad-do-it))
+;  (defadvice face-attribute (around sacha activate)
+;    (if (symbolp (ad-get-arg 0))
+;        ad-do-it))
 ;; color-theme sometimes comes across lists. Odd!:1 ends here
 
 ;; [[file:Sacha.org::#display][Display:2]]
@@ -729,20 +752,9 @@ From https://github.com/oantolin/emacs-config"
 ;; [[file:Sacha.org::#set-up-a-light-on-dark-color-scheme][Set up a color scheme:2]]
   (use-package modus-themes
           :vc (:url "https://github.com/protesilaos/modus-themes")
-          :init (setq modus-themes-to-toggle '(modus-operandi-tinted modus-vivendi-tinted))
+          :init (setq modus-themes-to-toggle '(modus-vivendi-tinted modus-operandi-tinted))
           :config (sacha-setup-color-theme))
 ;; Set up a color scheme:2 ends here
-
-;; [[file:Sacha.org::#making-highlight-sexp-follow-modus-themes-toggle][Making highlight-sexp follow modus-themes-toggle:2]]
-  (use-package highlight-sexp
-    :vc (:url "https://github.com/daimrod/highlight-sexp")
-    :after modus-themes
-    :hook
-    ((emacs-lisp-mode . highlight-sexp-mode)
-     (modus-themes-after-load-theme . sacha-hl-sexp-update-all-overlays))
-    :config
-    (advice-add 'hl-sexp-create-overlay :after 'sacha-hl-sexp-update-overlay))
-;; Making highlight-sexp follow modus-themes-toggle:2 ends here
 
 ;; [[file:Sacha.org::#modeline][Modeline:1]]
 (use-package window-extras
@@ -792,12 +804,18 @@ From https://github.com/oantolin/emacs-config"
 ;; [[file:Sacha.org::#navigation][Navigation:1]]
 (transient-mark-mode 1)
 (minibuffer-regexp-mode 1)
+(setq goto-line-history-local t)
 ;; Navigation:1 ends here
 
 ;; [[file:Sacha.org::#navigation][Navigation:2]]
 (bind-key "C-x !" #'delete-other-windows-vertically)
 (bind-key "M-H" #'mark-paragraph)
 ;; Navigation:2 ends here
+
+;; [[file:Sacha.org::#navigation-scrolling-by-line][Scrolling by line:1]]
+(bind-key "M-n" 'scroll-up-line)
+(bind-key "M-p" 'scroll-down-line)
+;; Scrolling by line:1 ends here
 
 ;; [[file:Sacha.org::#navigation-going-to-the-last-change][Going to the last change:1]]
 (use-package goto-chg
@@ -806,7 +824,19 @@ From https://github.com/oantolin/emacs-config"
 	 ("C-)" . goto-last-change-reverse)))
 ;; Going to the last change:1 ends here
 
-;; [[file:Sacha.org::*Narrow][Narrow:1]]
+;; [[file:Sacha.org::#navigation-mouse-context-menus][Mouse context menus:1]]
+(use-package casual-suite)
+(use-package anju
+	:hook
+	(prog-mode . context-menu-mode)
+	(text-mode . context-menu-mode)
+	(dired-mode . context-menu-mode)
+	(shell-mode . context-menu-mode)
+	:init
+	(anju-init))
+;; Mouse context menus:1 ends here
+
+;; [[file:Sacha.org::#navigation-narrow][Narrow:1]]
 (use-package narrow-extras
 	:load-path "~/vendor/oantolin-config/user-lisp"
 	:vc (:url "https://github.com/oantolin/emacs-config/user-lisp")
@@ -825,19 +855,19 @@ From https://github.com/oantolin/emacs-config"
 	))
 ;; Narrow:1 ends here
 
-;; [[file:Sacha.org::*Rectangles][Rectangles:1]]
-(use-package rect  ; built-in
-	:bind
-	(:map rectangle-mark-mode-map  ; C-x r
-        ("t" . string-rectangle)
-        ("o" . open-rectangle)
-        ("c" . clear-rectangle)
-        ("n" . rectangle-number-lines)
-        ("x" . rectangle-exchange-point-and-mark)
-        ("*" . calc-grab-rectangle)
-        (":" . calc-grab-sum-down)
-        ("_" . calc-grab-sum-across)
-        (" " . delete-whitespace-rectangle)))
+;; [[file:Sacha.org::#navigation-rectangles][Rectangles:1]]
+(with-eval-after-load 'rect
+	(bind-keys
+	 :map rectangle-mark-mode-map					; C-x r
+   ("t" . string-rectangle)
+   ("o" . open-rectangle)
+   ("c" . clear-rectangle)
+   ("n" . rectangle-number-lines)
+   ("x" . rectangle-exchange-point-and-mark)
+   ("*" . calc-grab-rectangle)
+   (":" . calc-grab-sum-down)
+   ("_" . calc-grab-sum-across)
+   (" " . delete-whitespace-rectangle)))
 ;; Rectangles:1 ends here
 
 ;; [[file:Sacha.org::#navigation-substitution][Substitution:1]]
@@ -991,7 +1021,8 @@ From https://github.com/oantolin/emacs-config"
 ;; Searching:1 ends here
 
 ;; [[file:Sacha.org::#searching][Searching:2]]
-(use-package isearch  ; built-in
+(use-package isearch										; built-in
+	:ensure nil
 	:bind
 	(:map isearch-mode-map
 				("M-c") ; unbind the toggle for case sensitivity, still bound to M-s c
@@ -999,7 +1030,7 @@ From https://github.com/oantolin/emacs-config"
 				("C-<backspace>" . oantolin-isearch-delete-wrong)
 				("C-M-w" . isearch-yank-region)
 				("M-t" . transpose-words)
-	))
+				))
 ;; Searching:2 ends here
 
 ;; [[file:Sacha.org::#searching][Searching:3]]
@@ -1018,9 +1049,10 @@ From https://github.com/oantolin/emacs-config"
 ;; [[file:Sacha.org::#searching][Searching:6]]
   (use-package helm-org-rifle
     :bind
-    ("M-g r r" . helm-org-rifle)
-    ("M-g r a" . helm-org-rifle-org-agenda-files)
-    ("M-g r o" . helm-org-rifle-org-directory)
+		(:map goto-map
+					("r r" . helm-org-rifle)
+					("r a" . helm-org-rifle-org-agenda-files)
+					("r o" . helm-org-rifle-org-directory))
     )
 
   (use-package consult-recoll
@@ -1133,6 +1165,60 @@ From https://github.com/oantolin/emacs-config"
 	(add-hook 'org-mode-hook 'sacha-ediff-with-org-show-all))
 ;; Ediff:3 ends here
 
+;; [[file:Sacha.org::#ediff][Ediff:4]]
+(defun sacha-read-backup-file-name (file)
+  (if-let* ((backup-files (file-backup-file-names file)))
+      (completing-read "Backup version: " backup-files nil t)
+    (user-error "No backup files available for file %s" (buffer-file-name))))
+
+(defun sacha-vc-diff (&optional arg)
+  "Compare current buffer with its file, or file with backup or revision.
+With prefix ARG, compare the file with a selected backup when the file
+is not under version control."
+  (interactive "P")
+  (if (buffer-modified-p)
+      (diff-buffer-with-file (current-buffer))
+    (condition-case errdata (call-interactively #'vc-diff)
+      (error
+       (if (string-match-p "not under version control" (cadr errdata))
+           (if arg
+               (diff (sacha-read-backup-file-name (buffer-file-name))
+                     (buffer-file-name))
+             (diff-backup (buffer-file-name)))
+         (apply #'signal errdata))))))
+
+(defun sacha-vc-ediff (&optional arg)
+  "Run Ediff on the current buffer, file, or backup.
+With prefix ARG, compare the file with a selected backup when the file
+is not under version control."
+  (interactive "P")
+  (if (buffer-modified-p)
+      (call-interactively #'ediff-current-file)
+    (condition-case errdata (call-interactively #'vc-ediff)
+      (error
+       (if (string-match-p "not under version control" (cadr errdata))
+           (if arg
+               (ediff-files (sacha-read-backup-file-name (buffer-file-name))
+                            (buffer-file-name))
+             (ediff-backup (buffer-file-name)))
+         (apply #'signal errdata))))))
+
+(defun sacha-vc-revision-other-window (&optional arg)
+  "Visit the current file's past revision or backup in another window.
+With prefix ARG, visit a selected backup when the file is not under
+version control."
+  (interactive "P")
+  (condition-case errdata (call-interactively #'vc-revision-other-window)
+    (error
+     (if (string-match-p "not under version control" (cadr errdata))
+         (if arg
+             (find-file-other-window (sacha-read-backup-file-name (buffer-file-name)))
+           (if-let* ((backup (file-newest-backup (buffer-file-name))))
+               (find-file-other-window backup)
+             (user-error "No backup files available for %s" (buffer-file-name))))
+       (apply #'signal errdata)))))
+;; Ediff:4 ends here
+
 ;; [[file:Sacha.org::#hideshow][Hideshow:1]]
   (use-package hideshow
     :hook
@@ -1219,7 +1305,7 @@ From https://github.com/oantolin/emacs-config"
   :load-path "~/vendor/prot-dotfiles/emacs/.emacs.d/prot-lisp"
 	:commands (prot-register-add-dwim)
 	:bind
-	(("C-, a" . prot-register-add-dwim)))
+	(("C-x r a" . prot-register-add-dwim)))
 ;; Frequently-accessed files:3 ends here
 
 ;; [[file:Sacha.org::#smartscan][Smartscan:1]]
@@ -1264,7 +1350,7 @@ From https://github.com/oantolin/emacs-config"
 	(keymap-set dired-mode-map "r" 'sacha-backup-media))
 ;; Saving photos:2 ends here
 
-;; [[file:Sacha.org::*Open files externally][Open files externally:2]]
+;; [[file:Sacha.org::#navigation-open-files-externally][Open files externally:2]]
 (use-package dired ; built-in
 	:bind
 	(:map dired-mode-map
@@ -1302,6 +1388,33 @@ From https://github.com/oantolin/emacs-config"
   "~/sync/topics/now.org"))
 ;; Emacs: Toggle a buffer for quick reference:2 ends here
 
+;; [[file:Sacha.org::#navigation-navigating-by-points-of-interest][Navigating by points of interest:1]]
+(use-package poi
+	:load-path "~/vendor/karthink-emacs-d/plugins"
+	:commands (poi-register poi-next poi-previous)
+	:bind
+	(:map goto-map
+				("n" . poi-next)
+				("p" . poi-previous))
+	(:repeat-map sacha-poi-repeat-map
+							 ("n" . poi-next)
+							 ("p" . poi-previous))
+	:init
+	(with-eval-after-load 'flymake
+		(add-hook 'flymake-mode-hook (poi-register 'flymake-goto-next-error)))
+	(add-hook 'text-mode-hook (poi-register 'next-error))
+	(add-hook 'prog-mode-hook (poi-register 'next-error))
+	)
+;; Navigating by points of interest:1 ends here
+
+;; [[file:Sacha.org::#navigation-make-pop-to-buffer-jump-across-windows][Make pop-to-buffer jump across windows:1]]
+(define-advice pop-global-mark (:around (pgm) use-display-buffer)
+  "Make `pop-to-buffer' jump buffers via `display-buffer'."
+  (cl-letf (((symbol-function 'switch-to-buffer)
+                         #'pop-to-buffer))
+                (funcall pgm)))
+;; Make pop-to-buffer jump across windows:1 ends here
+
 ;; [[file:Sacha.org::#navigation-pop-buffers-up-or-down][Pop buffers up or down:1]]
 (use-package popper
   :ensure t ; or :straight t
@@ -1334,8 +1447,9 @@ From https://github.com/oantolin/emacs-config"
 ;; [[file:Sacha.org::#link-hint][link-hint:1]]
   (use-package link-hint
     :bind
-    ("M-g u" . link-hint-open-link)
-    ("M-g U" . link-hint-open-multiple-links))
+		(:map goto-map
+					("u" . link-hint-open-link)
+					("U" . link-hint-open-multiple-links)))
 ;; link-hint:1 ends here
 
 ;; [[file:Sacha.org::#bookmarks][Bookmarks:1]]
@@ -1361,16 +1475,16 @@ From https://github.com/oantolin/emacs-config"
 ;; [[file:Sacha.org::#dogears][Dogears:1]]
       (use-package dogears
         ;; These bindings are optional, of course:
-        :bind (:map global-map
-                    ("M-g d" . dogears-go)
-                    ("M-g M-b" . dogears-back)
-                    ("M-g M-f" . dogears-forward)
-                    ("M-g M-d" . dogears-list)
-                    ("M-g M-D" . dogears-sidebar)))
+        :bind (:map goto-map
+                    ("d" . dogears-go)
+                    ("M-b" . dogears-back)
+                    ("M-f" . dogears-forward)
+                    ("M-d" . dogears-list)
+                    ("M-D" . dogears-sidebar)))
 ;; Dogears:1 ends here
 
 ;; [[file:Sacha.org::#random][Randomness for serendipity:2]]
-(bind-key "M-g R" #'sacha-goto-random-line)
+(bind-key "R" #'sacha-goto-random-line goto-map)
 ;; Randomness for serendipity:2 ends here
 
 ;; [[file:Sacha.org::#network-tramp-and-editing-files-over-ssh][Network: TRAMP and editing files over SSH:1]]
@@ -1391,13 +1505,13 @@ From https://github.com/oantolin/emacs-config"
 (keymap-global-set "<triple-wheel-left>" 'sacha-navigate-next-buffer-debounced)
 ;; Touch gestures:2 ends here
 
-;; [[file:Sacha.org::*Keyboard macros][Keyboard macros:1]]
+;; [[file:Sacha.org::#keyboard-macros][Keyboard macros:1]]
 (bind-key "M-r" #'kmacro-start-macro-or-insert-counter) ; replace window-layout-transpose
 (bind-key "M-m" #'kmacro-end-or-call-macro)  ; replace back-to-indentation
 (bind-key "M-M" #'apply-macro-to-lines-of-paragraph)
 ;; Keyboard macros:1 ends here
 
-;; [[file:Sacha.org::*Settings][Settings:1]]
+;; [[file:Sacha.org::#settings][Settings:1]]
 (bind-keys :prefix-map sacha-toggle-map
 					 :prefix "C-c x"
 					 ("d" . toggle-debug-on-error)
@@ -1467,7 +1581,7 @@ From https://github.com/oantolin/emacs-config"
     "c" (cons "conj" #'sacha-learn-lang-conjugate)
     "f" (cons "→ fr" #'sacha-learn-lang-consult-en-fr)
     "s" (cons "say" #'sacha-learn-lang-say-word-at-point)
-    "x" (cons "example" #'learn-lang-tatoeba-consult-insert)
+    "x" (cons "example" #'sacha-learn-lang-combined-consult)
     "t" (cons "→ en" #'sacha-learn-lang-translate-dwim))
 
   (with-eval-after-load 'org
@@ -1480,6 +1594,15 @@ From https://github.com/oantolin/emacs-config"
 
   (with-eval-after-load 'flyspell
     (keymap-set flyspell-mode-map "C-," 'sacha-learn-lang-map))
+
+  (with-eval-after-load 'agent-shell
+    (keymap-set agent-shell-mode-map "C-," 'sacha-learn-lang-map))
+
+  (with-eval-after-load 'subed
+    (keymap-set subed-mode-map "C-," 'sacha-learn-lang-map))
+
+  ;; (with-eval-after-load 'mastodon-toot
+  ;;   (keymap-set mastodon-toot-mode-map "C-," 'sacha-learn-lang-map))
 
 
   ;; (use-package wiktionary-bro
@@ -1495,10 +1618,6 @@ From https://github.com/oantolin/emacs-config"
     (with-eval-after-load 'flycheck
       (flycheck-grammalecte-setup)))
 ;; Learning French:3 ends here
-
-;; [[file:Sacha.org::#writing-and-editing-learning-french-emacs-and-french-focus-flycheck-grammalecte-on-the-narrowed-part-of-the-buffer][Emacs and French: Focus flycheck-grammalecte on the narrowed part of the buffer:1]]
-
-;; Emacs and French: Focus flycheck-grammalecte on the narrowed part of the buffer:1 ends here
 
 ;; [[file:Sacha.org::#writing-and-editing-learning-french-gtts-cli][gtts-cli:1]]
   (use-package learn-lang-tts :load-path "~/proj/learn-lang"
@@ -1624,6 +1743,23 @@ From https://github.com/oantolin/emacs-config"
           try-complete-lisp-symbol))
 ;; Expand:3 ends here
 
+;; [[file:Sacha.org::#expand][Expand:5]]
+  (define-advice he-substitute-string (:filter-args (args) suffix-strip)
+    "Filter ARG list for `he-substitute-string', truncating duplicated suffix.
+  ARGS is the raw argument list (STRING &optional TRANS-CASE).
+
+  From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
+    (pcase-let* ((`(,ins &optional ,trans-case) args)
+		 (rem (save-excursion
+			(goto-char (marker-position he-string-end))
+			(buffer-substring-no-properties
+			 (point) (line-end-position))))
+		 (ov (sacha-he-subst-suffix-overlap ins rem)))
+      (when (>= ov 0)
+	(setq ins (substring ins 0 (- (length ins) ov))))
+      (list ins trans-case)))
+;; Expand:5 ends here
+
 ;; [[file:Sacha.org::#speech-recognition][Speech recognition:1]]
   (use-package caser
     :bind
@@ -1641,11 +1777,10 @@ From https://github.com/oantolin/emacs-config"
   (setq whisper--install-path (concat
      (expand-file-name (file-name-as-directory whisper-install-directory))
      "whisper.cpp/"))
-  ;; Get it running with whisper-server-mode set to nil first before you switch to 'local.
+  ;; Get it running with whisper-server-mode set to nil first
   ;; If you change models,
   ;; (whisper-install-whispercpp (whisper--check-install-and-run nil "whisper-start"))
-  (setq whisper-server-mode 'local)
-  (setq whisper-return-cursor-to-start nil)
+    (setq whisper-return-cursor-to-start nil)
   ;(setq whisper--ffmpeg-input-device "alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo")
   (setq whisper--ffmpeg-input-device "VirtualMicSink.monitor")
   (setq whisper-language "en")
@@ -1677,9 +1812,11 @@ From https://github.com/oantolin/emacs-config"
 ;; https://github.com/sachac/whisper.el/tree/whisper-insert-text-at-point-function
 (with-eval-after-load 'whisper
   (setq whisper-insert-text-at-point
-        '(sacha-whisper-handle-commands
+        '(sacha-whisper-scratch-that
+					sacha-whisper-handle-commands
           sacha-whisper-save-text
-          sacha-whisper-save-to-file
+;          sacha-whisper-save-to-file
+					sacha-save-to-kill-ring-after-current
           sacha-whisper-maybe-expand-snippet
           sacha-speech-input-quantified-track
           sacha-whisper-maybe-type
@@ -1707,8 +1844,7 @@ From https://github.com/oantolin/emacs-config"
 ;; Emacs and whisper.el: Trying out different speech-to-text backends and models:2 ends here
 
 ;; [[file:Sacha.org::#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models][Emacs and whisper.el: Trying out different speech-to-text backends and models:7]]
-(setq whisper-server-port 8000
-      whisper-model "Systran/faster-whisper-small.en"
+(setq whisper-model "Systran/faster-whisper-small.en"
       sacha-whisper-url-format "http://%s:%d/v1/audio/transcriptions")
 ;; Emacs and whisper.el: Trying out different speech-to-text backends and models:7 ends here
 
@@ -1724,6 +1860,11 @@ From https://github.com/oantolin/emacs-config"
 (use-package speech-input
   :load-path "~/proj/speech-input/"
   :preface (load "~/proj/speech-input/speech-input-autoloads.el" nil t)
+	:config
+	(setq speech-input-speaches-command
+				'("docker" "compose" "-f"
+ "/home/sacha/vendor/speaches/compose.yaml" "up"))
+
   )
 ;; Using Silero voice activity detection to automatically queue multiple transcriptions with natrys/whisper.el:1 ends here
 
@@ -1736,6 +1877,11 @@ From https://github.com/oantolin/emacs-config"
 (with-eval-after-load 'whisper
   (add-hook 'whisper-after-transcription-hook 'sacha-whisper-process-replacements 70))
 ;; Slowly building speech-based commands for Emacs:2 ends here
+
+;; [[file:Sacha.org::*Keep track of files and stats][Keep track of files and stats:2]]
+(with-eval-after-load 'whisper
+  (add-hook 'whisper-after-transcription-hook 'sacha-whisper-add-text-properties 100))
+;; Keep track of files and stats:2 ends here
 
 ;; [[file:Sacha.org::#writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results][Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results:3]]
 (with-eval-after-load 'whisper
@@ -1762,6 +1908,32 @@ From https://github.com/oantolin/emacs-config"
 (add-to-list 'sacha-speech-functions #'sacha-speech-subed-record))
 ;; speech and subed-record:2 ends here
 
+;; [[file:Sacha.org::*Orukeet][Orukeet:2]]
+(defvar sacha-orukeet-process nil)
+(defvar sacha-orukeet-dir "~/vendor/orukeet")
+(defvar sacha-orukeet-command `(,(expand-file-name ".venv/bin/python" sacha-orukeet-dir)
+                                "orukeet-server.py"))
+
+(defun sacha-orukeet-ensure ()
+  "Start the process if it's not already running."
+  (interactive)
+  (unless (process-live-p sacha-orukeet-process)
+    (let ((default-directory sacha-orukeet-dir))
+      (setq sacha-orukeet-process
+            (make-process
+             :name "orukeet"
+             :command sacha-orukeet-command
+             :buffer (get-buffer-create "*orukeet*")
+             :stderr (get-buffer-create "*orukeet-err*"))))))
+;; Orukeet:2 ends here
+
+;; [[file:Sacha.org::*Orukeet][Orukeet:3]]
+(setq whisper-server-mode 'openai
+      whisper-openai-api-baseurl "http://localhost:8003/"
+      whisper-openai-api-key "not needed"
+			whisper-server-port 8003)
+;; Orukeet:3 ends here
+
 ;; [[file:Sacha.org::#utf-8][UTF-8:1]]
 (prefer-coding-system 'utf-8)
 (when (display-graphic-p)
@@ -1783,12 +1955,23 @@ From https://github.com/oantolin/emacs-config"
   :bind
   (:map org-mode-map
         ("C-M-<return>" . org-insert-subheading)
-        ("M-." . sacha-org-defun-open))
+        ("M-." . sacha-org-defun-open)
+				("M-q" . sacha-reformat-paragraph-or-region))
 	:custom
 	(org-export-with-sub-superscripts nil)
 	(org-footnote-section nil)
 	(org-fold-catch-invisible-edits 'smart))
 ;; org-package-setup ends here
+
+;; [[file:Sacha.org::*Link to the part of my config that defines a function][Link to the part of my config that defines a function:2]]
+(with-eval-after-load 'org
+	(org-link-set-parameters "dotfun"
+													 :complete 'sacha-org-dotemacs-function-complete
+													 :export 'sacha-org-dotemacs-function-export
+													 :open 'sacha-org-dotemacs-function-open
+													 :insert-description #'sacha-org-dotemacs-function-insert-description))
+;; (sacha-org-link-to-dotemacs-function 'sacha-learn-lang-write-journal-entries-for-subtree)
+;; Link to the part of my config that defines a function:2 ends here
 
 ;; [[file:Sacha.org::#org-mode-time-zones][Time zones:2]]
 (setq sacha-time-zones '("US/Eastern" "US/Central" "US/Mountain" "US/Pacific" "UTC" "Europe/Paris" "Europe/Athens" "Asia/Kolkata" "Asia/Singapore" "Asia/Tokyo"))
@@ -1998,7 +2181,6 @@ From https://github.com/oantolin/emacs-config"
 	(setq org-capture-templates
 				(seq-uniq
 				 (append
-
       `(("r" "Note" entry
          (file ,sacha-org-inbox-file)
          "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n\n- %a"
@@ -2010,8 +2192,33 @@ From https://github.com/oantolin/emacs-config"
         ("i" "Interrupting task" entry
          (file ,sacha-org-inbox-file)
          "* STARTED %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
-         :clock-in :clock-resume
+         :clock-in t :clock-keep t
          :prepend t)
+				("wi" "Interrupting task" entry
+         (file ,sacha-org-inbox-file)
+         "* STARTED %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+         :clock-in t :clock-keep t
+         :prepend t :immediate-finish t)
+				("wT" "Task for today" entry
+         (file ,sacha-org-inbox-file)
+         "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \".\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+         :prepend t :immediate-finish t)
+				("w>" "Task for tomorrow" entry
+         (file ,sacha-org-inbox-file)
+         "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+         :prepend t :immediate-finish t)
+				("ww" "Task for next week" entry
+         (file ,sacha-org-inbox-file)
+         "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+         :prepend t :immediate-finish t)
+				("wt" "Task for someday" entry
+         (file ,sacha-org-inbox-file)
+         "* SOMEDAY %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+         :prepend t :immediate-finish t)
+				("wn" "Note" entry
+         (file ,sacha-org-inbox-file)
+         "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+         :prepend t :immediate-finish t)
 				("T" "Task without annotation" entry
          (file ,sacha-org-inbox-file)
          "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n"
@@ -2324,10 +2531,10 @@ From https://github.com/oantolin/emacs-config"
                       "~/sync/orgzly/posts.org"
                       "~/sync/orgzly/crafts.org"
                       "~/sync/emacs/Sacha.org"
-                      "~/proj/emacsconf/wiki/2025/organizers-notebook/index.org"
+                      "~/proj/emacsconf/wiki/2026/organizers-notebook/index.org"
+                      "~/proj/emacsconf/2026/private/conf.org"
                       "~/proj/emacsconf/wiki/organizers-notebook/index.org"
                       "~/proj/stream/index.org"
-                      "~/proj/plover-notes/README.org"
                       "~/personal/sewing.org"
                       "~/sync/orgzly/people.org"
                       "~/sync/orgzly/business.org"
@@ -2393,7 +2600,7 @@ From https://github.com/oantolin/emacs-config"
 (use-package org-ql)
 
 (defun sacha-org-ql-randomize (orig-fn from query &rest args)
-	(when (string-match "random" org-ql-block-header)
+	(when (string-match "random" (or org-ql-block-header ""))
 		(plist-put args :sort 'random))
 	(apply orig-fn from query args))
 (advice-add 'org-ql-select :around #'sacha-org-ql-randomize)
@@ -2763,7 +2970,12 @@ From https://github.com/oantolin/emacs-config"
 (use-package literate-elisp :if sacha-laptop-p :defer t)
 ;; Let's try literate-elisp:1 ends here
 
-;; [[file:Sacha.org::*Exclude heading by tag based on backend][Exclude heading by tag based on backend:2]]
+;; [[file:Sacha.org::#org-mode-publishing-warn-if-i-m-exporting-placeholders-or-private-information][Warn if I'm exporting placeholders or private information:2]]
+(with-eval-after-load 'ox
+	(add-hook 'org-export-before-processing-functions 'sacha-org-export-warn))
+;; Warn if I'm exporting placeholders or private information:2 ends here
+
+;; [[file:Sacha.org::#org-mode-publishing-exclude-heading-by-tag-based-on-backend][Exclude heading by tag based on backend:2]]
 (with-eval-after-load 'org
 	(add-hook 'org-export-before-parsing-hook #'sacha-org-export-exclude-by-backend)
 	(add-hook 'org-export-filter-parse-tree-functions #'sacha-org-export-hide-tags))
@@ -2815,7 +3027,7 @@ From https://github.com/oantolin/emacs-config"
 	(advice-add 'org-11ty--front-matter :filter-return #'sacha-org-11ty-rewrite-tags))
 ;; 11ty static site generation:1 ends here
 
-;; [[file:Sacha.org::*Making podcasts easier to publish][Making podcasts easier to publish:2]]
+;; [[file:Sacha.org::#org-mode-publishing-11ty-static-site-generation-making-podcasts-easier-to-publish][Making podcasts easier to publish:2]]
 (with-eval-after-load 'ox-11ty
 	(add-to-list 'org-11ty-front-matter-functions #'sacha-org-11ty-add-podcast-frontmatter))
 ;; Making podcasts easier to publish:2 ends here
@@ -2912,12 +3124,13 @@ From https://github.com/oantolin/emacs-config"
 (setq org-latex-prefer-user-labels t)
 ;; LaTeX:1 ends here
 
-;; [[file:Sacha.org::*Rewrite file links if there's a permalink][Rewrite file links if there's a permalink:1]]
+;; [[file:Sacha.org::#org-mode-publishing-rewrite-file-links-if-there-s-a-permalink][Rewrite file links if there's a permalink:1]]
 (defun sacha-org-latex-filter-add-permalink (link backend info)
   "Prepend the inherited EXPORT_ELEVENTY_PERMALINK to file links in LaTeX export."
   (when (org-export-derived-backend-p backend 'latex)
     (let* ((permalink (plist-get info :permalink)))
-      (if (string-match "\\(\\\\\\(?:href\\|url\\){?\\)file:\\([^}]+\\)" link)
+      (if (and permalink
+							 (string-match "\\(\\\\\\(?:href\\|url\\){?\\)file:\\([^}]+\\)" link))
           (let ((cmd (match-string 1 link))
                 (path (match-string 2 link)))
 						(replace-match
@@ -3041,9 +3254,8 @@ From https://github.com/oantolin/emacs-config"
 					(format "<a name=\"end-%s\"></a>" anchor)
 				"")))
 		((eq backend 'latex)
-		 (format "\begin{my_details}{%s}\n%s\n\end{my_details}"
+		 (format "\\begin{my_details}{%s}\n%s\n\\end{my_details}"
 						 title
-						 title-color
 						 contents))
 		(t
 		 (concat title "\n\n"
@@ -3402,6 +3614,10 @@ From https://github.com/oantolin/emacs-config"
 	 :follow #'sacha-org-audio-follow
 	 :complete #'sacha-org-audio-icon-complete))
 ;; org-audio-link ends here
+
+;; [[file:Sacha.org::*Record and replay][Record and replay:2]]
+(bind-key "s-a" #'sacha-org-subed-record-audio-insert-link-and-replay)
+;; Record and replay:2 ends here
 
 ;; [[file:Sacha.org::org-captions-link][org-captions-link]]
 (with-eval-after-load 'org
@@ -3809,7 +4025,7 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
                        (seq-take
                         (sacha-org-db-v3-blog-post--collection input)
                         5)))
-          :action #'sacha-embark-blog-insert-link))
+          :action #'sacha-embark-blog-insert-link)))
 ;; Multiple sources:1 ends here
 
 ;; [[file:Sacha.org::emacs-rag-search][emacs-rag-search]]
@@ -3890,7 +4106,7 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
    :follow 'sacha-org-sketch-open
    :export 'sacha-org-image-export-full
    :complete 'sacha-org-sketch-complete-full
-   :activate-func nil))
+   :activate-func nil)
   (org-link-set-parameters
    "image"
    :follow 'sacha-org-image-open
@@ -3966,6 +4182,70 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
 (setq sacha-supernote-ip-address "192.168.1.221")
 ;; org-attaching the latest image from my Supernote via Browse and Access:1 ends here
 
+;; [[file:Sacha.org::#multimedia-subtitles-with-subed-see-if-i-can-use-the-word-data-to-do-intra-subtitle-trimming][See if I can use the word data to do intra-subtitle trimming:1]]
+;; I could use object-intervals or I can get it from (subed-word-data-subtitle-entries). Maybe we need both so that we can determine what's been omitted.
+
+;; Can I manually do it first?
+;; Display a buffer and then let me click on the words to add to the directive
+(defvar-local subed--subtitle-buffer nil)
+(defun sacha-subed-record-identify-omitted-words ()
+	(interactive)
+	(let* ((subed-word-data-fuzz-ms 0)
+				 (word-data (subed-word-data-subtitle-entries))
+				 (text (subed-subtitle-text))
+				 (buf (current-buffer)))
+		(with-current-buffer (get-buffer-create "*words*")
+			(erase-buffer)
+			(setq-local subed--subtitle-buffer buf)
+			(insert text "\n\n")
+			(insert (mapconcat (lambda (o)
+													 (propertize
+														(alist-get 'text o)
+														'subed-word-data-start (alist-get 'start o)
+														'subed-word-data-end (alist-get 'end o)))
+												 word-data " "))
+			(pop-to-buffer (current-buffer)))))
+
+(defun sacha-subed-record-omit-word (&optional beg end)
+	(interactive (if (region-active-p)
+									 (list (region-beginning)
+												 (region-end))
+								 (list (point) (point))))
+	(unless (or subed--subtitle-buffer (derived-mode-p 'subed-mode))
+		(error "No associated subtitles."))
+	(unless (and (get-text-property beg 'subed-word-data-start)
+							 (get-text-property end 'subed-word-data-end))
+		(error "No start and stop time."))
+	(let ((start (get-text-property beg 'subed-word-data-start))
+				(stop (get-text-property end 'subed-word-data-end)))
+		(with-current-buffer (or subed--subtitle-buffer (current-buffer))
+			(save-restriction
+				(if (= beg end)
+						(progn
+							(skip-syntax-forward " ")
+							(let ((bounds (bounds-of-thing-at-point 'word)))
+								(narrow-to-region
+								 (car bounds)
+								 (cdr bounds))))
+					(narrow-to-region beg end))
+				(save-restriction
+					(save-excursion
+						(widen)
+						(subed-jump-to-subtitle-id-at-msecs start)
+						(let ((trim (subed-record-get-directive "#+TRIM"))
+									(addition (format "%s --> %s"
+																		(subed-msecs-to-timestamp start)
+																		(subed-msecs-to-timestamp stop))))
+							(subed-record-set-directive
+							 "#+TRIM"
+							 (if trim
+									 (concat trim ", " addition)
+								 addition)))))
+				(delete-region (point-min) (point-max)))
+			(when (looking-at " +")
+					(replace-match "")))))
+;; See if I can use the word data to do intra-subtitle trimming:1 ends here
+
 ;; [[file:Sacha.org::#other-subtitle-code][Other subtitle code:2]]
 (defhydra sacha-subed ()
   "Make it easier to split and merge"
@@ -4002,8 +4282,11 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
 ;; [[file:Sacha.org::#other-subtitle-code][Other subtitle code:3]]
 (use-package subed
   :if sacha-laptop-p
-  :preface (load "~/proj/subed/subed-autoloads.el" nil t)
   :load-path "~/proj/subed/subed"
+  :preface (load-library "subed-autoloads.el")
+	:hook
+  (subed-mode . display-fill-column-indicator-mode)
+  (subed-mode . subed-avy-set-up-actions)
   :config
   (setq subed-subtitle-spacing 1)
   (setq subed-align-mfa-conda-env "/home/sacha/vendor/miniconda3/envs/aligner")
@@ -4014,46 +4297,6 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
   (setq subed-align-mfa-conda-env "/home/sacha/vendor/miniconda3/envs/aligner")
 	(setq subed-align-command
 				'("/home/sacha/vendor/aeneas/venv/bin/python3" "-m" "aeneas.tools.execute_task"))
-  :bind
-  (:map subed-mode-map
-        ("M-j" . avy-goto-char-timer)
-        ("M-j" . subed-mpv-jump-to-current-subtitle)
-        ("M-!" . subed-mpv-seek)))
-(use-package subed-record
-	:load-path "~/proj/subed-record"
-	:preface (load "~/proj/subed-record/subed-record-autoloads.el" nil t)
-	:hook (subed-mode . subed-record-set-up)
-  :config
-  (remove-hook 'subed-sanitize-functions 'subed-sort)
-	(setq subed-record-ffmpeg-args (split-string "-y -f pulse -i VirtualMicSink.monitor -r 48000"))
-  :bind
-  (:map subed-mode-map ("C-c C-c" . subed-record-compile-video)))
-;; Other subtitle code:3 ends here
-
-;; [[file:Sacha.org::#word-level][Using word-level timing information when editing subtitles or captions in Emacs:4]]
-(use-package subed
-  :if sacha-laptop-p
-  :load-path "~/proj/subed"
-  :preface (load "~/proj/subed/subed-autoloads.el" nil t)
-  :mode
-  (("\\.vtt\\'" . subed-vtt-mode)
-   ("\\.srt\\'" . subed-srt-mode)
-   ("\\.ass\\'" . subed-ass-mode))
-  :init
-  (autoload 'subed-vtt-mode "subed-vtt" nil t)
-  (autoload 'subed-srt-mode "subed-srt" nil t)
-  (autoload 'subed-ass-mode "subed-ass" nil t)
-  (autoload 'subed-txt-mode "subed-txt" nil t)
-  :hook
-  (subed-mode . display-fill-column-indicator-mode)
-  (subed-mode . subed-avy-set-up-actions)
-  :bind
-  (:map subed-mode-map
-        ("M-," . subed-split-subtitle)
-        ("M-." . subed-merge-dwim)
-				("M-S-<down>" . subed-vtt-move-comment-to-next-subtitle)
-				("M-S-<up>" . subed-vtt-move-comment-to-previous-subtitle))
-	:config
 	;; Remember cursor position between sessions
 	(add-hook 'subed-mode-hook 'sacha-subed-maybe-save-place)
 	;; Some reasonable defaults
@@ -4069,9 +4312,27 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
 								(lambda (f &rest r)
 									(let ((subed-auto-play-media nil))
 										(apply f r)))))
-
+	:bind
+  (:map subed-mode-map
+        ("s-j" . avy-goto-char-timer)
+        ("M-S-j" . avy-goto-char-timer)
+        ("M-j" . subed-mpv-jump-to-current-subtitle)
+        ("M-!" . subed-mpv-seek)
+				("M-," . subed-split-subtitle)
+        ("M-." . subed-merge-dwim)
+				("M-S-<down>" . subed-vtt-move-comment-to-next-subtitle)
+				("M-S-<up>" . subed-vtt-move-comment-to-previous-subtitle))
 	)
-;; Using word-level timing information when editing subtitles or captions in Emacs:4 ends here
+(use-package subed-record
+	:load-path "~/proj/subed-record"
+	:preface (load "~/proj/subed-record/subed-record-autoloads.el" nil t)
+	:hook (subed-mode . subed-record-set-up)
+  :config
+  (remove-hook 'subed-sanitize-functions 'subed-sort)
+	(setq subed-record-ffmpeg-args (split-string "-y -f pulse -i VirtualMicSink.monitor -r 48000"))
+  :bind
+  (:map subed-mode-map ("C-c C-c" . subed-record-compile-video)))
+;; Other subtitle code:3 ends here
 
 ;; [[file:Sacha.org::#working-with-media][Working with media:1]]
 (use-package waveform :load-path "~/proj/waveform-el" :if sacha-laptop-p :defer t)
@@ -4164,9 +4425,24 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
 	:load-path "~/vendor/string-inflection"
 	:vc (:url "https://github.com/sachac/string-inflection"))
 
+(defvar-keymap sacha-kebab-repeat-map
+	"-" #'sacha-code-kebab-words
+	"`" #'sacha-wrap-symbol-at-point)
+
 (with-eval-after-load 'subed
 	(bind-key "C-c -" #'sacha-code-kebab-words subed-mode-map)
+	(bind-key "C-c `" #'sacha-wrap-symbol-at-point subed-mode-map)
+	(put 'sacha-code-kebab-words 'repeat-map 'sacha-kebab-repeat-map)
+	(put 'sacha-wrap-symbol-at-point 'repeat-map 'sacha-kebab-repeat-map)
 	)
+
+(with-eval-after-load 'avy
+	(add-to-list
+	 'avy-dispatch-alist
+	 '(?- . sacha-code-kebab-words))
+	(add-to-list
+	 'avy-dispatch-alist
+	 '(?` . sacha-wrap-symbol-at-point)))
 ;; Coding:3 ends here
 
 ;; [[file:Sacha.org::#coding-comments][Comments:1]]
@@ -4344,6 +4620,7 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
 
 ;; [[file:Sacha.org::#emacs-lisp][Emacs Lisp:1]]
 (bind-key "C-c C-c" #'eval-defun emacs-lisp-mode-map)
+(setq debugger-stack-frame-as-list t)
 ;; Emacs Lisp:1 ends here
 
 ;; [[file:Sacha.org::#emacs-lisp][Emacs Lisp:2]]
@@ -4758,6 +5035,10 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
 (keymap-set emacs-lisp-mode-map "C-:" #'sacha-stub-elisp-defun)
 ;; Stubbing:2 ends here
 
+;; [[file:Sacha.org::#coding-emacs-lisp-keybindings][Keybindings:1]]
+(setq describe-bindings-outline-rules '((match-regexp . "Key translations\\|Minor Mode Bindings")))
+;; Keybindings:1 ends here
+
 ;; [[file:Sacha.org::#helpful][Helpful:1]]
 (use-package helpful
   :bind
@@ -4771,6 +5052,11 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
 (keymap-global-set "C-h K" #'describe-keymap)
 (keymap-global-set "C-h c" #'describe-char)
 ;; Looking up help:1 ends here
+
+;; [[file:Sacha.org::#coding-emacs-lisp-looking-up-help][Looking up help:2]]
+(setq help-window-select t)
+(setq help-window-keep-selected t)
+;; Looking up help:2 ends here
 
 ;; [[file:Sacha.org::#elisp-demos][elisp-demos:1]]
 (use-package elisp-demos
@@ -5445,6 +5731,68 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 (setq browse-url-firefox-program "firefox")
 ;; Web:1 ends here
 
+;; [[file:Sacha.org::#web-open-link-in-buffer][Open link in buffer:1]]
+(defvar sacha-search-url-regexp "\\(news\\(post\\)?:\\|mailto:\\|file:\\|\\(ftp\\|https?\\|telnet\\|gopher\\|gemini\\|www\\|wais\\)://\\)")
+
+;;;###autoload
+(defun sacha-search-occur-browse-url (&optional use-generic-p)
+  "Point browser at a URL in the buffer using completion.
+Which web browser to use depends on the value of the variable
+`browse-url-browser-function'.
+
+Based on https://karthinks.com/software/even-more-batteries-included-with-emacs/"
+  (interactive "P")
+  (let* ((match nil)
+				 (match-data nil)
+				 (context-chars 30)
+				 (context
+					(lambda (beg &optional shrp)
+						(let* ((before
+										(string-pad
+										 (string-replace
+											"\n" ""
+											(buffer-substring-no-properties
+											 beg (max (line-beginning-position) (- beg context-chars))))
+										 context-chars nil t))
+									 (link (string-replace
+													"\n" "" (buffer-substring-no-properties beg (point))))
+									 (after (buffer-substring-no-properties
+													 (point) (min (line-end-position) (+ (point) context-chars)))))
+							(concat ;; (propertize " " 'display '(space :align-to context-chars))
+											(propertize (concat "…" before) 'face 'shadow)
+											(if shrp
+													(propertize link 'face '(:inherit shadow :weight bold
+																														:underline t))
+												link)
+											(propertize (concat after "…") 'face 'shadow))))))
+    (save-excursion
+      (goto-char (point-min))
+      (while (search-forward-regexp sacha-search-url-regexp nil t)
+        (push (cons (match-string-no-properties 0)
+                    (funcall context (match-beginning 0)))
+              match-data))
+      (goto-char (point-min))
+      (while (setq match (text-property-search-forward 'shr-url nil nil))
+        (push (cons (prop-match-value match)
+                    (funcall context (prop-match-beginning match) 'shrp))
+              match-data))
+			(when org-link-any-re
+				(goto-char (point-min))
+				(while (setq match (re-search-forward org-link-any-re nil t))
+					(push (cons (or (match-string 2) (match-string 0))
+											(funcall context (match-beginning 0)))
+								match-data))))
+    (let* ((completion-extra-properties
+            `(:annotation-function
+              ,(lambda (cand) (concat " " (cdr (assoc cand match-data))))
+							:display-sort-function
+							identity))
+           (url (completing-read "Browse URL: " match-data nil t)))
+      (if use-generic-p
+          (browse-url-generic url)
+        (browse-url url)))))
+;; Open link in buffer:1 ends here
+
 ;; [[file:Sacha.org::#web-emacs-open-urls-or-search-the-web-plus-browse-url-handlers][Emacs: Open URLs or search the web, plus browse-url-handlers:2]]
 (setopt sacha-search-web-handler #'consult-omni)
 ;; Emacs: Open URLs or search the web, plus browse-url-handlers:2 ends here
@@ -5508,15 +5856,15 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
   ; :files ("lisp/*.el" "lisp/apps/*.el"))
 	:load-path ("~/vendor/spookfox/lisp" "~/vendor/spookfox/lisp/apps")
 	:when sacha-laptop-p
+	:init
+	(spookfox-init)
 	:config
 	(require 'spookfox-tabs)
 	;(require 'spookfox-org-tabs)
 	(require 'spookfox-js-injection)
 	(add-to-list 'spookfox-enabled-apps 'spookfox-tabs)
 	(with-eval-after-load 'spookfox-org-tabs (add-to-list 'spookfox-enabled-apps 'spookfox-org-tabs))
-	(add-to-list 'spookfox-enabled-apps 'spookfox-js-injection)
-	;; (spookfox-init) ; don't automatically enable it; run (spookfox-init) to manually enable
-	)
+	(add-to-list 'spookfox-enabled-apps 'spookfox-js-injection))
 ;; Using Spookfox to scroll Firefox up and down from Emacs:1 ends here
 
 ;; [[file:Sacha.org::#spookfox-scroll][Using Spookfox to scroll Firefox up and down from Emacs:3]]
@@ -5722,8 +6070,10 @@ _u_pdate      _w_rite Emacs news  _o_rg  _s_creenshot
 (use-package fontaine
   :config
   (setq fontaine-presets
-        '((regular :default-height 100)
-          (presentation :default-height 200))))
+        '((regular :default-height 120)
+          (presentation :default-height 200)
+					(short :default-height 300)
+					)))
 ;; Mode for streaming:3 ends here
 
 ;; [[file:Sacha.org::#streaming-display-large-text-and-maybe-qr-code][Display large text (and maybe QR code?):1]]
@@ -6258,12 +6608,14 @@ When called interactively, insert at point."
 ;; Oddmuse:1 ends here
 
 ;; [[file:Sacha.org::#oddmuse][Oddmuse:3]]
-(org-link-set-parameters "ew" :complete #'sacha-org-emacswiki-complete
-												 :insert-description #'sacha-org-emacswiki-insert-description)
+(with-eval-after-load 'org
+	(org-link-set-parameters "ew" :complete #'sacha-org-emacswiki-complete
+													 :insert-description #'sacha-org-emacswiki-insert-description))
 (with-eval-after-load 'memoize
   (with-eval-after-load 'oddmuse
-	(memoize #'oddmuse-compute-pagename-completion-table
-					 "1 hour")))
+		(unless (get #'oddmuse-compute-pagename-completion-table :memoize-original-function)
+			(memoize #'oddmuse-compute-pagename-completion-table
+							 "1 hour"))))
 ;; Oddmuse:3 ends here
 
 ;; [[file:Sacha.org::#oddmuse][Oddmuse:4]]
@@ -6413,7 +6765,8 @@ When called interactively, insert at point."
 (use-package emacsconf
   :after hydra
   :bind (("C-c e" . emacsconf/body)
-         ("M-g t" . emacsconf-go-to-talk))
+				 :map goto-map
+         ("t" . emacsconf-go-to-talk))
 	:init
 	(require 'emacsconf-autoloads)
 	:hook
@@ -6446,7 +6799,7 @@ When called interactively, insert at point."
 		("vie" emacsconf-volunteer-insert-email "volunteer email")
 		("U" emacsconf-res-upload-dired "upload"))
   :load-path "~/proj/emacsconf/lisp")
-(keymap-global-set "M-g t" 'emacsconf-go-to-talk)
+(bind-key "t" 'emacsconf-go-to-talk goto-map)
 ;; EmacsConf:2 ends here
 
 ;; [[file:Sacha.org::#chatgpt-ai][ChatGPT, AI, and large-language models:1]]

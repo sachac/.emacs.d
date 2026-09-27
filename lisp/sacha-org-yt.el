@@ -126,6 +126,8 @@
 							(id (cond
 									 ((string-match "\\(?:v=\\|tu\\.be/\\|live/\\)\\([^&]+\\)" path)
 										(match-string 1 path))
+									 ((string-match "\\(?:shorts/\\)\\([^&]+\\)" path)
+										(match-string 1 path))
 									 ((string-match "\\(live_stream\\?channel.*\\)" path)
 										(match-string 1 path))
 									 (t path)))

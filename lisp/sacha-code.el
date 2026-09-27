@@ -71,10 +71,39 @@
 Lowercase it."
   (interactive "p")
 	(dotimes (_ (1- (if (eq num-words 1) 2 num-words)))
-		(downcase-word 1)
+		(unless (looking-at " +")
+			(downcase-word 1))
 		(when (looking-at " +")
 			(replace-match "-")))
 	(downcase-word 1))
+
+;;;###autoload
+(defun sacha-wrap-symbol-at-point (&optional beg end)
+	"Make it easier to quote symbol at point."
+	(interactive
+	 (if (region-active-p)
+			 (list (region-beginning)
+						 (region-end))
+		 (let ((bounds (bounds-of-thing-at-point 'symbol)))
+			 (list (car bounds) (cdr bounds)))))
+	(let ((char
+				 (if (derived-mode-p 'org-mode)
+						 "~"
+					 "`")))
+		(if (looking-back (regexp-quote char) 1)
+				;; We might already be at `
+				(progn
+					(delete-backward-char 1)
+					(forward-word)
+					(insert char))
+			(progn
+				(goto-char end)
+				(insert
+				 char)
+				(save-excursion
+					(goto-char beg)
+					(insert char))))))
+
 ;; Coding:2 ends here
 
 ;; [[file:../Sacha.org::#python][Python:2]]

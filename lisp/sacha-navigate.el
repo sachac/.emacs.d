@@ -153,11 +153,11 @@
 ;;;###autoload
   (defun sacha-search-notes ()
           (interactive)
-          (consult-ripgrep '("~/sync/orgzly" "~/sync/static-blog/blog" "~/sync/sketches" "~/sync/topics")))
+          (consult-ripgrep '("~/sync/orgzly" "~/sync/static-blog/blog" "~/sync/sketches" "~/sync/topics" "~/sync/emacs")))
 ;;;###autoload
   (defun sacha-search-public-notes ()
           (interactive)
-          (consult-ripgrep '("~/sync/static-blog/blog" "~/sync/sketches" "~/sync/topics")))
+          (consult-ripgrep '("~/sync/static-blog/blog" "~/sync/sketches" "~/sync/topics" "~/sync/emacs")))
 ;; Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:1 ends here
 
 ;; [[file:../Sacha.org::#navigation][Navigation:3]]
@@ -477,7 +477,8 @@ Based on https://www.reddit.com/r/emacs/comments/l4v1ux/one_of_the_most_useful_s
 (defun sacha-goto-random-char ()
   (interactive)
   (push-mark)
-  (goto-char (+ (point-min) (random (- (point-max) (point-min))))))
+  (goto-char (+ (point-min) (random (- (point-max) (point-min)))))
+	(recenter-top-bottom '(4)))
 
 ;;;###autoload
 (defun sacha-goto-random-line ()

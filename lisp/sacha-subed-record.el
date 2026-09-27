@@ -39,20 +39,21 @@
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-add-shadowing-with-tts-to-subed-record][Add shadowing with tts to subed-record:2]]
 ;;;###autoload
   (defun sacha-subed-record-normalize-current (file)
-    (interactive (list (subed-media-file)))
-    (let ((temp-file (make-temp-file file nil (concat "." (file-name-extension file)))))
-      (make-process
-       :name "normalize"
-       :buffer (get-buffer-create "*normalize*")
-       :command (list
-                 (expand-file-name "~/bin/normalize")
-                 (expand-file-name file)
-                 temp-file)
-       :sentinel
-       (lambda (process event)
-         (when (string-match "finished" event)
-           (rename-file temp-file file t)
-           (message "Normalized %s" file))))))
+    (interactive (list (when (derived-mode-p 'subed-mode) (subed-media-file))))
+		(when (derived-mode-p 'subed-mode)
+			(let ((temp-file (make-temp-file file nil (concat "." (file-name-extension file)))))
+				(make-process
+				 :name "normalize"
+				 :buffer (get-buffer-create "*normalize*")
+				 :command (list
+									 (expand-file-name "~/bin/normalize")
+									 (expand-file-name file)
+									 temp-file)
+				 :sentinel
+				 (lambda (process event)
+					 (when (string-match "finished" event)
+						 (rename-file temp-file file t)
+						 (message "Normalized %s" file)))))))
 ;; Add shadowing with tts to subed-record:2 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-make-it-easy-to-add-reference-links][Make it easy to add reference links:1]]

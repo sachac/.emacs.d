@@ -29,6 +29,9 @@
 ;; - Learning French
 ;;   https://sachachua.com/dotemacs#multimedia-learning-french
 ;;
+;; - Map lang-gptel feedback from the logbook to KwizIQ topics
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-map-lang-gptel-feedback-from-the-logbook-to-kwiziq-topics
+;;
 ;; - Practice pronunciation
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-practice-pronunciation
 ;;
@@ -71,9 +74,6 @@
 ;; - Correct encoding errors
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-correct-encoding-errors
 ;;
-;; - Map lang-gptel feedback from the logbook to KwizIQ topics
-;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-map-lang-gptel-feedback-from-the-logbook-to-kwiziq-topics
-;;
 ;; - Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results
 ;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results
 ;;
@@ -89,11 +89,43 @@
 	(save-restriction
 		(narrow-to-region beg end)
 		(goto-char beg)
-		(flush-lines "Raphael\\|PM$\\|^$")
+		(flush-lines "Raphael\\|AM$\\|PM$\\|^$")
 		(kill-new (buffer-string))
 		(goto-char (point-min))
 		(while (re-search-forward "^" nil t)
 			(replace-match "- "))))
+
+(defun sacha-learn-lang-combined-query (input)
+	"Look for entries matching INPUT.
+Check tatoeba, dictionary, then Google Translate."
+	(or
+	 (seq-map
+		(lambda (o)
+			(cons
+			 (format "%s - %s" (car o) (cdr o))
+			 (car o)))
+		(learn-lang-tatoeba-entries input))
+	 (seq-keep 'cdr (sacha-learn-lang-en-fr-dict-lookup input))
+	 (let ((translation (learn-lang-translate-text-to-target input)))
+		 (cons translation translation))))
+
+;;;###autoload
+(defun sacha-learn-lang-combined-consult (&optional text)
+  "Search for TEXT interactively. Use Tatoeba, but fall back to dictionary or Google Translate."
+  (interactive)
+	(let ((val (consult--read
+							(consult--dynamic-collection 'sacha-learn-lang-combined-query
+								:debounce 0.5)
+							:prompt "Search: "
+							:lookup #'consult--lookup-cdr
+							:history '(:input learn-lang-tatoeba-history)
+							:add-history (list text (word-at-point))
+							:initial text)))
+		(when (called-interactively-p 'any)
+			(insert val))
+		val))
+
+
 ;; Learning French:2 ends here
 
 ;; [[file:../Sacha.org::#multimedia-learning-french][Learning French:4]]
@@ -102,6 +134,49 @@
     (interactive)
     (sacha-speech-chrome-new-session "french" "fr-FR"))
 ;; Learning French:4 ends here
+
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-map-lang-gptel-feedback-from-the-logbook-to-kwiziq-topics][Map lang-gptel feedback from the logbook to KwizIQ topics:1]]
+;;;###autoload
+(defun sacha-org-collect-logbook-contents ()
+  "Collect contents of all LOGBOOK drawers in the current subtree.
+Returns them concatenated as a string."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((subtree-end (save-excursion (org-end-of-subtree t t)))
+          contents
+          elem)
+      (while (re-search-forward "^[ \t]*:LOGBOOK:[ \t]*$" subtree-end t)
+        (setq elem (org-element-at-point))
+        (push (buffer-substring-no-properties
+               (org-element-contents-begin elem)
+               (org-element-contents-end elem))
+              contents))
+      (string-join (nreverse contents) "\n"))))
+
+;;;###autoload
+(defun sacha-org-get-subtree (link)
+  (save-window-excursion
+		(save-excursion
+			(org-link-open-from-string link)
+	    (buffer-substring-no-properties (point) (progn (org-end-of-subtree) (point))))))
+
+;;;###autoload
+(defun sacha-learn-lang-gptel-analyze-feedback ()
+  (interactive)
+  (with-current-buffer (get-buffer-create "*Feedback*")
+    (erase-buffer)
+    (org-mode))
+  (gptel-request
+      (json-encode
+       `(("feedback on previous mistakes" . ,(sacha-org-collect-logbook-contents))
+         ("topic links" . ,(sacha-org-get-subtree "[[file:~/sync/orgzly/organizer.org::#kwiziq-a2]]"))
+         ("prompt" . "Analyze the feedback on previous mistakes. Map them to the different topics and create a frequency table where column A has a link to the topic and column B has the number of errors in that category. For anything that doesn't match, summarize them in a separate list called Other. Also create a 10-item quiz covering the most important points. Hide answers like this: [[answer:the answer goes here][___]] Use Org Mode syntax.")))
+    :callback (lambda (response info)
+                (with-current-buffer (get-buffer-create "*Feedback*")
+                  (insert response)
+                  (goto-char (point-min))
+                  (pop-to-buffer (current-buffer))))))
+;; Map lang-gptel feedback from the logbook to KwizIQ topics:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-practice-pronunciation][Practice pronunciation:1]]
   (defvar sacha-learn-lang-practice-dir "~/proj/french/audio")
@@ -446,17 +521,27 @@
 ;; AI feedback:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-save-journal-entries-for-analysis][Save journal entries for analysis:1]]
+(defvar sacha-learn-lang-analysis-dir "~/proj/french/journal")
 ;;;###autoload
-  (defun sacha-learn-lang-write-journal-entries-for-subtree ()
-    (interactive)
-    (org-map-entries
-     (lambda ()
-       (when (org-entry-get (point) "DATE")
-         (let ((text (replace-regexp-in-string "{.+?}" "" (sacha-org-subtree-text-without-blocks))))
-           (with-temp-file (expand-file-name (concat (org-entry-get (point) "DATE") ".txt")
-                                             "~/proj/french/journal")
-             (insert text)))))
-     nil 'tree))
+(defun sacha-learn-lang-write-journal-entries-for-subtree ()
+	"Copy journal entries or blog posts to `sacha-learn-lang-analysis-dir'."
+	(interactive)
+	(if-let* ((date (or (org-entry-get (point) "DATE")
+											(org-entry-get (point) "EXPORT_DATE")))
+						(text (replace-regexp-in-string "{.+?}" "" (sacha-org-subtree-text-without-blocks))))
+			(with-temp-file (expand-file-name (concat (substring date 0 10) "-"
+																								(learn-lang-slugify (org-entry-get (point) "ITEM"))
+																								".txt")
+																				sacha-learn-lang-analysis-dir)
+				(insert text))
+		(org-map-entries
+		 (lambda ()
+			 (when (org-entry-get (point) "DATE")
+				 (let ((text (replace-regexp-in-string "{.+?}" "" (sacha-org-subtree-text-without-blocks))))
+					 (with-temp-file (expand-file-name (concat (org-entry-get (point) "DATE") ".txt")
+																						 sacha-learn-lang-analysis-dir)
+						 (insert text)))))
+		 nil 'tree)))
 ;; Save journal entries for analysis:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-load-en-fr-dictionary][Load en-fr dictionary:1]]
@@ -494,6 +579,37 @@
                     (split-string (buffer-substring (point) (point-max)) "\n")))
     (seq-take sacha-learn-lang-dictionary 10)))
 
+(defun sacha-learn-lang-en-fr-dict-lookup (input)
+	"Look up INPUT."
+  (let (match-start
+        match-any
+        exact
+        (search (regexp-quote input)))
+    (seq-map (lambda (o)
+               (setf (car o)
+                     (propertize
+                      (car o)
+                      'face
+                      (list
+                       :background
+                       (pcase (get-text-property 0 'gender (car o))
+                         ('nil nil)
+                         ("m" (modus-themes-get-color-value 'bg-blue-subtle))
+                         ("f" (modus-themes-get-color-value 'bg-magenta-subtle))))))
+               (cond
+                ((string-match (concat "^" search " - ") (car o))
+                 (push o exact))
+                ((string-match (concat "^" search) (car o))
+                 (push o match-start))
+                ((string-match search (car o))
+                 (push o match-any))))
+             sacha-learn-lang-dictionary)
+    (append
+     (nreverse exact)
+     (nreverse match-start)
+     (nreverse match-any)
+     nil)))
+
 ;;;###autoload
 (defun sacha-learn-lang-consult-en-fr ()
   (interactive)
@@ -501,37 +617,16 @@
   (insert
    (consult--read
     (consult--dynamic-collection
-        (lambda (input)
-          (let (match-start
-                match-any
-                exact
-                (search (regexp-quote input)))
-            (seq-map (lambda (o)
-                       (setf (car o)
-                             (propertize
-                              (car o)
-                              'face
-                              (list
-                               :background
-                               (pcase (get-text-property 0 'gender (car o))
-                                 ('nil nil)
-                                 ("m" (modus-themes-get-color-value 'bg-blue-subtle))
-                                 ("f" (modus-themes-get-color-value 'bg-magenta-subtle))))))
-                       (cond
-                        ((string-match (concat "^" search " - ") (car o))
-                         (push o exact))
-                        ((string-match (concat "^" search) (car o))
-                         (push o match-start))
-                        ((string-match search (car o))
-                         (push o match-any))))
-                     sacha-learn-lang-dictionary)
-            (append
-             (nreverse exact)
-             (nreverse match-start)
-             (nreverse match-any)
-             nil))))
+				#'sacha-learn-lang-en-fr-dict-lookup)
     :sort nil
     :lookup #'consult--lookup-cdr)))
+
+;;;###autoload
+(defun sacha-learn-lang-look-up-word-at-point-and-save-it ()
+  "Look up the word at point. Prompt me for my own definition."
+  (interactive)
+	;; TODO
+  )
 ;; Load en-fr dictionary:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-conjugation][Conjugation:1]]
@@ -945,49 +1040,6 @@
           (while (search-forward (car pair) nil t)
             (replace-match (cdr pair) t))))))
 ;; Correct encoding errors:1 ends here
-
-;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-map-lang-gptel-feedback-from-the-logbook-to-kwiziq-topics][Map lang-gptel feedback from the logbook to KwizIQ topics:1]]
-;;;###autoload
-(defun sacha-org-collect-logbook-contents ()
-  "Collect contents of all LOGBOOK drawers in the current subtree.
-Returns them concatenated as a string."
-  (save-excursion
-    (org-back-to-heading t)
-    (let ((subtree-end (save-excursion (org-end-of-subtree t t)))
-          contents
-          elem)
-      (while (re-search-forward "^[ \t]*:LOGBOOK:[ \t]*$" subtree-end t)
-        (setq elem (org-element-at-point))
-        (push (buffer-substring-no-properties
-               (org-element-contents-begin elem)
-               (org-element-contents-end elem))
-              contents))
-      (string-join (nreverse contents) "\n"))))
-
-;;;###autoload
-(defun sacha-org-get-subtree (link)
-  (save-window-excursion
-		(save-excursion
-			(org-link-open-from-string link)
-	    (buffer-substring-no-properties (point) (progn (org-end-of-subtree) (point))))))
-
-;;;###autoload
-(defun sacha-learn-lang-gptel-analyze-feedback ()
-  (interactive)
-  (with-current-buffer (get-buffer-create "*Feedback*")
-    (erase-buffer)
-    (org-mode))
-  (gptel-request
-      (json-encode
-       `(("feedback on previous mistakes" . ,(sacha-org-collect-logbook-contents))
-         ("topic links" . ,(sacha-org-get-subtree "[[file:~/sync/orgzly/organizer.org::#kwiziq-a2]]"))
-         ("prompt" . "Analyze the feedback on previous mistakes. Map them to the different topics and create a frequency table where column A has a link to the topic and column B has the number of errors in that category. For anything that doesn't match, summarize them in a separate list called Other. Also create a 10-item quiz covering the most important points. Hide answers like this: [[answer:the answer goes here][___]] Use Org Mode syntax.")))
-    :callback (lambda (response info)
-                (with-current-buffer (get-buffer-create "*Feedback*")
-                  (insert response)
-                  (goto-char (point-min))
-                  (pop-to-buffer (current-buffer))))))
-;; Map lang-gptel feedback from the logbook to KwizIQ topics:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results][Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results:1]]
 ;;;###autoload

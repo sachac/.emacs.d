@@ -267,6 +267,7 @@ HIDE-INITIAL means hide the initial query, which is handy if the query is very l
 ;; org-db-v3-sketches ends here
 
 ;; [[file:../Sacha.org::sacha-consult-similar][sacha-consult-similar]]
+(with-eval-after-load 'consult
 (defvar sacha-consult-source-similar-sketches
     (list :name "Sketches"
           :narrow ?s

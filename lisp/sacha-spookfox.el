@@ -66,12 +66,16 @@
 ;; Link to currently-selected text using Spookfox:1 ends here
 
 ;; [[file:../Sacha.org::#spookfox-babel][Running the current Org Mode Babel Javascript block from Emacs using Spookfox:4]]
+(eval-when-compile (require 'ob))
 ;;;###autoload
 (defun sacha-org-babel-execute:js-spookfox (old-fn body params)
 	"Maybe execute Spookfox."
 	(if (assq :spookfox params)
 			(spookfox-js-injection-eval-in-active-tab
 			 body t)
+			;; (org-babel-result-cond (cdr (assq :result-params params))
+			;; 	(spookfox-js-injection-eval-in-active-tab
+			;; 	 body t))
 		(funcall old-fn body params)))
 ;; Running the current Org Mode Babel Javascript block from Emacs using Spookfox:4 ends here
 

@@ -121,7 +121,7 @@
 (defun sacha-audio-text (file &optional insert)
   "Get the text for FILE audio.
   If called interactively, copy to the kill ring."
-  (interactive (list (read-file-name "Audio: ")))
+  (interactive (list (read-file-name "Audio: ") current-prefix-arg))
   (let (text)
     (cond
      ((file-exists-p (concat (file-name-sans-extension file) ".txt"))
@@ -134,12 +134,15 @@
                   (subed-parse-file (concat (file-name-sans-extension file) ".vtt")))))
      ;; no VTT, let's recognize it
      (t
-      (sacha-deepgram-recognize-audio file)
-      (when (file-exists-p (concat (file-name-sans-extension file) ".vtt"))
-        (setq text (subed-subtitle-list-text
-                    (subed-parse-file (concat (file-name-sans-extension file) ".vtt")))))))
+			(setq text (speech-input-transcribe file))
+			;; ; (sacha-deepgram-recognize-audio file)
+      ;; (when (file-exists-p (concat (file-name-sans-extension file) ".vtt"))
+      ;;   (setq text (subed-subtitle-list-text
+      ;;               (subed-parse-file (concat (file-name-sans-extension file) ".vtt")))))
+			))
     (when text
       (when (called-interactively-p 'any)
+				(message "%s" text)
         (if insert
             (insert text "\n")
           (kill-new text)))
@@ -149,6 +152,18 @@
 (defun sacha-open-in-audacity (file)
   (interactive "FFile: ")
   (start-process "audacity" nil "audacity" file))
+
+;;;###autoload
+(defun sacha-delete-file-and-link (file)
+  "Delete file and the current Org Mode link."
+  (interactive "FFile: ")
+	(when (file-exists-p file) (delete-file file))
+	(when-let* ((elem (and (derived-mode-p 'org-mode) (org-element-context))))
+		(delete-region (org-element-begin elem) (org-element-end elem))
+		(save-excursion
+			(beginning-of-line)
+			(when (looking-at "^\\s*-* *$")
+				(delete-region (line-beginning-position) (1+ (line-end-position)))))))
 ;; Using Embark to act on audio:1 ends here
 
 ;; [[file:../Sacha.org::embark][embark]]

@@ -59,6 +59,9 @@
 ;; - Write about keybindings
 ;;   https://sachachua.com/dotemacs#write-about-keybindings
 ;;
+;; - Link to the part of my config that defines a function
+;;   https://sachachua.com/dotemacs#org
+;;
 ;; - Automatically continue lists
 ;;   https://sachachua.com/dotemacs#org-mode-automatically-continue-lists
 ;;
@@ -152,8 +155,11 @@
 ;; - Write about Emacs Lisp variables
 ;;   https://sachachua.com/dotemacs#org-mode-org-babel-write-about-emacs-lisp-variables
 ;;
+;; - Warn if I'm exporting placeholders or private information
+;;   https://sachachua.com/dotemacs#org-mode-publishing-warn-if-i-m-exporting-placeholders-or-private-information
+;;
 ;; - Exclude heading by tag based on backend
-;;   https://sachachua.com/dotemacs#publishing
+;;   https://sachachua.com/dotemacs#org-mode-publishing-exclude-heading-by-tag-based-on-backend
 ;;
 ;; - 11ty static site generation
 ;;   https://sachachua.com/dotemacs#11ty
@@ -199,6 +205,9 @@
 ;;
 ;; - YouTube
 ;;   https://sachachua.com/dotemacs#youtube
+;;
+;; - Record and replay
+;;   https://sachachua.com/dotemacs#audio
 ;;
 ;; - Format nicks in chats
 ;;   https://sachachua.com/dotemacs#org-mode-links-format-nicks-in-chats
@@ -479,8 +488,9 @@
           consult-omni--source-sacha-org-favorites
           consult-omni--source-blog))
   :bind
-  (("M-g w" . consult-omni)
-   ("M-g f" . consult-omni-sacha-org-favorites)
+  (:map goto-map
+	 ("w" . consult-omni)
+   ("f" . consult-omni-sacha-org-favorites)
    :map consult-omni-embark-general-actions-map
    ("i l" .  #'sacha-consult-omni-embark-insert-link)
    ("i u" .  #'sacha-consult-omni-embark-insert-url)
@@ -720,6 +730,67 @@
                           (kill-new (key-description keys))
                           (message "%s" (key-description keys)))))
 ;; Write about keybindings:1 ends here
+
+;; [[file:../Sacha.org::*Link to the part of my config that defines a function][Link to the part of my config that defines a function:1]]
+(defvar sacha-function-prefix "sacha-")
+
+;;;###autoload
+(defun sacha-org-dotemacs-function-export (path desc format info)
+	"Return the link to the function."
+	(let (temp)
+		(save-window-excursion
+			(sacha-org-dotemacs-function-open path desc format info)
+			(cond
+			 ((and (derived-mode-p 'org-mode)
+						 (org-entry-get-with-inheritance "CUSTOM_ID"))
+				(sacha-org-dotemacs-export
+				 (org-entry-get-with-inheritance "CUSTOM_ID")
+				 (or desc path) format info))
+			 ;; In one of my project files
+			 ((and (buffer-file-name)
+						 (setq temp
+									 (seq-find
+										(lambda (o)
+											(string-prefix-p
+											 (file-name-as-directory (expand-file-name (car o)))
+											 (buffer-file-name)))
+										sacha-project-web-base-list)))
+				(org-export-data-with-backend
+				 (org-element-parse-secondary-string
+					(org-link-make-string
+					 (concat (cdr temp)
+									 (file-relative-name (buffer-file-name) (car temp)))
+					 desc)
+					'(link))
+				 format info))))))
+
+;;;###autoload
+(defun sacha-org-dotemacs-function-open (path desc format _)
+	"Visit the function in my Org file."
+	(find-function (intern path))
+	(when (re-search-backward (format "^;; \\(%s\\)" org-link-bracket-re) nil t)
+		(goto-char (match-beginning 1))
+		(org-open-at-point-global)))
+
+;;;###autoload
+(defun sacha-org-dotemacs-function-complete (&optional function)
+  "Link to the part of my configuration that defines a function."
+  (interactive)
+	(setq function (or function
+										 (intern
+											(completing-read
+											 "Function: "
+											 #'help--symbol-completion-table
+											 nil
+											 t nil nil))))
+	(concat "dotfun:" (symbol-name function)))
+
+;;;###autoload
+(defun sacha-org-dotemacs-function-insert-description (link desc)
+  "Return description to use for LINK."
+  (interactive)
+	(or desc (replace-regexp-in-string "^dotfun:" "" link)))
+;; Link to the part of my config that defines a function:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-automatically-continue-lists][Automatically continue lists:1]]
 ;;;###autoload
@@ -1007,10 +1078,11 @@ From https://takeonrules.com/2022/10/16/adding-another-function-to-sacha-workflo
 ;; Projects:3 ends here
 
 ;; [[file:../Sacha.org::#subset][Estimating tasks:2]]
+(defvar sacha-org-quick-task nil "Non-nil means quick task, don't ask me for stuff.")
 ;;;###autoload
 (defun sacha-org-mode-ask-effort ()
   "Ask for an effort estimate when clocking in."
-  (unless (org-entry-get (point) "Effort")
+  (unless (or sacha-org-quick-task (org-entry-get (point) "Effort"))
     (let ((effort
            (completing-read
             "Effort: "
@@ -1891,7 +1963,19 @@ This function is heavily adapted from `org-between-regexps-p'."
 
 ;; Write about Emacs Lisp variables:1 ends here
 
-;; [[file:../Sacha.org::*Exclude heading by tag based on backend][Exclude heading by tag based on backend:1]]
+;; [[file:../Sacha.org::#org-mode-publishing-warn-if-i-m-exporting-placeholders-or-private-information][Warn if I'm exporting placeholders or private information:1]]
+(defvar sacha-org-export-warning-regexp "ZZZ" "Warn if this regexp matches text to be exported.")
+;;;###autoload
+(defun sacha-org-export-warn (_)
+	"Warn if `sacha-export-warning-regexp' matches text."
+	(when (and
+				 sacha-org-export-warning-regexp
+				 (string-match sacha-org-export-warning-regexp (buffer-string))
+				 (not (y-or-n-p (format "Warning: %s found. Continue? " (match-string 0 (buffer-string))))))
+		(error "Stopping as requested")))
+;; Warn if I'm exporting placeholders or private information:1 ends here
+
+;; [[file:../Sacha.org::#org-mode-publishing-exclude-heading-by-tag-based-on-backend][Exclude heading by tag based on backend:1]]
 ;;;###autoload
 (defun sacha-org-export-exclude-by-backend (backend)
   "Excludes subtrees dynamically based on the current export backend."
@@ -1990,7 +2074,8 @@ This function is heavily adapted from `org-between-regexps-p'."
 					""))
 			 :description
 			 (save-excursion
-				 (if id (progn
+				 (if id (save-restriction
+									(widen)
 									(goto-char (org-find-property "CUSTOM_ID" id))
 									(org-entry-get (point) "ITEM"))
 					 (car (assoc-default "TITLE" props #'string=))))))))
@@ -2830,6 +2915,57 @@ This uses :insert-description if defined."
 		(kill-new (org-export-as 'oddmuse nil nil t))))
 
 ;; YouTube:2 ends here
+
+;; [[file:../Sacha.org::*Record and replay][Record and replay:1]]
+;;;###autoload
+(defun sacha-org-subed-record-audio-and-insert-link ()
+  "Record audio until key is pressed, then insert link."
+  (interactive)
+	(let ((filename (expand-file-name
+									 (concat (format-time-string "%Y-%m-%d-%H-%M-%S")
+													 "-" (learn-lang-slugify (file-name-base (buffer-file-name)))
+													 subed-record-extension)
+									 sacha-recordings-dir))
+				done)
+		(while (not done)
+			(sleep-for 0.1)
+			(subed-record-start-recording filename)
+			(let ((key (read-key "Press any key to stop.")))
+				(subed-record-stop-recording)
+				;; TODO: make this a transient map for more customizability
+				(pcase key
+					('left
+					 (sleep-for 0.1)
+					 ;; TODO: extract the functionality to learn-lang or something
+					 (subed-record-start-recording filename))
+					(?x (setq done 'skip filename nil))
+					(_ (insert (org-link-make-string (concat "audio:" filename) "▶️"))
+						 (setq done t)))))
+		filename))
+
+;;;###autoload
+(defun sacha-org-subed-record-audio-insert-link-and-replay ()
+  "Record audio until key is pressed, then insert link."
+  (interactive)
+	(require 'subed-record)
+	(require 'mpv)
+	(let ((filename (sacha-org-subed-record-audio-and-insert-link))
+				(mpv-default-options (append (list "--vid=no" "--no-video" "--window-minimized=yes")
+																		 mpv-default-options)))
+		(mpv-play filename)))
+
+;;;###autoload
+(defun sacha-org-audio-insert-link-to-latest-recording ()
+	"Insert link to latest recording."
+	(let ((filename (sacha-recordings-dir)))
+		(insert (org-link-make-string
+						 (concat
+							(if (member (file-name-extension filename) '("opus" "mp3" "wav"))
+									"audio:"
+								"video:")
+							filename)
+						 "▶️"))))
+;; Record and replay:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-links-format-nicks-in-chats][Format nicks in chats:1]]
 ;;;###autoload
@@ -3755,23 +3891,25 @@ Use the region if active."
          ,@body)
      ,@body))
 
+(defvar sacha-org-quick-task)
 ;;;###autoload
 (defun sacha-org-clock-in-and-track ()
   "Start the clock running. Clock into Quantified Awesome."
   (interactive)
-  (sacha-org-with-current-task
-   (org-clock-in)
-   (call-interactively 'sacha-org-quantified-track)
-   ;(when (websocket-openp obs-websocket)  (sacha-stream-message (org-get-heading t t t t)))
-   (cond
-    ((org-entry-get (point) "AUTO")
-     (org-link-open-from-string (org-entry-get (point) "AUTO")))
-    (t
-     (save-restriction
-       (org-narrow-to-subtree)
-       (org-next-link)
-       (when (looking-at org-link-any-re)
-         (org-open-at-point)))))))
+	(unless sacha-org-quick-task
+		(sacha-org-with-current-task
+		 (org-clock-in)
+		 (call-interactively 'sacha-org-quantified-track)
+																				;(when (websocket-openp obs-websocket)  (sacha-stream-message (org-get-heading t t t t)))
+		 (cond
+			((org-entry-get (point) "AUTO")
+			 (org-link-open-from-string (org-entry-get (point) "AUTO")))
+			(t
+			 (save-restriction
+				 (org-narrow-to-subtree)
+				 (org-next-link)
+				 (when (looking-at org-link-any-re)
+					 (org-open-at-point))))))))
 
 (defmacro sacha-with-org-task (&rest body)
   "Run BODY within the current agenda task, clocked task, or cursor task."

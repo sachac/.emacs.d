@@ -1,6 +1,6 @@
 # [[elisp:sacha-emacs-export][Export this file asynchronously]]
-# [[elisp:(sacha-emacs-export 'sync)][Export this file synchronously]]
-#+TITLE: Sacha Chua's Emacs configuration
+# [[elisp:(let ((sacha-org-export-warning-regexp nil)) (sacha-emacs-export 'sync))][Export this file synchronously]]
+#+TITLE: Sacha Chua's Emacs Configuration
 #+OPTIONS: toc:nil h:4 html-style:nil html-postamble:nil author:nil date:nil
 #+SETUPFILE: ~/vendor/org-html-themes/org/theme-readtheorg-sachac.setup
 #+STARTUP: showeverything
@@ -159,7 +159,7 @@ doing the trick and the other one is redundant, but maybe it's a
 belt-and-suspenders sort of thing. Using the git checkout also makes
 upgrading Org easy. All I have to do is =git pull; make=, and stuff
 happens in an external Emacs process. Since I create =Sacha.el= via
-=org-babel-tangle=, my Emacs config can load =Sacha.el= without
+=org-babel-tangle=, my EmacsConfig can load =Sacha.el= without
 loading Org first.
 
 ** Debugging tips
@@ -331,10 +331,10 @@ over-enthusiastic speed commands. (... Maybe I
 should make my ~k~ shortcut for
 [[dotemacs:org-mode-keyboard-shortcuts-speed-commands-org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command][~sacha-org-cut-subtree-or-list-item~]] only work in my
 Inbox.org, posts.org, and news.org files.) Chunks of my
-[[https://sachachua.com/dotemacs/index.html][literate Emacs configuration]] were gone, including
+[[https://sachachua.com/dotemacs/index.html][literate EmacsConfiguration]] were gone, including
 the code that defined [[dotemacs:sacha-org-insert-link-dwim][~sacha-org-insert-link-dwim~]].
 Before I noticed, I'd already exported my (now
-slightly shorter) Emacs configuration file with
+slightly shorter) EmacsConfiguration file with
 ~org-babel-tangle~ and restarted Emacs. I couldn't
 recover the definition from memory using
 [[dotemacs:inserting-code][~symbol-function~]]. I couldn't use [[package:vundo][vundo]] to browse
@@ -2761,7 +2761,7 @@ This is what that looks like:
 
 consult-omni shows me the title, first part of the URL, and a few words from the page. ~C-o~ in consult-omni previews search results, which could be handy.
 
-Sometimes a web search isn't the fastest way to find something. Some links might be to my Emacs configuration, project files, or other things for which I've written custom Org link types. I can store links to those and insert them, or I can choose those with completion.
+Sometimes a web search isn't the fastest way to find something. Some links might be to my EmacsConfiguration, project files, or other things for which I've written custom Org link types. I can store links to those and insert them, or I can choose those with completion.
 
 #+begin_src emacs-lisp :tangle lisp/sacha-org.el
 ;;;###autoload
@@ -3014,7 +3014,7 @@ Related:
 - [[dotemacs:completing-blog-posts][Completing blog posts]] (Org link type with completion)
 - [[https://sachachua.com/blog/2025/07/finding-unlinked-text/#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and favorites to quickly link placeholders in Org Mode]]
 
-_Next steps:_ I want to find out how to get ~:sort nil~ to be respected so that more recent blog posts are listed first. Also, it might be fun to define a similar source for the sections of my Emacs configuration, like the way I can use my [[dotemacs:links-to-sacha-config][dotemacs: Org Mode link type with completion]].
+_Next steps:_ I want to find out how to get ~:sort nil~ to be respected so that more recent blog posts are listed first. Also, it might be fun to define a similar source for the sections of my EmacsConfiguration, like the way I can use my [[dotemacs:links-to-sacha-config][dotemacs: Org Mode link type with completion]].
 
 *** Searching my blog, notes, and sketches with consult-ripgrep and consult-omni
 :PROPERTIES:
@@ -3912,7 +3912,7 @@ Thanks to [[https://www.reddit.com/r/emacs/comments/10pkhko/how_to_navigate_to_p
 :CUSTOM_ID: navigation-manage-positions-save-place-between-sessions
 :END:
 
-Based on [[https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/][Stealing from the Best Emacs Configs | Emacs Redux]]
+Based on [[https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/][Stealing from the Best EmacsConfigs | Emacs Redux]]
 
 #+begin_src emacs-lisp
 (save-place-mode 1)
@@ -3975,6 +3975,20 @@ Quickly jump to a position in the current view.
   (sacha-avy-action-copy-whole-line pt)
   (save-excursion (yank))
   t)
+
+;;;###autoload
+(defun sacha-avy-action-insert-symbol (pt)
+  "Insert the symbol from the specified PT."
+  (interactive)
+	(let ((symbol (save-window-excursion
+									(save-excursion
+										(goto-char pt)
+										(thing-at-point 'symbol)))))
+		(select-window
+		 (cdr
+			(ring-ref avy-ring 0)))
+		(insert symbol)
+		t))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -3986,6 +4000,7 @@ Quickly jump to a position in the current view.
   (setf (alist-get ?W avy-dispatch-alist) 'sacha-avy-action-copy-whole-line)
   (setf (alist-get ?Y avy-dispatch-alist) 'sacha-avy-action-yank-whole-line)
 	(setf (alist-get ?w avy-dispatch-alist) 'avy-action-copy)
+	(setf (alist-get ?, avy-dispatch-alist) 'sacha-avy-action-insert-symbol)
 	(with-eval-after-load 'lispy
 		(keymap-set lispy-mode-map
 								"M-j" #'avy-goto-char-timer))
@@ -4106,12 +4121,14 @@ nil
 
 #+begin_src emacs-lisp :tangle lisp/sacha-misc.el
 ;;;###autoload
-  (defun sacha-replace-with-latest-download ()
+  (defun sacha-replace-with-latest-download (&optional file)
     "Replace file contents with latest download."
-    (interactive)
+    (interactive (list (if current-prefix-arg
+													 (read-file-name "File: " (concat sacha-download-dir "/")))))
+		(setq file (or file (sacha-latest-file sacha-download-dir)))
     (widen)
     (erase-buffer)
-    (insert-file-contents (sacha-latest-file sacha-download-dir)))
+    (insert-file-contents file))
 #+end_src
 ** Searching
 :PROPERTIES:
@@ -5743,7 +5760,165 @@ Check tatoeba, dictionary, then Google Translate."
     (interactive)
     (sacha-speech-chrome-new-session "french" "fr-FR"))
 #+end_src
+*** STARTED Celebrate when I remember to use words and phrases
+:PROPERTIES:
+:CREATED: [2026-09-28 Mon 10:43]
+:END:
+
+I want to remind myself to use the words or expressions on my to-do list, and then kind of keep track of how often I've used them, prioritize the ones that I haven't used yet, and display these. You know, maybe I can use embedding to show the words or phrases related to what I've been talking about.
+
+[[file:~/proj/french/bingo.txt]]
+
+#+begin_src emacs-lisp :tangle lisp/learn-lang.el
+(defvar sacha-learn-lang-bingo-word-file "~/proj/french/bingo.txt")
+(defvar sacha-learn-lang-bingo-words nil "List of words.")
+(defvar sacha-learn-lang-bingo-words-hash nil "Data for the counts.")
+
+;;;###autoload
+(defun sacha-learn-lang-bingo-words ()
+	"Load the list of words from the file."
+	(interactive)
+	(setq sacha-learn-lang-bingo-words
+				(seq-map (lambda (o)
+									 (when (= (length o) 1)
+										 (setq o (list (car o) 0)))
+									 (setq o (append o (list
+																			(string-trim (replace-regexp-in-string
+																										" *\\[.+?\\] *" " "
+																										(car o))))))
+									 o)
+								 (pcsv-parse-file sacha-learn-lang-bingo-word-file)))
+	sacha-learn-lang-bingo-words)
+
+;;;###autoload
+(defun sacha-learn-lang-bingo-handler (event)
+  "Manually register the event."
+  (interactive "e")
+	  (let* ((pos (posn-point (event-end event)))
+					 (val (get-text-property pos 'bingo)))
+			(when val
+				(sacha-learn-lang-notice-bingo-words val))))
+
+(defvar-keymap sacha-learn-lang-bingo-map
+	"<mouse-1>" #'sacha-learn-lang-bingo-handler)
+
+;;;###autoload
+(defun sacha-learn-lang-bingo-summary ()
+	"Summarize the words to say."
+	(let ((target (seq-filter (lambda (row) (= (elt row 1) 0))
+														sacha-learn-lang-bingo-words))
+				(yay (seq-filter (lambda (row) (> (elt row 1) 0))
+												 sacha-learn-lang-bingo-words)))
+		(concat
+		 (if target
+				 (concat "Target: "
+								 (mapconcat (lambda (row)
+															(propertize
+															 (car row)
+															 'keymap sacha-learn-lang-bingo-map
+															 'bingo (car row)))
+														target
+														"; ")
+								 "\n\n")
+			 "")
+		 (if yay
+				 (concat
+					"Yay! "
+					(mapconcat (lambda (row)
+											 (propertize (format "%s (%s)" (car row) (elt row 1))
+																	 'keymap sacha-learn-lang-bingo-map
+																	 'bingo (car row)))
+										 (seq-filter (lambda (row) (> (elt row 1) 0))
+																 sacha-learn-lang-bingo-words)
+										 "; ")
+					"\n\n")
+			 ""))))
+
+;;;###autoload
+(defun sacha-learn-lang-notice-bingo-words (text)
+	"Look for the bingo words in TEXT and celebrate when I use them."
+	(when text
+		(unless sacha-learn-lang-bingo-words (sacha-learn-lang-bingo-words))
+		(let ((found (seq-find
+									(lambda (o)
+										(and (elt o 2)
+												 (string-match (concat "\\<" (elt o 2)) text)))
+									sacha-learn-lang-bingo-words)))
+			(when found
+				(incf (elt found 1))
+				(sacha-vad-tutor-update-view)
+				(with-current-buffer (get-buffer-create "*Bingo*")
+					(erase-buffer)
+					(insert (sacha-learn-lang-bingo-summary))))))
+	text)
+#+end_src
+
+*** Extract tonguetwisters
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-extract-tonguetwisters
+:END:
+
+#+begin_src emacs-lisp :tangle lisp/sacha-learn-lang.el
+;;;###autoload
+(defun sacha-learn-lang-make-tonguetwister-practice-files (vtt output-directory &optional force)
+  "Parse VTT and add tonguetwister files to OUTPUT-DIRECTORY."
+  (interactive "FVTT: \nDOutput directory: \nP")
+	(let ((media-file (subed-guess-media-file nil vtt)))
+		(dolist (sub (subed-parse-file vtt))
+			(let ((filename (expand-file-name
+											 (concat (learn-lang-subed-record-simplify (elt sub 3)) ".mp3")
+											 output-directory))
+						(compile-media-ffmpeg-arguments
+						 (append (list "-metadata"
+													 (concat "lyrics-fra="
+																	 (learn-lang-subed-record-simplify (elt sub 3))))
+										 compile-media-ffmpeg-arguments))
+						sources)
+				(when (or force (not (file-exists-p filename)))
+					(dotimes (n 10)
+							(push (list :source "/home/sacha/proj/french/chime.opus")
+										sources)
+							(push (list :source media-file
+													:start-ms (elt sub 1)
+													:stop-ms (elt sub 2)
+													:pad-right (* 1.5 (- (elt sub 2) (elt sub 1))))
+										sources))
+					(compile-media-sync
+					 `((audio ,@(nreverse sources)))
+					 filename
+					 "-y"))))))
+
+(defvar sacha-learn-lang-tonguetwister-source "~/proj/french/analysis/virelangues/"
+	"Source.")
+(defvar sacha-learn-lang-tonguetwister-directory "~/sync/music/french/virelangues/"
+	"Output directory.")
+
+;;;###autoload
+(defun sacha-learn-lang-process-tonguetwister-clips (file)
+  "Extract practice files to directory.
+File should start with YYYY-MM-DD."
+  (interactive (list
+								(read-file-name "Clip VTT: "
+																(sacha-latest-file sacha-learn-lang-tonguetwister-source "-clips"))))
+	(let* ((base-dir sacha-learn-lang-tonguetwister-directory)
+				 (latest (expand-file-name "latest" base-dir))
+				 (lyrics-dir (expand-file-name "../lyrics" base-dir)))
+		(let* ((date (substring (file-name-base file) 0 10))
+					 (file-dir (expand-file-name (substring (file-name-base file) 0 10) base-dir)))
+			(unless (file-directory-p file-dir)
+				(make-directory file-dir))
+			(sacha-learn-lang-make-tonguetwister-practice-files file latest)
+			(sacha-learn-lang-make-tonguetwister-practice-files file file-dir)
+			(dolist (sub (subed-parse-file file))
+				(with-temp-file (expand-file-name (concat (elt sub 3) ".lrc")
+																					lyrics-dir)
+					(insert "[00:00.00]" (elt sub 3) "\n"))))))
+#+end_src
+
 *** Searching transcripts
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-searching-transcripts
+:END:
 
 I often want to confirm pronunciation or word usage by checking it against actual people saying things.
 [[https://forvo.com/][Forvo]] and [[https://youglish.com/french][Youglish French]] (also available in other languages) are handy, but sometimes I want technical terms.
@@ -6725,8 +6900,10 @@ This is now in [[learn-lang:learn-lang-flycheck-gptel.el]] . I can call =learn-l
 (defun sacha-learn-lang-write-journal-entries-for-subtree ()
 	"Copy journal entries or blog posts to `sacha-learn-lang-analysis-dir'."
 	(interactive)
-	(if-let* ((date (or (org-entry-get (point) "DATE")
-											(org-entry-get (point) "EXPORT_DATE")))
+	(if-let* ((date
+						 (and (not (string-match "^Semaine " (org-entry-get (point) "ITEM")))
+									(or (org-entry-get (point) "DATE")
+											(org-entry-get (point) "EXPORT_DATE"))))
 						(text (replace-regexp-in-string "{.+?}" "" (sacha-org-subtree-text-without-blocks))))
 			(with-temp-file (expand-file-name (concat (substring date 0 10) "-"
 																								(learn-lang-slugify (org-entry-get (point) "ITEM"))
@@ -7466,122 +7643,114 @@ sentence navigation commands work for me.
 
 #+begin_src emacs-lisp :tangle lisp/sacha-stream.el
 ;;;###autoload
-  (defun sacha-redact (s)
-          "Replace S with x characters."
-          (make-string (length s) ?x))
+(defun sacha-redact (s)
+	"Replace S with x characters."
+	(make-string (length s) ?x))
 
 ;;;###autoload
-  (defun sacha-redact-region (beg end &optional func)
-          "Redact from BEG to END."
-          (interactive "r")
-          (let ((overlay (make-overlay beg end)))
-                  (overlay-put overlay 'redact t)
-      (overlay-put overlay 'evaporate t)
-                  (overlay-put overlay 'display
-                                                                   (cond
-                                                                          ((functionp func)
-                                                                           (funcall func))
-                                                                          ((stringp func)
-                                                                           func)
-                                                                          (t (make-string (- end beg) ?x))))))
+(defun sacha-redact-region (beg end &optional func)
+	"Redact from BEG to END."
+	(interactive "r")
+	(let ((overlay (make-overlay beg end)))
+		(overlay-put overlay 'redact t)
+		(overlay-put overlay 'evaporate t)
+		(overlay-put overlay 'display
+								 (cond
+									((functionp func)
+									 (funcall func))
+									((stringp func)
+									 func)
+									(t (make-string (- end beg) ?x))))))
 
 ;;;###autoload
-  (defun sacha-redact-regexp-replacement (regexp replacement &optional beg end)
-    "Redact buffer content matching regexp."
-    (interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
-                                                                                   (read-string "Replacement (ex: \\1 \\,(sacha-redact \\2)): ")))
-          (setq beg (or beg (point-min)))
-          (setq end (or end (point-max)))
-          (when (stringp replacement)
-                  (setq replacement (query-replace-compile-replacement replacement t)))
-          (save-excursion
-      (goto-char beg)
-      (while (re-search-forward regexp end t)
-                          (sacha-redact-region
-                           (match-beginning 0) (match-end 0)
-                           (with-temp-buffer
-                                   (insert (match-string 0))
-                                   (goto-char (point-min))
-
-                                   )
-                           (replace-regexp-in-string regexp replacement (match-string 0))))))
+(defun sacha-redact-regexp-replacement (regexp replacement &optional beg end)
+	"Redact buffer content matching regexp."
+	(interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
+										 (read-string "Replacement (ex: \\1 \\,(sacha-redact \\2)): ")))
+	(setq beg (or beg (point-min)))
+	(setq end (or end (point-max)))
+	(save-excursion
+		(goto-char beg)
+		(while (re-search-forward regexp end t)
+			(sacha-redact-region
+			 (match-beginning 0) (match-end 0)
+			 (save-match-data (replace-regexp-in-string regexp replacement (match-string 0)))))))
 
 ;;;###autoload
-  (defun sacha-redact-regexp (regexp &optional beg end func)
-    "Redact buffer content matching regexp."
-    (interactive (list (string-trim (read-regexp "Redact regexp: " 'regexp-history-last))))
-          (save-excursion
-      (goto-char (or beg (point-min)))
-      (while (re-search-forward regexp (or end (point-max)) t)
-                          (sacha-redact-region (match-beginning 0) (match-end 0) func))))
+(defun sacha-redact-regexp (regexp &optional beg end func)
+  "Redact buffer content matching regexp."
+  (interactive (list (string-trim (read-regexp "Redact regexp: " 'regexp-history-last))))
+  (save-excursion
+    (goto-char (or beg (point-min)))
+    (while (re-search-forward regexp (or end (point-max)) t)
+      (sacha-redact-region (match-beginning 0) (match-end 0) func))))
 
 ;;;###autoload
-  (defun sacha-unredact ()
-          (interactive)
-          (mapc 'delete-overlay
-                                  (seq-filter (lambda (overlay) (overlay-get overlay 'redact))
-                                                                                  (overlays-in (point-min) (point-max)))))
+(defun sacha-unredact ()
+	(interactive)
+	(mapc 'delete-overlay
+				(seq-filter (lambda (overlay) (overlay-get overlay 'redact))
+										(overlays-in (point-min) (point-max)))))
 
 ;;;###autoload
-  (defun sacha-redact-email-string (s)
-          (replace-regexp-in-string
-           "\\([-+_~a-zA-Z0-9][-+_.~:a-zA-Z0-9]*\\)@\\([-a-zA-Z0-9]+[-.a-zA-Z0-9]*\\)"
-           (lambda (sub)
-                   (concat
-                          (make-string (length (match-string 1 sub)) ?x)
-                          "@"
-                          (make-string (length (match-string 2 sub)) ?x)))
-           s))
+(defun sacha-redact-email-string (s)
+  (replace-regexp-in-string
+   "\\([-+_~a-zA-Z0-9][-+_.~:a-zA-Z0-9]*\\)@\\([-a-zA-Z0-9]+[-.a-zA-Z0-9]*\\)"
+   (lambda (sub)
+     (concat
+      (make-string (length (match-string 1 sub)) ?x)
+      "@"
+      (make-string (length (match-string 2 sub)) ?x)))
+   s))
 
 ;;;###autoload
-  (defun sacha-redact-emails (&rest _)
-          (interactive)
-          (sacha-redact-regexp
-           "\\([-+_~a-zA-Z0-9][-+_.~:a-zA-Z0-9]*\\)@\\([-a-zA-Z0-9]+[-.a-zA-Z0-9]*\\)"
-           nil nil
-           (lambda () (sacha-redact-email-string (match-string 0)))))
+(defun sacha-redact-emails (&rest _)
+  (sacha-redact-regexp-replacement
+   "\\([-+_~a-zA-Z0-9][-+_.~:a-zA-Z0-9]*\\)@\\([-a-zA-Z0-9]+[-.a-zA-Z0-9]*\\)"
+   (lambda (text) (sacha-redact-email-string (match-string 0 text)))))
 
 ;;;###autoload
-  (defun sacha-redact-emacsconf-org ()
-          (interactive)
-          (sacha-redact-regexp-replacement
-           "\\(^:EMAIL:[ \t]+\\)\\(.+\\)"
-           "\\1 \\,(sacha-redact \\2)"
-           ))
-;;;###autoload
-  (defun sacha-redact-tabulated-list-in-rectangle (regexp beg end)
-          ;; tabulated columns use substrings with display properties
-          ;; so we should skip any characters that have text-property-any 'display
-          (interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
-                                                                                   (min (point) (mark))
-                                                                                   (max (point) (mark))))
-          (apply-on-rectangle
-           (lambda (start-col end-col)
-                   (let ((start-pos (and (move-to-column start-col) (point)))
-                                           (end-pos (and (move-to-column end-col) (point)))
-                                           display-prop)
-                           (save-restriction
-                                   (narrow-to-region start-pos end-pos)
-                                   (goto-char start-pos)
-                                   (setq display-prop (text-property-search-forward 'display))
-                                   (if display-prop
-                                                   (while display-prop
-                                                           (sacha-redact-regexp regexp start-pos (prop-match-beginning display-prop))
-                                                           (setq start-pos (prop-match-end display-prop))
-                                                           (setq display-prop (text-property-search-forward 'display)))
-                                           (sacha-redact-regexp regexp start-pos end-pos)))))
-           beg end))
+(defun sacha-redact-emacsconf-org ()
+  (interactive)
+  (sacha-redact-regexp-replacement
+   "\\(^:EMAIL:[ \t]+\\|^:EMERGENCY:[ \t]+\\)\\(.+\\)"
+	 (lambda (match)
+		 (concat (match-string 1 match) (sacha-redact (match-string 2 match))))))
 
 ;;;###autoload
-  (defun sacha-redact-regexp-in-rectangle (regexp beg end)
-    (interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
-                                                                                   (min (point) (mark))
-                                                                                   (max (point) (mark))))
-          (apply-on-rectangle (lambda (start-col end-col)
-                                                                                                  (sacha-redact-regexp regexp
-                                                                                                                                                                          (and (move-to-column start-col) (point))
-                                                                                                                                                                          (and (move-to-column end-col) (point))))
-                                                                                          beg end))
+(defun sacha-redact-tabulated-list-in-rectangle (regexp beg end)
+  ;; tabulated columns use substrings with display properties
+  ;; so we should skip any characters that have text-property-any 'display
+  (interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
+                     (min (point) (mark))
+                     (max (point) (mark))))
+  (apply-on-rectangle
+   (lambda (start-col end-col)
+     (let ((start-pos (and (move-to-column start-col) (point)))
+           (end-pos (and (move-to-column end-col) (point)))
+           display-prop)
+       (save-restriction
+         (narrow-to-region start-pos end-pos)
+         (goto-char start-pos)
+         (setq display-prop (text-property-search-forward 'display))
+         (if display-prop
+             (while display-prop
+               (sacha-redact-regexp regexp start-pos (prop-match-beginning display-prop))
+               (setq start-pos (prop-match-end display-prop))
+               (setq display-prop (text-property-search-forward 'display)))
+           (sacha-redact-regexp regexp start-pos end-pos)))))
+   beg end))
+
+;;;###autoload
+(defun sacha-redact-regexp-in-rectangle (regexp beg end)
+  (interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
+                     (min (point) (mark))
+                     (max (point) (mark))))
+  (apply-on-rectangle (lambda (start-col end-col)
+                        (sacha-redact-regexp regexp
+                                             (and (move-to-column start-col) (point))
+                                             (and (move-to-column end-col) (point))))
+                      beg end))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -8783,6 +8952,7 @@ From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
 :END:
 
 #+begin_update
+- [2026-10-02 Fri]: I now use Orukeet as the speech recognition model because it's faster.
 - [2026-01-30 Fri]: Major change: I switched to [[https://github.com/sachac/whisper.el/tree/whisper-insert-text-at-point-function][my fork]] of natrys/whisper.el so that I can specify functions that change the window configuration etc.
 - [2026-01-13]: Change main function to ~sacha-whisper-run~, use seq-reduce to go through the functions.
 - [2026-01-09]: Added code for automatically capturing screenshots, saving text, working with a list of functions.
@@ -8790,9 +8960,11 @@ From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
 - [2026-01-04]: Added note about difference from MELPA package, fixed :vc
 #+end_update
 
-I want to get my thoughts into the computer quickly, and talking might be a good way to do some of that. [[https://github.com/openai/whisper][OpenAI Whisper]] is reasonably good at recognizing my speech now and [[https://github.com/natrys/whisper.el][whisper.el]] gives me a convenient way to call [[https://github.com/ggml-org/whisper.cpp][whisper.cpp]] from Emacs with a single keybinding. (Note: This is not the same [[https://melpa.org/#/whisper][whisper]] package as the one on MELPA.) Here is how I have it set up for reasonable performance on my Lenovo P52 with just the CPU, no GPU.
+I want to get my thoughts into the computer quickly, and talking might be a good way to do some of that. [[https://github.com/natrys/whisper.el][whisper.el]] gives me a convenient way to interact with a server compatible with OpenAI Whisper's API. ([[https://sachachua.com/blog/2026/09/experimenting-with-orukeet-for-speech-recognition/][Experimenting with Orukeet for speech recognition]]) Note: This is not the same [[https://melpa.org/#/whisper][whisper]] package as the one on MELPA. Here is how I have it set up for reasonable performance on my Lenovo P52 with just the CPU, no GPU.
 
-I've bound ~<f9>~ to the command ~whisper-run~. I press ~<f9>~ to start recording, talk, and then press ~<f9>~ to stop recording. By default, it inserts the text into the buffer at the current point. I've set ~whisper-return-cursor-to-start~ to ~nil~ so that I can keep going.
+I've bound ~<f9>~ to the command ~whisper-run~ in Emacs, but I use my window manager's custom shortcuts to map ~<kp-0>~ to execute =/home/sacha/bin/xdotool-emacs key --clearmodifiers F9=, which sends ~<f9>~ to Emacs. ([[file:~/bin/xdotool-emacs]]) That makes it a shortcut that works even in other applications.
+
+I press ~<kp-0>~ to start recording, talk, and then press ~<kp-0>~ to stop recording. By default, it inserts the text into the buffer at the current point. I've set ~whisper-return-cursor-to-start~ to ~nil~ so that I can keep going.
 
 #+begin_src emacs-lisp
 (use-package whisper
@@ -8805,11 +8977,7 @@ I've bound ~<f9>~ to the command ~whisper-run~. I press ~<f9>~ to start recordin
   (setq whisper--install-path (concat
      (expand-file-name (file-name-as-directory whisper-install-directory))
      "whisper.cpp/"))
-  ;; Get it running with whisper-server-mode set to nil first
-  ;; If you change models,
-  ;; (whisper-install-whispercpp (whisper--check-install-and-run nil "whisper-start"))
-    (setq whisper-return-cursor-to-start nil)
-  ;(setq whisper--ffmpeg-input-device "alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo")
+  (setq whisper-return-cursor-to-start nil)
   (setq whisper--ffmpeg-input-device "VirtualMicSink.monitor")
   (setq whisper-language "en")
   (setq whisper-recording-timeout 3000)
@@ -8825,31 +8993,7 @@ I've bound ~<f9>~ to the command ~whisper-run~. I press ~<f9>~ to start recordin
    ("M-<f9>" . sacha-whisper-toggle-language)))
 #+end_src
 
-Let's see if we can process "Computer remind me to...":
-
-#+begin_src emacs-lisp :tangle lisp/sacha-speech-input.el
-(defvar sacha-whisper-org-reminder-template "t")
-
-;;;###autoload
-(defun sacha-whisper-org-process-reminder ()
-  (let ((text (buffer-string))
-        reminder)
-    (when (string-match "computer[,\.]? reminds? me to \\(.+\\)" text)
-      (setq reminder (match-string 1 text))
-      (save-window-excursion
-        (with-current-buffer (if (markerp whisper--marker) (marker-buffer whisper--marker) (current-buffer))
-          (when (markerp whisper--marker) (goto-char whisper--marker))
-          (org-capture nil sacha-whisper-org-reminder-template)
-          (insert reminder)
-          (org-capture-finalize)))
-      (erase-buffer))))
-
-#+end_src
-
-#+begin_src emacs-lisp
-(with-eval-after-load 'whisper
-  (add-hook 'whisper-after-transcription-hook 'sacha-whisper-org-process-reminder 50))
-#+end_src
+[2026-10-02 Fri]: "Remind me to..." is now handled by dotfun:sacha-whisper-note.
 
 Disk space is inexpensive and backups are great, so let's save each file using the timestamp.
 
@@ -8868,7 +9012,7 @@ Disk space is inexpensive and backups are great, so let's save each file using t
   (add-hook 'whisper-before-transcription-hook #'sacha-whisper-set-temp-filename))
 #+end_src
 
-The technology isn't quite there yet to do real-time audio transcription so that I can see what it understands while I'm saying things, but that might be distracting anyway. If I do it in short segments, it might still be okay. I can replay the most recently recorded snippet in case it's missed something and I've forgotten what I just said.
+I can replay the most recently recorded snippet in case it's missed something and I've forgotten what I just said.
 
 #+begin_src emacs-lisp :tangle lisp/sacha-speech-input.el
 ;;;###autoload
@@ -8891,24 +9035,7 @@ The technology isn't quite there yet to do real-time audio transcription so that
   (whisper--transcribe-audio))
 #+end_src
 
-Il peut aussi comprendre le français.
-
-#+begin_src emacs-lisp :tangle lisp/sacha-speech-input.el
-;;;###autoload
-(defun sacha-whisper-toggle-language ()
-  "Set the language explicitly, since sometimes auto doesn't figure out the right one."
-  (interactive)
-  (setq whisper-language (if (string= whisper-language "en") "fr" "en"))
-  ;; If using a server, we need to restart for the language
-  (when (process-live-p whisper--server-process) (kill-process whisper--server-process))
-  (message "%s" whisper-language))
-#+end_src
-
-I could use this with ~org-capture~, but that's a lot of keystrokes. My shortcut for org-capture is ~C-c r~. I need to press at least one key to set the template, ~<f9>~ to start recording, ~<f9>~ to stop recording, and ~C-c C-c~ to save it. I want to be able to capture notes to my currently clocked in task without having an Org capture buffer interrupt my display.
-
-To clock in, I can use ~C-c C-x i~ or my ~!~ [[dotemacs:org-mode-keyboard-shortcuts-other-speed-commands][speed command]]. Bonus: the modeline displays the current task to keep me on track, and I can use ~org-clock-goto~ (which I've bound to ~C-c j~) to jump to it.
-
-Then, when I'm looking at something else and I want to record a note, I can press ~<f9>~ to start the recording, and then ~C-<f9>~ to save it to my currently clocked task along with a link to whatever I'm looking at. (Update: Ooh, now I can save a screenshot too.)
+Update [2026-10-02 Fri]: Il peut aussi comprendre le français. I used to have code to set the language in case the auto-recognition doesn't get it right, but now I'm using Orukeet as the speech recognition engine now, so it doesn't take a language setting.
 
 #+begin_src emacs-lisp :tangle lisp/sacha-speech-input.el
 ;;;###autoload
@@ -8927,6 +9054,7 @@ Then, when I'm looking at something else and I want to record a note, I can pres
         '(sacha-whisper-scratch-that
 					sacha-whisper-handle-commands
           sacha-whisper-save-text
+					sacha-learn-lang-notice-bingo-words
 ;          sacha-whisper-save-to-file
 					sacha-save-to-kill-ring-after-current
           sacha-whisper-maybe-expand-snippet
@@ -9537,7 +9665,7 @@ Of course, sometimes the text doesn't quite make sense because of the speech rec
 
 Anyway, here's the code for sending the current recording to whisper in the background and starting another recording. It assumes a lot about how things are set up. For example, I'm only testing this with a local speaches server instead of whisper.cpp. You might need to look at my other speech related configuration blog posts and sections in order to make sense of it.
 
-#+begin_src emacs-lisp :summary Code for queuing whisper.el requests to a local server :tangle lisp/sacha-speech-input.el
+#+begin_src emacs-lisp :summary Code for queuing whisper.el requests to a local server :tangle lisp/sacha-whisper.el
 (defvar sacha-whisper--queue nil)
 ;;;###autoload
 (defun sacha-whisper-continue (&optional arg)
@@ -9784,17 +9912,352 @@ Then I can start this process from Emacs:
 Now I can press my shortcut for ~sacha-whisper-continue~ to start the process. As I keep talking, it will continue to record. When I pause for more than a second between sentences, then it will send that chunk to the server for transcription without me having to press another button, while still listening for more speech.
 
 How is this different from the streaming approach that many real-time speech recognition services offer? I think this gives me a bit more visibility into and control of the process. For my personal use, I don't need to have everything processed as quickly as possible, and I'm not trying to replicate live captions. I just want to be able to look back over the last five minutes to try to remember what I was talking about. I usually have a lot of quiet time as I think through my next steps, and it's fine to have it catch up then. I also like that I can save time-stamped audio files for later processing, divided according to the speech segments. Those might be a little bit easier to work with when I get around to compositing them into a video.
+*** Reporting speaking stats / balance
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-speech-recognition-reporting-speaking-stats-balance
+:END:
+
+
+- [[file:~/proj/speech/vad-file.py]]: I generated this with Google Gemini.
+
+#+begin_src emacs-lisp
+;; Report on the balance between my tutor and me
+(defvar sacha-vad-tutor-process nil)
+(defvar sacha-vad-tutor-dir "~/vendor/orukeet")
+(defvar sacha-vad-tutor-command `(,(expand-file-name ".venv/bin/python" sacha-vad-tutor-dir)
+																	"asr.py"
+																	"--spacy-model"
+																	"fr_dep_news_trf"
+																	"-s" "300" "-t"
+																	"VirtualMicSink.monitor=sacha" "alsa_output.usb-AT_AT2040USB_202011110001-00.analog-stereo.monitor=tutor"))
+(defvar sacha-vad-tutor-events nil "List of events as an list of alists (label start stop duration).")
+(defvar sacha-vad-tutor-labels '("sacha" "tutor"))
+(defvar sacha-vad-tutor-summary '(("sacha" . 0)
+																	("tutor" . 0)))
+(defvar sacha-vad-tutor-session-length (* 60 60) "Number of seconds to use for scale.")
+
+(defun sacha-vad-tutor-update-view ()
+	(interactive)
+	(with-current-buffer (get-buffer-create "*tutor stats*")
+		(erase-buffer)
+		(let* ((total (apply '+ (mapcar 'cdr sacha-vad-tutor-summary)))
+					 (height 30)
+					 (width (window-width nil t))
+					 (max-seconds
+						(if sacha-vad-tutor-events
+								(apply 'max (mapcar (lambda (o) (alist-get 'end o))
+																		sacha-vad-tutor-events))
+							0))
+					 (threshold 180)							; last three minutes
+					 (threshold-seconds (- max-seconds threshold))
+					 (recent
+						(seq-keep
+						 (lambda (o)
+							 (when (>= (alist-get 'start o)
+												 threshold-seconds)
+								 (let-alist o
+									 `((label . ,.label)
+										 (start . ,(- .start threshold-seconds))
+										 (end . ,(- .end threshold-seconds))))))
+						 (copy-sequence sacha-vad-tutor-events)))
+					 (recent-total (apply '+ (mapcar (lambda (o)
+																						 (-
+																							(alist-get 'end o)
+																							(alist-get 'start o)))
+																					 recent))))
+			(save-excursion
+				(insert
+				 (format "Last %d minute%s:\n"
+								 (/ threshold 60)
+								 (if (> (/ threshold 60) 1)
+										 "s"
+									 ""))
+				 (mapconcat
+					(lambda (o)
+						(format "%d%% %s\n"
+										(/ (* 100.0 (cdr o)) recent-total)
+										(car o)))
+					(seq-map
+					 (lambda (group)
+						 (cons (car group)
+									 (apply '+ (mapcar (lambda (o)
+																			 (-
+																				(alist-get 'end o)
+																				(alist-get 'start o)))
+																		 (cdr group)))))
+					 (seq-group-by (lambda (o) (alist-get 'label o)) recent)))
+				 "\n")
+				(svg-insert-image
+				 (sacha-vad-visualize
+					sacha-vad-tutor-labels
+					recent
+					t
+					width height))
+				(insert
+				 "\nTotal:\n"
+
+				 (mapconcat
+					(lambda (o)
+						(format "%d%% %s\n"
+										(/ (* 100.0 (cdr o)) total)
+										(car o)))
+					sacha-vad-tutor-summary))
+				(svg-insert-image
+				 (sacha-vad-visualize sacha-vad-tutor-labels sacha-vad-tutor-events t
+															width height
+															sacha-vad-tutor-session-length))
+				(insert "\n\n"  (sacha-learn-lang-bingo-summary))))))
+
+(defun sacha-vad-handle-end-event (data)
+	"Handle the end event."
+	(let ((event (list
+								(cons 'label (alist-get 'label data))
+								(cons 'start (- (alist-get 'timestamp data)
+																(alist-get 'duration data)
+																(or sacha-vad-tutor-start-seconds 0)))
+								(cons 'end (- (alist-get 'timestamp data)
+															(or sacha-vad-tutor-start-seconds 0))))))
+		(push event sacha-vad-tutor-events)
+		(let-alist data
+			(incf (alist-get (alist-get 'label data) sacha-vad-tutor-summary 0 nil 'string=)
+						.duration))
+		(sacha-vad-tutor-update-view)))
+
+(defun sacha-vad-tutor-filter (proc string)
+	"Add and parse."
+	(when (buffer-live-p (process-buffer proc))
+		;; split the string by newline?
+		(with-current-buffer (process-buffer proc)
+			(goto-char (point-max))
+			(save-excursion
+				(insert string))
+			(catch 'waiting
+				(unless (or (eobp) (looking-at "\n*$"))
+					(let ((data (json-read)))
+						(when (string= (alist-get 'event data) "end")
+							(sacha-vad-handle-end-event data))
+						(when (string= (alist-get 'event data) "final")
+							(sacha-vad-handle-text-event data))))))))
+
+(defvar sacha-vad-last-speaker nil "Previous speaker.")
+
+(defun sacha-vad-handle-text-event (data)
+	(with-current-buffer (get-buffer-create "*Transcript*")
+		(set (make-local-variable 'window-point-insertion-type) t)
+		(save-excursion
+			(goto-char (point-max))
+			;; insert break
+			(insert
+			 (if (string= sacha-vad-last-speaker (alist-get 'label data))
+					 " "
+				 (concat (if (bobp) "" "\n\n") (alist-get 'label data) ": "))
+			 (alist-get 'text data))
+			(setq sacha-vad-last-speaker (alist-get 'label data))
+			(when (string= (alist-get 'label data) "sacha")
+				(sacha-learn-lang-notice-bingo-words (alist-get 'text data))))))
+
+(defun sacha-vad-tutor-start ()
+	"Start the process."
+	(interactive)
+	(sacha-vad-tutor-ensure)
+	(setq sacha-vad-tutor-summary '(("sacha" . 0)
+																	("tutor" . 0))
+				sacha-vad-tutor-events nil)
+	(with-current-buffer (get-buffer-create "*Transcript*")
+		(erase-buffer)
+		(display-buffer (current-buffer)))
+	(display-buffer (get-buffer-create "*tutor stats*")))
+
+(defun sacha-vad-tutor-ensure ()
+  "Start the process if it's not already running."
+  (interactive)
+  (unless (process-live-p sacha-vad-tutor-process)
+		(setq sacha-vad-tutor-process-start-time (current-time))
+		(setq sacha-vad-tutor-start-seconds 0)
+    (let ((default-directory sacha-vad-tutor-dir))
+      (setq sacha-vad-tutor-process
+            (make-process
+             :name "vad-tutor"
+             :command sacha-vad-tutor-command
+             :connection-type 'pipe
+             :buffer (get-buffer-create "*vad-tutor*")
+             :stderr (get-buffer-create "*vad-tutor-err*")
+             :filter #'sacha-vad-tutor-filter)))))
+
+(defun sacha-vad-tutor-stop ()
+	"Stop the process."
+	(interactive)
+	(interrupt-process sacha-vad-tutor-process))
+
+;;;###autoload
+(defun sacha-js-parse-jsonl-file (file)
+  "Parse jsonl as a list"
+	(let (results)
+		(with-temp-buffer
+			(insert-file-contents file)
+			(goto-char (point-min))
+			(while (not (eobp))
+				(condition-case nil
+						(push (json-read) results)
+					(error (goto-char (point-max))))))
+		(nreverse results)))
+
+(defvar sacha-vad-tutor-start-seconds 0 "Number of seconds to consider as the start.")
+(defvar sacha-vad-tutor-process-start-time nil "Time that the process started.")
+
+;;;###autoload
+(defun sacha-vad-tutor-reset-clock ()
+  "Reset the start of the session."
+  (interactive)
+	(setq sacha-vad-tutor-start-seconds
+				(time-to-seconds (time-subtract (current-time)
+																				sacha-vad-tutor-process-start-time)))
+	(mapcar (lambda (o) (setcdr o 0)) sacha-vad-tutor-summary)
+	(setq sacha-vad-tutor-events nil))
+
+(defun sacha-vad-visualize (labels list &optional output-file width height max-seconds)
+	(setq height (or height 25))
+	(setq width (or width (window-width nil t)))
+	(let* ((svg (svg-create width height))
+				 (max-seconds (max
+											 (or max-seconds 0)
+											 (if list
+													 (apply 'max (mapcar (lambda (o) (alist-get 'end o))
+																							 list))
+												 0)))
+				 (pixels-per-second (/ (* 1.0 width) max-seconds))
+				 (row-height (/ height (length labels))))
+		(dolist (o list)
+			(let-alist o
+				(let ((y (* row-height (or (seq-position labels .label 'string=) -1))))
+					(when (>= y 0)
+						(svg-rectangle
+						 svg
+						 (* .start pixels-per-second)
+						 y
+						 (* (- .end .start) pixels-per-second)
+						 row-height :fill "green")))))
+		(cond
+		 ((stringp output-file)
+			(with-temp-file output-file
+				(svg-print svg)))
+		 (output-file
+			svg)
+		 (t
+			(with-current-buffer (get-buffer-create "*vad*")
+				(goto-char (point-min))
+				(display-buffer (current-buffer))
+				(erase-buffer)
+				(svg-insert-image svg))))))
+
+(defun sacha-vad-stats (labels list)
+	"Return the balance of time talking as (label total percentage)."
+	(let* ((max-seconds (apply '+ (mapcar
+																 (lambda (o) (let-alist o (- .end .start)))
+																 list)))
+				 (durations (mapcar (lambda (o)
+														(cons
+														 (car o)
+														 (mapcar (lambda (e) (let-alist e (- .end .start)))
+																		 (cdr o))))
+													(seq-group-by (lambda (o) (alist-get 'label o))
+																				list))))
+		(seq-map
+		 (lambda (label)
+			 (let* ((row (cdr (assoc label durations)))
+							(total (apply '+ row)))
+				 `((label . ,label)
+					 (total . ,total)
+					 (count . ,(length row))
+					 (percentage . ,(and total max-seconds (> max-seconds 0) (* 100.0 (/ total max-seconds)))))))
+		 labels)))
+
+;; (sacha-vad-stats '("sacha" "tutor") (seq-take (sacha-js-parse-jsonl-file "~/proj/speech/output2.log") 5))
+;; (sacha-vad-stats '("sacha" "tutor") (sacha-js-parse-jsonl-file "~/proj/speech/output.log"))
+;; (sacha-vad-visualize '("sacha" "tutor") (sacha-js-parse-jsonl-file "~/proj/speech/output.log"))
+;; (sacha-vad-visualize '("sacha" "tutor") (seq-take (sacha-js-parse-jsonl-file "~/proj/speech/output2.log") 30))
+
+(defun sacha-vad-tutor-group-output (files)
+	(let ((grouped-files (seq-group-by
+												(lambda (o)
+													(substring (file-name-base o) 0 10))
+												files)))
+		(mapcar
+		 (lambda (group)
+			 (let ((start 0))
+				 (cons (car (cdr group))
+							 (seq-reduce
+								(lambda (prev file)
+									(append prev
+													(let ((max-seconds 0))
+														(prog1 (mapcar (lambda (event)
+																						 (incf (alist-get 'start event) start)
+																						 (incf (alist-get 'end event) start)
+																						 (setq max-seconds (max (alist-get 'end event) max-seconds))
+																						 event)
+																					 (sacha-js-parse-jsonl-file file))
+															(setq start max-seconds)))))
+								(cdr group)
+								nil))))
+		 grouped-files)))
+
+(defun sacha-vad-tutor-make-table (files &optional width height)
+	"Make a summary table."
+	(let ((labels sacha-vad-tutor-labels)
+				(width (or width 500))
+				(height (or height 30)))
+		;; combine data as needed
+		(append
+		 '(("Date" "Tutor" "Minutes" "%" "Visualization") hline)
+		 (seq-map
+			(lambda (group)
+				(let* ((list (cdr group))
+							 (base (file-name-base (car group))))
+					(if list
+							(let-alist (car (sacha-vad-stats labels list))
+								(let ((svg-name
+											 (expand-file-name
+												(concat (file-name-base (car group)) "-" .label ".svg")
+												"~/proj/french/conversation")))
+									(sacha-vad-visualize
+									 (list .label)
+									 list
+									 svg-name
+									 width
+									 height)
+									(list
+									 (format-time-string "%Y-%m-%d"
+																			 (seconds-to-time
+																				(sacha-filename-timestamp (car group))))
+									 ;; (org-link-make-string (concat "file:" o) "file")
+									 (if (string-match "-conversation-\\([^\\.]+\\)" base)
+											 (s-capitalize (substring (match-string 1 base) 0 1))
+										 "")
+
+									 (round (/ .total 60))
+									 (format "%d%%" .percentage)
+									 (org-link-make-string (concat "file:" svg-name)
+																				 (concat "file:" svg-name))
+									 )))
+						(list "?"))))
+			(sacha-vad-tutor-group-output files))
+		 nil)))
+#+end_src
+
+
 *** Switch task
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-speech-recognition-switch-task
+:END:
 
 I want to be able to say, "Okay, switch task to..." and then the text of my task. It should capture the task to my inbox and clock into it. In my =org-capture-templates=, I have "i" for an interrupting task.
 
 #+begin_src emacs-lisp :tangle lisp/sacha-whisper.el
+;;;###autoload
 (defmacro sacha-whisper-org-capture (filename function docstring template message)
 	"Register FUNCTION to be autoloaded from FILENAME to capture to TEMPLATE.
 Display MESSAGE."
-	`(progn
-		 (autoload ',function ,filename ,docstring nil)
-		 (defun ,function (text)
+	`(defun ,function (text)
 			 ,docstring
 			 (let ((sacha-org-quick-task t))
 				 (org-capture-string
@@ -9804,8 +10267,9 @@ Display MESSAGE."
 						text)
 					,template))
 			 (message ,message text)
-			 "")))
+			 ""))
 
+;;;###autoload
 (sacha-whisper-org-capture
  "sacha-whisper"
  sacha-whisper-switch-task-to
@@ -9813,6 +10277,7 @@ Display MESSAGE."
  "wi"
  "Switched to: %s")
 
+;;;###autoload
 (sacha-whisper-org-capture
  "sacha-whisper"
  sacha-whisper-task-today
@@ -9820,6 +10285,7 @@ Display MESSAGE."
  "wT"
  "Today: %s")
 
+;;;###autoload
 (sacha-whisper-org-capture
  "sacha-whisper"
  sacha-whisper-task-someday
@@ -9827,6 +10293,7 @@ Display MESSAGE."
  "wt"
  "Someday: %s")
 
+;;;###autoload
 (sacha-whisper-org-capture
  "sacha-whisper"
  sacha-whisper-note
@@ -9834,6 +10301,7 @@ Display MESSAGE."
  "wn"
  "Note: %s")
 
+;;;###autoload
 (sacha-whisper-org-capture
  "sacha-whisper"
  sacha-whisper-task-tomorrow
@@ -9841,7 +10309,7 @@ Display MESSAGE."
  "w>"
  "Tomorrow: %s")
 
-
+;;;###autoload
 (sacha-whisper-org-capture
  "sacha-whisper"
  sacha-whisper-task-next-week
@@ -9851,10 +10319,14 @@ Display MESSAGE."
 
 #+end_src
 *** Scratch that
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-speech-recognition-scratch-that
+:END:
 
 If I say something that ends with a phrase "scratch that," I want to cancel that. Someday it could be cool to make it cancel just the previous sentence.
 
 #+begin_src emacs-lisp :tangle lisp/sacha-whisper.el
+;;;###autoload
 (defun sacha-whisper-scratch-that (text)
   "Cancel the utterance if I end it with \"scratch that.\""
   (when (string-match "^\\(.*\\)scratch that\\.? *$" text)
@@ -9882,15 +10354,68 @@ yt:https://youtu.be/j2YSbH6OMD8
 I'd like to be able to dictate to Org Mode more fluidly, which includes being able to break thoughts up into paragraphs or add to lists. Here's a possible starting point that works with my other experiments in [[https://sachachua.com/topic/speech-recognition/][speech recognition]]
 
 #+begin_src emacs-lisp :tangle lisp/sacha-speech-input.el
-(defun sacha-whisper-defun-clip (seconds regexp)
-	(cons (concat "\\(?:clip\\|click\\)? \\(?:the last \\)?" regexp)
+;;;###autoload
+(defun sacha-whisper-clip (text)
+	"Clip the last part of the recording and save as a different file."
+	(let* ((multiplier (if (string-match "second" text) 1 60))
+				 (n (car (sacha-parse-number-words (replace-regexp-in-string " \\(minute\\|second\\)s?" "" text)))))
+		(sacha-clip-seconds (* n multiplier))
+		(sacha-whisper-audio-feedback (format "Clipping %d" n)))
+	"")
+
+;;;###autoload
+(defun sacha-whisper-track (text &optional category)
+	"Track my time."
+	(cons (concat "\\(?:" text "\\)")
 				(lambda ()
-					(sacha-clip-seconds seconds)
-					(sacha-whisper-audio-feedback "Clipping")
-					"")))
+					(message "Tracking %s" (or category text))
+					(quantified-track (or category text)))))
+
+(defvar sacha-number-words
+	'(("zero" . 0) ("one" . 1) ("two" . 2) ("three" . 3)
+    ("four" . 4) ("five" . 5) ("six" . 6) ("seven" . 7)
+    ("eight" . 8) ("nine" . 9) ("ten" . 10)
+    ("eleven" . 11) ("twelve" . 12) ("thirteen" . 13)
+    ("fourteen" . 14) ("fifteen" . 15) ("sixteen" . 16)
+    ("seventeen" . 17) ("eighteen" . 18) ("nineteen" . 19)
+    ("twenty" . 20) ("thirty" . 30) ("forty" . 40)
+    ("fifty" . 50) ("sixty" . 60) ("seventy" . 70)
+    ("eighty" . 80) ("ninety" . 90)
+		("hundred" . 100)
+		("thousand" . 1000)
+		("quatre[- ]vingt" . 80)
+		("dix" . 10)
+		("une" . 1)
+		("un" . 1)
+		("deux" . 2)
+		("trois" . 3)
+		("quatre" . 4)
+		("cinq" . 5)
+		("sept" . 7)
+		("huit" . 8)
+		("neuf" . 9)
+		("onze" . 11)
+		("douze" . 12)
+		("treize" . 13)
+		("quatorze" . 14)
+		("quinze" . 15)
+		("seize" . 16)
+		("vingt et un" . 21)
+		("treinte" . 30)
+		("treinte et un" . 31)
+		("quarante" . 40)
+		("quarante et un" . 41)
+		("cinquante" . 50)
+		("soixante" . 60)
+		("cent" . 100)
+		("mille" . 1000))
+	"Number words.")
 
 (defvar sacha-whisper-commands
-  `(("scroll up" . scroll-down-command)
+  `(("insert \\(.+\\)" . sacha-whisper-always-insert-at-point)
+		("task note,? \\(.+\\)" . sacha-whisper-always-insert-at-current-task)
+		("comment,? \\(.+\\)" . sacha-whisper-insert-as-comment)
+		("scroll up" . scroll-down-command)	; this is a test
     ("scrolling up" . scroll-down-command)
     ("page up" . scroll-down-command)
     ("scroll down" . scroll-up-command)
@@ -9903,6 +10428,7 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
     ("run the buffer" . eval-buffer)
     ("mark buffer" . mark-whole-buffer)
     ("run buffer" . eval-buffer)
+    ("run function" . eval-defun)
 		("save buffer" . save-buffer)
     ("mark paragraph" . mark-paragraph)
     ("expand" . expand-region)
@@ -9916,7 +10442,8 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 		("remind me next week\\(?: to\\)? \\(.+\\)" . sacha-whisper-task-next-week)
 		("remind me tomorrow\\(?: to\\)? \\(.+\\)" . sacha-whisper-task-tomorrow)
 		("clip audio" . sacha-org-subed-record-audio-insert-link-and-replay)
-		("remind me\\(?: to\\)?" . sacha-whisper-note)
+		("remind me to" . sacha-whisper-task-someday)
+		("remind me\\(?: that\\)?" . sacha-whisper-note)
 		("\\(?:rappelle\\|rappellez\\)-moi aujourd'hui\\(?: de\\| que\\)? \\(.+\\)" . sacha-whisper-task-today)
 		("\\(?:rappelle\\|rappellez\\)-moi un jour\\(?: de\\| que\\)? \\(.+\\)" . sacha-whisper-task-someday)
 		("\\(?:rappelle\\|rappellez\\)-moi demain\\(?: de\\| que\\)? \\(.+\\)" . sacha-whisper-task-tomorrow)
@@ -9924,6 +10451,7 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 		("\\(?:rappelle\\|rappellez\\)-moi\\(?: que\\| de\\)? \\(.+\\)" . sacha-whisper-note)
 		("remind me\\(?: to\\)? \\(.+\\)" . sacha-whisper-note)
 		("new note\\(?: to\\)? \\(.+\\)" . sacha-whisper-note)
+		("log \\(.+\\)" . sacha-whisper-note)
 		("agenda" . sacha-org-check-agenda)
 		("inbox" . sacha-whisper-inbox)
 		("current task" . sacha-whisper-current-task)
@@ -9931,24 +10459,184 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 		("what's \\(?:the\\|a\\) stack\\|where was I" . sacha-whisper-clocked-tasks)
 		("what can I say" . sacha-whisper-what-can-i-say)
 		("toot" . sacha-whisper-draft-toot)
+		("open \\(.+\\)" . sacha-whisper-open-favorite)
+		("jump \\(.+\\)" . sacha-whisper-avy-jump)
+		("\\(?:row\\|line\\) \\(.+\\)" . sacha-whisper-jump-to-line)
+		("\\(?:simple\\|symbol\\) \\(.+\\)" . sacha-whisper-avy-insert-symbol)
 		("start recording" . sacha-whisper-start-recording)
 		("stop recording" . sacha-whisper-stop-recording)
+		("that's done" . sacha-org-mark-done)
 		("go to refiled?,? \\(.+\\)" . sacha-whisper-org-goto-refiled)
-		("let's get ready\\|prepare to s[tc]ream" . sacha-whisper-prepare-to-stream)
+		("let's get ready\\|prepare to s[tc]ream\\|prepare for takeoff" . sacha-whisper-prepare-to-stream)
 		("\\(?:man,?\\|I command you to\\) \\(.+\\)" . sacha-whisper-execute-extended-command)
 		("start streaming\\|start screaming\\|let's go live" . sacha-whisper-start-streaming)
+		("define \\(?:a \\)?test for this function" . sacha-ert-deftest-from-function-at-point)
 		("stop streaming\\|stop screaming\\|over and out" . sacha-whisper-stop-streaming)
 		;; someday it would be nice to have a number parser
-		,(sacha-whisper-defun-clip 10 "\\(?:ten\\|10\\) seconds")
-		,(sacha-whisper-defun-clip 30 "\\(?:thirty\\|30\\) seconds")
-		,(sacha-whisper-defun-clip 60 "\\(?:one\\|1\\) minute")
-		,(sacha-whisper-defun-clip 180 "\\(?:three\\|3\\) minutes")
-		,(sacha-whisper-defun-clip 300 "\\(?:five\\|5\\) minutes")
-		,(sacha-whisper-defun-clip 600 "\\(?:ten\\|10\\) minutes")
+		(,(let ((number-words (format "\\(?:%s\\|[0-9]+\\)" (regexp-opt (mapcar 'car sacha-number-words)))))
+				(format "\\(?:trip\\|clip\\|click\\)? \\(?:the last \\)?\\(%s\\(?:[- ]%s\\)* \\(minute\\|second\\)s?\\)"
+								number-words number-words)) . sacha-whisper-clip)
 		("rename clip,? \\(.+\\)" . ,(lambda (text) (message "%s" (file-name-base (sacha-clip-add-note-to-latest text))) ""))
 		("instant replay" . sacha-clip-play-latest)
-		("panic button" . sacha-obs-panic))
+		("panic button" . sacha-obs-panic)
+		,(sacha-whisper-track "Routines")
+		,(sacha-whisper-track "Consulting" "E1 Gen")
+		,(sacha-whisper-track "Childcare")
+		,(sacha-whisper-track "Emacsconf" "Emacs | Emacsconf")
+		,(sacha-whisper-track "track Emacs" "Emacs")
+		,(sacha-whisper-track "Sleep")
+		)
   "Commands for speech recognition.")
+
+;;;###autoload
+(defun sacha-whisper-always-insert-at-current-task (text)
+	"Insert TEXT at the end of the currently-clocked task."
+	(save-window-excursion
+		(save-excursion
+			(org-clock-goto)
+			(org-end-of-subtree)
+			(unless (bolp) (insert "\n"))
+			(insert text "\n")))
+	"")
+
+;;;###autoload
+(defun sacha-whisper-always-insert-at-point (text)
+	"Insert TEXT at point."
+	(insert text)
+	"")
+
+;;;###autoload
+(defun sacha-whisper-insert-as-comment (text)
+	"Insert TEXT as a comment.
+Based on `comment-dwim'."
+	(if (save-excursion (beginning-of-line) (not (looking-at "\\s-*$")))
+			(comment-indent)
+		(if comment-insert-comment-function
+				(funcall comment-insert-comment-function)
+			(let ((add (comment-add 1)))
+				;; Some modes insist on keeping column 0 comment in column 0
+				;; so we need to move away from it before inserting the comment.
+				(indent-according-to-mode)
+				(insert (comment-padright comment-start add))
+				(save-excursion
+					(unless (string= "" comment-end)
+						(insert (comment-padleft comment-end add)))
+					(indent-according-to-mode)))))
+	(insert " " text)
+	"")
+
+;;;###autoload
+(defun sacha-whisper-avy-jump (text)
+	"Jump to the specified word."
+	(let ((candidates
+				 (or
+					(avy--regex-candidates text)
+					(avy--regex-candidates (concat "\\<" (substring (downcase text) 0 1))))))
+		(if candidates
+				(avy-process candidates)
+			(setq unread-command-events
+						(listify-key-sequence
+						 (substring text 0 1)))
+			(call-interactively #'avy-goto-word-1-below)))
+	"")
+
+;;;###autoload
+(defun sacha-whisper-open-favorite (text)
+	"Open the favorite."
+	(if-let* ((url (sacha-org-favorite-match text)))
+			(progn
+				(org-link-open-from-string url)
+				"")
+		text))
+
+;;;###autoload
+(defun sacha-whisper-avy-insert-symbol (text)
+	"Look for a symbol that contains TEXT and insert it at point."
+	(let ((candidates
+				 (or
+					(avy--regex-candidates text)
+					(avy--regex-candidates (concat "\\<" (substring (downcase text) 0 1)))))
+				(avy-action 'sacha-avy-action-insert-symbol)
+				results)
+		(when candidates
+			;; check if the candidates all resolve to the same
+			(progn
+				(setq results
+							(seq-uniq
+							 (seq-map (lambda (c)
+													(save-window-excursion
+														(save-excursion
+															(with-selected-window
+																	(cdr c)
+																(goto-char (caar c))
+																(thing-at-point 'symbol)))))
+												candidates)))
+				(if (and (= (length results) 1)
+								 (car results))
+						(insert (car results))
+					(avy-process candidates)))
+			"")))
+
+;;;###autoload
+(defun sacha-whisper-jump-to-line (text)
+  "Go to the visible line modulo 100."
+	(let* ((number (if (string-match "[0-9]+" text)
+										 (string-to-number text)
+									 (car (sacha-parse-number-words text))))
+				 (adjusted (+ (* (/ (line-number-at-pos (point)) 100) 100)
+											number)))
+		(cond
+		 ((< adjusted (line-number-at-pos (window-start)))
+			(incf adjusted 100))
+		 ((> adjusted (line-number-at-pos (window-end)))
+			(decf adjusted 100)))
+		(goto-line adjusted)
+		""))
+
+(ert-deftest sacha-parse-number-words ()
+  "Tests `sacha-parse-number-words'."
+	(should
+	 (equal
+		(sacha-parse-number-words "five minutes")
+		'(5 . "minutes")))
+	(should
+	 (equal
+		(sacha-parse-number-words "twenty five")
+		'(25 . "")))
+	(should
+	 (equal
+		(sacha-parse-number-words "mille neuf cent quatre-vingt-dix-neuf test")
+		'(1999 . "test"))))
+
+(defun sacha-parse-number-words (str)
+  "Parse number words in English or French.
+Return (number . rest-of-string)."
+	(if (string-match "^[0-9]+" (string-trim str))
+			(string-to-number str)
+		(let ((total 0)
+					(current 0)
+					found)
+			(catch 'done
+				(while (> (length str) 0)
+					(setq found
+								(cdr (seq-find (lambda (o) (string-match (concat "^" (car o)) str))
+															 sacha-number-words)))
+					(if found
+							(progn
+								(setq str
+											(if (< (1+ (match-end 0)) (length str))
+													(replace-regexp-in-string "^[- ]+" "" (substring str (1+ (match-end 0))))
+												""))
+								(cond
+								 ((= found 100) (setq current (* (max current 1) 100)))
+								 ((>= found 1000)
+									(incf total (* (max current 1) found))
+									(setq current 0))
+								 (t (incf current found))))
+						(throw 'done t)))
+				(throw 'done t))
+			(cons (+ total current)
+						str))))
 
 ;;;###autoload
 (defun sacha-whisper-inbox ()
@@ -9962,7 +10650,8 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 (defun sacha-whisper-org-goto-refiled (text)
   "Go to a heading based on refile."
 	(setq unread-command-events (listify-key-sequence (concat text (kbd "RET"))))
-	(let ((current-prefix-arg '(4)))
+	(let ((current-prefix-arg '(4))
+				(vertico-sort-function 'vertico-sort-length-alpha))
 		(call-interactively #'org-refile))
 	"")
 
@@ -9970,7 +10659,8 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 (defun sacha-whisper-execute-extended-command (text)
   "Run Emacs command."
 	(setq unread-command-events (listify-key-sequence (concat text (kbd "RET"))))
-	(let ((current-prefix-arg '(4)))
+	(let ((current-prefix-arg '(4))
+				(vertico-sort-function 'vertico-sort-length-alpha))
 		(call-interactively #'execute-extended-command))
 	"")
 
@@ -9999,12 +10689,12 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
   (interactive)
 	(obs-websocket-stop-streaming)
 	(obs-websocket-update-stream-status)
+	(sacha-stream-or-video-global-mode -1)
 	(sit-for 1)
-	(let ((learn-lang-language "en")
-				(learn-lang-tts-function 'learn-lang-tts-gtts-say))
-		(if obs-websocket-streaming-p
-				(learn-lang-tts-say "Weird")
-			(learn-lang-tts-say "Off"))))
+	(sacha-whisper-audio-feedback
+	 (if obs-websocket-streaming-p
+			 "Weird"
+		 "Off")))
 
 ;;;###autoload
 (defun sacha-whisper-start-recording ()
@@ -10156,6 +10846,9 @@ Related:
     text))
 #+end_src
 *** Keep track of files and stats
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-speech-recognition-keep-track-of-files-and-stats
+:END:
 
 #+begin_src emacs-lisp :tangle lisp/sacha-speech-input.el
 ;;;###autoload
@@ -11112,6 +11805,9 @@ Save the results as JSON and VTT."
 	(sacha-audio-braindump-insert-subtitles-as-org-tree (concat (file-name-sans-extension audio-file) ".vtt")))
 #+end_src
 *** Orukeet
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-speech-recognition-orukeet
+:END:
 
 #+begin_src emacs-lisp :tangle lisp/sacha-speech-input-orukeet.el
 (defvar sacha-speech-input-orukeet-command
@@ -11682,6 +12378,9 @@ stuff.
 	(org-fold-catch-invisible-edits 'smart))
 #+end_src
 ** Link to the part of my config that defines a function
+:PROPERTIES:
+:CUSTOM_ID: org-mode-link-to-the-part-of-my-config-that-defines-a-function
+:END:
 
 #+begin_src emacs-lisp :tangle lisp/sacha-org.el
 (defvar sacha-function-prefix "sacha-")
@@ -11987,7 +12686,7 @@ insert the image and the text for me.
 :END:
 
 Pedro pointed out that I had some incomplete clock
-entries in my Emacs configuration.
+entries in my EmacsConfiguration.
 [[https://orgmode.org/manual/Resolving-idle-time.html][org-resolve-clocks]] prompts you for what to do
 with each open clock entry in your Org agenda
 files and whatever Org Mode files you have open.
@@ -15514,10 +16213,13 @@ Uses the info from `sacha-org-favorite-file'."
 ;;;###autoload
 (defun sacha-org-favorite-match (s)
   "Return the first favorite that matches S."
-  (setq s (downcase s))
+  (setq s (split-string (downcase s)))
   (plist-get (seq-find (lambda (favorite)
-                         (string= (downcase (plist-get favorite :title))
-                                  s))
+												 (let ((title (downcase (plist-get favorite :title))))
+													 (seq-reduce (lambda (prev val)
+																				 (and prev (string-match (regexp-quote val) title)))
+																			 s
+																			 t)))
                        (sacha-org-favorites))
              :url))
 
@@ -15781,7 +16483,7 @@ custom link types.
 	    (symbol-value variable)))))
 
 #+end_src
-*** DONE Org Mode: Tangle Emacs config snippets to different files and add boilerplate :emacs:org:
+*** DONE Org Mode: Tangle EmacsConfig snippets to different files and add boilerplate :emacs:org:
 CLOSED: [2026-04-01 Wed 10:34]
 :PROPERTIES:
 :CUSTOM_ID: org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate
@@ -15796,7 +16498,7 @@ CLOSED: [2026-04-01 Wed 10:34]
 CLOCK: [2026-04-01 Wed 09:35]--[2026-04-01 Wed 10:34] =>  0:59
 :END:
 
-I want to organize the functions in my Emacs configuration so that they are easier for me to test and so that other people can load them from my repository. Instead of copying multiple code blogs from my blog posts or my exported Emacs configuration, it would be great if people could just include a file from the repository. I don't think people copy that much from my config, but it might still be worth making it easier for people to borrow interesting functions. It would be great to have libraries of functions that people can evaluate without worrying about side effects, and then they can copy or write a shorter piece of code to use those functions.
+I want to organize the functions in my EmacsConfiguration so that they are easier for me to test and so that other people can load them from my repository. Instead of copying multiple code blogs from my blog posts or my exported EmacsConfiguration, it would be great if people could just include a file from the repository. I don't think people copy that much from my config, but it might still be worth making it easier for people to borrow interesting functions. It would be great to have libraries of functions that people can evaluate without worrying about side effects, and then they can copy or write a shorter piece of code to use those functions.
 
 [[https://protesilaos.com/emacs/dotemacs#h:fc1ea247-5ef6-4c4e-a807-6c7b2482af90][In Prot's configuration (The custom libraries of my configuration)]], he includes each library as in full, in a single code block, with the boilerplate description, keywords, and =(provide '...)= that make them more like other libraries in Emacs.
 
@@ -15885,7 +16587,7 @@ Aha, I can fiddle with =org-babel-post-tangle-hook= to insert the boilerplate af
                        "^"
                        ";; "
                        (concat
-                        "Related Emacs config sections:\n\n"
+                        "Related EmacsConfig sections:\n\n"
                         (org-export-string-as
                          (mapconcat
                           (lambda (link)
@@ -16778,10 +17480,21 @@ to export a subtree to a webserver and have all the media files work. This took 
 
 (defalias 'sacha-org-11ty-delete-current-post #'sacha-org-11ty-unpublish-current-post)
 
+(defvar sacha-init-file-org "~/sync/emacs/Sacha.org" "My config file.")
+
 ;;;###autoload
 (defun sacha-org-11ty-copy-permalink ()
 	(interactive)
-	(kill-new (concat "https://sachachua.com" (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK"))))
+	(when-let* ((url (cond
+										((org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")
+										 (concat "https://sachachua.com" (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
+										((and (string= (buffer-file-name)
+																	 (expand-file-name sacha-init-file-org))
+													(org-entry-get-with-inheritance "CUSTOM_ID"))
+										 (concat sacha-emacs-config-url "#" (org-entry-get-with-inheritance "CUSTOM_ID")))
+										)))
+		(kill-new url)
+		(message "%s" url)))
 
 ;;;###autoload
 (defun sacha-org-11ty-browse-local ()
@@ -18447,7 +19160,7 @@ This code displays the images inline.
      the main =org-export-filter-body-functions= list now that I'm
      using Eleventy and ox-11ty.el instead of Wordpress and org2blog.
 
-     I occasionally post snippets from my Emacs configuration file,
+     I occasionally post snippets from my EmacsConfiguration file,
      drafting the notes directly in my literate config. I figured it
      might be a good idea to include a link to my config at the end of
      the posts, but I didn't want to scatter redundant links in my
@@ -18463,8 +19176,8 @@ This code displays the images inline.
 						(let ((id (org-entry-get-with-inheritance "CUSTOM_ID")))
 							(format
 							 (if (eq backend 'md)
-									 "\nThis is part of my [Emacs configuration](https://sachachua.com/dotemacs%s)\n"
-								 "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs%s\">Emacs configuration.</a></div>")
+									 "\nThis is part of my [EmacsConfiguration](https://sachachua.com/dotemacs%s)\n"
+								 "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs%s\">EmacsConfiguration.</a></div>")
 							 (if id (concat "#" id) ""))))))
      #+END_SRC
 
@@ -18559,6 +19272,7 @@ This uses the ~sacha-combined-screenshots~ and ~sacha-latest-screenshot~ functio
 
 #+NAME: sacha-org-insert-screenshot
 #+begin_src emacs-lisp :tangle "lisp/sacha-image.el"
+(defvar mastodon-toot-mode)
 ;;;###autoload
 (defun sacha-org-insert-screenshot (file &optional note)
   (interactive (list
@@ -18570,7 +19284,7 @@ This uses the ~sacha-combined-screenshots~ and ~sacha-latest-screenshot~ functio
                      :category 'file)
 									(sacha-latest-screenshot))))
 	(cond
-	 (mastodon-toot-mode
+	 ((and (boundp 'mastodon-toot-mode) mastodon-toot-mode)
 		(setq mastodon-toot--media-attachments
 					(nconc mastodon-toot--media-attachments
                  `(((:contents . ,(mastodon-http--read-file-as-string file))
@@ -19225,7 +19939,7 @@ This snippet turns =- [X]= into ☑ and =- [ ]= into ☐, but leaves =[-]= alone
      :CUSTOM_ID: org-async-export-and-tangle
      :END:
 
-I have a pretty large [[https://sachachua.com/dotemacs][Emacs configuration file]]. It's annoying to wait
+I have a pretty large [[https://sachachua.com/dotemacs][EmacsConfiguration file]]. It's annoying to wait
 11 seconds for it to export to HTML or 12 seconds to tangle.
 Fortunately, Org Mode allows me to export asynchronously. I tried it
 out from =org-export-dispatch= (=C-c C-e=) by using the =C-a= option.
@@ -20554,6 +21268,9 @@ With prefix argument, also display headlines without a TODO keyword."
 #+end_src
 
 **** Record and replay
+:PROPERTIES:
+:CUSTOM_ID: org-mode-links-audio-record-and-replay
+:END:
 
 #+begin_src emacs-lisp :tangle lisp/sacha-org.el
 ;;;###autoload
@@ -21363,7 +22080,7 @@ them. That way, I don't have to care about where my code is.
 I can add ~.rgignore~ files in directories to tell ripgrep to ignore
 things like ~node_modules~ or ~*.json~.
 
-I also want to search my Emacs configuration at the same time,
+I also want to search my EmacsConfiguration at the same time,
 although links to my config are handled by [[dotemacs:links-to-sacha-config][my dotemacs link type]] so
 I'll leave the URL as nil. This is also the way I can handle other
 unpublished directories.
@@ -30164,7 +30881,7 @@ This tidbit displays a buffer with the text of the subtitles so that I can quick
     "JavaScript"
     "RSS"
 		("stop section" "subsection")
-		("EmacsConf" "EmacsCon" "emacs conf" "imaxconf")
+		("EmacsConf" "EmacsCon" "EmacsConf" "imaxconf")
     ("going to" "gonna")
     ("want to" "wanna")
     ("transient" "transit")
@@ -30818,6 +31535,9 @@ and adding the visuals.
 #+end_src
 
 *** Save a tsv.txt for easy uploading to Gemini Notebook
+:PROPERTIES:
+:CUSTOM_ID: multimedia-subtitles-with-subed-save-a-tsv-txt-for-easy-uploading-to-gemini-notebook
+:END:
 
 #+begin_src emacs-lisp :tangle lisp/sacha-subed.el
 ;;;###autoload
@@ -32593,7 +33313,7 @@ if you're not in a .el file, so
 
 I wrote some advice that searches in any open
 =emacs-lisp-mode= buffers or in a list of other
-files, like my Emacs configuration.
+files, like my EmacsConfiguration.
 This is how I activate it:
 
 #+begin_src emacs-lisp :eval never-export
@@ -32919,14 +33639,14 @@ I use ~embark-bindings~ these days for ~C-h b~, but this might be useful for mak
 :CUSTOM_ID: coding-emacs-lisp-looking-up-help
 :END:
 
-From [[https://protesilaos.com/emacs/dotemacs][GNU Emacs configuration | Protesilaos Stavrou]]:
+From [[https://protesilaos.com/emacs/dotemacs][GNU EmacsConfiguration | Protesilaos Stavrou]]:
 
 #+begin_src emacs-lisp
 (keymap-global-set "C-h K" #'describe-keymap)
 (keymap-global-set "C-h c" #'describe-char)
 #+end_src
 
-and [[https://taonaw.com/2026/08/05/emacs-config-gems-part.html][Emacs Config Gems - Part 3 | The Art Of Not Asking Why]]:
+and [[https://taonaw.com/2026/08/05/emacs-config-gems-part.html][EmacsConfig Gems - Part 3 | The Art Of Not Asking Why]]:
 
 #+begin_src emacs-lisp
 (setq help-window-select t)
@@ -35451,7 +36171,7 @@ Here's the code that makes that happen:
 :CREATED:  [2024-01-22 Mon 05:51]
 :END:
 
-jcastp@mastodon.online - I've shared my emacs config: https://codeberg.org/jcastp/emacs.d
+jcastp@mastodon.online - I've shared my EmacsConfig: https://codeberg.org/jcastp/emacs.d
 
 After years of reading other's configs, copying really useful snippets, and tinkering a little bit myself, I wanted to give something back, although I'm still an amateur (and it shows, but I want to improve!)
 
@@ -35467,7 +36187,7 @@ If you can find there something you can use, then I'm happy to be useful to the 
 						 :links
 						 ("https://codeberg.org/jcastp/emacs.d")
 						 :text
-						 "jcastp@mastodon.online - I've shared my emacs config: https://codeberg.org/jcastp/emacs.d\n\nAfter years of reading other's configs, copying really useful snippets, and tinkering a little bit myself, I wanted to give something back, although I'm still an amateur (and it shows, but I want to improve!)\n\nIf you can find there something you can use, then I'm happy to be useful to the community.\n\n#emacs"))))
+						 "jcastp@mastodon.online - I've shared my EmacsConfig: https://codeberg.org/jcastp/emacs.d\n\nAfter years of reading other's configs, copying really useful snippets, and tinkering a little bit myself, I wanted to give something back, although I'm still an amateur (and it shows, but I want to improve!)\n\nIf you can find there something you can use, then I'm happy to be useful to the community.\n\n#emacs"))))
 #+end_src
 
 It turns headings into something like this:
@@ -38048,6 +38768,9 @@ On my phone:
 :CUSTOM_ID: mail-and-news
 :END:
 ** TODO Turn Org subtree into an e-mail
+:PROPERTIES:
+:CUSTOM_ID: mail-and-news-turn-org-subtree-into-an-e-mail
+:END:
 
 #+begin_src emacs-lisp :tangle lisp/sacha-mail.el
 ;;;###autoload
@@ -38201,7 +38924,7 @@ I use Notmuch with [[https://github.com/gauteh/lieer][Lieer]] to fetch my mail f
 I still use Gnus so that I can use [[http://gmane.org][Gmane]] to read mailing lists.
 
     I used to have my config in in =~/.gnus=, but people might find it
-    handy, so I've added it to my public [[http://sachacuha.com/dotemacs][Emacs configuration]].
+    handy, so I've added it to my public [[http://sachacuha.com/dotemacs][EmacsConfiguration]].
 
     #+begin_src emacs-lisp :tangle yes
 (setq mml-secure-openpgp-encrypt-to-self t)
@@ -39771,24 +40494,30 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
        ,sacha-stream-inbox-target
        "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n%a"
        :prepend t)
+			("wi" "Interrupting task" entry
+       ,sacha-stream-inbox-target
+         "* STARTED %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+         :clock-in t :clock-keep t
+         :prepend t :immediate-finish t)
+
 			("wT" "Task for today" entry
-       (file ,sacha-stream-inbox-target)
+       ,sacha-stream-inbox-target
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \".\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
        :prepend t :immediate-finish t)
 			("w>" "Task for tomorrow" entry
-       (file ,sacha-stream-inbox-target)
+       ,sacha-stream-inbox-target
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
        :prepend t :immediate-finish t)
 			("ww" "Task for next week" entry
-       (file ,sacha-stream-inbox-target)
+       ,sacha-stream-inbox-target
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
        :prepend t :immediate-finish t)
 			("wt" "Task for someday" entry
-       (file ,sacha-stream-inbox-target)
+       ,sacha-stream-inbox-target
        "* SOMEDAY %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
        :prepend t :immediate-finish t)
 			("wn" "Note" entry
-       (file ,sacha-stream-inbox-target)
+       ,sacha-stream-inbox-target
        "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
        :prepend t :immediate-finish t)
       ("t" "Task with annotation" entry
@@ -41080,6 +41809,9 @@ With a [[https://github.com/obs-websocket-el/obs-websocket-el][websocket connect
       (delete-file file))))
 #+end_src
 ** Clip something from the current recording
+:PROPERTIES:
+:CUSTOM_ID: streaming-and-videos-clip-something-from-the-current-recording
+:END:
 
 I want to be able to quickly save the last thirty seconds or the last five minutes.
 =sacha-recordings-dir= has the MKV of the current recording, and I can get the timestamp of the start point by getting the file creation time. Then I can calculate the offset into it based on the current time.
@@ -41753,6 +42485,7 @@ When called interactively, copy it."
 		 :sync t
 		 :parser #'json-read)))
 
+;;;###autoload
 (defun sacha-google-youtube-default-broadcast ()
 	"Return the current broadcast or the default one."
 	(or
@@ -42026,6 +42759,9 @@ defun-open:sacha-org-time-at-point
 					 sched-time))))))
 #+end_src
 ** TODO Set up a spontaneous livestream on YouTube
+:PROPERTIES:
+:CUSTOM_ID: streaming-and-videos-set-up-a-spontaneous-livestream-on-youtube
+:END:
 
 I want to make it easy to hop on stream. This means updating OBS to the profile with the stream key used for spontaneous streams, and updating the title and possibly the description on YouTube.
 
@@ -42061,8 +42797,9 @@ Check for property PRIVACY as well."
 	(if (org-entry-get-with-inheritance "YOUTUBE_URL")
 			(progn
 				;; scheduled
-				(browse-url (format "https://studio.youtube.com/video/%s/livestreaming"
-														(sacha-org-yt-id (org-entry-get-with-inheritance "YOUTUBE_URL"))))
+				(browse-url-chrome (format "https://studio.youtube.com/video/%s/livestreaming"
+																	 (sacha-org-yt-id (org-entry-get-with-inheritance "YOUTUBE_URL"))))
+				(obs-websocket-connect)
 				(obs-websocket-set-current-profile
 				 "Scheduled"
 				 (lambda ()
@@ -42072,7 +42809,7 @@ Check for property PRIVACY as well."
 							"Weird")))))
 		(call-interactively #'sacha-stream-prepare-spontaneous-stream)
 		(sit-for 1)
-		(browse-url sacha-stream-livestreaming-control)))
+		(browse-url-chrome sacha-stream-livestreaming-control)))
 
 ;;;###autoload
 (defun sacha-stream-prepare-spontaneous-stream (title description privacy)
@@ -42599,7 +43336,7 @@ Make it easier to review my credit card transactions
   (save-excursion
     (sacha-ledger-go-to-beginning-of-entry)
     (let ((context-info (ledger-context-other-line 0)))
-      (when (eq (ledger-context-line-type context-info) 'entry)
+      (when (member (ledger-context-line-type context-info) '(entry xact))
         (goto-char (line-beginning-position))
         (if (looking-at "\\([-0-9\\./]+\\)")
             (match-string-no-properties 1))))))
@@ -42654,7 +43391,6 @@ Make it easier to review my credit card transactions
     (sacha-ledger-change-account (ledger-read-account-with-prompt
                                (format "%s %s: " (s-trim (save-match-data (ledger-xact-payee)))
                                        (match-string 1))))))
-
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/sacha-elisp.el
@@ -42669,7 +43405,7 @@ Make it easier to review my credit card transactions
 		 (sort (seq-remove
 						(if filter
 								(lambda (o)
-									(or (funcall filter o)
+									(or (null (funcall filter o))
 											(file-directory-p o)))
 							#'file-directory-p)
 						(directory-files path 'full (and (stringp filter) filter) t))
@@ -45660,7 +46396,7 @@ You can [[mailto:sacha@sachachua.com][e-mail me]] or [[https://social.sachachua.
   - Remember that 'demander' followed by an indirect question uses 'si' (e.g., 'Je me demande si...') rather than 'que'.
 :END:
 
-This uses code defined in [[dotemacs:org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Tangle Emacs config snippets to different files and add boilerplate]].
+This uses code defined in [[dotemacs:org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Tangle EmacsConfig snippets to different files and add boilerplate]].
 
 [[elisp:sacha-emacs-config-update-module-info]]
 
@@ -45743,7 +46479,7 @@ This uses code defined in [[dotemacs:org-mode-org-babel-tangling-sacha-emacs-con
   - [[dotemacs:reload][Reload]]
   - [[dotemacs:repeatable-commands][Repeatable commands]]
   - [[dotemacs:which-key-and-which-key-posframe][which-key and which-key-posframe]]
-  - [[dotemacs:org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Tangle Emacs config snippets to different files and add boilerplate]]
+  - [[dotemacs:org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Tangle EmacsConfig snippets to different files and add boilerplate]]
   - [[dotemacs:key-chord][Key chords]]
 - [[file:lisp/sacha-emacsconf.el][sacha-emacsconf]]
   - [[dotemacs:prepare-for-emacsconf-screenshots-or-recordings][Prepare for EmacsConf screenshots or recordings]]
@@ -45865,7 +46601,7 @@ This uses code defined in [[dotemacs:org-mode-org-babel-tangling-sacha-emacs-con
 - [[file:lisp/sacha-org-audio.el][sacha-org-audio]]
   - [[dotemacs:audio][Audio]]
 - [[file:lisp/sacha-org-babel.el][sacha-org-babel]]
-  - [[dotemacs:org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Tangle Emacs config snippets to different files and add boilerplate]]
+  - [[dotemacs:org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Tangle EmacsConfig snippets to different files and add boilerplate]]
   - [[dotemacs:org-mode-org-babel-detangle-just-the-current-block][Org Babel: Detangle just the current block]]
   - [[dotemacs:execute-subtree-by-custom-id][Run source blocks in an Org Mode subtree by custom ID]]
   - [[dotemacs:execute-named-babel-block][Execute named babel block]]

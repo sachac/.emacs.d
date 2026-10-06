@@ -2225,6 +2225,7 @@ I like using the [[package:orderless][orderless]] completion package for Emacs b
           :custom
           (completion-styles '(orderless basic))
           (completion-category-overrides '((file (styles basic partial-completion))))
+					(orderless-matching-styles '(orderless-literal orderless-regexp orderless-flex))
     (orderless-style-dispatchers '(sacha-orderless-accent-dispatch orderless-affix-dispatch)))
 #+end_src
 
@@ -5044,10 +5045,11 @@ From oantolin's config."
   #+end_src
 
   #+begin_src emacs-lisp
-(use-package dired ; built-in
-	:bind
-	(:map dired-mode-map
-        ("e" . dired-open-externally)))
+    (use-package dired ; built-in
+      :ensure nil
+      :bind
+      (:map dired-mode-map
+    	("e" . dired-open-externally)))
   #+end_src
 ** Move to beginning of line
 :PROPERTIES:
@@ -9001,6 +9003,21 @@ From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
     :bind
     ("M-D" . caser-dashcase-dwim))
 #+end_src
+*** Emacslisten
+
+https://emacslisten.org
+
+#+begin_src emacs-lisp
+(use-package phony
+  :config
+  (phony-mode 1))
+(use-package phony-talon-community-bindings
+	:load-path "~/vendor/phony"
+	:ensure nil
+	)
+(phony-defun say-hello "hello emacs"
+  (message "Hello!"))
+#+end_src
 *** Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere :speech:
 :PROPERTIES:
 :CUSTOM_ID: multimedia-whisper
@@ -9129,9 +9146,11 @@ Update [2026-10-02 Fri]: Il peut aussi comprendre le français. I used to have c
 (defvar sacha-whisper-last-annotation nil "Last annotation so we can skip duplicates.")
 (defvar sacha-whisper-skip-annotation nil)
 (defvar sacha-whisper-target-markers nil "List of markers to send text to.")
+(defvar sacha-whisper-one-sentence-per-line nil "Non-nil means split text onto separate lines.")
 
 ;;;###autoload
 (defun sacha-whisper-insert (text)
+	"Insert TEXT at point, or at `sacha-whisper-target-markers'."
   (let ((markers
          (cond
           ((null sacha-whisper-target-markers)
@@ -9144,20 +9163,34 @@ Update [2026-10-02 Fri]: Il peut aussi comprendre le français. I used to have c
         (orig-buffer (current-buffer)))
     (when text
       (mapcar (lambda (marker)
-                (with-current-buffer (marker-buffer marker)
+                (with-current-buffer (or (marker-buffer marker) (current-buffer))
                   (save-restriction
                     (widen)
-                    (when (markerp marker) (goto-char marker))
+                    (when (and (marker-position marker)
+															 (marker-buffer marker))
+											(goto-char marker))
                     (when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
                       (insert "\n"))
+										;; TODO: handle org lists
+										(when (and sacha-whisper-one-sentence-per-line (not (bolp)))
+											(insert "\n"))
                     (whisper--insert-text
                      (concat
                       (if (looking-back "[ \t\n]\\|^")
                           ""
                         " ")
-                      (string-trim text)))
+											(if sacha-whisper-one-sentence-per-line
+													(with-temp-buffer
+														(insert text)
+														(goto-char (point-min))
+														(fill-paragraph-semlf)
+														(buffer-string))
+												text)))
+										(when (and sacha-whisper-one-sentence-per-line (not (bolp)))
+											(insert "\n"))
                     ;; Move the marker forward here
-                    (move-marker marker (point)))))
+										(when marker
+											(move-marker marker (point))))))
               markers)
       (when sacha-whisper-target-markers
         (goto-char orig-point))
@@ -10486,6 +10519,13 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 	"Return a regular expression that matches the number words."
 	(format "\\(?:%s\\|[0-9]+\\)" (mapconcat 'car sacha-number-words "\\|")))
 
+(defun sacha-whisper-track (text &optional category)
+	"Track my time."
+	(cons (concat "\\(?:" text "\\)")
+				(lambda ()
+					(message "Tracking %s" (or category text))
+					(quantified-track (or category text)))))
+
 (defvar sacha-whisper-commands
   `(("insert \\(.+\\)" . sacha-whisper-always-insert-at-point)
 		("task note,? \\(.+\\)" . sacha-whisper-always-insert-at-current-task)
@@ -10557,7 +10597,7 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 		 . sacha-whisper-clip)
 		("rename clip,? \\(.+\\)" . ,(lambda (text) (message "%s" (file-name-base (sacha-clip-add-note-to-latest text))) ""))
 		("instant replay" . sacha-clip-play-latest)
-		("panic button" . sacha-obs-panic)
+		("panic" . sacha-obs-panic)
 		("delete the last sentence" . sacha-whisper-delete-last-sentence)
 		,(sacha-whisper-track "Routines")
 		,(sacha-whisper-track "Consulting" "E1 Gen")
@@ -10585,14 +10625,6 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 		(sacha-clip-seconds (* n multiplier))
 		(sacha-whisper-audio-feedback (format "Clipping %d" n)))
 	"")
-
-;;;###autoload
-(defun sacha-whisper-track (text &optional category)
-	"Track my time."
-	(cons (concat "\\(?:" text "\\)")
-				(lambda ()
-					(message "Tracking %s" (or category text))
-					(quantified-track (or category text)))))
 
 
 ;;;###autoload
@@ -10657,10 +10689,9 @@ Based on `comment-dwim'."
 (defun sacha-whisper-open-favorite (text)
 	"Open the favorite."
 	(if-let* ((url (sacha-org-favorite-match text)))
-			(progn
-				(org-link-open-from-string url)
-				"")
-		text))
+			(org-link-open-from-string url)
+		(browse-url (concat "https://www.google.com/search?q=" (url-encode-url text))))
+	"")
 
 ;;;###autoload
 (defun sacha-whisper-avy-insert-symbol (text)
@@ -45646,61 +45677,63 @@ references.
 #+end_src
 
 #+begin_src emacs-lisp
-(use-package gptel
-	:commands (gptel gptel-send gptel-set-topic gptel-menu)
-	:defer t
-	:config
-	(setq sacha-gptel-openrouter
-				(gptel-make-openai "OpenRouter"               ;Any name you want
-					:host "openrouter.ai"
-					:endpoint "/api/v1/chat/completions"
-					:stream t
-					:key (gptel-api-key-from-environment "OPENROUTER_API_KEY")
-					:models '(qwen/qwen3.8-27b:free
-										nvidia/nemotron-3-ultra:free
-										google/gemma-4-31b:free)))
-  (setq sacha-gptel-groq
-        (gptel-make-openai "Groq"
-          :host "api.groq.com"
-          :endpoint "/openai/v1/chat/completions"
-          :stream t
-          :key (gptel-api-key-from-environment "GROQ_API_KEY")
-          :models '(llama-3.3-70b-versatile
-                    llama-3.1-8b-instant
-                    openai/gpt-oss-20b
-                    openai/gpt-oss-120b)))
-  (setq sacha-gptel-gemini
-        (gptel-make-gemini "Gemini"
-          :key (gptel-api-key-from-environment "GEMINI_API_KEY")
-          :stream t
-          :models '(gemini-3-flash-preview
-                    gemini-2.5-flash
-                    gemini-2.5-pro
-                    gemini-2.5-flash-preview-09-2025
-                    gemini-2.5-flash-lite)))
-  (setq sacha-gptel-gemini-paid
-        (gptel-make-gemini "Gemini - paid"
-          :key (gptel-api-key-from-environment "GEMINI_PAID_API_KEY")
-          :stream t
-          :models '(gemini-3-flash-preview
-                    gemini-2.5-flash
-                    gemini-2.5-flash-preview-09-2025
-                    gemini-2.5-flash-lite)))
-  (setq sacha-gptel-mistral
-        (gptel-make-openai "Mistral"
-          :key (gptel-api-key-from-environment "MISTRAL_API_KEY")
-          :host "api.mistral.ai"
-          :endpoint "/v1/chat/completions"
-          :stream t
-          :models '(mistral-medium
-                    mistral-large-2411)))
-	(setq gptel-model 'gemini-3-flash-preview
-				gptel-backend sacha-gptel-gemini
-        gptel-log-level 'info)
-	:hook
-	(gptel-post-stream . gptel-auto-scroll)
-	(gptel-post-response . gptel-end-of-response))
-
+  (use-package gptel
+    :ensure nil
+    :load-path "~/vendor/gptel"
+    :init (load-file "~/vendor/gptel/gptel-autoloads.el")
+  	:commands (gptel gptel-send gptel-set-topic gptel-menu)
+  	:defer t
+  	:config
+  	(setq sacha-gptel-openrouter
+  				(gptel-make-openai "OpenRouter"               ;Any name you want
+  					:host "openrouter.ai"
+  					:endpoint "/api/v1/chat/completions"
+  					:stream t
+  					:key (gptel-api-key-from-environment "OPENROUTER_API_KEY")
+  					:models '(qwen/qwen3.8-27b:free
+  										nvidia/nemotron-3-ultra:free
+  										google/gemma-4-31b:free)))
+    (setq sacha-gptel-groq
+          (gptel-make-openai "Groq"
+            :host "api.groq.com"
+            :endpoint "/openai/v1/chat/completions"
+            :stream t
+            :key (gptel-api-key-from-environment "GROQ_API_KEY")
+            :models '(llama-3.3-70b-versatile
+                      llama-3.1-8b-instant
+                      openai/gpt-oss-20b
+                      openai/gpt-oss-120b)))
+    (setq sacha-gptel-gemini
+          (gptel-make-gemini "Gemini"
+            :key (gptel-api-key-from-environment "GEMINI_API_KEY")
+            :stream t
+            :models '(gemini-3-flash-preview
+                      gemini-2.5-flash
+                      gemini-2.5-pro
+                      gemini-2.5-flash-preview-09-2025
+                      gemini-2.5-flash-lite)))
+    (setq sacha-gptel-gemini-paid
+          (gptel-make-gemini "Gemini - paid"
+            :key (gptel-api-key-from-environment "GEMINI_PAID_API_KEY")
+            :stream t
+            :models '(gemini-3-flash-preview
+                      gemini-2.5-flash
+                      gemini-2.5-flash-preview-09-2025
+                      gemini-2.5-flash-lite)))
+    (setq sacha-gptel-mistral
+          (gptel-make-openai "Mistral"
+            :key (gptel-api-key-from-environment "MISTRAL_API_KEY")
+            :host "api.mistral.ai"
+            :endpoint "/v1/chat/completions"
+            :stream t
+            :models '(mistral-medium
+                      mistral-large-2411)))
+  	(setq gptel-model 'gemini-3-flash-preview
+  				gptel-backend sacha-gptel-gemini
+          gptel-log-level 'info)
+  	:hook
+  	(gptel-post-stream . gptel-auto-scroll)
+  	(gptel-post-response . gptel-end-of-response))
 #+end_src
 
 
@@ -45718,6 +45751,15 @@ So that I don't have to use ~gptel-menu~ just to change the model:
     (setq gptel-backend (car result))
     (setq gptel-model (cadr result))))
 #+end_src
+**** Presets
+
+#+begin_src emacs-lisp :tangle lisp/sacha-ai.el
+(with-eval-after-load 'gptel
+	(gptel-make-preset 'ask
+  :system "Ask several follow-up questions.")
+	)
+#+end_src
+
 *** agent-shell
 :PROPERTIES:
 :CUSTOM_ID: inactive-infrequent-things-chatgpt-ai-and-large-language-models-agent-shell

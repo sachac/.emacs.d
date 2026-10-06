@@ -100,9 +100,17 @@ Display MESSAGE."
  "ww"
  "Next week: %s")
 
+;;;###autoload
+(sacha-whisper-org-capture
+ "sacha-whisper"
+ sacha-whisper-task-next-month
+ "Make a task for next month."
+ "wm"
+ "Next month: %s")
 ;; Switch task:1 ends here
 
-;; [[file:../Sacha.org::*Scratch that][Scratch that:1]]
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-scratch-that][Scratch that:1]]
+;;;###autoload
 (defun sacha-whisper-scratch-that (text)
   "Cancel the utterance if I end it with \"scratch that.\""
   (when (string-match "^\\(.*\\)scratch that\\.? *$" text)

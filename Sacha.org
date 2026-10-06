@@ -10384,21 +10384,42 @@ Display MESSAGE."
  "ww"
  "Next week: %s")
 
+;;;###autoload
+(sacha-whisper-org-capture
+ "sacha-whisper"
+ sacha-whisper-task-next-month
+ "Make a task for next month."
+ "wm"
+ "Next month: %s")
 #+end_src
 *** Scratch that
 :PROPERTIES:
 :CUSTOM_ID: writing-and-editing-speech-recognition-scratch-that
 :END:
 
-If I say something that ends with a phrase "scratch that," I want to cancel that. Someday it could be cool to make it cancel just the previous sentence.
+If I say something that ends with a phrase "scratch that," I want to cancel that.
 
 #+begin_src emacs-lisp :tangle lisp/sacha-whisper.el
 ;;;###autoload
 (defun sacha-whisper-scratch-that (text)
   "Cancel the utterance if I end it with \"scratch that.\""
-  (when (string-match "^\\(.*\\)scratch that\\.? *$" text)
-		(message "Scratched: %s (%s)" (or (match-string 1 text) "")
-						 whisper--temp-file)
+  (when (string-match "^\\(.*\\)\\(?:scratch\\|sketch\\) that\\.? *$" text)
+		(if (= (length (match-string 1 text)) 0)
+				;; beginning; look backwards and erase the last utterance
+				(let ((pos (point)))
+					(skip-syntax-backward " ")
+					(if (get-text-property (point) 'file)
+							(if (next-single-property-change (point) 'file)
+									(progn
+										(backward-char)
+										(setq pos (point)))
+								(setq pos (point-max)))
+						(backward-char))
+					(when (get-text-property (point) 'file)
+						(kill-region (previous-single-property-change (point) 'file)
+												 pos)))
+			(message "Scratched: %s (%s)" (or (match-string 1 text) "")
+							 whisper--temp-file))
 		(setq text nil))
 	text)
 #+end_src
@@ -10507,6 +10528,7 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 		("remind me today\\(?: to\\)? \\(.+\\)" . sacha-whisper-task-today)
 		("remind me someday\\(?: to\\)? \\(.+\\)" . sacha-whisper-task-someday)
 		("remind me next week\\(?: to\\)? \\(.+\\)" . sacha-whisper-task-next-week)
+		("remind me next month\\(?: to\\)? \\(.+\\)" . sacha-whisper-task-next-month)
 		("remind me tomorrow\\(?: to\\)? \\(.+\\)" . sacha-whisper-task-tomorrow)
 		("clip audio" . sacha-org-subed-record-audio-insert-link-and-replay)
 		("remind me to" . sacha-whisper-task-someday)
@@ -13381,6 +13403,10 @@ entries, notes, and other semi-structured pieces of information.
 				("ww" "Task for next week" entry
          (file ,sacha-org-inbox-file)
          "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+         :prepend t :immediate-finish t)
+				("wm" "Task for next month" entry
+         (file ,sacha-org-inbox-file)
+         "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1m\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
          :prepend t :immediate-finish t)
 				("wt" "Task for someday" entry
          (file ,sacha-org-inbox-file)
@@ -40578,6 +40604,10 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
 			("ww" "Task for next week" entry
        ,sacha-stream-inbox-target
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       :prepend t :immediate-finish t)
+			("wm" "Task for next month" entry
+       ,sacha-stream-inbox-target
+       "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1m\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
        :prepend t :immediate-finish t)
 			("wt" "Task for someday" entry
        ,sacha-stream-inbox-target

@@ -248,24 +248,34 @@
        ,sacha-stream-inbox-target
        "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n%a"
        :prepend t)
+			("wi" "Interrupting task" entry
+       ,sacha-stream-inbox-target
+         "* STARTED %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+         :clock-in t :clock-keep t
+         :prepend t :immediate-finish t)
+
 			("wT" "Task for today" entry
-       (file ,sacha-stream-inbox-target)
+       ,sacha-stream-inbox-target
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \".\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
        :prepend t :immediate-finish t)
 			("w>" "Task for tomorrow" entry
-       (file ,sacha-stream-inbox-target)
+       ,sacha-stream-inbox-target
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
        :prepend t :immediate-finish t)
 			("ww" "Task for next week" entry
-       (file ,sacha-stream-inbox-target)
+       ,sacha-stream-inbox-target
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
        :prepend t :immediate-finish t)
+			("wm" "Task for next month" entry
+       ,sacha-stream-inbox-target
+       "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1m\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       :prepend t :immediate-finish t)
 			("wt" "Task for someday" entry
-       (file ,sacha-stream-inbox-target)
+       ,sacha-stream-inbox-target
        "* SOMEDAY %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
        :prepend t :immediate-finish t)
 			("wn" "Note" entry
-       (file ,sacha-stream-inbox-target)
+       ,sacha-stream-inbox-target
        "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
        :prepend t :immediate-finish t)
       ("t" "Task with annotation" entry

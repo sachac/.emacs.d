@@ -10578,6 +10578,33 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
   "Commands for speech recognition.")
 
 ;;;###autoload
+(defun sacha-whisper-delete-last-sentence (&optional text)
+  "Delete the last sentence."
+	(let ((pos (point)))
+		(if (derived-mode-p 'org-mode)
+				(org-backward-sentence)
+			(backward-sentence))
+		(kill-region (point) pos)))
+
+;;;###autoload
+(defun sacha-whisper-clip (text)
+	"Clip the last part of the recording and save as a different file."
+	(let* ((multiplier (if (string-match "second" text) 1 60))
+				 (n (car (sacha-parse-number-words (replace-regexp-in-string " \\(minute\\|second\\)s?" "" text)))))
+		(sacha-clip-seconds (* n multiplier))
+		(sacha-whisper-audio-feedback (format "Clipping %d" n)))
+	"")
+
+;;;###autoload
+(defun sacha-whisper-track (text &optional category)
+	"Track my time."
+	(cons (concat "\\(?:" text "\\)")
+				(lambda ()
+					(message "Tracking %s" (or category text))
+					(quantified-track (or category text)))))
+
+
+;;;###autoload
 (defun sacha-whisper-always-insert-at-current-task (text)
 	"Insert TEXT at the end of the currently-clocked task."
 	(save-window-excursion
@@ -10592,6 +10619,12 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 (defun sacha-whisper-always-insert-at-point (text)
 	"Insert TEXT at point."
 	(insert text)
+	"")
+
+;;;###autoload
+(defun sacha-whisper-journal (text)
+  "Save TEXT to my journal."
+	(sacha-journal-post (s-capitalize text) :Category "Us")
 	"")
 
 ;;;###autoload
@@ -10679,8 +10712,20 @@ Based on `comment-dwim'."
 			(incf adjusted 100))
 		 ((> adjusted (line-number-at-pos (window-end)))
 			(decf adjusted 100)))
-		(goto-line adjusted)
-		""))
+		adjusted))
+
+;;;###autoload
+(defun sacha-whisper-jump-to-line (text)
+  "Go to the visible line modulo 100."
+	(goto-line (sacha-whisper-get-line-position text))
+	"")
+
+;;;###autoload
+(defun sacha-whisper-delete-line (text)
+  "Delete the visible line modulo 100."
+	(goto-line (sacha-whisper-get-line-position text))
+	(kill-region (line-beginning-position) (1+ (line-end-position)))
+	"")
 
 (ert-deftest sacha-parse-number-words ()
   "Tests `sacha-parse-number-words'."
@@ -42888,6 +42933,7 @@ Check for property PRIVACY as well."
 (defvar sacha-stream-livestreaming-control "https://studio.youtube.com/channel/.../livestreaming/dashboard"
 	"URL to control room.")
 
+;;;###autoload
 (defun sacha-whisper-prepare-to-stream ()
 	(interactive)
 	(sacha-stream-or-video-global-mode 1)

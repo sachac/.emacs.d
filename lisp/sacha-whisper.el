@@ -71,6 +71,7 @@ Display MESSAGE."
  "wT"
  "Today: %s")
 
+;;;###autoload
 (sacha-whisper-org-capture
  "sacha-whisper"
  sacha-whisper-task-someday
@@ -78,6 +79,7 @@ Display MESSAGE."
  "wt"
  "Someday: %s")
 
+;;;###autoload
 (sacha-whisper-org-capture
  "sacha-whisper"
  sacha-whisper-note
@@ -85,6 +87,7 @@ Display MESSAGE."
  "wn"
  "Note: %s")
 
+;;;###autoload
 (sacha-whisper-org-capture
  "sacha-whisper"
  sacha-whisper-task-tomorrow

@@ -10439,39 +10439,22 @@ CLOCK: [2026-01-29 Thu 10:46]--[2026-01-29 Thu 11:13] =>  0:27
 
 yt:https://youtu.be/j2YSbH6OMD8
 
-I'd like to be able to dictate to Org Mode more fluidly, which includes being able to break thoughts up into paragraphs or add to lists. Here's a possible starting point that works with my other experiments in [[https://sachachua.com/topic/speech-recognition/][speech recognition]]
+I'd like to be able to dictate to Org Mode more fluidly, which includes being able to break thoughts up into paragraphs or add to lists. Here's a possible starting point that works with my other experiments in [[https://sachachua.com/topic/speech-recognition/][speech recognition]].
 
 #+begin_src emacs-lisp :tangle lisp/sacha-speech-input.el
-;;;###autoload
-(defun sacha-whisper-clip (text)
-	"Clip the last part of the recording and save as a different file."
-	(let* ((multiplier (if (string-match "second" text) 1 60))
-				 (n (car (sacha-parse-number-words (replace-regexp-in-string " \\(minute\\|second\\)s?" "" text)))))
-		(sacha-clip-seconds (* n multiplier))
-		(sacha-whisper-audio-feedback (format "Clipping %d" n)))
-	"")
-
-;;;###autoload
-(defun sacha-whisper-track (text &optional category)
-	"Track my time."
-	(cons (concat "\\(?:" text "\\)")
-				(lambda ()
-					(message "Tracking %s" (or category text))
-					(quantified-track (or category text)))))
-
 (defvar sacha-number-words
-	'(("zero" . 0) ("one" . 1) ("two" . 2) ("three" . 3)
+	'(("eleven" . 11)    ("twelve" . 12)    ("thirteen" . 13)
+    ("fourteen" . 14)    ("fifteen" . 15)    ("sixteen" . 16)
+    ("seventeen" . 17)    ("eighteen" . 18)    ("nineteen" . 19)
+		("zero" . 0) ("one" . 1) ("two" . 2) ("three" . 3)
     ("four" . 4) ("five" . 5) ("six" . 6) ("seven" . 7)
     ("eight" . 8) ("nine" . 9) ("ten" . 10)
-    ("eleven" . 11) ("twelve" . 12) ("thirteen" . 13)
-    ("fourteen" . 14) ("fifteen" . 15) ("sixteen" . 16)
-    ("seventeen" . 17) ("eighteen" . 18) ("nineteen" . 19)
     ("twenty" . 20) ("thirty" . 30) ("forty" . 40)
     ("fifty" . 50) ("sixty" . 60) ("seventy" . 70)
     ("eighty" . 80) ("ninety" . 90)
 		("hundred" . 100)
 		("thousand" . 1000)
-		("quatre[- ]vingt" . 80)
+		("quatre[- ]vingt" . 80) ; we need to recognize this before quatre
 		("dix" . 10)
 		("une" . 1)
 		("un" . 1)

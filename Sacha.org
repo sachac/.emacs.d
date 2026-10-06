@@ -5761,16 +5761,75 @@ Check tatoeba, dictionary, then Google Translate."
     (interactive)
     (sacha-speech-chrome-new-session "french" "fr-FR"))
 #+end_src
+*** Écire sur mon fonction pour sur ma fonction pour générer des énonces en français
+:PROPERTIES:
+:CUSTOM_ID: writing-and-editing-learning-french-cire-sur-mon-fonction-pour-sur-ma-fonction-pour-g-n-rer-des-nonces-en-fran-ais
+:END:
+
+Pendant que je faisais à vélo, je voudrais pratiquer mon expression orale. J'ai eu l'idée à générer des audios à partir des expressions ou des mots que je veux mémoriser. Si je génère des fichiers qui comprennent un carillon, l'expression ou le mot, et une attendue de silence qui est une fois et moitié de la durée de l'original, je peux écouter l'expression la première fois, le répéter dans le silence, donc dire simultanément à la troisième fois.
+
+Nous nous sommes dépêchés ce matin, donc j'ai généré un script avec l'aide de l'IA qui utilise la synthèse vocale afin de créer des audios à partir de ma liste des phrases et des mots. Ça m'a aidée beaucoup parce que pendant que je faisais a vélo, je peux les écouter et les répéter. Il valait la peine, donc maintenant je voudrais réimplémenter la fonction vers Emacs Lisp moi-même.
+
+#+begin_src emacs-lisp
+(defun sacha-learn-lang-say-repeat-with-pause (s num-times multiple filename &optional force)
+	(setq s (learn-lang-subed-record-simplify s))
+	(when (file-directory-p filename)
+		(setq filename (expand-file-name (concat (learn-lang-slugify s) ".mp3") filename)))
+	(unless (and (not force) (file-exists-p filename))
+		(let ((temp-file (concat (make-temp-name "learn-lang") ".mp3"))
+					duration-ms
+					args)
+			(learn-lang-tts-say s nil temp-file)
+			(setq duration-ms (compile-media-get-file-duration-ms temp-file))
+			(setq args (list "-i"
+											 temp-file
+											 "-filter_complex"
+											 (format "sine=f=800:d=0.250,afade=t=out:st=0.150:d=0.100[chime];anullsrc=r=44100:cl=stereo:d=0.100[gap];anullsrc=r=44100:cl=stereo:d=%.3f[silence];[chime][gap][0:a][silence]concat=n=4:v=0:a=1[unit];[unit]aloop=loop=%d:size=2e9[out]"
+															 (* multiple duration-ms 0.001)
+															 (1- num-times))
+											 "-y"
+											 "-map"
+											 "[out]"
+											 filename))
+			(with-current-buffer (get-buffer-create "*ffmpeg*")
+				(insert (mapconcat #'shell-quote-argument args " ") "\n")
+				(apply #'call-process learn-lang-ffmpeg-command
+											nil t nil
+											args))
+			(delete-file temp-file)
+			filename)))
+
+;; (sacha-learn-lang-say-repeat-with-pause "Il n'y a pas une baguette magique." 3 1.5 "~/sync/music/french/orale/" t)
+;;;###autoload
+(defun sacha-learn-lang-say-lines-as-files (input-file num-times multiple output-directory)
+  "Say each line in INPUT-FILE as an MP3 in OUTPUT-DIRECTORY."
+  (interactive)
+	(with-temp-buffer
+		(insert-file-contents input-file)
+		(dolist (s (split-string (string-trim (buffer-string)) "\n"))
+			(let* ((s (learn-lang-subed-record-simplify s))
+						 (filename (expand-file-name (learn-lang-slugify s output-directory))))
+				(sacha-learn-lang-say-repeat-with-pause s num-times multiple filename)))))
+#+end_src
+
+#+RESULTS:
+:results:
+sacha-learn-lang-say-lines-as-files
+:end:
+
+- [[dotfun:learn-lang-tts-say][learn-lang-tts-say]]
+
 *** STARTED Celebrate when I remember to use words and phrases
 :PROPERTIES:
 :CREATED: [2026-09-28 Mon 10:43]
+:CUSTOM_ID: writing-and-editing-learning-french-celebrate-when-i-remember-to-use-words-and-phrases
 :END:
 
 I want to remind myself to use the words or expressions on my to-do list, and then kind of keep track of how often I've used them, prioritize the ones that I haven't used yet, and display these. You know, maybe I can use embedding to show the words or phrases related to what I've been talking about.
 
 [[file:~/proj/french/bingo.txt]]
 
-#+begin_src emacs-lisp :tangle lisp/learn-lang.el
+#+begin_src emacs-lisp :tangle lisp/sacha-learn-lang.el
 (defvar sacha-learn-lang-bingo-word-file "~/proj/french/bingo.txt")
 (defvar sacha-learn-lang-bingo-words nil "List of words.")
 (defvar sacha-learn-lang-bingo-words-hash nil "Data for the counts.")

@@ -34411,6 +34411,7 @@ I need to copy some environment variables from my profile.
      "GOOGLE_API_KEY"
      "AZURE_SPEECH_KEY"
      "AZURE_SPEECH_REGION"
+		 "OPENROUTER_API_KEY"
      "GEMINI_API_KEY"
      "GEMINI_PAID_API_KEY"
      "MISTRAL_API_KEY")
@@ -45598,6 +45599,15 @@ references.
 	:commands (gptel gptel-send gptel-set-topic gptel-menu)
 	:defer t
 	:config
+	(setq sacha-gptel-openrouter
+				(gptel-make-openai "OpenRouter"               ;Any name you want
+					:host "openrouter.ai"
+					:endpoint "/api/v1/chat/completions"
+					:stream t
+					:key (gptel-api-key-from-environment "OPENROUTER_API_KEY")
+					:models '(qwen/qwen3.8-27b:free
+										nvidia/nemotron-3-ultra:free
+										google/gemma-4-31b:free)))
   (setq sacha-gptel-groq
         (gptel-make-openai "Groq"
           :host "api.groq.com"

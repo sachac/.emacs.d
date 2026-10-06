@@ -32436,6 +32436,66 @@ https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
 (use-package let-completion :vc (:url "https://github.com/gggion/let-completion.el")
   :hook (emacs-lisp-mode . let-completion-mode))
 #+end_src
+*** Emacs Lisp: Parse page ranges, insert issue references  :elisp:emacs:
+:PROPERTIES:
+:CUSTOM_ID: coding-emacs-lisp-parse-page-ranges
+:EXPORT_DATE: 2026-10-05T17:30:38-0400
+:EXPORT_ELEVENTY_PERMALINK: /blog/2026/10/emacs-lisp-parse-page-ranges-insert-issue-references/
+:EXPORT_ELEVENTY_FILE_NAME: blog/2026/10/emacs-lisp-parse-page-ranges-insert-issue-references/
+:END:
+
+[[https://social.tchncs.de/@zyzzyxdonta/117387493564517016][David Pape asked:]]
+
+#+begin_quote
+I just typed
+
+=>Closes: #47, #48, #49, #50, #51, #52, #53, #54=
+
+into a commit description, all by hand.
+
+Is there a way in Emacs to expand some kind of range description to make this easier? 😅
+
+I want to expand strings like "5-10, 15-18, 3" into numbers.
+#+end_quote
+
+Hmm, could be useful. It reminds me of how page ranges work, which will be handy if I want to tinker with PDFs. Let's see if something like this works:
+
+#+begin_src emacs-lisp
+(defun sacha-parse-page-range (s)
+	"Parse a page range string and return a list of numbers.
+Ex: 1-5
+2-4, 6-10
+1 4 7-9
+3-11/2   - this one specifies an increment"
+	(seq-mapcat
+	 (lambda (part)
+		 (let ((nums (mapcar 'string-to-number (split-string part " *[-/] *"))))
+			 (if (= (length nums) 1)
+					 nums
+				 (number-sequence (elt nums 0) (elt nums 1) (elt nums 2)))))
+	 (split-string s "[, \t\n\r]+")))
+
+(ert-deftest sacha-parse-page-range ()
+	(should (equal (sacha-parse-page-range "5-10")
+								 '(5 6 7 8 9 10)))
+	(should (equal (sacha-parse-page-range "1-5, 8")
+								 '(1 2 3 4 5 8)))
+	(should (equal (sacha-parse-page-range "1 4 7-9")
+								 '(1 4 7 8 9)))
+	(should (equal (sacha-parse-page-range "3-11/2")
+								 '(3 5 7 9 11))))
+
+(defun sacha-issue-range (range)
+	"Expand RANGE to a list of issues and insert them."
+	(interactive "MRange (ex: 1-5, 7): ")
+	(let ((s (mapconcat (lambda (n) (format "#%d" n))
+											(sacha-parse-page-range range)
+											", ")))
+		(when (called-interactively-p 'any)
+		 	(insert s))
+		s))
+#+end_src
+
 *** Prefix for writing functions
 :PROPERTIES:
 :CUSTOM_ID: coding-emacs-lisp-prefix-for-writing-functions

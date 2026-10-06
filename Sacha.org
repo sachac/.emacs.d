@@ -9163,17 +9163,19 @@ Update [2026-10-02 Fri]: Il peut aussi comprendre le français. I used to have c
         (orig-buffer (current-buffer)))
     (when text
       (mapcar (lambda (marker)
-                (with-current-buffer (or (marker-buffer marker) (current-buffer))
+                (with-current-buffer (or (and marker (marker-buffer marker)) (current-buffer))
                   (save-restriction
                     (widen)
-                    (when (and (marker-position marker)
+                    (when (and marker
+															 (marker-position marker)
 															 (marker-buffer marker))
 											(goto-char marker))
                     (when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
                       (insert "\n"))
-										;; TODO: handle org lists
 										(when (and sacha-whisper-one-sentence-per-line (not (bolp)))
-											(insert "\n"))
+											(if (derived-mode-p 'org-mode)
+													(org-return)
+												(insert "\n")))
                     (whisper--insert-text
                      (concat
                       (if (looking-back "[ \t\n]\\|^")
@@ -9186,10 +9188,11 @@ Update [2026-10-02 Fri]: Il peut aussi comprendre le français. I used to have c
 														(fill-paragraph-semlf)
 														(buffer-string))
 												text)))
-										(when (and sacha-whisper-one-sentence-per-line (not (bolp)))
-											(insert "\n"))
                     ;; Move the marker forward here
-										(when marker
+										(when (and
+													 marker
+													 (marker-position marker)
+													 (marker-buffer marker))
 											(move-marker marker (point))))))
               markers)
       (when sacha-whisper-target-markers

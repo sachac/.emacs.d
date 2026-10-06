@@ -10482,6 +10482,10 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 		("mille" . 1000))
 	"Number words.")
 
+(defun sacha-number-words-regexp ()
+	"Return a regular expression that matches the number words."
+	(format "\\(?:%s\\|[0-9]+\\)" (mapconcat 'car sacha-number-words "\\|")))
+
 (defvar sacha-whisper-commands
   `(("insert \\(.+\\)" . sacha-whisper-always-insert-at-point)
 		("task note,? \\(.+\\)" . sacha-whisper-always-insert-at-current-task)
@@ -10523,6 +10527,7 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 		("\\(?:rappelle\\|rappellez\\)-moi\\(?: que\\| de\\)? \\(.+\\)" . sacha-whisper-note)
 		("remind me\\(?: to\\)? \\(.+\\)" . sacha-whisper-note)
 		("new note\\(?: to\\)? \\(.+\\)" . sacha-whisper-note)
+		("journal,? \\(.+\\)" . sacha-whisper-journal)
 		("log \\(.+\\)" . sacha-whisper-note)
 		("agenda" . sacha-org-check-agenda)
 		("inbox" . sacha-whisper-inbox)
@@ -10546,12 +10551,14 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 		("define \\(?:a \\)?test for this function" . sacha-ert-deftest-from-function-at-point)
 		("stop streaming\\|stop screaming\\|over and out" . sacha-whisper-stop-streaming)
 		;; someday it would be nice to have a number parser
-		(,(let ((number-words (format "\\(?:%s\\|[0-9]+\\)" (regexp-opt (mapcar 'car sacha-number-words)))))
-				(format "\\(?:trip\\|clip\\|click\\)? \\(?:the last \\)?\\(%s\\(?:[- ]%s\\)* \\(minute\\|second\\)s?\\)"
-								number-words number-words)) . sacha-whisper-clip)
+		(,(format "\\(?:trip\\|clip\\|click\\)? \\(?:the last \\)?\\(%s\\(?:[- ]%s\\)* \\(minute\\|second\\)s?\\)"
+							(sacha-number-words-regexp)
+							(sacha-number-words-regexp))
+		 . sacha-whisper-clip)
 		("rename clip,? \\(.+\\)" . ,(lambda (text) (message "%s" (file-name-base (sacha-clip-add-note-to-latest text))) ""))
 		("instant replay" . sacha-clip-play-latest)
 		("panic button" . sacha-obs-panic)
+		("delete the last sentence" . sacha-whisper-delete-last-sentence)
 		,(sacha-whisper-track "Routines")
 		,(sacha-whisper-track "Consulting" "E1 Gen")
 		,(sacha-whisper-track "Childcare")
@@ -10628,7 +10635,7 @@ Based on `comment-dwim'."
 					(unless (string= "" comment-end)
 						(insert (comment-padleft comment-end add)))
 					(indent-according-to-mode)))))
-	(insert " " text)
+	(insert (if (looking-back " " (1- (point))) "" " ") (s-capitalize text))
 	"")
 
 ;;;###autoload

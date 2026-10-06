@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Emacs chats, Emacs hangouts
 ;;   https://sachachua.com/dotemacs#emacs-chats-emacs-hangouts

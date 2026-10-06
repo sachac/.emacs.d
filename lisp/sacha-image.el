@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Embark and images
 ;;   https://sachachua.com/dotemacs#embark-image
@@ -439,6 +439,7 @@ Prompt for a caption afterwards."
 ;; Take screenshots in different ways:1 ends here
 
 ;; [[file:../Sacha.org::sacha-org-insert-screenshot][sacha-org-insert-screenshot]]
+(defvar mastodon-toot-mode)
 ;;;###autoload
 (defun sacha-org-insert-screenshot (file &optional note)
   (interactive (list
@@ -450,7 +451,7 @@ Prompt for a caption afterwards."
                      :category 'file)
 									(sacha-latest-screenshot))))
 	(cond
-	 (mastodon-toot-mode
+	 ((and (boundp 'mastodon-toot-mode) mastodon-toot-mode)
 		(setq mastodon-toot--media-attachments
 					(nconc mastodon-toot--media-attachments
                  `(((:contents . ,(mastodon-http--read-file-as-string file))

@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Linking to a specific time in a video
 ;;   https://sachachua.com/dotemacs#org-mode-links-linking-to-a-specific-time-in-a-video

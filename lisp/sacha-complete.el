@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Extended command list
 ;;   https://sachachua.com/dotemacs#keybindings-extended-command-list

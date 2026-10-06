@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Working with or renaming a set of files
 ;;   https://sachachua.com/dotemacs#multimedia-working-with-or-renaming-a-set-of-files

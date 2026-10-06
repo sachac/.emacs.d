@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Adding steno hints as I type
 ;;   https://sachachua.com/dotemacs#adding-steno-hints-as-i-type

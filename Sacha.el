@@ -993,6 +993,7 @@ From https://github.com/oantolin/emacs-config"
   (setf (alist-get ?W avy-dispatch-alist) 'sacha-avy-action-copy-whole-line)
   (setf (alist-get ?Y avy-dispatch-alist) 'sacha-avy-action-yank-whole-line)
 	(setf (alist-get ?w avy-dispatch-alist) 'avy-action-copy)
+	(setf (alist-get ?, avy-dispatch-alist) 'sacha-avy-action-insert-symbol)
 	(with-eval-after-load 'lispy
 		(keymap-set lispy-mode-map
 								"M-j" #'avy-goto-char-timer))
@@ -1619,6 +1620,48 @@ version control."
       (flycheck-grammalecte-setup)))
 ;; Learning French:3 ends here
 
+;; [[file:Sacha.org::#writing-and-editing-learning-french-cire-sur-mon-fonction-pour-sur-ma-fonction-pour-g-n-rer-des-nonces-en-fran-ais][Écire sur mon fonction pour sur ma fonction pour générer des énonces en français:1]]
+(defun sacha-learn-lang-say-repeat-with-pause (s num-times multiple filename &optional force)
+	(setq s (learn-lang-subed-record-simplify s))
+	(when (file-directory-p filename)
+		(setq filename (expand-file-name (concat (learn-lang-slugify s) ".mp3") filename)))
+	(unless (and (not force) (file-exists-p filename))
+		(let ((temp-file (concat (make-temp-name "learn-lang") ".mp3"))
+					duration-ms
+					args)
+			(learn-lang-tts-say s nil temp-file)
+			(setq duration-ms (compile-media-get-file-duration-ms temp-file))
+			(setq args (list "-i"
+											 temp-file
+											 "-filter_complex"
+											 (format "sine=f=800:d=0.250,afade=t=out:st=0.150:d=0.100[chime];anullsrc=r=44100:cl=stereo:d=0.100[gap];anullsrc=r=44100:cl=stereo:d=%.3f[silence];[chime][gap][0:a][silence]concat=n=4:v=0:a=1[unit];[unit]aloop=loop=%d:size=2e9[out]"
+															 (* multiple duration-ms 0.001)
+															 (1- num-times))
+											 "-y"
+											 "-map"
+											 "[out]"
+											 filename))
+			(with-current-buffer (get-buffer-create "*ffmpeg*")
+				(insert (mapconcat #'shell-quote-argument args " ") "\n")
+				(apply #'call-process learn-lang-ffmpeg-command
+											nil t nil
+											args))
+			(delete-file temp-file)
+			filename)))
+
+;; (sacha-learn-lang-say-repeat-with-pause "Il n'y a pas une baguette magique." 3 1.5 "~/sync/music/french/orale/" t)
+;;;###autoload
+(defun sacha-learn-lang-say-lines-as-files (input-file num-times multiple output-directory)
+  "Say each line in INPUT-FILE as an MP3 in OUTPUT-DIRECTORY."
+  (interactive)
+	(with-temp-buffer
+		(insert-file-contents input-file)
+		(dolist (s (split-string (string-trim (buffer-string)) "\n"))
+			(let* ((s (learn-lang-subed-record-simplify s))
+						 (filename (expand-file-name (learn-lang-slugify s output-directory))))
+				(sacha-learn-lang-say-repeat-with-pause s num-times multiple filename)))))
+;; Écire sur mon fonction pour sur ma fonction pour générer des énonces en français:1 ends here
+
 ;; [[file:Sacha.org::#writing-and-editing-learning-french-gtts-cli][gtts-cli:1]]
   (use-package learn-lang-tts :load-path "~/proj/learn-lang"
     :config
@@ -1777,11 +1820,7 @@ version control."
   (setq whisper--install-path (concat
      (expand-file-name (file-name-as-directory whisper-install-directory))
      "whisper.cpp/"))
-  ;; Get it running with whisper-server-mode set to nil first
-  ;; If you change models,
-  ;; (whisper-install-whispercpp (whisper--check-install-and-run nil "whisper-start"))
-    (setq whisper-return-cursor-to-start nil)
-  ;(setq whisper--ffmpeg-input-device "alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo")
+  (setq whisper-return-cursor-to-start nil)
   (setq whisper--ffmpeg-input-device "VirtualMicSink.monitor")
   (setq whisper-language "en")
   (setq whisper-recording-timeout 3000)
@@ -1799,13 +1838,8 @@ version control."
 
 ;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:3]]
 (with-eval-after-load 'whisper
-  (add-hook 'whisper-after-transcription-hook 'sacha-whisper-org-process-reminder 50))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:3 ends here
-
-;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:5]]
-(with-eval-after-load 'whisper
   (add-hook 'whisper-before-transcription-hook #'sacha-whisper-set-temp-filename))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:5 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:3 ends here
 
 ;; [[file:Sacha.org::whisper-insert-text-at-point-functions][whisper-insert-text-at-point-functions]]
 ;; Only works with my tweaks to whisper.el
@@ -1815,6 +1849,7 @@ version control."
         '(sacha-whisper-scratch-that
 					sacha-whisper-handle-commands
           sacha-whisper-save-text
+					sacha-learn-lang-notice-bingo-words
 ;          sacha-whisper-save-to-file
 					sacha-save-to-kill-ring-after-current
           sacha-whisper-maybe-expand-snippet
@@ -1825,15 +1860,15 @@ version control."
           sacha-whisper-reset)))
 ;; whisper-insert-text-at-point-functions ends here
 
-;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:13]]
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:10]]
 (keymap-global-set "<f9>" #'sacha-whisper-run-at-point)
 (keymap-global-set "<kp-1>" #'whisper-run)
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:13 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:10 ends here
 
-;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:15]]
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:12]]
 (with-eval-after-load 'org
   (add-hook 'org-clock-in-hook #'sacha-whisper-org-clear-saved-annotation))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:15 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:12 ends here
 
 ;; [[file:Sacha.org::#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models][Emacs and whisper.el: Trying out different speech-to-text backends and models:2]]
 (with-eval-after-load 'whisper
@@ -1873,12 +1908,336 @@ version control."
   (add-hook 'speech-input-vad-on-end-functions #'sacha-whisper-maybe-continue))
 ;; Using Silero voice activity detection to automatically queue multiple transcriptions with natrys/whisper.el:2 ends here
 
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-reporting-speaking-stats-balance][Reporting speaking stats / balance:1]]
+;; Report on the balance between my tutor and me
+(defvar sacha-vad-tutor-process nil)
+(defvar sacha-vad-tutor-dir "~/vendor/orukeet")
+(defvar sacha-vad-tutor-command `(,(expand-file-name ".venv/bin/python" sacha-vad-tutor-dir)
+																	"asr.py"
+																	"--spacy-model"
+																	"fr_dep_news_trf"
+																	"-s" "300" "-t"
+																	"VirtualMicSink.monitor=sacha" "alsa_output.usb-AT_AT2040USB_202011110001-00.analog-stereo.monitor=tutor"))
+(defvar sacha-vad-tutor-events nil "List of events as an list of alists (label start stop duration).")
+(defvar sacha-vad-tutor-labels '("sacha" "tutor"))
+(defvar sacha-vad-tutor-summary '(("sacha" . 0)
+																	("tutor" . 0)))
+(defvar sacha-vad-tutor-session-length (* 60 60) "Number of seconds to use for scale.")
+
+(defun sacha-vad-tutor-update-view ()
+	(interactive)
+	(with-current-buffer (get-buffer-create "*tutor stats*")
+		(erase-buffer)
+		(let* ((total (apply '+ (mapcar 'cdr sacha-vad-tutor-summary)))
+					 (height 30)
+					 (width (window-width nil t))
+					 (max-seconds
+						(if sacha-vad-tutor-events
+								(apply 'max (mapcar (lambda (o) (alist-get 'end o))
+																		sacha-vad-tutor-events))
+							0))
+					 (threshold 180)							; last three minutes
+					 (threshold-seconds (- max-seconds threshold))
+					 (recent
+						(seq-keep
+						 (lambda (o)
+							 (when (>= (alist-get 'start o)
+												 threshold-seconds)
+								 (let-alist o
+									 `((label . ,.label)
+										 (start . ,(- .start threshold-seconds))
+										 (end . ,(- .end threshold-seconds))))))
+						 (copy-sequence sacha-vad-tutor-events)))
+					 (recent-total (apply '+ (mapcar (lambda (o)
+																						 (-
+																							(alist-get 'end o)
+																							(alist-get 'start o)))
+																					 recent))))
+			(save-excursion
+				(insert
+				 (format "Last %d minute%s:\n"
+								 (/ threshold 60)
+								 (if (> (/ threshold 60) 1)
+										 "s"
+									 ""))
+				 (mapconcat
+					(lambda (o)
+						(format "%d%% %s\n"
+										(/ (* 100.0 (cdr o)) recent-total)
+										(car o)))
+					(seq-map
+					 (lambda (group)
+						 (cons (car group)
+									 (apply '+ (mapcar (lambda (o)
+																			 (-
+																				(alist-get 'end o)
+																				(alist-get 'start o)))
+																		 (cdr group)))))
+					 (seq-group-by (lambda (o) (alist-get 'label o)) recent)))
+				 "\n")
+				(svg-insert-image
+				 (sacha-vad-visualize
+					sacha-vad-tutor-labels
+					recent
+					t
+					width height))
+				(insert
+				 "\nTotal:\n"
+
+				 (mapconcat
+					(lambda (o)
+						(format "%d%% %s\n"
+										(/ (* 100.0 (cdr o)) total)
+										(car o)))
+					sacha-vad-tutor-summary))
+				(svg-insert-image
+				 (sacha-vad-visualize sacha-vad-tutor-labels sacha-vad-tutor-events t
+															width height
+															sacha-vad-tutor-session-length))
+				(insert "\n\n"  (sacha-learn-lang-bingo-summary))))))
+
+(defun sacha-vad-handle-end-event (data)
+	"Handle the end event."
+	(let ((event (list
+								(cons 'label (alist-get 'label data))
+								(cons 'start (- (alist-get 'timestamp data)
+																(alist-get 'duration data)
+																(or sacha-vad-tutor-start-seconds 0)))
+								(cons 'end (- (alist-get 'timestamp data)
+															(or sacha-vad-tutor-start-seconds 0))))))
+		(push event sacha-vad-tutor-events)
+		(let-alist data
+			(incf (alist-get (alist-get 'label data) sacha-vad-tutor-summary 0 nil 'string=)
+						.duration))
+		(sacha-vad-tutor-update-view)))
+
+(defun sacha-vad-tutor-filter (proc string)
+	"Add and parse."
+	(when (buffer-live-p (process-buffer proc))
+		;; split the string by newline?
+		(with-current-buffer (process-buffer proc)
+			(goto-char (point-max))
+			(save-excursion
+				(insert string))
+			(catch 'waiting
+				(unless (or (eobp) (looking-at "\n*$"))
+					(let ((data (json-read)))
+						(when (string= (alist-get 'event data) "end")
+							(sacha-vad-handle-end-event data))
+						(when (string= (alist-get 'event data) "final")
+							(sacha-vad-handle-text-event data))))))))
+
+(defvar sacha-vad-last-speaker nil "Previous speaker.")
+
+(defun sacha-vad-handle-text-event (data)
+	(with-current-buffer (get-buffer-create "*Transcript*")
+		(set (make-local-variable 'window-point-insertion-type) t)
+		(save-excursion
+			(goto-char (point-max))
+			;; insert break
+			(insert
+			 (if (string= sacha-vad-last-speaker (alist-get 'label data))
+					 " "
+				 (concat (if (bobp) "" "\n\n") (alist-get 'label data) ": "))
+			 (alist-get 'text data))
+			(setq sacha-vad-last-speaker (alist-get 'label data))
+			(when (string= (alist-get 'label data) "sacha")
+				(sacha-learn-lang-notice-bingo-words (alist-get 'text data))))))
+
+(defun sacha-vad-tutor-start ()
+	"Start the process."
+	(interactive)
+	(sacha-vad-tutor-ensure)
+	(setq sacha-vad-tutor-summary '(("sacha" . 0)
+																	("tutor" . 0))
+				sacha-vad-tutor-events nil)
+	(with-current-buffer (get-buffer-create "*Transcript*")
+		(erase-buffer)
+		(display-buffer (current-buffer)))
+	(display-buffer (get-buffer-create "*tutor stats*")))
+
+(defun sacha-vad-tutor-ensure ()
+  "Start the process if it's not already running."
+  (interactive)
+  (unless (process-live-p sacha-vad-tutor-process)
+		(setq sacha-vad-tutor-process-start-time (current-time))
+		(setq sacha-vad-tutor-start-seconds 0)
+    (let ((default-directory sacha-vad-tutor-dir))
+      (setq sacha-vad-tutor-process
+            (make-process
+             :name "vad-tutor"
+             :command sacha-vad-tutor-command
+             :connection-type 'pipe
+             :buffer (get-buffer-create "*vad-tutor*")
+             :stderr (get-buffer-create "*vad-tutor-err*")
+             :filter #'sacha-vad-tutor-filter)))))
+
+(defun sacha-vad-tutor-stop ()
+	"Stop the process."
+	(interactive)
+	(interrupt-process sacha-vad-tutor-process))
+
+;;;###autoload
+(defun sacha-js-parse-jsonl-file (file)
+  "Parse jsonl as a list"
+	(let (results)
+		(with-temp-buffer
+			(insert-file-contents file)
+			(goto-char (point-min))
+			(while (not (eobp))
+				(condition-case nil
+						(push (json-read) results)
+					(error (goto-char (point-max))))))
+		(nreverse results)))
+
+(defvar sacha-vad-tutor-start-seconds 0 "Number of seconds to consider as the start.")
+(defvar sacha-vad-tutor-process-start-time nil "Time that the process started.")
+
+;;;###autoload
+(defun sacha-vad-tutor-reset-clock ()
+  "Reset the start of the session."
+  (interactive)
+	(setq sacha-vad-tutor-start-seconds
+				(time-to-seconds (time-subtract (current-time)
+																				sacha-vad-tutor-process-start-time)))
+	(mapcar (lambda (o) (setcdr o 0)) sacha-vad-tutor-summary)
+	(setq sacha-vad-tutor-events nil))
+
+(defun sacha-vad-visualize (labels list &optional output-file width height max-seconds)
+	(setq height (or height 25))
+	(setq width (or width (window-width nil t)))
+	(let* ((svg (svg-create width height))
+				 (max-seconds (max
+											 (or max-seconds 0)
+											 (if list
+													 (apply 'max (mapcar (lambda (o) (alist-get 'end o))
+																							 list))
+												 0)))
+				 (pixels-per-second (/ (* 1.0 width) max-seconds))
+				 (row-height (/ height (length labels))))
+		(dolist (o list)
+			(let-alist o
+				(let ((y (* row-height (or (seq-position labels .label 'string=) -1))))
+					(when (>= y 0)
+						(svg-rectangle
+						 svg
+						 (* .start pixels-per-second)
+						 y
+						 (* (- .end .start) pixels-per-second)
+						 row-height :fill "green")))))
+		(cond
+		 ((stringp output-file)
+			(with-temp-file output-file
+				(svg-print svg)))
+		 (output-file
+			svg)
+		 (t
+			(with-current-buffer (get-buffer-create "*vad*")
+				(goto-char (point-min))
+				(display-buffer (current-buffer))
+				(erase-buffer)
+				(svg-insert-image svg))))))
+
+(defun sacha-vad-stats (labels list)
+	"Return the balance of time talking as (label total percentage)."
+	(let* ((max-seconds (apply '+ (mapcar
+																 (lambda (o) (let-alist o (- .end .start)))
+																 list)))
+				 (durations (mapcar (lambda (o)
+														(cons
+														 (car o)
+														 (mapcar (lambda (e) (let-alist e (- .end .start)))
+																		 (cdr o))))
+													(seq-group-by (lambda (o) (alist-get 'label o))
+																				list))))
+		(seq-map
+		 (lambda (label)
+			 (let* ((row (cdr (assoc label durations)))
+							(total (apply '+ row)))
+				 `((label . ,label)
+					 (total . ,total)
+					 (count . ,(length row))
+					 (percentage . ,(and total max-seconds (> max-seconds 0) (* 100.0 (/ total max-seconds)))))))
+		 labels)))
+
+;; (sacha-vad-stats '("sacha" "tutor") (seq-take (sacha-js-parse-jsonl-file "~/proj/speech/output2.log") 5))
+;; (sacha-vad-stats '("sacha" "tutor") (sacha-js-parse-jsonl-file "~/proj/speech/output.log"))
+;; (sacha-vad-visualize '("sacha" "tutor") (sacha-js-parse-jsonl-file "~/proj/speech/output.log"))
+;; (sacha-vad-visualize '("sacha" "tutor") (seq-take (sacha-js-parse-jsonl-file "~/proj/speech/output2.log") 30))
+
+(defun sacha-vad-tutor-group-output (files)
+	(let ((grouped-files (seq-group-by
+												(lambda (o)
+													(substring (file-name-base o) 0 10))
+												files)))
+		(mapcar
+		 (lambda (group)
+			 (let ((start 0))
+				 (cons (car (cdr group))
+							 (seq-reduce
+								(lambda (prev file)
+									(append prev
+													(let ((max-seconds 0))
+														(prog1 (mapcar (lambda (event)
+																						 (incf (alist-get 'start event) start)
+																						 (incf (alist-get 'end event) start)
+																						 (setq max-seconds (max (alist-get 'end event) max-seconds))
+																						 event)
+																					 (sacha-js-parse-jsonl-file file))
+															(setq start max-seconds)))))
+								(cdr group)
+								nil))))
+		 grouped-files)))
+
+(defun sacha-vad-tutor-make-table (files &optional width height)
+	"Make a summary table."
+	(let ((labels sacha-vad-tutor-labels)
+				(width (or width 500))
+				(height (or height 30)))
+		;; combine data as needed
+		(append
+		 '(("Date" "Tutor" "Minutes" "%" "Visualization") hline)
+		 (seq-map
+			(lambda (group)
+				(let* ((list (cdr group))
+							 (base (file-name-base (car group))))
+					(if list
+							(let-alist (car (sacha-vad-stats labels list))
+								(let ((svg-name
+											 (expand-file-name
+												(concat (file-name-base (car group)) "-" .label ".svg")
+												"~/proj/french/conversation")))
+									(sacha-vad-visualize
+									 (list .label)
+									 list
+									 svg-name
+									 width
+									 height)
+									(list
+									 (format-time-string "%Y-%m-%d"
+																			 (seconds-to-time
+																				(sacha-filename-timestamp (car group))))
+									 ;; (org-link-make-string (concat "file:" o) "file")
+									 (if (string-match "-conversation-\\([^\\.]+\\)" base)
+											 (s-capitalize (substring (match-string 1 base) 0 1))
+										 "")
+
+									 (round (/ .total 60))
+									 (format "%d%%" .percentage)
+									 (org-link-make-string (concat "file:" svg-name)
+																				 (concat "file:" svg-name))
+									 )))
+						(list "?"))))
+			(sacha-vad-tutor-group-output files))
+		 nil)))
+;; Reporting speaking stats / balance:1 ends here
+
 ;; [[file:Sacha.org::#writing-and-editing-speech-recognition-slowly-building-speech-based-commands-for-emacs][Slowly building speech-based commands for Emacs:2]]
 (with-eval-after-load 'whisper
   (add-hook 'whisper-after-transcription-hook 'sacha-whisper-process-replacements 70))
 ;; Slowly building speech-based commands for Emacs:2 ends here
 
-;; [[file:Sacha.org::*Keep track of files and stats][Keep track of files and stats:2]]
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-keep-track-of-files-and-stats][Keep track of files and stats:2]]
 (with-eval-after-load 'whisper
   (add-hook 'whisper-after-transcription-hook 'sacha-whisper-add-text-properties 100))
 ;; Keep track of files and stats:2 ends here
@@ -1908,7 +2267,7 @@ version control."
 (add-to-list 'sacha-speech-functions #'sacha-speech-subed-record))
 ;; speech and subed-record:2 ends here
 
-;; [[file:Sacha.org::*Orukeet][Orukeet:2]]
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-orukeet][Orukeet:2]]
 (defvar sacha-orukeet-process nil)
 (defvar sacha-orukeet-dir "~/vendor/orukeet")
 (defvar sacha-orukeet-command `(,(expand-file-name ".venv/bin/python" sacha-orukeet-dir)
@@ -1927,7 +2286,7 @@ version control."
              :stderr (get-buffer-create "*orukeet-err*"))))))
 ;; Orukeet:2 ends here
 
-;; [[file:Sacha.org::*Orukeet][Orukeet:3]]
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-orukeet][Orukeet:3]]
 (setq whisper-server-mode 'openai
       whisper-openai-api-baseurl "http://localhost:8003/"
       whisper-openai-api-key "not needed"
@@ -1963,7 +2322,7 @@ version control."
 	(org-fold-catch-invisible-edits 'smart))
 ;; org-package-setup ends here
 
-;; [[file:Sacha.org::*Link to the part of my config that defines a function][Link to the part of my config that defines a function:2]]
+;; [[file:Sacha.org::#org-mode-link-to-the-part-of-my-config-that-defines-a-function][Link to the part of my config that defines a function:2]]
 (with-eval-after-load 'org
 	(org-link-set-parameters "dotfun"
 													 :complete 'sacha-org-dotemacs-function-complete
@@ -2210,6 +2569,10 @@ version control."
 				("ww" "Task for next week" entry
          (file ,sacha-org-inbox-file)
          "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+         :prepend t :immediate-finish t)
+				("wm" "Task for next month" entry
+         (file ,sacha-org-inbox-file)
+         "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1m\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
          :prepend t :immediate-finish t)
 				("wt" "Task for someday" entry
          (file ,sacha-org-inbox-file)
@@ -3615,7 +3978,7 @@ version control."
 	 :complete #'sacha-org-audio-icon-complete))
 ;; org-audio-link ends here
 
-;; [[file:Sacha.org::*Record and replay][Record and replay:2]]
+;; [[file:Sacha.org::#org-mode-links-audio-record-and-replay][Record and replay:2]]
 (bind-key "s-a" #'sacha-org-subed-record-audio-insert-link-and-replay)
 ;; Record and replay:2 ends here
 
@@ -4652,6 +5015,42 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
   :hook (emacs-lisp-mode . let-completion-mode))
 ;; Emacs Lisp:7 ends here
 
+;; [[file:Sacha.org::#coding-emacs-lisp-parse-page-ranges][Emacs Lisp: Parse page ranges, insert issue references:1]]
+(defun sacha-parse-page-range (s)
+	"Parse a page range string and return a list of numbers.
+Ex: 1-5
+2-4, 6-10
+1 4 7-9
+3-11/2   - this one specifies an increment"
+	(seq-mapcat
+	 (lambda (part)
+		 (let ((nums (mapcar 'string-to-number (split-string part " *[-/] *"))))
+			 (if (= (length nums) 1)
+					 nums
+				 (number-sequence (elt nums 0) (elt nums 1) (elt nums 2)))))
+	 (split-string s "[, \t\n\r]+")))
+
+(ert-deftest sacha-parse-page-range ()
+	(should (equal (sacha-parse-page-range "5-10")
+								 '(5 6 7 8 9 10)))
+	(should (equal (sacha-parse-page-range "1-5, 8")
+								 '(1 2 3 4 5 8)))
+	(should (equal (sacha-parse-page-range "1 4 7-9")
+								 '(1 4 7 8 9)))
+	(should (equal (sacha-parse-page-range "3-11/2")
+								 '(3 5 7 9 11))))
+
+(defun sacha-issue-range (range)
+	"Expand RANGE to a list of issues and insert them."
+	(interactive "MRange (ex: 1-5, 7): ")
+	(let ((s (mapconcat (lambda (n) (format "#%d" n))
+											(sacha-parse-page-range range)
+											", ")))
+		(when (called-interactively-p 'any)
+		 	(insert s))
+		s))
+;; Emacs Lisp: Parse page ranges, insert issue references:1 ends here
+
 ;; [[file:Sacha.org::#coding-emacs-lisp-prefix-for-writing-functions][Prefix for writing functions:2]]
 (setq sacha-function-prefix "sacha")
 ;; Prefix for writing functions:2 ends here
@@ -5261,6 +5660,7 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
      "GOOGLE_API_KEY"
      "AZURE_SPEECH_KEY"
      "AZURE_SPEECH_REGION"
+		 "OPENROUTER_API_KEY"
      "GEMINI_API_KEY"
      "GEMINI_PAID_API_KEY"
      "MISTRAL_API_KEY")
@@ -6821,6 +7221,15 @@ When called interactively, insert at point."
 	:commands (gptel gptel-send gptel-set-topic gptel-menu)
 	:defer t
 	:config
+	(setq sacha-gptel-openrouter
+				(gptel-make-openai "OpenRouter"               ;Any name you want
+					:host "openrouter.ai"
+					:endpoint "/api/v1/chat/completions"
+					:stream t
+					:key (gptel-api-key-from-environment "OPENROUTER_API_KEY")
+					:models '(qwen/qwen3.8-27b:free
+										nvidia/nemotron-3-ultra:free
+										google/gemma-4-31b:free)))
   (setq sacha-gptel-groq
         (gptel-make-openai "Groq"
           :host "api.groq.com"

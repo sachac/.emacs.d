@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Create a Google Calendar event from an Org Mode timestamp
 ;;   https://sachachua.com/dotemacs#streaming-create-a-google-calendar-event-from-an-org-mode-timestamp

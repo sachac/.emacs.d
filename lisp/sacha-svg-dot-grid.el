@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Dot-grid box templates
 ;;   https://sachachua.com/dotemacs#multimedia-images-dot-grid-box-templates

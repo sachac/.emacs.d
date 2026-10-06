@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Helm completion with sacha-helm-org-sketches
 ;;   https://sachachua.com/dotemacs#helm-completion-with-sacha-helm-org-sketches

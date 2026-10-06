@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Using Embark to act on video
 ;;   https://sachachua.com/dotemacs#embark-video

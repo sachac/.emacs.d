@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Mastodon
 ;;   https://sachachua.com/dotemacs#mastodon
@@ -529,7 +529,7 @@ Omit my own handle, as specified in `sacha-mastodon-handle'."
 :CREATED:  [2024-01-22 Mon 05:51]
 :END:
 
-jcastp@mastodon.online - I've shared my emacs config: https://codeberg.org/jcastp/emacs.d
+jcastp@mastodon.online - I've shared my EmacsConfig: https://codeberg.org/jcastp/emacs.d
 
 After years of reading other's configs, copying really useful snippets, and tinkering a little bit myself, I wanted to give something back, although I'm still an amateur (and it shows, but I want to improve!)
 
@@ -545,7 +545,7 @@ If you can find there something you can use, then I'm happy to be useful to the 
 						 :links
 						 ("https://codeberg.org/jcastp/emacs.d")
 						 :text
-						 "jcastp@mastodon.online - I've shared my emacs config: https://codeberg.org/jcastp/emacs.d\n\nAfter years of reading other's configs, copying really useful snippets, and tinkering a little bit myself, I wanted to give something back, although I'm still an amateur (and it shows, but I want to improve!)\n\nIf you can find there something you can use, then I'm happy to be useful to the community.\n\n#emacs"))))
+						 "jcastp@mastodon.online - I've shared my EmacsConfig: https://codeberg.org/jcastp/emacs.d\n\nAfter years of reading other's configs, copying really useful snippets, and tinkering a little bit myself, I wanted to give something back, although I'm still an amateur (and it shows, but I want to improve!)\n\nIf you can find there something you can use, then I'm happy to be useful to the community.\n\n#emacs"))))
 ;; Collecting Emacs News from Mastodon:5 ends here
 
 ;; [[file:../Sacha.org::#copy-mastodon-link-for-emacs-news][Copy Mastodon link for Emacs News:1]]

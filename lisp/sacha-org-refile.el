@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Org Mode: Prompt for a heading and then refile it to point
 ;;   https://sachachua.com/dotemacs#org-mode-filing-org-mode-prompt-for-a-heading-and-then-refile-it-to-point

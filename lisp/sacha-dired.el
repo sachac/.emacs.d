@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Mark today's files or other recent files
 ;;   https://sachachua.com/dotemacs#navigation-dired-mark-today-s-files-or-other-recent-files

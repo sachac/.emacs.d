@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Quickly jump to positions
 ;;   https://sachachua.com/dotemacs#quickly-jump-to-positions
@@ -53,6 +53,20 @@
   (sacha-avy-action-copy-whole-line pt)
   (save-excursion (yank))
   t)
+
+;;;###autoload
+(defun sacha-avy-action-insert-symbol (pt)
+  "Insert the symbol from the specified PT."
+  (interactive)
+	(let ((symbol (save-window-excursion
+									(save-excursion
+										(goto-char pt)
+										(thing-at-point 'symbol)))))
+		(select-window
+		 (cdr
+			(ring-ref avy-ring 0)))
+		(insert symbol)
+		t))
 ;; Quickly jump to positions:2 ends here
 
 (provide 'sacha-avy)

@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Comment overlay via socialstream.ninja
 ;;   https://sachachua.com/dotemacs#streaming-comment-overlay-via-socialstream-ninja

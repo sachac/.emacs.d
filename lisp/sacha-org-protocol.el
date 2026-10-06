@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Links from org-protocol
 ;;   https://sachachua.com/dotemacs#links-from-org-protocol

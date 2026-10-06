@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Changing Org Mode underlines to the HTML mark element
 ;;   https://sachachua.com/dotemacs#org-mode-publishing-changing-org-mode-underlines-to-the-html-mark-element
@@ -330,8 +330,8 @@ of contents as a string, or nil if it is empty."
 						(let ((id (org-entry-get-with-inheritance "CUSTOM_ID")))
 							(format
 							 (if (eq backend 'md)
-									 "\nThis is part of my [Emacs configuration](https://sachachua.com/dotemacs%s)\n"
-								 "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs%s\">Emacs configuration.</a></div>")
+									 "\nThis is part of my [EmacsConfiguration](https://sachachua.com/dotemacs%s)\n"
+								 "\n<div class=\"note\">This is part of my <a href=\"https://sachachua.com/dotemacs%s\">EmacsConfiguration.</a></div>")
 							 (if id (concat "#" id) ""))))))
 ;; Add a note to the bottom of blog posts exported from my config file:1 ends here
 

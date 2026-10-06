@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Recognizing keyword phrases
 ;;   https://sachachua.com/dotemacs#recognizing-keyword-phrases

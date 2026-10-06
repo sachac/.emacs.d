@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search
 ;;   https://sachachua.com/dotemacs#git-projects

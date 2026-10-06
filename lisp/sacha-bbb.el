@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Write a function to help with crontab entries
 ;;   https://sachachua.com/dotemacs#coding-write-a-function-to-help-with-crontab-entries

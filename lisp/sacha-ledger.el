@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Ledger
 ;;   https://sachachua.com/dotemacs#ledger-personal-finance-in-sacha-config
@@ -63,7 +63,7 @@
   (save-excursion
     (sacha-ledger-go-to-beginning-of-entry)
     (let ((context-info (ledger-context-other-line 0)))
-      (when (eq (ledger-context-line-type context-info) 'entry)
+      (when (member (ledger-context-line-type context-info) '(entry xact))
         (goto-char (line-beginning-position))
         (if (looking-at "\\([-0-9\\./]+\\)")
             (match-string-no-properties 1))))))
@@ -118,7 +118,6 @@
     (sacha-ledger-change-account (ledger-read-account-with-prompt
                                (format "%s %s: " (s-trim (save-match-data (ledger-xact-payee)))
                                        (match-string 1))))))
-
 ;; Ledger:4 ends here
 
 (provide 'sacha-ledger)

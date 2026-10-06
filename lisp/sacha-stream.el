@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Try redacting
 ;;   https://sachachua.com/dotemacs#try-redacting
@@ -63,7 +63,7 @@
 ;;   https://sachachua.com/dotemacs#streaming-schedule-mastodon-toots-for-an-upcoming-event
 ;;
 ;; - Set up a spontaneous livestream on YouTube
-;;   https://sachachua.com/dotemacs#streaming
+;;   https://sachachua.com/dotemacs#streaming-and-videos-set-up-a-spontaneous-livestream-on-youtube
 ;;
 ;; - Create YouTube livestream broadcasts from Emacs Lisp
 ;;   https://sachachua.com/dotemacs#streaming-create-youtube-livestream-broadcasts-from-emacs-lisp
@@ -74,122 +74,114 @@
 
 ;; [[file:../Sacha.org::#try-redacting][Try redacting:1]]
 ;;;###autoload
-  (defun sacha-redact (s)
-          "Replace S with x characters."
-          (make-string (length s) ?x))
+(defun sacha-redact (s)
+	"Replace S with x characters."
+	(make-string (length s) ?x))
 
 ;;;###autoload
-  (defun sacha-redact-region (beg end &optional func)
-          "Redact from BEG to END."
-          (interactive "r")
-          (let ((overlay (make-overlay beg end)))
-                  (overlay-put overlay 'redact t)
-      (overlay-put overlay 'evaporate t)
-                  (overlay-put overlay 'display
-                                                                   (cond
-                                                                          ((functionp func)
-                                                                           (funcall func))
-                                                                          ((stringp func)
-                                                                           func)
-                                                                          (t (make-string (- end beg) ?x))))))
+(defun sacha-redact-region (beg end &optional func)
+	"Redact from BEG to END."
+	(interactive "r")
+	(let ((overlay (make-overlay beg end)))
+		(overlay-put overlay 'redact t)
+		(overlay-put overlay 'evaporate t)
+		(overlay-put overlay 'display
+								 (cond
+									((functionp func)
+									 (funcall func))
+									((stringp func)
+									 func)
+									(t (make-string (- end beg) ?x))))))
 
 ;;;###autoload
-  (defun sacha-redact-regexp-replacement (regexp replacement &optional beg end)
-    "Redact buffer content matching regexp."
-    (interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
-                                                                                   (read-string "Replacement (ex: \\1 \\,(sacha-redact \\2)): ")))
-          (setq beg (or beg (point-min)))
-          (setq end (or end (point-max)))
-          (when (stringp replacement)
-                  (setq replacement (query-replace-compile-replacement replacement t)))
-          (save-excursion
-      (goto-char beg)
-      (while (re-search-forward regexp end t)
-                          (sacha-redact-region
-                           (match-beginning 0) (match-end 0)
-                           (with-temp-buffer
-                                   (insert (match-string 0))
-                                   (goto-char (point-min))
-
-                                   )
-                           (replace-regexp-in-string regexp replacement (match-string 0))))))
+(defun sacha-redact-regexp-replacement (regexp replacement &optional beg end)
+	"Redact buffer content matching regexp."
+	(interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
+										 (read-string "Replacement (ex: \\1 \\,(sacha-redact \\2)): ")))
+	(setq beg (or beg (point-min)))
+	(setq end (or end (point-max)))
+	(save-excursion
+		(goto-char beg)
+		(while (re-search-forward regexp end t)
+			(sacha-redact-region
+			 (match-beginning 0) (match-end 0)
+			 (save-match-data (replace-regexp-in-string regexp replacement (match-string 0)))))))
 
 ;;;###autoload
-  (defun sacha-redact-regexp (regexp &optional beg end func)
-    "Redact buffer content matching regexp."
-    (interactive (list (string-trim (read-regexp "Redact regexp: " 'regexp-history-last))))
-          (save-excursion
-      (goto-char (or beg (point-min)))
-      (while (re-search-forward regexp (or end (point-max)) t)
-                          (sacha-redact-region (match-beginning 0) (match-end 0) func))))
+(defun sacha-redact-regexp (regexp &optional beg end func)
+  "Redact buffer content matching regexp."
+  (interactive (list (string-trim (read-regexp "Redact regexp: " 'regexp-history-last))))
+  (save-excursion
+    (goto-char (or beg (point-min)))
+    (while (re-search-forward regexp (or end (point-max)) t)
+      (sacha-redact-region (match-beginning 0) (match-end 0) func))))
 
 ;;;###autoload
-  (defun sacha-unredact ()
-          (interactive)
-          (mapc 'delete-overlay
-                                  (seq-filter (lambda (overlay) (overlay-get overlay 'redact))
-                                                                                  (overlays-in (point-min) (point-max)))))
+(defun sacha-unredact ()
+	(interactive)
+	(mapc 'delete-overlay
+				(seq-filter (lambda (overlay) (overlay-get overlay 'redact))
+										(overlays-in (point-min) (point-max)))))
 
 ;;;###autoload
-  (defun sacha-redact-email-string (s)
-          (replace-regexp-in-string
-           "\\([-+_~a-zA-Z0-9][-+_.~:a-zA-Z0-9]*\\)@\\([-a-zA-Z0-9]+[-.a-zA-Z0-9]*\\)"
-           (lambda (sub)
-                   (concat
-                          (make-string (length (match-string 1 sub)) ?x)
-                          "@"
-                          (make-string (length (match-string 2 sub)) ?x)))
-           s))
+(defun sacha-redact-email-string (s)
+  (replace-regexp-in-string
+   "\\([-+_~a-zA-Z0-9][-+_.~:a-zA-Z0-9]*\\)@\\([-a-zA-Z0-9]+[-.a-zA-Z0-9]*\\)"
+   (lambda (sub)
+     (concat
+      (make-string (length (match-string 1 sub)) ?x)
+      "@"
+      (make-string (length (match-string 2 sub)) ?x)))
+   s))
 
 ;;;###autoload
-  (defun sacha-redact-emails (&rest _)
-          (interactive)
-          (sacha-redact-regexp
-           "\\([-+_~a-zA-Z0-9][-+_.~:a-zA-Z0-9]*\\)@\\([-a-zA-Z0-9]+[-.a-zA-Z0-9]*\\)"
-           nil nil
-           (lambda () (sacha-redact-email-string (match-string 0)))))
+(defun sacha-redact-emails (&rest _)
+  (sacha-redact-regexp-replacement
+   "\\([-+_~a-zA-Z0-9][-+_.~:a-zA-Z0-9]*\\)@\\([-a-zA-Z0-9]+[-.a-zA-Z0-9]*\\)"
+   (lambda (text) (sacha-redact-email-string (match-string 0 text)))))
 
 ;;;###autoload
-  (defun sacha-redact-emacsconf-org ()
-          (interactive)
-          (sacha-redact-regexp-replacement
-           "\\(^:EMAIL:[ \t]+\\)\\(.+\\)"
-           "\\1 \\,(sacha-redact \\2)"
-           ))
-;;;###autoload
-  (defun sacha-redact-tabulated-list-in-rectangle (regexp beg end)
-          ;; tabulated columns use substrings with display properties
-          ;; so we should skip any characters that have text-property-any 'display
-          (interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
-                                                                                   (min (point) (mark))
-                                                                                   (max (point) (mark))))
-          (apply-on-rectangle
-           (lambda (start-col end-col)
-                   (let ((start-pos (and (move-to-column start-col) (point)))
-                                           (end-pos (and (move-to-column end-col) (point)))
-                                           display-prop)
-                           (save-restriction
-                                   (narrow-to-region start-pos end-pos)
-                                   (goto-char start-pos)
-                                   (setq display-prop (text-property-search-forward 'display))
-                                   (if display-prop
-                                                   (while display-prop
-                                                           (sacha-redact-regexp regexp start-pos (prop-match-beginning display-prop))
-                                                           (setq start-pos (prop-match-end display-prop))
-                                                           (setq display-prop (text-property-search-forward 'display)))
-                                           (sacha-redact-regexp regexp start-pos end-pos)))))
-           beg end))
+(defun sacha-redact-emacsconf-org ()
+  (interactive)
+  (sacha-redact-regexp-replacement
+   "\\(^:EMAIL:[ \t]+\\|^:EMERGENCY:[ \t]+\\)\\(.+\\)"
+	 (lambda (match)
+		 (concat (match-string 1 match) (sacha-redact (match-string 2 match))))))
 
 ;;;###autoload
-  (defun sacha-redact-regexp-in-rectangle (regexp beg end)
-    (interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
-                                                                                   (min (point) (mark))
-                                                                                   (max (point) (mark))))
-          (apply-on-rectangle (lambda (start-col end-col)
-                                                                                                  (sacha-redact-regexp regexp
-                                                                                                                                                                          (and (move-to-column start-col) (point))
-                                                                                                                                                                          (and (move-to-column end-col) (point))))
-                                                                                          beg end))
+(defun sacha-redact-tabulated-list-in-rectangle (regexp beg end)
+  ;; tabulated columns use substrings with display properties
+  ;; so we should skip any characters that have text-property-any 'display
+  (interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
+                     (min (point) (mark))
+                     (max (point) (mark))))
+  (apply-on-rectangle
+   (lambda (start-col end-col)
+     (let ((start-pos (and (move-to-column start-col) (point)))
+           (end-pos (and (move-to-column end-col) (point)))
+           display-prop)
+       (save-restriction
+         (narrow-to-region start-pos end-pos)
+         (goto-char start-pos)
+         (setq display-prop (text-property-search-forward 'display))
+         (if display-prop
+             (while display-prop
+               (sacha-redact-regexp regexp start-pos (prop-match-beginning display-prop))
+               (setq start-pos (prop-match-end display-prop))
+               (setq display-prop (text-property-search-forward 'display)))
+           (sacha-redact-regexp regexp start-pos end-pos)))))
+   beg end))
+
+;;;###autoload
+(defun sacha-redact-regexp-in-rectangle (regexp beg end)
+  (interactive (list (read-regexp "Redact regexp: " 'regexp-history-last)
+                     (min (point) (mark))
+                     (max (point) (mark))))
+  (apply-on-rectangle (lambda (start-col end-col)
+                        (sacha-redact-regexp regexp
+                                             (and (move-to-column start-col) (point))
+                                             (and (move-to-column end-col) (point))))
+                      beg end))
 ;; Try redacting:1 ends here
 
 ;; [[file:../Sacha.org::#streaming-mode-for-streaming][Mode for streaming:2]]
@@ -903,7 +895,7 @@ Move point forward."
 					 sched-time))))))
 ;; Schedule Mastodon toots for an upcoming event:1 ends here
 
-;; [[file:../Sacha.org::*Set up a spontaneous livestream on YouTube][Set up a spontaneous livestream on YouTube:1]]
+;; [[file:../Sacha.org::#streaming-and-videos-set-up-a-spontaneous-livestream-on-youtube][Set up a spontaneous livestream on YouTube:1]]
 ;;;###autoload
 (defun sacha-stream-update-details (title description privacy)
   "Update the title and description of the default or current stream.
@@ -929,14 +921,16 @@ Check for property PRIVACY as well."
 (defvar sacha-stream-livestreaming-control "https://studio.youtube.com/channel/.../livestreaming/dashboard"
 	"URL to control room.")
 
+;;;###autoload
 (defun sacha-whisper-prepare-to-stream ()
 	(interactive)
 	(sacha-stream-or-video-global-mode 1)
 	(if (org-entry-get-with-inheritance "YOUTUBE_URL")
 			(progn
 				;; scheduled
-				(browse-url (format "https://studio.youtube.com/video/%s/livestreaming"
-														(sacha-org-yt-id (org-entry-get-with-inheritance "YOUTUBE_URL"))))
+				(browse-url-chrome (format "https://studio.youtube.com/video/%s/livestreaming"
+																	 (sacha-org-yt-id (org-entry-get-with-inheritance "YOUTUBE_URL"))))
+				(obs-websocket-connect)
 				(obs-websocket-set-current-profile
 				 "Scheduled"
 				 (lambda ()
@@ -946,7 +940,7 @@ Check for property PRIVACY as well."
 							"Weird")))))
 		(call-interactively #'sacha-stream-prepare-spontaneous-stream)
 		(sit-for 1)
-		(browse-url sacha-stream-livestreaming-control)))
+		(browse-url-chrome sacha-stream-livestreaming-control)))
 
 ;;;###autoload
 (defun sacha-stream-prepare-spontaneous-stream (title description privacy)

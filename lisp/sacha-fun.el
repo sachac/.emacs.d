@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Building a today-I-learned habit, and displaying the documentation for random Emacs commands
 ;;   https://sachachua.com/dotemacs#building-a-today-i-learned-habit-and-displaying-the-documentation-for-random-emacs-commands

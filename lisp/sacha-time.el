@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Timestamps
 ;;   https://sachachua.com/dotemacs#multimedia-timestamps

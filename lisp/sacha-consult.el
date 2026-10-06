@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Favorites
 ;;   https://sachachua.com/dotemacs#completion-consult-consult-omni-bookmarks

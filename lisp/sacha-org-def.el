@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Linking to and exporting function definitions in Org Mode
 ;;   https://sachachua.com/dotemacs#linking-to-and-exporting-function-definitions-in-org-mode

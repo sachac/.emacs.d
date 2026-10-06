@@ -24,10 +24,10 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Turn Org subtree into an e-mail
-;;   https://sachachua.com/dotemacs#mail-and-news
+;;   https://sachachua.com/dotemacs#mail-and-news-turn-org-subtree-into-an-e-mail
 ;;
 ;; - Send mail asynchronously
 ;;   https://sachachua.com/dotemacs#async-smtpmail
@@ -42,7 +42,7 @@
 
 
 
-;; [[file:../Sacha.org::*Turn Org subtree into an e-mail][Turn Org subtree into an e-mail:1]]
+;; [[file:../Sacha.org::#mail-and-news-turn-org-subtree-into-an-e-mail][Turn Org subtree into an e-mail:1]]
 ;;;###autoload
 (defun sacha-mail-compose-org-subtree ()
   "Put this Org subtree into an e-mail. Remove drawers."

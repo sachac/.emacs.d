@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Process audio files
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-process-audio-files
@@ -72,7 +72,7 @@
 ;;   https://sachachua.com/dotemacs#playing-recordings
 ;;
 ;; - Clip something from the current recording
-;;   https://sachachua.com/dotemacs#streaming
+;;   https://sachachua.com/dotemacs#streaming-and-videos-clip-something-from-the-current-recording
 ;;
 ;; - Stream notes
 ;;   https://sachachua.com/dotemacs#stream-notes
@@ -700,7 +700,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
                  (format "--client-secrets=%s" google-video-credentials)))
 ;; Playing recordings:2 ends here
 
-;; [[file:../Sacha.org::*Clip something from the current recording][Clip something from the current recording:1]]
+;; [[file:../Sacha.org::#streaming-and-videos-clip-something-from-the-current-recording][Clip something from the current recording:1]]
 ;;;###autoload
 (defun sacha-clip-seconds (seconds &optional note)
   "Clip the specified number of seconds from the current recording.

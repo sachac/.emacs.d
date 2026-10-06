@@ -24,9 +24,9 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
-;; - Org Mode: Tangle Emacs config snippets to different files and add boilerplate
+;; - Org Mode: Tangle EmacsConfig snippets to different files and add boilerplate
 ;;   https://sachachua.com/dotemacs#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate
 ;;
 ;; - Org Babel: Detangle just the current block

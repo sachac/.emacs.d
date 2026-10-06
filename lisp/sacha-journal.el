@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Update journal entry from paragraph
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-update-journal-entry-from-paragraph

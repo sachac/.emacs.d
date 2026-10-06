@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Prefix for writing functions
 ;;   https://sachachua.com/dotemacs#coding-emacs-lisp-prefix-for-writing-functions
@@ -669,7 +669,7 @@ Activate this with:
 		 (sort (seq-remove
 						(if filter
 								(lambda (o)
-									(or (funcall filter o)
+									(or (null (funcall filter o))
 											(file-directory-p o)))
 							#'file-directory-p)
 						(directory-files path 'full (and (stringp filter) filter) t))

@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Reload
 ;;   https://sachachua.com/dotemacs#reload
@@ -38,7 +38,7 @@
 ;; - Make it easier to split my literate config into files
 ;;   https://sachachua.com/dotemacs#org-mode-org-babel-make-it-easier-to-split-sacha-literate-config-into-files
 ;;
-;; - Org Mode: Tangle Emacs config snippets to different files and add boilerplate
+;; - Org Mode: Tangle EmacsConfig snippets to different files and add boilerplate
 ;;   https://sachachua.com/dotemacs#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate
 ;;
 ;; - Key chords
@@ -200,7 +200,7 @@
                        "^"
                        ";; "
                        (concat
-                        "Related Emacs config sections:\n\n"
+                        "Related EmacsConfig sections:\n\n"
                         (org-export-string-as
                          (mapconcat
                           (lambda (link)

@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Consult directory navigation
 ;;   https://sachachua.com/dotemacs#consult-directory-navigation

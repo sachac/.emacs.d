@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Vector search
 ;;   https://sachachua.com/dotemacs#org-mode-vector-search

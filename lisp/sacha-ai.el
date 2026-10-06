@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - ChatGPT, AI, and large-language models
 ;;   https://sachachua.com/dotemacs#chatgpt-ai

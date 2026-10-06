@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Hydra keyboard shortcuts
 ;;   https://sachachua.com/dotemacs#hydras
@@ -47,6 +47,7 @@
   (let ((x (pop hydra-stack)))
     (when x (funcall x))))
 
+;;;###autoload
 (defun sacha-hydra-go-and-push (expr)
   (push hydra-curr-body-fn hydra-stack)
   (prin1 hydra-stack)

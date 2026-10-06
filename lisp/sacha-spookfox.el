@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Link to current webpage from Spookfox
 ;;   https://sachachua.com/dotemacs#web-spookfox-link-to-current-webpage-from-spookfox

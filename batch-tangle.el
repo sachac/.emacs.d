@@ -1,4 +1,4 @@
-;; [[file:Sacha.org::#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Org Mode: Tangle Emacs config snippets to different files and add boilerplate:5]]
+;; [[file:Sacha.org::#org-mode-org-babel-tangling-sacha-emacs-config-snippets-to-different-files-and-adding-boilerplate][Org Mode: Tangle EmacsConfig snippets to different files and add boilerplate:5]]
 (setq load-path (cl-remove-if (lambda (p) (string-match-p "lisp/org$" p)) load-path))
 (add-to-list 'load-path "~/vendor/org-mode/lisp")
 (add-to-list 'load-path "~/vendor/org-mode/contrib/lisp")
@@ -69,7 +69,7 @@
                        "^"
                        ";; "
                        (concat
-                        "Related Emacs config sections:\n\n"
+                        "Related EmacsConfig sections:\n\n"
                         (org-export-string-as
                          (mapconcat
                           (lambda (link)
@@ -153,4 +153,4 @@
 	 :insert-description #'sacha-org-dotemacs-insert-description
 	 :export #'sacha-org-dotemacs-export
 	 :follow #'sacha-org-dotemacs-open))
-;; Org Mode: Tangle Emacs config snippets to different files and add boilerplate:5 ends here
+;; Org Mode: Tangle EmacsConfig snippets to different files and add boilerplate:5 ends here

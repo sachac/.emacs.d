@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Completing blog posts
 ;;   https://sachachua.com/dotemacs#completing-blog-posts

@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Using Emacs Lisp to send audio files to Deepgram and format VTTs
 ;;   https://sachachua.com/dotemacs#using-emacs-lisp-to-send-audio-files-to-deepgram-and-format-vtts

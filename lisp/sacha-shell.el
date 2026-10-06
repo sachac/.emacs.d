@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Scan ~/bin and turn the scripts into interactive commands
 ;;   https://sachachua.com/dotemacs#scan-bin-and-turn-the-scripts-into-interactive-commands

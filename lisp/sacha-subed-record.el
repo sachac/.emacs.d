@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Add shadowing with tts to subed-record
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-add-shadowing-with-tts-to-subed-record

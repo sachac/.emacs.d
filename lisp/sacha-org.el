@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Using Embark to insert files as Org INCLUDEs
 ;;   https://sachachua.com/dotemacs#using-embark-to-insert-files-as-org-includes
@@ -60,7 +60,7 @@
 ;;   https://sachachua.com/dotemacs#write-about-keybindings
 ;;
 ;; - Link to the part of my config that defines a function
-;;   https://sachachua.com/dotemacs#org
+;;   https://sachachua.com/dotemacs#org-mode-link-to-the-part-of-my-config-that-defines-a-function
 ;;
 ;; - Automatically continue lists
 ;;   https://sachachua.com/dotemacs#org-mode-automatically-continue-lists
@@ -207,7 +207,7 @@
 ;;   https://sachachua.com/dotemacs#youtube
 ;;
 ;; - Record and replay
-;;   https://sachachua.com/dotemacs#audio
+;;   https://sachachua.com/dotemacs#org-mode-links-audio-record-and-replay
 ;;
 ;; - Format nicks in chats
 ;;   https://sachachua.com/dotemacs#org-mode-links-format-nicks-in-chats
@@ -731,7 +731,7 @@
                           (message "%s" (key-description keys)))))
 ;; Write about keybindings:1 ends here
 
-;; [[file:../Sacha.org::*Link to the part of my config that defines a function][Link to the part of my config that defines a function:1]]
+;; [[file:../Sacha.org::#org-mode-link-to-the-part-of-my-config-that-defines-a-function][Link to the part of my config that defines a function:1]]
 (defvar sacha-function-prefix "sacha-")
 
 ;;;###autoload
@@ -2916,7 +2916,7 @@ This uses :insert-description if defined."
 
 ;; YouTube:2 ends here
 
-;; [[file:../Sacha.org::*Record and replay][Record and replay:1]]
+;; [[file:../Sacha.org::#org-mode-links-audio-record-and-replay][Record and replay:1]]
 ;;;###autoload
 (defun sacha-org-subed-record-audio-and-insert-link ()
   "Record audio until key is pressed, then insert link."

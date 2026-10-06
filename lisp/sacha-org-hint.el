@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Custom Org link type for hints (and sound effects)
 ;;   https://sachachua.com/dotemacs#streaming-custom-org-link-type-for-hints-and-sound-effects

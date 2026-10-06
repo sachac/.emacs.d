@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Identifying paths
 ;;   https://sachachua.com/dotemacs#svg-identifying-paths

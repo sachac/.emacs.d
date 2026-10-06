@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Treemap visualization
 ;;   https://sachachua.com/dotemacs#org-mode-diagrams-and-graphics-treemap-visualization

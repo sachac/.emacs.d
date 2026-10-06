@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - 11ty static site generation
 ;;   https://sachachua.com/dotemacs#11ty
@@ -120,10 +120,21 @@
 
 (defalias 'sacha-org-11ty-delete-current-post #'sacha-org-11ty-unpublish-current-post)
 
+(defvar sacha-init-file-org "~/sync/emacs/Sacha.org" "My config file.")
+
 ;;;###autoload
 (defun sacha-org-11ty-copy-permalink ()
 	(interactive)
-	(kill-new (concat "https://sachachua.com" (org-entry-get (point) "EXPORT_ELEVENTY_PERMALINK"))))
+	(when-let* ((url (cond
+										((org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")
+										 (concat "https://sachachua.com" (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")))
+										((and (string= (buffer-file-name)
+																	 (expand-file-name sacha-init-file-org))
+													(org-entry-get-with-inheritance "CUSTOM_ID"))
+										 (concat sacha-emacs-config-url "#" (org-entry-get-with-inheritance "CUSTOM_ID")))
+										)))
+		(kill-new url)
+		(message "%s" url)))
 
 ;;;###autoload
 (defun sacha-org-11ty-browse-local ()

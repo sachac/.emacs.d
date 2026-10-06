@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Search backups
 ;;   https://sachachua.com/dotemacs#about-this-file-backups-search-backups

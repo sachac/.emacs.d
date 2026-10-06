@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Foot pedal
 ;;   https://sachachua.com/dotemacs#keybindings-foot-pedal

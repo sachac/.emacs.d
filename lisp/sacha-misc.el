@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Using Embark and qrencode to show a QR code for the Org Mode link at point
 ;;   https://sachachua.com/dotemacs#embark-qr
@@ -175,12 +175,14 @@ Requires pdftk."
 
 ;; [[file:../Sacha.org::#navigation-downloaded-files-replace-with-latest-download][Replace with latest download:1]]
 ;;;###autoload
-  (defun sacha-replace-with-latest-download ()
+  (defun sacha-replace-with-latest-download (&optional file)
     "Replace file contents with latest download."
-    (interactive)
+    (interactive (list (if current-prefix-arg
+													 (read-file-name "File: " (concat sacha-download-dir "/")))))
+		(setq file (or file (sacha-latest-file sacha-download-dir)))
     (widen)
     (erase-buffer)
-    (insert-file-contents (sacha-latest-file sacha-download-dir)))
+    (insert-file-contents file))
 ;; Replace with latest download:1 ends here
 
 ;; [[file:../Sacha.org::#navigation-c-g-improvement][C-g improvement:1]]

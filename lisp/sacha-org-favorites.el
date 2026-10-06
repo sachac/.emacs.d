@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Favorites
 ;;   https://sachachua.com/dotemacs#org-bookmarks
@@ -64,10 +64,13 @@ Uses the info from `sacha-org-favorite-file'."
 ;;;###autoload
 (defun sacha-org-favorite-match (s)
   "Return the first favorite that matches S."
-  (setq s (downcase s))
+  (setq s (split-string (downcase s)))
   (plist-get (seq-find (lambda (favorite)
-                         (string= (downcase (plist-get favorite :title))
-                                  s))
+												 (let ((title (downcase (plist-get favorite :title))))
+													 (seq-reduce (lambda (prev val)
+																				 (and prev (string-match (regexp-quote val) title)))
+																			 s
+																			 t)))
                        (sacha-org-favorites))
              :url))
 

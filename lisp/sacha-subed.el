@@ -24,13 +24,13 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Embark and subed
 ;;   https://sachachua.com/dotemacs#embark-subed
 ;;
 ;; - Searching transcripts
-;;   https://sachachua.com/dotemacs#multimedia-learning-french
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-searching-transcripts
 ;;
 ;; - Reformat speaker in a two-speaker transcript
 ;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-reformat-speaker-in-a-two-speaker-transcript
@@ -93,7 +93,7 @@
 ;;   https://sachachua.com/dotemacs#subed-gaps
 ;;
 ;; - Save a tsv.txt for easy uploading to Gemini Notebook
-;;   https://sachachua.com/dotemacs#subed
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-save-a-tsv-txt-for-easy-uploading-to-gemini-notebook
 ;;
 ;; - Editing subtitles
 ;;   https://sachachua.com/dotemacs#editing-subtitles
@@ -153,7 +153,7 @@
       (sacha-subed-copy-timestamp-to-next))))
 ;; Embark and subed:1 ends here
 
-;; [[file:../Sacha.org::*Searching transcripts][Searching transcripts:1]]
+;; [[file:../Sacha.org::#writing-and-editing-learning-french-searching-transcripts][Searching transcripts:1]]
 ;;;###autoload
 (defun sacha-subed-clean-up-youtube-vtt-and-convert-to-sentence-lines ()
   "Remove duplicate lines and convert to text without tags."
@@ -893,7 +893,7 @@ FILE should be a VTT or SRT file produced by whisperx with the
     "JavaScript"
     "RSS"
 		("stop section" "subsection")
-		("EmacsConf" "EmacsCon" "emacs conf" "imaxconf")
+		("EmacsConf" "EmacsCon" "EmacsConf" "imaxconf")
     ("going to" "gonna")
     ("want to" "wanna")
     ("transient" "transit")
@@ -1325,7 +1325,7 @@ If threshold is 0, remove all gaps."
 
 ;; Removing gaps and merging subtitles:1 ends here
 
-;; [[file:../Sacha.org::*Save a tsv.txt for easy uploading to Gemini Notebook][Save a tsv.txt for easy uploading to Gemini Notebook:1]]
+;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-save-a-tsv-txt-for-easy-uploading-to-gemini-notebook][Save a tsv.txt for easy uploading to Gemini Notebook:1]]
 ;;;###autoload
 (defun sacha-subed-convert-tsv-txt ()
   "Convert to tsv with a .txt extension."

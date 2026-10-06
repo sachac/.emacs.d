@@ -24,10 +24,16 @@
 
 ;;; Commentary:
 ;;
-;; Related Emacs config sections:
+;; Related EmacsConfig sections:
 ;;
 ;; - Learning French
 ;;   https://sachachua.com/dotemacs#multimedia-learning-french
+;;
+;; - Celebrate when I remember to use words and phrases
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-celebrate-when-i-remember-to-use-words-and-phrases
+;;
+;; - Extract tonguetwisters
+;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-extract-tonguetwisters
 ;;
 ;; - Map lang-gptel feedback from the logbook to KwizIQ topics
 ;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-map-lang-gptel-feedback-from-the-logbook-to-kwiziq-topics
@@ -134,6 +140,147 @@ Check tatoeba, dictionary, then Google Translate."
     (interactive)
     (sacha-speech-chrome-new-session "french" "fr-FR"))
 ;; Learning French:4 ends here
+
+;; [[file:../Sacha.org::#writing-and-editing-learning-french-celebrate-when-i-remember-to-use-words-and-phrases][Celebrate when I remember to use words and phrases:1]]
+(defvar sacha-learn-lang-bingo-word-file "~/proj/french/bingo.txt")
+(defvar sacha-learn-lang-bingo-words nil "List of words.")
+(defvar sacha-learn-lang-bingo-words-hash nil "Data for the counts.")
+
+;;;###autoload
+(defun sacha-learn-lang-bingo-words ()
+	"Load the list of words from the file."
+	(interactive)
+	(setq sacha-learn-lang-bingo-words
+				(seq-map (lambda (o)
+									 (when (= (length o) 1)
+										 (setq o (list (car o) 0)))
+									 (setq o (append o (list
+																			(string-trim (replace-regexp-in-string
+																										" *\\[.+?\\] *" " "
+																										(car o))))))
+									 o)
+								 (pcsv-parse-file sacha-learn-lang-bingo-word-file)))
+	sacha-learn-lang-bingo-words)
+
+;;;###autoload
+(defun sacha-learn-lang-bingo-handler (event)
+  "Manually register the event."
+  (interactive "e")
+	  (let* ((pos (posn-point (event-end event)))
+					 (val (get-text-property pos 'bingo)))
+			(when val
+				(sacha-learn-lang-notice-bingo-words val))))
+
+(defvar-keymap sacha-learn-lang-bingo-map
+	"<mouse-1>" #'sacha-learn-lang-bingo-handler)
+
+;;;###autoload
+(defun sacha-learn-lang-bingo-summary ()
+	"Summarize the words to say."
+	(let ((target (seq-filter (lambda (row) (= (elt row 1) 0))
+														sacha-learn-lang-bingo-words))
+				(yay (seq-filter (lambda (row) (> (elt row 1) 0))
+												 sacha-learn-lang-bingo-words)))
+		(concat
+		 (if target
+				 (concat "Target: "
+								 (mapconcat (lambda (row)
+															(propertize
+															 (car row)
+															 'keymap sacha-learn-lang-bingo-map
+															 'bingo (car row)))
+														target
+														"; ")
+								 "\n\n")
+			 "")
+		 (if yay
+				 (concat
+					"Yay! "
+					(mapconcat (lambda (row)
+											 (propertize (format "%s (%s)" (car row) (elt row 1))
+																	 'keymap sacha-learn-lang-bingo-map
+																	 'bingo (car row)))
+										 (seq-filter (lambda (row) (> (elt row 1) 0))
+																 sacha-learn-lang-bingo-words)
+										 "; ")
+					"\n\n")
+			 ""))))
+
+;;;###autoload
+(defun sacha-learn-lang-notice-bingo-words (text)
+	"Look for the bingo words in TEXT and celebrate when I use them."
+	(when text
+		(unless sacha-learn-lang-bingo-words (sacha-learn-lang-bingo-words))
+		(let ((found (seq-find
+									(lambda (o)
+										(and (elt o 2)
+												 (string-match (concat "\\<" (elt o 2)) text)))
+									sacha-learn-lang-bingo-words)))
+			(when found
+				(incf (elt found 1))
+				(sacha-vad-tutor-update-view)
+				(with-current-buffer (get-buffer-create "*Bingo*")
+					(erase-buffer)
+					(insert (sacha-learn-lang-bingo-summary))))))
+	text)
+;; Celebrate when I remember to use words and phrases:1 ends here
+
+;; [[file:../Sacha.org::#writing-and-editing-learning-french-extract-tonguetwisters][Extract tonguetwisters:1]]
+;;;###autoload
+(defun sacha-learn-lang-make-tonguetwister-practice-files (vtt output-directory &optional force)
+  "Parse VTT and add tonguetwister files to OUTPUT-DIRECTORY."
+  (interactive "FVTT: \nDOutput directory: \nP")
+	(let ((media-file (subed-guess-media-file nil vtt)))
+		(dolist (sub (subed-parse-file vtt))
+			(let ((filename (expand-file-name
+											 (concat (learn-lang-subed-record-simplify (elt sub 3)) ".mp3")
+											 output-directory))
+						(compile-media-ffmpeg-arguments
+						 (append (list "-metadata"
+													 (concat "lyrics-fra="
+																	 (learn-lang-subed-record-simplify (elt sub 3))))
+										 compile-media-ffmpeg-arguments))
+						sources)
+				(when (or force (not (file-exists-p filename)))
+					(dotimes (n 10)
+							(push (list :source "/home/sacha/proj/french/chime.opus")
+										sources)
+							(push (list :source media-file
+													:start-ms (elt sub 1)
+													:stop-ms (elt sub 2)
+													:pad-right (* 1.5 (- (elt sub 2) (elt sub 1))))
+										sources))
+					(compile-media-sync
+					 `((audio ,@(nreverse sources)))
+					 filename
+					 "-y"))))))
+
+(defvar sacha-learn-lang-tonguetwister-source "~/proj/french/analysis/virelangues/"
+	"Source.")
+(defvar sacha-learn-lang-tonguetwister-directory "~/sync/music/french/virelangues/"
+	"Output directory.")
+
+;;;###autoload
+(defun sacha-learn-lang-process-tonguetwister-clips (file)
+  "Extract practice files to directory.
+File should start with YYYY-MM-DD."
+  (interactive (list
+								(read-file-name "Clip VTT: "
+																(sacha-latest-file sacha-learn-lang-tonguetwister-source "-clips"))))
+	(let* ((base-dir sacha-learn-lang-tonguetwister-directory)
+				 (latest (expand-file-name "latest" base-dir))
+				 (lyrics-dir (expand-file-name "../lyrics" base-dir)))
+		(let* ((date (substring (file-name-base file) 0 10))
+					 (file-dir (expand-file-name (substring (file-name-base file) 0 10) base-dir)))
+			(unless (file-directory-p file-dir)
+				(make-directory file-dir))
+			(sacha-learn-lang-make-tonguetwister-practice-files file latest)
+			(sacha-learn-lang-make-tonguetwister-practice-files file file-dir)
+			(dolist (sub (subed-parse-file file))
+				(with-temp-file (expand-file-name (concat (elt sub 3) ".lrc")
+																					lyrics-dir)
+					(insert "[00:00.00]" (elt sub 3) "\n"))))))
+;; Extract tonguetwisters:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-map-lang-gptel-feedback-from-the-logbook-to-kwiziq-topics][Map lang-gptel feedback from the logbook to KwizIQ topics:1]]
 ;;;###autoload
@@ -526,8 +673,10 @@ Returns them concatenated as a string."
 (defun sacha-learn-lang-write-journal-entries-for-subtree ()
 	"Copy journal entries or blog posts to `sacha-learn-lang-analysis-dir'."
 	(interactive)
-	(if-let* ((date (or (org-entry-get (point) "DATE")
-											(org-entry-get (point) "EXPORT_DATE")))
+	(if-let* ((date
+						 (and (not (string-match "^Semaine " (org-entry-get (point) "ITEM")))
+									(or (org-entry-get (point) "DATE")
+											(org-entry-get (point) "EXPORT_DATE"))))
 						(text (replace-regexp-in-string "{.+?}" "" (sacha-org-subtree-text-without-blocks))))
 			(with-temp-file (expand-file-name (concat (substring date 0 10) "-"
 																								(learn-lang-slugify (org-entry-get (point) "ITEM"))

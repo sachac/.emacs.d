@@ -10550,7 +10550,8 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 		("toot" . sacha-whisper-draft-toot)
 		("open \\(.+\\)" . sacha-whisper-open-favorite)
 		("jump \\(.+\\)" . sacha-whisper-avy-jump)
-		("\\(?:row\\|line\\) \\(.+\\)" . sacha-whisper-jump-to-line)
+		("\\(?:row\\|line\\|ligne\\) \\(.+\\)" . sacha-whisper-jump-to-line)
+		("\\(?:delete\\|kill\\) \\(?:row\\|line\\|ligne\\) \\(.+\\)" . sacha-whisper-delete-line)
 		("\\(?:simple\\|symbol\\) \\(.+\\)" . sacha-whisper-avy-insert-symbol)
 		("start recording" . sacha-whisper-start-recording)
 		("stop recording" . sacha-whisper-stop-recording)
@@ -10699,9 +10700,9 @@ Based on `comment-dwim'."
 					(avy-process candidates)))
 			"")))
 
-;;;###autoload
-(defun sacha-whisper-jump-to-line (text)
-  "Go to the visible line modulo 100."
+(defun sacha-whisper-get-line-position (text)
+	"Return the line number based on TEXT.
+TEXT is the visible line number modulo 100."
 	(let* ((number (if (string-match "[0-9]+" text)
 										 (string-to-number text)
 									 (car (sacha-parse-number-words text))))

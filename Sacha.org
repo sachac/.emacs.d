@@ -26895,7 +26895,8 @@ Detailed notes are at [[https://sachachua.com/blog/2024/01/animating-svg-topic-m
 					(when (dom-attr use 'clip-path)
 						(dolist (c (dom-children use))
 							(dom-remove-node use c))
-						(dom-remove-attribute use 'clip-path)))
+						(dom-remove-attribute use 'clip-path)
+						(dom-remove-node (dom-parent dom use) use)))
 				(dom-by-tag dom 'g))
 	dom)
 
@@ -27111,21 +27112,43 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 			(+ (string-to-number (dom-attr node 'x)) (string-to-number (dom-attr node 'width)))
 			(+ (string-to-number (dom-attr node 'y)) (string-to-number (dom-attr node 'height)))))
 		('path
-		 (let ((path (dom-attr node 'path))
+		 (let ((path (or (dom-attr node 'path)
+										 (dom-attr node 'd)))
 					 (x1 most-positive-fixnum)
 					 (y1 most-positive-fixnum)
 					 (x2 most-negative-fixnum)
 					 (y2 most-negative-fixnum)
+					 start-x
+					 start-y
 					 (x 0)
 					 (y 0)
 					 (i 0))
-			 (dolist (seg (s-slice-at " *[MCmc] *" path))
+			 (dolist (seg (s-slice-at " *[MCLZHVmclzhv] *" path))
 				 (unless (string= (string-trim seg) "")
 					 (setq seg (split-string seg "[ ,]") i 0)
 					 (let ((points (mapcar 'string-to-number (cdr seg))))
+						 (when (= i 0)
+							 (setq start-x (car points))
+							 (setq start-y (cadr points)))
 						 (pcase (car seg)
-							 ((or "m" "M")
-								(if (or (eq (car seg) "M") (= i 0))
+							 ("H" 										; horizontal line
+								(setq x (car points))
+								(when (< x x1) (setq x1 x))
+								(when (> x x2) (setq x2 x)))
+							 ("h" 										; horizontal line
+								(incf x (car points))
+								(when (< x x1) (setq x1 x))
+								(when (> x x2) (setq x2 x)))
+							 ("V"  										; vertical line
+								(setq y (car points))
+								(when (< y y1) (setq y1 y))
+								(when (> y y2) (setq y2 y)))
+							 ("v"  										; vertical line
+								(incf y (car points))
+								(when (< y y1) (setq y1 y))
+								(when (> y y2) (setq y2 y)))
+							 ((or "m" "M" "L")
+								(if (or (string= (car seg) (upcase (car seg))) (= i 0))
 										;; starting points are always absolute
 										(setq x (car points)
 													y (cadr points))
@@ -27136,6 +27159,8 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 								(when (< y y1) (setq y1 y))
 								(when (> x x2) (setq x2 x))
 								(when (> y y2) (setq y2 y)))
+							 ("Z"
+								(setq x start-x y start-y))
 							 ("c"
 								(let ((old-x x) (old-y y))
 									(dolist (set (seq-partition points 6))
@@ -27158,8 +27183,18 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 										(when (> y y2) (setq y2 y))))))
 						 (cl-incf i))))
 			 (list x1 y1 x2 y2)))
-		)
-	)
+		('g
+		 (let ((x1 most-positive-fixnum)
+					 (y1 most-positive-fixnum)
+					 (x2 most-negative-fixnum)
+					 (y2 most-negative-fixnum))
+			 (dolist (box (append (mapcar 'sacha-svg-bounding-box (dom-by-tag node 'path))
+														(mapcar 'sacha-svg-bounding-box (dom-by-tag node 'rect))))
+				 (when (< (elt box 0) x1) (setq x1 (elt box 0)))
+				 (when (< (elt box 1) y1) (setq y1 (elt box 1)))
+				 (when (> (elt box 2) x2) (setq x2 (elt box 2)))
+				 (when (> (elt box 3) y2) (setq y2 (elt box 3))))
+			 (list x1 y1 x2 y2)))))
 #+end_src
 
 #+begin_src emacs-lisp :tangle tests/sacha-svg-test.el :summary "Tests for sacha-svg-bounding-box"
@@ -27182,7 +27217,7 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 		(when highlight-id
 			;; make a copy
 			(setq svg (with-temp-buffer (svg-print svg) (car (xml-parse-region (point-min) (point-max)))))
-			(if-let* ((path (if (stringp highlight-id) (dom-by-id svg highlight-id) highlight-id))
+			(if-let* ((path (if (stringp highlight-id) (dom-by-id svg (concat "^" (regexp-quote highlight-id) "$")) highlight-id))
 								(view-box (split-string (dom-attr svg 'viewBox)))
 								(box (sacha-svg-bounding-box path))
 								(parent (car path)))
@@ -27242,7 +27277,7 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 				 (vertico-count 3)
 				 (ids (seq-keep (lambda (path)
 													(and (dom-attr path 'id)
-															 (unless (string-match "\\(path\\|rect\\)[0-9]+"
+															 (unless (string-match "\\(path\\|rect\\|g\\)[0-9]+"
 																										 (or (dom-attr path 'id) "path0"))
 																 (dom-attr path 'id))))
 												paths))
@@ -27260,12 +27295,12 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 												(format "ID (%s): " (dom-attr path 'id))
 												ids))
 							;; already exists, merge with existing element
-							(if-let* ((old (dom-by-id dom id)))
+							(if-let* ((old (dom-by-id dom (format "^%s$" (regexp-quote id)))))
 									(progn
 										(dom-set-attribute
 										 old
 										 'd
-										 (concat (dom-attr (dom-by-id dom id) 'd)
+										 (concat (dom-attr (dom-by-id dom (format "^%s$" (regexp-quote id))) 'd)
 														 " "
 														 ;; change relative to absolute
 														 (replace-regexp-in-string "^m" "M"
@@ -27277,6 +27312,20 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 			;; save the image just in case we get interrupted halfway through
 			(with-temp-file filename
 				(svg-print dom)))))
+
+;;;###autoload
+(defun sacha-svg-identify-groups (filename)
+	(interactive (list (read-file-name "SVG: " nil nil
+																		 (lambda (f)
+																			 (or (string-match "\\.svg$" f)
+																					 (file-directory-p f))))))
+	(sacha-svg-identify-paths
+	 filename
+	 :selector
+	 (lambda (elem)
+		 (and (eq (dom-tag elem) 'g)
+					(dom-attr elem 'id)
+					(string-match "^g[0-9]+" (dom-attr elem 'id))))))
 
 ;;;###autoload
 (defun sacha-svg-identify-rects (filename)

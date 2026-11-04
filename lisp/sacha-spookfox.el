@@ -139,6 +139,12 @@
 (defun sacha-spookfox-scroll-up ()
 	(interactive)
  	(spookfox-js-injection-eval-in-active-tab "window.scrollBy(0, -document.documentElement.clientHeight);"))
+
+(with-eval-after-load 'phony
+	(phony-defun web-down ("web" "down")
+		(sacha-spookfox-scroll-down))
+	(phony-defun web-up ("web" "up")
+		(sacha-spookfox-scroll-up)))
 ;; sacha-spookfox-scroll ends here
 
 ;; [[file:../Sacha.org::sacha-spookfox-background-tab][sacha-spookfox-background-tab]]

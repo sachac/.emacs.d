@@ -391,17 +391,17 @@ ITEMS should be a list like ((word) (word) (word))."
 ;; [[file:../Sacha.org::#cheat-sheets][Cheat sheets:1]]
 ;;;###autoload
 (defun sacha-steno-quick-help ()
-	(interactive)
-	(with-selected-window
-			(display-buffer-at-bottom
-			 (find-file-noselect "~/proj/plover-notes/cheat-sheet.txt")'())
-    ;; ... mark it as dedicated to prevent focus from being stolen
-    (set-window-dedicated-p (selected-window) t)
-    ;; ... and shrink it immediately.
-    (fit-window-to-buffer)))
+      (interactive)
+      (with-selected-window
+		      (display-buffer-at-bottom
+		       (find-file-noselect "~/proj/plover-notes/cheat-sheet.txt")'())
+  ;; ... mark it as dedicated to prevent focus from being stolen
+  (set-window-dedicated-p (selected-window) t)
+  ;; ... and shrink it immediately.
+  (fit-window-to-buffer)))
 
 (defhydra sacha-hydra/cheatsheet/plover ()
-  "SKHW- symbols -LTZ modifiers TWR- journal phrases
+"SKHW- symbols -LTZ modifiers TWR- journal phrases
 newparSKWRAURBGS bsPW-FP capKPA !space!capTK-LS cap!spaceKPA rmspcTK-FPS*
 number: dupeD, revEU, 00/#OD, 00Z, $DZ, timeK- or -BG
 `KH-FG  ^KR-RT ~T*LD <AEPBGT =QA*LS >A*EPBGT |PAO*EUP \\_R*UND
@@ -414,7 +414,7 @@ next HRO*ER lower KPA*L cap all
 mode SPH-: RL lower R reset T Title -FPLT _RBGS")
 
 (defhydra sacha-hydra/cheatsheet/jade-plover-phrasing ()
-  "S: SWR I, KPWR you, KWHR he, SKWHR she, TWH they, TWR we, KPWH it, STKPWHR nothing
+"S: SWR I, KPWR you, KWHR he, SKWHR she, TWH they, TWR we, KPWH it, STKPWHR nothing
 M: OE don't (AOE really don't OEU don't really)
 AU didn't, E doesn't, O can't, A or U really, AOEU don't even
 E: PB know, P want, RPL remember, BL believe, FG forget, R are
@@ -424,11 +424,11 @@ D had, F have, FGT forgot, FLG feel like, FLGT felt like, FLT felt
 FPLT must, FR ever, FRB wish, FRBT wish to, FS was, FT have to, FTS has to, FZ has, GT get, L will, LG love, PBD need, PBG think, PBL mean,
 PLD mind, PLG imagine, PLT might
 "
-  )
+)
 
 (defhydra sacha-hydra/cheatsheet/emily-symbols ()
-  "SKHW+ A (spc before) O (spc after) * (cap)
-        v   E         U     EU
+"SKHW+ A (spc before) O (spc after) * (cap)
+      v   E         U     EU
 FG ws   Tab Backspace Del   Esc
 RPBG    Up  Left      Right Down
 FPBL    ↑   ←         →     ↓
@@ -440,9 +440,9 @@ RBG     )   ]         >     }
 ,B -PL .R /RP :LG ;RB =PBLG @FRPBLG \\FB \\^RPG
 _BG `P |PB ~FPBG
 -S 2x -T 3x -ST 4x"
-  )
+)
 (defhydra sacha-hydra/cheatsheet/emily-modifiers ()
-  "-LTZ F (C-) R (S-) P(s-) B(M-)
+"-LTZ F (C-) R (S-) P(s-) B(M-)
 Z is STKPW
 AO makes SKWR binary 0-9
 Symbols with *, AO variants

@@ -12,79 +12,79 @@
 (setq sacha-exporting t)
 ;;;###autoload
 (defun sacha-dotemacs-link-for-section-at-point (&optional combined)
-  "Return the link for the current section."
-  (let* ((custom-id (org-entry-get-with-inheritance "CUSTOM_ID"))
-         (title (org-entry-get (point) "ITEM"))
-         (url (if custom-id
-                  (concat "dotemacs:" custom-id)
-                (concat sacha-emacs-config-url ":-:text=" (url-hexify-string title)))))
-    (if combined
-        (org-link-make-string
-         url
-         title)
-      (cons url title))))
+"Return the link for the current section."
+(let* ((custom-id (org-entry-get-with-inheritance "CUSTOM_ID"))
+       (title (org-entry-get (point) "ITEM"))
+       (url (if custom-id
+		(concat "dotemacs:" custom-id)
+	      (concat sacha-emacs-config-url ":-:text=" (url-hexify-string title)))))
+  (if combined
+      (org-link-make-string
+       url
+       title)
+    (cons url title))))
 
 (eval-and-compile
-  (require 'org-core nil t)
-  (require 'org-macs nil t)
-  (require 'org-src nil t))
+(require 'org-core nil t)
+(require 'org-macs nil t)
+(require 'org-src nil t))
 (declare-function org-babel-tangle--compute-targets "ob-tangle")
 (defun sacha-org-collect-links-for-tangled-files ()
-  "Return a list of ((filename (link link link link)) ...)."
-  (let* ((file (buffer-file-name))
-         results)
-    (org-babel-map-src-blocks (buffer-file-name)
-      (let* ((info (org-babel-get-src-block-info))
-             (link (sacha-dotemacs-link-for-section-at-point)))
-        (mapc
-         (lambda (target)
-           (let ((list (assoc target results #'string=)))
-             (if list
-                 (cl-pushnew link (cdr list) :test 'equal)
-               (push (list target link) results))))
-         (org-babel-tangle--compute-targets file info))))
-    ;; Put it back in source order
-    (nreverse
-     (mapcar (lambda (o)
-               (cons (car o)
-                     (nreverse (cdr o))))
-             results))))
+"Return a list of ((filename (link link link link)) ...)."
+(let* ((file (buffer-file-name))
+       results)
+  (org-babel-map-src-blocks (buffer-file-name)
+    (let* ((info (org-babel-get-src-block-info))
+	   (link (sacha-dotemacs-link-for-section-at-point)))
+      (mapc
+       (lambda (target)
+	 (let ((list (assoc target results #'string=)))
+	   (if list
+	       (cl-pushnew link (cdr list) :test 'equal)
+	     (push (list target link) results))))
+       (org-babel-tangle--compute-targets file info))))
+  ;; Put it back in source order
+  (nreverse
+   (mapcar (lambda (o)
+	     (cons (car o)
+		   (nreverse (cdr o))))
+	   results))))
 (defvar sacha-emacs-config-module-links nil "Cache for links from tangled files.")
 
 ;;;###autoload
 (defun sacha-emacs-config-update-module-info ()
-  "Update the list of links."
-  (interactive)
-  (setq sacha-emacs-config-module-links
-        (seq-filter
-         (lambda (o)
-           (string-match "sacha-" (car o)))
-         (sacha-org-collect-links-for-tangled-files)))
-  (setq sacha-emacs-config-modules-info
-        (mapcar (lambda (group)
-                  `(,(file-name-base (car group))
-                    (commentary
-                     .
-                     ,(replace-regexp-in-string
-                       "^"
-                       ";; "
-                       (concat
-                        "Related EmacsConfig sections:\n\n"
-                        (org-export-string-as
-                         (mapconcat
-                          (lambda (link)
-                            (concat "- " (cdr link) "\\\\\n  " (org-link-make-string (car link)) "\n"))
-                          (cdr group)
-                          "\n")
-                         'ascii
-                         t))))))
-                sacha-emacs-config-module-links)))
+"Update the list of links."
+(interactive)
+(setq sacha-emacs-config-module-links
+      (seq-filter
+       (lambda (o)
+	 (string-match "sacha-" (car o)))
+       (sacha-org-collect-links-for-tangled-files)))
+(setq sacha-emacs-config-modules-info
+      (mapcar (lambda (group)
+		`(,(file-name-base (car group))
+		  (commentary
+		   .
+		   ,(replace-regexp-in-string
+		     "^"
+		     ";; "
+		     (concat
+		      "Related EmacsConfig sections:\n\n"
+		      (org-export-string-as
+		       (mapconcat
+			(lambda (link)
+			  (concat "- " (cdr link) "\\\\\n  " (org-link-make-string (car link)) "\n"))
+			(cdr group)
+			"\n")
+		       'ascii
+		       t))))))
+	      sacha-emacs-config-module-links)))
 
 ;;;###autoload
 (defun sacha-emacs-config-prepare-to-tangle ()
-  "Update module info if tangling my config."
-  (when (string-match "Sacha.org" (buffer-file-name))
-    (sacha-emacs-config-update-module-info)))
+"Update module info if tangling my config."
+(when (string-match "Sacha.org" (buffer-file-name))
+  (sacha-emacs-config-update-module-info)))
 (defvar sacha-emacs-config-modules-dir "~/sync/emacs/lisp/")
 (defvar sacha-emacs-config-modules-info nil "Alist of module info.")
 (defvar sacha-emacs-config-url "https://sachachua.com/dotemacs")
@@ -143,8 +143,8 @@
       (save-buffer))))
 (setq sacha-emacs-config-url "https://sachachua.com/dotemacs")
 (with-eval-after-load 'org
-  (add-hook 'org-babel-pre-tangle-hook #'sacha-emacs-config-prepare-to-tangle)
-  (add-hook 'org-babel-post-tangle-hook #'sacha-org-babel-post-tangle-insert-boilerplate-for-sacha-lisp))
+(add-hook 'org-babel-pre-tangle-hook #'sacha-emacs-config-prepare-to-tangle)
+(add-hook 'org-babel-post-tangle-hook #'sacha-org-babel-post-tangle-insert-boilerplate-for-sacha-lisp))
 (with-eval-after-load 'org
 	(org-link-set-parameters
 	 "dotemacs"

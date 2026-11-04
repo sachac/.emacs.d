@@ -48,39 +48,39 @@
 (defvar sacha-live-speech-output-buffer "*Speech JSON*")
 
 (defvar sacha-live-speech-functions
-	'(sacha-live-speech-display-in-speech-buffer
-		sacha-live-speech-display-wpm
-		sacha-live-speech-append-to-etherpad)
-	"Functions to call with one argument, the recognition results.")
+      '(sacha-live-speech-display-in-speech-buffer
+	      sacha-live-speech-display-wpm
+	      sacha-live-speech-append-to-etherpad)
+      "Functions to call with one argument, the recognition results.")
 
 ;;;###autoload
 (defun sacha-live-speech-start ()
-	"Turn on live captions."
-	(interactive)
-	(with-current-buffer (get-buffer-create sacha-live-speech-buffer)
-		(unless (process-live-p sacha-live-speech-process)
-			(let ((default-directory "~/proj/deepgram-live"))
-				(message "%s" default-directory)
-				(with-current-buffer (get-buffer-create sacha-live-speech-output-buffer)
-					(erase-buffer))
-				(setq sacha-live-speech-recent-words nil
-							sacha-live-speech-wpm-string "READY ")
-				(setq sacha-deepgram-process
-							(make-process
-							 :command '("bash" "run.sh")
-							 :name "speech"
-							 :filter 'sacha-live-speech-json-filter
-							 :sentinel #'sacha-live-speech-process-sentinel
-							 :buffer sacha-live-speech-output-buffer)))
-			(org-mode))
-    (display-buffer (current-buffer))))
+      "Turn on live captions."
+      (interactive)
+      (with-current-buffer (get-buffer-create sacha-live-speech-buffer)
+	      (unless (process-live-p sacha-live-speech-process)
+		      (let ((default-directory "~/proj/deepgram-live"))
+			      (message "%s" default-directory)
+			      (with-current-buffer (get-buffer-create sacha-live-speech-output-buffer)
+				      (erase-buffer))
+			      (setq sacha-live-speech-recent-words nil
+						      sacha-live-speech-wpm-string "READY ")
+			      (setq sacha-deepgram-process
+						      (make-process
+						       :command '("bash" "run.sh")
+						       :name "speech"
+						       :filter 'sacha-live-speech-json-filter
+						       :sentinel #'sacha-live-speech-process-sentinel
+						       :buffer sacha-live-speech-output-buffer)))
+		      (org-mode))
+  (display-buffer (current-buffer))))
 
 ;;;###autoload
 (defun sacha-live-speech-stop ()
-	(interactive)
-	(if (process-live-p sacha-live-speech-process)
-			(kill-process sacha-live-speech-process))
-	(setq sacha-live-speech-wpm-string nil))
+      (interactive)
+      (if (process-live-p sacha-live-speech-process)
+		      (kill-process sacha-live-speech-process))
+      (setq sacha-live-speech-wpm-string nil))
 
 ;; (define-minor-mode sacha-live-speech-mode
 ;; 	"Show live speech and display WPM.
@@ -94,38 +94,38 @@
 ;; based on subed-mpv::client-filter
 ;;;###autoload
 (defun sacha-live-speech-handle-json (line-object)
-	"Process the JSON object in LINE."
-	(run-hook-with-args 'sacha-live-speech-functions (json-parse-string line :object-type 'alist)))
+      "Process the JSON object in LINE."
+      (run-hook-with-args 'sacha-live-speech-functions (json-parse-string line :object-type 'alist)))
 
 ;;;###autoload
 (defun sacha-live-speech-process-sentinel (proc event)
-	(when (string-match "finished" event)
-		(sacha-live-speech-stop)
-		;(sacha-live-speech-mode -1)
-		))
+      (when (string-match "finished" event)
+	      (sacha-live-speech-stop)
+	      ;(sacha-live-speech-mode -1)
+	      ))
 
 ;;;###autoload
 (defun sacha-live-speech-json-filter (proc string)
-	(when (buffer-live-p (process-buffer proc))
-		(with-current-buffer (process-buffer proc)
-			(let* ((proc-mark (process-mark proc))
-						 (moving (= (point) proc-mark)))
-				;;  insert the output
-				(save-excursion
-					(goto-char proc-mark)
-					(insert string)
-					(set-marker proc-mark (point)))
-				(if moving (goto-char proc-mark))
-				;; process and remove all complete lines of JSON (lines are complete if ending with \n)
-				(let ((pos (point-min)))
-					(while (progn (goto-char pos)
-												(end-of-line)
-												(equal (following-char) ?\n))
-						(let* ((end (point))
-									 (line (buffer-substring pos end)))
-							(delete-region pos (+ end 1))
-							(with-current-buffer (get-buffer sacha-live-speech-buffer)
-								(sacha-live-speech-handle-json line)))))))))
+      (when (buffer-live-p (process-buffer proc))
+	      (with-current-buffer (process-buffer proc)
+		      (let* ((proc-mark (process-mark proc))
+					       (moving (= (point) proc-mark)))
+			      ;;  insert the output
+			      (save-excursion
+				      (goto-char proc-mark)
+				      (insert string)
+				      (set-marker proc-mark (point)))
+			      (if moving (goto-char proc-mark))
+			      ;; process and remove all complete lines of JSON (lines are complete if ending with \n)
+			      (let ((pos (point-min)))
+				      (while (progn (goto-char pos)
+											      (end-of-line)
+											      (equal (following-char) ?\n))
+					      (let* ((end (point))
+								       (line (buffer-substring pos end)))
+						      (delete-region pos (+ end 1))
+						      (with-current-buffer (get-buffer sacha-live-speech-buffer)
+							      (sacha-live-speech-handle-json line)))))))))
 ;; General code:1 ends here
 
 ;; [[file:../Sacha.org::#display-in-speech-buffer][Display in speech buffer:1]]

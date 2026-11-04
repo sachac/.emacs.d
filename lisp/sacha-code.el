@@ -60,8 +60,8 @@
 ;; [[file:../Sacha.org::#format-source][Format source:1]]
 ;;;###autoload
 (defun sacha-format-all-advice ()
-  (ignore-errors               ; in case there's no language support
-    (format-all-buffer)))
+(ignore-errors               ; in case there's no language support
+  (format-all-buffer)))
 ;; Format source:1 ends here
 
 ;; [[file:../Sacha.org::#coding][Coding:2]]

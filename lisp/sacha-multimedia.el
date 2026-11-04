@@ -92,50 +92,50 @@
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-process-audio-files][Process audio files:1]]
 ;;;###autoload
-  (defun sacha-audio-clip (source start-time end-time destination text)
-    (interactive
-     (let ((s (and (region-active-p) (buffer-substring (region-beginning) (region-end)))))
-       (if (and s
-                (string-match "\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)[ \n\t]+\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)" s))
-           (let ((start (match-string 1 s))
-                 (end (match-string 2 s)))
-             (list
-              (read-file-name "Source: " nil nil t)
-              start
-              end
-              (read-file-name "Destination: ")
-              (read-string "Text: ")))
-         (list (read-file-name "Source: " nil nil t)
-               (read-string "Start time: ")
-               (read-string "End time: ")
-               (read-file-name "Destination: ")
-               (read-string "Text: ")))))
-    (let ((result (call-process "ffmpeg" nil (get-buffer-create "*ffmpeg*") nil
-                                "-y" ; Overwrite output file without asking
-                                "-i" (expand-file-name source) ; Input file
-                                "-ss" start-time ; Start time (e.g., 00:00:10)
-                                "-to" end-time ; End time/Stop time
-                                (expand-file-name destination))))
-      (when result
-        (when (region-active-p) (delete-region (region-beginning) (region-end)))
-        (insert (org-link-make-string
-                 (concat "audio:" (replace-regexp-in-string (getenv "HOME") "~" destination))
-                 text)))))
+(defun sacha-audio-clip (source start-time end-time destination text)
+  (interactive
+   (let ((s (and (region-active-p) (buffer-substring (region-beginning) (region-end)))))
+     (if (and s
+	      (string-match "\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)[ \n\t]+\\(\\(?:\\(?:[0-9]+\\):\\)?\\(?:[0-9]+\\):\\(?:[0-9]+\\)\\(?:\\.\\(?:[0-9]+\\)\\)?\\)" s))
+	 (let ((start (match-string 1 s))
+	       (end (match-string 2 s)))
+	   (list
+	    (read-file-name "Source: " nil nil t)
+	    start
+	    end
+	    (read-file-name "Destination: ")
+	    (read-string "Text: ")))
+       (list (read-file-name "Source: " nil nil t)
+	     (read-string "Start time: ")
+	     (read-string "End time: ")
+	     (read-file-name "Destination: ")
+	     (read-string "Text: ")))))
+  (let ((result (call-process "ffmpeg" nil (get-buffer-create "*ffmpeg*") nil
+			      "-y" ; Overwrite output file without asking
+			      "-i" (expand-file-name source) ; Input file
+			      "-ss" start-time ; Start time (e.g., 00:00:10)
+			      "-to" end-time ; End time/Stop time
+			      (expand-file-name destination))))
+    (when result
+      (when (region-active-p) (delete-region (region-beginning) (region-end)))
+      (insert (org-link-make-string
+	       (concat "audio:" (replace-regexp-in-string (getenv "HOME") "~" destination))
+	       text)))))
 ;; Process audio files:1 ends here
 
 ;; [[file:../Sacha.org::#gif-screencast][gif-screencast:1]]
 ;;;###autoload
-  (defun sacha-gif-screencast-start-or-stop-and-choose-thumbnail ()
-          "Start a screencast or pause recording."
-          (interactive)
-          (if gif-screencast-mode
-                          (progn
-                                  (gif-screencast-toggle-pause)
-                                  (dired gif-screencast-screenshot-directory)
-                                  (revert-buffer)
-                                  (dired gif-screencast-screenshot-directory)
-                                  (image-dired gif-screencast-screenshot-directory))
-                  (gif-screencast)))
+(defun sacha-gif-screencast-start-or-stop-and-choose-thumbnail ()
+	"Start a screencast or pause recording."
+	(interactive)
+	(if gif-screencast-mode
+			(progn
+				(gif-screencast-toggle-pause)
+				(dired gif-screencast-screenshot-directory)
+				(revert-buffer)
+				(dired gif-screencast-screenshot-directory)
+				(image-dired gif-screencast-screenshot-directory))
+		(gif-screencast)))
 ;; gif-screencast:1 ends here
 
 ;; [[file:../Sacha.org::#gif-screencast][gif-screencast:2]]
@@ -407,9 +407,9 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 ;; [[file:../Sacha.org::#org-youtube-captions][Org Mode: Insert YouTube video with separate captions:1]]
 ;;;###autoload
 (defun sacha-msecs-to-timestamp (msecs)
-  "Convert MSECS to string in the format HH:MM:SS.MS."
-  (concat (format-seconds "%02h:%02m:%02s" (/ msecs 1000))
-          "." (format "%03d" (mod msecs 1000))))
+"Convert MSECS to string in the format HH:MM:SS.MS."
+(concat (format-seconds "%02h:%02m:%02s" (/ msecs 1000))
+	"." (format "%03d" (mod msecs 1000))))
 ;; Org Mode: Insert YouTube video with separate captions:1 ends here
 
 ;; [[file:../Sacha.org::#youtube-shorts][Preparing to record YouTube shorts:1]]
@@ -583,6 +583,7 @@ If WORD-TIMING is non-nil, include word-level timestamps."
   (force-mode-line-update)
   (when obs-websocket-recording-p (sacha-obs-websocket-add-caption "[Microphone off]")))
 
+(defvar sacha-mic-p)
 ;;;###autoload
 (defun sacha-push-to-talk ()
   "Tap to toggle microphone on and off, or repeat the command to make it push to talk."
@@ -664,15 +665,14 @@ If WORD-TIMING is non-nil, include word-level timestamps."
 
 ;;;###autoload
 (defun sacha-play-latest-recording (&optional arg)
-	"Play the latest recording."
+	"Play the latest recording.
+When called with the universal prefix argument, prompt for the file."
   (interactive "P")
-  (let ((latest (sacha-latest-file sacha-recordings-dir)))
-    (if (and arg (file-exists-p (sacha-obs-websocket-caption-file latest)))
-        (with-current-buffer (find-file-noselect (sacha-obs-websocket-caption-file (sacha-latest-file sacha-recordings-dir)))
-          (goto-char (point-min))
-          (subed-mpv-find-video latest)
-          (pop-to-buffer (current-buffer)))
-      (mpv-play (sacha-latest-file sacha-recordings-dir)))))
+  (let ((latest (if arg
+										(read-file-name "File: " sacha-recordings-dir)
+									(sacha-latest-file sacha-recordings-dir))))
+    (mpv-play latest)))
+
 ;;;###autoload
 (defun sacha-rename-last-recording ()
   (interactive)
@@ -687,17 +687,45 @@ If WORD-TIMING is non-nil, include word-level timestamps."
                   sacha-recordings-dir))))
 
 ;;;###autoload
-(defun sacha-upload-recording (recording tags)
-  (interactive (list (let ((latest (sacha-latest-file sacha-recordings-dir "mkv\\|mp4\\|webm")))
-                       (read-file-name "Recording: " sacha-recordings-dir latest t)
-                       (read-string "Tags: " "emacs"))))
-  (start-process "youtube-upload" nil "youtube-upload" recording "--privacy=unlisted" "--license=creativeCommon"
-                 (format
-                  "--tags=\"%s\""
-                  tags)
-                 "--open-link"
-                 (format "--title=%s" (shell-quote-argument (file-name-base recording)))
-                 (format "--client-secrets=%s" google-video-credentials)))
+(cl-defun sacha-upload-recording (&key file title description (privacy "unlisted") tags lang (category-id 28) (made-for-kids :json-false))
+  "Upload the recording to YouTube and insert the link."
+  (interactive (list
+                (let ((latest (sacha-latest-file sacha-recordings-dir "mkv\\|mp4\\|webm")))
+                  :file (read-file-name "Recording: " sacha-recordings-dir latest t)
+                  :title (read-string "Title: ")
+                  :description (read-string "Description: ")
+                  :defaultLanguage "en"
+                  :privacy "unlisted"
+                  :tags (read-string "Tags: " "emacs"))))
+  (let* ((data `((snippet . ((title . ,title)
+                             (description . ,description)
+                             (categoryId . ,category-id)))
+                 (status . ((privacyStatus . ,privacy)
+                            (selfDeclaredMadeForKids . ,made-for-kids)))))
+         (mime-type (or (mailcap-file-name-to-mime-type file) "video/mp4"))
+         ;; Use curl's built-in form feature (-F) which forces correct multi-part validation
+         (command `("curl" "-X" "POST"
+                    "-H" ,(format "Authorization: Bearer %s" (sacha-google-access-token))
+                    "-F" ,(format "metadata=%s;type=application/json;charset=UTF-8" (json-encode data))
+                    "-F" ,(format "file=@%s;type=%s" (expand-file-name file) mime-type)
+										"https://www.googleapis.com/upload/youtube/v3/videos?uploadType=multipart&part=snippet,status"))
+				 (url (concat "https://youtu.be/"
+											(alist-get 'id
+																 (with-temp-buffer
+																	 (apply #'call-process
+																					(car command)
+																					nil
+																					(current-buffer)
+																					nil
+																					(cdr command))
+																	 (goto-char (point-min))
+																	 (json-read))))))
+		(if (derived-mode-p 'org-mode)
+				(progn
+					(insert "yt:" url)
+					(unless (org-before-first-heading-p)
+						(org-set-property "YOUTUBE_URL" url)))
+			(insert url))))
 ;; Playing recordings:2 ends here
 
 ;; [[file:../Sacha.org::#streaming-and-videos-clip-something-from-the-current-recording][Clip something from the current recording:1]]
@@ -742,6 +770,7 @@ Save it to another file in my recordings directory, possibly with a note."
 					 "-y"
 					 new-filename))
 		(message "Clipped %d to %s" seconds new-filename)
+		(kill-new new-filename)
 		new-filename))
 
 (defun sacha-latest-clip ()

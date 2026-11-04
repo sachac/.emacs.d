@@ -51,7 +51,7 @@
 ;;   https://sachachua.com/dotemacs#photos
 ;;
 ;; - Use Tesseract to OCR an image and get line/word coordinates
-;;   https://sachachua.com/dotemacs#multimedia-images-use-tesseract-to-ocr-an-image-and-get-line-word-coordinates
+;;   https://sachachua.com/dotemacs#multimedia-images
 ;;
 ;; - Copy coordinates for an image
 ;;   https://sachachua.com/dotemacs#multimedia-images-copy-coordinates-for-an-image
@@ -93,287 +93,305 @@
 ;; [[file:../Sacha.org::#embark-image][Embark and images:3]]
 ;;;###autoload
 (defun sacha-image-open-in-annotator (file)
-  (interactive "FImage: ")
-  (start-process "annotator" nil "com.github.phase1geo.annotator" (expand-file-name file)))
+(interactive "FImage: ")
+(start-process "annotator" nil "com.github.phase1geo.annotator" (expand-file-name file)))
 
 ;;;###autoload
 (defun sacha-image-open-in-krita (file)
-  (interactive "FImage: ")
-  (start-process "krita" nil "krita" "--nosplash" (expand-file-name file)))
+(interactive "FImage: ")
+(start-process "krita" nil "krita" "--nosplash" (expand-file-name file)))
 
 ;;;###autoload
 (defun sacha-image-open-in-inkscape (file)
-  (interactive "FImage: ")
-  (start-process "inkscape" nil "inkscape" (expand-file-name file)))
+(interactive "FImage: ")
+(start-process "inkscape" nil "inkscape" (expand-file-name file)))
 
 ;;;###autoload
 (defun sacha-image-open-in-gimp (file)
-  (interactive "FImage: ")
-  (start-process "gimp" nil "gimp" (expand-file-name file)))
+(interactive "FImage: ")
+(start-process "gimp" nil "gimp" (expand-file-name file)))
 
 ;;;###autoload
 (defun sacha-open-in-firefox (file)
-  (interactive "FItem: ")
-  (start-process "firefox" nil "firefox" (if (string-match "^http" file) file (expand-file-name file))))
+(interactive "FItem: ")
+(start-process "firefox" nil "firefox" (if (string-match "^http" file) file (expand-file-name file))))
 
 (defvar sacha-image-autocrop-border 10)
 
 ;;;###autoload
 (defun sacha-image-autocrop (filename &optional border)
-  (interactive "FFile: ")
-  (setq border (or border sacha-image-autocrop-border))
-  (let ((args (append '("-trim")
-                      (if border `("-bordercolor" "#FFFFFF" "-border" ,(number-to-string border)))
-                      (list "+repage" (expand-file-name filename)))))
-    (apply #'call-process "mogrify" nil sacha-debug-buffer nil args)
-    filename))
+(interactive "FFile: ")
+(setq border (or border sacha-image-autocrop-border))
+(let ((args (append '("-trim")
+		    (if border `("-bordercolor" "#FFFFFF" "-border" ,(number-to-string border)))
+		    (list "+repage" (expand-file-name filename)))))
+  (apply #'call-process "mogrify" nil sacha-debug-buffer nil args)
+  filename))
 ;; Embark and images:3 ends here
 
 ;; [[file:../Sacha.org::#keybindings-embark-converting-handwriting-to-text][Converting handwriting to text:1]]
 ;;;###autoload
 (defun sacha-image-recognize (file)
-  "Returns the text."
-  (interactive "FFile: ")
-  (if (file-exists-p (concat (file-name-sans-extension file) ".txt"))
-      (with-temp-buffer
-        (insert-file-contents (concat (file-name-sans-extension file) ".txt"))
-        (buffer-string))
-    (let* ((data
-            (json-parse-string
-             (if (file-exists-p (concat (file-name-sans-extension file) ".json"))
-                 (with-temp-buffer
-                   (insert-file-contents (concat (file-name-sans-extension file) ".json"))
-                   (buffer-string))
-               (when (string= (file-name-extension file) "pdf")
-                 (setq file (sacha-sketch-convert-pdf file)))
-               (when (string= (file-name-extension file) "svg")
-                 (call-process "inkscape" nil sacha-debug-buffer nil "--export-type=png" "--export-dpi=96" "--export-background-opacity=1" "--pdf-poppler" (expand-file-name file)))
-               (catch 'done
-                 (dolist (ext '(".png" ".jpg" ".jpeg"))
-                   (when (file-exists-p (concat (file-name-sans-extension file) ext))
-                     (with-temp-file (concat (file-name-sans-extension file) ".json")
-                       (call-process "gcloud" nil t nil "ml" "vision" "detect-document"
-                                     (expand-file-name (concat (file-name-sans-extension file) ext)))
-                       (throw 'done (buffer-string)))))))
-             :object-type 'alist))
-           (text
-            (if (assoc-default 'responses data)
-                (assoc-default 'text (assoc-default 'fullTextAnnotation (elt (assoc-default 'responses data) 0)))
-              (assoc-default 'description (elt (assoc-default 'textAnnotations data) 0)))))
-      (with-temp-file (concat (file-name-sans-extension file) ".txt")
-        (insert text))
-      text)))
+"Returns the text."
+(interactive "FFile: ")
+(if (file-exists-p (concat (file-name-sans-extension file) ".txt"))
+    (with-temp-buffer
+      (insert-file-contents (concat (file-name-sans-extension file) ".txt"))
+      (buffer-string))
+  (let* ((data
+					      (if (file-exists-p (concat (file-name-sans-extension file) ".json"))
+	       (with-temp-buffer
+		 (insert-file-contents (concat (file-name-sans-extension file) ".json"))
+								       (goto-char (point-min))
+								       (json-read))
+	     (when (string= (file-name-extension file) "pdf")
+	       (setq file (sacha-sketch-convert-pdf file)))
+	     (when (string= (file-name-extension file) "svg")
+	       (call-process "inkscape" nil sacha-debug-buffer nil "--export-type=png" "--export-dpi=96" "--export-background-opacity=1" "--pdf-poppler" (expand-file-name file)))
+	     (catch 'done
+	       (dolist (ext '(".png" ".jpg" ".jpeg"))
+		 (when (file-exists-p (concat (file-name-sans-extension file) ext))
+									       (let* ((body
+													       (json-encode
+														      `((requests ((image . ((content . ,(with-temp-buffer
+																																       (set-buffer-multibyte nil)
+																																       (insert-file-contents-literally
+																																	      (concat (file-name-sans-extension file) ext))
+																																       (base64-encode-region (point-min) (point-max))
+																																       (buffer-string)))))
+																				       (features ((type . "DOCUMENT_TEXT_DETECTION"))))))))
+													      (results (request-response-data
+																		      (request (concat "https://vision.googleapis.com/v1/images:annotate?key="
+																										       (getenv "GOOGLE_API_KEY"))
+																			      :type "POST"
+																			      :headers `(("Content-Type" . "application/json")
+																								       ("Accept" . "application/json"))
+																			      :data body
+																			      :sync t
+																			      :parser 'json-read))))
+										       (with-temp-file (concat (file-name-sans-extension file) ".json")
+											       (insert
+												      (json-encode results))
+											       (throw 'done results))))))))
+	 (text
+	  (if (assoc-default 'responses data)
+	      (assoc-default 'text (assoc-default 'fullTextAnnotation (elt (assoc-default 'responses data) 0)))
+	    (assoc-default 'description (elt (assoc-default 'textAnnotations data) 0)))))
+    (with-temp-file (concat (file-name-sans-extension file) ".txt")
+      (insert text))
+    text)))
 ;; Converting handwriting to text:1 ends here
 
 ;; [[file:../Sacha.org::#keybindings-embark-renaming-and-storing][Renaming and storing:1]]
 ;;;###autoload
-(defun sacha-image-rename-current-image-based-on-id (id)
-  (interactive
-   (let ((filename (if (derived-mode-p 'image-mode)
-                       (buffer-file-name)
-                     (dired-get-filename))))
-     (list
-      (if (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" filename)
-          (match-string 0 filename)
-        (read-string "ID: ")))))
-  (let* ((data (sacha-journal-get-by-zidstring id))
-         (old-file (if (derived-mode-p 'image-mode)
-                       (buffer-file-name)
-                     (dired-get-filename)))
-         (ext (file-name-extension old-file))
-         (new-prefix (concat id " " (plist-get data :Note)))
-         (text (plist-get data :Other))
-         new-file)
-    (when (and text (not (string= (string-trim text) "")))
-      (with-temp-file (concat (file-name-sans-extension old-file) ".txt")
-        (insert text)))
-    (when (derived-mode-p 'image-mode)
-      (kill-buffer))
-    (setq new-file
-          (sacha-image-store (sacha-rename-file-set old-file
-                                              new-prefix t)
-                          t))
-    (when (derived-mode-p 'image-mode)
-      (find-file new-file))
-    (find-file (concat (file-name-sans-extension new-file) ".txt"))))
+(defun sacha-image-rename-current-image-based-on-id (id &optional filename)
+	(interactive
+	 (let ((filename (if (derived-mode-p 'image-mode)
+											 (buffer-file-name)
+										 (dired-get-filename))))
+		 (list
+			(if (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" filename)
+					(match-string 0 filename)
+				(read-string "ID: ")))))
+	(let* ((data (sacha-journal-get-by-zidstring id))
+				 (old-file (or filename
+											 (if (derived-mode-p 'image-mode)
+													 (buffer-file-name)
+												 (dired-get-filename))))
+				 (ext (file-name-extension old-file))
+				 (new-prefix (concat id " " (plist-get data :Note)))
+				 (text (plist-get data :Other))
+				 new-file)
+		(when (and text (not (string= (string-trim text) "")))
+			(with-temp-file (concat (file-name-sans-extension old-file) ".txt")
+				(insert text)))
+		(when (derived-mode-p 'image-mode)
+			(kill-buffer))
+		(setq new-file
+					(sacha-image-store (sacha-rename-file-set old-file
+																										new-prefix t)
+														 t))
+		(when (derived-mode-p 'image-mode)
+			(find-file new-file))
+		(find-file (concat (file-name-sans-extension new-file) ".txt"))))
 
 ;;;###autoload
 (defun sacha-image-recognize-get-new-filename (file)
-  (interactive "FFile: ")
-  (if-let* ((text (sacha-image-recognize file))
-            (id (and (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" text)
-                     (match-string 0 text)))
-            (data (and id (sacha-journal-get-by-zidstring id))))
-      (expand-file-name
-       (concat id " " (plist-get data :Note) "." (file-name-extension file))
-       (file-name-directory file))
-    file))
+	(interactive "FFile: ")
+	(if-let* ((text (sacha-image-recognize file))
+						(id (and (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9]" text)
+										 (match-string 0 text)))
+						(data (and id (sacha-journal-get-by-zidstring id))))
+			(expand-file-name
+			 (concat id " " (plist-get data :Note) "." (file-name-extension file))
+			 (file-name-directory file))
+		file))
 
 ;;;###autoload
 (defun sacha-image-recognize-and-rename (file)
-  (interactive "FFile: ")
-  (let ((new-name (expand-file-name (sacha-image-recognize-get-new-filename file)
-                                    (file-name-directory file))))
-    (rename-file file new-name t)
-    new-name))
+	(interactive "FFile: ")
+	(let ((new-name (expand-file-name (sacha-image-recognize-get-new-filename file)
+																		(file-name-directory file))))
+		(rename-file file new-name t)
+		new-name))
 
 ;;;###autoload
 (defun sacha-image-tags (file)
-  (setq file (file-name-base file))
-  (cond
-   ((string-match "#\\([^ ]+\\)" file)
-    (let ((start-pos 0))
-      (cl-loop for match-pos = (string-match "#\\([^ \\.]+\\)" file start-pos)
-               while match-pos
-               collect (match-string 1 file)
-               do (setf start-pos (1+ match-pos)))))
-   ((string-match " -- \\(.+\\)" file)
-    (split-string (match-string 1 file) " "))))
+	(setq file (file-name-base file))
+	(cond
+	 ((string-match "#\\([^ ]+\\)" file)
+		(let ((start-pos 0))
+			(cl-loop for match-pos = (string-match "#\\([^ \\.]+\\)" file start-pos)
+							 while match-pos
+							 collect (match-string 1 file)
+							 do (setf start-pos (1+ match-pos)))))
+	 ((string-match " -- \\(.+\\)" file)
+		(split-string (match-string 1 file) " "))))
 
 ;;;###autoload
 (defun sacha-image-name-without-tags (file)
-  (replace-regexp-in-string " -- \\([^\\.]+\\)" (replace-regexp-in-string " #\\([^\\.]+\\)" "" file)))
+	(replace-regexp-in-string " -- \\([^\\.]+\\)" (replace-regexp-in-string " #\\([^\\.]+\\)" "" file)))
 
 ;;;###autoload
 (defun sacha-image-rename-set (old-name new-name &optional tags do-copy)
-  (when (or (not (string= old-name new-name)) tags)
-    (when tags
-      (setq new-name (concat (sacha-image-name-without-tags new-name)
-                             " -- "
-                             (string-join tags " ")
-                             (file-name-extension new-name))))
-    (dolist (file (sacha-file-set old-name))
-      (funcall
-       (if do-copy
-           'copy-file
-         'rename-file)
-       file
-       (concat (file-name-sans-extension new-name) "." (file-name-extension file))
-       t)))
-  new-name)
+	(when (or (not (string= old-name new-name)) tags)
+		(when tags
+			(setq new-name (concat (sacha-image-name-without-tags new-name)
+														 " -- "
+														 (string-join tags " ")
+														 (file-name-extension new-name))))
+		(dolist (file (sacha-file-set old-name))
+			(funcall
+			 (if do-copy
+					 'copy-file
+				 'rename-file)
+			 file
+			 (concat (file-name-sans-extension new-name) "." (file-name-extension file))
+			 t)))
+	new-name)
 
 ;;;###autoload
 (defun sacha-image-store (file &optional do-move)
-  "Copy or move this image into public or private sketches as needed."
-  (interactive (list (if (derived-mode-p 'image-mode)
-                         (buffer-file-name)
-                       (dired-get-filename))
-                     t))
-  (unless (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] " (file-name-nondirectory file))
-    (setq file (sacha-image-recognize-and-rename file)))
-  (if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] " (file-name-nondirectory file))
-      (let ((private (member "private" (sacha-image-tags file))))
-        (sacha-image-rename-set
-         file
-         (expand-file-name
-          (file-name-nondirectory file)
-          (if private
-              sacha-private-sketches-directory
-            (car sacha-sketch-directories)))))
-    file))
+	"Copy or move this image into public or private sketches as needed."
+	(interactive (list (if (derived-mode-p 'image-mode)
+												 (buffer-file-name)
+											 (dired-get-filename))
+										 t))
+	(unless (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] " (file-name-nondirectory file))
+		(setq file (sacha-image-recognize-and-rename file)))
+	(if (string-match "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9] " (file-name-nondirectory file))
+			(let ((private (member "private" (sacha-image-tags file))))
+				(sacha-image-rename-set
+				 file
+				 (expand-file-name
+					(file-name-nondirectory file)
+					(if private
+							sacha-private-sketches-directory
+						(car sacha-sketch-directories)))))
+		file))
 
 ;;;###autoload
 (defun sacha-image-copy-text (file)
-  (interactive "FImage: ")
-  (kill-new (sacha-image-recognize file)))
+	(interactive "FImage: ")
+	(kill-new (sacha-image-recognize file)))
 
 ;;;###autoload
 (defun sacha-image-insert-text-as-details (file)
-  (interactive "FImage: ")
-  (when (and (derived-mode-p 'org-mode)
-             (eq (org-element-type (org-element-context)) 'link))
-    (goto-char (org-element-end (org-element-context))))
-  (insert "\n#+begin_my_details\n" (sacha-image-recognize file) "\n#+end_my_details\n"))
+	(interactive "FImage: ")
+	(when (and (derived-mode-p 'org-mode)
+						 (eq (org-element-type (org-element-context)) 'link))
+		(goto-char (org-element-end (org-element-context))))
+	(insert "\n#+begin_my_details\n" (sacha-image-recognize file) "\n#+end_my_details\n"))
 
 ;;;###autoload
 (defun sacha-image-thumbnail (path)
-  (interactive "FImage: ")
-  (let* ((filename (expand-file-name (concat "thumb-" (file-name-nondirectory path))
-                                     (file-name-directory path))))
-    (call-process "convert" nil nil nil path "-thumbnail" "500x" filename)
-    (kill-new filename)
-    filename))
+	(interactive "FImage: ")
+	(let* ((filename (expand-file-name (concat "thumb-" (file-name-nondirectory path))
+																		 (file-name-directory path))))
+		(call-process "convert" nil nil nil path "-thumbnail" "500x" filename)
+		(kill-new filename)
+		filename))
 ;; Renaming and storing:1 ends here
 
 ;; [[file:../Sacha.org::screenshots][screenshots]]
-  (defvar sacha-screenshot-dirs
-          '("~/recordings"
-                  "~/.var/app/org.prismlauncher.PrismLauncher/data/PrismLauncher/instances/"
-                  "~/sync/gdlauncher-instances/"
-                  ))
-  (defvar sacha-recent-screenshot-limit 50)
+(defvar sacha-screenshot-dirs
+	'("~/recordings"
+		"~/.var/app/org.prismlauncher.PrismLauncher/data/PrismLauncher/instances/"
+		"~/sync/gdlauncher-instances/"
+		))
+(defvar sacha-recent-screenshot-limit 50)
 
 ;;;###autoload
-  (defun sacha-combined-screenshots (&optional limit)
-          (seq-take
-           (sort
-                  (seq-mapcat (lambda (dir)
-                                                                          (directory-files-recursively dir "[0-9][0-9][0-9][0-9]-.*\\.\\(png\\|webm\\|gif\\|svg\\|mkv\\)"))
-                                                                  sacha-screenshot-dirs)
-                  :key (lambda (o) (file-attribute-modification-time (file-attributes o)))
-                  :reverse t)
-           (or limit sacha-recent-screenshot-limit)))
+(defun sacha-combined-screenshots (&optional limit)
+	(seq-take
+	 (sort
+		(seq-mapcat (lambda (dir)
+									(directory-files-recursively dir "[0-9][0-9][0-9][0-9]-.*\\.\\(png\\|webm\\|gif\\|svg\\|mkv\\)"))
+								sacha-screenshot-dirs)
+		:key (lambda (o) (file-attribute-modification-time (file-attributes o)))
+		:reverse t)
+	 (or limit sacha-recent-screenshot-limit)))
 
 ;;;###autoload
-  (defun sacha-latest-screenshot ()
-          (car (sacha-combined-screenshots)))
+(defun sacha-latest-screenshot ()
+	(car (sacha-combined-screenshots)))
 
 ;;;###autoload
-  (defun sacha-show-combined-screenshots (&optional limit)
-          "Show thumbnails for combined screenshots."
-          (interactive (list (when current-prefix-arg (read-number "Limit: "))))
-          (condition-case nil
-                          ;; ignore errors from image-dired trying to set default-directory
-                          (image-dired-show-all-from-dir
-                           (cons (car sacha-screenshot-dirs) (sacha-combined-screenshots limit)))
-                  (error nil)))
+(defun sacha-show-combined-screenshots (&optional limit)
+	"Show thumbnails for combined screenshots."
+	(interactive (list (when current-prefix-arg (read-number "Limit: "))))
+	(condition-case nil
+			;; ignore errors from image-dired trying to set default-directory
+			(image-dired-show-all-from-dir
+			 (cons (car sacha-screenshot-dirs) (sacha-combined-screenshots limit)))
+		(error nil)))
 ;; screenshots ends here
 
 ;; [[file:../Sacha.org::#saving-photos][Saving photos:1]]
 ;;;###autoload
 (defun sacha-save-photo (name)
-  (interactive "MName: ")
-  (let* ((file (dired-get-filename))
-         new-name)
-    (cond
-     ((string-match "CameraZOOM-\\([0-9][0-9][0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9][0-9]\\)" file)
-      (setq new-name
-            (format "%s-%s-%s %s.%s.%s.%s %s.jpg"
-                    (match-string 1 file)
-                    (match-string 2 file)
-                    (match-string 3 file)
-                    (match-string 4 file)
-                    (match-string 5 file)
-                    (match-string 6 file)
-                    (match-string 7 file)
-                    name)))
-     ((string-match "\\([0-9][0-9][0-9][0-9]\\)[\\.-]\\([0-9][0-9]\\)[\\.-]\\([0-9][0-9]\\)[\\.- ]\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)" file)
-      (setq new-name
-            (format "%s-%s-%s %s.%s.%s %s.jpg"
-                    (match-string 1 file)
-                    (match-string 2 file)
-                    (match-string 3 file)
-                    (match-string 4 file)
-                    (match-string 5 file)
-                    (match-string 6 file)
-                    name)))
-     (t (setq new-name (concat (file-name-sans-extension (file-name-nondirectory file)) " " name ".jpg"))))
-    (when (string-match "A-" name)
-      (copy-file file (expand-file-name new-name sacha-kid-photo-directory)))
-    (rename-file file (expand-file-name new-name "~/archives/2016/photos/selected/"))))
+(interactive "MName: ")
+(let* ((file (dired-get-filename))
+       new-name)
+  (cond
+   ((string-match "CameraZOOM-\\([0-9][0-9][0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9]\\)\\([0-9][0-9][0-9]\\)" file)
+    (setq new-name
+	  (format "%s-%s-%s %s.%s.%s.%s %s.jpg"
+		  (match-string 1 file)
+		  (match-string 2 file)
+		  (match-string 3 file)
+		  (match-string 4 file)
+		  (match-string 5 file)
+		  (match-string 6 file)
+		  (match-string 7 file)
+		  name)))
+   ((string-match "\\([0-9][0-9][0-9][0-9]\\)[\\.-]\\([0-9][0-9]\\)[\\.-]\\([0-9][0-9]\\)[\\.- ]\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)" file)
+    (setq new-name
+	  (format "%s-%s-%s %s.%s.%s %s.jpg"
+		  (match-string 1 file)
+		  (match-string 2 file)
+		  (match-string 3 file)
+		  (match-string 4 file)
+		  (match-string 5 file)
+		  (match-string 6 file)
+		  name)))
+   (t (setq new-name (concat (file-name-sans-extension (file-name-nondirectory file)) " " name ".jpg"))))
+  (when (string-match "A-" name)
+    (copy-file file (expand-file-name new-name sacha-kid-photo-directory)))
+  (rename-file file (expand-file-name new-name "~/archives/2016/photos/selected/"))))
 ;;;###autoload
 (defun sacha-backup-media ()
-  (interactive)
-  (mapcar (lambda (file)
-            (rename-file
-             file
-             (expand-file-name
-              (file-name-nondirectory file)
-              (cond
-               ((string-match "mp4" file) "~/archives/2016/videos/")
-               ((string-match "mp3\\|wav" file) "~/archives/2016/audio/")
-               (t "~/archives/2016/photos/backup/")))))
-          (dired-get-marked-files)))
+(interactive)
+(mapcar (lambda (file)
+	  (rename-file
+	   file
+	   (expand-file-name
+	    (file-name-nondirectory file)
+	    (cond
+	     ((string-match "mp4" file) "~/archives/2016/videos/")
+	     ((string-match "mp3\\|wav" file) "~/archives/2016/audio/")
+	     (t "~/archives/2016/photos/backup/")))))
+	(dired-get-marked-files)))
 ;; Saving photos:1 ends here
 
 ;; [[file:../Sacha.org::#screenshot][Take screenshots in different ways:1]]
@@ -381,141 +399,141 @@
 
 ;;;###autoload
 (defun sacha-screenshot (&optional filename current-screen caption)
-  "Save a screenshot of the current frame as an SVG image.
+"Save a screenshot of the current frame as an SVG image.
 Saves to a temp file and puts the filename in the kill ring.
 Prompt for a caption afterwards."
-  (interactive (list nil t))
-  (if current-screen
-      (setq filename (sacha-screenshot-current-screen filename))
-    (setq filename (or filename
-                       (expand-file-name
-                        (format-time-string "%Y-%m-%d-%H-%M-%S.svg")
-                        sacha-recordings-dir)))
-    (with-temp-file filename
-      (insert (x-export-frames nil 'svg))))
-  (when (called-interactively-p 'any)
-    (unless caption
-      (save-window-excursion
-        (with-current-buffer (find-file-noselect filename) (display-buffer (current-buffer)))
-        (setq caption (read-string "Caption: "))))
-    (when (and caption (not (string= caption "")))
-      (let ((new-filename (concat
-                           (file-name-sans-extension filename)
-                           " " caption
-                           "." (file-name-extension filename))))
-        (rename-file filename new-filename t)
-        (setq filename new-filename)))
-    (kill-new filename)
-    (message filename))
-  (run-hook-with-args 'sacha-screenshot-hook filename)
-  filename)
+(interactive (list nil t))
+(if current-screen
+    (setq filename (sacha-screenshot-current-screen filename))
+  (setq filename (or filename
+		     (expand-file-name
+		      (format-time-string "%Y-%m-%d-%H-%M-%S.svg")
+		      sacha-recordings-dir)))
+  (with-temp-file filename
+    (insert (x-export-frames nil 'svg))))
+(when (called-interactively-p 'any)
+  (unless caption
+    (save-window-excursion
+      (with-current-buffer (find-file-noselect filename) (display-buffer (current-buffer)))
+      (setq caption (read-string "Caption: "))))
+  (when (and caption (not (string= caption "")))
+    (let ((new-filename (concat
+			 (file-name-sans-extension filename)
+			 " " caption
+			 "." (file-name-extension filename))))
+      (rename-file filename new-filename t)
+      (setq filename new-filename)))
+  (kill-new filename)
+  (message filename))
+(run-hook-with-args 'sacha-screenshot-hook filename)
+filename)
 
 ;;;###autoload
 (defun sacha-screenshot-current-screen (&optional filename)
-  (interactive)
-  (let ((new-file
-         (or filename
-             (expand-file-name
-              (format-time-string "%Y-%m-%d-%H-%M-%S.png")
-              sacha-recordings-dir))))
-    (call-process
-     "spectacle"
-     nil nil nil
-      "-b" "-m" "-n" "-o" new-file)
-    new-file))
+(interactive)
+(let ((new-file
+       (or filename
+	   (expand-file-name
+	    (format-time-string "%Y-%m-%d-%H-%M-%S.png")
+	    sacha-recordings-dir))))
+  (call-process
+   "spectacle"
+   nil nil nil
+    "-b" "-m" "-n" "-o" new-file)
+  new-file))
 (defun sacha-save-screenshot (filename)
-	"Save FILENAME as an Org capture."
-  (org-capture-string filename "S"))
+      "Save FILENAME as an Org capture."
+(org-capture-string filename "S"))
 
 ;;;###autoload
 (defun sacha-screenshot-current-frame (filename &optional frame)
-  "Take a screenshot of FRAME."
-  (interactive)
-	(redisplay)
-	(shell-command
-	 (format "import -frame -window %s %s"
-					 (frame-parameter frame 'window-id)
-					 (shell-quote-argument (expand-file-name filename)))))
+"Take a screenshot of FRAME."
+(interactive)
+      (redisplay)
+      (shell-command
+       (format "import -frame -window %s %s"
+				       (frame-parameter frame 'window-id)
+				       (shell-quote-argument (expand-file-name filename)))))
 ;; Take screenshots in different ways:1 ends here
 
 ;; [[file:../Sacha.org::sacha-org-insert-screenshot][sacha-org-insert-screenshot]]
 (defvar mastodon-toot-mode)
 ;;;###autoload
 (defun sacha-org-insert-screenshot (file &optional note)
-  (interactive (list
-                (if current-prefix-arg
-                    (consult--read
-                     (sacha-combined-screenshots)
-                     :sort nil
-                     :require-match t
-                     :category 'file)
-									(sacha-latest-screenshot))))
-	(cond
-	 ((and (boundp 'mastodon-toot-mode) mastodon-toot-mode)
-		(setq mastodon-toot--media-attachments
-					(nconc mastodon-toot--media-attachments
-                 `(((:contents . ,(mastodon-http--read-file-as-string file))
-                    (:description . ,(or note (read-string "Caption: ")))
-                    (:filename . ,file)))))
-		(mastodon-toot--refresh-attachments-display)
-    (mastodon-toot--upload-attached-media
-     (car (last mastodon-toot--media-attachments))))
-	 ((derived-mode-p 'subed-mode)
-		(insert "NOTE\n" (org-link-make-string (concat "file:" file)) "\n"))
-	 (t
-		(save-window-excursion
-			(if (string-match "webm" file)
-					(progn
-						(mpv-play file)
-						(insert "#+begin_media-post\n"
-                    (org-link-make-string (concat "video:" file "?caption=" (or note (read-string "Caption: ")))) "\n"
-                    "#+end_media-post\n"))
-				(with-current-buffer (find-file-noselect file) (display-buffer (current-buffer)))
-				(insert "#+CAPTION: " (or note (read-string "Caption: ")) "\n"
-								(org-link-make-string (concat "file:" file)
-                                      (concat "file:" file)
-                                      )))))))
+(interactive (list
+	      (if current-prefix-arg
+		  (consult--read
+		   (sacha-combined-screenshots)
+		   :sort nil
+		   :require-match t
+		   :category 'file)
+								      (sacha-latest-screenshot))))
+      (cond
+       ((and (boundp 'mastodon-toot-mode) mastodon-toot-mode)
+	      (setq mastodon-toot--media-attachments
+				      (nconc mastodon-toot--media-attachments
+	       `(((:contents . ,(mastodon-http--read-file-as-string file))
+		  (:description . ,(or note (read-string "Caption: ")))
+		  (:filename . ,file)))))
+	      (mastodon-toot--refresh-attachments-display)
+  (mastodon-toot--upload-attached-media
+   (car (last mastodon-toot--media-attachments))))
+       ((derived-mode-p 'subed-mode)
+	      (insert "NOTE\n" (org-link-make-string (concat "file:" file)) "\n"))
+       (t
+	      (save-window-excursion
+		      (if (string-match "webm" file)
+				      (progn
+					      (mpv-play file)
+					      (insert "#+begin_media-post\n"
+		  (org-link-make-string (concat "video:" file "?caption=" (or note (read-string "Caption: ")))) "\n"
+		  "#+end_media-post\n"))
+			      (with-current-buffer (find-file-noselect file) (display-buffer (current-buffer)))
+			      (insert "#+CAPTION: " (or note (read-string "Caption: ")) "\n"
+							      (org-link-make-string (concat "file:" file)
+				    (concat "file:" file)
+				    )))))))
 
 ;;;###autoload
 (defun sacha-copy-last-screenshot-to-file (new-filename)
-  (interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (sacha-latest-screenshot))))))
-  (copy-file (sacha-latest-screenshot) new-filename))
+(interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (sacha-latest-screenshot))))))
+(copy-file (sacha-latest-screenshot) new-filename))
 
 ;;;###autoload
 (defun sacha-copy-last-screenshot-and-insert-into-org (new-filename caption)
-  (interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (sacha-latest-screenshot))))
-                     (read-string "Caption: ")))
-	(let ((screenshot (sacha-latest-screenshot)))
-		(copy-file screenshot new-filename t)
-		(insert "#+CAPTION: " caption "\n"
-						(org-link-make-string (concat "file:"
-																					(file-relative-name
-																					 (expand-file-name
-																						(file-name-nondirectory screenshot)
-																						new-filename))))
-						"\n")))
+(interactive (list (read-file-name (format "Copy %s to: " (file-name-nondirectory (sacha-latest-screenshot))))
+		   (read-string "Caption: ")))
+      (let ((screenshot (sacha-latest-screenshot)))
+	      (copy-file screenshot new-filename t)
+	      (insert "#+CAPTION: " caption "\n"
+					      (org-link-make-string (concat "file:"
+																				      (file-relative-name
+																				       (expand-file-name
+																					      (file-name-nondirectory screenshot)
+																					      new-filename))))
+					      "\n")))
 
 ;;;###autoload
 (defun sacha-convert-latest-recording ()
-  (interactive)
-  (let* ((latest (expand-file-name (sacha-latest-screenshot))))
-    (pcase (file-name-extension latest)
-      ("mkv"
-       (message "Converting %s..." latest)
-       (let ((new-file (new-file (concat (file-name-sans-extension latest) ".webm"))))
-         (make-process :name "ffmpeg"
-                       :buffer "*ffmpeg*"
-                       :command
-                       (list "ffmpeg" "-i" latest "-y" new-file)
-                       :sentinel
-                       (lambda (proc status)
-                         (when (string-match "finished" status)
-                           (message "%s done." new-file))))))
-      ("svg"
-       (let ((new-file (concat (file-name-sans-extension latest) ".png")))
-         (call-process "convert" nil nil nil latest new-file)
-         (kill-new new-file)
-         (message "Converted %s to %s" latest new-file))))))
+(interactive)
+(let* ((latest (expand-file-name (sacha-latest-screenshot))))
+  (pcase (file-name-extension latest)
+    ("mkv"
+     (message "Converting %s..." latest)
+     (let ((new-file (new-file (concat (file-name-sans-extension latest) ".webm"))))
+       (make-process :name "ffmpeg"
+		     :buffer "*ffmpeg*"
+		     :command
+		     (list "ffmpeg" "-i" latest "-y" new-file)
+		     :sentinel
+		     (lambda (proc status)
+		       (when (string-match "finished" status)
+			 (message "%s done." new-file))))))
+    ("svg"
+     (let ((new-file (concat (file-name-sans-extension latest) ".png")))
+       (call-process "convert" nil nil nil latest new-file)
+       (kill-new new-file)
+       (message "Converted %s to %s" latest new-file))))))
 ;; sacha-org-insert-screenshot ends here
 
 ;; [[file:../Sacha.org::#photos][Photos:1]]
@@ -588,7 +606,7 @@ Prompt for a caption afterwards."
     (if (called-interactively-p 'any) (insert result) result)))
 ;; Photos:2 ends here
 
-;; [[file:../Sacha.org::#multimedia-images-use-tesseract-to-ocr-an-image-and-get-line-word-coordinates][Use Tesseract to OCR an image and get line/word coordinates:1]]
+;; [[file:../Sacha.org::*Use Tesseract to OCR an image and get line/word coordinates][Use Tesseract to OCR an image and get line/word coordinates:1]]
 (eval-when-compile
 	(require 'dom))
 (defun sacha-image-ocr-tesseract-parse-hocr (dom)

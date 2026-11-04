@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2026-06-24 Wed 11:07 -->
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Warn if I'm exporting placeholders or private information</title>
-<meta name="generator" content="Org Mode" />
+<!-- 2026-10-26 Mon 23:50 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Speech shortcuts</title>
+<meta name="generator" content="Org Mode">
 <link rel="stylesheet" type="text/css" href="https://sachachua.com/assets/css/htmlize.css"/>
 <link rel="stylesheet" type="text/css" href="https://sachachua.com/assets/css/readtheorg.css"/>
 <link rel="stylesheet" type="text/css" href="https://sachachua.com/assets/css/readtheorg-sacha.css"/>
@@ -23,14 +23,68 @@
 </div>
 <div id="content" class="content">
 <header>
-<h1 class="title">Warn if I'm exporting placeholders or private information</h1>
-</header><p>
-uffer-string))
-						 (not (y-or-n-p (format "Warning: %s found. Continue? " (match-string 0) (buffer-string)))))
-		(error "Stopping as requested")))
-#+end_src
+<h1 class="title">Speech shortcuts</h1>
+</header><div class="org-src-container">
+<pre class="src src-emacs-lisp"><code>(<span class="org-keyword">phony-defun</span> undo (<span class="org-string">"undo"</span>) (undo))
+(<span class="org-keyword">phony-defun</span> redo (<span class="org-string">"redo"</span>) (undo-redo))
+(<span class="org-keyword">phony-defun</span> winner (<span class="org-string">"winner"</span>) (winner-undo))
+
+(<span class="org-keyword">phony-defun</span> pick-paragraph (<span class="org-string">"pick"</span> <span class="org-string">"paragraph"</span>) (mark-paragraph))
+(<span class="org-keyword">phony-defun</span> pick-subtree (<span class="org-string">"pick"</span> <span class="org-string">"subtree"</span>) (org-mark-subtree))
+(<span class="org-keyword">phony-defun</span> pick-sub-tree (<span class="org-string">"pick"</span> <span class="org-string">"sub tree"</span>) (org-mark-subtree))
+(<span class="org-keyword">phony-defun</span> pick-contents (<span class="org-string">"pick"</span> <span class="org-string">"contents"</span>)
+  (org-back-to-heading)
+  (org-end-of-meta-data)
+  (push-mark)
+  (org-end-of-subtree)
+  (activate-mark))
+(<span class="org-keyword">phony-defun</span> pick-element (<span class="org-string">"pick"</span> <span class="org-string">"element"</span>) (org-mark-element))
+(<span class="org-keyword">phony-defun</span> pick-line (<span class="org-string">"pick"</span> <span class="org-string">"line"</span>)
+  (goto-char (line-beginning-position))
+  (push-mark)
+  (goto-char (line-end-position))
+  (activate-mark))
+
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha-mark-list</span> ()
+  <span class="org-doc">"Mark the current list."</span>
+  (<span class="org-keyword">let</span> ((list (org-list-struct)))
+    (goto-char (caar list))
+    (push-mark)
+    (goto-char (car (last (car list))))
+    (activate-mark)))
+
+(<span class="org-keyword">phony-defun</span> pick-list (<span class="org-string">"pick"</span> <span class="org-string">"list"</span>)
+  (sacha-mark-list))
+
+(<span class="org-keyword">phony-defun</span> pick-element-contents (<span class="org-string">"pick"</span> <span class="org-string">"element"</span> <span class="org-string">"contents"</span>)
+  (<span class="org-keyword">let</span> ((elem (org-element-context)))
+    (goto-char (<span class="org-keyword">or</span> (org-element-contents-begin elem)
+                   (org-element-begin elem)))
+    (push-mark)
+    (goto-char (<span class="org-keyword">or</span> (org-element-contents-end elem)
+                   (org-element-end elem)))
+    (activate-mark)))
+
+(<span class="org-keyword">phony-defun</span> toggle-list (<span class="org-string">"toggle"</span> <span class="org-string">"list"</span>)
+  (<span class="org-keyword">unless</span> (region-active-p)
+    (<span class="org-keyword">if</span> (org-list-struct)
+        (sacha-mark-list)
+      (mark-paragraph)))
+  (org-toggle-item nil))
+</code></pre>
+</div>
+
+<p>
+This is a test with several sentences.
+  The first sentence will be on its own line, following sentences will be on their own lines, too.
+  Maybe I'll have another sentence.
 </p>
 
-<div class="note">This is part of my <a href="https://sachachua.com/dotemacs#publishing">Emacs configuration.</a></div></div>
+<p>
+This is a third sentence.
+  Actually, it's the fourth or fifth.
+</p>
+
+<div class="note">This is part of my <a href="https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten">EmacsConfiguration.</a></div></div>
 </body>
 </html>

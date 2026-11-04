@@ -38,6 +38,9 @@
 ;; - Animating paths in order
 ;;   https://sachachua.com/dotemacs#svg-animating-paths-in-order
 ;;
+;; - Animate SVGs within Emacs itself
+;;   https://sachachua.com/dotemacs#how-can-i-generate-png-frames-that-step-through-the-highlights
+;;
 ;; - RevealJS CSS animation of sketches
 ;;   https://sachachua.com/dotemacs#reveal-js-sketch-animation
 ;;
@@ -89,6 +92,9 @@
 																					 'display spec)))
                   (setq image-fit-to-window-lock nil))))))))))
 
+(defvar sacha-svg-start-x "Keep the X coordinate for relative movements.")
+(defvar sacha-svg-start-y "Keep the Y coordinate for relative movements.")
+
 ;;;###autoload
 (defun sacha-svg-bounding-box (node)
 	"Return (x1 y1 x2 y2) for NODE.
@@ -105,31 +111,53 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 			(+ (string-to-number (dom-attr node 'x)) (string-to-number (dom-attr node 'width)))
 			(+ (string-to-number (dom-attr node 'y)) (string-to-number (dom-attr node 'height)))))
 		('path
-		 (let ((path (dom-attr node 'path))
+		 (let ((path (or (dom-attr node 'path)
+										 (dom-attr node 'd)))
 					 (x1 most-positive-fixnum)
 					 (y1 most-positive-fixnum)
 					 (x2 most-negative-fixnum)
 					 (y2 most-negative-fixnum)
-					 (x 0)
-					 (y 0)
+					 (start-x sacha-svg-start-x)
+					 (start-y sacha-svg-start-y)
+					 (x sacha-svg-start-x)
+					 (y sacha-svg-start-y)
 					 (i 0))
-			 (dolist (seg (s-slice-at " *[MCmc] *" path))
+			 (dolist (seg (s-slice-at " *[MCLZHVmclzhv] *" path))
 				 (unless (string= (string-trim seg) "")
 					 (setq seg (split-string seg "[ ,]") i 0)
 					 (let ((points (mapcar 'string-to-number (cdr seg))))
 						 (pcase (car seg)
-							 ((or "m" "M")
-								(if (or (eq (car seg) "M") (= i 0))
-										;; starting points are always absolute
+							 ("H" 										; horizontal line
+								(setq x (car points))
+								(when (< x x1) (setq x1 x))
+								(when (> x x2) (setq x2 x)))
+							 ("h" 										; horizontal line
+								(incf x (car points))
+								(when (< x x1) (setq x1 x))
+								(when (> x x2) (setq x2 x)))
+							 ("V"  										; vertical line
+								(setq y (car points))
+								(when (< y y1) (setq y1 y))
+								(when (> y y2) (setq y2 y)))
+							 ("v"  										; vertical line
+								(incf y (car points))
+								(when (< y y1) (setq y1 y))
+								(when (> y y2) (setq y2 y)))
+							 ((or "m" "M" "L" "l")
+								(if (string= (car seg) (upcase (car seg)))
 										(setq x (car points)
 													y (cadr points))
 									;; m, so relative movement
 									(setq x (+ x (car points))
 												y (+ y (cadr points))))
+								(setq start-x x)
+								(setq start-y y)
 								(when (< x x1) (setq x1 x))
 								(when (< y y1) (setq y1 y))
 								(when (> x x2) (setq x2 x))
 								(when (> y y2) (setq y2 y)))
+							 ("Z"
+								(setq x start-x y start-y))
 							 ("c"
 								(let ((old-x x) (old-y y))
 									(dolist (set (seq-partition points 6))
@@ -151,20 +179,33 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 										(when (> x x2) (setq x2 x))
 										(when (> y y2) (setq y2 y))))))
 						 (cl-incf i))))
+			 (setq sacha-svg-start-x x)
+			 (setq sacha-svg-start-y y)
 			 (list x1 y1 x2 y2)))
-		)
-	)
+		('g
+		 (let ((x1 most-positive-fixnum)
+					 (y1 most-positive-fixnum)
+					 (x2 most-negative-fixnum)
+					 (y2 most-negative-fixnum)
+					 (boxes (append (mapcar 'sacha-svg-bounding-box (dom-by-tag node 'path))
+													(mapcar 'sacha-svg-bounding-box (dom-by-tag node 'rect)))))
+			 (dolist (box boxes)
+				 (when (< (elt box 0) x1) (setq x1 (elt box 0)))
+				 (when (< (elt box 1) y1) (setq y1 (elt box 1)))
+				 (when (> (elt box 2) x2) (setq x2 (elt box 2)))
+				 (when (> (elt box 3) y2) (setq y2 (elt box 3))))
+			 (list x1 y1 x2 y2)))))
 ;; Identifying paths:1 ends here
 
 ;; [[file:../Sacha.org::#svg-identifying-paths][Identifying paths:3]]
 ;;;###autoload
-(defun sacha-svg-display (buffer-name svg &optional highlight-id full-window)
+(defun sacha-svg-display (buffer-name svg &optional highlight-id full-window selector)
 	"HIGHLIGHT-ID is a string ID or a node."
 	(with-current-buffer (get-buffer-create buffer-name)
 		(when highlight-id
 			;; make a copy
 			(setq svg (with-temp-buffer (svg-print svg) (car (xml-parse-region (point-min) (point-max)))))
-			(if-let* ((path (if (stringp highlight-id) (dom-by-id svg highlight-id) highlight-id))
+			(if-let* ((path (if (stringp highlight-id) (dom-by-id svg (concat "^" (regexp-quote highlight-id) "$")) highlight-id))
 								(view-box (split-string (dom-attr svg 'viewBox)))
 								(box (sacha-svg-bounding-box path))
 								(parent (car path)))
@@ -174,6 +215,10 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 							(setq parent (dom-parent svg parent)))
 						(dom-set-attribute path 'style
 															 (concat (dom-attr path 'style) "; stroke: 1px red; fill: #ff0000 !important"))
+						(when (and highlight-id selector)
+							(dolist (o (dom-by-tag svg selector))
+								(unless (string= (dom-attr o 'id) highlight-id)
+									(dom-set-attribute 'opacity sacha-svg-animation-dim))))
 						;; add a crosshair
 						(dom-append-child
 						 (or parent svg)
@@ -210,7 +255,7 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 			(current-buffer))))
 
 ;;;###autoload
-(cl-defun sacha-svg-identify-paths (filename &key selector node-func dom)
+(cl-defun sacha-svg-identify-paths (filename &key selector node-func dom display-selector)
 	"Prompt for IDs for each path in FILENAME."
 	(interactive (list (read-file-name "SVG: " nil nil
 																		 (lambda (f)
@@ -224,13 +269,13 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 				 (vertico-count 3)
 				 (ids (seq-keep (lambda (path)
 													(and (dom-attr path 'id)
-															 (unless (string-match "\\(path\\|rect\\)[0-9]+"
+															 (unless (string-match "\\(path\\|rect\\|g\\)[0-9]+"
 																										 (or (dom-attr path 'id) "path0"))
 																 (dom-attr path 'id))))
 												paths))
 				 (edges (window-inside-pixel-edges (get-buffer-window)))
 				 id)
-		(sacha-svg-display "*image*" dom nil t)
+		(sacha-svg-display "*image*" dom nil t display-selector)
 		(dolist (path paths)
 			;; display the image with an outline
 			(unwind-protect
@@ -242,12 +287,12 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 												(format "ID (%s): " (dom-attr path 'id))
 												ids))
 							;; already exists, merge with existing element
-							(if-let* ((old (dom-by-id dom id)))
+							(if-let* ((old (dom-by-id dom (format "^%s$" (regexp-quote id)))))
 									(progn
 										(dom-set-attribute
 										 old
 										 'd
-										 (concat (dom-attr (dom-by-id dom id) 'd)
+										 (concat (dom-attr (dom-by-id dom (format "^%s$" (regexp-quote id))) 'd)
 														 " "
 														 ;; change relative to absolute
 														 (replace-regexp-in-string "^m" "M"
@@ -259,6 +304,22 @@ better to set Inkscape's Preferences - Input/Output - SVG output
 			;; save the image just in case we get interrupted halfway through
 			(with-temp-file filename
 				(svg-print dom)))))
+
+;;;###autoload
+(defun sacha-svg-identify-groups (filename)
+	(interactive (list (read-file-name "SVG: " nil nil
+																		 (lambda (f)
+																			 (or (string-match "\\.svg$" f)
+																					 (file-directory-p f))))))
+	(sacha-svg-identify-paths
+	 filename
+	 :selector
+	 (lambda (elem)
+		 (and (eq (dom-tag elem) 'g)
+					(dom-attr elem 'id)
+					(dom-by-tag elem 'path)
+					(string-match "^g[0-9]+" (dom-attr elem 'id))))
+	 :display-selector 'g))
 
 ;;;###autoload
 (defun sacha-svg-identify-rects (filename)
@@ -603,7 +664,7 @@ Paths should have the title attribute."
 		(if ids ;; reorganize under the first path's parent
 				(progn
 					(dolist (id ids)
-						(if-let ((node (car (dom-by-id dom id))))
+						(if-let ((node (car (dom-by-id dom (format "^%s$" (regexp-quote id))))))
 								(progn
 									(dom-remove-node dom node)
 									(dom-append-child parent node))
@@ -614,17 +675,60 @@ Paths should have the title attribute."
 													(unless (string-match "path[0-9]+" (or (dom-attr path 'id) "path0"))
 														(dom-attr path 'id)))
 												(dom-by-tag dom 'path)))))
+
+(defun sacha-svg-reorder-groups (filename &optional ids output-filename)
+	"Sort groups in FILENAME."
+	(interactive (list
+								(read-file-name "SVG: " nil nil (lambda (f) (string-match "\\.svg$" f)))
+								nil
+								(if current-prefix-arg (read-file-name "Output: "))))
+	(let* ((dom (car (xml-parse-file filename)))
+				 (paths (dom-by-tag dom 'g))
+				 (ids-left
+					(nreverse (seq-keep (lambda (path)
+																(unless (string-match "g[0-9]+" (or (dom-attr path 'id) "g0"))
+																	(dom-attr path 'id)))
+															paths)))
+				 list)
+		(when (called-interactively-p)
+			(while ids-left
+				(sacha-svg-display "*image*" dom (car ids-left))
+				(let ((current (completing-read
+												(format "ID (%s): "
+																(car ids-left))
+												ids-left nil nil nil nil (car ids-left)))
+							node)
+					(add-to-list 'ids current)
+					(setq ids-left (seq-remove (lambda (o) (string= o current)) ids-left)))))
+		(if ids ;; reorganize under the first path's parent
+				(progn
+					(dolist (id ids)
+						(if-let ((node (car (dom-by-id dom (format "^%s$" (regexp-quote id))))))
+								(progn
+									(dom-remove-node dom node)
+									(dom-append-child dom node))
+							(message "Could not find %s" id)))
+					(with-temp-file (or output-filename filename)
+						(svg-print dom))))
+		(nreverse (seq-keep (lambda (path)
+													(unless (string-match "g[0-9]+" (or (dom-attr path 'id) "g0"))
+														(dom-attr path 'id)))
+												(dom-by-tag dom 'path)))))
 ;; Sorting paths:1 ends here
 
 ;; [[file:../Sacha.org::#svg-animating-paths-in-order][Animating paths in order:1]]
 ;;;###autoload
-(defun sacha-animate-svg-paths (filename output-dir)
+(defun sacha-animate-svg-paths (filename output-dir &optional elements clear-fn show-fn)
 	"Add one path at a time. Save the resulting SVGs to OUTPUT-DIR."
+	(interactive "FSVG: \nDDir: ")
 	(unless (file-directory-p output-dir)
 		(make-directory output-dir t))
 	(let* ((dom (xml-parse-file filename))
-				 (paths (seq-filter (lambda (e) (dom-attr e 'style))
-														(dom-by-tag dom 'path)))
+				 (paths
+					(if elements
+							(funcall elements dom)
+						(seq-filter (lambda (e) (dom-attr e 'style))
+												(dom-by-tag dom 'path))))
 				 (total (length paths))
 				 (frame-num (length paths))
 				 result)
@@ -633,30 +737,114 @@ Paths should have the title attribute."
 												 (concat
 													(dom-attr elem 'style)
 													";mix-blend-mode:darken")))
-		(with-temp-file (expand-file-name (format "frame-%03d.svg" (1+ frame-num)) output-dir)
+		(with-temp-file (expand-file-name (format "frame-%03d-END.svg" (1+ frame-num)) output-dir)
 			(xml-print dom))
 		(dolist (elem paths)
-			(dom-set-attribute elem 'style
-												 (concat
-													(dom-attr elem 'style)
-													";fill-opacity:0")))
+			(if (functionp clear-fn)
+					(funcall clear-fn elem)
+				(dom-set-attribute elem 'style
+													 (concat
+														(dom-attr elem 'style)
+														";fill-opacity:0"))))
 		(dolist (elem paths)
 			(with-temp-file (expand-file-name
-											 (format "frame-%03d.svg"
-															 (- total frame-num))
+											 (format "frame-%03d-%s.svg"
+															 (- total frame-num)
+															 (dom-attr elem 'id))
 											 output-dir)
-				(message "%03d" frame-num)
-				(dom-set-attribute elem 'style
-													 (concat (dom-attr elem 'style)
-																	 ";fill-opacity:1"))
-				(push (list (format "frame-%03d.svg"
-														(1+ (- total frame-num)))
+				(message "%03d-%s" frame-num (dom-attr elem 'id))
+				(if (functionp show-fn)
+						(funcall show-fn elem)
+					(dom-set-attribute elem 'style
+														 (concat (dom-attr elem 'style)
+																		 ";fill-opacity:1")))
+				(push (list (format "frame-%03d-%s.svg"
+														(1+ (- total frame-num))
+														(dom-attr elem 'id))
 										(dom-attr elem 'id))
 							result)
 				(setq frame-num (1- frame-num))
 				(xml-print dom)))
 		(reverse result)))
+
+;;;###autoload
+(defun sacha-animate-svg-groups (filename output-dir)
+	"Add one group at a time. Save the resulting SVGs to OUTPUT-DIR."
+	(interactive "FSVG: \nDDir: ")
+	(sacha-animate-svg-paths
+	 filename output-dir
+	 (lambda (dom)
+		 (reverse (dom-by-tag dom 'g)))
+	 (lambda (elem)
+		 (dom-set-attribute elem 'opacity "0"))
+	 (lambda (elem)
+		 (dom-set-attribute elem 'opacity "1.0"))))
 ;; Animating paths in order:1 ends here
+
+;; [[file:../Sacha.org::*Animate SVGs within Emacs itself][Animate SVGs within Emacs itself:1]]
+(defvar-keymap sacha-svg-animation-keymap
+	"n" #'sacha-svg-animate-groups-in-emacs-next
+	"SPC" #'sacha-svg-animate-groups-in-emacs-next
+	"S-SPC" #'sacha-svg-animate-groups-in-emacs-prev
+	"p" #'sacha-svg-animate-groups-in-emacs-prev
+	"q" #'kill-buffer)
+
+(defvar-local sacha-svg-animation-dom nil)
+(defvar-local sacha-svg-animation-groups nil)
+(defvar-local sacha-svg-animation-step 0)
+(defvar sacha-svg-animation-dim 0.2 "Opacity level of dimmed items.")
+
+(defun sacha-svg-animate-display-image (&optional dom)
+  "Display DOM or `sacha-svg-animation-dom'."
+	(with-current-buffer (get-buffer-create "*svg*")
+		(let* ((image (svg-image (or dom sacha-svg-animation-dom)))
+					 (edges (window-inside-pixel-edges (get-buffer-window)))
+					 (inhibit-read-only t))
+			(erase-buffer)
+			(insert-image (append image
+														(list :max-width
+																	(- (nth 2 edges) (nth 0 edges))
+																	:width
+																	(- (nth 2 edges) (nth 0 edges))
+																	:max-height
+																	(- (nth 3 edges) (nth 1 edges))))))))
+
+;;;###autoload
+(defun sacha-svg-animate-groups-in-emacs (svg)
+  "Open SVG and step through the groups."
+  (interactive "FFile: ")
+	(with-current-buffer (get-buffer-create "*svg*")
+		(erase-buffer)
+		(switch-to-buffer (current-buffer))
+		(delete-other-windows)
+		(use-local-map sacha-svg-animation-keymap)
+		(setq-local sacha-svg-animation-dom (car (xml-parse-file svg)))
+		(setq-local cursor-type nil)
+		(setq-local sacha-svg-animation-groups
+								(seq-filter (lambda (o)
+															(dom-by-tag o 'path))
+														(dom-by-tag sacha-svg-animation-dom 'g)))
+		(seq-map (lambda (o) (dom-set-attribute o 'opacity sacha-svg-animation-dim))
+						 (cdr sacha-svg-animation-groups))
+		(sacha-svg-animate-display-image)))
+
+(defun sacha-svg-animate-groups-in-emacs-next ()
+	(interactive)
+	(when (< sacha-svg-animation-step (1- (length sacha-svg-animation-groups)))
+		(incf sacha-svg-animation-step)
+		(dom-set-attribute (elt sacha-svg-animation-groups sacha-svg-animation-step)
+											 'opacity 1)
+		(sacha-svg-animate-display-image)))
+
+(defun sacha-svg-animate-groups-in-emacs-prev ()
+	(interactive)
+	(when (> sacha-svg-animation-step 0)
+		(dom-set-attribute (elt sacha-svg-animation-groups sacha-svg-animation-step)
+											 'opacity sacha-svg-animation-dim)
+		(decf sacha-svg-animation-step)
+		(sacha-svg-animate-display-image)))
+
+;; Animate SVGs within Emacs itself:1 ends here
 
 ;; [[file:../Sacha.org::revealjs-css-animation-code][revealjs-css-animation-code]]
 ;;;###autoload

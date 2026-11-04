@@ -48,27 +48,27 @@
 ;; [[file:../Sacha.org::#building-a-today-i-learned-habit-and-displaying-the-documentation-for-random-emacs-commands][Building a today-I-learned habit, and displaying the documentation for random Emacs commands:1]]
 ;;;###autoload
 (defun sacha-describe-random-interactive-function ()
-  (interactive)
-  "Show the documentation for a random interactive function.
-       Consider only documented, non-obsolete functions."
-  (let (result)
-    (mapatoms
-     (lambda (s)
-       (when (and (commandp s)
-                  (documentation s t)
-                  (null (get s 'byte-obsolete-info)))
-         (setq result (cons s result)))))
-    (describe-function (elt result (random (length result))))))
+(interactive)
+"Show the documentation for a random interactive function.
+     Consider only documented, non-obsolete functions."
+(let (result)
+  (mapatoms
+   (lambda (s)
+     (when (and (commandp s)
+		(documentation s t)
+		(null (get s 'byte-obsolete-info)))
+       (setq result (cons s result)))))
+  (describe-function (elt result (random (length result))))))
 ;; Building a today-I-learned habit, and displaying the documentation for random Emacs commands:1 ends here
 
 ;; [[file:../Sacha.org::#shuffling-lines][Shuffling lines:1]]
 ;;;###autoload
 (defun sacha-shuffle-lines-in-region (beg end)
-  "Randomize the order of lines from BEG to END."
-  (interactive "r")
-  (let ((list (split-string (buffer-substring beg end) "[\r\n]+")))
-    (delete-region beg end)
-    (insert (string-join (seq-sort-by (lambda (_) (random)) #'<= list) "\n"))))
+"Randomize the order of lines from BEG to END."
+(interactive "r")
+(let ((list (split-string (buffer-substring beg end) "[\r\n]+")))
+  (delete-region beg end)
+  (insert (string-join (seq-sort-by (lambda (_) (random)) #'<= list) "\n"))))
 ;; Shuffling lines:1 ends here
 
 ;; [[file:../Sacha.org::#controlling-sacha-stream-audio-from-emacs-background-music-typing-sounds-and-push-to-talk][Controlling my stream audio from Emacs: background music, typing sounds, and push to talk:3]]

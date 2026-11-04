@@ -68,7 +68,7 @@
     (delete-directory httpd-root t)))
 ;; Org Mode: Export HTML, copy files, and serve the results via simple-httpd so that media files work:2 ends here
 
-;; [[file:../Sacha.org::#sacha-org-insert-link-dwim][Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:3]]
+;; [[file:../Sacha.org::#sacha-org-insert-link-dwim][Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:4]]
 ;;;###autoload
 (defun sacha-page-title (url)
 	"Get the page title for URL. Simplify some titles."
@@ -92,7 +92,7 @@
 																			 'title)))
 							 "")))))))
 		(error nil)))
-;; Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:3 ends here
+;; Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:4 ends here
 
 ;; [[file:../Sacha.org::#web-emacs-open-urls-or-search-the-web-plus-browse-url-handlers][Emacs: Open URLs or search the web, plus browse-url-handlers:1]]
 (defcustom sacha-search-web-handler "https://duckduckgo.com/html/?q="

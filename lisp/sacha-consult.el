@@ -47,80 +47,80 @@
 
 ;; [[file:../Sacha.org::#completion-consult-consult-omni-bookmarks][Favorites:1]]
 ;;;###autoload
-(defun sacha-consult-omni-favorites-builder (input &rest args &key callback &allow-other-keys)
-  (let* ((quoted (when input (regexp-quote input)))
-         (list (sacha-org-favorites))
-         (candidates
-          (mapcar
-           (lambda (o)
-             (propertize
-              (concat (plist-get o :title) "\s"
-                      (plist-get o :url))
-              :source "Favorites"
-              :on-callback 'sacha-consult-org-favorite-visit
-              :title (plist-get o :title)
-              :url (plist-get o :url)))
-           (if quoted
-               (seq-filter
-                (lambda (o)
-                  (string-match quoted (concat (plist-get o :title) " - " (plist-get o :title))))
-                list)
-             list))))
-    (when callback (funcall callback candidates))
-    candidates))
+(cl-defun sacha-consult-omni-favorites-builder (input &rest args &key callback &allow-other-keys)
+(let* ((quoted (when input (regexp-quote input)))
+       (list (sacha-org-favorites))
+       (candidates
+	(mapcar
+	 (lambda (o)
+	   (propertize
+	    (concat (plist-get o :title) "\s"
+		    (plist-get o :url))
+	    :source "Favorites"
+	    :on-callback 'sacha-consult-org-favorite-visit
+	    :title (plist-get o :title)
+	    :url (plist-get o :url)))
+	 (if quoted
+	     (seq-filter
+	      (lambda (o)
+		(string-match quoted (concat (plist-get o :title) " - " (plist-get o :title))))
+	      list)
+	   list))))
+  (when callback (funcall callback candidates))
+  candidates))
 
 ;;;###autoload
 (defun sacha-consult-org-favorite-visit (o)
-  (browse-url (get-text-property 0 :url o)))
+(browse-url (get-text-property 0 :url o)))
 ;; Favorites:1 ends here
 
 ;; [[file:../Sacha.org::#completion-consult-consult-omni-blog-posts][Finding my blog posts with consult-omni:1]]
 ;;;###autoload
 (defun sacha-consult-omni-blog-data ()
-  (let ((base (replace-regexp-in-string "/$" "" sacha-blog-base-url))
-        (json-object-type 'alist)
-        (json-array-type 'list))
-    (mapcar
-     (lambda (o)
-       (list :url (concat base (alist-get 'permalink o))
-             :title (alist-get 'title o)
-             :date (alist-get 'date o)))
-     (sort (json-read-file "~/sync/static-blog/_site/blog/all/index.json")
-           (lambda (a b)
-             (string< (or (alist-get 'date b) "")
-                      (or (alist-get 'date a) "")))))))
+(let ((base (replace-regexp-in-string "/$" "" sacha-blog-base-url))
+      (json-object-type 'alist)
+      (json-array-type 'list))
+  (mapcar
+   (lambda (o)
+     (list :url (concat base (alist-get 'permalink o))
+	   :title (alist-get 'title o)
+	   :date (alist-get 'date o)))
+   (sort (json-read-file "~/sync/static-blog/_site/blog/all/index.json")
+	 (lambda (a b)
+	   (string< (or (alist-get 'date b) "")
+		    (or (alist-get 'date a) "")))))))
 (unless (get 'sacha-consult-omni-blog-data :memoize-original-function)
-  (memoize #'sacha-consult-omni-blog-data "5 minutes"))
+(memoize #'sacha-consult-omni-blog-data "5 minutes"))
 
 ;;;###autoload
-(defun sacha-consult-omni-blog-titles-builder (input &rest args &key callback &allow-other-keys)
-  (let* ((quoted (when input (regexp-quote input)))
-         (list
-          (if quoted
-              (seq-filter
-               (lambda (o)
-                 ;; TODO: Someday figure out orderless?
-                 (string-match quoted (concat (plist-get o :title) " - " (plist-get o :title))))
-               (sacha-consult-omni-blog-data))
-            (sacha-consult-omni-blog-data)))
-         (candidates
-          (mapcar
-           (lambda (o)
-             (propertize
-              (concat (plist-get o :title))
-              :source "Blog"
-              :date (plist-get o :date)
-              :title (plist-get o :title)
-              :url (plist-get o :url)))
-           (if quoted (seq-take list 3) list))))
-    (when callback (funcall callback candidates))
-    candidates))
+(cl-defun sacha-consult-omni-blog-titles-builder (input &rest args &key callback &allow-other-keys)
+(let* ((quoted (when input (regexp-quote input)))
+       (list
+	(if quoted
+	    (seq-filter
+	     (lambda (o)
+	       ;; TODO: Someday figure out orderless?
+	       (string-match quoted (concat (plist-get o :title) " - " (plist-get o :title))))
+	     (sacha-consult-omni-blog-data))
+	  (sacha-consult-omni-blog-data)))
+       (candidates
+	(mapcar
+	 (lambda (o)
+	   (propertize
+	    (concat (plist-get o :title))
+	    :source "Blog"
+	    :date (plist-get o :date)
+	    :title (plist-get o :title)
+	    :url (plist-get o :url)))
+	 (if quoted (seq-take list 3) list))))
+  (when callback (funcall callback candidates))
+  candidates))
 
 ;;;###autoload
 (defun sacha-consult-omni-blog-annotation (s)
-  (format " (%s)"
-          (propertize (substring (or (get-text-property 0 :date s) "") 0 4)
-                      'face 'completions-annotations)))
+(format " (%s)"
+	(propertize (substring (or (get-text-property 0 :date s) "") 0 4)
+		    'face 'completions-annotations)))
 ;; Finding my blog posts with consult-omni:1 ends here
 
 ;; [[file:../Sacha.org::#completion-consult-consult-omni-blog-posts][Finding my blog posts with consult-omni:2]]

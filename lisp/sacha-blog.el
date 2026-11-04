@@ -65,71 +65,71 @@
 
 ;;;###autoload
 (defun sacha-blog-posts (&optional start end filter-fn)
-  (let ((json-object-type 'alist)
-        (data (json-read-file "~/proj/static-blog/_site/blog/all/index.json")))
-    (if (or start end)
-        (seq-filter
-         (lambda (o)
-           (and (or (null start) (not (string< (alist-get 'date o) start)))
-                (or (null end) (string< (alist-get 'date o) end))
-                (or (null filter-fn) (funcall filter-fn o))))
-         data)
-      data)))
+(let ((json-object-type 'alist)
+      (data (json-read-file "~/proj/static-blog/_site/blog/all/index.json")))
+  (if (or start end)
+      (seq-filter
+       (lambda (o)
+	 (and (or (null start) (not (string< (alist-get 'date o) start)))
+	      (or (null end) (string< (alist-get 'date o) end))
+	      (or (null filter-fn) (funcall filter-fn o))))
+       data)
+    data)))
 
 ;;;###autoload
 (defun sacha-blog-edit-html (url)
-  (interactive (list (sacha-org-blog-complete)))
-  (let ((base (replace-regexp-in-string
-               (concat "^" (regexp-quote sacha-blog-base-url))
-               ""
-               url))
-        (filename (sacha-11ty-html-filename url)))
-    (if filename
-        (find-file filename)
-      (error "Could not find file."))))
+(interactive (list (sacha-org-blog-complete)))
+(let ((base (replace-regexp-in-string
+	     (concat "^" (regexp-quote sacha-blog-base-url))
+	     ""
+	     url))
+      (filename (sacha-11ty-html-filename url)))
+  (if filename
+      (find-file filename)
+    (error "Could not find file."))))
 
 ;;;###autoload
 (defun sacha-blog-edit-json (url)
-  (interactive (list (sacha-org-blog-complete)))
-  (let* ((filename (sacha-11ty-html-filename url))
-         (json (and filename (concat (file-name-sans-extension filename) ".11tydata.json"))))
-    (if json
-        (find-file json)
-      (error "Could not find file."))))
+(interactive (list (sacha-org-blog-complete)))
+(let* ((filename (sacha-11ty-html-filename url))
+       (json (and filename (concat (file-name-sans-extension filename) ".11tydata.json"))))
+  (if json
+      (find-file json)
+    (error "Could not find file."))))
 
 ;;;###autoload
 (defun sacha-view-blog-post-locally (url)
-  (interactive (list (sacha-org-blog-complete)))
-  (browse-url
-   (replace-regexp-in-string
-    (concat "^" (regexp-quote sacha-blog-base-url))
-    "https://localhost:8080/"
-    url)))
+(interactive (list (sacha-org-blog-complete)))
+(browse-url
+ (replace-regexp-in-string
+  (concat "^" (regexp-quote sacha-blog-base-url))
+  "https://localhost:8080/"
+  url)))
 
 ;;;###autoload
 (defun sacha-insert-blog-post-url (url)
-  (interactive (list (sacha-complete-blog-post-url)))
-  (insert url))
+(interactive (list (sacha-complete-blog-post-url)))
+(insert url))
 
 ;;;###autoload
 (defun sacha-blog-title (url)
-  (let ((base (replace-regexp-in-string
-               (concat "^" (regexp-quote sacha-blog-base-url))
-               "/"
-               url)))
-    (alist-get 'title
-               (seq-find (lambda (o)
-                           (string= (alist-get 'permalink o) base))
-                         (sacha-blog-posts)))))
+(let ((base (replace-regexp-in-string
+	     (concat "^" (regexp-quote sacha-blog-base-url))
+	     "/"
+	     url)))
+  (alist-get 'title
+	     (seq-find (lambda (o)
+			 (string= (alist-get 'permalink o) base))
+		       (sacha-blog-posts)))))
 
 ;;;###autoload
 (defun sacha-insert-blog-post-link (url)
-  (interactive (list (sacha-complete-blog-post-url)))
-  (if (derived-mode-p 'org-mode)
-      (insert (org-link-make-string
-               url
-               (sacha-blog-title url)))
-    (insert url)))
+(interactive (list (sacha-complete-blog-post-url)))
+(if (derived-mode-p 'org-mode)
+    (insert (org-link-make-string
+	     url
+	     (sacha-blog-title url)))
+  (insert url)))
 ;; Completing blog posts:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-list-all-blog-posts-that-match-a-category-or-title-search][List all blog posts that match a category or title search:1]]
@@ -148,75 +148,75 @@
 ;; List all blog posts that match a category or title search:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-making-it-easier-to-add-a-category-to-a-blog-post][Making it easier to add a category to a blog post:1]]
-  ;;;###autoload
-  (defun sacha-11ty-complete-blog-post ()
+;;;###autoload
+(defun sacha-11ty-complete-blog-post ()
+  (completing-read
+   "Post: "
+   (mapcar (lambda (o)
+	   (file-name-directory (file-relative-name o sacha-11ty-base-dir)))
+	 (directory-files-recursively (expand-file-name "blog" sacha-11ty-base-dir) "index\\.html" nil))))
+;;;###autoload
+(defun sacha-11ty-ripgrep ()
+  (interactive)
+  (consult-ripgrep (expand-file-name "blog" sacha-11ty-base-dir)))
+
+;;;###autoload
+(defun sacha-11ty-post-categories (file)
+  (assoc-default 'categories
+	       (let ((json-object-type 'alist)
+		     (json-array-type 'list))
+		 (json-read-file (sacha-11ty-json-filename file)))))
+
+;;;###autoload
+(defun sacha-11ty-add-category-tag (cat)
+  (interactive (list (sacha-11ty-complete-category "Category: ")))
+  (org-set-tags (cons cat (org-get-tags))))
+
+;;;###autoload
+(defun sacha-11ty-complete-category (prompt &optional categories)
+  (let ((all-categories
+       (json-read-file
+	(expand-file-name "siteCategories.json"
+			  (expand-file-name "_data" sacha-11ty-base-dir)))))
     (completing-read
-     "Post: "
-     (mapcar (lambda (o)
-  	     (file-name-directory (file-relative-name o sacha-11ty-base-dir)))
-  	   (directory-files-recursively (expand-file-name "blog" sacha-11ty-base-dir) "index\\.html" nil))))
-  ;;;###autoload
-  (defun sacha-11ty-ripgrep ()
-    (interactive)
-    (consult-ripgrep (expand-file-name "blog" sacha-11ty-base-dir)))
+     (if categories
+       (format  "%s(current: %s) "
+		prompt
+		(string-join categories ", "))
+       prompt)
+     (mapcar (lambda (c) (assoc-default 'slug c))
+	   all-categories))))
 
-  ;;;###autoload
-  (defun sacha-11ty-post-categories (file)
-    (assoc-default 'categories
-  		 (let ((json-object-type 'alist)
-  		       (json-array-type 'list))
-  		   (json-read-file (sacha-11ty-json-filename file)))))
+;;;###autoload
+(defun sacha-11ty-json-filename (path)
+  (concat (file-name-sans-extension (sacha-11ty-html-filename path)) ".11tydata.json"))
 
-  ;;;###autoload
-  (defun sacha-11ty-add-category-tag (cat)
-    (interactive (list (sacha-11ty-complete-category "Category: ")))
-    (org-set-tags (cons cat (org-get-tags))))
+;;;###autoload
+(defun sacha-11ty-change-details (file modify-func)
+  (let* ((json-object-type 'alist)
+       (json-array-type 'list)
+       (json-file (sacha-11ty-json-filename file))
+       (json (funcall modify-func (json-read-file json-file))))
+    (when json
+      (with-temp-file json-file
+      (insert (json-encode json)))
+      json-file)))
 
-  ;;;###autoload
-  (defun sacha-11ty-complete-category (prompt &optional categories)
-    (let ((all-categories
-  	 (json-read-file
-  	  (expand-file-name "siteCategories.json"
-  			    (expand-file-name "_data" sacha-11ty-base-dir)))))
-      (completing-read
+;;;###autoload
+(defun sacha-11ty-add-category-to-post (file new-category)
+  (interactive (list (buffer-file-name)
+		   (sacha-11ty-complete-category "Add category: "
+					      (sacha-11ty-post-categories file))))
+  (sacha-11ty-change-details
+   file
+   (lambda (json)
+     (let ((categories (assoc-default 'categories json)))
        (if categories
-  	 (format  "%s(current: %s) "
-  		  prompt
-  		  (string-join categories ", "))
-         prompt)
-       (mapcar (lambda (c) (assoc-default 'slug c))
-  	     all-categories))))
-
-  ;;;###autoload
-  (defun sacha-11ty-json-filename (path)
-    (concat (file-name-sans-extension (sacha-11ty-html-filename path)) ".11tydata.json"))
-
-  ;;;###autoload
-  (defun sacha-11ty-change-details (file modify-func)
-    (let* ((json-object-type 'alist)
-  	 (json-array-type 'list)
-  	 (json-file (sacha-11ty-json-filename file))
-  	 (json (funcall modify-func (json-read-file json-file))))
-      (when json
-        (with-temp-file json-file
-  	(insert (json-encode json)))
-        json-file)))
-
-  ;;;###autoload
-  (defun sacha-11ty-add-category-to-post (file new-category)
-    (interactive (list (buffer-file-name)
-  		     (sacha-11ty-complete-category "Add category: "
-  						(sacha-11ty-post-categories file))))
-    (sacha-11ty-change-details
-     file
-     (lambda (json)
-       (let ((categories (assoc-default 'categories json)))
-         (if categories
-  	   (unless (member new-category categories)
-  	     (setcdr (assoc 'categories json)
-  		     (cons new-category categories)))
-  	 (setq json (cons (cons 'categories (cons new-category categories)) json)))
-         json))))
+	 (unless (member new-category categories)
+	   (setcdr (assoc 'categories json)
+		   (cons new-category categories)))
+       (setq json (cons (cons 'categories (cons new-category categories)) json)))
+       json))))
 ;; Making it easier to add a category to a blog post:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-linking-to-blog-posts-making-it-easier-to-add-a-category-to-a-blog-post][Making it easier to add a category to a blog post:4]]
@@ -237,21 +237,21 @@
 
 ;;;###autoload
 (defun sacha-blog-edit-org (info)
-	(interactive (list (sacha-consult-blog-posts-by-title)))
-  (unless (listp info) (setq info (sacha-blog-post-info-for-url info)))
-  (org-goto-marker-or-bmk (sacha-blog-post--position info)))
+      (interactive (list (sacha-consult-blog-posts-by-title)))
+(unless (listp info) (setq info (sacha-blog-post-info-for-url info)))
+(org-goto-marker-or-bmk (sacha-blog-post--position info)))
 
 ;;;###autoload
 (defun sacha-blog-find-html (url)
-  "Go to the HTML file for URL."
-	(interactive (list (sacha-complete-blog-post-url)))
-  (setq url (sacha-org-link-as-url url))
-	(when (string-match "https://sachachua\\.com/\\(blog/.*\\)" url)
-    (find-file
-     (expand-file-name
-      "index.html"
-      (expand-file-name (match-string 1 url)
-                        sacha-11ty-base-dir)))))
+"Go to the HTML file for URL."
+      (interactive (list (sacha-complete-blog-post-url)))
+(setq url (sacha-org-link-as-url url))
+      (when (string-match "https://sachachua\\.com/\\(blog/.*\\)" url)
+  (find-file
+   (expand-file-name
+    "index.html"
+    (expand-file-name (match-string 1 url)
+		      sacha-11ty-base-dir)))))
 
 ;;;###autoload
 (defalias 'sacha-blog-find-org #'sacha-blog-edit-org)
@@ -261,33 +261,33 @@
 ;; [[file:../Sacha.org::sacha-blog-org-files-except-reviews][sacha-blog-org-files-except-reviews]]
 ;;;###autoload
 (defun sacha-blog-org-files-except-reviews (after-date)
-  "Return a list of recent .org files except for Emacs News and weekly/monthly/yearly reviews.
+"Return a list of recent .org files except for Emacs News and weekly/monthly/yearly reviews.
 AFTER-DATE is in the form yyyy, yyyy-mm, or yyyy-mm-dd."
-  (setq after-date (or after-date "2020"))
-  (let ((after-month (substring after-date 0 7))
-        (posts (sacha-blog-posts)))
-    (seq-keep
-     (lambda (filename)
-       (when (not (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-emacs-news" filename))
-         (when (string-match "/blog/\\([0-9]+\\)/\\([0-9]+\\)/" filename)
-           (let ((month (match-string 2 filename))
-                 (year (match-string 1 filename)))
-             (unless (string> after-month
-                              (concat year "-" month))
-               (let ((info (sacha-blog-post-info-for-url (replace-regexp-in-string "~/proj/static-blog\\|index\\.org$\\|\\.org$" "" filename) posts)))
-                 (let-alist info
+(setq after-date (or after-date "2020"))
+(let ((after-month (substring after-date 0 7))
+      (posts (sacha-blog-posts)))
+  (seq-keep
+   (lambda (filename)
+     (when (not (string-match "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-emacs-news" filename))
+       (when (string-match "/blog/\\([0-9]+\\)/\\([0-9]+\\)/" filename)
+	 (let ((month (match-string 2 filename))
+	       (year (match-string 1 filename)))
+	   (unless (string> after-month
+			    (concat year "-" month))
+	     (let ((info (sacha-blog-post-info-for-url (replace-regexp-in-string "~/proj/static-blog\\|index\\.org$\\|\\.org$" "" filename) posts)))
+	       (let-alist info
 
-                   (when (and
-                          info
-                          (string> .date after-date)
-                          (not (seq-intersection .categories
-                                                 '("emacs-news" "weekly" "monthly" "yearly")
-                                                 'string=)))
-                     filename))))))))
-     (sort
-      (directory-files-recursively "~/proj/static-blog/blog" "\\.org$")
-      :lessp #'string<
-      :reverse t))))
+		 (when (and
+			info
+			(string> .date after-date)
+			(not (seq-intersection .categories
+					       '("emacs-news" "weekly" "monthly" "yearly")
+					       'string=)))
+		   filename))))))))
+   (sort
+    (directory-files-recursively "~/proj/static-blog/blog" "\\.org$")
+    :lessp #'string<
+    :reverse t))))
 ;; sacha-blog-org-files-except-reviews ends here
 
 ;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-comments][Comments:1]]

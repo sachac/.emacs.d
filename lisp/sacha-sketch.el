@@ -136,133 +136,133 @@
 ;; [[file:../Sacha.org::#completing-sketches][Completing sketches:2]]
 ;;;###autoload
 (defun sacha-complete-sketch-filename (&optional filter)
-  (interactive)
-  (consult--read (sacha-sketches filter)
-                 :sort nil
-                 :state (sacha-image--state)
-                 :prompt "Sketch: "
-                 :category 'sketch))
+(interactive)
+(consult--read (sacha-sketches filter)
+	       :sort nil
+	       :state (sacha-image--state)
+	       :prompt "Sketch: "
+	       :category 'sketch))
 
 (defun sacha-date-from-filename (filename)
-  (let ((f (file-name-nondirectory filename)))
-    (if (string-match "^[-0-9]+" f)
-        (replace-regexp-in-string "[^0-9]" "" (match-string 0 f))
-      nil)))
+(let ((f (file-name-nondirectory filename)))
+  (if (string-match "^[-0-9]+" f)
+      (replace-regexp-in-string "[^0-9]" "" (match-string 0 f))
+    nil)))
 
 (defvar sacha-sketches nil "Cache for sketch filenames.")
 
 ;;;###autoload
 (defun sacha-sketches (&optional filter)
-  (interactive)
-  (let (results)
-    (setq results
-          (apply 'append (mapcar (lambda (dir)
-                                   (directory-files dir t "\\.\\(jpe?g\\|png\\|svg\\)$"))
-                                 sacha-sketch-directories)))
-    (when filter
-      (setq results (seq-filter (lambda (o) (string-match filter o))
-                                results)))
-    (sort
-     results
-     (lambda (a b)
-       (string< (concat (or (sacha-date-from-filename b) "0") (file-name-nondirectory b))
-                (concat (or (sacha-date-from-filename a) "0") (file-name-nondirectory a)))))))
+(interactive)
+(let (results)
+  (setq results
+	(apply 'append (mapcar (lambda (dir)
+				 (directory-files dir t "\\.\\(jpe?g\\|png\\|svg\\)$"))
+			       sacha-sketch-directories)))
+  (when filter
+    (setq results (seq-filter (lambda (o) (string-match filter o))
+			      results)))
+  (sort
+   results
+   (lambda (a b)
+     (string< (concat (or (sacha-date-from-filename b) "0") (file-name-nondirectory b))
+	      (concat (or (sacha-date-from-filename a) "0") (file-name-nondirectory a)))))))
 
 ;;;###autoload
 (defun sacha-find-sketch (file)
-  (interactive (list (sacha-complete-sketch-filename)))
-  (find-file file))
+(interactive (list (sacha-complete-sketch-filename)))
+(find-file file))
 
 ;;;###autoload
 (defun sacha-sketch-prepare-post (file)
-  (interactive (list (sacha-complete-sketch-filename)))
-  (insert (org-link-make-string (concat "sketchFull:" (file-name-base file))))
-  (let ((text (sacha-sketch-text file)))
-    (when text
-      (insert (format "\n\n#+begin_my_src \"Text from %s\"\n%s\n#")))))
+(interactive (list (sacha-complete-sketch-filename)))
+(insert (org-link-make-string (concat "sketchFull:" (file-name-base file))))
+(let ((text (sacha-sketch-text file)))
+  (when text
+    (insert (format "\n\n#+begin_my_src \"Text from %s\"\n%s\n#")))))
 
 (defun sacha-sketch-text (file)
-  (cond
-   ((file-exists-p (concat (file-name-sans-extension file) ".txt"))
-    (with-temp-buffer
-      (insert-file-contents (concat (file-name-sans-extension file) ".txt"))
-      (buffer-string)))
-   ((file-exists-p (concat (file-name-sans-extension file) ".json"))
-    (let ((json-object-type 'alist))
-      (assoc-default 'description (elt (assoc-default 'textAnnotations (json-read-file (concat (file-name-sans-extension file) ".json"))) 0))))
-   (t (error "Can't find text."))))
+(cond
+ ((file-exists-p (concat (file-name-sans-extension file) ".txt"))
+  (with-temp-buffer
+    (insert-file-contents (concat (file-name-sans-extension file) ".txt"))
+    (buffer-string)))
+ ((file-exists-p (concat (file-name-sans-extension file) ".json"))
+  (let ((json-object-type 'alist))
+    (assoc-default 'description (elt (assoc-default 'textAnnotations (json-read-file (concat (file-name-sans-extension file) ".json"))) 0))))
+ (t (error "Can't find text."))))
 
 ;;;###autoload
 (defun sacha-sketch-insert-text (file)
-  (interactive "FFile: ")
-  (let ((text (sacha-sketch-text file)))
-    (insert (or text ""))))
+(interactive "FFile: ")
+(let ((text (sacha-sketch-text file)))
+  (insert (or text ""))))
 ;; Completing sketches:2 ends here
 
 ;; [[file:../Sacha.org::#org-mode-writing-about-sketches-and-including-their-text][Writing about sketches and including their text:1]]
 ;;;###autoload
 (defun sacha-insert-sketch-and-text (sketch)
-	(interactive (list (sacha-complete-sketch-filename)))
-  (when (and (listp sketch) (alist-get 'source_path sketch))
-    (setq sketch (sacha-get-image-filename (file-name-base (alist-get 'source_path sketch)))))
-	(insert
-	 (if (string= (file-name-extension sketch) "svg")
-			 (format
-				"#+begin_panzoom\n%s\n#+end_panzoom\n\n"
-				(org-link-make-string (concat "file:" sketch)))
-		 (concat (org-link-make-string (concat "sketchFull:" (file-name-base sketch))) "\n\n")))
-	(let ((links (sacha-org-links-from-file (concat (file-name-sans-extension sketch) ".txt")))
-				(subheading-level (1+ (org-current-level))))
-		(insert (if links
-								"#+begin_my_details Text and links from sketch\n"
-							"#+begin_my_details Text from sketch\n"))
-		(sacha-sketch-insert-text sketch)
-		(unless (bolp) (insert "\n"))
-		(insert "#+end_my_details")
-		(dolist (section (seq-filter (lambda (entry) (string-match "^#" (cdr entry)))
-																 links))
-			(org-end-of-subtree)
-			(insert "\n\n")
-			(org-insert-heading nil nil subheading-level)
-			(insert (car section))
-			(org-entry-put (point) "CUSTOM_ID" (substring (cdr section) 1)))))
+      (interactive (list (sacha-complete-sketch-filename)))
+(when (and (listp sketch) (alist-get 'source_path sketch))
+  (setq sketch (sacha-get-image-filename (file-name-base (alist-get 'source_path sketch)))))
+      (insert
+       (if (string= (file-name-extension sketch) "svg")
+		       (format
+			      "#+begin_panzoom\n%s\n#+end_panzoom\n\n"
+			      (org-link-make-string (concat "file:" sketch)))
+	       (concat (org-link-make-string (concat "sketchFull:" (file-name-base sketch))) "\n\n")))
+      (let ((links (sacha-org-links-from-file (concat (file-name-sans-extension sketch) ".txt")))
+			      (subheading-level (1+ (org-current-level))))
+	      (insert (if links
+							      "#+begin_my_details Text and links from sketch\n"
+						      "#+begin_my_details Text from sketch\n"))
+	      (sacha-sketch-insert-text sketch)
+	      (unless (bolp) (insert "\n"))
+	      (insert "#+end_my_details")
+	      (dolist (section (seq-filter (lambda (entry) (string-match "^#" (cdr entry)))
+															       links))
+		      (org-end-of-subtree)
+		      (insert "\n\n")
+		      (org-insert-heading nil nil subheading-level)
+		      (insert (car section))
+		      (org-entry-put (point) "CUSTOM_ID" (substring (cdr section) 1)))))
 
 ;;;###autoload
 (defun sacha-write-about-sketch (sketch)
-  (interactive (list (sacha-complete-sketch-filename)))
-                                        ;(shell-command "make-sketch-thumbnails")
-  (find-file "~/sync/orgzly/posts.org")
-  (goto-char (point-min))
-	(unless (org-at-heading-p) (outline-next-heading))
-  (org-insert-heading nil nil t)
-	(insert (string-trim (replace-regexp-in-string "^[-0-9]+ *" "" (file-name-base sketch))) "\n\n")
-	(sacha-insert-sketch-and-text sketch)
-	(insert "\n/Feel free to use this sketch under the [[https://creativecommons.org/licenses/by/4.0/][Creative Commons Attribution License]]./\n")
-  (delete-other-windows)
-  (save-excursion
-    (with-selected-window (split-window-horizontally)
-      (find-file sketch))))
+(interactive (list (sacha-complete-sketch-filename)))
+				      ;(shell-command "make-sketch-thumbnails")
+(find-file "~/sync/orgzly/posts.org")
+(goto-char (point-min))
+      (unless (org-at-heading-p) (outline-next-heading))
+(org-insert-heading nil nil t)
+      (insert (string-trim (replace-regexp-in-string "^[-0-9]+ *" "" (file-name-base sketch))) "\n\n")
+      (sacha-insert-sketch-and-text sketch)
+      (insert "\n/Feel free to use this sketch under the [[https://creativecommons.org/licenses/by/4.0/][Creative Commons Attribution License]]./\n")
+(delete-other-windows)
+(save-excursion
+  (with-selected-window (split-window-horizontally)
+    (find-file sketch))))
 ;; Writing about sketches and including their text:1 ends here
 
 ;; [[file:../Sacha.org::#flickr-extract][Sketch list:1]]
 ;;;###autoload
 (defun sacha-sketches-export-and-extract (start end &optional do-insert update-db filter)
-  "Create a list of links to sketches."
-  (interactive (list (org-read-date) (org-read-date) t current-prefix-arg (read-string "Filter: ")))
-  (let ((value
-         (mapconcat
-          (lambda (filename)
-            (let ((base (file-name-nondirectory filename)))
-              (format "- %s\n"
-                      (org-link-make-string
-                       (replace-regexp-in-string "#" "%23"
-                                                 (concat "sketch:" base))
-                       base))))
-          (let ((sacha-sketch-directories '("~/sync/sketches"))) (sacha-get-sketch-filenames-between-dates start end filter))
-          "")))
-    (if do-insert
-        (insert value)
-      value)))
+"Create a list of links to sketches."
+(interactive (list (org-read-date) (org-read-date) t current-prefix-arg (read-string "Filter: ")))
+(let ((value
+       (mapconcat
+	(lambda (filename)
+	  (let ((base (file-name-nondirectory filename)))
+	    (format "- %s\n"
+		    (org-link-make-string
+		     (replace-regexp-in-string "#" "%23"
+					       (concat "sketch:" base))
+		     base))))
+	(let ((sacha-sketch-directories '("~/sync/sketches"))) (sacha-get-sketch-filenames-between-dates start end filter))
+	"")))
+  (if do-insert
+      (insert value)
+    value)))
 ;; Sketch list:1 ends here
 
 ;; [[file:../Sacha.org::#multimedia-images-svg-animating-svgs-breaking-up-a-pdf-from-supernote][Breaking up a PDF from Supernote:1]]
@@ -329,19 +329,21 @@
 	dom)
 
 ;;;###autoload
-(defun sacha-sketch-add-bg (dom)
+(defun sacha-sketch-add-bg (dom &optional dark-mode)
 	;; add background rectangle
 	(unless (dom-search dom (lambda (elem) (and (dom-attr elem 'class) (string-match "\\<background\\>" (dom-attr elem 'class)))))
 		(let* ((view-box (mapcar 'string-to-number (split-string (dom-attr dom 'viewBox))))
 					 (bg-node (dom-node 'rect `((x . 0)
 																			(y . 0)
-																			(class . "background")
+																			(class . ,(if dark-mode "background-dark" "background"))
 																			(width . ,(elt view-box 2))
 																			(height . ,(elt view-box 3))
-																			(fill . "#ffffff")))))
-			(if (dom-by-id dom "surface1")
-					(push bg-node (cddr (car (dom-by-id dom "surface1"))))
-				(push bg-node (cddr (car dom))))))
+																			(fill . ,(if dark-mode "#000000"  "#ffffff"))))))
+			(cond
+			 ((dom-by-id dom "surface1")
+				(push bg-node (cddr (car (dom-by-id dom "surface1")))))
+			 (t
+				(push bg-node (cddr (car dom)))))))
 	dom)
 
 ;;;###autoload
@@ -351,6 +353,15 @@
 		(dom-remove-node dom use))
 	(dolist (use (dom-by-tag dom 'image))
 		(dom-remove-node dom use))
+	(dolist (use (dom-by-tag dom 'clipPath))
+		(dom-remove-node dom use))
+	(mapc (lambda (use)
+					(when (dom-attr use 'clip-path)
+						(dolist (c (dom-children use))
+							(dom-remove-node use c))
+						(dom-remove-attribute use 'clip-path)
+						(dom-remove-node (dom-parent dom use) use)))
+				(dom-by-tag dom 'g))
 	dom)
 
 ;;;###autoload
@@ -402,7 +413,9 @@
 
 ;; default for now, but will support more colour schemes someday
 (defvar sacha-sketch-color-map
-	'((blue
+	'((dark
+		 ("#a6d2ff" . "#000000"))
+		(blue
 		 ("#9d9d9d" . "#2b64a9")
 		 ("#9c9c9c" . "#2b64a9")
 		 ("#c9c9c9" . "#b3e3f1")
@@ -418,13 +431,14 @@
 		 ("#c9c9c9" . "#f6f396"))))
 
 (cl-defun sacha-sketch-svg-prepare (file &key color-map color-scheme new-file)
+	(interactive "FFile: ")
 	"Clean up SVG for publishing."
 	(when (string= (file-name-extension file) "pdf")
 		(setq file (sacha-sketch-convert-pdf file)))
 	(let ((dom (xml-parse-file file)))
 		(setq dom (sacha-sketch-clean dom))
 		(setq dom (sacha-sketch-color-to-hex dom))
-		(setq dom (sacha-sketch-add-bg dom))
+		(setq dom (sacha-sketch-add-bg dom (string-match "darkmode" file)))
 		(setq dom (sacha-sketch-change-fill-to-style dom))
 		(setq dom (sacha-sketch-recolor dom
 																 (or color-map
@@ -807,14 +821,14 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 ;; [[file:../Sacha.org::#digital-index-piles-with-emacs][Digital index piles with Emacs:6]]
 ;;;###autoload
 (defun sacha-refile-sketches-to-questions ()
-  (interactive)
-  (while (looking-at "^  \\+ \\[\\[.*?\\]\\[\\(.*?\\) -- \\(.*?\\)\\]\\]\n")
-    (let ((link (match-string 0))
-          (title (match-string 1)))
-      (save-excursion
-        (if (save-match-data (search-forward (concat "* " title) nil t))
-            (progn (forward-line) (insert (match-string 0)) (replace-match ""))
-          (forward-line 1))))))
+(interactive)
+(while (looking-at "^  \\+ \\[\\[.*?\\]\\[\\(.*?\\) -- \\(.*?\\)\\]\\]\n")
+  (let ((link (match-string 0))
+	(title (match-string 1)))
+    (save-excursion
+      (if (save-match-data (search-forward (concat "* " title) nil t))
+	  (progn (forward-line) (insert (match-string 0)) (replace-match ""))
+	(forward-line 1))))))
 ;; Digital index piles with Emacs:6 ends here
 
 ;; [[file:../Sacha.org::#insert-point][Sketched books:2]]
@@ -1064,13 +1078,12 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 
 ;; [[file:../Sacha.org::#supernote][Supernote:4]]
 ;;;###autoload
-(defun sacha-sketch-process (file &optional do-crop)
-  (interactive (list (read-file-name "File: ")))
+(defun sacha-sketch-process (file &optional do-crop recognize)
+  (interactive (list (read-file-name "File: ") nil current-prefix-arg))
 	(condition-case nil
 			(progn
-				(sacha-image-recognize file)
+				(when recognize (sacha-image-recognize file))
 				(setq file (sacha-sketch-rename file))
-
 				(pcase (file-name-extension file)
 					((or "svg" "pdf")
 					 (setq file
@@ -1081,10 +1094,10 @@ If AS-REGEXP is non-nil, treat BASE as a regular expression."
 								 (sacha-image-store
 									(sacha-image-autorotate
 									 (if do-crop
-											 (sacha-image-autocrop file
+									'		 (sacha-image-autocrop file)
 										;; (sacha-sketch-recolor-png
 										;;  file)
-																					)
+
 										 file)))))))
 		(error nil))
 	(find-file file)

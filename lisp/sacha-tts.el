@@ -37,18 +37,18 @@
 
 
 ;; [[file:../Sacha.org::#keybindings-foot-pedal][Foot pedal:1]]
-  (defun sacha-speechd-speak-sentence-and-advance ()
-    "Speak the current sentence and move forward."
-    (interactive)
-    (call-interactively #'speechd-speak-read-sentence)
-    (forward-sentence))
+(defun sacha-speechd-speak-sentence-and-advance ()
+  "Speak the current sentence and move forward."
+  (interactive)
+  (call-interactively #'speechd-speak-read-sentence)
+  (forward-sentence))
 
-  (defun sacha-speechd-repeat-sentence ()
-    "Speak the current sentence and move forward."
-    (interactive)
-    (backward-sentence)
-    (call-interactively #'speechd-speak-read-sentence)
-    (forward-sentence))
+(defun sacha-speechd-repeat-sentence ()
+  "Speak the current sentence and move forward."
+  (interactive)
+  (backward-sentence)
+  (call-interactively #'speechd-speak-read-sentence)
+  (forward-sentence))
 ;; Foot pedal:1 ends here
 
 ;; [[file:../Sacha.org::#speech-synthesis-experimental][Speech synthesis (experimental):2]]

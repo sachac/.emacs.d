@@ -42,16 +42,16 @@
 ;; [[file:../Sacha.org::#templates][Templates:1]]
 ;;;###autoload
 (defun sacha-org-contacts-template-email (&optional return-value)
-  "Try to return the contact email for a template.
-         If not found return RETURN-VALUE or something that would ask the user."
-  (eval-when-compile (require 'gnus-art nil t))
-  (eval-when-compile (require 'org-contacts nil t))
-  (or (cadr (if (gnus-alive-p)
-                (gnus-with-article-headers
-                  (mail-extract-address-components
-                   (or (mail-fetch-field "Reply-To") (mail-fetch-field "From") "")))))
-      return-value
-      (concat "%^{" org-contacts-email-property "}p")))
+"Try to return the contact email for a template.
+       If not found return RETURN-VALUE or something that would ask the user."
+(eval-when-compile (require 'gnus-art nil t))
+(eval-when-compile (require 'org-contacts nil t))
+(or (cadr (if (gnus-alive-p)
+	      (gnus-with-article-headers
+		(mail-extract-address-components
+		 (or (mail-fetch-field "Reply-To") (mail-fetch-field "From") "")))))
+    return-value
+    (concat "%^{" org-contacts-email-property "}p")))
 ;; Templates:1 ends here
 
 ;; [[file:../Sacha.org::#org-contacts][Contacts:2]]

@@ -55,247 +55,236 @@
 ;;; Mostly the same as my/read-extended-command-from-list
 ;;;###autoload
 (defun sacha-read-extended-command-from-list (list)
-  "Read command name to invoke in `execute-extended-command'."
-  (minibuffer-with-setup-hook
-      (lambda ()
-        (add-hook 'post-self-insert-hook
-                  (lambda ()
-                    (setq execute-extended-command--last-typed
-                          (minibuffer-contents)))
-                  nil 'local)
-        (setq-local minibuffer-default-add-function
-                    (lambda ()
-                      ;; Get a command name at point in the original buffer
-                      ;; to propose it after M-n.
-                      (let ((def (with-current-buffer
-                                     (window-buffer (minibuffer-selected-window))
-                                   (and (commandp (function-called-at-point))
-                                        (format "%S" (function-called-at-point)))))
-                            (all (sort (minibuffer-default-add-completions)
-                                       #'string<)))
-                        (if def
-                            (cons def (delete def all))
-                          all)))))
-    ;; Read a string, completing from and restricting to the set of
-    ;; all defined commands.  Don't provide any initial input.
-    ;; Save the command read on the extended-command history list.
-    (completing-read
-     (concat (cond
-              ((eq current-prefix-arg '-) "- ")
-              ((and (consp current-prefix-arg)
-                    (eq (car current-prefix-arg) 4)) "C-u ")
-              ((and (consp current-prefix-arg)
-                    (integerp (car current-prefix-arg)))
-               (format "%d " (car current-prefix-arg)))
-              ((integerp current-prefix-arg)
-               (format "%d " current-prefix-arg)))
-             ;; This isn't strictly correct if `execute-extended-command'
-             ;; is bound to anything else (e.g. [menu]).
-             ;; It could use (key-description (this-single-command-keys)),
-             ;; but actually a prompt other than "M-x" would be confusing,
-             ;; because "M-x" is a well-known prompt to read a command
-             ;; and it serves as a shorthand for "Extended command: ".
-             "M-x ")
-     (lambda (string pred action)
-       (if (and suggest-key-bindings (eq action 'metadata))
-           '(metadata
-             (affixation-function . read-extended-command--affixation)
-             (category . command))
-         (complete-with-action action list string pred)))
-     #'commandp t nil 'extended-command-history)))
+"Read command name to invoke in `execute-extended-command'."
+(minibuffer-with-setup-hook
+    (lambda ()
+      (add-hook 'post-self-insert-hook
+		(lambda ()
+		  (setq execute-extended-command--last-typed
+			(minibuffer-contents)))
+		nil 'local)
+      (setq-local minibuffer-default-add-function
+		  (lambda ()
+		    ;; Get a command name at point in the original buffer
+		    ;; to propose it after M-n.
+		    (let ((def (with-current-buffer
+				   (window-buffer (minibuffer-selected-window))
+				 (and (commandp (function-called-at-point))
+				      (format "%S" (function-called-at-point)))))
+			  (all (sort (minibuffer-default-add-completions)
+				     #'string<)))
+		      (if def
+			  (cons def (delete def all))
+			all)))))
+  ;; Read a string, completing from and restricting to the set of
+  ;; all defined commands.  Don't provide any initial input.
+  ;; Save the command read on the extended-command history list.
+  (completing-read
+   (concat (cond
+	    ((eq current-prefix-arg '-) "- ")
+	    ((and (consp current-prefix-arg)
+		  (eq (car current-prefix-arg) 4)) "C-u ")
+	    ((and (consp current-prefix-arg)
+		  (integerp (car current-prefix-arg)))
+	     (format "%d " (car current-prefix-arg)))
+	    ((integerp current-prefix-arg)
+	     (format "%d " current-prefix-arg)))
+	   ;; This isn't strictly correct if `execute-extended-command'
+	   ;; is bound to anything else (e.g. [menu]).
+	   ;; It could use (key-description (this-single-command-keys)),
+	   ;; but actually a prompt other than "M-x" would be confusing,
+	   ;; because "M-x" is a well-known prompt to read a command
+	   ;; and it serves as a shorthand for "Extended command: ".
+	   "M-x ")
+   (lambda (string pred action)
+     (if (and suggest-key-bindings (eq action 'metadata))
+	 '(metadata
+	   (affixation-function . read-extended-command--affixation)
+	   (category . command))
+       (complete-with-action action list string pred)))
+   #'commandp t nil 'extended-command-history)))
 
 ;;; Mostly the same as execute-extended-command
 ;;;###autoload
 (defun sacha-execute-extended-command-from-list (prefixarg &optional command-name typed)
-  ;; Based on Fexecute_extended_command in keyboard.c of Emacs.
-  ;; Aaron S. Hawley <aaron.s.hawley(at)gmail.com> 2009-08-24
-  "Read a command name, then read the arguments and call the command.
-   To pass a prefix argument to the command you are
-   invoking, give a prefix argument to `execute-extended-command'."
-  (declare (interactive-only command-execute))
-  ;; FIXME: Remember the actual text typed by the user before completion,
-  ;; so that we don't later on suggest the same shortening.
-  (interactive
-   (let ((execute-extended-command--last-typed nil))
-     (list current-prefix-arg
-           (if (and command-name (listp command-name))
-               (sacha-read-extended-command-from-list command-name)
-             (read-extended-command))
-           execute-extended-command--last-typed)))
-  ;; Emacs<24 calling-convention was with a single `prefixarg' argument.
-  (when (listp command-name)
-    (let ((current-prefix-arg prefixarg) ; for prompt
-          (execute-extended-command--last-typed nil))
-      (setq command-name
-            (if command-name
-                (sacha-read-extended-command-from-list command-name)
-              (read-extended-command)))
-      (setq typed execute-extended-command--last-typed)))
-  (let* ((function (and (stringp command-name) (intern-soft command-name)))
-         (binding (and suggest-key-bindings
-                       (not executing-kbd-macro)
-                       (where-is-internal function overriding-local-map t))))
-    (unless (commandp function)
-      (error "`%s' is not a valid command name" command-name))
-    ;; Some features, such as novice.el, rely on this-command-keys
-    ;; including M-x COMMAND-NAME RET.
-    (set--this-command-keys (concat "\M-x" (symbol-name function) "\r"))
-    (setq this-command function)
-    ;; Normally `real-this-command' should never be changed, but here we really
-    ;; want to pretend that M-x <cmd> RET is nothing more than a "key
-    ;; binding" for <cmd>, so the command the user really wanted to run is
-    ;; `function' and not `execute-extended-command'.  The difference is
-    ;; visible in cases such as M-x <cmd> RET and then C-x z (bug#11506).
-    (setq real-this-command function)
-    (let ((prefix-arg prefixarg))
-      (command-execute function 'record))
-    ;; If enabled, show which key runs this command.
-    ;; But first wait, and skip the message if there is input.
-    (let* ((waited
-            ;; If this command displayed something in the echo area;
-            ;; wait a few seconds, then display our suggestion message.
-            ;; FIXME: Wait *after* running post-command-hook!
-            ;; FIXME: If execute-extended-command--shorter were
-            ;; faster, we could compute the result here first too.
-            (when (and suggest-key-bindings
-                       (or binding
-                           (and extended-command-suggest-shorter typed)))
-              (sit-for (cond
-                        ((zerop (length (current-message))) 0)
-                        ((numberp suggest-key-bindings) suggest-key-bindings)
-                        (t 2))))))
-      (when (and waited (not (consp unread-command-events)))
-        (unless (or (not extended-command-suggest-shorter)
-                    binding executing-kbd-macro (not (symbolp function))
-                    (<= (length (symbol-name function)) 2))
-          ;; There's no binding for CMD.  Let's try and find the shortest
-          ;; string to use in M-x.
-          ;; FIXME: Can be slow.  Cache it maybe?
-          (while-no-input
-            (setq binding (execute-extended-command--shorter
-                           (symbol-name function) typed))))
-        (when binding
-          (with-temp-message
-              (format-message "You can run the command `%s' with %s"
-                              function
-                              (if (stringp binding)
-                                  (concat "M-x " binding " RET")
-                                (key-description binding)))
-            (sit-for (if (numberp suggest-key-bindings)
-                         suggest-key-bindings
-                       2))))))))
+;; Based on Fexecute_extended_command in keyboard.c of Emacs.
+;; Aaron S. Hawley <aaron.s.hawley(at)gmail.com> 2009-08-24
+"Read a command name, then read the arguments and call the command.
+ To pass a prefix argument to the command you are
+ invoking, give a prefix argument to `execute-extended-command'."
+(declare (interactive-only command-execute))
+;; FIXME: Remember the actual text typed by the user before completion,
+;; so that we don't later on suggest the same shortening.
+(interactive
+ (let ((execute-extended-command--last-typed nil))
+   (list current-prefix-arg
+	 (if (and command-name (listp command-name))
+	     (sacha-read-extended-command-from-list command-name)
+	   (read-extended-command))
+	 execute-extended-command--last-typed)))
+;; Emacs<24 calling-convention was with a single `prefixarg' argument.
+(when (listp command-name)
+  (let ((current-prefix-arg prefixarg) ; for prompt
+	(execute-extended-command--last-typed nil))
+    (setq command-name
+	  (if command-name
+	      (sacha-read-extended-command-from-list command-name)
+	    (read-extended-command)))
+    (setq typed execute-extended-command--last-typed)))
+(let* ((function (and (stringp command-name) (intern-soft command-name)))
+       (binding (and suggest-key-bindings
+		     (not executing-kbd-macro)
+		     (where-is-internal function overriding-local-map t))))
+  (unless (commandp function)
+    (error "`%s' is not a valid command name" command-name))
+  ;; Some features, such as novice.el, rely on this-command-keys
+  ;; including M-x COMMAND-NAME RET.
+  (set--this-command-keys (concat "\M-x" (symbol-name function) "\r"))
+  (setq this-command function)
+  ;; Normally `real-this-command' should never be changed, but here we really
+  ;; want to pretend that M-x <cmd> RET is nothing more than a "key
+  ;; binding" for <cmd>, so the command the user really wanted to run is
+  ;; `function' and not `execute-extended-command'.  The difference is
+  ;; visible in cases such as M-x <cmd> RET and then C-x z (bug#11506).
+  (setq real-this-command function)
+  (let ((prefix-arg prefixarg))
+    (command-execute function 'record))
+  ;; If enabled, show which key runs this command.
+  ;; But first wait, and skip the message if there is input.
+  (let* ((waited
+	  ;; If this command displayed something in the echo area;
+	  ;; wait a few seconds, then display our suggestion message.
+	  ;; FIXME: Wait *after* running post-command-hook!
+	  ;; FIXME: If execute-extended-command--shorter were
+	  ;; faster, we could compute the result here first too.
+	  (when (and suggest-key-bindings
+		     (or binding
+			 (and extended-command-suggest-shorter typed)))
+	    (sit-for (cond
+		      ((zerop (length (current-message))) 0)
+		      ((numberp suggest-key-bindings) suggest-key-bindings)
+		      (t 2))))))
+    (when (and waited (not (consp unread-command-events)))
+      (unless (or (not extended-command-suggest-shorter)
+		  binding executing-kbd-macro (not (symbolp function))
+		  (<= (length (symbol-name function)) 2))
+	;; There's no binding for CMD.  Let's try and find the shortest
+	;; string to use in M-x.
+	;; FIXME: Can be slow.  Cache it maybe?
+	(while-no-input
+	  (setq binding (execute-extended-command--shorter
+			 (symbol-name function) typed))))
+      (when binding
+	(with-temp-message
+	    (format-message "You can run the command `%s' with %s"
+			    function
+			    (if (stringp binding)
+				(concat "M-x " binding " RET")
+			      (key-description binding)))
+	  (sit-for (if (numberp suggest-key-bindings)
+		       suggest-key-bindings
+		     2))))))))
 ;; Extended command list:2 ends here
 
 ;; [[file:../Sacha.org::#completion-define-abbreviations][Define abbreviations:2]]
 (eval-when-compile (require 'cl-lib))
 ;;;###autoload
 (defun sacha-insert-abbrev-or-yasnippet ()
-  "Prompt for and expand an abbrev or yasnippet.
+"Prompt for and expand an abbrev or yasnippet.
 
 From https://github.com/davep/unabbrev.el and yas-insert-snippet."
-  (interactive)
-	(let* ((abbreviations
-					(sort
-					 (cl-loop
-						for table in (list local-abbrev-table global-abbrev-table)
-						nconc (cl-loop
-									 for abbrev being the symbols of table
-									 for shortcut = (symbol-name abbrev)
-									 for expansion = (abbrev-expansion shortcut table)
-									 when expansion collect (list (format "%-10s %s" shortcut expansion)
-																								'abbrev shortcut)))))
-				 (yas-templates
-					(mapcar
-					 (lambda (o)
-						 (list (format "%-10s %s" (yas--template-key o) (yas--template-name o))
-									 'yas
-									 o))
-					 (yas--all-templates (yas--get-snippet-tables))))
-				 (where (if (region-active-p)
-                    (cons (region-beginning) (region-end))
-                  (cons (point) (point))))
-				 (combined (append abbreviations yas-templates))
-				 (choice (assoc-default (completing-read "Expand: " combined)
-																combined #'string=)))
-		(pcase (elt choice 0)
-			('abbrev
-			 (insert (elt choice 1))
-			 (expand-abbrev))
-			('yas (yas-expand-snippet (elt choice 1) (car where) (cdr where))))))
+(interactive)
+      (let* ((abbreviations
+				      (sort
+				       (cl-loop
+					      for table in (list local-abbrev-table global-abbrev-table)
+					      nconc (cl-loop
+								       for abbrev being the symbols of table
+								       for shortcut = (symbol-name abbrev)
+								       for expansion = (abbrev-expansion shortcut table)
+								       when expansion collect (list (format "%-10s %s" shortcut expansion)
+																							      'abbrev shortcut)))))
+			       (yas-templates
+				      (mapcar
+				       (lambda (o)
+					       (list (format "%-10s %s" (yas--template-key o) (yas--template-name o))
+								       'yas
+								       o))
+				       (yas--all-templates (yas--get-snippet-tables))))
+			       (where (if (region-active-p)
+		  (cons (region-beginning) (region-end))
+		(cons (point) (point))))
+			       (combined (append abbreviations yas-templates))
+			       (choice (assoc-default (completing-read "Expand: " combined)
+															      combined #'string=)))
+	      (pcase (elt choice 0)
+		      ('abbrev
+		       (insert (elt choice 1))
+		       (expand-abbrev))
+		      ('yas (yas-expand-snippet (elt choice 1) (car where) (cdr where))))))
 (defalias 'sacha-unabbrev 'sacha-insert-abbrev-or-yasnippet)
 ;; Define abbreviations:2 ends here
 
 ;; [[file:../Sacha.org::#completion-emacs-completion-and-handling-accented-characters-with-orderless][Emacs completion and handling accented characters with orderless:1]]
-(defvar sacha-orderless-accent-replacements
-  '(("a" . "[aàáâãäå]")
-    ("e" . "[eèéêë]")
-    ("i" . "[iìíîï]")
-    ("o" . "[oòóôõöœ]")
-    ("u" . "[uùúûü]")
-    ("c" . "[cç]")
-    ("n" . "[nñ]"))) ; in case anyone needs ñ for Spanish
-
 ;;;###autoload
-(defun sacha-orderless-accent-dispatch (pattern &rest _)
-  (seq-reduce
-   (lambda (prev val)
-     (replace-regexp-in-string (car val) (cdr val) prev))
-   sacha-orderless-accent-replacements
-   pattern))
+(defun sacha-orderless-accent-regexp (pattern)
+	"Convert PATTERN to a regular expression."
+ 	(orderless-regexp
+	 (learn-lang-expand-accents pattern)))
 ;; Emacs completion and handling accented characters with orderless:1 ends here
 
 ;; [[file:../Sacha.org::#marginalia][Marginalia:1]]
 (eval-when-compile (require 'marginalia))
 ;;;###autoload
 (defun sacha-marginalia-annotate-variable (cand)
-  "Annotate variable CAND with its documentation string.
+"Annotate variable CAND with its documentation string.
 Omit values when streaming."
-  (when-let* ((sym (intern-soft cand)))
-    (marginalia--fields
-     ((marginalia--symbol-class sym) :face 'marginalia-type)
-     ((or (documentation-property sym 'variable-documentation)
-          (marginalia--definition-prefix sym))
-      :truncate 1.0 :face 'marginalia-documentation))))
+(when-let* ((sym (intern-soft cand)))
+  (marginalia--fields
+   ((marginalia--symbol-class sym) :face 'marginalia-type)
+   ((or (documentation-property sym 'variable-documentation)
+	(marginalia--definition-prefix sym))
+    :truncate 1.0 :face 'marginalia-documentation))))
 ;; Marginalia:1 ends here
 
 ;; [[file:../Sacha.org::#marginalia][Marginalia:3]]
 ;;;###autoload
-  (defun marginalia-annotate-alias (cand)
-    "Annotate CAND with the function it aliases."
-    (when-let ((sym (intern-soft cand))
-               (alias (car (last (function-alias-p sym))))
-               (name (and (symbolp alias) (symbol-name alias))))
-      (format " (%s)" name)))
+(defun marginalia-annotate-alias (cand)
+  "Annotate CAND with the function it aliases."
+  (when-let ((sym (intern-soft cand))
+	     (alias (car (last (function-alias-p sym))))
+	     (name (and (symbolp alias) (symbol-name alias))))
+    (format " (%s)" name)))
 
 ;;;###autoload
-  (defun marginalia-annotate-symbol-with-alias (cand)
-    "Annotate symbol CAND with its documentation string.
-      Similar to `marginalia-annotate-symbol'."
-    (when-let (sym (intern-soft cand))
-      (concat
-       (marginalia-annotate-binding cand)
-       (marginalia--fields
-        ((marginalia-annotate-alias cand) :face 'marginalia-function)
-        ((marginalia--symbol-class sym) :face 'marginalia-type)
-        ((cond
-          ((fboundp sym) (marginalia--function-doc sym))
-          ((facep sym) (documentation-property sym 'face-documentation))
-          (t (documentation-property sym 'variable-documentation)))
-         :truncate 1.0 :face 'marginalia-documentation)))))
+(defun marginalia-annotate-symbol-with-alias (cand)
+  "Annotate symbol CAND with its documentation string.
+    Similar to `marginalia-annotate-symbol'."
+  (when-let (sym (intern-soft cand))
+    (concat
+     (marginalia-annotate-binding cand)
+     (marginalia--fields
+      ((marginalia-annotate-alias cand) :face 'marginalia-function)
+      ((marginalia--symbol-class sym) :face 'marginalia-type)
+      ((cond
+	((fboundp sym) (marginalia--function-doc sym))
+	((facep sym) (documentation-property sym 'face-documentation))
+	(t (documentation-property sym 'variable-documentation)))
+       :truncate 1.0 :face 'marginalia-documentation)))))
 ;; Marginalia:3 ends here
 
 ;; [[file:../Sacha.org::#marginalia-and-annotating-journal-entries][Marginalia and annotating journal entries:1]]
 ;;;###autoload
-  (defun sacha-marginalia-annotate-journal (cand)
-    (when-let ((o (cdr (assoc cand sacha-journal-search-cache))))
-      (marginalia--fields
-       ((plist-get o :Category)
-        :face 'marginalia-documentation
-        :truncate 13))))
+(defun sacha-marginalia-annotate-journal (cand)
+  (when-let ((o (cdr (assoc cand sacha-journal-search-cache))))
+    (marginalia--fields
+     ((plist-get o :Category)
+      :face 'marginalia-documentation
+      :truncate 13))))
 
-  (use-package marginalia
-    :config
-    (add-to-list 'marginalia-annotators '(journal sacha-marginalia-annotate-journal builtin none)))
+(use-package marginalia
+  :config
+  (add-to-list 'marginalia-annotators '(journal sacha-marginalia-annotate-journal builtin none)))
 ;; Marginalia and annotating journal entries:1 ends here
 
 ;; [[file:../Sacha.org::#expand][Expand:2]]

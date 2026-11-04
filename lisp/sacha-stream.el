@@ -144,7 +144,7 @@
 (defun sacha-redact-emacsconf-org ()
   (interactive)
   (sacha-redact-regexp-replacement
-   "\\(^:EMAIL:[ \t]+\\|^:EMERGENCY:[ \t]+\\)\\(.+\\)"
+   "\\(^:\\(?:EMAIL\\|BBB_MOD_CODE\\|EMERGENCY\\|ROOM\\):[ \t]+\\)\\(.+\\)"
 	 (lambda (match)
 		 (concat (match-string 1 match) (sacha-redact (match-string 2 match))))))
 
@@ -219,7 +219,7 @@
      .
      (("r" "Note" entry
        ,sacha-stream-inbox-target
-       "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n\n- %a\n%U"
+       "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n\n# %a\n%U"
        :prepend t)
       ("u" "Update" item
        (file+headline ,sacha-stream-inbox-file "Updates")
@@ -238,52 +238,52 @@
        :prepend t :immediate-finish t)
       ("m" "Mastodon" entry
        ,sacha-stream-inbox-target
-       "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n%a"
+       "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n# %a"
        :prepend t)
 			("wi" "Interrupting task" entry
        ,sacha-stream-inbox-target
-         "* STARTED %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+         "* STARTED %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
          :clock-in t :clock-keep t
          :prepend t :immediate-finish t)
 
 			("wT" "Task for today" entry
        ,sacha-stream-inbox-target
-       "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \".\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \".\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("w>" "Task for tomorrow" entry
        ,sacha-stream-inbox-target
-       "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("ww" "Task for next week" entry
        ,sacha-stream-inbox-target
-       "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("wm" "Task for next month" entry
        ,sacha-stream-inbox-target
-       "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1m\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1m\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("wt" "Task for someday" entry
        ,sacha-stream-inbox-target
-       "* SOMEDAY %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       "* SOMEDAY %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("wn" "Note" entry
        ,sacha-stream-inbox-target
-       "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
       ("t" "Task with annotation" entry
        ,sacha-stream-inbox-target
-       "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t)
       ("i" "Interrupting task" entry
        ,sacha-stream-inbox-target
-       "* STARTED %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n%a\n"
+       "* STARTED %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :clock-in :clock-resume :prepend t )
       ("T" "Task without annotation" entry
        ,sacha-stream-inbox-target
        "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n"
        :prepend t)
       ("c" "Contents to current clocked task" plain
-       (clock) "%i%?\n%a" :empty-lines 1)
+       (clock) "%i%?\n# %a" :empty-lines 1)
       ("." "Today" entry
        ,sacha-stream-inbox-target
        "* TODO %^{Task}\nSCHEDULED: %t\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
@@ -325,7 +325,7 @@
       ("y" "Yay Emacs" entry
        (file+headline "~/proj/yayemacs/index.org"
                       "Notes for this session")
-       "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n\n%i\n\n%a\n")))))
+       "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n\n%i\n\n# %a\n")))))
 
 ;;;###autoload
 (defun sacha-stream-override-variables ()
@@ -391,20 +391,22 @@
 					(message "%s remaining, %s cleaned" remaining cleaned)))
 		(error nil)))
 
-(defvar sacha-stream-or-video-global-mode-done-hook nil "Functions to run after switching out of the mode.")
-(defvar-keymap sacha-stream-or-video-global-mode-map)
+(defvar sacha-livestream-or-video-global-mode-done-hook nil "Functions to run after switching out of the mode.")
+(defvar-keymap sacha-livestream-or-video-global-mode-map)
+(defvar sacha-livestream-or-video-fontaine-preset '720p)
 ;;;###autoload
-(define-minor-mode sacha-stream-or-video-global-mode
+(define-minor-mode sacha-livestream-or-video-global-mode
   "On air or doing a video."
   :init-value nil
 	:global t
-  :keymap sacha-stream-or-video-global-mode-map
+  :keymap sacha-livestream-or-video-global-mode-map
   :lighter "🎥"
-  (if sacha-stream-or-video-global-mode
+  (if sacha-livestream-or-video-global-mode
       (progn
         (sacha-stream-clean-up-buffers)
+				;; (shell-command "xrandr --output HDMI-0 --mode 1280x720")
         (global-display-line-numbers-mode 1)
-        (fontaine-set-preset 'presentation)
+        (fontaine-set-preset sacha-livestream-or-video-fontaine-preset)
         (keycast-header-line-mode 1)
         (sacha-stream-override-variables)
 				(add-hook 'image-mode-hook
@@ -413,6 +415,7 @@
          'sacha-marginalia-annotate-variable
          (alist-get 'variable marginalia-annotators)))
     (global-display-line-numbers-mode -1)
+		(shell-command "xrandr --output HDMI-0 --mode 1920x1200")
     (fontaine-set-preset 'regular)
     (keycast-header-line-mode -1)
     (setf
@@ -422,7 +425,7 @@
       (alist-get 'variable marginalia-annotators)))
 		(remove-hook 'image-mode-hook 'sacha-disable-display-line-number-mode)
     (sacha-stream-restore-variables)
-    (run-hooks 'sacha-stream-or-video-global-mode-done-hook))
+    (run-hooks 'sacha-livestream-or-video-global-mode-done-hook))
   (sacha-navigate-set-up-file-shortcuts))
 ;; Mode for streaming:2 ends here
 
@@ -431,7 +434,7 @@
 (defun sacha-stream-prepare-thumbnail (text)
   "Prepare a buffer showing TEXT."
   (interactive "MText: ")
-	(sacha-stream-or-video-global-mode 1)
+	(sacha-livestream-or-video-global-mode 1)
 	(with-current-buffer (get-buffer-create "*Display*")
 		(let* ((by-length (sort (split-string text "\n") :key 'length :reverse t))
 					 (height (sacha-stream-calculate-fit-to-width-height
@@ -652,7 +655,8 @@ align with word data, and fix common errors."
 				 (concat base ".vtt"))
 			(sacha-subed-fix-common-errors-from-start)
 			(save-buffer)
-			(switch-to-buffer (current-buffer)))))
+			(switch-to-buffer (current-buffer))
+			(subed-word-data-load-from-file (concat base ".json")))))
 ;; Download and post-process:2 ends here
 
 ;; [[file:../Sacha.org::#streaming-fix-up-transcript][Fix up transcript:1]]
@@ -922,22 +926,37 @@ Check for property PRIVACY as well."
 	"URL to control room.")
 
 ;;;###autoload
+(defun sacha-stream-open-control-room ()
+  "Open the control room."
+  (interactive)
+	(browse-url-chrome
+	 (if (org-entry-get-with-inheritance "YOUTUBE_URL")
+			 (format "https://studio.youtube.com/video/%s/livestreaming"
+							 (sacha-org-yt-id (org-entry-get-with-inheritance "YOUTUBE_URL")))
+		 sacha-stream-livestreaming-control)))
+
+(with-eval-after-load 'phony
+	(phony-defun control-room ("control" "room")
+		(sacha-stream-open-control-room)))
+
+;;;###autoload
 (defun sacha-whisper-prepare-to-stream ()
 	(interactive)
-	(sacha-stream-or-video-global-mode 1)
+	(sacha-google-clear-cache)
+	(sacha-livestream-or-video-global-mode 1)
+	(obs-websocket-connect)
 	(if (org-entry-get-with-inheritance "YOUTUBE_URL")
 			(progn
 				;; scheduled
 				(browse-url-chrome (format "https://studio.youtube.com/video/%s/livestreaming"
 																	 (sacha-org-yt-id (org-entry-get-with-inheritance "YOUTUBE_URL"))))
-				(obs-websocket-connect)
 				(obs-websocket-set-current-profile
 				 "Scheduled"
 				 (lambda ()
 					 (sacha-whisper-audio-feedback
 						(if (string= obs-websocket-profile-name "Scheduled")
 								"Scheduled"
-							"Weird")))))
+							"Check profile")))))
 		(call-interactively #'sacha-stream-prepare-spontaneous-stream)
 		(sit-for 1)
 		(browse-url-chrome sacha-stream-livestreaming-control)))
@@ -965,7 +984,7 @@ If called with a prefix argument, prompt for the string instead."
 		 (sacha-whisper-audio-feedback
 			(if (string= obs-websocket-profile-name "Spontaneous")
 					"Ready"
-				"Weird")))))
+				"Check profile")))))
 ;; Set up a spontaneous livestream on YouTube:1 ends here
 
 ;; [[file:../Sacha.org::#streaming-create-youtube-livestream-broadcasts-from-emacs-lisp][Create YouTube livestream broadcasts from Emacs Lisp:1]]

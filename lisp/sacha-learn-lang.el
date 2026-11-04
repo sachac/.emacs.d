@@ -29,9 +29,6 @@
 ;; - Learning French
 ;;   https://sachachua.com/dotemacs#multimedia-learning-french
 ;;
-;; - Celebrate when I remember to use words and phrases
-;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-celebrate-when-i-remember-to-use-words-and-phrases
-;;
 ;; - Extract tonguetwisters
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-extract-tonguetwisters
 ;;
@@ -80,6 +77,9 @@
 ;; - Correct encoding errors
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-correct-encoding-errors
 ;;
+;; - Noticing bingo phrases
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-using-emacs-to-visualize-speaking-and-target-words-phrases-in-real-ish-time-noticing-bingo-phrases
+;;
 ;; - Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results
 ;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results
 ;;
@@ -110,7 +110,7 @@ Check tatoeba, dictionary, then Google Translate."
 			(cons
 			 (format "%s - %s" (car o) (cdr o))
 			 (car o)))
-		(learn-lang-tatoeba-entries input))
+		(learn-lang-tatoeba-entries (sacha-orderless-accent-regexp input)))
 	 (seq-keep 'cdr (sacha-learn-lang-en-fr-dict-lookup input))
 	 (let ((translation (learn-lang-translate-text-to-target input)))
 		 (cons translation translation))))
@@ -141,351 +141,267 @@ Check tatoeba, dictionary, then Google Translate."
     (sacha-speech-chrome-new-session "french" "fr-FR"))
 ;; Learning French:4 ends here
 
-;; [[file:../Sacha.org::#writing-and-editing-learning-french-celebrate-when-i-remember-to-use-words-and-phrases][Celebrate when I remember to use words and phrases:1]]
-(defvar sacha-learn-lang-bingo-word-file "~/proj/french/bingo.txt")
-(defvar sacha-learn-lang-bingo-words nil "List of words.")
-(defvar sacha-learn-lang-bingo-words-hash nil "Data for the counts.")
-
-;;;###autoload
-(defun sacha-learn-lang-bingo-words ()
-	"Load the list of words from the file."
-	(interactive)
-	(setq sacha-learn-lang-bingo-words
-				(seq-map (lambda (o)
-									 (when (= (length o) 1)
-										 (setq o (list (car o) 0)))
-									 (setq o (append o (list
-																			(string-trim (replace-regexp-in-string
-																										" *\\[.+?\\] *" " "
-																										(car o))))))
-									 o)
-								 (pcsv-parse-file sacha-learn-lang-bingo-word-file)))
-	sacha-learn-lang-bingo-words)
-
-;;;###autoload
-(defun sacha-learn-lang-bingo-handler (event)
-  "Manually register the event."
-  (interactive "e")
-	  (let* ((pos (posn-point (event-end event)))
-					 (val (get-text-property pos 'bingo)))
-			(when val
-				(sacha-learn-lang-notice-bingo-words val))))
-
-(defvar-keymap sacha-learn-lang-bingo-map
-	"<mouse-1>" #'sacha-learn-lang-bingo-handler)
-
-;;;###autoload
-(defun sacha-learn-lang-bingo-summary ()
-	"Summarize the words to say."
-	(let ((target (seq-filter (lambda (row) (= (elt row 1) 0))
-														sacha-learn-lang-bingo-words))
-				(yay (seq-filter (lambda (row) (> (elt row 1) 0))
-												 sacha-learn-lang-bingo-words)))
-		(concat
-		 (if target
-				 (concat "Target: "
-								 (mapconcat (lambda (row)
-															(propertize
-															 (car row)
-															 'keymap sacha-learn-lang-bingo-map
-															 'bingo (car row)))
-														target
-														"; ")
-								 "\n\n")
-			 "")
-		 (if yay
-				 (concat
-					"Yay! "
-					(mapconcat (lambda (row)
-											 (propertize (format "%s (%s)" (car row) (elt row 1))
-																	 'keymap sacha-learn-lang-bingo-map
-																	 'bingo (car row)))
-										 (seq-filter (lambda (row) (> (elt row 1) 0))
-																 sacha-learn-lang-bingo-words)
-										 "; ")
-					"\n\n")
-			 ""))))
-
-;;;###autoload
-(defun sacha-learn-lang-notice-bingo-words (text)
-	"Look for the bingo words in TEXT and celebrate when I use them."
-	(when text
-		(unless sacha-learn-lang-bingo-words (sacha-learn-lang-bingo-words))
-		(let ((found (seq-find
-									(lambda (o)
-										(and (elt o 2)
-												 (string-match (concat "\\<" (elt o 2)) text)))
-									sacha-learn-lang-bingo-words)))
-			(when found
-				(incf (elt found 1))
-				(sacha-vad-tutor-update-view)
-				(with-current-buffer (get-buffer-create "*Bingo*")
-					(erase-buffer)
-					(insert (sacha-learn-lang-bingo-summary))))))
-	text)
-;; Celebrate when I remember to use words and phrases:1 ends here
-
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-extract-tonguetwisters][Extract tonguetwisters:1]]
 ;;;###autoload
 (defun sacha-learn-lang-make-tonguetwister-practice-files (vtt output-directory &optional force)
-  "Parse VTT and add tonguetwister files to OUTPUT-DIRECTORY."
-  (interactive "FVTT: \nDOutput directory: \nP")
-	(let ((media-file (subed-guess-media-file nil vtt)))
-		(dolist (sub (subed-parse-file vtt))
-			(let ((filename (expand-file-name
-											 (concat (learn-lang-subed-record-simplify (elt sub 3)) ".mp3")
-											 output-directory))
-						(compile-media-ffmpeg-arguments
-						 (append (list "-metadata"
-													 (concat "lyrics-fra="
-																	 (learn-lang-subed-record-simplify (elt sub 3))))
-										 compile-media-ffmpeg-arguments))
-						sources)
-				(when (or force (not (file-exists-p filename)))
-					(dotimes (n 10)
-							(push (list :source "/home/sacha/proj/french/chime.opus")
-										sources)
-							(push (list :source media-file
-													:start-ms (elt sub 1)
-													:stop-ms (elt sub 2)
-													:pad-right (* 1.5 (- (elt sub 2) (elt sub 1))))
-										sources))
-					(compile-media-sync
-					 `((audio ,@(nreverse sources)))
-					 filename
-					 "-y"))))))
+"Parse VTT and add tonguetwister files to OUTPUT-DIRECTORY."
+(interactive "FVTT: \nDOutput directory: \nP")
+      (let ((media-file (subed-guess-media-file nil vtt)))
+	      (dolist (sub (subed-parse-file vtt))
+		      (let ((filename (expand-file-name
+										       (concat (learn-lang-subed-record-simplify (elt sub 3)) ".mp3")
+										       output-directory))
+					      (compile-media-ffmpeg-arguments
+					       (append (list "-metadata"
+												       (concat "lyrics-fra="
+																       (learn-lang-subed-record-simplify (elt sub 3))))
+									       compile-media-ffmpeg-arguments))
+					      sources)
+			      (when (or force (not (file-exists-p filename)))
+				      (dotimes (n 10)
+						      (push (list :source "/home/sacha/proj/french/chime.opus")
+									      sources)
+						      (push (list :source media-file
+												      :start-ms (elt sub 1)
+												      :stop-ms (elt sub 2)
+												      :pad-right (* 1.5 (- (elt sub 2) (elt sub 1))))
+									      sources))
+				      (compile-media-sync
+				       `((audio ,@(nreverse sources)))
+				       filename
+				       "-y"))))))
 
 (defvar sacha-learn-lang-tonguetwister-source "~/proj/french/analysis/virelangues/"
-	"Source.")
+      "Source.")
 (defvar sacha-learn-lang-tonguetwister-directory "~/sync/music/french/virelangues/"
-	"Output directory.")
+      "Output directory.")
 
 ;;;###autoload
 (defun sacha-learn-lang-process-tonguetwister-clips (file)
-  "Extract practice files to directory.
+"Extract practice files to directory.
 File should start with YYYY-MM-DD."
-  (interactive (list
-								(read-file-name "Clip VTT: "
-																(sacha-latest-file sacha-learn-lang-tonguetwister-source "-clips"))))
-	(let* ((base-dir sacha-learn-lang-tonguetwister-directory)
-				 (latest (expand-file-name "latest" base-dir))
-				 (lyrics-dir (expand-file-name "../lyrics" base-dir)))
-		(let* ((date (substring (file-name-base file) 0 10))
-					 (file-dir (expand-file-name (substring (file-name-base file) 0 10) base-dir)))
-			(unless (file-directory-p file-dir)
-				(make-directory file-dir))
-			(sacha-learn-lang-make-tonguetwister-practice-files file latest)
-			(sacha-learn-lang-make-tonguetwister-practice-files file file-dir)
-			(dolist (sub (subed-parse-file file))
-				(with-temp-file (expand-file-name (concat (elt sub 3) ".lrc")
-																					lyrics-dir)
-					(insert "[00:00.00]" (elt sub 3) "\n"))))))
+(interactive (list
+							(read-file-name "Clip VTT: "
+															(sacha-latest-file sacha-learn-lang-tonguetwister-source "-clips"))))
+      (let* ((base-dir sacha-learn-lang-tonguetwister-directory)
+			       (latest (expand-file-name "latest" base-dir))
+			       (lyrics-dir (expand-file-name "../lyrics" base-dir)))
+	      (let* ((date (substring (file-name-base file) 0 10))
+				       (file-dir (expand-file-name (substring (file-name-base file) 0 10) base-dir)))
+		      (unless (file-directory-p file-dir)
+			      (make-directory file-dir))
+		      (sacha-learn-lang-make-tonguetwister-practice-files file latest)
+		      (sacha-learn-lang-make-tonguetwister-practice-files file file-dir)
+		      (dolist (sub (subed-parse-file file))
+			      (with-temp-file (expand-file-name (concat (elt sub 3) ".lrc")
+																				      lyrics-dir)
+				      (insert "[00:00.00]" (elt sub 3) "\n"))))))
 ;; Extract tonguetwisters:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-map-lang-gptel-feedback-from-the-logbook-to-kwiziq-topics][Map lang-gptel feedback from the logbook to KwizIQ topics:1]]
 ;;;###autoload
 (defun sacha-org-collect-logbook-contents ()
-  "Collect contents of all LOGBOOK drawers in the current subtree.
+"Collect contents of all LOGBOOK drawers in the current subtree.
 Returns them concatenated as a string."
-  (save-excursion
-    (org-back-to-heading t)
-    (let ((subtree-end (save-excursion (org-end-of-subtree t t)))
-          contents
-          elem)
-      (while (re-search-forward "^[ \t]*:LOGBOOK:[ \t]*$" subtree-end t)
-        (setq elem (org-element-at-point))
-        (push (buffer-substring-no-properties
-               (org-element-contents-begin elem)
-               (org-element-contents-end elem))
-              contents))
-      (string-join (nreverse contents) "\n"))))
+(save-excursion
+  (org-back-to-heading t)
+  (let ((subtree-end (save-excursion (org-end-of-subtree t t)))
+	contents
+	elem)
+    (while (re-search-forward "^[ \t]*:LOGBOOK:[ \t]*$" subtree-end t)
+      (setq elem (org-element-at-point))
+      (push (buffer-substring-no-properties
+	     (org-element-contents-begin elem)
+	     (org-element-contents-end elem))
+	    contents))
+    (string-join (nreverse contents) "\n"))))
 
 ;;;###autoload
 (defun sacha-org-get-subtree (link)
-  (save-window-excursion
-		(save-excursion
-			(org-link-open-from-string link)
-	    (buffer-substring-no-properties (point) (progn (org-end-of-subtree) (point))))))
+(save-window-excursion
+	      (save-excursion
+		      (org-link-open-from-string link)
+	  (buffer-substring-no-properties (point) (progn (org-end-of-subtree) (point))))))
 
 ;;;###autoload
 (defun sacha-learn-lang-gptel-analyze-feedback ()
-  (interactive)
-  (with-current-buffer (get-buffer-create "*Feedback*")
-    (erase-buffer)
-    (org-mode))
-  (gptel-request
-      (json-encode
-       `(("feedback on previous mistakes" . ,(sacha-org-collect-logbook-contents))
-         ("topic links" . ,(sacha-org-get-subtree "[[file:~/sync/orgzly/organizer.org::#kwiziq-a2]]"))
-         ("prompt" . "Analyze the feedback on previous mistakes. Map them to the different topics and create a frequency table where column A has a link to the topic and column B has the number of errors in that category. For anything that doesn't match, summarize them in a separate list called Other. Also create a 10-item quiz covering the most important points. Hide answers like this: [[answer:the answer goes here][___]] Use Org Mode syntax.")))
-    :callback (lambda (response info)
-                (with-current-buffer (get-buffer-create "*Feedback*")
-                  (insert response)
-                  (goto-char (point-min))
-                  (pop-to-buffer (current-buffer))))))
+(interactive)
+(with-current-buffer (get-buffer-create "*Feedback*")
+  (erase-buffer)
+  (org-mode))
+(gptel-request
+    (json-encode
+     `(("feedback on previous mistakes" . ,(sacha-org-collect-logbook-contents))
+       ("topic links" . ,(sacha-org-get-subtree "[[file:~/sync/orgzly/organizer.org::#kwiziq-a2]]"))
+       ("prompt" . "Analyze the feedback on previous mistakes. Map them to the different topics and create a frequency table where column A has a link to the topic and column B has the number of errors in that category. For anything that doesn't match, summarize them in a separate list called Other. Also create a 10-item quiz covering the most important points. Hide answers like this: [[answer:the answer goes here][___]] Use Org Mode syntax.")))
+  :callback (lambda (response info)
+	      (with-current-buffer (get-buffer-create "*Feedback*")
+		(insert response)
+		(goto-char (point-min))
+		(pop-to-buffer (current-buffer))))))
 ;; Map lang-gptel feedback from the logbook to KwizIQ topics:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-practice-pronunciation][Practice pronunciation:1]]
-  (defvar sacha-learn-lang-practice-dir "~/proj/french/audio")
-  (defvar sacha-learn-lang-practice-temp (expand-file-name "temp.wav" sacha-learn-lang-practice-dir))
+(defvar sacha-learn-lang-practice-dir "~/proj/french/audio")
+(defvar sacha-learn-lang-practice-temp (expand-file-name "temp.wav" sacha-learn-lang-practice-dir))
 ;;;###autoload
-  (defun sacha-learn-lang-practice-line ()
-    (interactive)
-    (sit-for 1)
-    (let* ((date (format-time-string "%Y-%m-%d-%H-%M-%S"))
-           (filename
-            (expand-file-name
-             (concat date " "
-                     (string-trim
-                      (buffer-substring (line-beginning-position)
-                                        (line-end-position)))
-                     ".opus")
-             sacha-learn-lang-practice-dir))
-           (process (start-process "arecord"
-                                   (get-buffer-create "*record*")
-                                   "arecord" "-D" "hw:2,0" "-t" "wav" "-f" "cd"
-                                   sacha-learn-lang-practice-temp)))
-      (read-key "Press a key")
-      (kill-process process)
-      (call-process "ffmpeg" nil (get-buffer-create "*record*") nil
-                    "-y"
-                    "-i"
-                    sacha-learn-lang-practice-temp
-                    "-af" "silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,loudnorm=I=-16:LRA=11:TP=-1.5"
-                    filename)
-      (mpv-play filename)))
+(defun sacha-learn-lang-practice-line ()
+  (interactive)
+  (sit-for 1)
+  (let* ((date (format-time-string "%Y-%m-%d-%H-%M-%S"))
+	 (filename
+	  (expand-file-name
+	   (concat date " "
+		   (string-trim
+		    (buffer-substring (line-beginning-position)
+				      (line-end-position)))
+		   ".opus")
+	   sacha-learn-lang-practice-dir))
+	 (process (start-process "arecord"
+				 (get-buffer-create "*record*")
+				 "arecord" "-D" "hw:2,0" "-t" "wav" "-f" "cd"
+				 sacha-learn-lang-practice-temp)))
+    (read-key "Press a key")
+    (kill-process process)
+    (call-process "ffmpeg" nil (get-buffer-create "*record*") nil
+		  "-y"
+		  "-i"
+		  sacha-learn-lang-practice-temp
+		  "-af" "silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-60dB,areverse,loudnorm=I=-16:LRA=11:TP=-1.5"
+		  filename)
+    (mpv-play filename)))
 
 ;;;###autoload
-  (defun sacha-learn-lang-practice-replay ()
-    (interactive)
-    (mpv-play (sacha-latest-file sacha-learn-lang-practice-dir)))
+(defun sacha-learn-lang-practice-replay ()
+  (interactive)
+  (mpv-play (sacha-latest-file sacha-learn-lang-practice-dir)))
 
 ;;;###autoload
-  (defun sacha-learn-lang-practice-transcribe ()
-    (interactive)
-    (let* ((default-directory sacha-learn-lang-practice-dir)
-           (file (sacha-latest-file sacha-learn-lang-practice-dir "\\.opus\\|\\.m4a\\|\\.webm")))
-      ;; (call-process "/bin/bash" nil nil nil "/home/sacha/bin/whisperx" (expand-file-name file))
-      (message "%s"
-               (with-temp-buffer
-                 (insert-file-contents (concat (file-name-sans-extension file) ".txt"))
-                 (string-trim (buffer-string))))))
+(defun sacha-learn-lang-practice-transcribe ()
+  (interactive)
+  (let* ((default-directory sacha-learn-lang-practice-dir)
+	 (file (sacha-latest-file sacha-learn-lang-practice-dir "\\.opus\\|\\.m4a\\|\\.webm")))
+    ;; (call-process "/bin/bash" nil nil nil "/home/sacha/bin/whisperx" (expand-file-name file))
+    (message "%s"
+	     (with-temp-buffer
+	       (insert-file-contents (concat (file-name-sans-extension file) ".txt"))
+	       (string-trim (buffer-string))))))
 
 ;;;###autoload
-  (defun sacha-learn-lang-practice-play-current-reference (&optional beg end)
-    "Play the current segment."
-    (interactive)
-    (when (derived-mode-p 'subed-mode)
-      (let ((comment (subed-subtitle-comment)))
-        (cond
-         ((string-match "#\\+REFERENCE: \\(.+\\) +\\(.+?\\) +--> +\\([^ ]+\\)" comment)
-          (let ((file (expand-file-name (match-string 1 comment)))
-                (start (match-string 2 comment))
-                (stop (match-string 3 comment)))
-            (call-process "mpv" nil nil nil
-                          file
-                          (format "--start=%.3f" (/ (subed-timestamp-to-msecs start) 1000.0))
-                          (format "--end=%.3f" (/ (subed-timestamp-to-msecs stop) 1000.0)))))
-         ((string-match "#\\+REFERENCE: \\(.+\\)" comment)
-          (call-process "mpv" nil nil nil (match-string 1 comment)))
-        (t (let ((start
-                 (if beg (save-excursion
-                           (goto-char beg)
-                           (subed-subtitle-msecs-start))
-                   (subed-subtitle-msecs-start)))
-                (stop
-                 (if beg (save-excursion
-                           (goto-char end)
-                           (subed-subtitle-msecs-stop))
-                   (subed-subtitle-msecs-stop))))
-            (call-process "mpv" nil nil nil (subed-media-file)
-                          (format "--start=%.3f" (/ start 1000.0))
-                          (format "--end=%.3f" (/ stop 1000.0)))))))))
+(defun sacha-learn-lang-practice-play-current-reference (&optional beg end)
+  "Play the current segment."
+  (interactive)
+  (when (derived-mode-p 'subed-mode)
+    (let ((comment (subed-subtitle-comment)))
+      (cond
+       ((string-match "#\\+REFERENCE: \\(.+\\) +\\(.+?\\) +--> +\\([^ ]+\\)" comment)
+	(let ((file (expand-file-name (match-string 1 comment)))
+	      (start (match-string 2 comment))
+	      (stop (match-string 3 comment)))
+	  (call-process "mpv" nil nil nil
+			file
+			(format "--start=%.3f" (/ (subed-timestamp-to-msecs start) 1000.0))
+			(format "--end=%.3f" (/ (subed-timestamp-to-msecs stop) 1000.0)))))
+       ((string-match "#\\+REFERENCE: \\(.+\\)" comment)
+	(call-process "mpv" nil nil nil (match-string 1 comment)))
+      (t (let ((start
+	       (if beg (save-excursion
+			 (goto-char beg)
+			 (subed-subtitle-msecs-start))
+		 (subed-subtitle-msecs-start)))
+	      (stop
+	       (if beg (save-excursion
+			 (goto-char end)
+			 (subed-subtitle-msecs-stop))
+		 (subed-subtitle-msecs-stop))))
+	  (call-process "mpv" nil nil nil (subed-media-file)
+			(format "--start=%.3f" (/ start 1000.0))
+			(format "--end=%.3f" (/ stop 1000.0)))))))))
 
 ;;;###autoload
-  (defun sacha-learn-lang-practice-record-loop (&optional extra)
-    (interactive
-     (list (cond
-            ((and (derived-mode-p 'subed-mode)
-                  (region-active-p))
-             (subed-subtitle-list-text
-              (subed-subtitle-list
-               (region-beginning)
-               (region-end))))
-            ((region-active-p)
-             (concat
-              " "
-              (string-trim
-               (buffer-substring (region-beginning) (region-end)))))
-            ((derived-mode-p 'subed-mode)
-             (concat " " (subed-subtitle-text))))))
-    (let* ((date (format-time-string "%Y-%m-%d-%H-%M-%S"))
-           (key-prompt "%d (SPC to review, RET get feedback, q to quit, any other key to retry")
-           (filename
-            (expand-file-name
-             (concat date
-                     (if extra
-                         (concat " "
-                                 (string-trim (replace-regexp-in-string
-                                               "[\\?]+" " "
-                                               (car
-                                                (split-string
-                                                 extra "\n")))))
-                       "")
+(defun sacha-learn-lang-practice-record-loop (&optional extra)
+  (interactive
+   (list (cond
+	  ((and (derived-mode-p 'subed-mode)
+		(region-active-p))
+	   (subed-subtitle-list-text
+	    (subed-subtitle-list
+	     (region-beginning)
+	     (region-end))))
+	  ((region-active-p)
+	   (concat
+	    " "
+	    (string-trim
+	     (buffer-substring (region-beginning) (region-end)))))
+	  ((derived-mode-p 'subed-mode)
+	   (concat " " (subed-subtitle-text))))))
+  (let* ((date (format-time-string "%Y-%m-%d-%H-%M-%S"))
+	 (key-prompt "%d (SPC to review, RET get feedback, q to quit, any other key to retry")
+	 (filename
+	  (expand-file-name
+	   (concat date
+		   (if extra
+		       (concat " "
+			       (string-trim (replace-regexp-in-string
+					     "[\\?]+" " "
+					     (car
+					      (split-string
+					       extra "\n")))))
+		     "")
 
-                     ".opus")
-             sacha-learn-lang-practice-dir))
-           done
-           char
-           (count 0)
-           process)
-      (while (not done)
-        (when (derived-mode-p 'subed-mode)
-          (if (region-active-p)
-              (sacha-learn-lang-practice-play-current-reference (region-beginning) (region-end))
-            (sacha-learn-lang-practice-play-current-reference)))
-        (setq count (1+ count))
-        (setq process (start-process "ffmpeg"
-                                     (get-buffer-create "*record*")
-                                     "ffmpeg" "-y" "-f" "pulse" "-i" "alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo"
-                                     sacha-learn-lang-practice-temp))
-        (setq char
-              (read-key (format key-prompt
-                                count)))
-        (while char
-          (pcase char
-            (?\  (when (process-live-p process)
-                   (sit-for 1)
-                   (kill-process process))
-                 (sacha-learn-lang-practice-play-current-reference)
-                 (call-process "mpv" nil nil nil sacha-learn-lang-practice-temp)
-                 (setq char
-                       (read-key (format "%d (SPC to review, RET get feedback, q to quit, any other key to retry"
-                                         count))))
-            (13 (when (process-live-p process)
-                  (sit-for 1)
-                  (kill-process process))
-                (setq done 'feedback)
-                (setq char nil))
-            (?w            ; transcribe with Whisper
-             (sacha-learn-lang-practice-transcribe))
-            (?q
-             (when (process-live-p process) (kill-process process))
-             (setq done 'ignore)
-             (setq char nil))
-            (_
-             (when (process-live-p process) (kill-process process))
-             (setq char nil)))))
-        (when (member done '(keep feedback))
-          (call-process "ffmpeg" nil (get-buffer-create "*record*") nil
-                        "-y"
-                        "-i"
-                        sacha-learn-lang-practice-temp
-                        "-af" "loudnorm=I=-16:LRA=11:TP=-1.5"
-                        ;; "-af" "silenceremove=start_periods=1:start_duration=0:start_threshold=-100dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-100dB,areverse,loudnorm=I=-16:LRA=11:TP=-1.5"
-                        filename)
-          (when (eq done 'feedback)
-            (sacha-learn-lang-get-audio-feedback filename extra t)))))
+		   ".opus")
+	   sacha-learn-lang-practice-dir))
+	 done
+	 char
+	 (count 0)
+	 process)
+    (while (not done)
+      (when (derived-mode-p 'subed-mode)
+	(if (region-active-p)
+	    (sacha-learn-lang-practice-play-current-reference (region-beginning) (region-end))
+	  (sacha-learn-lang-practice-play-current-reference)))
+      (setq count (1+ count))
+      (setq process (start-process "ffmpeg"
+				   (get-buffer-create "*record*")
+				   "ffmpeg" "-y" "-f" "pulse" "-i" "alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo"
+				   sacha-learn-lang-practice-temp))
+      (setq char
+	    (read-key (format key-prompt
+			      count)))
+      (while char
+	(pcase char
+	  (?\  (when (process-live-p process)
+		 (sit-for 1)
+		 (kill-process process))
+	       (sacha-learn-lang-practice-play-current-reference)
+	       (call-process "mpv" nil nil nil sacha-learn-lang-practice-temp)
+	       (setq char
+		     (read-key (format "%d (SPC to review, RET get feedback, q to quit, any other key to retry"
+				       count))))
+	  (13 (when (process-live-p process)
+		(sit-for 1)
+		(kill-process process))
+	      (setq done 'feedback)
+	      (setq char nil))
+	  (?w            ; transcribe with Whisper
+	   (sacha-learn-lang-practice-transcribe))
+	  (?q
+	   (when (process-live-p process) (kill-process process))
+	   (setq done 'ignore)
+	   (setq char nil))
+	  (_
+	   (when (process-live-p process) (kill-process process))
+	   (setq char nil)))))
+      (when (member done '(keep feedback))
+	(call-process "ffmpeg" nil (get-buffer-create "*record*") nil
+		      "-y"
+		      "-i"
+		      sacha-learn-lang-practice-temp
+		      "-af" "loudnorm=I=-16:LRA=11:TP=-1.5"
+		      ;; "-af" "silenceremove=start_periods=1:start_duration=0:start_threshold=-100dB,areverse,silenceremove=start_periods=1:start_duration=0:start_threshold=-100dB,areverse,loudnorm=I=-16:LRA=11:TP=-1.5"
+		      filename)
+	(when (eq done 'feedback)
+	  (sacha-learn-lang-get-audio-feedback filename extra t)))))
 ;; Practice pronunciation:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-start-the-process-for-transcribing-the-latest-recording][Start the process for transcribing the latest recording:1]]
@@ -495,9 +411,18 @@ Returns them concatenated as a string."
     (let* ((file (sacha-latest-file sacha-recordings-dir))
            (audio (expand-file-name
                    (concat (file-name-base file) "-" annotation ".opus")
-                   "~/sync/recordings/")))
+                   "~/sync/recordings/"))
+					 (process-environment (cons "MODEL=large-v3"
+																			process-environment)))
       (make-process :name "whisperx"
                     :buffer (get-buffer-create "*whisperx*")
+										:sentinel (lambda (process event)
+																(when (string= event "finished")
+																	(shell-command
+																	 (concat
+																		"notify-send %s"
+																		(shell-quote-argument
+																		 (concat "Transcribed: " audio))))))
                     :command (list
                               "bash"
                               "-c"
@@ -510,36 +435,36 @@ Returns them concatenated as a string."
 ;; Start the process for transcribing the latest recording:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document][Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document:3]]
-  (defvar sacha-learn-lang-words-for-review-context-function 'sentence-at-point)
-  (defvar sacha-learn-lang-tutor-notes-url nil)
+(defvar sacha-learn-lang-words-for-review-context-function 'sentence-at-point)
+(defvar sacha-learn-lang-tutor-notes-url nil)
 ;;;###autoload
-  (defun sacha-learn-lang-tutor-notes (section-name)
-    (sacha-org-get-subtree-by-name
-     (sacha-google-doc-org sacha-learn-lang-tutor-notes-url)
-     section-name))
+(defun sacha-learn-lang-tutor-notes (section-name)
+  (sacha-org-get-subtree-by-name
+   (sacha-google-doc-org sacha-learn-lang-tutor-notes-url)
+   section-name))
 
 ;;;###autoload
-  (defun sacha-learn-lang-words-for-review (section)
-    "List the bolded words for review in SECTION."
-    (let* ((section (sacha-learn-lang-tutor-notes section))
-           results)
-      (with-temp-buffer
-        (insert section)
-        (org-mode)
-        (goto-char (point-min))
-        (org-map-entries
-         (lambda ()
-           (org-end-of-meta-data t)
-           (unless (looking-at org-heading-regexp)
-             (let ((end (save-excursion (org-end-of-subtree))))
-               (while (re-search-forward "\\*[^* ].*?\\*" end t)
-                 (cl-pushnew
-                  (replace-regexp-in-string
-                   "[ \n ]+" " "
-                   (funcall sacha-learn-lang-words-for-review-context-function))
-                  results
-                  :test 'string=)))))))
-      (nreverse results)))
+(defun sacha-learn-lang-words-for-review (section)
+  "List the bolded words for review in SECTION."
+  (let* ((section (sacha-learn-lang-tutor-notes section))
+	 results)
+    (with-temp-buffer
+      (insert section)
+      (org-mode)
+      (goto-char (point-min))
+      (org-map-entries
+       (lambda ()
+	 (org-end-of-meta-data t)
+	 (unless (looking-at org-heading-regexp)
+	   (let ((end (save-excursion (org-end-of-subtree))))
+	     (while (re-search-forward "\\*[^* ].*?\\*" end t)
+	       (cl-pushnew
+		(replace-regexp-in-string
+		 "[ \n ]+" " "
+		 (funcall sacha-learn-lang-words-for-review-context-function))
+		results
+		:test 'string=)))))))
+    (nreverse results)))
 ;; Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document:3 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document][Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document:6]]
@@ -563,22 +488,102 @@ Returns them concatenated as a string."
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document][Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document:8]]
 ;;;###autoload
-  (defun sacha-learn-lang-tutor-notes-wdiff-org ()
-    (interactive)
-    (let ((section (org-entry-get (point) "ITEM")))
-      (sacha-wdiff-strings
-       (replace-regexp-in-string
-        " " " "
-        (sacha-org-subtree-text-without-blocks))
-       (replace-regexp-in-string
-        org-link-bracket-re
-        "\\2"
-        (replace-regexp-in-string
-         " " " "
-         (sacha-learn-lang-tutor-notes section))))))
+(defun sacha-learn-lang-tutor-notes-wdiff-org ()
+  (interactive)
+  (let ((section (org-entry-get (point) "ITEM")))
+    (sacha-wdiff-strings
+     (replace-regexp-in-string
+      " " " "
+      (sacha-org-subtree-text-without-blocks))
+     (replace-regexp-in-string
+      org-link-bracket-re
+      "\\2"
+      (replace-regexp-in-string
+       " " " "
+       (sacha-learn-lang-tutor-notes section))))))
 ;; Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document:8 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-gtts-cli][gtts-cli:2]]
+;; Let's try Google Chirp TTS
+
+;; (kill-new (sacha-learn-lang-google-chirp-tts-say-curl "Bonjour, ça va?"))
+
+(defvar sacha-learn-lang-google-chirp-tts-voice "fr-FR-Standard-F" "Voice ID.")
+(defvar sacha-learn-lang-google-dir "~/sync/cloud/personal/general-auth" "Directory for gcloud auth credentials.")
+(defvar sacha-learn-lang-google-quota-project "emacs-stuff" "Quota project.")
+
+
+
+;; CLOUDSDK_CONFIG=~/sync/cloud/personal/general-auth gcloud auth application-default login  --client-id-file=/home/sacha/sync/cloud/personal/credentials.json  --scopes="https://www.googleapis.com/auth/cloud-platform"
+
+
+(defun sacha-learn-lang-google-chirp-tts-say-curl (text &optional filename)
+	(interactive "MText: ")
+	(let* ((url "https://texttospeech.googleapis.com/v1/text:synthesize")
+				 (data (json-encode
+								`((input (text . ,text))
+									(voice (languageCode . ,learn-lang-language)
+												 (name . ,sacha-learn-lang-google-chirp-tts-voice))
+									(audioConfig (audioEncoding . "LINEAR16")))))
+				 (command
+					(format "  bash -c 'CLOUDSDK_CONFIG=%s curl -X POST %s -H Authorization:\\ Bearer\\ $(gcloud auth print-access-token) -H %s -H %s -d %s %s' --output - | jq -r .audioContent | base64 --decode"
+									sacha-learn-lang-google-dir
+									(shell-quote-argument url)
+									(shell-quote-argument (concat "x-goog-user-project: " sacha-learn-lang-google-quota-project))
+									(shell-quote-argument "Content-Type: application/json")
+									(shell-quote-argument data)
+									(unless filename
+										;; "| ffplay -nodisp -autoexit -"
+										"--output - | jq -r '.audioContent' | base64 --decode | play -"
+										))))
+		(when (called-interactively-p 'any)
+			(kill-new command)
+			(message "%s" command))
+		command))
+
+(defun sacha-learn-lang-google-chirp-tts-say (text &optional callback filename)
+  "Synthesize TEXT. Call CALLBACK with the filename afterwards."
+	(interactive "MText: ")
+	(learn-lang-tts-generic-api-say
+	 (sacha-learn-lang-google-chirp-tts-say-curl text filename)
+	 callback
+	 filename))
+
+;; Let's try elevenlabs
+
+;; (kill-new (sacha-learn-lang-elevenlabs-say-curl "Bonjour, ça va?"))
+(defvar sacha-learn-lang-elevenlabs-voice "JBFqnCBsd6RMkjVDRZzb" "Voice ID.")
+(defun sacha-learn-lang-elevenlabs-say-curl (text &optional filename)
+	(interactive "MText: ")
+	(let* ((url (concat "https://api.elevenlabs.io/v1/text-to-speech/" sacha-learn-lang-elevenlabs-voice))
+				 (temp-file (when (and filename (not (string= "wav") (file-name-extension filename)))
+                      (make-temp-file "tts-" nil ".wav")))
+				 (data (json-encode
+								`((text . ,text)
+									(model_id . "eleven_v4"))))
+				 (command
+					(format "curl -X POST %s -H %s -H %s -d %s %s"
+									(shell-quote-argument url)
+									(shell-quote-argument (concat "xi-api-key: " (getenv "ELEVENLABS_API_KEY")))
+									(shell-quote-argument "Content-Type: application/json")
+									(shell-quote-argument data)
+									(if filename
+											(format "-o %s"
+															(shell-quote-argument (expand-file-name (or temp-file filename))))
+										"| ffplay -nodisp -autoexit -"))))
+		(when (called-interactively-p 'any)
+			(kill-new command)
+			(message "%s" command))
+		command))
+
+(defun sacha-learn-lang-elevenlabs-say (text &optional callback filename)
+  "Synthesize TEXT. Call CALLBACK with the filename afterwards."
+	(sacha-learn-lang-generic-api-say
+	 (sacha-learn-lang-elevenlabs-say-curl text filename)
+	 text
+	 callback
+	 filename))
+
 
 ;; gtts-cli:2 ends here
 
@@ -598,73 +603,73 @@ Returns them concatenated as a string."
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-ai-feedback][AI feedback:1]]
 ;;;###autoload
-  (defun sacha-learn-lang-get-audio-feedback (filename &optional extra-text display)
-    (interactive (list (if current-prefix-arg
-                           (read-file-name "File: " sacha-learn-lang-practice-dir nil t nil
-                                           (lambda (filename) (string-match "\\.m4a$" filename)))
-                         (sacha-latest-file sacha-learn-lang-practice-dir "\\(\\.m4a\\|\\.webm\\)$"))
-                       (if (region-active-p)
-                           (buffer-substring (region-beginning) (region-end)))
-                       t))
-    (let* ((data
-            (replace-regexp-in-string
-             "\n" ""
-             (shell-command-to-string (concat "base64 " (shell-quote-argument filename)))))
-           (text
-            (concat "Give me feedback in English on this recording of beginner French practice. I am a female A0/A1 speaker. Focus first on major mispronunciations, and provide English phonetic transcriptions for those words using italicized parenthetical notes.
+(defun sacha-learn-lang-get-audio-feedback (filename &optional extra-text display)
+  (interactive (list (if current-prefix-arg
+			 (read-file-name "File: " sacha-learn-lang-practice-dir nil t nil
+					 (lambda (filename) (string-match "\\.m4a$" filename)))
+		       (sacha-latest-file sacha-learn-lang-practice-dir "\\(\\.m4a\\|\\.webm\\)$"))
+		     (if (region-active-p)
+			 (buffer-substring (region-beginning) (region-end)))
+		     t))
+  (let* ((data
+	  (replace-regexp-in-string
+	   "\n" ""
+	   (shell-command-to-string (concat "base64 " (shell-quote-argument filename)))))
+	 (text
+	  (concat "Give me feedback in English on this recording of beginner French practice. I am a female A0/A1 speaker. Focus first on major mispronunciations, and provide English phonetic transcriptions for those words using italicized parenthetical notes.
 
-  Return your response using Org Mode syntax using only list items, not headings. Do not put it in a code block, just return Org Mode text. For example, *bold*. Score it out of 10.
+Return your response using Org Mode syntax using only list items, not headings. Do not put it in a code block, just return Org Mode text. For example, *bold*. Score it out of 10.
 
-  Example output:
+Example output:
 
-  - Pronunciation (7 /10)
-    - travaillé /(trah vay yay)/
-  "
-                    (if extra-text
-                        (concat "\n\n###\n\n" extra-text)
-                      "")))
-           (json-array-type 'vector)
-           (json-object-type 'alist)
-           (body (json-encode
-                  `(("contents"
-                     (("parts" .
-                       ((("text" . ,text))
-                        (("inline_data" .
-                          (("mime_type" . "audio/mp4")
-                           ("data" . ,data))))
-                        )))))))
-           result)
-      (setq
-       result
-       (plz 'post "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
-         :headers
-         `(("Content-Type" . "application/json")
-           ("X-goog-api-key" . ,sacha-gemini-api-key))
-         :as #'json-read
-         :body body))
-      (when display
-        (with-current-buffer (get-buffer-create "*Feedback*")
-          (org-mode)
-          (goto-char (point-min))
-          (let* ((text (map-nested-elt result '(candidates 0 content parts 0 text)))
-                 (score (when (string-match "Pronunciation (\\(.+\\))" text) (match-string 1 text))))
-            (insert "* " (org-link-make-string
-                          (concat "audio:"
-                                  (replace-regexp-in-string
-                                   (rx line-start
-                                       (literal (getenv "HOME")))
-                                   "~"
-                                   filename))
-                          "me:") "  "
-                          (or score "")
-                          "\n"
-                          text
-                          "\n\n"))
-          (display-buffer (current-buffer))
-          (with-selected-window (get-buffer-window (current-buffer))
-            (goto-char (point-min))
-            (recenter-top-bottom 0))))
-      (map-nested-elt result '(candidates 0 content parts 0 text))))
+- Pronunciation (7 /10)
+  - travaillé /(trah vay yay)/
+"
+		  (if extra-text
+		      (concat "\n\n###\n\n" extra-text)
+		    "")))
+	 (json-array-type 'vector)
+	 (json-object-type 'alist)
+	 (body (json-encode
+		`(("contents"
+		   (("parts" .
+		     ((("text" . ,text))
+		      (("inline_data" .
+			(("mime_type" . "audio/mp4")
+			 ("data" . ,data))))
+		      )))))))
+	 result)
+    (setq
+     result
+     (plz 'post "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+       :headers
+       `(("Content-Type" . "application/json")
+	 ("X-goog-api-key" . ,sacha-gemini-api-key))
+       :as #'json-read
+       :body body))
+    (when display
+      (with-current-buffer (get-buffer-create "*Feedback*")
+	(org-mode)
+	(goto-char (point-min))
+	(let* ((text (map-nested-elt result '(candidates 0 content parts 0 text)))
+	       (score (when (string-match "Pronunciation (\\(.+\\))" text) (match-string 1 text))))
+	  (insert "* " (org-link-make-string
+			(concat "audio:"
+				(replace-regexp-in-string
+				 (rx line-start
+				     (literal (getenv "HOME")))
+				 "~"
+				 filename))
+			"me:") "  "
+			(or score "")
+			"\n"
+			text
+			"\n\n"))
+	(display-buffer (current-buffer))
+	(with-selected-window (get-buffer-window (current-buffer))
+	  (goto-char (point-min))
+	  (recenter-top-bottom 0))))
+    (map-nested-elt result '(candidates 0 content parts 0 text))))
 ;; AI feedback:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-save-journal-entries-for-analysis][Save journal entries for analysis:1]]
@@ -698,233 +703,233 @@ Returns them concatenated as a string."
 (defvar sacha-learn-lang-dictionary nil)
 ;;;###autoload
 (defun sacha-learn-lang-load-dict ()
-  (interactive)
-  (with-temp-buffer
-    (insert-file-contents sacha-learn-lang-en-fr-dictionary-file)
-    (goto-char (point-min))
-    (while (looking-at "^# ") (forward-line 1))
-    (setq sacha-learn-lang-dictionary
-          (seq-keep (lambda (s)
-                      (when (string-match "^\\(.+?\\) {\\(.+?\\)}\\(?: /\\(.+?\\)/\\)?\\(?: (\\(.+?\\))\\)?\\( SEE: .+?\\)? ::\\(?: \\(.+?\\) *\\({.+}.*\\)?\\)?$" s)
-                        (let ((headword (match-string 1 s))
-                              (head-type (match-string 2 s))
-                              (def (match-string 4 s))
-                              (see (match-string 5 s))
-                              (translation (match-string 6 s))
-                              (types (match-string 7 s)))
-                          (cons
-                           (propertize (format "%s {%s} - %s - %s :: %s"
-                                               headword
-                                               head-type
-                                               (or see translation)
-                                               (or def "")
-                                               (or types ""))
-                                       'gender
-                                       (cond
-                                         ((null types) nil)
-                                         ((string-match "^{m}" types) "m")
-                                         ((string-match "^{f}" types) "f")))
-                           translation))))
-                    (split-string (buffer-substring (point) (point-max)) "\n")))
-    (seq-take sacha-learn-lang-dictionary 10)))
+(interactive)
+(with-temp-buffer
+  (insert-file-contents sacha-learn-lang-en-fr-dictionary-file)
+  (goto-char (point-min))
+  (while (looking-at "^# ") (forward-line 1))
+  (setq sacha-learn-lang-dictionary
+	(seq-keep (lambda (s)
+		    (when (string-match "^\\(.+?\\) {\\(.+?\\)}\\(?: /\\(.+?\\)/\\)?\\(?: (\\(.+?\\))\\)?\\( SEE: .+?\\)? ::\\(?: \\(.+?\\) *\\({.+}.*\\)?\\)?$" s)
+		      (let ((headword (match-string 1 s))
+			    (head-type (match-string 2 s))
+			    (def (match-string 4 s))
+			    (see (match-string 5 s))
+			    (translation (match-string 6 s))
+			    (types (match-string 7 s)))
+			(cons
+			 (propertize (format "%s {%s} - %s - %s :: %s"
+					     headword
+					     head-type
+					     (or see translation)
+					     (or def "")
+					     (or types ""))
+				     'gender
+				     (cond
+				       ((null types) nil)
+				       ((string-match "^{m}" types) "m")
+				       ((string-match "^{f}" types) "f")))
+			 translation))))
+		  (split-string (buffer-substring (point) (point-max)) "\n")))
+  (seq-take sacha-learn-lang-dictionary 10)))
 
 (defun sacha-learn-lang-en-fr-dict-lookup (input)
-	"Look up INPUT."
-  (let (match-start
-        match-any
-        exact
-        (search (regexp-quote input)))
-    (seq-map (lambda (o)
-               (setf (car o)
-                     (propertize
-                      (car o)
-                      'face
-                      (list
-                       :background
-                       (pcase (get-text-property 0 'gender (car o))
-                         ('nil nil)
-                         ("m" (modus-themes-get-color-value 'bg-blue-subtle))
-                         ("f" (modus-themes-get-color-value 'bg-magenta-subtle))))))
-               (cond
-                ((string-match (concat "^" search " - ") (car o))
-                 (push o exact))
-                ((string-match (concat "^" search) (car o))
-                 (push o match-start))
-                ((string-match search (car o))
-                 (push o match-any))))
-             sacha-learn-lang-dictionary)
-    (append
-     (nreverse exact)
-     (nreverse match-start)
-     (nreverse match-any)
-     nil)))
+      "Look up INPUT."
+(let (match-start
+      match-any
+      exact
+      (search (regexp-quote input)))
+  (seq-map (lambda (o)
+	     (setf (car o)
+		   (propertize
+		    (car o)
+		    'face
+		    (list
+		     :background
+		     (pcase (get-text-property 0 'gender (car o))
+		       ('nil nil)
+		       ("m" (modus-themes-get-color-value 'bg-blue-subtle))
+		       ("f" (modus-themes-get-color-value 'bg-magenta-subtle))))))
+	     (cond
+	      ((string-match (concat "^" search " - ") (car o))
+	       (push o exact))
+	      ((string-match (concat "^" search) (car o))
+	       (push o match-start))
+	      ((string-match search (car o))
+	       (push o match-any))))
+	   sacha-learn-lang-dictionary)
+  (append
+   (nreverse exact)
+   (nreverse match-start)
+   (nreverse match-any)
+   nil)))
 
 ;;;###autoload
 (defun sacha-learn-lang-consult-en-fr ()
-  (interactive)
-  (unless sacha-learn-lang-dictionary (sacha-learn-lang-load-dict))
-  (insert
-   (consult--read
-    (consult--dynamic-collection
-				#'sacha-learn-lang-en-fr-dict-lookup)
-    :sort nil
-    :lookup #'consult--lookup-cdr)))
+(interactive)
+(unless sacha-learn-lang-dictionary (sacha-learn-lang-load-dict))
+(insert
+ (consult--read
+  (consult--dynamic-collection
+			      #'sacha-learn-lang-en-fr-dict-lookup)
+  :sort nil
+  :lookup #'consult--lookup-cdr)))
 
 ;;;###autoload
 (defun sacha-learn-lang-look-up-word-at-point-and-save-it ()
-  "Look up the word at point. Prompt me for my own definition."
-  (interactive)
-	;; TODO
-  )
+"Look up the word at point. Prompt me for my own definition."
+(interactive)
+      ;; TODO
+)
 ;; Load en-fr dictionary:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-conjugation][Conjugation:1]]
 ;;;###autoload
-    (defun sacha-learn-lang-conjugate-grammalecte (input)
-      "Query Grammalecte for INPUT."
-      (interactive (list (sacha-learn-lang-lexique-complete-word)))
-      (grammalecte-conjugate-verb input))
+  (defun sacha-learn-lang-conjugate-grammalecte (input)
+    "Query Grammalecte for INPUT."
+    (interactive (list (sacha-learn-lang-lexique-complete-word)))
+    (grammalecte-conjugate-verb input))
 
-    (defvar sacha-learn-lang-verbe-db "~/vendor/verbe-conjugaison-academie-francaise/output/verbs.db")
+  (defvar sacha-learn-lang-verbe-db "~/vendor/verbe-conjugaison-academie-francaise/output/verbs.db")
 
 ;;;###autoload
-    (defun sacha-learn-lang-conjugate (input &optional all-forms)
-      (interactive (list (sacha-learn-lang-lexique-complete-word)
-                         (null current-prefix-arg)))
-      (let* ((db (sqlite-open sacha-learn-lang-verbe-db))
-             (lemme (elt (car (sacha-learn-lang-lexique-lookup-db-exact input)) 1))
-             (value
-              (consult--read
-               (if all-forms
-                   (mapcar (lambda (row)
-                             (cons (string-join
-                                    (list
-                                     (elt row 0)
-                                     (elt row 1)
-                                     (elt row 2)
-                                     (elt row 4)
-                                     (elt row 3))
-                                    " - ")
-                                   (elt row 0)))
-                           (sqlite-select db
-                                          "SELECT
-        conjugaison, voix, mode, temps, personne
-    FROM verbes v
-    JOIN conjugaisons c
-    ON v.id = c.verbe_id WHERE v.infinitif = ?
-    ORDER BY temps, mode, personne" (list lemme)))
-                 (mapcar (lambda (row)
-                             (cons (string-join
-                                    (list
-                                     (elt row 0)
-                                     (elt row 4)
-                                     (elt row 3))
-                                    " - ")
-                                   (elt row 0)))
+  (defun sacha-learn-lang-conjugate (input &optional all-forms)
+    (interactive (list (sacha-learn-lang-lexique-complete-word)
+		       (null current-prefix-arg)))
+    (let* ((db (sqlite-open sacha-learn-lang-verbe-db))
+	   (lemme (elt (car (sacha-learn-lang-lexique-lookup-db-exact input)) 1))
+	   (value
+	    (consult--read
+	     (if all-forms
+		 (mapcar (lambda (row)
+			   (cons (string-join
+				  (list
+				   (elt row 0)
+				   (elt row 1)
+				   (elt row 2)
+				   (elt row 4)
+				   (elt row 3))
+				  " - ")
+				 (elt row 0)))
+			 (sqlite-select db
+					"SELECT
+      conjugaison, voix, mode, temps, personne
+  FROM verbes v
+  JOIN conjugaisons c
+  ON v.id = c.verbe_id WHERE v.infinitif = ?
+  ORDER BY temps, mode, personne" (list lemme)))
+	       (mapcar (lambda (row)
+			   (cons (string-join
+				  (list
+				   (elt row 0)
+				   (elt row 4)
+				   (elt row 3))
+				  " - ")
+				 (elt row 0)))
 
-                           (sqlite-select db
-                                          "SELECT
-        conjugaison, voix, mode, temps, personne
-    FROM verbes v
-    JOIN conjugaisons c
-    ON v.id = c.verbe_id WHERE v.infinitif = ?
-    AND temps in (?, ?)
-    AND mode=?
-    ORDER BY temps, mode, personne"
-                                          (list input "present" "passe_compose"  "indicatif"))))
-               :prompt "Verbe: "
-               :lookup 'consult--lookup-cdr)))
-        (sqlite-close db)
-        (when (called-interactively-p 'any)
-          (when (word-at-point)
-              (delete-region (save-excursion
-                               (skip-syntax-backward "w")
-                               (point))
-                             (save-excursion
-                               (skip-syntax-forward "w")
-                               (point))))
-          (insert value))
-        value))
+			 (sqlite-select db
+					"SELECT
+      conjugaison, voix, mode, temps, personne
+  FROM verbes v
+  JOIN conjugaisons c
+  ON v.id = c.verbe_id WHERE v.infinitif = ?
+  AND temps in (?, ?)
+  AND mode=?
+  ORDER BY temps, mode, personne"
+					(list input "present" "passe_compose"  "indicatif"))))
+	     :prompt "Verbe: "
+	     :lookup 'consult--lookup-cdr)))
+      (sqlite-close db)
+      (when (called-interactively-p 'any)
+	(when (word-at-point)
+	    (delete-region (save-excursion
+			     (skip-syntax-backward "w")
+			     (point))
+			   (save-excursion
+			     (skip-syntax-forward "w")
+			     (point))))
+	(insert value))
+      value))
 ;; Conjugation:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-looking-up-words-via-wordreference][Looking up words via wordreference:1]]
-  (defvar sacha-learn-lang-wordreference-cache nil)
+(defvar sacha-learn-lang-wordreference-cache nil)
 
 ;;;###autoload
-  (defun sacha-learn-lang-wordreference-completing-read ()
-    (interactive)
-    (consult--read
-     (consult--dynamic-collection
-         (lambda (input)
-           (message "input: %s" input)
-           (with-current-buffer
-               (url-retrieve-synchronously
-                (concat "https://www.wordreference.com/autocomplete?dict=enfr&query="
-                        (url-hexify-string input)))
-                               (set-buffer-multibyte t)
-             (goto-char (point-min))
-             (re-search-forward "^$" nil t)
-             (prog1
-                 (mapcar (lambda (row)
-                           (let ((fields (split-string row "\t")))
-                             (propertize
-                              (format "%s (%s)"
-                                      (car fields)
-                                      (cadr fields))
-                              'consult--candidate
-                              fields)))
-                         (split-string
-                          (string-trim (buffer-substring (point) (point-max))) "\n"))
-               (kill-buffer (current-buffer))))))
-     :sort nil
-     :initial (symbol-name (symbol-at-point))
-     :history 'sacha-learn-lang-wordreference-lookup-history
-     :prompt "Word: "
-     :category 'word))
+(defun sacha-learn-lang-wordreference-completing-read ()
+  (interactive)
+  (consult--read
+   (consult--dynamic-collection
+       (lambda (input)
+	 (message "input: %s" input)
+	 (with-current-buffer
+	     (url-retrieve-synchronously
+	      (concat "https://www.wordreference.com/autocomplete?dict=enfr&query="
+		      (url-hexify-string input)))
+			     (set-buffer-multibyte t)
+	   (goto-char (point-min))
+	   (re-search-forward "^$" nil t)
+	   (prog1
+	       (mapcar (lambda (row)
+			 (let ((fields (split-string row "\t")))
+			   (propertize
+			    (format "%s (%s)"
+				    (car fields)
+				    (cadr fields))
+			    'consult--candidate
+			    fields)))
+		       (split-string
+			(string-trim (buffer-substring (point) (point-max))) "\n"))
+	     (kill-buffer (current-buffer))))))
+   :sort nil
+   :initial (symbol-name (symbol-at-point))
+   :history 'sacha-learn-lang-wordreference-lookup-history
+   :prompt "Word: "
+   :category 'word))
 
-  (defvar-keymap sacha-learn-lang-wordreference-keymap
-    "v" #'sacha-spookfox-scroll-down
-    "V" #'sacha-spookfox-scroll-up
-    "c" #'sacha-learn-lang-conjugate-last-word
-    "l" #'sacha-learn-lang-wordreference-lookup)
+(defvar-keymap sacha-learn-lang-wordreference-keymap
+  "v" #'sacha-spookfox-scroll-down
+  "V" #'sacha-spookfox-scroll-up
+  "c" #'sacha-learn-lang-conjugate-last-word
+  "l" #'sacha-learn-lang-wordreference-lookup)
 
-  (defvar sacha-learn-lang-wordreference-lookup-history nil)
+(defvar sacha-learn-lang-wordreference-lookup-history nil)
 ;;;###autoload
-  (defun sacha-learn-lang-wordreference-lookup (word)
-    (interactive (list (sacha-learn-lang-wordreference-completing-read)))
-    (let (language)
-      (if (string-match " (\\(en\\|fr\\))" word)
-          (setq language (match-string 1 word)
-                word (replace-match "" nil t word 0)))
-      (setq word (replace-regexp-in-string "^#" "" word))
-      (browse-url
-       (format "https://www.wordreference.com/%s/%s"
-               (if (string= language "fr")
-                   "fren"
-                 "enfr")
-               (url-hexify-string word))))
-    (set-transient-map sacha-learn-lang-wordreference-keymap t))
-
-;;;###autoload
-  (defun sacha-learn-lang-conjugate-last-word ()
-    (interactive)
-    (grammalecte-conjugate-verb
-     (replace-regexp-in-string " (.+)" ""
-                               (car sacha-learn-lang-wordreference-lookup-history))))
+(defun sacha-learn-lang-wordreference-lookup (word)
+  (interactive (list (sacha-learn-lang-wordreference-completing-read)))
+  (let (language)
+    (if (string-match " (\\(en\\|fr\\))" word)
+	(setq language (match-string 1 word)
+	      word (replace-match "" nil t word 0)))
+    (setq word (replace-regexp-in-string "^#" "" word))
+    (browse-url
+     (format "https://www.wordreference.com/%s/%s"
+	     (if (string= language "fr")
+		 "fren"
+	       "enfr")
+	     (url-hexify-string word))))
+  (set-transient-map sacha-learn-lang-wordreference-keymap t))
 
 ;;;###autoload
-  (defun sacha-learn-lang-wordreference-conjugate (word)
-    (interactive (list (sacha-learn-lang-wordreference-completing-read)))
-    (browse-url (concat "https://www.wordreference.com/conj/frverbs.aspx?v="
-                        (url-hexify-string (if (listp word) (car word) word)))))
+(defun sacha-learn-lang-conjugate-last-word ()
+  (interactive)
+  (grammalecte-conjugate-verb
+   (replace-regexp-in-string " (.+)" ""
+			     (car sacha-learn-lang-wordreference-lookup-history))))
 
 ;;;###autoload
-  (defun sacha-learn-lang-reverso (s)
-    (interactive (list (if (region-active-p)
-                           (buffer-substring (region-beginning) (region-end))
-                         (word-at-point))))
-    (browse-url (concat "https://www.reverso.net/text-translation#sl=fra&tl=eng&text="
-                        (url-hexify-string s))))
+(defun sacha-learn-lang-wordreference-conjugate (word)
+  (interactive (list (sacha-learn-lang-wordreference-completing-read)))
+  (browse-url (concat "https://www.wordreference.com/conj/frverbs.aspx?v="
+		      (url-hexify-string (if (listp word) (car word) word)))))
+
+;;;###autoload
+(defun sacha-learn-lang-reverso (s)
+  (interactive (list (if (region-active-p)
+			 (buffer-substring (region-beginning) (region-end))
+		       (word-at-point))))
+  (browse-url (concat "https://www.reverso.net/text-translation#sl=fra&tl=eng&text="
+		      (url-hexify-string s))))
 ;; Looking up words via wordreference:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-lexique][Lexique:1]]
@@ -936,82 +941,82 @@ Returns them concatenated as a string."
 (defvar sacha-learn-lang-known-lemmas nil)
 ;;;###autoload
 (defun sacha-learn-lang-lexique-lookup-db-exact (input)
-  "Query the Lexique SQLite database for INPUT."
-  (let ((db (sqlite-open sacha-learn-lang-lexique-db)))
-    (prog1 (sqlite-select db
-                          "SELECT ortho, lemme, genre, nombre, phon, syll, infover FROM lexique
-                      WHERE ortho=? ORDER BY freqfilms2 DESC LIMIT 1"
-                          (list input))
-      (sqlite-close db))))
+"Query the Lexique SQLite database for INPUT."
+(let ((db (sqlite-open sacha-learn-lang-lexique-db)))
+  (prog1 (sqlite-select db
+			"SELECT ortho, lemme, genre, nombre, phon, syll, infover FROM lexique
+		    WHERE ortho=? ORDER BY freqfilms2 DESC LIMIT 1"
+			(list input))
+    (sqlite-close db))))
 
 ;;;###autoload
 (defun sacha-learn-lang-lexique-lookup-db-flat (input)
-  "Query the Lexique SQLite database for INPUT."
-  (let ((db (sqlite-open sacha-learn-lang-lexique-db)))
-    (prog1 (sqlite-select db
-                          "SELECT ortho, lemme, genre, nombre, phon, syll, infover FROM lexique
-                      WHERE ortho_flat LIKE ? OR ortho LIKE ? ORDER BY freqfilms2 DESC LIMIT 50"
-                          (list (concat (downcase input) "%")
-                                (concat (downcase input) "%")))
-      (sqlite-close db))))
+"Query the Lexique SQLite database for INPUT."
+(let ((db (sqlite-open sacha-learn-lang-lexique-db)))
+  (prog1 (sqlite-select db
+			"SELECT ortho, lemme, genre, nombre, phon, syll, infover FROM lexique
+		    WHERE ortho_flat LIKE ? OR ortho LIKE ? ORDER BY freqfilms2 DESC LIMIT 50"
+			(list (concat (downcase input) "%")
+			      (concat (downcase input) "%")))
+    (sqlite-close db))))
 
 ;;;###autoload
 (defun sacha-learn-lang-lexique-lookup-db-lemma (input)
-  "Query the Lexique SQLite database for INPUT."
-  (let ((db (sqlite-open sacha-learn-lang-lexique-db)))
-    (prog1 (sqlite-select db
-                          "SELECT ortho, lemme, genre, nombre, infover, phon, syll, ortho_flat FROM lexique
-                      WHERE lemme LIKE ? ORDER BY freqfilms2 DESC LIMIT 50"
-                          (list (concat input "%")))
-      (sqlite-close db))))
+"Query the Lexique SQLite database for INPUT."
+(let ((db (sqlite-open sacha-learn-lang-lexique-db)))
+  (prog1 (sqlite-select db
+			"SELECT ortho, lemme, genre, nombre, infover, phon, syll, ortho_flat FROM lexique
+		    WHERE lemme LIKE ? ORDER BY freqfilms2 DESC LIMIT 50"
+			(list (concat input "%")))
+    (sqlite-close db))))
 
 (eval-when-compile (require 'modus-themes))
 ;;;###autoload
 (defun sacha-learn-lang-lexique-complete-word ()
-  (interactive)
-  (let* ((selection
-          (consult--read
-           (consult--dynamic-collection
-               (lambda (input)
-                 (modus-themes-with-colors
-                   (mapcar (lambda (row)
-                             (let ((word (nth 0 row))
-                                   (gender (nth 2 row))
-                                   (number (nth 3 row))
-                                   (ipa (sacha-learn-lang-lexique-to-ipa (nth 5 row)))
-                                   (infover (nth 6 row)))
-                               ;; Format the string for the completion buffer
-                               (cons
-                                (propertize
-                                 (format "%-20s [%s] (%s)" word ipa
-                                         (string-join
-                                          (delq nil (list gender number infover))
-                                          ", "))
-                                 'consult--candidate word
-                                 'face
-                                 `(:background
+(interactive)
+(let* ((selection
+	(consult--read
+	 (consult--dynamic-collection
+	     (lambda (input)
+	       (modus-themes-with-colors
+		 (mapcar (lambda (row)
+			   (let ((word (nth 0 row))
+				 (gender (nth 2 row))
+				 (number (nth 3 row))
+				 (ipa (sacha-learn-lang-lexique-to-ipa (nth 5 row)))
+				 (infover (nth 6 row)))
+			     ;; Format the string for the completion buffer
+			     (cons
+			      (propertize
+			       (format "%-20s [%s] (%s)" word ipa
+				       (string-join
+					(delq nil (list gender number infover))
+					", "))
+			       'consult--candidate word
+			       'face
+			       `(:background
 
-                                   ,(pcase gender
-                                      ("m" (modus-themes-get-color-value 'bg-blue-subtle))
-                                      ("f" (modus-themes-get-color-value 'bg-magenta-subtle)))))
-                                word)))
-                           (sacha-learn-lang-lexique-lookup-db-flat input)))))
-           :prompt "French word: "
-           :initial (word-at-point)
-           :sort nil
-           :lookup #'consult--lookup-cdr
-           :category 'french-word)))
-    (when selection
-      (when (called-interactively-p 'any)
-        (when (word-at-point)
-          (delete-region (save-excursion
-                           (skip-syntax-backward "w")
-                           (point))
-                         (save-excursion
-                           (skip-syntax-forward "w")
-                           (point))))
-        (insert selection))
-      selection)))
+				 ,(pcase gender
+				    ("m" (modus-themes-get-color-value 'bg-blue-subtle))
+				    ("f" (modus-themes-get-color-value 'bg-magenta-subtle)))))
+			      word)))
+			 (sacha-learn-lang-lexique-lookup-db-flat input)))))
+	 :prompt "French word: "
+	 :initial (word-at-point)
+	 :sort nil
+	 :lookup #'consult--lookup-cdr
+	 :category 'french-word)))
+  (when selection
+    (when (called-interactively-p 'any)
+      (when (word-at-point)
+	(delete-region (save-excursion
+			 (skip-syntax-backward "w")
+			 (point))
+		       (save-excursion
+			 (skip-syntax-forward "w")
+			 (point))))
+      (insert selection))
+    selection)))
 ;; Lexique:4 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-write-a-completion-at-point-function-for-french][Complete word at point for French:1]]
@@ -1042,126 +1047,126 @@ Returns them concatenated as a string."
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-highlight-and-count-new-words-in-journal-entries][Highlight and count new words in journal entries:1]]
 ;;;###autoload
-  (defun sacha-learn-lang-load-known-lemmas ()
-    "Parse the CSV and return a hash table of lemma -> info."
-    (let* ((known (make-hash-table :test 'equal))
-           (data (cdr (pcsv-parse-file sacha-learn-lang-csv-path))))
-      (mapc
-       (lambda (o)
-         (unless (gethash (elt o 2) known)
-           (puthash (elt o 2) o known))
-         (unless (gethash (elt o 0) known)
-           (puthash (elt o 0) o known)))
-       data)
-      (setq sacha-learn-lang-known-lemmas known)))
+(defun sacha-learn-lang-load-known-lemmas ()
+  "Parse the CSV and return a hash table of lemma -> info."
+  (let* ((known (make-hash-table :test 'equal))
+	 (data (cdr (pcsv-parse-file sacha-learn-lang-csv-path))))
+    (mapc
+     (lambda (o)
+       (unless (gethash (elt o 2) known)
+	 (puthash (elt o 2) o known))
+       (unless (gethash (elt o 0) known)
+	 (puthash (elt o 0) o known)))
+     data)
+    (setq sacha-learn-lang-known-lemmas known)))
 
-  (defvar sacha-learn-lang-ignore
-    (with-temp-buffer
-      (insert-file-contents "~/proj/french/ignored.txt")
-      (split-string (string-trim (buffer-string)) "\n")))
-
-;;;###autoload
-  (defun sacha-learn-lang-lexique-to-ipa (s)
-    (mapconcat (lambda (c)
-                 (pcase c
-                   (?O "ɔ")
-                   (?E "ɛ")
-                   (?° "ə")
-                   (?2 "ø")
-                   (?9 "œ")
-                   (?S "ʃ")
-                   (?5 "ɛ̃")
-                   (?Z "ʒ")
-                   (?@ "ɑ̃")
-                   (?1 "œ̃")
-                   (?§ "ɔ̃")
-                   (?8 "ɥ")
-                   (?R "ʁ")
-                   (_ (char-to-string c))))
-                 s ""))
-
-  (defvar sacha-learn-lang-show-pronunciation t "*Non-nil means show pronunciation.")
+(defvar sacha-learn-lang-ignore
+  (with-temp-buffer
+    (insert-file-contents "~/proj/french/ignored.txt")
+    (split-string (string-trim (buffer-string)) "\n")))
 
 ;;;###autoload
-  (defun sacha-learn-lang-highlight-new-words-in-subtree ()
-    "Highlight words in the current subtree based on lexique.db and CSV data."
+(defun sacha-learn-lang-lexique-to-ipa (s)
+  (mapconcat (lambda (c)
+	       (pcase c
+		 (?O "ɔ")
+		 (?E "ɛ")
+		 (?° "ə")
+		 (?2 "ø")
+		 (?9 "œ")
+		 (?S "ʃ")
+		 (?5 "ɛ̃")
+		 (?Z "ʒ")
+		 (?@ "ɑ̃")
+		 (?1 "œ̃")
+		 (?§ "ɔ̃")
+		 (?8 "ɥ")
+		 (?R "ʁ")
+		 (_ (char-to-string c))))
+	       s ""))
+
+(defvar sacha-learn-lang-show-pronunciation t "*Non-nil means show pronunciation.")
+
+;;;###autoload
+(defun sacha-learn-lang-highlight-new-words-in-subtree ()
+  "Highlight words in the current subtree based on lexique.db and CSV data."
+  (interactive)
+  (save-excursion
+    (sacha-learn-lang-remove-new-word-highlights)
+    (if (org-entry-get-with-inheritance "DATE")
+	(let* ((subtree-date (org-entry-get-with-inheritance "DATE"))
+	       (known-lemmas (or sacha-learn-lang-known-lemmas (sacha-learn-lang-load-known-lemmas)))
+	       (seen-so-far (make-hash-table :test 'equal))
+	       (beg (save-excursion (org-back-to-heading t) (org-end-of-meta-data t) (point)))
+	       (end (save-excursion (org-end-of-subtree t) (point)))
+	       (count-new 0)
+	       (count-words 0))
+	  (save-excursion
+	    (goto-char beg)
+	    (while (and (< (point) end) (re-search-forward "\\b[[:alpha:]-]+\\b" end t))
+	      (let* ((word (match-string 0))
+		     (info (and (or
+				 (not (car (gethash (downcase word) known-lemmas)))
+				 (not (string>
+				       subtree-date
+				       (car (gethash (downcase word) known-lemmas)))))
+				 (car (sacha-learn-lang-lexique-lookup-db-exact (downcase word))))))
+		(setq count-words (1+ count-words))
+		(when info
+		  (let* ((lemma (elt info 1))
+			 (gender (elt info 2))
+			 (syll (propertize (concat " (" (elt info 5) ")")
+					   'face
+					   'modus-themes-fg-cyan-faint
+					   'keymap
+					   sacha-learn-lang-overlay-map
+					   ))
+			 (csv-date (car (gethash lemma known-lemmas)))
+			 (is-new (and (or (null csv-date)
+					  (and subtree-date (not (string> subtree-date
+									  csv-date))))
+				      (not (gethash lemma seen-so-far))
+				      (not (member lemma sacha-learn-lang-ignore)))))
+		    (when is-new
+		      (puthash lemma (list subtree-date word lemma) seen-so-far)
+		      (puthash lemma (list subtree-date word lemma) sacha-learn-lang-known-lemmas)
+		      (puthash word (list subtree-date word lemma) sacha-learn-lang-known-lemmas)
+		      (setq count-new (1+ count-new))
+		      (let ((ov (make-overlay (match-beginning 0) (match-end 0)))
+			    (face (cond
+				   ((string-equal gender "m") 'modus-themes-subtle-blue)
+				   ((string-equal gender "f") 'modus-themes-subtle-magenta)
+				   (t 'modus-themes-subtle-green))))
+			(overlay-put ov 'sacha-learn-lang-highlight t)
+			(overlay-put ov 'word word)
+			(overlay-put ov 'evaporate t)
+			(when sacha-learn-lang-show-pronunciation
+			  (overlay-put ov 'after-string (sacha-learn-lang-lexique-to-ipa syll)))
+			(overlay-put ov 'face face)))))))
+	    (org-back-to-heading)
+	    (let ((ov (make-overlay (line-beginning-position) (line-end-position))))
+	      (overlay-put ov 'after-string (format " + %d = %d" count-new count-words))
+	      (overlay-put ov 'sacha-learn-lang-highlight t))
+	    (when (called-interactively-p 'any)
+	      (message "%d total words, %d new lemmas" count-words count-new))
+	    (cons count-new count-words)))
+      (let ((data (org-map-entries #'sacha-learn-lang-highlight-new-words-in-subtree "DATE={.}" 'tree)))
+	(org-back-to-heading)
+	(let ((ov (make-overlay (line-beginning-position) (line-end-position))))
+	  (overlay-put ov 'evaporate t)
+	  (overlay-put ov 'after-string
+		       (format " + %d = %d"
+			       (apply '+ (mapcar 'car data))
+			       (apply '+ (mapcar 'cdr data))))
+	  (overlay-put ov 'sacha-learn-lang-highlight t))))))
+
+;;;###autoload
+  (defun sacha-learn-lang-remove-new-word-highlights ()
+    "Remove all word highlights created by `sacha-learn-lang-highlight-new-words-in-subtree'."
     (interactive)
-    (save-excursion
-      (sacha-learn-lang-remove-new-word-highlights)
-      (if (org-entry-get-with-inheritance "DATE")
-          (let* ((subtree-date (org-entry-get-with-inheritance "DATE"))
-                 (known-lemmas (or sacha-learn-lang-known-lemmas (sacha-learn-lang-load-known-lemmas)))
-                 (seen-so-far (make-hash-table :test 'equal))
-                 (beg (save-excursion (org-back-to-heading t) (org-end-of-meta-data t) (point)))
-                 (end (save-excursion (org-end-of-subtree t) (point)))
-                 (count-new 0)
-                 (count-words 0))
-            (save-excursion
-              (goto-char beg)
-              (while (and (< (point) end) (re-search-forward "\\b[[:alpha:]-]+\\b" end t))
-                (let* ((word (match-string 0))
-                       (info (and (or
-                                   (not (car (gethash (downcase word) known-lemmas)))
-                                   (not (string>
-                                         subtree-date
-                                         (car (gethash (downcase word) known-lemmas)))))
-                                   (car (sacha-learn-lang-lexique-lookup-db-exact (downcase word))))))
-                  (setq count-words (1+ count-words))
-                  (when info
-                    (let* ((lemma (elt info 1))
-                           (gender (elt info 2))
-                           (syll (propertize (concat " (" (elt info 5) ")")
-                                             'face
-                                             'modus-themes-fg-cyan-faint
-                                             'keymap
-                                             sacha-learn-lang-overlay-map
-                                             ))
-                           (csv-date (car (gethash lemma known-lemmas)))
-                           (is-new (and (or (null csv-date)
-                                            (and subtree-date (not (string> subtree-date
-                                                                            csv-date))))
-                                        (not (gethash lemma seen-so-far))
-                                        (not (member lemma sacha-learn-lang-ignore)))))
-                      (when is-new
-                        (puthash lemma (list subtree-date word lemma) seen-so-far)
-                        (puthash lemma (list subtree-date word lemma) sacha-learn-lang-known-lemmas)
-                        (puthash word (list subtree-date word lemma) sacha-learn-lang-known-lemmas)
-                        (setq count-new (1+ count-new))
-                        (let ((ov (make-overlay (match-beginning 0) (match-end 0)))
-                              (face (cond
-                                     ((string-equal gender "m") 'modus-themes-subtle-blue)
-                                     ((string-equal gender "f") 'modus-themes-subtle-magenta)
-                                     (t 'modus-themes-subtle-green))))
-                          (overlay-put ov 'sacha-learn-lang-highlight t)
-                          (overlay-put ov 'word word)
-                          (overlay-put ov 'evaporate t)
-                          (when sacha-learn-lang-show-pronunciation
-                            (overlay-put ov 'after-string (sacha-learn-lang-lexique-to-ipa syll)))
-                          (overlay-put ov 'face face)))))))
-              (org-back-to-heading)
-              (let ((ov (make-overlay (line-beginning-position) (line-end-position))))
-                (overlay-put ov 'after-string (format " + %d = %d" count-new count-words))
-                (overlay-put ov 'sacha-learn-lang-highlight t))
-              (when (called-interactively-p 'any)
-                (message "%d total words, %d new lemmas" count-words count-new))
-              (cons count-new count-words)))
-        (let ((data (org-map-entries #'sacha-learn-lang-highlight-new-words-in-subtree "DATE={.}" 'tree)))
-          (org-back-to-heading)
-          (let ((ov (make-overlay (line-beginning-position) (line-end-position))))
-            (overlay-put ov 'evaporate t)
-            (overlay-put ov 'after-string
-                         (format " + %d = %d"
-                                 (apply '+ (mapcar 'car data))
-                                 (apply '+ (mapcar 'cdr data))))
-            (overlay-put ov 'sacha-learn-lang-highlight t))))))
-
-;;;###autoload
-    (defun sacha-learn-lang-remove-new-word-highlights ()
-      "Remove all word highlights created by `sacha-learn-lang-highlight-new-words-in-subtree'."
-      (interactive)
-      (let ((beg (save-excursion (org-back-to-heading t) (point)))
-            (end (save-excursion (org-end-of-subtree t) (point))))
-        (remove-overlays beg end 'sacha-learn-lang-highlight t)))
+    (let ((beg (save-excursion (org-back-to-heading t) (point)))
+	  (end (save-excursion (org-end-of-subtree t) (point))))
+      (remove-overlays beg end 'sacha-learn-lang-highlight t)))
 ;; Highlight and count new words in journal entries:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-correct-encoding-errors][Correct encoding errors:1]]
@@ -1190,34 +1195,119 @@ Returns them concatenated as a string."
             (replace-match (cdr pair) t))))))
 ;; Correct encoding errors:1 ends here
 
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-using-emacs-to-visualize-speaking-and-target-words-phrases-in-real-ish-time-noticing-bingo-phrases][Noticing bingo phrases:1]]
+(defvar sacha-learn-lang-bingo-word-file "~/proj/french/bingo.txt")
+(defvar sacha-learn-lang-bingo-words nil "List of words.")
+(defvar sacha-learn-lang-bingo-words-hash nil "Data for the counts.")
+
+;;;###autoload
+(defun sacha-learn-lang-bingo-words ()
+      "Load the list of words from the file."
+      (interactive)
+      (setq sacha-learn-lang-bingo-words
+			      (seq-map (lambda (o)
+								       (when (= (length o) 1)
+									       (setq o (list (car o) 0)))
+								       (setq o (append o (list
+																		      (string-trim (replace-regexp-in-string
+																									      " *\\[.+?\\] *" " "
+																									      (car o))))))
+								       o)
+							       (pcsv-parse-file sacha-learn-lang-bingo-word-file)))
+      sacha-learn-lang-bingo-words)
+
+;;;###autoload
+(defun sacha-learn-lang-bingo-handler (event)
+"Manually register the event."
+(interactive "e")
+	(let* ((pos (posn-point (event-end event)))
+				       (val (get-text-property pos 'bingo)))
+		      (when val
+			      (sacha-learn-lang-notice-bingo-words val))))
+
+(defvar-keymap sacha-learn-lang-bingo-map
+      "<mouse-1>" #'sacha-learn-lang-bingo-handler)
+
+;;;###autoload
+(defun sacha-learn-lang-bingo-summary ()
+      "Summarize the words to say."
+      (let ((target (seq-filter (lambda (row) (= (elt row 1) 0))
+													      sacha-learn-lang-bingo-words))
+			      (yay (seq-filter (lambda (row) (> (elt row 1) 0))
+											       sacha-learn-lang-bingo-words)))
+	      (concat
+	       (if target
+			       (concat "Target: "
+							       (mapconcat (lambda (row)
+														      (propertize
+														       (car row)
+														       'keymap sacha-learn-lang-bingo-map
+														       'bingo (car row)))
+													      target
+													      "; ")
+							       "\n\n")
+		       "")
+	       (if yay
+			       (concat
+				      "Yay! "
+				      (mapconcat (lambda (row)
+										       (propertize (format "%s (%s)" (car row) (elt row 1))
+																       'keymap sacha-learn-lang-bingo-map
+																       'bingo (car row)))
+									       (seq-filter (lambda (row) (> (elt row 1) 0))
+															       sacha-learn-lang-bingo-words)
+									       "; ")
+				      "\n\n")
+		       ""))))
+
+;;;###autoload
+(defun sacha-learn-lang-notice-bingo-words (text)
+      "Look for the bingo words in TEXT and celebrate when I use them.
+Add to `whisper-insert-text-at-point'."
+      (when text
+	      (unless sacha-learn-lang-bingo-words (sacha-learn-lang-bingo-words))
+	      (let ((found (seq-find
+								      (lambda (o)
+									      (and (elt o 2)
+											       (string-match (concat "\\<" (elt o 2)) text)))
+								      sacha-learn-lang-bingo-words)))
+		      (when found
+			      (incf (elt found 1))
+			      (sacha-vad-tutor-update-view)
+			      (with-current-buffer (get-buffer-create "*Bingo*")
+				      (erase-buffer)
+				      (insert (sacha-learn-lang-bingo-summary))))))
+      text)
+;; Noticing bingo phrases:1 ends here
+
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results][Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results:1]]
 ;;;###autoload
 (defun sacha-learn-lang-en-to-fr (text &optional display-only)
-  (interactive (list (read-string "Text: ") current-prefix-arg))
-  (let* ((url "https://translation.googleapis.com/language/translate/v2")
-         (params `(("key" . ,(getenv "GOOGLE_API_KEY"))
-                   ("q" . ,text)
-                   ("source" . "en")
-                   ("target" . "fr")
-                   ("format" . "text")))
-         (query-string (mapconcat
-                        (lambda (pair)
-                          (format "%s=%s"
-                                  (url-hexify-string (car pair))
-                                  (url-hexify-string (cdr pair))))
-                        params
-                        "&"))
-         (full-url (concat url "?" query-string)))
-    (let* ((response (plz 'get full-url :as #'json-read))
-           (data (alist-get 'data response))
-           (translations (alist-get 'translations data))
-           (first-translation (car translations))
-           (translated-text (alist-get 'translatedText first-translation)))
-      (when (called-interactively-p 'any)
-        (if display-only
-            (message "%s" translated-text)
-          (insert translated-text)))
-      translated-text)))
+(interactive (list (read-string "Text: ") current-prefix-arg))
+(let* ((url "https://translation.googleapis.com/language/translate/v2")
+       (params `(("key" . ,(getenv "GOOGLE_API_KEY"))
+		 ("q" . ,text)
+		 ("source" . "en")
+		 ("target" . "fr")
+		 ("format" . "text")))
+       (query-string (mapconcat
+		      (lambda (pair)
+			(format "%s=%s"
+				(url-hexify-string (car pair))
+				(url-hexify-string (cdr pair))))
+		      params
+		      "&"))
+       (full-url (concat url "?" query-string)))
+  (let* ((response (plz 'get full-url :as #'json-read))
+	 (data (alist-get 'data response))
+	 (translations (alist-get 'translations data))
+	 (first-translation (car translations))
+	 (translated-text (alist-get 'translatedText first-translation)))
+    (when (called-interactively-p 'any)
+      (if display-only
+	  (message "%s" translated-text)
+	(insert translated-text)))
+    translated-text)))
 ;; Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results:1 ends here
 
 (provide 'sacha-learn-lang)

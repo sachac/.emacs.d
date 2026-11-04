@@ -38,20 +38,20 @@
 (defvar sacha-speech-chrome-url "ws://127.0.0.1:8000/ws" "Websocket URL to connect to for captions.")
 ;;;###autoload
 (defun sacha-speech-chrome-connect ()
-  (interactive)
-  (unless (websocket-p sacha-speech-chrome-ws)
-    (setq sacha-speech-chrome-ws
-          (websocket-open
-           sacha-speech-chrome-url
-           :on-message #'sacha-speech-chrome-handle))))
+(interactive)
+(unless (websocket-p sacha-speech-chrome-ws)
+  (setq sacha-speech-chrome-ws
+	(websocket-open
+	 sacha-speech-chrome-url
+	 :on-message #'sacha-speech-chrome-handle))))
 ;;;###autoload
 (defun sacha-speech-chrome-reconnect ()
-  (interactive)
-  (sacha-speech-chrome-disconnect)
-  (sacha-speech-chrome-connect))
+(interactive)
+(sacha-speech-chrome-disconnect)
+(sacha-speech-chrome-connect))
 
 (defvar sacha-speech-functions '(sacha-speech-display)
-  "Functions to run with the info as an argument.
+"Functions to run with the info as an argument.
 The info is an alist with 'type and 'content.
 The functions are called in sequence, with the first function getting the info
 from the websocket message and the other functions getting the results of the
@@ -60,43 +60,43 @@ previous functions.")
 (defvar-local sacha-speech-previous-final nil)
 
 (defface sacha-chrome-caption-current
-  '((t :height 200))
-  "Display current caption.")
+'((t :height 200))
+"Display current caption.")
 
 ;;;###autoload
 (defun sacha-speech-display (info)
-  (let-alist info
-    (with-current-buffer (get-buffer-create
-                          (format "*Captions - %s*"
-                                  .session))
-      (when (and (string= .type "TEMP")
-                 sacha-speech-previous-final)
-        (goto-char (point-max))
-        (delete-region
-         (line-beginning-position)
-         (line-end-position))
-        (insert (propertize sacha-speech-previous-final
-                            'face `(:foreground ,(modus-themes-get-color-value 'fg-dim)))
-                "\n")
-        (setq sacha-speech-previous-final nil))
-      (when (string= .type "TEMP")
-        (goto-char (point-max))
-        (delete-region (line-beginning-position) (line-end-position))
-        (insert .type (propertize .content 'face 'sacha-chrome-caption-current)))
-      (when (string= .type "FINAL")
-        (unless (string= sacha-speech-previous-final .content)
-          (goto-char (point-max))
-          (set-text-properties
-           (line-beginning-position)
-           (line-end-position)
-           (list
-            'face `(:foreground ,(modus-themes-get-color-value 'fg-dim))))
-          (insert "\n"))
-        (setq sacha-speech-previous-final .content)
-        (goto-char (point-max))
-        (delete-region (line-beginning-position) (line-end-position))
-        (insert (propertize .content 'face 'sacha-chrome-caption-current)))))
-  info)
+(let-alist info
+  (with-current-buffer (get-buffer-create
+			(format "*Captions - %s*"
+				.session))
+    (when (and (string= .type "TEMP")
+	       sacha-speech-previous-final)
+      (goto-char (point-max))
+      (delete-region
+       (line-beginning-position)
+       (line-end-position))
+      (insert (propertize sacha-speech-previous-final
+			  'face `(:foreground ,(modus-themes-get-color-value 'fg-dim)))
+	      "\n")
+      (setq sacha-speech-previous-final nil))
+    (when (string= .type "TEMP")
+      (goto-char (point-max))
+      (delete-region (line-beginning-position) (line-end-position))
+      (insert .type (propertize .content 'face 'sacha-chrome-caption-current)))
+    (when (string= .type "FINAL")
+      (unless (string= sacha-speech-previous-final .content)
+	(goto-char (point-max))
+	(set-text-properties
+	 (line-beginning-position)
+	 (line-end-position)
+	 (list
+	  'face `(:foreground ,(modus-themes-get-color-value 'fg-dim))))
+	(insert "\n"))
+      (setq sacha-speech-previous-final .content)
+      (goto-char (point-max))
+      (delete-region (line-beginning-position) (line-end-position))
+      (insert (propertize .content 'face 'sacha-chrome-caption-current)))))
+info)
 ;; Streaming speech recognition into Emacs using Google Chrome Web Speech API:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-streaming-speech-recognition-into-emacs-using-google-chrome-web-speech-api][Streaming speech recognition into Emacs using Google Chrome Web Speech API:2]]

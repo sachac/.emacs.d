@@ -78,14 +78,16 @@
 ;; [[file:../Sacha.org::#embark-video][Using Embark to act on video:1]]
 ;;;###autoload
 (defun sacha-embark-video ()
-  "Match video."
-  (let ((extensions "youtu\\.?be\\|\\(webm\\|mp4\\|flv\\)$"))
-    (or (if-let* ((link (and (derived-mode-p 'org-mode)
-														 (org-element-context))))
-						(when (eq (org-element-type link) 'link)
-							(cond
-							 ((string-match extensions (org-element-property :path link))
-								(cons 'video (org-element-property :raw-link link))))))
+	"Match video."
+	(let ((extensions "youtu\\.?be\\|\\(webm\\|mp4\\|flv\\)$"))
+		(or (if-let* ((elem (and (derived-mode-p 'org-mode)
+														 (org-element-context)))
+									(link (if (eq (org-element-type elem) 'link)
+														elem
+													(org-element-lineage (org-element-context elem) 'link))))
+						(cond
+						 ((string-match extensions (org-element-property :path link))
+							(cons 'video (org-element-property :raw-link link)))))
 				(and (url-get-url-at-point)
 						 (string-match extensions (url-get-url-at-point))
 						 (cons 'video (url-get-url-at-point)))
@@ -95,11 +97,17 @@
 
 ;;;###autoload
 (defun sacha-embark-video-edit-youtube (url)
-  "Go to the YouTube edit page for VIDEO."
+"Go to the YouTube edit page for VIDEO."
+(interactive "MURL: ")
+      (when (or (string-match "youtu\\.?be\\(?:\\.com\\)?/\\(?:live/\\|watch/\\)?\\([-A-Za-z0-9_]+\\)" url)
+	  (string-match "watch\\?v=\\([-A-Za-z0-9_]+\\)" url))
+  (browse-url (format "https://studio.youtube.com/video/%s/edit" (match-string 1 url)))))
+
+;;;###autoload
+(defun sacha-embark-yt-browse-url (url)
+  "Open URL."
   (interactive "MURL: ")
-	(when (or (string-match "youtu\\.?be\\(?:\\.com\\)?/\\(?:live/\\|watch/\\)?\\([-A-Za-z0-9_]+\\)" url)
-            (string-match "watch\\?v=\\([-A-Za-z0-9_]+\\)" url))
-    (browse-url (format "https://studio.youtube.com/video/%s/edit" (match-string 1 url)))))
+	(browse-url (replace-regexp-in-string "^yt:" "" url)))
 ;; Using Embark to act on video:1 ends here
 
 ;; [[file:../Sacha.org::#embark-audio][Using Embark to act on audio:1]]
@@ -169,103 +177,103 @@
 ;; [[file:../Sacha.org::embark][embark]]
 ;;;###autoload
 (defun sacha-embark-org-element ()
-  "Target an Org Mode element at point."
-  (save-window-excursion
-    (save-excursion
-      (save-restriction
-        (when (derived-mode-p 'org-agenda-mode)
-          (org-goto-marker-or-bmk (org-get-at-bol 'org-marker))
-          (org-back-to-heading))
-        (when (derived-mode-p 'org-mode)
-          (let* ((context ;; Borrowed from org-open-at-point
-                  ;; Only consider supported types, even if they are not the
-                  ;; closest one.
-                  (org-element-lineage (org-element-context)
-                                       '(headline src-block link) t))
-                 (type (org-element-type context))
-                 (value (org-element-property :value context)))
-            (cond ((eq type 'headline)
-                   (cons 'org-heading (org-element-property :title context)))
-                  ;; src-block and link can be handled by embark-org
-                  )))))))
+"Target an Org Mode element at point."
+(save-window-excursion
+  (save-excursion
+    (save-restriction
+      (when (derived-mode-p 'org-agenda-mode)
+	(org-goto-marker-or-bmk (org-get-at-bol 'org-marker))
+	(org-back-to-heading))
+      (when (derived-mode-p 'org-mode)
+	(let* ((context ;; Borrowed from org-open-at-point
+		;; Only consider supported types, even if they are not the
+		;; closest one.
+		(org-element-lineage (org-element-context)
+				     '(headline src-block link) t))
+	       (type (org-element-type context))
+	       (value (org-element-property :value context)))
+	  (cond ((eq type 'headline)
+		 (cons 'org-heading (org-element-property :title context)))
+		;; src-block and link can be handled by embark-org
+		)))))))
 
 ;;;###autoload
 (defun sacha-embark-org-src-block-copy-noweb-reference (element)
-  (kill-new (if (org-element-property element :parameters)
-                (format "<<%s(%s)>>" (org-element-property element :name)
-                        (org-element-property element :parameters))
-              (format "<<%s>>" (org-element-property element :parameters)))))
+(kill-new (if (org-element-property element :parameters)
+	      (format "<<%s(%s)>>" (org-element-property element :name)
+		      (org-element-property element :parameters))
+	    (format "<<%s>>" (org-element-property element :parameters)))))
 ;; embark ends here
 
 ;; [[file:../Sacha.org::#whichkey-embark][Whichkey and Embark:1]]
 ;;;###autoload
 (defun embark-which-key-indicator ()
-  "An embark indicator that displays keymaps using which-key.
-  The which-key help message will show the type and value of the
-  current target followed by an ellipsis if there are further
-  targets."
-  (lambda (&optional keymap targets prefix)
-    (if (null keymap)
-        (which-key--hide-popup-ignore-command)
-      (which-key--show-keymap
-       (if (eq (plist-get (car targets) :type) 'embark-become)
-           "Become"
-				 (propertize
-					(format "Act on %s '%s'%s"
-                 (plist-get (car targets) :type)
-                 (embark--truncate-target (plist-get (car targets) :target))
-                 (if (cdr targets) "…" ""))
-					'face
-					`(:height 300
-										:background ,(modus-themes-get-color-value
-															 'bg-term-blue))
-					))
-       (if prefix
-           (pcase (lookup-key keymap prefix 'accept-default)
-             ((and (pred keymapp) km) km)
-             (_ (key-binding prefix 'accept-default)))
-         keymap)
-       nil nil t (lambda (binding)
-                   (not (string-suffix-p "-argument" (cdr binding))))))))
+"An embark indicator that displays keymaps using which-key.
+The which-key help message will show the type and value of the
+current target followed by an ellipsis if there are further
+targets."
+(lambda (&optional keymap targets prefix)
+  (if (null keymap)
+      (which-key--hide-popup-ignore-command)
+    (which-key--show-keymap
+     (if (eq (plist-get (car targets) :type) 'embark-become)
+	 "Become"
+			       (propertize
+				      (format "Act on %s '%s'%s"
+	       (plist-get (car targets) :type)
+	       (embark--truncate-target (plist-get (car targets) :target))
+	       (if (cdr targets) "…" ""))
+				      'face
+				      `(:height 300
+									      :background ,(modus-themes-get-color-value
+														       'bg-term-blue))
+				      ))
+     (if prefix
+	 (pcase (lookup-key keymap prefix 'accept-default)
+	   ((and (pred keymapp) km) km)
+	   (_ (key-binding prefix 'accept-default)))
+       keymap)
+     nil nil t (lambda (binding)
+		 (not (string-suffix-p "-argument" (cdr binding))))))))
 
 ;;;###autoload
 (defun embark-hide-which-key-indicator (fn &rest args)
-  "Hide the which-key indicator immediately when using the completing-read prompter."
-  (which-key--hide-popup-ignore-command)
-  (let ((embark-indicators
-         (remq #'embark-which-key-indicator embark-indicators)))
-    (apply fn args)))
+"Hide the which-key indicator immediately when using the completing-read prompter."
+(which-key--hide-popup-ignore-command)
+(let ((embark-indicators
+       (remq #'embark-which-key-indicator embark-indicators)))
+  (apply fn args)))
 ;; Whichkey and Embark:1 ends here
 
 ;; [[file:../Sacha.org::#embark-image][Embark and images:2]]
 ;;;###autoload
 (defun sacha-embark-image ()
-  "Match images."
-  (let ((extensions "\\(png\\|jpg\\|svg\\|gif\\|jpeg\\)\\'"))
-    (cond
-     ((derived-mode-p 'org-mode)
-      (when-let* ((link (org-element-context)))
-        (when (eq (org-element-type link) 'link)
-          (cond
-           ((string= "attachment" (org-element-property :type link))
-            (cons 'image (expand-file-name (org-element-property :path link)
-                                           (org-attach-dir))))
-           ((string-match "sketch" (org-element-property :type link))
-            (cons 'image (sacha-get-sketch-filename (org-element-property :path link))))
-           ((string-match extensions (org-element-property :path link))
-            (cons 'image (org-element-property :path link)))))))
-     ((and (derived-mode-p 'dired-mode)
-           (string-match extensions (dired-get-filename)))
-      (cons 'image (dired-get-filename)))
-     ((derived-mode-p 'subed-mode)
-      (when-let* ((filename (thing-at-point 'filename)))
-        (when (string-match (concat "file:\\(.+\\." extensions "\\)") filename)
-          (cons 'image (match-string 1 filename)))))
-     ((and (buffer-file-name)
-           (string-match extensions (buffer-file-name)))
-      (cons 'image (buffer-file-name))))))
-  (with-eval-after-load 'embark
-          (add-to-list 'embark-target-finders 'sacha-embark-image))
+"Match images."
+(let ((extensions "\\(png\\|jpg\\|svg\\|gif\\|jpeg\\)\\'"))
+  (cond
+   ((derived-mode-p 'org-mode)
+    (when-let* ((link (org-element-context)))
+      (when (eq (org-element-type link) 'link)
+	(cond
+	 ((string= "attachment" (org-element-property :type link))
+	  (cons 'image (expand-file-name (org-element-property :path link)
+					 (org-attach-dir))))
+	 ((string-match "sketch" (org-element-property :type link))
+	  (cons 'image (sacha-get-sketch-filename (org-element-property :path link))))
+	 ((string-match extensions (org-element-property :path link))
+	  (cons 'image (org-element-property :path link)))))))
+   ((and (derived-mode-p 'dired-mode)
+	 (string-match extensions (dired-get-filename)))
+    (cons 'image (dired-get-filename)))
+   ((derived-mode-p 'subed-mode)
+    (when-let* ((filename (thing-at-point 'filename)))
+      (when (string-match (concat "file:\\(.+\\." extensions "\\)") filename)
+	(cons 'image (match-string 1 filename)))))
+   ((and (buffer-file-name)
+	 (string-match extensions (buffer-file-name)))
+    (cons 'image (buffer-file-name))))))
+(with-eval-after-load 'embark
+	(add-to-list 'embark-target-finders 'sacha-embark-image))
 ;; Embark and images:2 ends here
 
 ;; [[file:../Sacha.org::#embark-subed][Embark and subed:2]]
@@ -283,70 +291,70 @@
 
 ;; [[file:../Sacha.org::#keybindings-embark-use-embark-to-copy-the-name-of-a-defun-or-defvar][Use Embark to copy the name of a defun or defvar:1]]
 (defun sacha-embark-copy-def-name (target)
-  "Extract and copy the name from a TARGET."
-  (let* ((name (symbol-name (cadr (read target)))))
-    (kill-new name)
-    (message "%s" name)))
+"Extract and copy the name from a TARGET."
+(let* ((name (symbol-name (cadr (read target)))))
+  (kill-new name)
+  (message "%s" name)))
 ;; Use Embark to copy the name of a defun or defvar:1 ends here
 
 ;; [[file:../Sacha.org::#keybindings-embark-embark-and-erefactor-rename-symbol-in-buffer][Embark and erefactor-rename-symbol-in-buffer:1]]
 ;;;###autoload
 (defun sacha-embark-erefactor-rename-symbol-in-buffer (old-name new-name)
-  (interactive (let* ((old-name (read-string "Symbol: "))
-                      (new-name (read-string (format "%s -> New name: " old-name)
-                                             old-name
-                                             'erefactor--read-symbol-history)))
-                 (list old-name new-name)))
-  (erefactor-rename-symbol-in-buffer old-name new-name))
+(interactive (let* ((old-name (read-string "Symbol: "))
+		    (new-name (read-string (format "%s -> New name: " old-name)
+					   old-name
+					   'erefactor--read-symbol-history)))
+	       (list old-name new-name)))
+(erefactor-rename-symbol-in-buffer old-name new-name))
 ;; Embark and erefactor-rename-symbol-in-buffer:1 ends here
 
 ;; [[file:../Sacha.org::#quickly-jump-to-positions][Quickly jump to positions:1]]
 ;;;###autoload
-    (defun avy-action-exchange (pt)
-      "Exchange sexp at PT with the one at point."
-      (set-mark pt)
-      (transpose-sexps 0))
+  (defun avy-action-exchange (pt)
+    "Exchange sexp at PT with the one at point."
+    (set-mark pt)
+    (transpose-sexps 0))
 ;;;###autoload
-    (defun avy-action-embark (pt)
-      (save-excursion
-        (goto-char pt)
-        (embark-act))
-      (select-window
-       (cdr (ring-ref avy-ring 0)))
-      t)
+  (defun avy-action-embark (pt)
+    (save-excursion
+      (goto-char pt)
+      (embark-act))
+    (select-window
+     (cdr (ring-ref avy-ring 0)))
+    t)
 ;; Quickly jump to positions:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-time-zones][Time zones:1]]
 (defvar sacha-time-zones nil "List of time-zones (ex: America/Toronto) to translate time to.")
 ;;;###autoload
 (defun sacha-summarize-times (time &optional time-zones)
-	"Return TIME in TIME-ZONES."
-  (let (prev-day)
-    (mapconcat
-     (lambda (tz)
-       (let ((cur-day (format-time-string "%a %b %-e" time tz))
-             (cur-time (format-time-string "%H%MH %Z" time tz)))
-         (if (equal prev-day cur-day)
-             cur-time
-           (setq prev-day cur-day)
-           (concat cur-day " " cur-time))))
-     (or time-zones sacha-time-zones)
-     " / ")))
+      "Return TIME in TIME-ZONES."
+(let (prev-day)
+  (mapconcat
+   (lambda (tz)
+     (let ((cur-day (format-time-string "%a %b %-e" time tz))
+	   (cur-time (format-time-string "%H%MH %Z" time tz)))
+       (if (equal prev-day cur-day)
+	   cur-time
+	 (setq prev-day cur-day)
+	 (concat cur-day " " cur-time))))
+   (or time-zones sacha-time-zones)
+   " / ")))
 
 ;;;###autoload
 (defun sacha-org-timestamp-in-time-zones (&optional s)
-	"Copy the current timestamp in `sacha-time-zones'."
-	(interactive)
-	(let* ((s (or s (org-element-property :raw-value (org-element-context))))
-				 (time (org-timestamp-to-time (org-timestamp-from-string s)))
-				 (result (format "%s (%s) = %s"
-												 s
-												 (format-time-string "%z")
-												 (sacha-summarize-times time))))
-		(when (called-interactively-p)
-			(message "%s" result)
-			(kill-new result))
-		result))
+      "Copy the current timestamp in `sacha-time-zones'."
+      (interactive)
+      (let* ((s (or s (org-element-property :raw-value (org-element-context))))
+			       (time (org-timestamp-to-time (org-timestamp-from-string s)))
+			       (result (format "%s (%s) = %s"
+											       s
+											       (format-time-string "%z")
+											       (sacha-summarize-times time))))
+	      (when (called-interactively-p)
+		      (message "%s" result)
+		      (kill-new result))
+	      result))
 ;; Time zones:1 ends here
 
 ;; [[file:../Sacha.org::#org-refile-insert-link][Insert a link to an Org Mode heading from an org-refile prompt:1]]

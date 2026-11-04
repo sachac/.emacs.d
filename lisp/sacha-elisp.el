@@ -669,8 +669,12 @@ Activate this with:
 		 (sort (seq-remove
 						(if filter
 								(lambda (o)
-									(or (null (funcall filter o))
-											(file-directory-p o)))
+									(or (file-directory-p o)
+											(cond
+											 ((stringp filter)
+												(not (string-match filter o)))
+											 ((functionp filter)
+												(not (funcall filter o))))))
 							#'file-directory-p)
 						(directory-files path 'full (and (stringp filter) filter) t))
 					 #'file-newer-than-file-p))))

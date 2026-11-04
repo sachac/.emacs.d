@@ -39,50 +39,50 @@
 ;; [[file:../Sacha.org::#navigation-dired-mark-today-s-files-or-other-recent-files][Mark today's files or other recent files:1]]
 ;;;###autoload
 (defun sacha-dired-mark-recent (days)
-  "Mark files last modified at most (abs(DAYS)-1) days ago.
+"Mark files last modified at most (abs(DAYS)-1) days ago.
 This means files modified since midnight if DAYS=1.  Unmark if DAYS is
 negative. If DAYS=0, mark files last modified within the last 60 minutes.
 
 From https://mbork.pl/2026-05-18_Marking_today%e2%80%99s_files_in_Dired"
-  (interactive "P" dired-mode)
-  (let* ((n (prefix-numeric-value days))
-         (absn (abs n))
-         (msg (format "recent (last %s) file"
-                      (if (zerop n)
-                          "60 minutes"
-                        (format "%s day%s"
-                                absn
-                                (if (= absn 1) "" "s")))))
-         (dired-marker-char (if (minusp n) ?\s dired-marker-char))
-         (cutoff (if (zerop n)
-                     (time-add (current-time) -3600) ; now - 60 minutes
-                   (let ((time (decode-time
-                                (time-add (current-time)
-                                          (* (1- absn)
-                                             60 60 24 -1)))))
-                     (setf (decoded-time-hour time) 0
-                           (decoded-time-minute time) 0
-                           (decoded-time-second time) 0)
-                     (encode-time time)))))
-    (dired-mark-if
-     (and (time-less-p
-           cutoff
-           (file-attribute-modification-time
-            (file-attributes (dired-get-filename t t))))
-          (not (looking-at-p dired-re-dot)))
-     msg)))
+(interactive "P" dired-mode)
+(let* ((n (prefix-numeric-value days))
+       (absn (abs n))
+       (msg (format "recent (last %s) file"
+		    (if (zerop n)
+			"60 minutes"
+		      (format "%s day%s"
+			      absn
+			      (if (= absn 1) "" "s")))))
+       (dired-marker-char (if (minusp n) ?\s dired-marker-char))
+       (cutoff (if (zerop n)
+		   (time-add (current-time) -3600) ; now - 60 minutes
+		 (let ((time (decode-time
+			      (time-add (current-time)
+					(* (1- absn)
+					   60 60 24 -1)))))
+		   (setf (decoded-time-hour time) 0
+			 (decoded-time-minute time) 0
+			 (decoded-time-second time) 0)
+		   (encode-time time)))))
+  (dired-mark-if
+   (and (time-less-p
+	 cutoff
+	 (file-attribute-modification-time
+	  (file-attributes (dired-get-filename t t))))
+	(not (looking-at-p dired-re-dot)))
+   msg)))
 ;; Mark today's files or other recent files:1 ends here
 
 ;; [[file:../Sacha.org::#navigation-open-files-externally][Open files externally:1]]
 ;;;###autoload
 (defun dired-open-externally (&optional arg)
-  "Open marked or current file in operating system's default application.
+"Open marked or current file in operating system's default application.
 
 From oantolin's config."
-  (interactive "P")
-  (dired-map-over-marks
-   (embark-open-externally (dired-get-filename))
-   arg))
+(interactive "P")
+(dired-map-over-marks
+ (embark-open-externally (dired-get-filename))
+ arg))
 ;; Open files externally:1 ends here
 
 (provide 'sacha-dired)

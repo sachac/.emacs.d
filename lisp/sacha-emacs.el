@@ -51,171 +51,171 @@
 ;; [[file:../Sacha.org::#reload][Reload:1]]
 ;;;###autoload
 (defun sacha-reload-emacs-configuration ()
-  (interactive)
-  (load-file "~/proj/.emacs.d/Sacha.el"))
+(interactive)
+(load-file "~/proj/.emacs.d/Sacha.el"))
 ;; Reload:1 ends here
 
 ;; [[file:../Sacha.org::#repeatable-commands][Repeatable commands:1]]
 ;;;###autoload
 (defun sacha-def-rep-command (alist)
-  "Return a lambda that calls the first function of ALIST.
-        It sets the transient map to all functions of ALIST,
-        allowing you to repeat those functions as needed."
-  (let ((keymap (make-sparse-keymap))
-        (func (cdar alist)))
-    (mapc (lambda (x)
-            (when x
-              (define-key keymap (kbd (car x)) (cdr x))))
-          alist)
-    (lambda (arg)
-      (interactive "p")
-      (when func
-        (funcall func arg))
-      (set-transient-map keymap t))))
+"Return a lambda that calls the first function of ALIST.
+      It sets the transient map to all functions of ALIST,
+      allowing you to repeat those functions as needed."
+(let ((keymap (make-sparse-keymap))
+      (func (cdar alist)))
+  (mapc (lambda (x)
+	  (when x
+	    (define-key keymap (kbd (car x)) (cdr x))))
+	alist)
+  (lambda (arg)
+    (interactive "p")
+    (when func
+      (funcall func arg))
+    (set-transient-map keymap t))))
 ;; Repeatable commands:1 ends here
 
 ;; [[file:../Sacha.org::#which-key-and-which-key-posframe][which-key and which-key-posframe:2]]
 ;;;###autoload
 (defun sacha-reset-transients ()
-  (interactive)
-  (setq overriding-terminal-local-map nil))
+(interactive)
+(setq overriding-terminal-local-map nil))
 (keymap-global-set "s-x" #'sacha-reset-transients)
 ;; which-key and which-key-posframe:2 ends here
 
 ;; [[file:../Sacha.org::#org-mode-org-babel-make-it-easier-to-split-sacha-literate-config-into-files][Make it easier to split my literate config into files:1]]
 ;;;###autoload
 (defun sacha-emacs-suggest-file ()
-  (let ((elem (org-element-context)))
-    (seq-find (lambda (o)
-                (save-excursion
-                  (goto-char (org-element-begin elem))
-                  (re-search-forward
-                   (concat "^ *(\\(cl-\\)?defun *"
-                           (regexp-quote (file-name-base o)))
-                   (org-element-end elem) t)))
-              (directory-files "lisp/" t "\\.el"))))
+(let ((elem (org-element-context)))
+  (seq-find (lambda (o)
+	      (save-excursion
+		(goto-char (org-element-begin elem))
+		(re-search-forward
+		 (concat "^ *(\\(cl-\\)?defun *"
+			 (regexp-quote (file-name-base o)))
+		 (org-element-end elem) t)))
+	    (directory-files "lisp/" t "\\.el"))))
 
 ;;;###autoload
 (defun sacha-emacs-split-into-file (filename)
-  "Prepare this block for splitting into FILENAME."
-  (interactive (list
-                (let* ((default (sacha-emacs-suggest-file))
-                       (relative
-                        (and default
-                             (file-relative-name
-                              default
-                              (file-name-directory (buffer-file-name))))))
-                  (if default
-                      (read-file-name
-                       (format "File (%s): " relative)
-                       "lisp/"
-                       relative)
-                    (read-file-name "File: " "lisp/")))))
-  (let ((elem (org-element-context)))
-    (save-restriction
-      (narrow-to-region (org-element-begin elem)
-                        (org-element-end elem))
-      (goto-char (point-min))
-      (forward-line)
-      (while (re-search-forward "^ *(\\(cl-defun\\|defun\\|define-minor-mode\\|define-derived-mode\\) " nil t)
-        (unless (save-match-data
-                  (save-excursion
-                    (forward-line -1)
-                    (looking-at ";;;###autoload\n")))
-          (replace-match
-           (concat ";;;###autoload\n"
-                   (match-string 0)))))
+"Prepare this block for splitting into FILENAME."
+(interactive (list
+	      (let* ((default (sacha-emacs-suggest-file))
+		     (relative
+		      (and default
+			   (file-relative-name
+			    default
+			    (file-name-directory (buffer-file-name))))))
+		(if default
+		    (read-file-name
+		     (format "File (%s): " relative)
+		     "lisp/"
+		     relative)
+		  (read-file-name "File: " "lisp/")))))
+(let ((elem (org-element-context)))
+  (save-restriction
+    (narrow-to-region (org-element-begin elem)
+		      (org-element-end elem))
+    (goto-char (point-min))
+    (forward-line)
+    (while (re-search-forward "^ *(\\(cl-defun\\|defun\\|define-minor-mode\\|define-derived-mode\\) " nil t)
+      (unless (save-match-data
+		(save-excursion
+		  (forward-line -1)
+		  (looking-at ";;;###autoload\n")))
+	(replace-match
+	 (concat ";;;###autoload\n"
+		 (match-string 0)))))
 
-      (goto-char (point-min))
-      (forward-line)
-      (when (re-search-forward "^(\\(setq\\|use-package\\|with-eval-after-load\\|keymap-global-set\\|keymap-set\\|keymap-global-set\\)" nil t)
-        (goto-char (match-beginning 0))
-        (sacha-org-demarcate-block))
-      ;; Add the tangle
-      (goto-char (point-min))
-      (unless (looking-at "#\\+begin_src")
-        (re-search-forward "#\\+begin_src" nil t))
-      (unless (save-excursion (re-search-forward ":tangle" nil (line-end-position)))
-        (goto-char (line-end-position))
-        (insert " :tangle " (file-relative-name filename (file-name-directory (buffer-file-name))))))))
+    (goto-char (point-min))
+    (forward-line)
+    (when (re-search-forward "^(\\(setq\\|use-package\\|with-eval-after-load\\|keymap-global-set\\|keymap-set\\|keymap-global-set\\)" nil t)
+      (goto-char (match-beginning 0))
+      (sacha-org-demarcate-block))
+    ;; Add the tangle
+    (goto-char (point-min))
+    (unless (looking-at "#\\+begin_src")
+      (re-search-forward "#\\+begin_src" nil t))
+    (unless (save-excursion (re-search-forward ":tangle" nil (line-end-position)))
+      (goto-char (line-end-position))
+      (insert " :tangle " (file-relative-name filename (file-name-directory (buffer-file-name))))))))
 ;; Make it easier to split my literate config into files:1 ends here
 
 ;; [[file:../Sacha.org::sacha-emacs-config-prepare-to-tangle][sacha-emacs-config-prepare-to-tangle]]
 ;;;###autoload
 (defun sacha-dotemacs-link-for-section-at-point (&optional combined)
-  "Return the link for the current section."
-  (let* ((custom-id (org-entry-get-with-inheritance "CUSTOM_ID"))
-         (title (org-entry-get (point) "ITEM"))
-         (url (if custom-id
-                  (concat "dotemacs:" custom-id)
-                (concat sacha-emacs-config-url ":-:text=" (url-hexify-string title)))))
-    (if combined
-        (org-link-make-string
-         url
-         title)
-      (cons url title))))
+"Return the link for the current section."
+(let* ((custom-id (org-entry-get-with-inheritance "CUSTOM_ID"))
+       (title (org-entry-get (point) "ITEM"))
+       (url (if custom-id
+		(concat "dotemacs:" custom-id)
+	      (concat sacha-emacs-config-url ":-:text=" (url-hexify-string title)))))
+  (if combined
+      (org-link-make-string
+       url
+       title)
+    (cons url title))))
 
 (eval-and-compile
-  (require 'org-core nil t)
-  (require 'org-macs nil t)
-  (require 'org-src nil t))
+(require 'org-core nil t)
+(require 'org-macs nil t)
+(require 'org-src nil t))
 (declare-function org-babel-tangle--compute-targets "ob-tangle")
 (defun sacha-org-collect-links-for-tangled-files ()
-  "Return a list of ((filename (link link link link)) ...)."
-  (let* ((file (buffer-file-name))
-         results)
-    (org-babel-map-src-blocks (buffer-file-name)
-      (let* ((info (org-babel-get-src-block-info))
-             (link (sacha-dotemacs-link-for-section-at-point)))
-        (mapc
-         (lambda (target)
-           (let ((list (assoc target results #'string=)))
-             (if list
-                 (cl-pushnew link (cdr list) :test 'equal)
-               (push (list target link) results))))
-         (org-babel-tangle--compute-targets file info))))
-    ;; Put it back in source order
-    (nreverse
-     (mapcar (lambda (o)
-               (cons (car o)
-                     (nreverse (cdr o))))
-             results))))
+"Return a list of ((filename (link link link link)) ...)."
+(let* ((file (buffer-file-name))
+       results)
+  (org-babel-map-src-blocks (buffer-file-name)
+    (let* ((info (org-babel-get-src-block-info))
+	   (link (sacha-dotemacs-link-for-section-at-point)))
+      (mapc
+       (lambda (target)
+	 (let ((list (assoc target results #'string=)))
+	   (if list
+	       (cl-pushnew link (cdr list) :test 'equal)
+	     (push (list target link) results))))
+       (org-babel-tangle--compute-targets file info))))
+  ;; Put it back in source order
+  (nreverse
+   (mapcar (lambda (o)
+	     (cons (car o)
+		   (nreverse (cdr o))))
+	   results))))
 (defvar sacha-emacs-config-module-links nil "Cache for links from tangled files.")
 
 ;;;###autoload
 (defun sacha-emacs-config-update-module-info ()
-  "Update the list of links."
-  (interactive)
-  (setq sacha-emacs-config-module-links
-        (seq-filter
-         (lambda (o)
-           (string-match "sacha-" (car o)))
-         (sacha-org-collect-links-for-tangled-files)))
-  (setq sacha-emacs-config-modules-info
-        (mapcar (lambda (group)
-                  `(,(file-name-base (car group))
-                    (commentary
-                     .
-                     ,(replace-regexp-in-string
-                       "^"
-                       ";; "
-                       (concat
-                        "Related EmacsConfig sections:\n\n"
-                        (org-export-string-as
-                         (mapconcat
-                          (lambda (link)
-                            (concat "- " (cdr link) "\\\\\n  " (org-link-make-string (car link)) "\n"))
-                          (cdr group)
-                          "\n")
-                         'ascii
-                         t))))))
-                sacha-emacs-config-module-links)))
+"Update the list of links."
+(interactive)
+(setq sacha-emacs-config-module-links
+      (seq-filter
+       (lambda (o)
+	 (string-match "sacha-" (car o)))
+       (sacha-org-collect-links-for-tangled-files)))
+(setq sacha-emacs-config-modules-info
+      (mapcar (lambda (group)
+		`(,(file-name-base (car group))
+		  (commentary
+		   .
+		   ,(replace-regexp-in-string
+		     "^"
+		     ";; "
+		     (concat
+		      "Related EmacsConfig sections:\n\n"
+		      (org-export-string-as
+		       (mapconcat
+			(lambda (link)
+			  (concat "- " (cdr link) "\\\\\n  " (org-link-make-string (car link)) "\n"))
+			(cdr group)
+			"\n")
+		       'ascii
+		       t))))))
+	      sacha-emacs-config-module-links)))
 
 ;;;###autoload
 (defun sacha-emacs-config-prepare-to-tangle ()
-  "Update module info if tangling my config."
-  (when (string-match "Sacha.org" (buffer-file-name))
-    (sacha-emacs-config-update-module-info)))
+"Update module info if tangling my config."
+(when (string-match "Sacha.org" (buffer-file-name))
+  (sacha-emacs-config-update-module-info)))
 ;; sacha-emacs-config-prepare-to-tangle ends here
 
 ;; [[file:../Sacha.org::#key-chord][Key chords:1]]

@@ -59,6 +59,9 @@
 ;; - Write about keybindings
 ;;   https://sachachua.com/dotemacs#write-about-keybindings
 ;;
+;; - Join lines
+;;   https://sachachua.com/dotemacs#org
+;;
 ;; - Link to the part of my config that defines a function
 ;;   https://sachachua.com/dotemacs#org-mode-link-to-the-part-of-my-config-that-defines-a-function
 ;;
@@ -318,28 +321,28 @@
 ;; [[file:../Sacha.org::#using-embark-to-insert-files-as-org-includes][Using Embark to insert files as Org INCLUDEs:1]]
 ;;;###autoload
 (defun sacha-insert-file-as-org-include (file)
-  (interactive "fFile: ")
-  (set-text-properties 0 (length file) nil file)
-  (let ((mode (assoc-default file auto-mode-alist 'string-match)))
-    (insert
-     (org-link-make-string (concat "file:" file) (concat "Download " (file-name-nondirectory file))) "\n"
-     "#+begin_my_details " (file-name-nondirectory file) "\n"
-     (format "#+INCLUDE: %s" (prin1-to-string file))
-     (if mode
-         (concat " src " (replace-regexp-in-string "-mode$" "" (symbol-name mode)))
-       "")
-     "\n"
-     "#+end_my_details\n")))
+(interactive "fFile: ")
+(set-text-properties 0 (length file) nil file)
+(let ((mode (assoc-default file auto-mode-alist 'string-match)))
+  (insert
+   (org-link-make-string (concat "file:" file) (concat "Download " (file-name-nondirectory file))) "\n"
+   "#+begin_my_details " (file-name-nondirectory file) "\n"
+   (format "#+INCLUDE: %s" (prin1-to-string file))
+   (if mode
+       (concat " src " (replace-regexp-in-string "-mode$" "" (symbol-name mode)))
+     "")
+   "\n"
+   "#+end_my_details\n")))
 
 ;;;###autoload
 (defun sacha-transform-org-link-to-include ()
-  (interactive)
-  (let ((link (org-element-lineage (org-element-context) '(link) t))
-        (mode (assoc-default (org-element-property :path link) auto-mode-alist 'string-match)))
-    (when link
-      (delete-region (org-element-property :begin link)
-                     (org-element-property :end link))
-      (sacha-insert-file-as-org-include (org-element-property :path link)))))
+(interactive)
+(let ((link (org-element-lineage (org-element-context) '(link) t))
+      (mode (assoc-default (org-element-property :path link) auto-mode-alist 'string-match)))
+  (when link
+    (delete-region (org-element-property :begin link)
+		   (org-element-property :end link))
+    (sacha-insert-file-as-org-include (org-element-property :path link)))))
 ;; Using Embark to insert files as Org INCLUDEs:1 ends here
 
 ;; [[file:../Sacha.org::#keybindings-embark-renaming-and-storing][Renaming and storing:2]]
@@ -399,70 +402,70 @@
 ;; [[file:../Sacha.org::#consult-omni][consult-omni:1]]
 ;;;###autoload
 (defun sacha-insert-or-replace-link (url &optional title)
-  "Insert a link, wrap the current region in a link, or replace the current link."
-  (interactive (list (read-string "URL: ")))
+"Insert a link, wrap the current region in a link, or replace the current link."
+(interactive (list (read-string "URL: ")))
+(cond
+ ((derived-mode-p 'org-mode)
   (cond
-   ((derived-mode-p 'org-mode)
-    (cond
-     ((org-in-regexp org-link-bracket-re 1)
-      (when (match-end 2) (setq title (match-string-no-properties 2)))
-      (delete-region (match-beginning 0) (match-end 0)))
-     ((org-in-regexp org-link-any-re 1)
-      (delete-region (match-beginning 0) (match-end 0)))
-     ((region-active-p)
-      (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
-      (delete-region (region-beginning) (region-end))))
-    ;; update link
-    (insert (org-link-make-string url title)))
-   ((derived-mode-p 'org-mode)					; not in a link
-    (insert (org-link-make-string url title)))
-   ((and (region-active-p) (derived-mode-p 'markdown-mode))
+   ((org-in-regexp org-link-bracket-re 1)
+    (when (match-end 2) (setq title (match-string-no-properties 2)))
+    (delete-region (match-beginning 0) (match-end 0)))
+   ((org-in-regexp org-link-any-re 1)
+    (delete-region (match-beginning 0) (match-end 0)))
+   ((region-active-p)
     (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
-    (delete-region (region-beginning) (region-end))
-    (insert (format "[%s](%s)" title url)))
-   ((derived-mode-p 'markdown-mode)
-    (insert (format "[%s](%s)" title url)))
-   ((and (region-active-p) (string-match (regexp-quote "*new toot*") (buffer-name)))
-    (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
-    (delete-region (region-beginning) (region-end))
-    (insert (format "[%s](%s)" title url)))
-   ((string-match (regexp-quote "*new toot*") (buffer-name))
-    (insert (format "[%s](%s)" (read-string "Title: " (sacha-page-title url))
-                    url)))
-   (t
-    (insert (format "%s (%s)" title url)))))
+    (delete-region (region-beginning) (region-end))))
+  ;; update link
+  (insert (org-link-make-string url title)))
+ ((derived-mode-p 'org-mode)					; not in a link
+  (insert (org-link-make-string url title)))
+ ((and (region-active-p) (derived-mode-p 'markdown-mode))
+  (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+  (delete-region (region-beginning) (region-end))
+  (insert (format "[%s](%s)" title url)))
+ ((derived-mode-p 'markdown-mode)
+  (insert (format "[%s](%s)" title url)))
+ ((and (region-active-p) (string-match (regexp-quote "*new toot*") (buffer-name)))
+  (setq title (buffer-substring-no-properties (region-beginning) (region-end)))
+  (delete-region (region-beginning) (region-end))
+  (insert (format "[%s](%s)" title url)))
+ ((string-match (regexp-quote "*new toot*") (buffer-name))
+  (insert (format "[%s](%s)" (read-string "Title: " (sacha-page-title url))
+		  url)))
+ (t
+  (insert (format "%s (%s)" title url)))))
 
 ;; override the embark actions
 ;;;###autoload
 (defun sacha-consult-omni-embark-copy-url-as-kill (cand)
-  "Don't add spaces."
-  (when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
-    (kill-new (string-trim s))))
+"Don't add spaces."
+(when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
+  (kill-new (string-trim s))))
 
 ;;;###autoload
 (defun sacha-consult-omni-embark-insert-url (cand)
-  "Don't add spaces."
-  (when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
-    (insert (string-trim s))))
+"Don't add spaces."
+(when-let ((s (and (stringp cand) (get-text-property 0 :url cand))))
+  (insert (string-trim s))))
 
 ;;;###autoload
 (defun sacha-consult-omni-embark-copy-title-as-kill (cand)
-  "Don't add spaces."
-  (when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
-    (kill-new (string-trim s))))
+"Don't add spaces."
+(when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
+  (kill-new (string-trim s))))
 
 ;;;###autoload
 (defun sacha-consult-omni-embark-insert-title (cand)
-  "Don't add spaces."
-  (when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
-    (insert (string-trim s))))
+"Don't add spaces."
+(when-let ((s (and (stringp cand) (get-text-property 0 :title cand))))
+  (insert (string-trim s))))
 
 ;;;###autoload
 (defun sacha-consult-omni-embark-insert-link (cand)
-  "Don't add spaces."
-  (let ((url (and (stringp cand) (get-text-property 0 :url cand)))
-        (title (and (stringp cand) (get-text-property 0 :title cand))))
-    (sacha-insert-or-replace-link url title)))
+"Don't add spaces."
+(let ((url (and (stringp cand) (get-text-property 0 :url cand)))
+      (title (and (stringp cand) (get-text-property 0 :title cand))))
+  (sacha-insert-or-replace-link url title)))
 ;; consult-omni:1 ends here
 
 ;; [[file:../Sacha.org::#consult-omni][consult-omni:2]]
@@ -503,67 +506,67 @@
 ;; we're in a bracketed link with no description and the target doesn't look like a link;
 ;; likely I've actually added the text for the description and now we need to include the link
 (defun sacha-org-in-bracketed-text-link-p ()
-  (when (and (derived-mode-p 'org-mode) org-link-bracket-re)
-    (let* ((bracket-pos (org-in-regexp org-link-bracket-re))
-           (bracket-target (and bracket-pos (match-string 1)))
-           (bracket-desc (and bracket-pos (match-string 2))))
-      (and bracket-pos bracket-target
-           (null bracket-desc)
-           ;; try to trigger only when the target is plain text and doesn't have a protocol
-           (not (string-match ":" bracket-target))))))
+(when (and (derived-mode-p 'org-mode) org-link-bracket-re)
+  (let* ((bracket-pos (org-in-regexp org-link-bracket-re))
+	 (bracket-target (and bracket-pos (match-string 1)))
+	 (bracket-desc (and bracket-pos (match-string 2))))
+    (and bracket-pos bracket-target
+	 (null bracket-desc)
+	 ;; try to trigger only when the target is plain text and doesn't have a protocol
+	 (not (string-match ":" bracket-target))))))
 
 ;;;###autoload
 (defun sacha-org-set-link-target-with-search ()
-  "Replace the current link's target with a web search.
-  Assume the target is actually supposed to be the description.  For
-  example, if the link is [[some text]], do a web search for 'some text',
-  prompt for the link to use as the target, and move 'some text' to the
-  description."
-  (interactive)
-  (let* ((bracket-pos (org-in-regexp org-link-bracket-re))
-         (bracket-target (and bracket-pos (match-string 1)))
-         (bracket-desc (match-string 2))
-         result)
-    (when (sacha-org-in-bracketed-text-link-p)
-      (let ((link (consult-omni bracket-target nil nil t)))
-        (cond
-         ((get-text-property 0 :url link)
-          (setq result (org-link-make-string (get-text-property 0 :url link)
-                                             bracket-target)))
-         ((string-match ":" link) ; might be a URL
-          (setq result (org-link-make-string link bracket-target))))
-        (when result
-          (delete-region (car bracket-pos) (cdr bracket-pos))
-          (insert result)
-          result)))))
+"Replace the current link's target with a web search.
+Assume the target is actually supposed to be the description.  For
+example, if the link is [[some text]], do a web search for 'some text',
+prompt for the link to use as the target, and move 'some text' to the
+description."
+(interactive)
+(let* ((bracket-pos (org-in-regexp org-link-bracket-re))
+       (bracket-target (and bracket-pos (match-string 1)))
+       (bracket-desc (match-string 2))
+       result)
+  (when (sacha-org-in-bracketed-text-link-p)
+    (let ((link (consult-omni bracket-target nil nil t)))
+      (cond
+       ((get-text-property 0 :url link)
+	(setq result (org-link-make-string (get-text-property 0 :url link)
+					   bracket-target)))
+       ((string-match ":" link) ; might be a URL
+	(setq result (org-link-make-string link bracket-target))))
+      (when result
+	(delete-region (car bracket-pos) (cdr bracket-pos))
+	(insert result)
+	result)))))
 ;; Using web searches and favorites to quickly link placeholders in Org Mode:1 ends here
 
 ;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and favorites to quickly link placeholders in Org Mode:2]]
 ;;;###autoload
-  (defun sacha-org-set-link-target-with-org-completion ()
-          "Replace the current link's target with `org-insert-link' completion.
-  Assume the target is actually supposed to be the description.  For
-  example, if the link is [[some text]], do a web search for 'some text',
-  prompt for the link to use as the target, and move 'some text' to the
-  description."
-          (interactive)
-          (let* ((bracket-pos (org-in-regexp org-link-bracket-re))
-                                   (bracket-target (match-string 1))
-                                   (bracket-desc (match-string 2))
-                                   result)
-                  (when (and bracket-pos bracket-target
-                                                           (null bracket-desc)
-                                                           ;; try to trigger only when the target is plain text and doesn't have a protocol
-                                                           (not (string-match ":" bracket-target))
-                                                           (org-element-lineage (org-element-context) '(link) t)) ; ignore text in code blocks, etc.
-                          ;; we're in a bracketed link with no description and the target doesn't look like a link;
-                          ;; likely I've actually added the text for the description and now we need to include the link.
-                          ;; This is a hack so that we don't have to delete the link until the new link has been inserted
-                          ;; since org-insert-link doesn' tbreak out the link prompting code into a smaller function.
-                          (let ((org-link-bracket-re "{{{}}}"))
-                                  (goto-char (cdr bracket-pos))
-                                  (org-insert-link nil nil bracket-target))
-                          (delete-region (car bracket-pos) (cdr bracket-pos)))))
+(defun sacha-org-set-link-target-with-org-completion ()
+	"Replace the current link's target with `org-insert-link' completion.
+Assume the target is actually supposed to be the description.  For
+example, if the link is [[some text]], do a web search for 'some text',
+prompt for the link to use as the target, and move 'some text' to the
+description."
+	(interactive)
+	(let* ((bracket-pos (org-in-regexp org-link-bracket-re))
+				 (bracket-target (match-string 1))
+				 (bracket-desc (match-string 2))
+				 result)
+		(when (and bracket-pos bracket-target
+							 (null bracket-desc)
+							 ;; try to trigger only when the target is plain text and doesn't have a protocol
+							 (not (string-match ":" bracket-target))
+							 (org-element-lineage (org-element-context) '(link) t)) ; ignore text in code blocks, etc.
+			;; we're in a bracketed link with no description and the target doesn't look like a link;
+			;; likely I've actually added the text for the description and now we need to include the link.
+			;; This is a hack so that we don't have to delete the link until the new link has been inserted
+			;; since org-insert-link doesn' tbreak out the link prompting code into a smaller function.
+			(let ((org-link-bracket-re "{{{}}}"))
+				(goto-char (cdr bracket-pos))
+				(org-insert-link nil nil bracket-target))
+			(delete-region (car bracket-pos) (cdr bracket-pos)))))
 ;; Using web searches and favorites to quickly link placeholders in Org Mode:2 ends here
 
 ;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and favorites to quickly link placeholders in Org Mode:3]]
@@ -576,70 +579,70 @@
 
 ;; [[file:../Sacha.org::#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode][Using web searches and favorites to quickly link placeholders in Org Mode:4]]
 ;;;###autoload
-  (defun sacha-org-scan-for-untargeted-links ()
-          "Look for [[some text]] and prompt for the actual targets."
-          (interactive)
-          (while (re-search-forward org-link-bracket-re nil t)
-                  (when (and
-                                           (not (match-string 2))
-                                           (and (match-string 1) (not (string-match ":" (match-string 1))))
-                                           (org-element-lineage (org-element-context) '(link) t)) ; ignore text in code blocks, etc.
-                          (undo-boundary)
-                          (sacha-org-set-link-target-dwim))))
+(defun sacha-org-scan-for-untargeted-links ()
+	"Look for [[some text]] and prompt for the actual targets."
+	(interactive)
+	(while (re-search-forward org-link-bracket-re nil t)
+		(when (and
+					 (not (match-string 2))
+					 (and (match-string 1) (not (string-match ":" (match-string 1))))
+					 (org-element-lineage (org-element-context) '(link) t)) ; ignore text in code blocks, etc.
+			(undo-boundary)
+			(sacha-org-set-link-target-dwim))))
 ;; Using web searches and favorites to quickly link placeholders in Org Mode:4 ends here
 
 ;; [[file:../Sacha.org::#navigation-downloaded-files][Downloaded files:1]]
-  (defvar sacha-download-dir "~/Downloads")
+(defvar sacha-download-dir "~/Downloads")
 ;;;###autoload
-  (defun sacha-open-latest-download ()
-    (interactive)
-    (find-file (sacha-latest-file sacha-download-dir)))
+(defun sacha-open-latest-download ()
+  (interactive)
+  (find-file (sacha-latest-file sacha-download-dir)))
 
 ;;;###autoload
-  (defun sacha-attach-and-link-latest-download ()
-    (interactive)
-    (org-attach-attach (sacha-latest-file sacha-download-dir) nil 'cp)
-    (org-insert-link nil (caar org-stored-links)))
+(defun sacha-attach-and-link-latest-download ()
+  (interactive)
+  (org-attach-attach (sacha-latest-file sacha-download-dir) nil 'cp)
+  (org-insert-link nil (caar org-stored-links)))
 
 ;;;###autoload
-  (defun sacha-link-latest-download ()
-    (interactive)
-    (org-insert-link nil (concat "file:" (sacha-latest-file sacha-download-dir))
-                                                                           (file-name-nondirectory (sacha-latest-file sacha-download-dir))))
+(defun sacha-link-latest-download ()
+  (interactive)
+  (org-insert-link nil (concat "file:" (sacha-latest-file sacha-download-dir))
+									 (file-name-nondirectory (sacha-latest-file sacha-download-dir))))
 
 ;;;###autoload
-  (defun sacha-include-latest-download ()
-          (interactive)
-          (sacha-insert-file-as-org-include (sacha-latest-file sacha-download-dir)))
+(defun sacha-include-latest-download ()
+	(interactive)
+	(sacha-insert-file-as-org-include (sacha-latest-file sacha-download-dir)))
 
 ;;;###autoload
-  (defun sacha-copy-latest-download (dest &optional force)
-    (interactive "FDestination: ")
-    (copy-file (sacha-latest-file sacha-download-dir) dest force))
+(defun sacha-copy-latest-download (dest &optional force)
+  (interactive "FDestination: ")
+  (copy-file (sacha-latest-file sacha-download-dir) dest force))
 ;;;###autoload
-  (defun sacha-download-dired ()
-          (interactive)
-          (dired sacha-download-dir "-lt"))
+(defun sacha-download-dired ()
+	(interactive)
+	(dired sacha-download-dir "-lt"))
 ;; Downloaded files:1 ends here
 
 ;; [[file:../Sacha.org::#searching][Searching:5]]
 ;;;###autoload
-  (defun sacha-helm-org-rifle-org-directory ()
-    (interactive)
-    (helm-org-rifle-directories (list org-directory) t))
+(defun sacha-helm-org-rifle-org-directory ()
+  (interactive)
+  (helm-org-rifle-directories (list org-directory) t))
 ;;;###autoload
-  (defun sacha-consult-recoll-without-emacs-news ()
-    (interactive)
-    (consult-recoll--open (consult-recoll--search "-\"Emacs News\" ")))
+(defun sacha-consult-recoll-without-emacs-news ()
+  (interactive)
+  (consult-recoll--open (consult-recoll--search "-\"Emacs News\" ")))
 ;; Searching:5 ends here
 
 ;; [[file:../Sacha.org::sacha-org-image-dired-store-link][sacha-org-image-dired-store-link]]
 ;;;###autoload
 (defun sacha-org-image-dired-store-link ()
-  (when (and (derived-mode-p 'image-dired-thumbnail-mode)
-             (get-text-property (point) 'original-file-name))
-    (org-link-store-props
-     :link (concat "file:" (get-text-property (point) 'original-file-name)))))
+(when (and (derived-mode-p 'image-dired-thumbnail-mode)
+	   (get-text-property (point) 'original-file-name))
+  (org-link-store-props
+   :link (concat "file:" (get-text-property (point) 'original-file-name)))))
 ;; sacha-org-image-dired-store-link ends here
 
 ;; [[file:../Sacha.org::#image-dired-screenshots][Using image-dired to browse the latest screenshots from multiple directories:3]]
@@ -652,9 +655,9 @@
 ;; [[file:../Sacha.org::#image-dired-screenshots][Using image-dired to browse the latest screenshots from multiple directories:4]]
 ;;;###autoload
 (defun sacha-org-yank-file-links-from-kill-ring ()
-  (interactive)
-  (dolist (file (read (concat "(" (current-kill 0) ")")))
-    (insert (org-link-make-string (concat "file:" file)) "\n")))
+(interactive)
+(dolist (file (read (concat "(" (current-kill 0) ")")))
+  (insert (org-link-make-string (concat "file:" file)) "\n")))
 ;; Using image-dired to browse the latest screenshots from multiple directories:4 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document][Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document:2]]
@@ -705,100 +708,110 @@
 ;; sacha-org-copy-clean-version ends here
 
 ;; [[file:../Sacha.org::#write-about-keybindings][Write about keybindings:1]]
-  ;; hmm, doesn't quite work for looking things up yet. I basically want a programmatic where-is for a specific keymap
-  (defvar sacha-keybinding-maps '(subed-mode-map subed-waveform-minor-mode-map subed-waveform-svg-map))
+;; hmm, doesn't quite work for looking things up yet. I basically want a programmatic where-is for a specific keymap
+(defvar sacha-keybinding-maps '(subed-mode-map subed-waveform-minor-mode-map subed-waveform-svg-map))
 ;;;###autoload
-  (defun sacha-copy-keybinding (symbol)
-          (interactive (list (find-function-read)))
-          (when (listp symbol)
-                  (setq symbol (car symbol)))
-          (let (result keys)
-                  (map-keymap
-                   (lambda (event def)
-                           (cond ((and (symbolp def))
-                                                          (push (list def event) result))
-                                                   ((and (listp def) (eq 'keymap (car def)))
-                                                          (apply 'append
-                                                                                   (map-keymap
-                                                                                          (lambda (event def)
-                                                                                                  (when (and (symbolp def))
-                                                                                                          (push (list def event) result)))
-                                                                                          def)))))
-                   subed-mode-map)
-                  (setq keys (assoc-default symbol result))
-                  (when keys
-                          (kill-new (key-description keys))
-                          (message "%s" (key-description keys)))))
+(defun sacha-copy-keybinding (symbol)
+	(interactive (list (find-function-read)))
+	(when (listp symbol)
+		(setq symbol (car symbol)))
+	(let (result keys)
+		(map-keymap
+		 (lambda (event def)
+			 (cond ((and (symbolp def))
+							(push (list def event) result))
+						 ((and (listp def) (eq 'keymap (car def)))
+							(apply 'append
+										 (map-keymap
+											(lambda (event def)
+												(when (and (symbolp def))
+													(push (list def event) result)))
+											def)))))
+		 subed-mode-map)
+		(setq keys (assoc-default symbol result))
+		(when keys
+			(kill-new (key-description keys))
+			(message "%s" (key-description keys)))))
 ;; Write about keybindings:1 ends here
+
+;; [[file:../Sacha.org::*Join lines][Join lines:1]]
+;;;###autoload
+(defun sacha-org-join-line ()
+"Join items as well."
+(interactive)
+      (when (org-element-lineage (org-element-context) '(item plain-list))
+		      (org-toggle-item nil))
+      (join-line))
+;; Join lines:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-link-to-the-part-of-my-config-that-defines-a-function][Link to the part of my config that defines a function:1]]
 (defvar sacha-function-prefix "sacha-")
 
 ;;;###autoload
 (defun sacha-org-dotemacs-function-export (path desc format info)
-	"Return the link to the function."
-	(let (temp)
-		(save-window-excursion
-			(sacha-org-dotemacs-function-open path desc format info)
-			(cond
-			 ((and (derived-mode-p 'org-mode)
-						 (org-entry-get-with-inheritance "CUSTOM_ID"))
-				(sacha-org-dotemacs-export
-				 (org-entry-get-with-inheritance "CUSTOM_ID")
-				 (or desc path) format info))
-			 ;; In one of my project files
-			 ((and (buffer-file-name)
-						 (setq temp
-									 (seq-find
-										(lambda (o)
-											(string-prefix-p
-											 (file-name-as-directory (expand-file-name (car o)))
-											 (buffer-file-name)))
-										sacha-project-web-base-list)))
-				(org-export-data-with-backend
-				 (org-element-parse-secondary-string
-					(org-link-make-string
-					 (concat (cdr temp)
-									 (file-relative-name (buffer-file-name) (car temp)))
-					 desc)
-					'(link))
-				 format info))))))
+      "Return the link to the function."
+      (let (temp)
+	      (save-window-excursion
+		      (sacha-org-dotemacs-function-open path desc format info)
+		      (cond
+		       ((and (derived-mode-p 'org-mode)
+					       (org-entry-get-with-inheritance "CUSTOM_ID"))
+			      (sacha-org-dotemacs-export
+			       (org-entry-get-with-inheritance "CUSTOM_ID")
+			       (or desc path) format info))
+		       ;; In one of my project files
+		       ((and (buffer-file-name)
+					       (setq temp
+								       (seq-find
+									      (lambda (o)
+										      (string-prefix-p
+										       (file-name-as-directory (expand-file-name (car o)))
+										       (buffer-file-name)))
+									      sacha-project-web-base-list)))
+			      (org-export-data-with-backend
+			       (org-element-parse-secondary-string
+				      (org-link-make-string
+				       (concat (cdr temp)
+								       (file-relative-name (buffer-file-name) (car temp)))
+				       desc)
+				      '(link))
+			       format info))))))
 
 ;;;###autoload
 (defun sacha-org-dotemacs-function-open (path desc format _)
-	"Visit the function in my Org file."
-	(find-function (intern path))
-	(when (re-search-backward (format "^;; \\(%s\\)" org-link-bracket-re) nil t)
-		(goto-char (match-beginning 1))
-		(org-open-at-point-global)))
+      "Visit the function in my Org file."
+      (find-function (intern path))
+      (when (re-search-backward (format "^;; \\(%s\\)" org-link-bracket-re) nil t)
+	      (goto-char (match-beginning 1))
+	      (org-open-at-point-global)))
 
 ;;;###autoload
 (defun sacha-org-dotemacs-function-complete (&optional function)
-  "Link to the part of my configuration that defines a function."
-  (interactive)
-	(setq function (or function
-										 (intern
-											(completing-read
-											 "Function: "
-											 #'help--symbol-completion-table
-											 nil
-											 t nil nil))))
-	(concat "dotfun:" (symbol-name function)))
+"Link to the part of my configuration that defines a function."
+(interactive)
+      (setq function (or function
+									       (intern
+										      (completing-read
+										       "Function: "
+										       #'help--symbol-completion-table
+										       nil
+										       t nil nil))))
+      (concat "dotfun:" (symbol-name function)))
 
 ;;;###autoload
 (defun sacha-org-dotemacs-function-insert-description (link desc)
-  "Return description to use for LINK."
-  (interactive)
-	(or desc (replace-regexp-in-string "^dotfun:" "" link)))
+"Return description to use for LINK."
+(interactive)
+      (or desc (replace-regexp-in-string "^dotfun:" "" link)))
 ;; Link to the part of my config that defines a function:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-automatically-continue-lists][Automatically continue lists:1]]
 ;;;###autoload
 (defun sacha-org-autolist-allow-newlines ()
-  "Insert newline conditionally."
-  (when (and current-prefix-arg (org-in-item-p) org-autolist-mode)
-    (insert "\n")
-    t))
+"Insert newline conditionally."
+(when (and current-prefix-arg (org-in-item-p) org-autolist-mode)
+  (insert "\n")
+  t))
 ;; Automatically continue lists:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-find-first-common-org-mode-heading][Find first common Org Mode heading:1]]
@@ -837,203 +850,203 @@ This is helpful when resolving sync conflicts."
 ;; [[file:../Sacha.org::#sacha-org-move-properties-to-parent][Move Org Mode properties from subtree to parent:1]]
 ;;;###autoload
 (defun sacha-org-move-properties-to-parent ()
-  "Move entry properties to parent."
-	(interactive)
-	(let ((properties (org-entry-properties (point) 'standard)))
-		;; delete properties from the current entry
-		(mapc (lambda (prop)
-						(unless (string= (car prop) "CATEGORY") (org-entry-delete (point) (car prop))))
-					properties)
-		;; add properties
-		(outline-up-heading 1)
-		(mapc (lambda (prop)
-						(org-entry-put (point) (car prop) (cdr prop)))
-					properties)))
+"Move entry properties to parent."
+      (interactive)
+      (let ((properties (org-entry-properties (point) 'standard)))
+	      ;; delete properties from the current entry
+	      (mapc (lambda (prop)
+					      (unless (string= (car prop) "CATEGORY") (org-entry-delete (point) (car prop))))
+				      properties)
+	      ;; add properties
+	      (outline-up-heading 1)
+	      (mapc (lambda (prop)
+					      (org-entry-put (point) (car prop) (cdr prop)))
+				      properties)))
 ;; Move Org Mode properties from subtree to parent:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-keyboard-shortcuts-speed-commands-org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command][Org Mode: Cutting the current list item (including nested lists) with a speed command:1]]
 ;;;###autoload
 (defun sacha-org-use-speed-commands-for-headings-and-lists ()
-  "Activate speed commands on list items too."
-  (or (and (looking-at org-outline-regexp) (looking-back "^\**" nil))
-      (save-excursion (and (looking-at (org-item-re)) (looking-back "^[ \t]*" nil)))))
+"Activate speed commands on list items too."
+(or (and (looking-at org-outline-regexp) (looking-back "^\**" nil))
+    (save-excursion (and (looking-at (org-item-re)) (looking-back "^[ \t]*" nil)))))
 ;; Org Mode: Cutting the current list item (including nested lists) with a speed command:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-keyboard-shortcuts-speed-commands-org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command][Org Mode: Cutting the current list item (including nested lists) with a speed command:3]]
 (defvar sacha-org-cut-subtree-file-regexp
-  (regexp-opt '("Inbox.org" "posts.org" "news.org" "ipad.org"))
-  "Only cut subtrees in files that match this regular expression.
+(regexp-opt '("Inbox.org" "posts.org" "news.org" "ipad.org" "live.org"))
+"Only cut subtrees in files that match this regular expression.
 See `sacha-org-cut-subtree-or-list-item'.")
 
 ;;;###autoload
 (defun sacha-org-cut-subtree-or-list-item (&optional n)
-	"Cut current subtree or list item."
-	(cond
-                                        ; limit this to certain files
-	 ((and sacha-org-cut-subtree-file-regexp
-         (not
-          (string-match sacha-org-cut-subtree-file-regexp
-									      (or (buffer-file-name) ""))))
-		(message "Ignoring files not matching `sacha-org-cut-subtree-file-regexp'")) ; do nothing
-	 ((and (looking-at org-outline-regexp) (looking-back "^\**" nil))
-		(org-cut-subtree n))
-	 ((looking-at (org-item-re))
-		(kill-region (org-beginning-of-item) (org-end-of-item)))))
+      "Cut current subtree or list item."
+      (cond
+				      ; limit this to certain files
+       ((and sacha-org-cut-subtree-file-regexp
+       (not
+	(string-match sacha-org-cut-subtree-file-regexp
+									    (or (buffer-file-name) ""))))
+	      (message "Ignoring files not matching `sacha-org-cut-subtree-file-regexp'")) ; do nothing
+       ((and (looking-at org-outline-regexp) (looking-back "^\**" nil))
+	      (org-cut-subtree n))
+       ((looking-at (org-item-re))
+	      (kill-region (org-beginning-of-item) (org-end-of-item)))))
 ;; Org Mode: Cutting the current list item (including nested lists) with a speed command:3 ends here
 
 ;; [[file:../Sacha.org::#org-mode-keyboard-shortcuts-other-speed-commands][Other speed commands:2]]
 ;;;###autoload
 (defun sacha-org-goto-text-start ()
-  "Go to the start of the text after properties and drawers."
-  (if (org-before-first-heading-p)
-      (goto-char (point-min))
-    (org-back-to-heading)
-    (org-end-of-meta-data t)))
+"Go to the start of the text after properties and drawers."
+(if (org-before-first-heading-p)
+    (goto-char (point-min))
+  (org-back-to-heading)
+  (org-end-of-meta-data t)))
 
 ;;;###autoload
 (defun sacha-org-subtree-text ()
-  (if (derived-mode-p 'org-mode)
-      (if (org-before-first-heading-p)
-          (buffer-substring (point-min)
-                            (save-excursion
-                              (org-next-visible-heading)
-                              (line-beginning-position)))
-        (save-excursion
-          (buffer-substring (save-excursion (org-end-of-meta-data t) (point))
-                            (org-end-of-subtree))))
-    (buffer-string)))
+(if (derived-mode-p 'org-mode)
+    (if (org-before-first-heading-p)
+	(buffer-substring (point-min)
+			  (save-excursion
+			    (org-next-visible-heading)
+			    (line-beginning-position)))
+      (save-excursion
+	(buffer-substring (save-excursion (org-end-of-meta-data t) (point))
+			  (org-end-of-subtree))))
+  (buffer-string)))
 
 ;;;###autoload
 (defun sacha-org-copy-subtree-text ()
-  (interactive)
-	(let ((text (sacha-org-subtree-text)))
-		(when (called-interactively-p 'any)
-			(message "%s" text))
-		(kill-new text)))
+(interactive)
+      (let ((text (sacha-org-subtree-text)))
+	      (when (called-interactively-p 'any)
+		      (message "%s" text))
+	      (kill-new text)))
 
 ;;;###autoload
 (defun sacha-org-mark-done ()
-  (interactive)
-  (sacha-org-with-current-task (org-todo "DONE")))
+(interactive)
+(sacha-org-with-current-task (org-todo "DONE")))
 ;; Other speed commands:2 ends here
 
 ;; [[file:../Sacha.org::#link-org-subtrees-and-navigate-between-them][Link Org subtrees and navigate between them:1]]
 ;;;###autoload
 (defun sacha-org-follow-entry-link ()
-  "Follow the defined link for this entry."
-  (interactive)
-  (if (org-entry-get (point) "LINK")
-      (org-open-link-from-string (org-entry-get (point) "LINK"))
-    (org-open-at-point)))
+"Follow the defined link for this entry."
+(interactive)
+(if (org-entry-get (point) "LINK")
+    (org-open-link-from-string (org-entry-get (point) "LINK"))
+  (org-open-at-point)))
 
 ;;;###autoload
 (defun sacha-org-link-projects (location)
-  "Add link properties between the current subtree and the one specified by LOCATION."
-  (interactive
-   (list (let ((org-refile-use-cache nil))
-           (org-refile-get-location "Location"))))
-  (let ((link1 (org-store-link nil)) link2)
-    (save-window-excursion
-      (org-refile 4 nil location)
-      (setq link2 (org-store-link nil))
-      (org-set-property "LINK" link1))
-    (org-set-property "LINK" link2)))
+"Add link properties between the current subtree and the one specified by LOCATION."
+(interactive
+ (list (let ((org-refile-use-cache nil))
+	 (org-refile-get-location "Location"))))
+(let ((link1 (org-store-link nil)) link2)
+  (save-window-excursion
+    (org-refile 4 nil location)
+    (setq link2 (org-store-link nil))
+    (org-set-property "LINK" link1))
+  (org-set-property "LINK" link2)))
 ;; Link Org subtrees and navigate between them:1 ends here
 
 ;; [[file:../Sacha.org::#dealing-with-big-tables][Dealing with big tables:1]]
 ;;;###autoload
 (defun sacha-org-show-row-and-column (point)
-  (interactive "d")
-  (save-excursion
-    (goto-char point)
-    (let ((row (s-trim (org-table-get nil 1)))
-          (col (s-trim (org-table-get 1 nil)))
-          (message-log-max nil))
-      (message "%s - %s" row col))))
+(interactive "d")
+(save-excursion
+  (goto-char point)
+  (let ((row (s-trim (org-table-get nil 1)))
+	(col (s-trim (org-table-get 1 nil)))
+	(message-log-max nil))
+    (message "%s - %s" row col))))
 ;; Dealing with big tables:1 ends here
 
 ;; [[file:../Sacha.org::#date-trees][Date trees:1]]
 ;;;###autoload
 (defun sacha-org-insert-heading-for-next-day ()
-  "Insert a same-level heading for the following day."
-  (interactive)
-  (let ((new-date
-         (seconds-to-time
-          (+ 86400.0
-             (float-time
-              (org-read-date nil 'to-time (elt (org-heading-components) 4)))))))
-    (org-insert-heading-after-current)
-    (insert (format-time-string "%Y-%m-%d\n\n" new-date))))
+"Insert a same-level heading for the following day."
+(interactive)
+(let ((new-date
+       (seconds-to-time
+	(+ 86400.0
+	   (float-time
+	    (org-read-date nil 'to-time (elt (org-heading-components) 4)))))))
+  (org-insert-heading-after-current)
+  (insert (format-time-string "%Y-%m-%d\n\n" new-date))))
 ;; Date trees:1 ends here
 
 ;; [[file:../Sacha.org::#allow-refiling-in-the-middle-ish-of-a-capture][Allow refiling in the middle(ish) of a capture:1]]
 ;;;###autoload
 (defun sacha-org-refile-and-jump ()
-  (interactive)
-  (if (derived-mode-p 'org-capture-mode)
-      (org-capture-refile)
-    (call-interactively 'org-refile))
-  (org-refile-goto-last-stored))
+(interactive)
+(if (derived-mode-p 'org-capture-mode)
+    (org-capture-refile)
+  (call-interactively 'org-refile))
+(org-refile-goto-last-stored))
 ;; Allow refiling in the middle(ish) of a capture:1 ends here
 
 ;; [[file:../Sacha.org::#try-out-this-capture-command][Try out this capture command:2]]
 ;;;###autoload
 (defun sacha-org-capture-region-contents-with-metadata (start end parg)
-  "Write selected text between START and END to currently clocked `org-mode' entry.
+"Write selected text between START and END to currently clocked `org-mode' entry.
 
 With PARG, kill the content instead.
 If there is no clocked task, create it as a new note in my inbox instead.
 
 From https://takeonrules.com/2022/10/16/adding-another-function-to-sacha-workflow/, modified slightly so that it creates a new entry if we are not currently clocked in."
-  (interactive "r\nP")
-  (let ((text (sacha-org-region-contents-get-with-metadata start end)))
-    (if (car parg)
-	      (kill-new text)
-      (org-capture-string (concat "-----\n" text)
-                          (if (org-clocking-p) "c"
-                            "r")))))
+(interactive "r\nP")
+(let ((text (sacha-org-region-contents-get-with-metadata start end)))
+  (if (car parg)
+	    (kill-new text)
+    (org-capture-string (concat "-----\n" text)
+			(if (org-clocking-p) "c"
+			  "r")))))
 
 ;;;###autoload
 (defun sacha-org-region-contents-get-with-metadata (start end)
-  "Get the region contents between START and END and return an `org-mode' formatted string.
+"Get the region contents between START and END and return an `org-mode' formatted string.
 
 From https://takeonrules.com/2022/10/16/adding-another-function-to-sacha-workflow/"
-  (require 'magit)
-  (require 'git-link)
-  (let* ((file-name (buffer-file-name (current-buffer)))
-	       (org-src-mode (replace-regexp-in-string
-			                  "-mode"
-			                  ""
-			                  (format "%s" major-mode)))
-	       (func-name (which-function))
-	       (type (if (derived-mode-p 'prog-mode) "SRC" "EXAMPLE"))
-	       (code-snippet (buffer-substring-no-properties start end))
-	       (file-base (file-name-nondirectory file-name))
-	       (line-number (line-number-at-pos (region-beginning)))
-	       (remote-link (when (magit-list-remotes)
-			                  (progn
-			                    (call-interactively 'git-link)
-			                    (car kill-ring))))
-	       (initial-txt (if (null func-name)
-			                    (format "From [[file:%s::%s][%s]]:"
-				                          file-name
-				                          line-number
-				                          file-base)
-			                  (format "From ~%s~ (in [[file:%s::%s][%s]]):"
-				                        func-name
-				                        file-name
-				                        line-number
-				                        file-base))))
-	  (format (concat "\n- Local :: %s"
-			              (when remote-link (format "\n- Remote :: %s" remote-link))
-			              "\n\n#+BEGIN_%s %s"
-			              "\n%s"
-			              "\n#+END_%s\n")
-		        initial-txt
-		        type
-		        org-src-mode
-		        code-snippet
-		        type)))
+(require 'magit)
+(require 'git-link)
+(let* ((file-name (buffer-file-name (current-buffer)))
+	     (org-src-mode (replace-regexp-in-string
+					"-mode"
+					""
+					(format "%s" major-mode)))
+	     (func-name (which-function))
+	     (type (if (derived-mode-p 'prog-mode) "SRC" "EXAMPLE"))
+	     (code-snippet (buffer-substring-no-properties start end))
+	     (file-base (file-name-nondirectory file-name))
+	     (line-number (line-number-at-pos (region-beginning)))
+	     (remote-link (when (magit-list-remotes)
+					(progn
+					  (call-interactively 'git-link)
+					  (car kill-ring))))
+	     (initial-txt (if (null func-name)
+					  (format "From [[file:%s::%s][%s]]:"
+							file-name
+							line-number
+							file-base)
+					(format "From ~%s~ (in [[file:%s::%s][%s]]):"
+						      func-name
+						      file-name
+						      line-number
+						      file-base))))
+	(format (concat "\n- Local :: %s"
+				    (when remote-link (format "\n- Remote :: %s" remote-link))
+				    "\n\n#+BEGIN_%s %s"
+				    "\n%s"
+				    "\n#+END_%s\n")
+		      initial-txt
+		      type
+		      org-src-mode
+		      code-snippet
+		      type)))
 ;; Try out this capture command:2 ends here
 
 ;; [[file:../Sacha.org::#estimating-wpm][Estimating WPM:1]]
@@ -1055,15 +1068,15 @@ From https://takeonrules.com/2022/10/16/adding-another-function-to-sacha-workflo
 ;; [[file:../Sacha.org::#logbook][Logbook:1]]
 ;;;###autoload
 (defun sacha-org-log-note (note)
-  "Add NOTE to the current entry's logbook."
-  (interactive "MNote: ")
-  (setq org-log-note-window-configuration (current-window-configuration))
-  (move-marker org-log-note-return-to (point))
-  (move-marker org-log-note-marker (point))
-  (setq org-log-note-purpose 'note)
-  (with-temp-buffer
-    (insert note)
-    (org-store-log-note)))
+"Add NOTE to the current entry's logbook."
+(interactive "MNote: ")
+(setq org-log-note-window-configuration (current-window-configuration))
+(move-marker org-log-note-return-to (point))
+(move-marker org-log-note-marker (point))
+(setq org-log-note-purpose 'note)
+(with-temp-buffer
+  (insert note)
+  (org-store-log-note)))
 ;; Logbook:1 ends here
 
 ;; [[file:../Sacha.org::#projects][Projects:3]]
@@ -1094,241 +1107,241 @@ From https://takeonrules.com/2022/10/16/adding-another-function-to-sacha-workflo
 ;; [[file:../Sacha.org::#quick-way-to-archive-all-done-from-inbox][Quick way to archive all DONE from inbox:1]]
 ;;;###autoload
 (defun sacha-org-clean-up-inbox ()
-  "Archive all DONE tasks and sort the remainder by TODO order."
-  (interactive)
-  (with-current-buffer (find-file sacha-org-inbox-file)
-    (sacha-org-archive-done-tasks 'file)
-    (goto-char (point-min))
-    (if (org-at-heading-p) (save-excursion (insert "\n")))
-    (org-sort-entries nil ?p)
-    (goto-char (point-min))
-    (org-sort-entries nil ?o)
-    (save-buffer)))
+"Archive all DONE tasks and sort the remainder by TODO order."
+(interactive)
+(with-current-buffer (find-file sacha-org-inbox-file)
+  (sacha-org-archive-done-tasks 'file)
+  (goto-char (point-min))
+  (if (org-at-heading-p) (save-excursion (insert "\n")))
+  (org-sort-entries nil ?p)
+  (goto-char (point-min))
+  (org-sort-entries nil ?o)
+  (save-buffer)))
 
 ;;;###autoload
 (defun sacha-org-archive-done-tasks (&optional scope)
-  "Archive finished or cancelled tasks.
-       SCOPE can be 'file or 'tree."
-  (interactive)
-  (org-map-entries
-   (lambda ()
-     (org-archive-subtree)
-     (setq org-map-continue-from (outline-previous-heading)))
-   "TODO=\"DONE\"|TODO=\"CANCELLED\"" (or scope (if (org-before-first-heading-p) 'file 'tree))))
+"Archive finished or cancelled tasks.
+     SCOPE can be 'file or 'tree."
+(interactive)
+(org-map-entries
+ (lambda ()
+   (org-archive-subtree)
+   (setq org-map-continue-from (outline-previous-heading)))
+ "TODO=\"DONE\"|TODO=\"CANCELLED\"" (or scope (if (org-before-first-heading-p) 'file 'tree))))
 ;; Quick way to archive all DONE from inbox:1 ends here
 
 ;; [[file:../Sacha.org::#structure-templates][Structure templates:2]]
 ;;;###autoload
 (defun sacha-org-html-quote2 (block backend info)
-  (when (org-export-derived-backend-p backend 'html)
-    (when (string-match "\\`<div class=\"quote2\">" block)
-      (setq block (replace-match "<blockquote>" t nil block))
-      (string-match "</div>\n\\'" block)
-      (setq block (replace-match "</blockquote>\n" t nil block))
-      block)))
+(when (org-export-derived-backend-p backend 'html)
+  (when (string-match "\\`<div class=\"quote2\">" block)
+    (setq block (replace-match "<blockquote>" t nil block))
+    (string-match "</div>\n\\'" block)
+    (setq block (replace-match "</blockquote>\n" t nil block))
+    block)))
 ;; Structure templates:2 ends here
 
 ;; [[file:../Sacha.org::#demarcate-but-for-begin-notes][Demarcate, but for all blocks:1]]
 ;;;###autoload
 (defun modi/org-split-block ()
-  "Sensibly split the current Org block at point."
-  (interactive)
-  (if (modi/org-in-any-block-p)
-      (save-match-data
-        (save-restriction
-          (widen)
-          (let ((case-fold-search t)
-                (at-bol (bolp))
-                block-start
-                block-end)
-            (save-excursion
-              (re-search-backward "^\\(?1:[[:blank:]]*#\\+begin_.+?\\)\\(?: .*\\)*$" nil nil 1)
-              (setq block-start (match-string-no-properties 0))
-              (setq block-end (replace-regexp-in-string
-                               "begin_" "end_" ;Replaces "begin_" with "end_", "BEGIN_" with "END_"
-                               (match-string-no-properties 1))))
-            ;; Go to the end of current line, if not at the BOL
-            (unless at-bol
-              (end-of-line 1))
-            (insert (concat (if at-bol "" "\n")
-                            block-end
-                            "\n\n"
-                            block-start
-                            (if at-bol "\n" "")))
-            ;; Go to the line before the inserted "#+begin_ .." line
-            (beginning-of-line (if at-bol -1 0)))))
-    (message "Point is not in an Org block")))
+"Sensibly split the current Org block at point."
+(interactive)
+(if (modi/org-in-any-block-p)
+    (save-match-data
+      (save-restriction
+	(widen)
+	(let ((case-fold-search t)
+	      (at-bol (bolp))
+	      block-start
+	      block-end)
+	  (save-excursion
+	    (re-search-backward "^\\(?1:[[:blank:]]*#\\+begin_.+?\\)\\(?: .*\\)*$" nil nil 1)
+	    (setq block-start (match-string-no-properties 0))
+	    (setq block-end (replace-regexp-in-string
+			     "begin_" "end_" ;Replaces "begin_" with "end_", "BEGIN_" with "END_"
+			     (match-string-no-properties 1))))
+	  ;; Go to the end of current line, if not at the BOL
+	  (unless at-bol
+	    (end-of-line 1))
+	  (insert (concat (if at-bol "" "\n")
+			  block-end
+			  "\n\n"
+			  block-start
+			  (if at-bol "\n" "")))
+	  ;; Go to the line before the inserted "#+begin_ .." line
+	  (beginning-of-line (if at-bol -1 0)))))
+  (message "Point is not in an Org block")))
 (defalias 'sacha-org-demarcate-block #'modi/org-split-block)
 (defalias 'sacha-org-split-block #'modi/org-split-block)
 
 
 ;;;###autoload
 (defun modi/org-in-any-block-p ()
-  "Return non-nil if the point is in any Org block.
+"Return non-nil if the point is in any Org block.
 
 The Org block can be *any*: src, example, verse, etc., even any
 Org Special block.
 
 This function is heavily adapted from `org-between-regexps-p'."
-  (save-match-data
-    (let ((pos (point))
-          (case-fold-search t)
-          (block-begin-re "^[[:blank:]]*#\\+begin_\\(?1:.+?\\)\\(?: .*\\)*$")
-          (limit-up (save-excursion (outline-previous-heading)))
-          (limit-down (save-excursion (outline-next-heading)))
-          beg end)
-      (save-excursion
-        ;; Point is on a block when on BLOCK-BEGIN-RE or if
-        ;; BLOCK-BEGIN-RE can be found before it...
-        (and (or (org-in-regexp block-begin-re)
-                 (re-search-backward block-begin-re limit-up :noerror))
-             (setq beg (match-beginning 0))
-             ;; ... and BLOCK-END-RE after it...
-             (let ((block-end-re (concat "^[[:blank:]]*#\\+end_"
-                                         (match-string-no-properties 1)
-                                         "\\( .*\\)*$")))
-               (goto-char (match-end 0))
-               (re-search-forward block-end-re limit-down :noerror))
-             (> (setq end (match-end 0)) pos)
-             ;; ... without another BLOCK-BEGIN-RE in-between.
-             (goto-char (match-beginning 0))
-             (not (re-search-backward block-begin-re (1+ beg) :noerror))
-             ;; Return value.
-             (cons beg end))))))
+(save-match-data
+  (let ((pos (point))
+	(case-fold-search t)
+	(block-begin-re "^[[:blank:]]*#\\+begin_\\(?1:.+?\\)\\(?: .*\\)*$")
+	(limit-up (save-excursion (outline-previous-heading)))
+	(limit-down (save-excursion (outline-next-heading)))
+	beg end)
+    (save-excursion
+      ;; Point is on a block when on BLOCK-BEGIN-RE or if
+      ;; BLOCK-BEGIN-RE can be found before it...
+      (and (or (org-in-regexp block-begin-re)
+	       (re-search-backward block-begin-re limit-up :noerror))
+	   (setq beg (match-beginning 0))
+	   ;; ... and BLOCK-END-RE after it...
+	   (let ((block-end-re (concat "^[[:blank:]]*#\\+end_"
+				       (match-string-no-properties 1)
+				       "\\( .*\\)*$")))
+	     (goto-char (match-end 0))
+	     (re-search-forward block-end-re limit-down :noerror))
+	   (> (setq end (match-end 0)) pos)
+	   ;; ... without another BLOCK-BEGIN-RE in-between.
+	   (goto-char (match-beginning 0))
+	   (not (re-search-backward block-begin-re (1+ beg) :noerror))
+	   ;; Return value.
+	   (cons beg end))))))
 ;; Demarcate, but for all blocks:1 ends here
 
 ;; [[file:../Sacha.org::#agenda_commands][Display projects with associated subtasks:1]]
 ;;;###autoload
 (defun sacha-org-agenda-project-agenda ()
-  "Return the project headline and up to `org-agenda-max-entries' tasks."
-  (save-excursion
-    (let* ((marker (org-agenda-new-marker))
-           (heading
-            (org-agenda-format-item "" (org-get-heading) (org-get-category) nil))
-           (org-agenda-restrict t)
-           (org-agenda-restrict-begin (point))
-           (org-agenda-restrict-end (org-end-of-subtree 'invisible))
-           ;; Find the TODO items in this subtree
-           (list (org-agenda-get-day-entries (buffer-file-name) (calendar-current-date) :todo)))
-      (org-add-props heading
-          (list 'face 'defaults
-                'done-face 'org-agenda-done
-                'undone-face 'default
-                'mouse-face 'highlight
-                'org-not-done-regexp org-not-done-regexp
-                'org-todo-regexp org-todo-regexp
-                'org-complex-heading-regexp org-complex-heading-regexp
-                'help-echo
-                (format "mouse-2 or RET jump to org file %s"
-                        (abbreviate-file-name
-                         (or (buffer-file-name (buffer-base-buffer))
-                             (buffer-name (buffer-base-buffer))))))
-        'org-marker marker
-        'org-hd-marker marker
-        'org-category (org-get-category)
-        'type "tagsmatch")
-      (concat heading "\n"
-              (org-agenda-finalize-entries list)))))
+"Return the project headline and up to `org-agenda-max-entries' tasks."
+(save-excursion
+  (let* ((marker (org-agenda-new-marker))
+	 (heading
+	  (org-agenda-format-item "" (org-get-heading) (org-get-category) nil))
+	 (org-agenda-restrict t)
+	 (org-agenda-restrict-begin (point))
+	 (org-agenda-restrict-end (org-end-of-subtree 'invisible))
+	 ;; Find the TODO items in this subtree
+	 (list (org-agenda-get-day-entries (buffer-file-name) (calendar-current-date) :todo)))
+    (org-add-props heading
+	(list 'face 'defaults
+	      'done-face 'org-agenda-done
+	      'undone-face 'default
+	      'mouse-face 'highlight
+	      'org-not-done-regexp org-not-done-regexp
+	      'org-todo-regexp org-todo-regexp
+	      'org-complex-heading-regexp org-complex-heading-regexp
+	      'help-echo
+	      (format "mouse-2 or RET jump to org file %s"
+		      (abbreviate-file-name
+		       (or (buffer-file-name (buffer-base-buffer))
+			   (buffer-name (buffer-base-buffer))))))
+      'org-marker marker
+      'org-hd-marker marker
+      'org-category (org-get-category)
+      'type "tagsmatch")
+    (concat heading "\n"
+	    (org-agenda-finalize-entries list)))))
 
 ;;;###autoload
 (defun sacha-org-agenda-projects-and-tasks (match)
-  "Show TODOs for all `org-agenda-files' headlines matching MATCH."
-  (interactive "MString: ")
-  (let ((todo-only nil))
-    (if org-agenda-overriding-arguments
-        (setq todo-only (car org-agenda-overriding-arguments)
-              match (nth 1 org-agenda-overriding-arguments)))
-    (let* ((org-tags-match-list-sublevels
-            org-tags-match-list-sublevels)
-           (completion-ignore-case t)
-           rtn rtnall files file pos matcher
-           buffer)
-      (when (and (stringp match) (not (string-match "\\S-" match)))
-        (setq match nil))
-      (when match
-        (setq matcher (org-make-tags-matcher match)
-              match (car matcher) matcher (cdr matcher)))
-      (catch 'exit
-        (if org-agenda-sticky
-            (setq org-agenda-buffer-name
-                  (if (stringp match)
-                      (format "*Org Agenda(%s:%s)*"
-                              (or org-keys (or (and todo-only "M") "m")) match)
-                    (format "*Org Agenda(%s)*" (or (and todo-only "M") "m")))))
-        (org-agenda-prepare (concat "TAGS " match))
-        (org-compile-prefix-format 'tags)
-        (org-set-sorting-strategy 'tags)
-        (setq org-agenda-query-string match)
-        (setq org-agenda-redo-command
-              (list 'org-tags-view `(quote ,todo-only)
-                    (list 'if 'current-prefix-arg nil `(quote ,org-agenda-query-string))))
-        (setq files (org-agenda-files nil 'ifmode)
-              rtnall nil)
-        (while (setq file (pop files))
-          (catch 'nextfile
-            (org-check-agenda-file file)
-            (setq buffer (if (file-exists-p file)
-                             (org-get-agenda-file-buffer file)
-                           (error "No such file %s" file)))
-            (if (not buffer)
-                ;; If file does not exist, error message to agenda
-                (setq rtn (list
-                           (format "ORG-AGENDA-ERROR: No such org-file %s" file))
-                      rtnall (append rtnall rtn))
-              (with-current-buffer buffer
-                (unless (derived-mode-p 'org-mode)
-                  (error "Agenda file %s is not in `org-mode'" file))
-                (save-excursion
-                  (save-restriction
-                    (if org-agenda-restrict
-                        (narrow-to-region org-agenda-restrict-begin
-                                          org-agenda-restrict-end)
-                      (widen))
-                    (setq rtn (org-scan-tags 'sacha-org-agenda-project-agenda matcher todo-only))
-                    (setq rtnall (append rtnall rtn))))))))
-        (if org-agenda-overriding-header
-            (insert (org-add-props (copy-sequence org-agenda-overriding-header)
-                        nil 'face 'org-agenda-structure) "\n")
-          (insert "Headlines with TAGS match: ")
-          (add-text-properties (point-min) (1- (point))
-                               (list 'face 'org-agenda-structure
-                                     'short-heading
-                                     (concat "Match: " match)))
-          (setq pos (point))
-          (insert match "\n")
-          (add-text-properties pos (1- (point)) (list 'face 'org-warning))
-          (setq pos (point))
-          (unless org-agenda-multi
-            (insert "Press `C-u r' to search again with new search string\n"))
-          (add-text-properties pos (1- (point)) (list 'face 'org-agenda-structure)))
-        (org-agenda-mark-header-line (point-min))
-        (when rtnall
-          (insert (mapconcat 'identity rtnall "\n") ""))
-        (goto-char (point-min))
-        (or org-agenda-multi (org-agenda-fit-window-to-buffer))
-        (add-text-properties (point-min) (point-max)
-                             `(org-agenda-type tags
-                                               org-last-args (,todo-only ,match)
-                                               org-redo-cmd ,org-agenda-redo-command
-                                               org-series-cmd ,org-cmd))
-        (org-agenda-finalize)
-        (setq buffer-read-only t)))))
+"Show TODOs for all `org-agenda-files' headlines matching MATCH."
+(interactive "MString: ")
+(let ((todo-only nil))
+  (if org-agenda-overriding-arguments
+      (setq todo-only (car org-agenda-overriding-arguments)
+	    match (nth 1 org-agenda-overriding-arguments)))
+  (let* ((org-tags-match-list-sublevels
+	  org-tags-match-list-sublevels)
+	 (completion-ignore-case t)
+	 rtn rtnall files file pos matcher
+	 buffer)
+    (when (and (stringp match) (not (string-match "\\S-" match)))
+      (setq match nil))
+    (when match
+      (setq matcher (org-make-tags-matcher match)
+	    match (car matcher) matcher (cdr matcher)))
+    (catch 'exit
+      (if org-agenda-sticky
+	  (setq org-agenda-buffer-name
+		(if (stringp match)
+		    (format "*Org Agenda(%s:%s)*"
+			    (or org-keys (or (and todo-only "M") "m")) match)
+		  (format "*Org Agenda(%s)*" (or (and todo-only "M") "m")))))
+      (org-agenda-prepare (concat "TAGS " match))
+      (org-compile-prefix-format 'tags)
+      (org-set-sorting-strategy 'tags)
+      (setq org-agenda-query-string match)
+      (setq org-agenda-redo-command
+	    (list 'org-tags-view `(quote ,todo-only)
+		  (list 'if 'current-prefix-arg nil `(quote ,org-agenda-query-string))))
+      (setq files (org-agenda-files nil 'ifmode)
+	    rtnall nil)
+      (while (setq file (pop files))
+	(catch 'nextfile
+	  (org-check-agenda-file file)
+	  (setq buffer (if (file-exists-p file)
+			   (org-get-agenda-file-buffer file)
+			 (error "No such file %s" file)))
+	  (if (not buffer)
+	      ;; If file does not exist, error message to agenda
+	      (setq rtn (list
+			 (format "ORG-AGENDA-ERROR: No such org-file %s" file))
+		    rtnall (append rtnall rtn))
+	    (with-current-buffer buffer
+	      (unless (derived-mode-p 'org-mode)
+		(error "Agenda file %s is not in `org-mode'" file))
+	      (save-excursion
+		(save-restriction
+		  (if org-agenda-restrict
+		      (narrow-to-region org-agenda-restrict-begin
+					org-agenda-restrict-end)
+		    (widen))
+		  (setq rtn (org-scan-tags 'sacha-org-agenda-project-agenda matcher todo-only))
+		  (setq rtnall (append rtnall rtn))))))))
+      (if org-agenda-overriding-header
+	  (insert (org-add-props (copy-sequence org-agenda-overriding-header)
+		      nil 'face 'org-agenda-structure) "\n")
+	(insert "Headlines with TAGS match: ")
+	(add-text-properties (point-min) (1- (point))
+			     (list 'face 'org-agenda-structure
+				   'short-heading
+				   (concat "Match: " match)))
+	(setq pos (point))
+	(insert match "\n")
+	(add-text-properties pos (1- (point)) (list 'face 'org-warning))
+	(setq pos (point))
+	(unless org-agenda-multi
+	  (insert "Press `C-u r' to search again with new search string\n"))
+	(add-text-properties pos (1- (point)) (list 'face 'org-agenda-structure)))
+      (org-agenda-mark-header-line (point-min))
+      (when rtnall
+	(insert (mapconcat 'identity rtnall "\n") ""))
+      (goto-char (point-min))
+      (or org-agenda-multi (org-agenda-fit-window-to-buffer))
+      (add-text-properties (point-min) (point-max)
+			   `(org-agenda-type tags
+					     org-last-args (,todo-only ,match)
+					     org-redo-cmd ,org-agenda-redo-command
+					     org-series-cmd ,org-cmd))
+      (org-agenda-finalize)
+      (setq buffer-read-only t)))))
 ;; Display projects with associated subtasks:1 ends here
 
 ;; [[file:../Sacha.org::#org-agenda-custom-commands][Org agenda custom commands:2]]
-  (defvar sacha-org-agenda-contexts
-    nil
-    "Usual list of contexts.")
-  ;;;###autoload
-  (defun sacha-org-agenda-skip-scheduled ()
-    (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
+(defvar sacha-org-agenda-contexts
+  nil
+  "Usual list of contexts.")
+;;;###autoload
+(defun sacha-org-agenda-skip-scheduled ()
+  (org-agenda-skip-entry-if 'scheduled 'deadline 'regexp "\n]+>"))
 
-  ;;;###autoload
-  (defun sacha-org-projects ()
-    (interactive)
-    (org-ql-search (org-agenda-files)
-      '(and (todo "TODO" "WAITING") (ancestors (tags "project")))
-      :super-groups '((:auto-parent t))))
+;;;###autoload
+(defun sacha-org-projects ()
+  (interactive)
+  (org-ql-search (org-agenda-files)
+    '(and (todo "TODO" "WAITING") (ancestors (tags "project")))
+    :super-groups '((:auto-parent t))))
 ;; Org agenda custom commands:2 ends here
 
 ;; [[file:../Sacha.org::#org-mode-org-agenda-shuffling-sacha-org-mode-unscheduled-tasks][Shuffling my Org Mode unscheduled tasks:1]]
@@ -1362,34 +1375,34 @@ This function is heavily adapted from `org-between-regexps-p'."
 ;; [[file:../Sacha.org::#make-it-easy-to-mark-a-task-as-done][Make it easy to mark a task as done:1]]
 ;;;###autoload
 (defun sacha-org-agenda-done (&optional arg)
-  "Mark current TODO as done.
-       This changes the line at point, all other lines in the agenda referring to
-       the same tree node, and the headline of the tree node in the Org-mode file."
-  (interactive "P")
-  (org-agenda-todo "DONE"))
+"Mark current TODO as done.
+     This changes the line at point, all other lines in the agenda referring to
+     the same tree node, and the headline of the tree node in the Org-mode file."
+(interactive "P")
+(org-agenda-todo "DONE"))
 ;; Make it easy to mark a task as done:1 ends here
 
 ;; [[file:../Sacha.org::#make-it-easy-to-mark-a-task-as-done-and-create-a-follow-up-task][Make it easy to mark a task as done and create a follow-up task:1]]
 ;;;###autoload
 (defun sacha-org-agenda-mark-done-and-add-followup ()
-  "Mark the current TODO as done and add another task after it.
-       Creates it at the same level as the previous task, so it's better to use
-       this with to-do items than with projects or headings."
-  (interactive)
-  (org-agenda-todo "DONE")
-  (org-agenda-switch-to)
-  (org-capture 0 "t"))
+"Mark the current TODO as done and add another task after it.
+     Creates it at the same level as the previous task, so it's better to use
+     this with to-do items than with projects or headings."
+(interactive)
+(org-agenda-todo "DONE")
+(org-agenda-switch-to)
+(org-capture 0 "t"))
 ;; Make it easy to mark a task as done and create a follow-up task:1 ends here
 
 ;; [[file:../Sacha.org::#capture-something-based-on-the-agenda][Capture something based on the agenda:1]]
 ;;;###autoload
 (defun sacha-org-agenda-new ()
-  "Create a new note or task at the current agenda item.
-       Creates it at the same level as the previous task, so it's better to use
-       this with to-do items than with projects or headings."
-  (interactive)
-  (org-agenda-switch-to)
-  (org-capture 0))
+"Create a new note or task at the current agenda item.
+     Creates it at the same level as the previous task, so it's better to use
+     this with to-do items than with projects or headings."
+(interactive)
+(org-agenda-switch-to)
+(org-capture 0))
 ;; Capture something based on the agenda:1 ends here
 
 ;; [[file:../Sacha.org::#sorting-by-date-and-priority][Sorting by date and priority:2]]
@@ -1470,154 +1483,154 @@ This function is heavily adapted from `org-between-regexps-p'."
 ;; [[file:../Sacha.org::#preventing-things-from-falling-through-the-cracks][Preventing things from falling through the cracks:1]]
 ;;;###autoload
 (defun sacha-org-agenda-list-unscheduled (&rest ignore)
-  "Create agenda view for tasks that are unscheduled and not done."
-  (let* ((org-agenda-todo-ignore-with-date t)
-         (org-agenda-overriding-header "List of unscheduled tasks: "))
-    (org-agenda-get-todos)))
+"Create agenda view for tasks that are unscheduled and not done."
+(let* ((org-agenda-todo-ignore-with-date t)
+       (org-agenda-overriding-header "List of unscheduled tasks: "))
+  (org-agenda-get-todos)))
 ;; Preventing things from falling through the cracks:1 ends here
 
 ;; [[file:../Sacha.org::#projects][Projects:1]]
 ;;;###autoload
 (defun sacha-org-show-active-projects ()
-  "Show my current projects."
-  (interactive)
-  (org-tags-view nil "project-inactive-someday"))
+"Show my current projects."
+(interactive)
+(org-tags-view nil "project-inactive-someday"))
 ;; Projects:1 ends here
 
 ;; [[file:../Sacha.org::#weekly-review][Weekly review:3]]
 ;;;###autoload
 (defun sacha-extract-tasks-from-agenda (string matchers prefix line-re)
-  (with-temp-buffer
-    (insert string)
-    (goto-char (point-min))
-    (while (re-search-forward line-re nil t)
-      (let ((temp-list matchers))
-        (while temp-list
-          (if (save-match-data
-                (string-match (car (car temp-list)) (match-string 1)))
-              (progn
-                (add-to-list (cdr (car temp-list)) (concat prefix (match-string 3)) t)
-                (setq temp-list nil)))
-          (setq temp-list (cdr temp-list)))))))
+(with-temp-buffer
+  (insert string)
+  (goto-char (point-min))
+  (while (re-search-forward line-re nil t)
+    (let ((temp-list matchers))
+      (while temp-list
+	(if (save-match-data
+	      (string-match (car (car temp-list)) (match-string 1)))
+	    (progn
+	      (add-to-list (cdr (car temp-list)) (concat prefix (match-string 3)) t)
+	      (setq temp-list nil)))
+	(setq temp-list (cdr temp-list)))))))
 
 (with-eval-after-load 'ert
-	(ert-deftest sacha-extract-tasks-from-agenda ()
-		(let (list-a list-b (line-re "\\([^:]+\\):\\( \\)\\(.*\\)"))
-			(sacha-extract-tasks-from-agenda
-			 "listA: Task 1\nother: Task 2\nlistA: Task 3"
-			 '(("listA" . list-a)
-				 ("." . list-b))
-			 "- [ ] "
-			 line-re)
-			(should (equal list-a '("- [ ] Task 1" "- [ ] Task 3")))
-			(should (equal list-b '("- [ ] Task 2"))))))
+      (ert-deftest sacha-extract-tasks-from-agenda ()
+	      (let (list-a list-b (line-re "\\([^:]+\\):\\( \\)\\(.*\\)"))
+		      (sacha-extract-tasks-from-agenda
+		       "listA: Task 1\nother: Task 2\nlistA: Task 3"
+		       '(("listA" . list-a)
+			       ("." . list-b))
+		       "- [ ] "
+		       line-re)
+		      (should (equal list-a '("- [ ] Task 1" "- [ ] Task 3")))
+		      (should (equal list-b '("- [ ] Task 2"))))))
 
 ;;;###autoload
 (defun sacha-get-upcoming-tasks ()
-  (save-window-excursion
-    (org-agenda nil "W")
-    (sacha-extract-tasks-from-agenda (buffer-string)
-                                   '(("routines" . ignore)
-                                     ("business" . business-next)
-                                     ("people" . relationships-next)
-                                     ("tasks" . emacs-next)
-                                     ("." . life-next))
-                                   "  - [ ] "
-                                   sacha-weekly-review-line-regexp)))
+(save-window-excursion
+  (org-agenda nil "W")
+  (sacha-extract-tasks-from-agenda (buffer-string)
+				 '(("routines" . ignore)
+				   ("business" . business-next)
+				   ("people" . relationships-next)
+				   ("tasks" . emacs-next)
+				   ("." . life-next))
+				 "  - [ ] "
+				 sacha-weekly-review-line-regexp)))
 ;;;###autoload
 (defun sacha-get-previous-tasks ()
-  (let (string)
-    (save-window-excursion
-      (org-agenda nil "W")
-      (org-agenda-later -1)
-      (org-agenda-log-mode 16)
-      (setq string (buffer-string))
-      ;; Get any completed tasks from the current week as well
-      (org-agenda-later 1)
-      (org-agenda-log-mode 16)
-      (setq string (concat string "\n" (buffer-string)))
-      (sacha-extract-tasks-from-agenda string
-                                     '(("routines" . ignore)
-                                       ("business" . business)
-                                       ("people" . relationships)
-                                       ("tasks" . emacs)
-                                       ("." . life))
-                                     "  - [X] "
-                                     sacha-weekly-done-line-regexp))))
+(let (string)
+  (save-window-excursion
+    (org-agenda nil "W")
+    (org-agenda-later -1)
+    (org-agenda-log-mode 16)
+    (setq string (buffer-string))
+    ;; Get any completed tasks from the current week as well
+    (org-agenda-later 1)
+    (org-agenda-log-mode 16)
+    (setq string (concat string "\n" (buffer-string)))
+    (sacha-extract-tasks-from-agenda string
+				   '(("routines" . ignore)
+				     ("business" . business)
+				     ("people" . relationships)
+				     ("tasks" . emacs)
+				     ("." . life))
+				   "  - [X] "
+				   sacha-weekly-done-line-regexp))))
 
 ;;;###autoload
 (defun sacha-org-summarize-focus-areas (date)
-  "Summarize previous and upcoming tasks as a list."
-  (interactive (list (org-read-date-analyze (if current-prefix-arg (org-read-date) "-fri") nil '(0 0 0))))
-  (let (business relationships life business-next relationships-next life-next string emacs emacs-next
-                 start end time-summary biz-time ignore base-date)
-    (setq base-date (apply 'encode-time date))
-    (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
-    (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
-    (setq time-summary (quantified-summarize-time start end))
-    (setq biz-time (sacha-quantified-get-hours "Business" time-summary))
-    (sacha-get-upcoming-tasks)
-    (sacha-get-previous-tasks)
-    (setq string
-          (concat
-           (format "- *A- (Childcare)* (%.1fh - %d%% of total)\n"
-                   (sacha-quantified-get-hours '("A-") time-summary)
-                   (/ (sacha-quantified-get-hours '("A-") time-summary) 1.68))
-           (format "- *Business* (%.1fh - %d%%)\n" biz-time (/ biz-time 1.68))
-           (mapconcat 'identity business "\n") "\n"
-           (mapconcat 'identity business-next "\n")
-           "\n"
-           (format "  - *Earn* (%.1fh - %d%% of Business)\n"
-                   (sacha-quantified-get-hours "Business - Earn" time-summary)
-                   (/ (sacha-quantified-get-hours "Business - Earn" time-summary) (* 0.01 biz-time)))
-           (format "  - *Build* (%.1fh - %d%% of Business)\n"
-                   (sacha-quantified-get-hours "Business - Build" time-summary)
-                   (/ (sacha-quantified-get-hours "Business - Build" time-summary) (* 0.01 biz-time)))
-           (format "  - *Connect* (%.1fh - %d%% of Business)\n"
-                   (sacha-quantified-get-hours "Business - Connect" time-summary)
-                   (/ (sacha-quantified-get-hours "Business - Connect" time-summary) (* 0.01 biz-time)))
-           (format "- *Relationships* (%.1fh - %d%%)\n"
-                   (sacha-quantified-get-hours '("Discretionary - Social"
-                                              "Discretionary - Family") time-summary)
-                   (/ (sacha-quantified-get-hours '("Discretionary - Social"
-                                                 "Discretionary - Family") time-summary) 1.68))
-           (mapconcat 'identity relationships "\n") "\n"
-           (mapconcat 'identity relationships-next "\n") "\n"
-           "\n"
-           (format "- *Discretionary - Productive* (%.1fh - %d%%)\n"
-                   (sacha-quantified-get-hours "Discretionary - Productive" time-summary)
-                   (/ (sacha-quantified-get-hours "Discretionary - Productive" time-summary) 1.68))
-           (format "  - *Drawing* (%.1fh)\n"
-                   (sacha-quantified-get-hours '("Discretionary - Productive - Drawing")  time-summary))
-           (format "  - *Emacs* (%.1fh)\n"
-                   (sacha-quantified-get-hours "Discretionary - Productive - Emacs" time-summary))
-           (mapconcat 'identity emacs "\n") "\n"
-           (mapconcat 'identity emacs-next "\n") "\n"
-           (format "  - *Coding* (%.1fh)\n"
-                   (sacha-quantified-get-hours "Discretionary - Productive - Coding" time-summary))
-           (mapconcat 'identity life "\n") "\n"
-           (mapconcat 'identity life-next "\n") "\n"
-           (format "  - *Sewing* (%.1fh)\n"
-                   (sacha-quantified-get-hours "Discretionary - Productive - Sewing" time-summary))
-           (format "  - *Writing* (%.1fh)\n"
-                   (sacha-quantified-get-hours "Discretionary - Productive - Writing" time-summary))
-           (format "- *Discretionary - Play* (%.1fh - %d%%)\n"
-                   (sacha-quantified-get-hours "Discretionary - Play" time-summary)
-                   (/ (sacha-quantified-get-hours "Discretionary - Play" time-summary) 1.68))
-           (format "- *Personal routines* (%.1fh - %d%%)\n"
-                   (sacha-quantified-get-hours "Personal" time-summary)
-                   (/ (sacha-quantified-get-hours "Personal" time-summary) 1.68))
-           (format "- *Unpaid work* (%.1fh - %d%%)\n"
-                   (sacha-quantified-get-hours "Unpaid work" time-summary)
-                   (/ (sacha-quantified-get-hours "Unpaid work" time-summary) 1.68))
-           (format "- *Sleep* (%.1fh - %d%% - average of %.1f per day)\n"
-                   (sacha-quantified-get-hours "Sleep" time-summary)
-                   (/ (sacha-quantified-get-hours "Sleep" time-summary) 1.68)
-                   (/ (sacha-quantified-get-hours "Sleep" time-summary) 7)
-                   )))
-    (if (called-interactively-p 'any)
-        (insert string)
-      string)))
+"Summarize previous and upcoming tasks as a list."
+(interactive (list (org-read-date-analyze (if current-prefix-arg (org-read-date) "-fri") nil '(0 0 0))))
+(let (business relationships life business-next relationships-next life-next string emacs emacs-next
+	       start end time-summary biz-time ignore base-date)
+  (setq base-date (apply 'encode-time date))
+  (setq start (format-time-string "%Y-%m-%d" (days-to-time (- (time-to-number-of-days base-date) 6))))
+  (setq end (format-time-string "%Y-%m-%d" (days-to-time (1+ (time-to-number-of-days base-date)))))
+  (setq time-summary (quantified-summarize-time start end))
+  (setq biz-time (sacha-quantified-get-hours "Business" time-summary))
+  (sacha-get-upcoming-tasks)
+  (sacha-get-previous-tasks)
+  (setq string
+	(concat
+	 (format "- *A- (Childcare)* (%.1fh - %d%% of total)\n"
+		 (sacha-quantified-get-hours '("A-") time-summary)
+		 (/ (sacha-quantified-get-hours '("A-") time-summary) 1.68))
+	 (format "- *Business* (%.1fh - %d%%)\n" biz-time (/ biz-time 1.68))
+	 (mapconcat 'identity business "\n") "\n"
+	 (mapconcat 'identity business-next "\n")
+	 "\n"
+	 (format "  - *Earn* (%.1fh - %d%% of Business)\n"
+		 (sacha-quantified-get-hours "Business - Earn" time-summary)
+		 (/ (sacha-quantified-get-hours "Business - Earn" time-summary) (* 0.01 biz-time)))
+	 (format "  - *Build* (%.1fh - %d%% of Business)\n"
+		 (sacha-quantified-get-hours "Business - Build" time-summary)
+		 (/ (sacha-quantified-get-hours "Business - Build" time-summary) (* 0.01 biz-time)))
+	 (format "  - *Connect* (%.1fh - %d%% of Business)\n"
+		 (sacha-quantified-get-hours "Business - Connect" time-summary)
+		 (/ (sacha-quantified-get-hours "Business - Connect" time-summary) (* 0.01 biz-time)))
+	 (format "- *Relationships* (%.1fh - %d%%)\n"
+		 (sacha-quantified-get-hours '("Discretionary - Social"
+					    "Discretionary - Family") time-summary)
+		 (/ (sacha-quantified-get-hours '("Discretionary - Social"
+					       "Discretionary - Family") time-summary) 1.68))
+	 (mapconcat 'identity relationships "\n") "\n"
+	 (mapconcat 'identity relationships-next "\n") "\n"
+	 "\n"
+	 (format "- *Discretionary - Productive* (%.1fh - %d%%)\n"
+		 (sacha-quantified-get-hours "Discretionary - Productive" time-summary)
+		 (/ (sacha-quantified-get-hours "Discretionary - Productive" time-summary) 1.68))
+	 (format "  - *Drawing* (%.1fh)\n"
+		 (sacha-quantified-get-hours '("Discretionary - Productive - Drawing")  time-summary))
+	 (format "  - *Emacs* (%.1fh)\n"
+		 (sacha-quantified-get-hours "Discretionary - Productive - Emacs" time-summary))
+	 (mapconcat 'identity emacs "\n") "\n"
+	 (mapconcat 'identity emacs-next "\n") "\n"
+	 (format "  - *Coding* (%.1fh)\n"
+		 (sacha-quantified-get-hours "Discretionary - Productive - Coding" time-summary))
+	 (mapconcat 'identity life "\n") "\n"
+	 (mapconcat 'identity life-next "\n") "\n"
+	 (format "  - *Sewing* (%.1fh)\n"
+		 (sacha-quantified-get-hours "Discretionary - Productive - Sewing" time-summary))
+	 (format "  - *Writing* (%.1fh)\n"
+		 (sacha-quantified-get-hours "Discretionary - Productive - Writing" time-summary))
+	 (format "- *Discretionary - Play* (%.1fh - %d%%)\n"
+		 (sacha-quantified-get-hours "Discretionary - Play" time-summary)
+		 (/ (sacha-quantified-get-hours "Discretionary - Play" time-summary) 1.68))
+	 (format "- *Personal routines* (%.1fh - %d%%)\n"
+		 (sacha-quantified-get-hours "Personal" time-summary)
+		 (/ (sacha-quantified-get-hours "Personal" time-summary) 1.68))
+	 (format "- *Unpaid work* (%.1fh - %d%%)\n"
+		 (sacha-quantified-get-hours "Unpaid work" time-summary)
+		 (/ (sacha-quantified-get-hours "Unpaid work" time-summary) 1.68))
+	 (format "- *Sleep* (%.1fh - %d%% - average of %.1f per day)\n"
+		 (sacha-quantified-get-hours "Sleep" time-summary)
+		 (/ (sacha-quantified-get-hours "Sleep" time-summary) 1.68)
+		 (/ (sacha-quantified-get-hours "Sleep" time-summary) 7)
+		 )))
+  (if (called-interactively-p 'any)
+      (insert string)
+    string)))
 ;; Weekly review:3 ends here
 
 ;; [[file:../Sacha.org::#weekly-review][Weekly review:4]]
@@ -1679,192 +1692,192 @@ This function is heavily adapted from `org-between-regexps-p'."
 
 ;; [[file:../Sacha.org::#weekly-review][Weekly review:5]]
 ;;;###autoload
-  (defun sacha-org-prepare-weekly-review (&optional date skip-urls)
-    "Prepare weekly review template."
-    (interactive (list (org-read-date nil nil nil "Ending on Sun: " nil "-sun")))
-    (let* ((post-date (current-time))
-	   (base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
-	   start end links prev
-	   (title (format-time-string "Weekly review: Week ending %B %e, %Y" base-date))
-	   (post-location (concat (format-time-string "%Y/%m/" post-date) (sacha-make-slug title))))
-      (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6)) (current-time-zone)))
-      (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date))) (current-time-zone)))
-      (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6)) (current-time-zone)))
-      (outline-next-heading)
-      (insert
-       "** " title "  :weekly:\n"
-       (format
-        ":PROPERTIES:
-  :EXPORT_DATE: %s
-  :EXPORT_ELEVENTY_PERMALINK: %s
-  :EXPORT_ELEVENTY_FILE_NAME: %s
-  :END:\n"
-        (format-time-string "%Y-%m-%dT%T%z")
-        (concat "/blog/" post-location "/")
-        (concat "blog/" post-location))
-       (sacha-org-summarize-journal-csv start end nil sacha-journal-category-map sacha-journal-categories)
-       "\n\n*Blog posts*\n\n"
-       (sacha-org-list-from-rss "https://sachachua.com/blog/feed" start end)
-       "\n\n*Sketches*\n\n"
-       (sacha-sketches-export-and-extract start end) "\n"
-			 "\n\n*Toots*\n\n"
-			 (sacha-mastodon-format-sacha-toots-since start)
-       "\n\n#+begin_my_details Time\n"
-			 (format "#+begin_src emacs-lisp :results table :exports results
+(defun sacha-org-prepare-weekly-review (&optional date skip-urls)
+  "Prepare weekly review template."
+  (interactive (list (org-read-date nil nil nil "Ending on Sun: " nil "-sun")))
+  (let* ((post-date (current-time))
+	 (base-date (apply 'encode-time (org-read-date-analyze date nil '(0 0 0))))
+	 start end links prev
+	 (title (format-time-string "Weekly review: Week ending %B %e, %Y" base-date))
+	 (post-location (concat (format-time-string "%Y/%m/" post-date) (sacha-make-slug title))))
+    (setq start (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 6)) (current-time-zone)))
+    (setq end (format-time-string "%Y-%m-%d 0:00" (days-to-time (1+ (time-to-number-of-days base-date))) (current-time-zone)))
+    (setq prev (format-time-string "%Y-%m-%d 0:00" (days-to-time (- (time-to-number-of-days base-date) 7 6)) (current-time-zone)))
+    (outline-next-heading)
+    (insert
+     "** " title "  :weekly:\n"
+     (format
+      ":PROPERTIES:
+:EXPORT_DATE: %s
+:EXPORT_ELEVENTY_PERMALINK: %s
+:EXPORT_ELEVENTY_FILE_NAME: %s
+:END:\n"
+      (format-time-string "%Y-%m-%dT%T%z")
+      (concat "/blog/" post-location "/")
+      (concat "blog/" post-location))
+     (sacha-org-summarize-journal-csv start end nil sacha-journal-category-map sacha-journal-categories)
+     "\n\n*Blog posts*\n\n"
+     (sacha-org-list-from-rss "https://sachachua.com/blog/feed" start end)
+     "\n\n*Sketches*\n\n"
+     (sacha-sketches-export-and-extract start end) "\n"
+		       "\n\n*Toots*\n\n"
+		       (sacha-mastodon-format-sacha-toots-since start)
+     "\n\n#+begin_my_details Time\n"
+		       (format "#+begin_src emacs-lisp :results table :exports results
 (sacha-quantified-compare \"%s\" \"%s\" \"%s\" \"%s\" sacha-quantified-summary-categories \"The other week %%\" \"Last week %%\")
 #+end_src
 
 :results:\n"  prev start start end)
-       (orgtbl-to-orgtbl
-        (sacha-quantified-compare prev start start end sacha-quantified-summary-categories "The other week %" "Last week %")
-        nil)
-			 ":end:\"\""
-			 (format "\n#+begin_src emacs-lisp :exports results :results file :file time-graph.svg :output-dir /tmp\n(quantified-svg-to-text (quantified-svg-days \"%s\" \"%s\"))\n#+end_src\n\n" start end)
-       "\n#+end_my_details\n\n")))
+     (orgtbl-to-orgtbl
+      (sacha-quantified-compare prev start start end sacha-quantified-summary-categories "The other week %" "Last week %")
+      nil)
+		       ":end:\"\""
+		       (format "\n#+begin_src emacs-lisp :exports results :results file :file time-graph.svg :output-dir /tmp\n(quantified-svg-to-text (quantified-svg-days \"%s\" \"%s\"))\n#+end_src\n\n" start end)
+     "\n#+end_my_details\n\n")))
 
 ;;;###autoload
-  (defun sacha-prepare-missing-weekly-reviews ()
-    "Prepare missing weekly reviews based on LAST_REVIEW property."
-    (interactive)
-    (let ((today (substring (org-read-date nil nil ".") 0 10))
-	  (date (org-entry-get (point) "LAST_REVIEW")))
-      (while (string< date today)
-	(setq date (substring (org-read-date nil nil "++1w" nil (org-time-string-to-time date)) 0 10))
-	(unless (string< today date)
-	  (save-excursion
-	    (sacha-org-prepare-weekly-review date))
-	  (org-entry-put (point) "LAST_REVIEW" date)))))
+(defun sacha-prepare-missing-weekly-reviews ()
+  "Prepare missing weekly reviews based on LAST_REVIEW property."
+  (interactive)
+  (let ((today (substring (org-read-date nil nil ".") 0 10))
+	(date (org-entry-get (point) "LAST_REVIEW")))
+    (while (string< date today)
+      (setq date (substring (org-read-date nil nil "++1w" nil (org-time-string-to-time date)) 0 10))
+      (unless (string< today date)
+	(save-excursion
+	  (sacha-org-prepare-weekly-review date))
+	(org-entry-put (point) "LAST_REVIEW" date)))))
 ;; Weekly review:5 ends here
 
 ;; [[file:../Sacha.org::#monthly-reviews][Monthly reviews:1]]
 ;;;###autoload
 (defun sacha-org-review-month (start-date)
-  "Review the month's clocked tasks and time."
-  (interactive (list (org-read-date)))
-  ;; Set to the beginning of the month
-  (setq start-date (concat (substring start-date 0 8) "01"))
-  (let ((org-agenda-show-log t)
-        (org-agenda-start-with-log-mode t)
-        (org-agenda-start-with-clockreport-mode t)
-        (org-agenda-clockreport-parameter-plist '(:link t :maxlevel 3)))
-    (org-agenda-list nil start-date 'month)))
+"Review the month's clocked tasks and time."
+(interactive (list (org-read-date)))
+;; Set to the beginning of the month
+(setq start-date (concat (substring start-date 0 8) "01"))
+(let ((org-agenda-show-log t)
+      (org-agenda-start-with-log-mode t)
+      (org-agenda-start-with-clockreport-mode t)
+      (org-agenda-clockreport-parameter-plist '(:link t :maxlevel 3)))
+  (org-agenda-list nil start-date 'month)))
 ;; Monthly reviews:1 ends here
 
 ;; [[file:../Sacha.org::#monthly-reviews][Monthly reviews:2]]
 ;;;###autoload
 (defun sacha-list-blog-posts (start-date end-date)
-  (seq-filter (lambda (o)
-                (and (or (null start-date) (string< start-date (plist-get o :date)))
-                     (or (null end-date) (string< (plist-get o :date) end-date))))
-              (let ((json-object-type 'plist))
-                (json-read-file "~/proj/static-blog/_site/blog/all/index.json"))))
+(seq-filter (lambda (o)
+	      (and (or (null start-date) (string< start-date (plist-get o :date)))
+		   (or (null end-date) (string< (plist-get o :date) end-date))))
+	    (let ((json-object-type 'plist))
+	      (json-read-file "~/proj/static-blog/_site/blog/all/index.json"))))
 
 ;;;###autoload
 (defun sacha-org-get-last-week ()
-  "Return dates for filtering last week."
-  (if (string= (format-time-string "%u") "6") ;; my week starts on Saturday
-      (cons (org-read-date nil nil "-1w") (org-read-date nil nil "."))
-    (cons (org-read-date nil nil "-2sat") (org-read-date nil nil "-sat"))))
+"Return dates for filtering last week."
+(if (string= (format-time-string "%u") "6") ;; my week starts on Saturday
+    (cons (org-read-date nil nil "-1w") (org-read-date nil nil "."))
+  (cons (org-read-date nil nil "-2sat") (org-read-date nil nil "-sat"))))
 ;;;###autoload
 (defun sacha-org-get-month (&optional date-string)
-  "Return start of month containing DATE and start of following month.
-       Result is (START . NEXT)."
-  (let* ((date (decode-time (if (stringp date-string) (org-read-date nil t date-string) date-string)))
-         (month (elt date 4))
-         (year (elt date 5))
-         start-date
-         end-date)
-    (calendar-increment-month month year 1)
-    (cons
-     (format "%4d-%02d-01" (elt date 5) (elt date 4))
-     (format "%4d-%02d-01" year month))))
+"Return start of month containing DATE and start of following month.
+     Result is (START . NEXT)."
+(let* ((date (decode-time (if (stringp date-string) (org-read-date nil t date-string) date-string)))
+       (month (elt date 4))
+       (year (elt date 5))
+       start-date
+       end-date)
+  (calendar-increment-month month year 1)
+  (cons
+   (format "%4d-%02d-01" (elt date 5) (elt date 4))
+   (format "%4d-%02d-01" year month))))
 ;; Monthly reviews:2 ends here
 
 ;; [[file:../Sacha.org::#monthly-reviews][Monthly reviews:4]]
 ;;;###autoload
 (defun sacha-org-prepare-monthly-review (time)
-  (interactive (list (org-read-date nil t)))
-  (let* ((date (decode-time time))
-         (month (elt date 4))
-         (year (elt date 5))
-         (post-date (current-time))
-         post-location
-         title
-         start-date
-         end-date
-         previous-date
-         posts
-         sketches
-				 time-comparison
-         org-date)
-    (calendar-increment-month month year -1)
-		(setq start-date (format "%4d-%02d-01 0:00" year month)
-          end-date (format "%4d-%02d-01 0:00" (elt date 5) (elt date 4))
-          title (format-time-string "Monthly review: %B %Y" (encode-time 0 0 0 1 month year))
-          post-location (concat (format-time-string "%Y/%m/" post-date) (sacha-make-slug title))
-          posts (mapconcat (lambda (o) (concat "- " (org-link-make-string (concat "https://sachachua.com" (plist-get o :permalink))
-                                                                          (plist-get o :title))))
-                           (sacha-list-blog-posts
-                            (substring start-date 0 10)
-                            (substring end-date 0 10))
-                           "\n")
-          sketches (sacha-sketches-export-and-extract (substring start-date 0 10) (substring end-date 0 10) nil t))
-    (calendar-increment-month month year -1)
-    (setq previous-date (format "%4d-%02d-01 0:00" year month))
-    (setq time-comparison (sacha-quantified-compare previous-date start-date start-date end-date sacha-quantified-summary-categories "Previous month %" "This month %"))
-    (goto-char (line-end-position))
-    (insert
-     "\n\n** " title "  :monthly:review:\n"
-     "*Blog posts*\n"
-     posts "\n\n"
-     "*Sketches*\n\n"
-     sketches
-     (format "*Time*\n\n#+begin_src emacs-lisp :results table :exports results\n(sacha-quantified-compare \"%s\" \"%s\" \"%s\" \"%s\" sacha-quantified-summary-categories \"Previous month %%\" \"This month %%\")\n#+end_src\n\n"
-						 previous-date start-date start-date end-date)
-     (orgtbl-to-orgtbl time-comparison nil)
-		 (format "\n#+begin_src emacs-lisp :exports results :results file :file monthly-%s.svg :output-dir /tmp\n(quantified-svg-to-text (quantified-svg-days \"%s\" \"%s\" 'horizontal))\n#+end_src\n\n"
-						 start-date
-						 start-date end-date))
-    (sacha-org-11ty-prepare-subtree)))
+(interactive (list (org-read-date nil t)))
+(let* ((date (decode-time time))
+       (month (elt date 4))
+       (year (elt date 5))
+       (post-date (current-time))
+       post-location
+       title
+       start-date
+       end-date
+       previous-date
+       posts
+       sketches
+			       time-comparison
+       org-date)
+  (calendar-increment-month month year -1)
+	      (setq start-date (format "%4d-%02d-01 0:00" year month)
+	end-date (format "%4d-%02d-01 0:00" (elt date 5) (elt date 4))
+	title (format-time-string "Monthly review: %B %Y" (encode-time 0 0 0 1 month year))
+	post-location (concat (format-time-string "%Y/%m/" post-date) (sacha-make-slug title))
+	posts (mapconcat (lambda (o) (concat "- " (org-link-make-string (concat "https://sachachua.com" (plist-get o :permalink))
+									(plist-get o :title))))
+			 (sacha-list-blog-posts
+			  (substring start-date 0 10)
+			  (substring end-date 0 10))
+			 "\n")
+	sketches (sacha-sketches-export-and-extract (substring start-date 0 10) (substring end-date 0 10) nil t))
+  (calendar-increment-month month year -1)
+  (setq previous-date (format "%4d-%02d-01 0:00" year month))
+  (setq time-comparison (sacha-quantified-compare previous-date start-date start-date end-date sacha-quantified-summary-categories "Previous month %" "This month %"))
+  (goto-char (line-end-position))
+  (insert
+   "\n\n** " title "  :monthly:review:\n"
+   "*Blog posts*\n"
+   posts "\n\n"
+   "*Sketches*\n\n"
+   sketches
+   (format "*Time*\n\n#+begin_src emacs-lisp :results table :exports results\n(sacha-quantified-compare \"%s\" \"%s\" \"%s\" \"%s\" sacha-quantified-summary-categories \"Previous month %%\" \"This month %%\")\n#+end_src\n\n"
+					       previous-date start-date start-date end-date)
+   (orgtbl-to-orgtbl time-comparison nil)
+	       (format "\n#+begin_src emacs-lisp :exports results :results file :file monthly-%s.svg :output-dir /tmp\n(quantified-svg-to-text (quantified-svg-days \"%s\" \"%s\" 'horizontal))\n#+end_src\n\n"
+					       start-date
+					       start-date end-date))
+  (sacha-org-11ty-prepare-subtree)))
 
 ;;;###autoload
 (defun sacha-org-prepare-yearly-review (year-end)
-	(interactive (list (org-read-date nil t nil "Year end (exclusive): ")))
-  (let* ((date (decode-time year-end))
-         (month (elt date 4))
-         (year (elt date 5))
-				 (end-date (format-time-string "%Y-%m-%d" year-end))
-				 (start-date (progn
-											 (setf (elt date 5) (1- (elt date 5)))
-											 (format-time-string "%Y-%m-%d" (encode-time date))))
-				 (previous-date (progn
-													(setf (elt date 5) (1- (elt date 5)))
-													(format-time-string "%Y-%m-%d" (encode-time date))))
-				 (posts (mapconcat (lambda (o)
-														 (concat "- " (org-link-make-string
-																					 (concat sacha-blog-base-url (plist-get o :permalink))
-																					 (plist-get o :title))))
-													 (sacha-list-blog-posts
-														(substring start-date 0 10)
-														(substring end-date 0 10))
-													 "\n"))
-				 (sketches (sacha-sketches-export-and-extract
-										(substring start-date 0 10) (substring end-date 0 10) nil t))
-				 (time (sacha-quantified-compare
-								previous-date start-date start-date end-date sacha-quantified-summary-categories
-								"The other year %"
-								"Last year %")))
-    (insert
-     "*Blog posts*\n\n" posts "\n\n"
-     "*Sketches*\n\n" sketches
-     "*Time*\n\n"
-		 (format "#+begin_src emacs-lisp :results table :exports results
+      (interactive (list (org-read-date nil t nil "Year end (exclusive): ")))
+(let* ((date (decode-time year-end))
+       (month (elt date 4))
+       (year (elt date 5))
+			       (end-date (format-time-string "%Y-%m-%d" year-end))
+			       (start-date (progn
+										       (setf (elt date 5) (1- (elt date 5)))
+										       (format-time-string "%Y-%m-%d" (encode-time date))))
+			       (previous-date (progn
+												      (setf (elt date 5) (1- (elt date 5)))
+												      (format-time-string "%Y-%m-%d" (encode-time date))))
+			       (posts (mapconcat (lambda (o)
+													       (concat "- " (org-link-make-string
+																				       (concat sacha-blog-base-url (plist-get o :permalink))
+																				       (plist-get o :title))))
+												       (sacha-list-blog-posts
+													      (substring start-date 0 10)
+													      (substring end-date 0 10))
+												       "\n"))
+			       (sketches (sacha-sketches-export-and-extract
+									      (substring start-date 0 10) (substring end-date 0 10) nil t))
+			       (time (sacha-quantified-compare
+							      previous-date start-date start-date end-date sacha-quantified-summary-categories
+							      "The other year %"
+							      "Last year %")))
+  (insert
+   "*Blog posts*\n\n" posts "\n\n"
+   "*Sketches*\n\n" sketches
+   "*Time*\n\n"
+	       (format "#+begin_src emacs-lisp :results table :exports results
 (sacha-quantified-compare \"%s\" \"%s\" \"%s\" \"%s\" sacha-quantified-summary-categories \"The other year %%\" \"Last year %%\")
 #+end_src
 
 :results:\n"  previous-date start-date start-date end-date)
-		 (orgtbl-to-orgtbl time nil)
-		 (format "\n#+begin_src emacs-lisp :exports results :results file :file time-graph.svg :output-dir /tmp\n(quantified-svg-to-text (quantified-svg-days \"%s\" \"%s\" 'horizontal))\n#+end_src\n\n" start-date end-date))))
+	       (orgtbl-to-orgtbl time nil)
+	       (format "\n#+begin_src emacs-lisp :exports results :results file :file time-graph.svg :output-dir /tmp\n(quantified-svg-to-text (quantified-svg-days \"%s\" \"%s\" 'horizontal))\n#+end_src\n\n" start-date end-date))))
 ;; Monthly reviews:4 ends here
 
 ;; [[file:../Sacha.org::#org-mode-reviews-emoji-summaries][Emoji summaries:1]]
@@ -1899,67 +1912,67 @@ This function is heavily adapted from `org-between-regexps-p'."
 ;; [[file:../Sacha.org::#inserting-code][Inserting code:1]]
 ;;;###autoload
 (defun sacha-org-insert-defun (function)
-  "Inserts an Org source block with the definition for FUNCTION."
-  (interactive (find-function-read))
-  (let* ((buffer-point (condition-case nil (find-definition-noselect function nil) (error nil)))
-         (new-buf (car buffer-point))
-         (new-point (cdr buffer-point))
-         definition)
-    (if (and buffer-point new-point)
-        (with-current-buffer new-buf ;; Try to get original definition
-          (save-excursion
-            (goto-char new-point)
-            (setq definition (buffer-substring-no-properties (point) (save-excursion (end-of-defun) (point))))))
-      ;; Fallback: Print function definition
-      (setq definition (concat (prin1-to-string (symbol-function function)) "\n")))
-    (if (org-in-src-block-p)
-        (insert definition)
-      (insert "#+begin_src emacs-lisp\n" definition "#+end_src\n"))))
+"Inserts an Org source block with the definition for FUNCTION."
+(interactive (find-function-read))
+(let* ((buffer-point (condition-case nil (find-definition-noselect function nil) (error nil)))
+       (new-buf (car buffer-point))
+       (new-point (cdr buffer-point))
+       definition)
+  (if (and buffer-point new-point)
+      (with-current-buffer new-buf ;; Try to get original definition
+	(save-excursion
+	  (goto-char new-point)
+	  (setq definition (buffer-substring-no-properties (point) (save-excursion (end-of-defun) (point))))))
+    ;; Fallback: Print function definition
+    (setq definition (concat (prin1-to-string (symbol-function function)) "\n")))
+  (if (org-in-src-block-p)
+      (insert definition)
+    (insert "#+begin_src emacs-lisp\n" definition "#+end_src\n"))))
 
 ;;;###autoload
 (defun sacha-org-insert-function-and-key (keys)
-  (interactive (caar (help--read-key-sequence)))
-  (insert (format "=%s= (=%s=)" (symbol-name (key-binding keys t))
-                  (key-description keys))))
+(interactive (caar (help--read-key-sequence)))
+(insert (format "=%s= (=%s=)" (symbol-name (key-binding keys t))
+		(key-description keys))))
 ;; Inserting code:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-org-babel-write-about-emacs-lisp-variables][Write about Emacs Lisp variables:1]]
 ;;;###autoload
 (defun sacha-org-insert-variable-description (variable)
-  "Insert a description of VARIABLE."
-  (interactive
-	 (let ((orig-buffer (current-buffer))
-         (v (variable-at-point)) val)
-		 (setq val (completing-read
-								(format-prompt "Describe variable" (and (symbolp v) v))
-								#'help--symbol-completion-table
-								(lambda (vv)
-									(or (get vv 'variable-documentation)
-											(and (not (keywordp vv))
-													 ;; Since the variable may only exist in the
-													 ;; original buffer, we have to look for it
-													 ;; there.
-													 (buffer-local-boundp vv orig-buffer))))
-								t nil nil
-								(if (symbolp v) (symbol-name v))))
-		 (list (if (equal val "")
-							 v
-						 (intern val)))))
-  (push-mark)
-	(insert
-   (let* ((alias (condition-case nil
-                     (indirect-variable variable)
-                   (error variable))))
-		 (or (documentation-property
-					variable 'variable-documentation)
-         (documentation-property
-          alias 'variable-documentation))))
-  (save-excursion
-    (insert
-     (format
-	    "\n\n#+begin_src emacs-lisp\n(setopt %s %s)\n#+end_src\n\n"
-	    (symbol-name variable)
-	    (symbol-value variable)))))
+"Insert a description of VARIABLE."
+(interactive
+       (let ((orig-buffer (current-buffer))
+       (v (variable-at-point)) val)
+	       (setq val (completing-read
+							      (format-prompt "Describe variable" (and (symbolp v) v))
+							      #'help--symbol-completion-table
+							      (lambda (vv)
+								      (or (get vv 'variable-documentation)
+										      (and (not (keywordp vv))
+												       ;; Since the variable may only exist in the
+												       ;; original buffer, we have to look for it
+												       ;; there.
+												       (buffer-local-boundp vv orig-buffer))))
+							      t nil nil
+							      (if (symbolp v) (symbol-name v))))
+	       (list (if (equal val "")
+						       v
+					       (intern val)))))
+(push-mark)
+      (insert
+ (let* ((alias (condition-case nil
+		   (indirect-variable variable)
+		 (error variable))))
+	       (or (documentation-property
+				      variable 'variable-documentation)
+       (documentation-property
+	alias 'variable-documentation))))
+(save-excursion
+  (insert
+   (format
+	  "\n\n#+begin_src emacs-lisp\n(setopt %s %s)\n#+end_src\n\n"
+	  (symbol-name variable)
+	  (symbol-value variable)))))
 
 ;; Write about Emacs Lisp variables:1 ends here
 
@@ -1978,28 +1991,28 @@ This function is heavily adapted from `org-between-regexps-p'."
 ;; [[file:../Sacha.org::#org-mode-publishing-exclude-heading-by-tag-based-on-backend][Exclude heading by tag based on backend:1]]
 ;;;###autoload
 (defun sacha-org-export-exclude-by-backend (backend)
-  "Excludes subtrees dynamically based on the current export backend."
-  (let ((backend-name (symbol-name backend)))
-    (setq-local org-export-exclude-tags
-                (append org-export-exclude-tags
-                        (list (concat "noexport_" backend-name))))
+"Excludes subtrees dynamically based on the current export backend."
+(let ((backend-name (symbol-name backend)))
+  (setq-local org-export-exclude-tags
+	      (append org-export-exclude-tags
+		      (list (concat "noexport_" backend-name))))
 
-		))
+	      ))
 (defvar sacha-org-hide-tags-regexp "noexport_"
-	"Regexp matching tags to remove from headings.")
+      "Regexp matching tags to remove from headings.")
 ;;;###autoload
 (defun sacha-org-export-hide-tags (tree backend channel)
-  "Remove tags matching a specific pattern from headlines in TREE during export."
-  (org-element-map tree 'headline
-    (lambda (headline)
-      (let* ((current-tags (org-element-property :tags headline))
-             (filtered-tags (seq-remove
-                             (lambda (tag)
-                               (string-match-p
-																sacha-org-hide-tags-regexp tag))
-                             current-tags)))
-        (org-element-put-property headline :tags filtered-tags))))
-  tree)
+"Remove tags matching a specific pattern from headlines in TREE during export."
+(org-element-map tree 'headline
+  (lambda (headline)
+    (let* ((current-tags (org-element-property :tags headline))
+	   (filtered-tags (seq-remove
+			   (lambda (tag)
+			     (string-match-p
+															      sacha-org-hide-tags-regexp tag))
+			   current-tags)))
+      (org-element-put-property headline :tags filtered-tags))))
+tree)
 ;; Exclude heading by tag based on backend:1 ends here
 
 ;; [[file:../Sacha.org::#11ty][11ty static site generation:3]]
@@ -2023,62 +2036,62 @@ This function is heavily adapted from `org-between-regexps-p'."
 ;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-linking-to-blog-topics][Linking to blog topics:1]]
 ;;;###autoload
 (defun sacha-org-topic-open (link &rest _)
-	"Find the post."
-	(if (string-match "\\(.*\\)#\\(.+\\)" link)
-			(let ((file (match-string 1 link))
-						(anchor (match-string 2 link)))
-				(find-file (format "~/sync/topics/%s.org" file))
-				(goto-char (org-find-property "CUSTOM_ID" anchor)))
-		(find-file (format "~/sync/topics/%s.org" link))))
+      "Find the post."
+      (if (string-match "\\(.*\\)#\\(.+\\)" link)
+		      (let ((file (match-string 1 link))
+					      (anchor (match-string 2 link)))
+			      (find-file (format "~/sync/topics/%s.org" file))
+			      (goto-char (org-find-property "CUSTOM_ID" anchor)))
+	      (find-file (format "~/sync/topics/%s.org" link))))
 
 ;;;###autoload
 (defun sacha-org-topic-export (link desc format _)
-	(let ((path (concat (if (eq format '11ty) "/" "https://sachachua.com/")
-											"topic/"
-											(replace-regexp-in-string
-											 "\\.html$" "/"
-											 (replace-regexp-in-string
-												"^/\\|index.html$" ""
-												(replace-regexp-in-string "^index" ""
-																									link))))))
-		(pcase format
-			((or 'html '11ty) (format "<a href=\"%s\">%s</a>" path (or desc link)))
-      ('latex (format "\\href{%s}{%s}" path desc))
-      ('texinfo (format "@uref{%s,%s}" path desc))
-      ('ascii (if desc (format "%s (%s)" desc path)
-								path)))))
+      (let ((path (concat (if (eq format '11ty) "/" "https://sachachua.com/")
+										      "topic/"
+										      (replace-regexp-in-string
+										       "\\.html$" "/"
+										       (replace-regexp-in-string
+											      "^/\\|index.html$" ""
+											      (replace-regexp-in-string "^index" ""
+																								      link))))))
+	      (pcase format
+		      ((or 'html '11ty) (format "<a href=\"%s\">%s</a>" path (or desc link)))
+    ('latex (format "\\href{%s}{%s}" path desc))
+    ('texinfo (format "@uref{%s,%s}" path desc))
+    ('ascii (if desc (format "%s (%s)" desc path)
+							      path)))))
 
 ;;;###autoload
 (defun sacha-org-topic-complete ()
-	(format "%stopic/%s/"
-					sacha-blog-base-url
-					(completing-read
-					 "Topic: "
-					 (mapcar (lambda (o) (file-name-base o))
-									 (directory-files "~/sync/topics" "\\.org" nil)))))
+      (format "%stopic/%s/"
+				      sacha-blog-base-url
+				      (completing-read
+				       "Topic: "
+				       (mapcar (lambda (o) (file-name-base o))
+								       (directory-files "~/sync/topics" "\\.org" nil)))))
 
 ;;;###autoload
 (defun sacha-org-topic-store ()
-	(when (and (derived-mode-p 'org-mode)
-						 (buffer-file-name)
-						 (string-match "/home/sacha/sync/topics/"
-													 (expand-file-name (buffer-file-name))))
-		(let ((props (org-collect-keywords '("TITLE")))
-					(id (org-entry-get-with-inheritance "CUSTOM_ID")))
-			(org-link-store-props
-			 :link
-			 (concat
-				"topic:" (file-name-base (buffer-file-name))
-				(if id
-						(concat "#" id)
-					""))
-			 :description
-			 (save-excursion
-				 (if id (save-restriction
-									(widen)
-									(goto-char (org-find-property "CUSTOM_ID" id))
-									(org-entry-get (point) "ITEM"))
-					 (car (assoc-default "TITLE" props #'string=))))))))
+      (when (and (derived-mode-p 'org-mode)
+					       (buffer-file-name)
+					       (string-match "/home/sacha/sync/topics/"
+												       (expand-file-name (buffer-file-name))))
+	      (let ((props (org-collect-keywords '("TITLE")))
+				      (id (org-entry-get-with-inheritance "CUSTOM_ID")))
+		      (org-link-store-props
+		       :link
+		       (concat
+			      "topic:" (file-name-base (buffer-file-name))
+			      (if id
+					      (concat "#" id)
+				      ""))
+		       :description
+		       (save-excursion
+			       (if id (save-restriction
+								      (widen)
+								      (goto-char (org-find-property "CUSTOM_ID" id))
+								      (org-entry-get (point) "ITEM"))
+				       (car (assoc-default "TITLE" props #'string=))))))))
 ;; Linking to blog topics:1 ends here
 
 ;; [[file:../Sacha.org::org-blog-link][org-blog-link]]
@@ -2086,88 +2099,88 @@ This function is heavily adapted from `org-between-regexps-p'."
 
 ;;;###autoload
 (defun sacha-org-blog-complete ()
-  "Select a blog post and return its URL."
-  (sacha-blog-url (sacha-consult-blog-posts-by-title)))
+"Select a blog post and return its URL."
+(sacha-blog-url (sacha-consult-blog-posts-by-title)))
 
 ;;;###autoload
 (defun sacha-org-blog-export (link desc format _)
-	(let ((path (concat (if (eq format '11ty) "/" sacha-blog-base-url)
-											(replace-regexp-in-string "\\.html$" "/"
-																								(replace-regexp-in-string "^/\\|index.html$" ""
-																																					link)))))
-		(pcase format
-			((or 'html '11ty) (format "<a href=\"%s\">%s</a>" path (or desc link)))
-      ('latex (format "\\href{%s}{%s}" path desc))
-      ('texinfo (format "@uref{%s,%s}" path desc))
-      ('ascii (if desc (format "%s (%s)" desc path)
-								path)))))
+      (let ((path (concat (if (eq format '11ty) "/" sacha-blog-base-url)
+										      (replace-regexp-in-string "\\.html$" "/"
+																							      (replace-regexp-in-string "^/\\|index.html$" ""
+																																				      link)))))
+	      (pcase format
+		      ((or 'html '11ty) (format "<a href=\"%s\">%s</a>" path (or desc link)))
+    ('latex (format "\\href{%s}{%s}" path desc))
+    ('texinfo (format "@uref{%s,%s}" path desc))
+    ('ascii (if desc (format "%s (%s)" desc path)
+							      path)))))
 
 ;;;###autoload
 (defun sacha-11ty-html-filename (link)
-	"Return the HTML file for LINK."
-  (when (listp link) (setq link (assoc-default 'permalink link)))
-	(setq link (replace-regexp-in-string (concat "^blog:\\|" (regexp-quote sacha-blog-base-url)) "" link))
-	(when (string-match "^/" link) (setq link (concat "." link)))
-  (if (file-exists-p link)
-			link
-		(or (catch 'found
-					(dolist (f
-									 (list
-										(expand-file-name "index.html"
-																			(expand-file-name
-																			 link
-																			 sacha-11ty-base-dir))
-										(expand-file-name "index.html"
-																			(expand-file-name
-																			 link
-																			 (expand-file-name "blog" sacha-11ty-base-dir)))
-										(replace-regexp-in-string
-										 "/$" ".html"
-										 (expand-file-name
-											link
-											sacha-11ty-base-dir))))
-						(if (and f (file-exists-p f))
-								(throw 'found f))))
-				(error "%s not found" link))))
+      "Return the HTML file for LINK."
+(when (listp link) (setq link (assoc-default 'permalink link)))
+      (setq link (replace-regexp-in-string (concat "^blog:\\|" (regexp-quote sacha-blog-base-url)) "" link))
+      (when (string-match "^/" link) (setq link (concat "." link)))
+(if (file-exists-p link)
+		      link
+	      (or (catch 'found
+				      (dolist (f
+								       (list
+									      (expand-file-name "index.html"
+																		      (expand-file-name
+																		       link
+																		       sacha-11ty-base-dir))
+									      (expand-file-name "index.html"
+																		      (expand-file-name
+																		       link
+																		       (expand-file-name "blog" sacha-11ty-base-dir)))
+									      (replace-regexp-in-string
+									       "/$" ".html"
+									       (expand-file-name
+										      link
+										      sacha-11ty-base-dir))))
+					      (if (and f (file-exists-p f))
+							      (throw 'found f))))
+			      (error "%s not found" link))))
 
 ;;;###autoload
 (defun sacha-org-blog-open (link &rest _)
-	"Find the post if it exists, or open the HTML."
-	(with-current-buffer (find-file-noselect "~/sync/orgzly/posts.org")
-		(let ((pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" link)))
-			(if pos
-					(progn (goto-char pos) (switch-to-buffer (current-buffer)))
-				(when-let ((filename (sacha-11ty-html-filename link)))
-					(find-file filename))))))
+      "Find the post if it exists, or open the HTML."
+      (with-current-buffer (find-file-noselect "~/sync/orgzly/posts.org")
+	      (let ((pos (org-find-property "EXPORT_ELEVENTY_PERMALINK" link)))
+		      (if pos
+				      (progn (goto-char pos) (switch-to-buffer (current-buffer)))
+			      (when-let ((filename (sacha-11ty-html-filename link)))
+				      (find-file filename))))))
 
 ;;;###autoload
 (defun sacha-org-link-insert-description (link &optional description)
-	(unless description
-		(sacha-blog-title (sacha-org-link-as-url link))))
+      (unless description
+	      (sacha-blog-title (sacha-org-link-as-url link))))
 
 ;;;###autoload
 (defun sacha-org-blog-store ()
-	(when (derived-mode-p 'org-mode)
-		(let* ((props (org-collect-keywords '("ELEVENTY_PERMALINK"
-																					"ELEVENTY_BASE_URL"
-																					"TITLE")))
-					 (permalink
-						(or (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")
-								(car (assoc-default "ELEVENTY_PERMALINK" props #'string=)))))
-			(when permalink
-				(org-link-store-props
-				 :link
-				 (concat
-					(replace-regexp-in-string "/$" "" sacha-blog-base-url) permalink
-					(if (org-entry-get-with-inheritance "CUSTOM_ID")
-							(concat "#" (org-entry-get-with-inheritance "CUSTOM_ID"))
-						""))
-				 :description
-				 (save-excursion
-					 (goto-char (or (org-find-property "EXPORT_ELEVENTY_PERMALINK" permalink)
-													(point-min)))
-					 (or (org-entry-get (point) "ITEM")
-							 (car (assoc-default "TITLE" props #'string=)))))))))
+      (when (derived-mode-p 'org-mode)
+	      (let* ((props (org-collect-keywords '("ELEVENTY_PERMALINK"
+																				      "ELEVENTY_BASE_URL"
+																				      "TITLE")))
+				       (permalink
+					      (or (org-entry-get-with-inheritance "EXPORT_ELEVENTY_PERMALINK")
+							      (car (assoc-default "ELEVENTY_PERMALINK" props #'string=)))))
+		      (when permalink
+			      (org-link-store-props
+			       :link
+			       (concat
+				      (replace-regexp-in-string "/$" "" sacha-blog-base-url) permalink
+				      (if (org-entry-get-with-inheritance "CUSTOM_ID")
+						      (concat "#" (org-entry-get-with-inheritance "CUSTOM_ID"))
+					      ""))
+			       :description
+			       (save-excursion
+				       (goto-char (or (org-find-property "EXPORT_ELEVENTY_PERMALINK" permalink)
+												      (point-min)))
+				       (or (org-entry-get (point) "ITEM")
+						       (car (assoc-default "TITLE" props #'string=)))))))))
 ;; org-blog-link ends here
 
 ;; [[file:../Sacha.org::#org-mode-publishing-11ty-static-site-generation-include-mastodon-field-in-front-matter][Include Mastodon, HN, Reddit fields in front matter:1]]
@@ -2210,281 +2223,281 @@ This function is heavily adapted from `org-between-regexps-p'."
 ;; [[file:../Sacha.org::#org-mode-publishing-counting-words-without-blocks][Counting words without blocks:1]]
 ;;;###autoload
 (defun sacha-org-simplify-text (text)
-  "Don't include source blocks or links."
-  (with-temp-buffer
-			(insert text)
-			(org-mode)
-			(goto-char (point-min))
-			(while (re-search-forward org-link-any-re nil t)
-        (replace-match
-         (if (save-match-data (string-match "audio\\|vtime\\|video" (match-string 0)))
-             ""
-           (or (match-string 3) "(link)"))) )
-			(goto-char (point-min))
-			(while (re-search-forward "^ *#\\+begin" nil t)
-			 (let* ((block (org-element-context))
-              (text
-               (if (or (eq (org-element-type block) 'quote-block)
-                       (string= (org-element-property :type block)
-                                "media-post"))
-                   (buffer-substring
-                    (org-element-contents-begin block)
-                    (org-element-contents-end block))
-                 "(block)")))
-         (delete-region (org-element-begin block)
-													    (org-element-end block))
-         (insert text "\n")))
-			(while (re-search-forward "\n\n+" nil t)
-				(replace-match "\n"))
-			(string-trim
-			 (buffer-string))))
+"Don't include source blocks or links."
+(with-temp-buffer
+		      (insert text)
+		      (org-mode)
+		      (goto-char (point-min))
+		      (while (re-search-forward org-link-any-re nil t)
+      (replace-match
+       (if (save-match-data (string-match "audio\\|vtime\\|video" (match-string 0)))
+	   ""
+	 (or (match-string 3) "(link)"))) )
+		      (goto-char (point-min))
+		      (while (re-search-forward "^ *#\\+begin" nil t)
+		       (let* ((block (org-element-context))
+	    (text
+	     (if (or (eq (org-element-type block) 'quote-block)
+		     (string= (org-element-property :type block)
+			      "media-post"))
+		 (buffer-substring
+		  (org-element-contents-begin block)
+		  (org-element-contents-end block))
+	       "(block)")))
+       (delete-region (org-element-begin block)
+													  (org-element-end block))
+       (insert text "\n")))
+		      (while (re-search-forward "\n\n+" nil t)
+			      (replace-match "\n"))
+		      (string-trim
+		       (buffer-string))))
 
 ;;;###autoload
 (defun sacha-org-subtree-text-without-blocks ()
-	"Don't include source blocks or links. "
-	(let (list)
-		(save-excursion
-			(save-restriction
-				(org-back-to-heading)
-				(org-narrow-to-subtree)
-        (org-map-entries
-         (lambda ()
-           (push (buffer-substring-no-properties
-                  (line-beginning-position)
-                  (line-end-position))
-                 list)
-           (org-end-of-meta-data t)
-           (unless (looking-at org-heading-regexp)
-             (push
-              (buffer-substring
-               (point)
-               (save-excursion
-                 (or (outline-next-heading)
-                     (point-max))))
-              list)))
-         nil 'tree)))
-    (sacha-org-simplify-text (string-join (nreverse list) "\n"))))
+      "Don't include source blocks or links. "
+      (let (list)
+	      (save-excursion
+		      (save-restriction
+			      (org-back-to-heading)
+			      (org-narrow-to-subtree)
+      (org-map-entries
+       (lambda ()
+	 (push (buffer-substring-no-properties
+		(line-beginning-position)
+		(line-end-position))
+	       list)
+	 (org-end-of-meta-data t)
+	 (unless (looking-at org-heading-regexp)
+	   (push
+	    (buffer-substring
+	     (point)
+	     (save-excursion
+	       (or (outline-next-heading)
+		   (point-max))))
+	    list)))
+       nil 'tree)))
+  (sacha-org-simplify-text (string-join (nreverse list) "\n"))))
 
 ;;;###autoload
 (defun sacha-org-subtree-count-words-without-blocks ()
-	(interactive)
-	(let ((text (sacha-org-subtree-text-without-blocks)))
-		(with-temp-buffer
-			(insert text)
-			(message "%s" (count-words--buffer-format)))))
+      (interactive)
+      (let ((text (sacha-org-subtree-text-without-blocks)))
+	      (with-temp-buffer
+		      (insert text)
+		      (message "%s" (count-words--buffer-format)))))
 
 ;;;###autoload
 (defun sacha-org-subtree-copy-words-without-blocks ()
-	(interactive)
-	(kill-new (sacha-org-subtree-text-without-blocks)))
+      (interactive)
+      (kill-new (sacha-org-subtree-text-without-blocks)))
 ;; Counting words without blocks:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-including-portions-of-files-between-two-regular-expressions][Org Mode: Including portions of files between two regular expressions:2]]
 ;;;###autoload
 (defun sacha-include-open (path &optional _)
-	"Narrow to the region specified in PATH."
-	(require 'org-protocol)
-	(let (params start end)
-		(if (string-match "^\\(.*+?\\)\\(?:::\\|\\?\\)\\(.*+\\)" path)
-				(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))
-							path (match-string 1 path)))
-		(find-file path)
-		(if (plist-get params :name)
-				(when (org-babel-find-named-block (plist-get params :name))
-					(goto-char (org-babel-find-named-block (plist-get params :name)))
-					(let ((block (org-element-context)))
-						(narrow-to-region (org-element-begin block)
-															(org-element-end block))))
-			(setq start
-						(or
-						 (and
-							(plist-get params :from-regexp)
-							(progn
-								(goto-char (point-min))
-								(when (re-search-forward (url-unhex-string (plist-get params :from-regexp)))
-									(line-beginning-position))))
-						 (progn
-							 (goto-char (point-min))
-							 (point))))
-			(setq end
-						(or
-						 (and
-							(plist-get params :to-regexp)
-							(progn
-								(when (re-search-forward (url-unhex-string (plist-get params :to-regexp)))
-									(line-end-position))))
-						 (progn
-							 (goto-char (point-max))
-							 (point))))
-			(when (or (not (= start (point-min)))
-								(not (= end (point-max))))
-				(narrow-to-region start end)))))
+      "Narrow to the region specified in PATH."
+      (require 'org-protocol)
+      (let (params start end)
+	      (if (string-match "^\\(.*+?\\)\\(?:::\\|\\?\\)\\(.*+\\)" path)
+			      (setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))
+						      path (match-string 1 path)))
+	      (find-file path)
+	      (if (plist-get params :name)
+			      (when (org-babel-find-named-block (plist-get params :name))
+				      (goto-char (org-babel-find-named-block (plist-get params :name)))
+				      (let ((block (org-element-context)))
+					      (narrow-to-region (org-element-begin block)
+														      (org-element-end block))))
+		      (setq start
+					      (or
+					       (and
+						      (plist-get params :from-regexp)
+						      (progn
+							      (goto-char (point-min))
+							      (when (re-search-forward (url-unhex-string (plist-get params :from-regexp)))
+								      (line-beginning-position))))
+					       (progn
+						       (goto-char (point-min))
+						       (point))))
+		      (setq end
+					      (or
+					       (and
+						      (plist-get params :to-regexp)
+						      (progn
+							      (when (re-search-forward (url-unhex-string (plist-get params :to-regexp)))
+								      (line-end-position))))
+					       (progn
+						       (goto-char (point-max))
+						       (point))))
+		      (when (or (not (= start (point-min)))
+							      (not (= end (point-max))))
+			      (narrow-to-region start end)))))
 
 ;;;###autoload
 (defun sacha-include-store ()
-  "Store a link to Org Babel named blocks."
-  (when-let ((elem (and (derived-mode-p 'org-mode) (org-element-at-point))))
-    (when (and (org-element-type-p elem 'src-block)
-               (org-element-property :name elem))
-      (org-link-store-props :type "sacha-include"
-                            :link (concat "sacha-include:" (buffer-file-name) "?name="
-                                          (org-element-property :name elem))
-                            :text (org-entry-get (point) "ITEM")))))
+"Store a link to Org Babel named blocks."
+(when-let ((elem (and (derived-mode-p 'org-mode) (org-element-at-point))))
+  (when (and (org-element-type-p elem 'src-block)
+	     (org-element-property :name elem))
+    (org-link-store-props :type "sacha-include"
+			  :link (concat "sacha-include:" (buffer-file-name) "?name="
+					(org-element-property :name elem))
+			  :text (org-entry-get (point) "ITEM")))))
 
 ;;;###autoload
 (defun sacha-include-export (path _ format _)
-	"Export PATH to FORMAT using the specified wrap parameter."
-	(require 'org-protocol)
-	(let (params body start end)
-		(when (string-match "^\\(.*+?\\)\\(?:::\\|\\?\\)\\(.*+\\)" path)
-			(setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))
-						path (match-string 1 path)))
-		(with-temp-buffer
-			(insert-file-contents-literally path)
-			(when (string-match "\\.org$" path)
-				(org-mode))
-			(if (plist-get params :name)
-					(when (org-babel-find-named-block (plist-get params :name))
-						(goto-char (org-babel-find-named-block (plist-get params :name)))
-						(let ((block (org-element-context)))
-							(setq start (org-element-begin block)
-										end (org-element-end block))))
-				(goto-char (point-min))
-				(when (plist-get params :from-regexp)
-					(re-search-forward (url-unhex-string (plist-get params :from-regexp)))
-					(goto-char (match-beginning 0)))
-				(setq start (point))
-				(setq end (point-max))
-				(when (plist-get params :to-regexp)
-					(re-search-forward (url-unhex-string (plist-get params :to-regexp)))
-					(setq end (match-beginning 0))))
-			(setq body (buffer-substring start end)))
-		(with-temp-buffer
-			(when (plist-get params :wrap)
-				(let* ((wrap (plist-get params :wrap))
-							 block args)
-					(when (string-match "\\<\\(\\S-+\\)\\( +.*\\)?" wrap)
-						(setq block (match-string 1 wrap))
-						(setq args (match-string 2 wrap))
-						(setq body (format "#+BEGIN_%s%s\n%s\n#+END_%s\n"
-															 block (or args "")
-															 body
-															 block)))))
-			(when (plist-get params :summary)
-				(setq body (format "#+begin_my_details %s\n%s\n#+end_my_details\n"
-													 (plist-get params :summary)
-													 body)))
-			(insert body)
-			(message "BODY: %s" body)
-			(org-export-as format nil nil t))))
+      "Export PATH to FORMAT using the specified wrap parameter."
+      (require 'org-protocol)
+      (let (params body start end)
+	      (when (string-match "^\\(.*+?\\)\\(?:::\\|\\?\\)\\(.*+\\)" path)
+		      (setq params (save-match-data (org-protocol-convert-query-to-plist (match-string 2 path)))
+					      path (match-string 1 path)))
+	      (with-temp-buffer
+		      (insert-file-contents-literally path)
+		      (when (string-match "\\.org$" path)
+			      (org-mode))
+		      (if (plist-get params :name)
+				      (when (org-babel-find-named-block (plist-get params :name))
+					      (goto-char (org-babel-find-named-block (plist-get params :name)))
+					      (let ((block (org-element-context)))
+						      (setq start (org-element-begin block)
+									      end (org-element-end block))))
+			      (goto-char (point-min))
+			      (when (plist-get params :from-regexp)
+				      (re-search-forward (url-unhex-string (plist-get params :from-regexp)))
+				      (goto-char (match-beginning 0)))
+			      (setq start (point))
+			      (setq end (point-max))
+			      (when (plist-get params :to-regexp)
+				      (re-search-forward (url-unhex-string (plist-get params :to-regexp)))
+				      (setq end (match-beginning 0))))
+		      (setq body (buffer-substring start end)))
+	      (with-temp-buffer
+		      (when (plist-get params :wrap)
+			      (let* ((wrap (plist-get params :wrap))
+						       block args)
+				      (when (string-match "\\<\\(\\S-+\\)\\( +.*\\)?" wrap)
+					      (setq block (match-string 1 wrap))
+					      (setq args (match-string 2 wrap))
+					      (setq body (format "#+BEGIN_%s%s\n%s\n#+END_%s\n"
+														       block (or args "")
+														       body
+														       block)))))
+		      (when (plist-get params :summary)
+			      (setq body (format "#+begin_my_details %s\n%s\n#+end_my_details\n"
+												       (plist-get params :summary)
+												       body)))
+		      (insert body)
+		      (message "BODY: %s" body)
+		      (org-export-as format nil nil t))))
 
 ;;;###autoload
 (defun sacha-include-complete ()
-	"Include a section of a file from one line to another, specified with regexps."
-	(interactive)
-	(require 'consult)
-	(let ((file (read-file-name "File: ")))
-		(save-window-excursion
-			(find-file file)
-			(concat "sacha-include:"
-							file
-							"?from-regexp="
-							(let ((curr-line (line-number-at-pos
-																(point)
-																consult-line-numbers-widen))
-										(prompt "From line: "))
-								(goto-char (point-min))
-								(consult-line)
-								(url-hexify-string
-								 (regexp-quote (buffer-substring (line-beginning-position) (line-end-position)))))
-							"&to-regexp="
-							(let ((curr-line (line-number-at-pos
-																(point)
-																consult-line-numbers-widen))
-										(prompt "To line: "))
-								(goto-char (point-min))
-								(consult-line
-								 nil (point))
-								(url-hexify-string
-								 (regexp-quote (buffer-substring (line-beginning-position) (line-end-position)))))
-							"&wrap=src " (replace-regexp-in-string "-mode$" "" (symbol-name major-mode))))))
+      "Include a section of a file from one line to another, specified with regexps."
+      (interactive)
+      (require 'consult)
+      (let ((file (read-file-name "File: ")))
+	      (save-window-excursion
+		      (find-file file)
+		      (concat "sacha-include:"
+						      file
+						      "?from-regexp="
+						      (let ((curr-line (line-number-at-pos
+															      (point)
+															      consult-line-numbers-widen))
+									      (prompt "From line: "))
+							      (goto-char (point-min))
+							      (consult-line)
+							      (url-hexify-string
+							       (regexp-quote (buffer-substring (line-beginning-position) (line-end-position)))))
+						      "&to-regexp="
+						      (let ((curr-line (line-number-at-pos
+															      (point)
+															      consult-line-numbers-widen))
+									      (prompt "To line: "))
+							      (goto-char (point-min))
+							      (consult-line
+							       nil (point))
+							      (url-hexify-string
+							       (regexp-quote (buffer-substring (line-beginning-position) (line-end-position)))))
+						      "&wrap=src " (replace-regexp-in-string "-mode$" "" (symbol-name major-mode))))))
 ;; Org Mode: Including portions of files between two regular expressions:2 ends here
 
 ;; [[file:../Sacha.org::#org-mode-including-portions-of-files-between-two-regular-expressions][Org Mode: Including portions of files between two regular expressions:3]]
 (eval-and-compile
-  (require 'org-macs nil t))
+(require 'org-macs nil t))
 
 ;;;###autoload
 (defun sacha-org-display-included-images (&optional include-linked refresh beg end)
-	"Display inline images for sacha-include types."
-	(interactive "P")
-	(when (display-graphic-p)
-		(when refresh
-      (org-remove-inline-images beg end)
-      (when (fboundp 'clear-image-cache) (clear-image-cache)))
-    (let ((end (or end (point-max))))
-      (org-with-point-at (or beg (point-min))))
-		(let* ((case-fold-search t)
-					 (file-extension-re "\\.svg")
-					 (file-types-re (format "\\[\\[sacha-include:")))
-			(while (re-search-forward file-types-re end t)
-				(let* ((link (org-element-lineage (save-match-data (org-element-context)) 'link t))
-							 (inner-start (match-beginning 1))
-							 (path
-								(cond
-								 ((not link) nil)
-								 ;; file link without a description
-								 ((or (not (org-element-contents-begin link)) include-linked)
-									(org-element-property :path link))
-								 ((not inner-start) nil)
-								 (t (org-with-point-at inner-start
-											(and (looking-at
-														(if (char-equal ?< (char-after inner-start))
-																org-link-angle-re
-															org-link-plain-re))
-													 ;; File name must fill the whole
-													 ;; description.
-													 (= (org-element-contents-end link)
-															(match-end 0))
-													 (progn
-                             (setq linktype (match-string 1))
-                             (match-string 2))))))))
-					(when (string-match "\\(.+\\)\\?" path)
-						(setq path (match-string 1 path)))
-					(when (and path (string-match-p file-extension-re path))
-						(let ((file (expand-file-name path)))
-              ;; Expand environment variables.
-              (when file (setq file (substitute-in-file-name file)))
-							(when (and file (file-exists-p file))
-								(let ((width (org-display-inline-image--width link))
-											(old (get-char-property-and-overlay
-														(org-element-begin link)
-														'org-image-overlay)))
-									(if (and (car-safe old) refresh)
-                      (image-flush (overlay-get (cdr old) 'display))
-										(let ((image (org--create-inline-image file width)))
-											(when image
-												(let ((ov (make-overlay
-																	 (org-element-begin link)
-																	 (progn
-																		 (goto-char
-																			(org-element-end link))
-																		 (skip-chars-backward " \t")
-																		 (point)))))
-                          ;; FIXME: See bug#59902.  We cannot rely
-                          ;; on Emacs to update image if the file
-                          ;; has changed.
-                          (image-flush image)
-                          (overlay-put ov 'evaporate t)
-													(overlay-put ov 'display image)
-													(overlay-put ov 'face 'default)
-													(overlay-put ov 'org-image-overlay t)
-													(overlay-put
-													 ov 'modification-hooks
-													 (list 'org-display-inline-remove-overlay))
-													(when (boundp 'image-map)
-														(overlay-put ov 'keymap image-map))
-													(push ov org-inline-image-overlays))))))))))))))
+      "Display inline images for sacha-include types."
+      (interactive "P")
+      (when (display-graphic-p)
+	      (when refresh
+    (org-remove-inline-images beg end)
+    (when (fboundp 'clear-image-cache) (clear-image-cache)))
+  (let ((end (or end (point-max))))
+    (org-with-point-at (or beg (point-min))))
+	      (let* ((case-fold-search t)
+				       (file-extension-re "\\.svg")
+				       (file-types-re (format "\\[\\[sacha-include:")))
+		      (while (re-search-forward file-types-re end t)
+			      (let* ((link (org-element-lineage (save-match-data (org-element-context)) 'link t))
+						       (inner-start (match-beginning 1))
+						       (path
+							      (cond
+							       ((not link) nil)
+							       ;; file link without a description
+							       ((or (not (org-element-contents-begin link)) include-linked)
+								      (org-element-property :path link))
+							       ((not inner-start) nil)
+							       (t (org-with-point-at inner-start
+										      (and (looking-at
+													      (if (char-equal ?< (char-after inner-start))
+															      org-link-angle-re
+														      org-link-plain-re))
+												       ;; File name must fill the whole
+												       ;; description.
+												       (= (org-element-contents-end link)
+														      (match-end 0))
+												       (progn
+			   (setq linktype (match-string 1))
+			   (match-string 2))))))))
+				      (when (string-match "\\(.+\\)\\?" path)
+					      (setq path (match-string 1 path)))
+				      (when (and path (string-match-p file-extension-re path))
+					      (let ((file (expand-file-name path)))
+	    ;; Expand environment variables.
+	    (when file (setq file (substitute-in-file-name file)))
+						      (when (and file (file-exists-p file))
+							      (let ((width (org-display-inline-image--width link))
+										      (old (get-char-property-and-overlay
+													      (org-element-begin link)
+													      'org-image-overlay)))
+								      (if (and (car-safe old) refresh)
+		    (image-flush (overlay-get (cdr old) 'display))
+									      (let ((image (org--create-inline-image file width)))
+										      (when image
+											      (let ((ov (make-overlay
+																       (org-element-begin link)
+																       (progn
+																	       (goto-char
+																		      (org-element-end link))
+																	       (skip-chars-backward " \t")
+																	       (point)))))
+			;; FIXME: See bug#59902.  We cannot rely
+			;; on Emacs to update image if the file
+			;; has changed.
+			(image-flush image)
+			(overlay-put ov 'evaporate t)
+												      (overlay-put ov 'display image)
+												      (overlay-put ov 'face 'default)
+												      (overlay-put ov 'org-image-overlay t)
+												      (overlay-put
+												       ov 'modification-hooks
+												       (list 'org-display-inline-remove-overlay))
+												      (when (boundp 'image-map)
+													      (overlay-put ov 'keymap image-map))
+												      (push ov org-inline-image-overlays))))))))))))))
 
 ;; Org Mode: Including portions of files between two regular expressions:3 ends here
 
@@ -2594,306 +2607,306 @@ This function is heavily adapted from `org-between-regexps-p'."
 ;; [[file:../Sacha.org::#special-blocks][Special blocks:3]]
 ;;;###autoload
 (defun sacha-org-convert-list-to-collapsible-details ()
-	(interactive)
-	(let ((list (org-list-to-lisp t)))
-		(mapc (lambda (o)
-						(when (stringp (car o))
-							(insert
-							 (format
-								"#+begin_my_details %s :open t\n%s#+end_my_details\n"
-								(car o)
-								(mapconcat
-								 (lambda (s)
-									 (concat "- " (string-trim (org-ascii--indent-string (car s) 2)) "\n"))
-								 (cdr (cadr o)))))))
-					(cdr list))))
+      (interactive)
+      (let ((list (org-list-to-lisp t)))
+	      (mapc (lambda (o)
+					      (when (stringp (car o))
+						      (insert
+						       (format
+							      "#+begin_my_details %s :open t\n%s#+end_my_details\n"
+							      (car o)
+							      (mapconcat
+							       (lambda (s)
+								       (concat "- " (string-trim (org-ascii--indent-string (car s) 2)) "\n"))
+							       (cdr (cadr o)))))))
+				      (cdr list))))
 ;; Special blocks:3 ends here
 
 ;; [[file:../Sacha.org::#copy-region][Copy region:1]]
 ;;;###autoload
 (defun sacha-org-copy-region-as-html (beg end &optional level)
-  "Make it easier to copy code for Wordpress posts and other things."
-  (interactive "r\np")
-  (let ((org-export-html-preamble nil)
-        (org-html-toplevel-hlevel (or level 3)))
-    (kill-new
-     (org-export-string-as (buffer-substring beg end) 'html t))))
+"Make it easier to copy code for Wordpress posts and other things."
+(interactive "r\np")
+(let ((org-export-html-preamble nil)
+      (org-html-toplevel-hlevel (or level 3)))
+  (kill-new
+   (org-export-string-as (buffer-substring beg end) 'html t))))
 ;; Copy region:1 ends here
 
 ;; [[file:../Sacha.org::#copy-region][Copy region:2]]
 ;;;###autoload
 (defun sacha-org-copy-subtree-as-html ()
-  (interactive)
-  (sacha-org-copy-region-as-html
-   (org-back-to-heading)
-   (org-end-of-subtree)))
+(interactive)
+(sacha-org-copy-region-as-html
+ (org-back-to-heading)
+ (org-end-of-subtree)))
 ;; Copy region:2 ends here
 
 ;; [[file:../Sacha.org::#org-mode-links-convert-an-inline-link-into-a-side-note-footnote][Convert an inline link into a side note/footnote:1]]
 ;;;###autoload
 (defun sacha-org-convert-link-to-footnote (label)
-  "Convert the link at point into a footnote."
-  (interactive (list (read-string "Footnote label: ")))
-  ;; Get the Org link path at point
-  (when (org-in-regexp org-link-bracket-re 1)
-    (let ((url (match-string 1)))
-      (replace-match (match-string 2) 0)
-      (skip-syntax-forward ".")
-      (sacha-org-footnote-add (org-link-make-string (org-link-unescape url)
-                                                 (sacha-org-link-default-description url nil))))))
+"Convert the link at point into a footnote."
+(interactive (list (read-string "Footnote label: ")))
+;; Get the Org link path at point
+(when (org-in-regexp org-link-bracket-re 1)
+  (let ((url (match-string 1)))
+    (replace-match (match-string 2) 0)
+    (skip-syntax-forward ".")
+    (sacha-org-footnote-add (org-link-make-string (org-link-unescape url)
+					       (sacha-org-link-default-description url nil))))))
 
 ;;;###autoload
 (defun sacha-org-footnote-add (label &optional text)
-  (interactive "MLabel: \n")
-  (insert (format "[fn:%s]" label))
-  (goto-char (org-footnote-create-definition label))
-  (goto-char (line-end-position))
-  (when text
-    (insert text)))
+(interactive "MLabel: \n")
+(insert (format "[fn:%s]" label))
+(goto-char (org-footnote-create-definition label))
+(goto-char (line-end-position))
+(when text
+  (insert text)))
 ;; Convert an inline link into a side note/footnote:1 ends here
 
 ;; [[file:../Sacha.org::#sacha-org-insert-link-dwim][Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:1]]
 ;;;###autoload
 (defun sacha-clean-link (s)
-  "Remove Google tracking information."
-  (when (string-match "https://www.google.com/url" s)
-    (setq s
-          (car
-           (cdr
-            (assoc-string
-             "url"
-             (url-parse-query-string
-              (cdr
-               (url-path-and-query (url-generic-parse-url s)))))))))
-  s)
+"Remove Google tracking information."
+(when (string-match "https://www.google.com/url" s)
+  (setq s
+	(car
+	 (cdr
+	  (assoc-string
+	   "url"
+	   (url-parse-query-string
+	    (cdr
+	     (url-path-and-query (url-generic-parse-url s)))))))))
+s)
 
 (ert-deftest sacha-clean-link ()
-  "Tests `sacha-clean-link'."
-  (should (equal (sacha-clean-link "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=http://www.gnu.org/s/emacs/manual/html_node/emacs/Imenu.html")
-                 "http://www.gnu.org/s/emacs/manual/html_node/emacs/Imenu.html")))
+"Tests `sacha-clean-link'."
+(should (equal (sacha-clean-link "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=http://www.gnu.org/s/emacs/manual/html_node/emacs/Imenu.html")
+	       "http://www.gnu.org/s/emacs/manual/html_node/emacs/Imenu.html")))
 
 ;;;###autoload
 (defun sacha-org-insert-link-dwim (&optional url title)
-	"Like `org-insert-link' but with personal dwim preferences.
+      "Like `org-insert-link' but with personal dwim preferences.
 
 Call with \\[universal-argument] to manually specify the title."
-	(interactive)
-	(let* ((point-in-link (and (derived-mode-p 'org-mode) (org-in-regexp org-link-any-re 1)))
-				 (point-in-html-block (and (derived-mode-p 'org-mode)
-																	 (let ((elem (org-element-context)))
-																		 (and (eq (org-element-type elem) 'export-block)
-																					(string= (org-element-property :type elem) "HTML")))))
-				 (point-in-src-or-export-block
-					(and (derived-mode-p 'org-mode)
-							 (let ((elem (org-element-context)))
-								 (and (member (org-element-type elem) '(src-block export-block))
-											(not (string= (org-element-property :type elem) "Org"))
-                      (>= (point) (org-element-property :post-affiliated elem))
-                      (<= (point) (+ (length (org-element-property :value elem))
-                                     (org-element-property :post-affiliated elem)))))))
-				 (region-content (when (region-active-p)
-													 (buffer-substring-no-properties (region-beginning)
-																													 (region-end))))
-         (favorite-match (when region-content (sacha-org-favorite-match region-content)))
-         (url (cond
-               (url url)
-							 ((sacha-org-in-bracketed-text-link-p) nil)
-               (favorite-match favorite-match)
-							 ((not point-in-link)
-                (sacha-org-read-link
-								 ;; clipboard
-								 (when (string-match-p "^http" (current-kill 0))
-									 (sacha-clean-link (current-kill 0)))))))
-				 (title (or title
-                    region-content
-										(when (or (string-match (regexp-quote "*new toot*") (buffer-name))
-															(derived-mode-p '(markdown-mode web-mode oddmuse-mode))
-															point-in-html-block
-															point-in-src-or-export-block
-															(not (and (derived-mode-p 'org-mode)
-																				point-in-link)))
-											(read-string "Title: "
-																	 (if current-prefix-arg
-																			 nil
-																		 (or (sacha-org-link-default-description url nil)
-																				 (sacha-page-title url))))))))
-		;; resolve the links; see sacha-org-link-as-url in  https://sachachua.com/dotemacs#web-link
-		(unless (and (derived-mode-p 'org-mode)
-								 (not (or point-in-html-block point-in-src-or-export-block)))
-			(setq url (sacha-org-link-as-url url)))
-		(when (region-active-p) (delete-region (region-beginning) (region-end)))
-		(cond
-		 ((or (string-match (regexp-quote "*new toot*") (buffer-name))
-					(derived-mode-p 'markdown-mode))
-			(insert (format "[%s](%s)" title url)))
-		 ((or (derived-mode-p '(web-mode html-mode)) point-in-html-block)
-			(insert (format "<a href=\"%s\">%s</a>" url title)))
-		 ((derived-mode-p 'oddmuse-mode)
-			(if (and (string-match "https://emacswiki.org/emacs/\\(.+\\)" url)
-							 (or (null title)
-									 (string= title "")
-									 (string= (match-string 1 url) title)))
-					(insert (match-string 1 url))
-				(insert (format "[%s %s]" url title))))
-		 ((or point-in-src-or-export-block
-					(not (derived-mode-p 'org-mode)))
-			(insert title " " url))
-     ((or (derived-mode-p 'message-mode)
-          (derived-mode-p 'notmuch-message-mode))
-      (insert title " " url))
-		 ((and region-content url (not point-in-link))
-			(insert (org-link-make-string url region-content)))
-		 ((and url (not point-in-link))
-			(insert (org-link-make-string
-							 url
-							 (or title
-									 (read-string "Title: "
-																(or (sacha-org-link-default-description url nil)
-																		(sacha-page-title url)))))))
-		 ;; bracketed [[plain text]]; see Using web searches and favorites to quickly link placeholders in Org Mode https://sachachua.com/dotemacs#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode
-		 ((sacha-org-set-link-target-with-search))
-		 ;; In Org Mode, edit the link
-		 ((call-interactively 'org-insert-link)))))
+      (interactive)
+      (let* ((point-in-link (and (derived-mode-p 'org-mode) (org-in-regexp org-link-any-re 1)))
+			       (point-in-html-block (and (derived-mode-p 'org-mode)
+																       (let ((elem (org-element-context)))
+																	       (and (eq (org-element-type elem) 'export-block)
+																				      (string= (org-element-property :type elem) "HTML")))))
+			       (point-in-src-or-export-block
+				      (and (derived-mode-p 'org-mode)
+						       (let ((elem (org-element-context)))
+							       (and (member (org-element-type elem) '(src-block export-block))
+										      (not (string= (org-element-property :type elem) "Org"))
+		    (>= (point) (org-element-property :post-affiliated elem))
+		    (<= (point) (+ (length (org-element-property :value elem))
+				   (org-element-property :post-affiliated elem)))))))
+			       (region-content (when (region-active-p)
+												       (buffer-substring-no-properties (region-beginning)
+																												       (region-end))))
+       (favorite-match (when region-content (sacha-org-favorite-match region-content)))
+       (url (cond
+	     (url url)
+						       ((sacha-org-in-bracketed-text-link-p) nil)
+	     (favorite-match favorite-match)
+						       ((not point-in-link)
+	      (sacha-org-read-link
+							       ;; clipboard
+							       (when (string-match-p "^http" (current-kill 0))
+								       (sacha-clean-link (current-kill 0)))))))
+			       (title (or title
+		  region-content
+									      (when (or (string-match (regexp-quote "*new toot*") (buffer-name))
+														      (derived-mode-p '(markdown-mode web-mode oddmuse-mode))
+														      point-in-html-block
+														      point-in-src-or-export-block
+														      (not (and (derived-mode-p 'org-mode)
+																			      point-in-link)))
+										      (read-string "Title: "
+																       (if current-prefix-arg
+																		       nil
+																	       (or (sacha-org-link-default-description url nil)
+																			       (sacha-page-title url))))))))
+	      ;; resolve the links; see sacha-org-link-as-url in  https://sachachua.com/dotemacs#web-link
+	      (unless (and (derived-mode-p 'org-mode)
+							       (not (or point-in-html-block point-in-src-or-export-block)))
+		      (setq url (sacha-org-link-as-url url)))
+	      (when (region-active-p) (delete-region (region-beginning) (region-end)))
+	      (cond
+	       ((or (string-match (regexp-quote "*new toot*") (buffer-name))
+				      (derived-mode-p 'markdown-mode))
+		      (insert (format "[%s](%s)" title url)))
+	       ((or (derived-mode-p '(web-mode html-mode)) point-in-html-block)
+		      (insert (format "<a href=\"%s\">%s</a>" url title)))
+	       ((derived-mode-p 'oddmuse-mode)
+		      (if (and (string-match "https://emacswiki.org/emacs/\\(.+\\)" url)
+						       (or (null title)
+								       (string= title "")
+								       (string= (match-string 1 url) title)))
+				      (insert (match-string 1 url))
+			      (insert (format "[%s %s]" url title))))
+	       ((or point-in-src-or-export-block
+				      (not (derived-mode-p 'org-mode)))
+		      (insert title " " url))
+   ((or (derived-mode-p 'message-mode)
+	(derived-mode-p 'notmuch-message-mode))
+    (insert title " " url))
+	       ((and region-content url (not point-in-link))
+		      (insert (org-link-make-string url region-content)))
+	       ((and url (not point-in-link))
+		      (insert (org-link-make-string
+						       url
+						       (or title
+								       (read-string "Title: "
+															      (or (sacha-org-link-default-description url nil)
+																	      (sacha-page-title url)))))))
+	       ;; bracketed [[plain text]]; see Using web searches and favorites to quickly link placeholders in Org Mode https://sachachua.com/dotemacs#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode
+	       ((sacha-org-set-link-target-with-search))
+	       ;; In Org Mode, edit the link
+	       ((call-interactively 'org-insert-link)))))
 ;; Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:1 ends here
 
-;; [[file:../Sacha.org::#sacha-org-insert-link-dwim][Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:4]]
+;; [[file:../Sacha.org::#sacha-org-insert-link-dwim][Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:5]]
 (defun sacha-org-link-https-insert-description (link desc)
 	"Default to the page title."
 	(unless desc (sacha-page-title link)))
-;; Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:4 ends here
-
-;; [[file:../Sacha.org::#sacha-org-insert-link-dwim][Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:6]]
-;;;###autoload
-(defun sacha-org-link-default-description (link desc)
-	"Return the default description for an Org Mode LINK.
-This uses :insert-description if defined."
-	(let* ((abbrevs org-link-abbrev-alist-local)
-				 (all-prefixes (append (mapcar #'car abbrevs)
-															 (mapcar #'car org-link-abbrev-alist)
-															 (org-link-types)))
-				 (type
-          (cond
-           ((and all-prefixes
-                 (string-match (rx-to-string `(: string-start (submatch (or ,@all-prefixes)) ":")) link))
-            (match-string 1 link))
-           ((file-name-absolute-p link) "file")
-           ((string-match "\\`\\.\\.?/" link) "file"))))
-		(when (org-link-get-parameter type :insert-description)
-			(let ((def (org-link-get-parameter type :insert-description)))
-				(condition-case nil
-						(cond
-						 ((stringp def) def)
-						 ((functionp def)
-							(funcall def link desc)))
-					(error
-					 nil))))))
-;; Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:6 ends here
+;; Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:5 ends here
 
 ;; [[file:../Sacha.org::#sacha-org-insert-link-dwim][Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:7]]
 ;;;###autoload
-(defun sacha-org-read-link (&optional default)
-	"Act like `org-insert-link'. Return link."
-	(let* ((wcf (current-window-configuration))
-				 (origbuf (current-buffer))
-				 (abbrevs org-link-abbrev-alist-local)
-				 (all-prefixes (append (mapcar #'car abbrevs)
-															 (mapcar #'car org-link-abbrev-alist)
-															 (org-link-types)))
-
-				 link)
-		(unwind-protect
-				;; Fake a link history, containing the stored links.
-				(let ((org-link--history
-							 (append (mapcar #'car org-stored-links)
-											 org-link--insert-history)))
-					(setq link
-								(org-completing-read
-								 (org-format-prompt "Insert link" (or default (caar org-stored-links)))
-								 (append
-									(mapcar (lambda (x) (concat x ":")) all-prefixes)
-									(mapcar #'car org-stored-links)
-									;; Allow description completion.  Avoid "nil" option
-									;; in the case of `completing-read-default' when
-									;; some links have no description.
-									(delq nil (mapcar 'cadr org-stored-links)))
-								 nil nil nil
-								 'org-link--history
-								 (or default (caar org-stored-links))))
-					(unless (org-string-nw-p link) (user-error "No link selected"))
-					(dolist (l org-stored-links)
-						(when (equal link (cadr l))
-							(setq link (car l))))
-					(when (or (member link all-prefixes)
-										(and (equal ":" (substring link -1))
-												 (member (substring link 0 -1) all-prefixes)
-												 (setq link (substring link 0 -1))))
-						(setq link (with-current-buffer origbuf
-												 (org-link--try-special-completion link)))))
-			(when-let* ((window (get-buffer-window "*Org Links*" t)))
-				(quit-window 'kill window))
-			(set-window-configuration wcf)
-			(when (get-buffer "*Org Links*")
-				(kill-buffer "*Org Links*")))
-    (replace-regexp-in-string
-     "^Link: " ""
-		 (string-trim link))))
+(defun sacha-org-link-default-description (link desc)
+      "Return the default description for an Org Mode LINK.
+This uses :insert-description if defined."
+      (let* ((abbrevs org-link-abbrev-alist-local)
+			       (all-prefixes (append (mapcar #'car abbrevs)
+														       (mapcar #'car org-link-abbrev-alist)
+														       (org-link-types)))
+			       (type
+	(cond
+	 ((and all-prefixes
+	       (string-match (rx-to-string `(: string-start (submatch (or ,@all-prefixes)) ":")) link))
+	  (match-string 1 link))
+	 ((file-name-absolute-p link) "file")
+	 ((string-match "\\`\\.\\.?/" link) "file"))))
+	      (when (org-link-get-parameter type :insert-description)
+		      (let ((def (org-link-get-parameter type :insert-description)))
+			      (condition-case nil
+					      (cond
+					       ((stringp def) def)
+					       ((functionp def)
+						      (funcall def link desc)))
+				      (error
+				       nil))))))
 ;; Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:7 ends here
+
+;; [[file:../Sacha.org::#sacha-org-insert-link-dwim][Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:8]]
+;;;###autoload
+(defun sacha-org-read-link (&optional default)
+      "Act like `org-insert-link'. Return link."
+      (let* ((wcf (current-window-configuration))
+			       (origbuf (current-buffer))
+			       (abbrevs org-link-abbrev-alist-local)
+			       (all-prefixes (append (mapcar #'car abbrevs)
+														       (mapcar #'car org-link-abbrev-alist)
+														       (org-link-types)))
+
+			       link)
+	      (unwind-protect
+			      ;; Fake a link history, containing the stored links.
+			      (let ((org-link--history
+						       (append (mapcar #'car org-stored-links)
+										       org-link--insert-history)))
+				      (setq link
+							      (org-completing-read
+							       (org-format-prompt "Insert link" (or default (caar org-stored-links)))
+							       (append
+								      (mapcar (lambda (x) (concat x ":")) all-prefixes)
+								      (mapcar #'car org-stored-links)
+								      ;; Allow description completion.  Avoid "nil" option
+								      ;; in the case of `completing-read-default' when
+								      ;; some links have no description.
+								      (delq nil (mapcar 'cadr org-stored-links)))
+							       nil nil nil
+							       'org-link--history
+							       (or default (caar org-stored-links))))
+				      (unless (org-string-nw-p link) (user-error "No link selected"))
+				      (dolist (l org-stored-links)
+					      (when (equal link (cadr l))
+						      (setq link (car l))))
+				      (when (or (member link all-prefixes)
+									      (and (equal ":" (substring link -1))
+											       (member (substring link 0 -1) all-prefixes)
+											       (setq link (substring link 0 -1))))
+					      (setq link (with-current-buffer origbuf
+											       (org-link--try-special-completion link)))))
+		      (when-let* ((window (get-buffer-window "*Org Links*" t)))
+			      (quit-window 'kill window))
+		      (set-window-configuration wcf)
+		      (when (get-buffer "*Org Links*")
+			      (kill-buffer "*Org Links*")))
+  (replace-regexp-in-string
+   "^Link: " ""
+	       (string-trim link))))
+;; Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim:8 ends here
 
 ;; [[file:../Sacha.org::org-dotemacs-link][org-dotemacs-link]]
 ;;;###autoload
 (defvar sacha-emacs-config-url)
 (defun sacha-org-dotemacs-export (path desc format _)
-	"Export dotemacs link."
-	(pcase format
-   ((or 'html '11ty 'md)
-	  (format "<a href=\"%s#%s\">%s</a>"
-            sacha-emacs-config-url
-            path (or desc path)))
-	 ('latex
-		 (format "\\hyperref[%s]{%s} (p.~\\pageref{%s})"
-             path (or desc path) path))
-	 ('ascii
-		(if desc
-				(format "%s %s#%s"
-								desc
-								sacha-emacs-config-url
-								path)
-			(format "%s#%s"
-              sacha-emacs-config-url
-              path)))))
+      "Export dotemacs link."
+      (pcase format
+ ((or 'html '11ty 'md)
+	(format "<a href=\"%s#%s\">%s</a>"
+	  sacha-emacs-config-url
+	  path (or desc path)))
+       ('latex
+	       (format "\\hyperref[%s]{%s} (p.~\\pageref{%s})"
+	   path (or desc path) path))
+       ('ascii
+	      (if desc
+			      (format "%s %s#%s"
+							      desc
+							      sacha-emacs-config-url
+							      path)
+		      (format "%s#%s"
+	    sacha-emacs-config-url
+	    path)))))
 
 ;;;###autoload
 (defun sacha-org-dotemacs-complete ()
-	"Prompt for dotemacs."
-	(interactive)
-	(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
-		(concat "dotemacs:" (org-read-property-value "CUSTOM_ID"))))
+      "Prompt for dotemacs."
+      (interactive)
+      (with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
+	      (concat "dotemacs:" (org-read-property-value "CUSTOM_ID"))))
 
 ;;;###autoload
 (defun sacha-org-dotemacs-insert-description (link &optional description)
-	(unless description
-		(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
-			(save-restriction
-				(save-excursion
-					(widen)
-					(goto-char (org-find-property "CUSTOM_ID" (replace-regexp-in-string "^dotemacs:" "" link)))
-					(org-entry-get (point) "ITEM"))))))
+      (unless description
+	      (with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
+		      (save-restriction
+			      (save-excursion
+				      (widen)
+				      (goto-char (org-find-property "CUSTOM_ID" (replace-regexp-in-string "^dotemacs:" "" link)))
+				      (org-entry-get (point) "ITEM"))))))
 
 ;;;###autoload
 (defun sacha-org-dotemacs-open (path)
-	(with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
-		(when-let ((pos (org-find-property "CUSTOM_ID" (replace-regexp-in-string "^dotemacs:" "" path))))
-			(switch-to-buffer (current-buffer))
-			(goto-char pos))))
+      (with-current-buffer (find-file-noselect "~/sync/emacs/Sacha.org")
+	      (when-let ((pos (org-find-property "CUSTOM_ID" (replace-regexp-in-string "^dotemacs:" "" path))))
+		      (switch-to-buffer (current-buffer))
+		      (goto-char pos))))
 
 ;;;###autoload
 (defun sacha-org-dotemacs-store ()
-	(when (and (string= (buffer-file-name)
-											(expand-file-name "~/sync/emacs/Sacha.org"))
-						 (org-entry-get (point) "CUSTOM_ID"))
-		(org-link-store-props
-		 :link (concat "dotemacs:" (org-entry-get (point) "CUSTOM_ID"))
-		 :description (org-entry-get (point) "ITEM"))))
+      (when (and (string= (buffer-file-name)
+										      (expand-file-name "~/sync/emacs/Sacha.org"))
+					       (org-entry-get (point) "CUSTOM_ID"))
+	      (org-link-store-props
+	       :link (concat "dotemacs:" (org-entry-get (point) "CUSTOM_ID"))
+	       :description (org-entry-get (point) "ITEM"))))
 ;; org-dotemacs-link ends here
 
 ;; [[file:../Sacha.org::#youtube][YouTube:2]]
@@ -3650,54 +3663,54 @@ Use the region if active."
 
 ;; [[file:../Sacha.org::#digital-index-piles-with-emacs][Digital index piles with Emacs:1]]
 ;;;###autoload
-      (defun sacha-org-get-list-categories ()
-        "Return a list of (category indent matching-regexp sample).
-              List categories are items that don't contain links."
-        (let ((list (org-list-struct)) last-category results)
-          (save-excursion
-            (mapc
-             (lambda (x)
-               (goto-char (car x))
-               (let ((current-item
-                      (buffer-substring-no-properties
-                       (+ (point)
-                          (elt x 1)
-                          (length (elt x 2)))
-                       (line-end-position))))
-                 (if (string-match
-                      org-link-bracket-re
-                      (buffer-substring-no-properties
-                       (point)
-                       (line-end-position)))
-                     ;; Link - update the last category
-                     (when last-category
-                       (if (< (elt x 1) (elt last-category 1))
-                           (setq results
-                                 (cons (append last-category
-                                               (list
-                                                (match-string-no-properties
-                                                 3
-                                                 (buffer-substring-no-properties
-                                                  (point)
-                                                  (line-end-position)))))
-                                       (cdr results))))
-                       (setq last-category nil))
-                   ;; Category
-                   (setq results
-                         (cons
-                          (setq last-category
-                                (list
-                                 current-item
-                                 (elt x 1)
-                                 (concat "^"
-                                         (make-string (elt x 1) ?\ )
-                                         (regexp-quote
-                                          (concat (elt x 2)
-                                                  current-item))
-                                         "$")))
-                          results)))))
-             list))
-          (append '(("x" 2 "^$" nil)) results)))
+    (defun sacha-org-get-list-categories ()
+      "Return a list of (category indent matching-regexp sample).
+	    List categories are items that don't contain links."
+      (let ((list (org-list-struct)) last-category results)
+	(save-excursion
+	  (mapc
+	   (lambda (x)
+	     (goto-char (car x))
+	     (let ((current-item
+		    (buffer-substring-no-properties
+		     (+ (point)
+			(elt x 1)
+			(length (elt x 2)))
+		     (line-end-position))))
+	       (if (string-match
+		    org-link-bracket-re
+		    (buffer-substring-no-properties
+		     (point)
+		     (line-end-position)))
+		   ;; Link - update the last category
+		   (when last-category
+		     (if (< (elt x 1) (elt last-category 1))
+			 (setq results
+			       (cons (append last-category
+					     (list
+					      (match-string-no-properties
+					       3
+					       (buffer-substring-no-properties
+						(point)
+						(line-end-position)))))
+				     (cdr results))))
+		     (setq last-category nil))
+		 ;; Category
+		 (setq results
+		       (cons
+			(setq last-category
+			      (list
+			       current-item
+			       (elt x 1)
+			       (concat "^"
+				       (make-string (elt x 1) ?\ )
+				       (regexp-quote
+					(concat (elt x 2)
+						current-item))
+				       "$")))
+			results)))))
+	   list))
+	(append '(("x" 2 "^$" nil)) results)))
 ;; Digital index piles with Emacs:1 ends here
 
 ;; [[file:../Sacha.org::sacha-org-move-current-item-to-category][sacha-org-move-current-item-to-category]]
@@ -3770,38 +3783,38 @@ Use the region if active."
 
 ;; [[file:../Sacha.org::#digital-index-piles-with-emacs][Digital index piles with Emacs:4]]
 (defvar sacha-org-browse-link-while-categorizing 'eww-readable
-  "Set to nil to skip browsing.")
+"Set to nil to skip browsing.")
 
 ;;;###autoload
 (defun sacha-org-guess-uncategorized ()
-  "Interactively move linked list items to categories from the list.
-        Try to guess categories based on substring matches."
-  (interactive)
-                                        ;(sacha-helm-org-list-categories-init-candidates)
-  (let ((categories (sacha-org-get-list-categories))
-        category)
-    (while (and (looking-at "^[-+] \\[\\[\\([^]]+\\)\\]\\[\\([^]]+*\\)")
-                (not (string= "done" category)))
-      (save-excursion
-        ;; (when (eq sacha-org-browse-link-while-categorizing 'eww-readable)
-        ;;   (save-excursion (save-match-data (sacha-eww-browse-readable (match-string 1)))))
-        (setq category (completing-read (match-string 2) categories))
-        (unless (string= category "done")
-          (sacha-org-move-current-item-to-category category))))))
+"Interactively move linked list items to categories from the list.
+      Try to guess categories based on substring matches."
+(interactive)
+				      ;(sacha-helm-org-list-categories-init-candidates)
+(let ((categories (sacha-org-get-list-categories))
+      category)
+  (while (and (looking-at "^[-+] \\[\\[\\([^]]+\\)\\]\\[\\([^]]+*\\)")
+	      (not (string= "done" category)))
+    (save-excursion
+      ;; (when (eq sacha-org-browse-link-while-categorizing 'eww-readable)
+      ;;   (save-excursion (save-match-data (sacha-eww-browse-readable (match-string 1)))))
+      (setq category (completing-read (match-string 2) categories))
+      (unless (string= category "done")
+	(sacha-org-move-current-item-to-category category))))))
 
 ;; From https://emacs.stackexchange.com/questions/36284/how-to-open-eww-in-readable-mode/47757
 ;;;###autoload
 (defun sacha-eww-readable-nonce ()
-  "Once-off call to `eww-readable' after EWW is done rendering."
-  (unwind-protect
-      (eww-readable)
-    (remove-hook 'eww-after-render-hook #'sacha-eww-readable-nonce)))
+"Once-off call to `eww-readable' after EWW is done rendering."
+(unwind-protect
+    (eww-readable)
+  (remove-hook 'eww-after-render-hook #'sacha-eww-readable-nonce)))
 
 ;;;###autoload
 (defun sacha-eww-browse-readable (url)
-  (when (looking-at "^[-+] \\[\\[\\([^]]+\\)")
-    (add-hook 'eww-after-render-hook #'sacha-eww-readable-nonce)
-    (eww (match-string 1))))
+(when (looking-at "^[-+] \\[\\[\\([^]]+\\)")
+  (add-hook 'eww-after-render-hook #'sacha-eww-readable-nonce)
+  (eww (match-string 1))))
 
 ;; Digital index piles with Emacs:4 ends here
 

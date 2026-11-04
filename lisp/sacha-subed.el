@@ -32,6 +32,9 @@
 ;; - Searching transcripts
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-searching-transcripts
 ;;
+;; - subed.el and quoting snippets of YouTube videos from the auto captions
+;;   https://sachachua.com/dotemacs#subed
+;;
 ;; - Reformat speaker in a two-speaker transcript
 ;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-reformat-speaker-in-a-two-speaker-transcript
 ;;
@@ -105,69 +108,248 @@
 ;; [[file:../Sacha.org::#embark-subed][Embark and subed:1]]
 ;;;###autoload
 (defun sacha-subed-set-timestamp-to-mpv-position (&optional rest)
-  (interactive)
-  (skip-chars-backward "0-9:,.")
-  (when (looking-at "\\(\\([0-9]+\\):\\)?\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)")
-    (replace-match (save-match-data (subed-msecs-to-timestamp subed-mpv-playback-position)) t t)))
+(interactive)
+(skip-chars-backward "0-9:,.")
+(when (looking-at "\\(\\([0-9]+\\):\\)?\\([0-9]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)")
+  (replace-match (save-match-data (subed-msecs-to-timestamp subed-mpv-playback-position)) t t)))
 
 ;;;###autoload
 (defun sacha-subed-adjust-timestamp (offset)
-  (interactive (list -100))
-  (save-excursion
-    (skip-chars-backward "0-9:,.")
-    (when (looking-at subed-vtt--regexp-timestamp)
-      (let ((new-ts (+ (subed-vtt--timestamp-to-msecs (match-string 0)) offset)))
-        (replace-match (save-match-data
-                         (subed-vtt--msecs-to-timestamp new-ts)))
-        (sacha-waveform-subed-show-after-time)
-        new-ts))))
+(interactive (list -100))
+(save-excursion
+  (skip-chars-backward "0-9:,.")
+  (when (looking-at subed-vtt--regexp-timestamp)
+    (let ((new-ts (+ (subed-vtt--timestamp-to-msecs (match-string 0)) offset)))
+      (replace-match (save-match-data
+		       (subed-vtt--msecs-to-timestamp new-ts)))
+      (sacha-waveform-subed-show-after-time)
+      new-ts))))
 
 ;;;###autoload
 (defun sacha-subed-adjust-timestamp-up (offset)
-  (interactive (list 100))
-  (subed-mpv-jump (sacha-subed-adjust-timestamp (- offset))))
+(interactive (list 100))
+(subed-mpv-jump (sacha-subed-adjust-timestamp (- offset))))
 
 ;;;###autoload
 (defun sacha-subed-adjust-timestamp-down (offset)
-  (interactive (list -100))
-  (subed-mpv-jump (sacha-subed-adjust-timestamp (- offset))))
+(interactive (list -100))
+(subed-mpv-jump (sacha-subed-adjust-timestamp (- offset))))
 
 ;;;###autoload
 (defun sacha-subed-copy-timestamp-from-previous ()
-  (interactive)
-  (let ((ms (save-excursion (subed-backward-subtitle-time-stop) (subed-subtitle-msecs-stop))))
-    (subed-set-subtitle-time-start ms)))
+(interactive)
+(let ((ms (save-excursion (subed-backward-subtitle-time-stop) (subed-subtitle-msecs-stop))))
+  (subed-set-subtitle-time-start ms)))
 ;;;###autoload
 (defun sacha-subed-copy-timestamp-to-next ()
-  (interactive)
-  (let ((ms (subed-subtitle-msecs-stop)))
-    (save-excursion
-      (subed-forward-subtitle-time-stop) (subed-set-subtitle-time-start ms))))
+(interactive)
+(let ((ms (subed-subtitle-msecs-stop)))
+  (save-excursion
+    (subed-forward-subtitle-time-stop) (subed-set-subtitle-time-start ms))))
 ;;;###autoload
 (defun sacha-subed-copy-timestamp-dwim ()
-  (interactive)
-  (save-excursion
-    (skip-chars-backward "0-9:,.")
-    (if (bolp)
-        (sacha-subed-copy-timestamp-from-previous)
-      (sacha-subed-copy-timestamp-to-next))))
+(interactive)
+(save-excursion
+  (skip-chars-backward "0-9:,.")
+  (if (bolp)
+      (sacha-subed-copy-timestamp-from-previous)
+    (sacha-subed-copy-timestamp-to-next))))
 ;; Embark and subed:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-searching-transcripts][Searching transcripts:1]]
 ;;;###autoload
 (defun sacha-subed-clean-up-youtube-vtt-and-convert-to-sentence-lines ()
-  "Remove duplicate lines and convert to text without tags."
-  (interactive)
-	(let ((file (buffer-file-name)))
-		(subed-delete-duplicate-lines)
-		(subed-convert "TXT")
-		(goto-char (point-min))
-		(while (re-search-forward "<.+?>" nil t)
-			(replace-match ""))
-		(let ((fill-column most-positive-fixnum))
-			(fill-paragraph-semlf))
-		(subed-align-word-data file (buffer-file-name) "VTT")))
+"Remove duplicate lines and convert to text without tags."
+(interactive)
+      (let ((file (buffer-file-name)))
+	      (subed-delete-duplicate-lines)
+	      (subed-convert "TXT")
+	      (goto-char (point-min))
+	      (while (re-search-forward "<.+?>" nil t)
+		      (replace-match ""))
+	      (let ((fill-column most-positive-fixnum))
+		      (fill-paragraph-semlf))
+	      (subed-align-word-data file (buffer-file-name) "VTT")))
 ;; Searching transcripts:1 ends here
+
+;; [[file:../Sacha.org::*subed.el and quoting snippets of YouTube videos from the auto captions][subed.el and quoting snippets of YouTube videos from the auto captions:1]]
+(defvar sacha-subed-youtube-dir "~/proj/youtube-captions"
+	"Directory with YouTube captions.")
+(defvar sacha-subed-youtube-temp-dir "~/Downloads" "Snap installations need a workaround for permission.")
+
+(defun sacha-notify (s)
+  "Call notify-send."
+  (call-process "notify-send" nil nil nil s))
+
+;;;###autoload
+(defun sacha-subed-youtube-cache-video ()
+  "Download the current video and save it beside the VTT."
+  (interactive)
+	(let ((directory (make-temp-file (expand-file-name "yt-dlp" sacha-subed-youtube-temp-dir) t))
+				(base (file-name-nondirectory (buffer-file-name)))
+				(id (sacha-subed-youtube-id))
+				process)
+				(with-current-buffer (get-buffer-create "*yt-dlp*")
+					(let ((default-directory directory))
+						(make-process
+						 :command
+						 (list
+							"yt-dlp"
+							"-S"
+							"res,ext:mp4:m4a"
+							"--recode"
+							"mp4"
+							(concat "https://youtube.com/watch/" id))
+						 :name
+						 "yt-dlp"
+						 :sentinel (lambda (process event)
+												 (rename-file (car (directory-files directory t "\\.mp4$"))
+																			(expand-file-name (concat base ".mp4")
+																												sacha-subed-youtube-dir))
+												 (sacha-notify (format "%s done" id))
+												 (delete-directory directory t)))))))
+
+;;;###autoload
+(defun sacha-subed-youtube (url)
+  "Download the automatic subtitles or check my cache."
+  (interactive "MURL: ")
+	(let* ((id (sacha-org-yt-id url))
+				 (existing (car (directory-files sacha-subed-youtube-dir t
+																				 (concat "^" (regexp-quote id) ".*\\.vtt\\'")))))
+		(if existing
+				(progn
+					(find-file existing)
+					(subed-mpv-play-from-url url))
+			;; Download
+			(let ((directory (make-temp-file (expand-file-name "yt-dlp" sacha-subed-youtube-temp-dir) t))
+						filename
+						json
+						match
+						chapters
+						subtitles)
+				(with-current-buffer (get-buffer-create "*yt-dlp*")
+					(let ((default-directory directory))
+						(call-process
+						 "yt-dlp" nil t nil
+						 "--skip-download"
+						 "--write-info-json"
+						 "--sub-format"
+						 "vtt"
+						 "--write-subs"
+						 "--write-auto-subs"
+						 url)))
+				(when (null (directory-files directory t "\\.json$"))
+					(error "Could not get data."))
+				(setq json (json-read-file (car (directory-files directory t "\\.json$"))))
+				(setq chapters (alist-get 'chapters json))
+				(setq filename (expand-file-name
+												(concat id " - " (alist-get 'title json) ".vtt")
+												sacha-subed-youtube-dir))
+				(setq subtitles (subed-parse-file (car (directory-files
+																								directory t
+																								"\\.vtt$"))))
+				(delete-directory directory t)
+				;; add the chapters as comments
+				(mapc
+				 (lambda (sub)
+					 (when (and chapters
+											(>= (elt sub 1)
+													(* (alist-get 'start_time (car chapters)) 1000)))
+						 (setf (elt sub 4) (alist-get 'title (pop chapters)))))
+				 subtitles)
+				(subed-create-file
+				 filename
+				 subtitles
+				 t)
+				(find-file filename)
+				(subed-mpv-play-from-url url)))))
+
+(defun sacha-subed-youtube-id ()
+  "Return the YouTube ID."
+	(or (save-restriction
+				(save-excursion
+					(goto-char (point-min))
+					(subed-forward-subtitle-text)
+					(when (subed-record-get-directive "YOUTUBE_URL")
+						(sacha-org-yt-id
+						 (subed-record-get-directive "YOUTUBE_URL")))))
+			(car (split-string (file-name-base (buffer-file-name)) " "))))
+
+;; Now we just need a quick way to copy a YouTube URL.
+;;;###autoload
+(defun sacha-subed-youtube-url (&optional start-msecs end-msecs)
+  "Copy YouTube URL for the current timestamp."
+  (interactive)
+	(when-let*
+			((id (sacha-subed-youtube-id))
+			 (s
+				(if end-msecs
+						(format "https://youtu.be/%s?t=%d&end=%d"
+										id
+										(/ (or start-msecs (subed-subtitle-msecs-start))
+											 1000)
+										(1+ (/ end-msecs
+													 1000)))
+					(format "https://youtu.be/%s?t=%d"
+										id
+										(/ (or start-msecs (subed-subtitle-msecs-start))
+											 1000)))))
+		(when (called-interactively-p 'any)
+			(kill-new s)
+			(message "%s" s))
+		s))
+
+;;;###autoload
+(defun sacha-subed-youtube-play ()
+  "Play this video from YouTube."
+  (interactive)
+	(when-let*
+			((id (sacha-subed-youtube-id))
+			 (s (concat "https://youtu.be/" id)))
+		(when (string= subed-mpv-media-file s)
+			(subed-mpv-play-from-url s))
+		(subed-mpv-jump-to-current-subtitle)
+		(subed-mpv-unpause)))
+
+;;;###autoload
+(defun sacha-subed-youtube-region-as-quote (beg end &optional label)
+  "Format this as a quote."
+  (interactive (list (region-beginning) (region-end) (when current-prefix-arg (read-string "Label: "))))
+	(let* ((id (sacha-subed-youtube-id))
+				 (url (sacha-subed-youtube-url
+							 (save-excursion
+								 (goto-char beg)
+								 (subed-subtitle-msecs-start))
+							 (save-excursion
+								 (goto-char end)
+								 (subed-subtitle-msecs-stop))))
+				 (base (file-name-base (buffer-file-name)))
+				 (text (subed-subtitle-list-text (subed-subtitle-list beg end)))
+				 (s (format
+						 "%s\n#+begin_quote\n%s: %s\n#+end_quote\n"
+						 (org-link-make-string
+							(concat "yt:" url)
+							(or label
+									(and (string-match (format "^%s - \\(.+\\)" (regexp-quote id)) base)
+											 (match-string 1 base))
+									(sacha-page-title url)))
+						 (org-link-make-string
+							(concat "vtime:"
+											(subed-msecs-to-timestamp
+											 (save-excursion
+												 (goto-char beg)
+												 (subed-subtitle-msecs-start))
+											 t)))
+						 (with-temp-buffer
+							 (insert text)
+							 (let ((fill-column most-positive-fixnum))
+								 (fill-region (point-min) (point-max))
+								 (string-trim (buffer-string)))))))
+			(when (called-interactively-p 'any)
+				(kill-new s)
+				(message "%s" s))
+			s))
+;; subed.el and quoting snippets of YouTube videos from the auto captions:1 ends here
 
 ;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-reformat-speaker-in-a-two-speaker-transcript][Reformat speaker in a two-speaker transcript:1]]
 ;;;###autoload
@@ -347,9 +529,10 @@ If you called whisperx with --highlight_words, this function can remove the unde
 				 (stop-ms (subed-subtitle-msecs-stop))
 				 (temp-dir (make-temp-file "subed-whisper" t))
 				 (output-audio (expand-file-name "output.wav" temp-dir))
-				 (default-directory temp-dir)
-				 (process-environment
-					(cons "MODEL=large-v3" process-environment))
+				 ;; (default-directory temp-dir)
+				 ;; (process-environment
+				 ;; 	;; (cons "MODEL=large-v3" process-environment)
+				 ;; 	)
 				 (args (append
 								(list "-i" (subed-media-file))
 								(if (> start-ms 0)
@@ -357,30 +540,28 @@ If you called whisperx with --highlight_words, this function can remove the unde
 									nil)
 								(list "-to" (number-to-string (/ stop-ms 1000.0)))
 								(list "-y" output-audio)))
+				 pending
 				 subtitles)
+		(setq pending (pending-insert (point) "..."))
 		(with-current-buffer (get-buffer-create "*ffmpeg*")
 			(erase-buffer)
 			(let ((default-directory temp-dir))
 				(apply #'call-process subed-ffmpeg-executable nil t t args)
-				(call-process sacha-whisperx-command nil t nil output-audio))
-			;; Now there's an output.txt and an output.json
-			(setq subtitles (subed-parse-file (expand-file-name "output.vtt" temp-dir)))
-			(prin1 subtitles))
-
-		(when subtitles
-			(subed-append-subtitle-list
-			 (mapcar
-				(lambda (o)
-					(setf (elt o 1) (+ start-ms (elt o 1)))
-					(setf (elt o 2) (+ start-ms (elt o 2)))
-					o)
-				subtitles))
-			(subed-kill-subtitle))
-
-		;; TODO: Align based on word timing data, do this in background
-		;; (delete-directory temp-dir t)
-
-		))
+				;; Extract the audio
+				(speech-input-transcribe-file-to-json
+				 output-audio
+				 (lambda (result)
+					 (pending-goto pending)
+					 (delete-overlay (pending-ov pending))
+					 (subed-append-subtitle-list
+						(mapcar
+									(lambda (o)
+										(list nil
+													(+ start-ms (* (alist-get 'start o) 1000))
+													(+ start-ms (* (alist-get 'end o) 1000))
+													(alist-get 'text o)))
+									(alist-get 'segments result))))
+				 t)))))
 
 ;; Retranscribe a section:1 ends here
 
@@ -1035,9 +1216,20 @@ FILE should be a VTT or SRT file produced by whisperx with the
 
 ;;;###autoload
 (defun sacha-subed-fix-common-errors-from-start ()
+	"Change common errors in this buffer."
 	(interactive)
-  (goto-char (point-min))
-  (sacha-subed-fix-common-errors))
+	(goto-char (point-min))
+	(sacha-subed-fix-common-errors))
+
+;;;###autoload
+(defun sacha-subed-fix-common-errors-in-text (text)
+	"Change common errors in TEXT."
+	(interactive)
+	(with-temp-buffer
+		(insert text)
+		(goto-char (point-min))
+		(sacha-subed-fix-common-errors)
+		(buffer-string)))
 ;; Edit text:2 ends here
 
 ;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-working-with-sections-defined-by-note-comments][Working with sections defined by NOTE comments:1]]

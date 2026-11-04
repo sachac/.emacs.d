@@ -90,42 +90,42 @@
 ;; [[file:../Sacha.org::#about-this-file-backups-search-backups][Search backups:1]]
 ;;;###autoload
 (defun sacha-search-file-backups (&optional file)
-  "Search through backup files."
-	(interactive)
-	(let ((consult-ripgrep-args "rg --null --line-buffered --color=never --max-columns=1000 --path-separator /   --smart-case --no-heading --with-filename --line-number --search-zip --sortr modified"))
-		(consult-ripgrep (file-backup-file-names (or file (buffer-file-name))))))
+"Search through backup files."
+      (interactive)
+      (let ((consult-ripgrep-args "rg --null --line-buffered --color=never --max-columns=1000 --path-separator /   --smart-case --no-heading --with-filename --line-number --search-zip --sortr modified"))
+	      (consult-ripgrep (file-backup-file-names (or file (buffer-file-name))))))
 ;; Search backups:1 ends here
 
 ;; [[file:../Sacha.org::#killing-text][Killing text:2]]
 ;;;###autoload
 (defun sacha-kill-single-line-if-region-is-inactive (beg end &optional region)
-  "Wrap around `kill-region' so that we kill a single line."
-  (interactive (progn
-                 (let ((beg (mark kill-region-dwim))
-                       (end (point)))
-                   (cond
-                    ((and kill-region-dwim (not (use-region-p)))
-                     (list beg end kill-region-dwim))
-                    ((not (and beg end))
-                     (user-error "The mark is not set now, so there is no region"))
-                    ((list beg end 'region))))))
-  (if (or (region-active-p)
-          (derived-mode-p 'minibuffer-mode))
-      (kill-region beg end region)
-    (kill-region
-     (line-beginning-position)
-     (line-beginning-position 2))))
+"Wrap around `kill-region' so that we kill a single line."
+(interactive (progn
+	       (let ((beg (mark kill-region-dwim))
+		     (end (point)))
+		 (cond
+		  ((and kill-region-dwim (not (use-region-p)))
+		   (list beg end kill-region-dwim))
+		  ((not (and beg end))
+		   (user-error "The mark is not set now, so there is no region"))
+		  ((list beg end 'region))))))
+(if (or (region-active-p)
+	(derived-mode-p 'minibuffer-mode))
+    (kill-region beg end region)
+  (kill-region
+   (line-beginning-position)
+   (line-beginning-position 2))))
 
 (ert-deftest sacha-kill-single-line-if-region-is-inactive ()
-  "Tests `sacha-kill-single-line-if-region-is-inactive'."
-  (should
-   (equal
-    (with-temp-buffer
-      (insert "Hello there\nWorld\n")
-      (goto-char (point-min))
-      (sacha-kill-single-line-if-region-is-inactive nil nil)
-      (setq text (buffer-string)))
-    "World\n")))
+"Tests `sacha-kill-single-line-if-region-is-inactive'."
+(should
+ (equal
+  (with-temp-buffer
+    (insert "Hello there\nWorld\n")
+    (goto-char (point-min))
+    (sacha-kill-single-line-if-region-is-inactive nil nil)
+    (setq text (buffer-string)))
+  "World\n")))
 ;; Killing text:2 ends here
 
 ;; [[file:../Sacha.org::#killing-text][Killing text:3]]
@@ -143,119 +143,119 @@
 ;; [[file:../Sacha.org::#hydras][Hydra keyboard shortcuts:6]]
 ;;;###autoload
 (defun sacha-switch-to-previous-buffer ()
-  "Switch to previously open buffer.
-        Repeated invocations toggle between the two most recently open buffers."
-  (interactive)
-  (switch-to-buffer (other-buffer (current-buffer) 1)))
+"Switch to previously open buffer.
+      Repeated invocations toggle between the two most recently open buffers."
+(interactive)
+(switch-to-buffer (other-buffer (current-buffer) 1)))
 ;; Hydra keyboard shortcuts:6 ends here
 
 ;; [[file:../Sacha.org::#searching-sacha-blog][Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:1]]
 ;;;###autoload
-  (defun sacha-search-notes ()
-          (interactive)
-          (consult-ripgrep '("~/sync/orgzly" "~/sync/static-blog/blog" "~/sync/sketches" "~/sync/topics" "~/sync/emacs")))
+(defun sacha-search-notes ()
+	(interactive)
+	(consult-ripgrep '("~/sync/orgzly" "~/sync/static-blog/blog" "~/sync/sketches" "~/sync/topics" "~/sync/emacs")))
 ;;;###autoload
-  (defun sacha-search-public-notes ()
-          (interactive)
-          (consult-ripgrep '("~/sync/static-blog/blog" "~/sync/sketches" "~/sync/topics" "~/sync/emacs")))
+(defun sacha-search-public-notes ()
+	(interactive)
+	(consult-ripgrep '("~/sync/static-blog/blog" "~/sync/sketches" "~/sync/topics" "~/sync/emacs")))
 ;; Searching my blog, notes, and sketches with consult-ripgrep and consult-omni:1 ends here
 
 ;; [[file:../Sacha.org::#navigation][Navigation:3]]
 (defun sacha-close-other-buffers ()
-  (interactive)
-  (mapc (lambda (buf)
-          (unless (buffer-modified-p buf)
-            (kill-buffer buf)))
-        (delete (current-buffer)
-                (buffer-list))))
+(interactive)
+(mapc (lambda (buf)
+	(unless (buffer-modified-p buf)
+	  (kill-buffer buf)))
+      (delete (current-buffer)
+	      (buffer-list))))
 ;; Navigation:3 ends here
 
 ;; [[file:../Sacha.org::#navigation-focus-on-the-current-window][Focus on the current window:1]]
 ;;;###autoload
 (defun sacha-toggle-delete-other-windows ()
-  "Delete other windows in frame if any, or restore previous window config.
+"Delete other windows in frame if any, or restore previous window config.
 
 From https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
 and Steve Purcell's configuration."
-  (interactive)
-  (if (and winner-mode
-           (equal (selected-window) (next-window)))
-      (winner-undo)
-    (delete-other-windows)))
+(interactive)
+(if (and winner-mode
+	 (equal (selected-window) (next-window)))
+    (winner-undo)
+  (delete-other-windows)))
 ;; Focus on the current window:1 ends here
 
 ;; [[file:../Sacha.org::#sort-read-file-name][Sort files in read-file-name:1]]
-  (defcustom file-name-completions-sort-function #'files-sort-modification-time
-    "Function for sorting the completion list of file names.
-  The function takes the list of file names as argument
-  and returns the sorted list."
-    :type '(choice (function :tag "Sort Function") (const :tag "Natural Order" nil))
-    :group 'files)
+(defcustom file-name-completions-sort-function #'files-sort-modification-time
+  "Function for sorting the completion list of file names.
+The function takes the list of file names as argument
+and returns the sorted list."
+  :type '(choice (function :tag "Sort Function") (const :tag "Natural Order" nil))
+  :group 'files)
 
 ;;;###autoload
-  (defun files-sort-access-time (files)
-    "Sort FILES list with respect to access time."
-    (sort
-     files
-     (lambda (fn1 fn2)
-       (time-less-p
-        (file-attribute-access-time (file-attributes fn2))
-        (file-attribute-access-time (file-attributes fn1))))))
+(defun files-sort-access-time (files)
+  "Sort FILES list with respect to access time."
+  (sort
+   files
+   (lambda (fn1 fn2)
+     (time-less-p
+      (file-attribute-access-time (file-attributes fn2))
+      (file-attribute-access-time (file-attributes fn1))))))
 
 ;;;###autoload
-  (defun files-sort-modification-time (files)
-    "Sort FILES list with respect to modification time."
-    (sort
-     files
-           :key (lambda (f) (file-attribute-modification-time (file-attributes f)))
-           :lessp #'time-less-p
-           :reverse t))
+(defun files-sort-modification-time (files)
+  "Sort FILES list with respect to modification time."
+  (sort
+   files
+	 :key (lambda (f) (file-attribute-modification-time (file-attributes f)))
+	 :lessp #'time-less-p
+	 :reverse t))
 
 ;;;###autoload
-  (defun ad-completion-file-name-table (fun string pred action)
-    "Add 'display-sort-function' to metadata.
-  If the completion action is metadata, add
-  `file-name-completions-sort-function' as display-sort-function.
-  Otherwise call FUN with STRING, PRED and ACTION as arguments."
-    (if (and (functionp file-name-completions-sort-function)
-                                           (eq action 'metadata))
-        `(metadata
-                                  (category . file)
-                                  (cycle-sort-function . identity)
-                                  (display-sort-function . ,file-name-completions-sort-function))
-      (funcall fun string pred action)))
+(defun ad-completion-file-name-table (fun string pred action)
+  "Add 'display-sort-function' to metadata.
+If the completion action is metadata, add
+`file-name-completions-sort-function' as display-sort-function.
+Otherwise call FUN with STRING, PRED and ACTION as arguments."
+  (if (and (functionp file-name-completions-sort-function)
+					 (eq action 'metadata))
+      `(metadata
+				(category . file)
+				(cycle-sort-function . identity)
+				(display-sort-function . ,file-name-completions-sort-function))
+    (funcall fun string pred action)))
 ;; Sort files in read-file-name:1 ends here
 
 ;; [[file:../Sacha.org::#deleting-things][Deleting things:1]]
 ;;;###autoload
-  (defun zap-to-isearch (rbeg rend)
-    "Kill the region between the mark and the closest portion of
-        the isearch match string. The behaviour is meant to be analogous
-        to zap-to-char; let's call it zap-to-isearch. The deleted region
-        does not include the isearch word. This is meant to be bound only
-        in isearch mode.  The point of this function is that oftentimes
-        you want to delete some portion of text, one end of which happens
-        to be an active isearch word. The observation to make is that if
-        you use isearch a lot to move the cursor around (as you should,
-        it is much more efficient than using the arrows), it happens a
-        lot that you could just delete the active region between the mark
-        and the point, not include the isearch word."
-    (interactive "r")
-    (when (not mark-active)
-      (error "Mark is not active"))
-    (let* ((isearch-bounds (list isearch-other-end (point)))
-           (ismin (apply 'min isearch-bounds))
-           (ismax (apply 'max isearch-bounds))
-           )
-      (if (< (mark) ismin)
-          (kill-region (mark) ismin)
-        (if (> (mark) ismax)
-            (kill-region ismax (mark))
-          (error "Internal error in isearch kill function.")))
-      (isearch-exit)
-      ))
+(defun zap-to-isearch (rbeg rend)
+  "Kill the region between the mark and the closest portion of
+      the isearch match string. The behaviour is meant to be analogous
+      to zap-to-char; let's call it zap-to-isearch. The deleted region
+      does not include the isearch word. This is meant to be bound only
+      in isearch mode.  The point of this function is that oftentimes
+      you want to delete some portion of text, one end of which happens
+      to be an active isearch word. The observation to make is that if
+      you use isearch a lot to move the cursor around (as you should,
+      it is much more efficient than using the arrows), it happens a
+      lot that you could just delete the active region between the mark
+      and the point, not include the isearch word."
+  (interactive "r")
+  (when (not mark-active)
+    (error "Mark is not active"))
+  (let* ((isearch-bounds (list isearch-other-end (point)))
+	 (ismin (apply 'min isearch-bounds))
+	 (ismax (apply 'max isearch-bounds))
+	 )
+    (if (< (mark) ismin)
+	(kill-region (mark) ismin)
+      (if (> (mark) ismax)
+	  (kill-region ismax (mark))
+	(error "Internal error in isearch kill function.")))
+    (isearch-exit)
+    ))
 
-  (define-key isearch-mode-map [(meta z)] 'zap-to-isearch)
+(define-key isearch-mode-map [(meta z)] 'zap-to-isearch)
 ;; Deleting things:1 ends here
 
 ;; [[file:../Sacha.org::#ediff][Ediff:2]]
@@ -263,57 +263,57 @@ and Steve Purcell's configuration."
 
 ;;;###autoload
 (defun sacha-store-pre-ediff-winconfig ()
-  "Store `current-window-configuration' in variable `sacha-ediff-last-windows'."
-  (setq sacha-ediff-last-windows (current-window-configuration)))
+"Store `current-window-configuration' in variable `sacha-ediff-last-windows'."
+(setq sacha-ediff-last-windows (current-window-configuration)))
 
 ;;;###autoload
 (defun sacha-restore-pre-ediff-winconfig ()
-  "Restore window configuration to stored value in `sacha-ediff-last-windows'."
-  (set-window-configuration sacha-ediff-last-windows))
+"Restore window configuration to stored value in `sacha-ediff-last-windows'."
+(set-window-configuration sacha-ediff-last-windows))
 
 ;;;###autoload
 (defun sacha-ediff-with-org-show-all ()
-	"Expand all headings prior to ediffing org buffers.
+      "Expand all headings prior to ediffing org buffers.
 From oantolin."
-	(add-hook 'ediff-prepare-buffer-hook #'org-fold-show-all nil t))
+      (add-hook 'ediff-prepare-buffer-hook #'org-fold-show-all nil t))
 ;; Ediff:2 ends here
 
 ;; [[file:../Sacha.org::#hideshow][Hideshow:2]]
 ;;;###autoload
-  (defun hs-cycle (&optional level)
-    (interactive "p")
-    (let (message-log-max
-          (inhibit-message t))
-      (if (= level 1)
-          (pcase last-command
-            ('hs-cycle
-             (hs-hide-level 1)
-             (setq this-command 'hs-cycle-children))
-            ('hs-cycle-children
-             ;; TODO: Fix this case. `hs-show-block' needs to be
-             ;; called twice to open all folds of the parent
-             ;; block.
-             (save-excursion (hs-show-block))
-             (hs-show-block)
-             (setq this-command 'hs-cycle-subtree))
-            ('hs-cycle-subtree
-             (hs-hide-block))
-            (_
-             (if (not (hs-already-hidden-p))
-                 (hs-hide-block)
-               (hs-hide-level 1)
-               (setq this-command 'hs-cycle-children))))
-        (hs-hide-level level)
-        (setq this-command 'hs-hide-level))))
+(defun hs-cycle (&optional level)
+  (interactive "p")
+  (let (message-log-max
+	(inhibit-message t))
+    (if (= level 1)
+	(pcase last-command
+	  ('hs-cycle
+	   (hs-hide-level 1)
+	   (setq this-command 'hs-cycle-children))
+	  ('hs-cycle-children
+	   ;; TODO: Fix this case. `hs-show-block' needs to be
+	   ;; called twice to open all folds of the parent
+	   ;; block.
+	   (save-excursion (hs-show-block))
+	   (hs-show-block)
+	   (setq this-command 'hs-cycle-subtree))
+	  ('hs-cycle-subtree
+	   (hs-hide-block))
+	  (_
+	   (if (not (hs-already-hidden-p))
+	       (hs-hide-block)
+	     (hs-hide-level 1)
+	     (setq this-command 'hs-cycle-children))))
+      (hs-hide-level level)
+      (setq this-command 'hs-hide-level))))
 
 ;;;###autoload
-  (defun hs-global-cycle ()
-      (interactive)
-      (pcase last-command
-        ('hs-global-cycle
-         (save-excursion (hs-show-all))
-         (setq this-command 'hs-global-show))
-        (_ (hs-hide-all))))
+(defun hs-global-cycle ()
+    (interactive)
+    (pcase last-command
+      ('hs-global-cycle
+       (save-excursion (hs-show-all))
+       (setq this-command 'hs-global-show))
+      (_ (hs-hide-all))))
 ;; Hideshow:2 ends here
 
 ;; [[file:../Sacha.org::#frequently-accessed-files][Frequently-accessed files:2]]
@@ -385,71 +385,71 @@ From oantolin."
 
 ;; [[file:../Sacha.org::#move-to-beginning-of-line][Move to beginning of line:1]]
 (defun sacha-smarter-move-beginning-of-line (arg)
-  "Move point back to indentation of beginning of line.
+"Move point back to indentation of beginning of line.
 
-        Move point to the first non-whitespace character on this line.
-        If point is already there, move to the beginning of the line.
-        Effectively toggle between the first non-whitespace character and
-        the beginning of the line.
+      Move point to the first non-whitespace character on this line.
+      If point is already there, move to the beginning of the line.
+      Effectively toggle between the first non-whitespace character and
+      the beginning of the line.
 
-        If ARG is not nil or 1, move forward ARG - 1 lines first.  If
-        point reaches the beginning or end of the buffer, stop there."
-  (interactive "^p")
-  (setq arg (or arg 1))
+      If ARG is not nil or 1, move forward ARG - 1 lines first.  If
+      point reaches the beginning or end of the buffer, stop there."
+(interactive "^p")
+(setq arg (or arg 1))
 
-  ;; Move lines first
-  (when (/= arg 1)
-    (let ((line-move-visual nil))
-      (forward-line (1- arg))))
+;; Move lines first
+(when (/= arg 1)
+  (let ((line-move-visual nil))
+    (forward-line (1- arg))))
 
-  (let ((orig-point (point)))
-    (back-to-indentation)
-    (when (= orig-point (point))
-      (move-beginning-of-line 1))))
+(let ((orig-point (point)))
+  (back-to-indentation)
+  (when (= orig-point (point))
+    (move-beginning-of-line 1))))
 ;; Move to beginning of line:1 ends here
 
 ;; [[file:../Sacha.org::#open-files-externally][Open files externally:1]]
 (defun sacha-open-with (arg)
-  "Open visited file in default external program.
+"Open visited file in default external program.
 
-        With a prefix ARG always prompt for command to use."
-  (interactive "P")
-  (when buffer-file-name
-    (shell-command (concat
-                    (cond
-                     ((and (not arg) (eq system-type 'darwin)) "open")
-                     ((and (not arg) (member system-type '(gnu gnu/linux gnu/kfreebsd))) "xdg-open")
-                     (t (read-shell-command "Open current file with: ")))
-                    " "
-                    (shell-quote-argument buffer-file-name)))))
+      With a prefix ARG always prompt for command to use."
+(interactive "P")
+(when buffer-file-name
+  (shell-command (concat
+		  (cond
+		   ((and (not arg) (eq system-type 'darwin)) "open")
+		   ((and (not arg) (member system-type '(gnu gnu/linux gnu/kfreebsd))) "xdg-open")
+		   (t (read-shell-command "Open current file with: ")))
+		  " "
+		  (shell-quote-argument buffer-file-name)))))
 ;; Open files externally:1 ends here
 
 ;; [[file:../Sacha.org::#toggle][Emacs: Toggle a buffer for quick reference:1]]
 ;;;###autoload
 (defun sacha-toggle-or-create (buffer-name &optional buffer-create-fn switch-cont)
-  "Raises or hides BUFFER-NAME.
+"Raises or hides BUFFER-NAME.
 If BUFFER-CREATE-FN is specified, use that when creating a function.
 Use SWITCH-CONT for additional setup if needed."
-  (interactive)
-  (let ((target-buf
-         (if (file-exists-p buffer-name)
-             (find-file-noselect buffer-name)
-           (get-buffer buffer-name))))
-    (cond
-     ((equal (current-buffer) target-buf)
-      (bury-buffer))
-     (target-buf
-      (switch-to-buffer target-buf)
-      (when switch-cont (funcall switch-cont)))
-     (t (if buffer-create-fn
-            (funcall buffer-create-fn)
-          (switch-to-buffer
-           (get-buffer-create buffer-name)))
-        (when switch-cont (funcall switch-cont))))))
+(interactive)
+(let ((target-buf
+       (if (file-exists-p buffer-name)
+	   (find-file-noselect buffer-name)
+	 (get-buffer buffer-name))))
+  (cond
+   ((equal (current-buffer) target-buf)
+    (bury-buffer))
+   (target-buf
+    (switch-to-buffer target-buf)
+    (when switch-cont (funcall switch-cont)))
+   (t (if buffer-create-fn
+	  (funcall buffer-create-fn)
+	(switch-to-buffer
+	 (get-buffer-create buffer-name)))
+      (when switch-cont (funcall switch-cont))))))
 
 ;;;###autoload
 (defmacro sacha-make-toggle-buffer-function (function-name buffer-name &optional buffer-create-fn switch-cont)
-  "Makes a toggle-function to have raise-or-create behaviour.
+"Makes a toggle-function to have raise-or-create behaviour.
 
 Creates a toggle-function that executes BUFFER-CREATE-FN if a
 buffer named BUFFER-NAME doesn't exist, switches to the buffer
@@ -462,14 +462,14 @@ running further actions that setup the state of the buffer or
 modify it.
 
 Based on https://www.reddit.com/r/emacs/comments/l4v1ux/one_of_the_most_useful_small_lisp_functions_in_my/"
-  (declare (debug t))
-  `(defun ,function-name ()
-     ,(format "Toggle %s." buffer-name)
-     (interactive)
-     (sacha-toggle-or-create
-      ,buffer-name
-      ,buffer-create-fn
-      ,switch-cont)))
+(declare (debug t))
+`(defun ,function-name ()
+   ,(format "Toggle %s." buffer-name)
+   (interactive)
+   (sacha-toggle-or-create
+    ,buffer-name
+    ,buffer-create-fn
+    ,switch-cont)))
 ;; Emacs: Toggle a buffer for quick reference:1 ends here
 
 ;; [[file:../Sacha.org::#random][Randomness for serendipity:1]]
@@ -502,33 +502,33 @@ Inspired by https://github.com/oantolin/emacs-config"
 
 ;;;###autoload
 (defun sacha-navigate-previous-buffer-debounced ()
-  (interactive)
-  (when sacha-navigate-swipe-debounce
-    (previous-buffer)
-    (setq sacha-navigate-swipe-debounce nil)
-    (run-at-time "1 sec" nil (lambda () (setq sacha-navigate-swipe-debounce t)))))
+(interactive)
+(when sacha-navigate-swipe-debounce
+  (previous-buffer)
+  (setq sacha-navigate-swipe-debounce nil)
+  (run-at-time "1 sec" nil (lambda () (setq sacha-navigate-swipe-debounce t)))))
 
 ;;;###autoload
 (defun sacha-navigate-next-buffer-debounced ()
-  (interactive)
-  (when sacha-navigate-swipe-debounce
-    (next-buffer)
-    (setq sacha-navigate-swipe-debounce nil)
-    (run-at-time "1 sec" nil (lambda ()
-                               (setq sacha-navigate-swipe-debounce t)))))
+(interactive)
+(when sacha-navigate-swipe-debounce
+  (next-buffer)
+  (setq sacha-navigate-swipe-debounce nil)
+  (run-at-time "1 sec" nil (lambda ()
+			     (setq sacha-navigate-swipe-debounce t)))))
 ;; Touch gestures:1 ends here
 
 ;; [[file:../Sacha.org::#navigation-applications][Applications:1]]
 ;;;###autoload
 (defun sacha-navigate-focus-or-launch (app &optional start)
-  "Switch to the specified APP or START it."
-  (interactive)
-	(apply
-	 'call-process
-	 "~/bin/focus_or_launch" nil t nil
-	 (delq nil
-				 (list
-					app start))))
+"Switch to the specified APP or START it."
+(interactive)
+      (apply
+       'call-process
+       "~/bin/focus_or_launch" nil t nil
+       (delq nil
+			       (list
+				      app start))))
 ;; Applications:1 ends here
 
 ;; [[file:../Sacha.org::#link-related-convenience-functions][Link-related convenience functions:1]]
@@ -579,8 +579,8 @@ Inspired by https://github.com/oantolin/emacs-config"
 (add-to-list 'browse-url-handlers '("https?://yhetil.org/.*/raw" . sacha-browse-yhetil))
 ;;;###autoload
 (defun sacha-browse-yhetil (url &rest _)
-  (when (string-match "\\(https?://yhetil.org/.*\\)/raw$" url)
-    (funcall browse-url-browser-function (match-string 1 url))))
+(when (string-match "\\(https?://yhetil.org/.*\\)/raw$" url)
+  (funcall browse-url-browser-function (match-string 1 url))))
 ;; Link-related convenience functions:2 ends here
 
 ;; [[file:../Sacha.org::#tag-files][Tag files:1]]

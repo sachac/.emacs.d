@@ -55,108 +55,109 @@
 
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-update-journal-entry-from-paragraph][Update journal entry from paragraph:1]]
+;;;###autoload
 (defun sacha-insert-journal-entries-for-french (date)
-	"Insert entries starting DATE."
-	(interactive (list (org-read-date nil t nil "Start date: " nil "-mon")))
-	(let* ((system-time-locale "fr_FR.UTF-8")
-				 (end-date (time-add date (days-to-time 6)))
-				 (filter-end-date (time-add date (days-to-time 7)))
-				 (entries
-					(seq-group-by
-					 #'sacha-journal-date
-					 (sacha-journal-get-entries (format-time-string "%Y-%m-%d" date)
-																			(format-time-string "%Y-%m-%d" filter-end-date))))
-				 s)
-		(setq s
-					(concat
-					 (if (string= (format-time-string "%B" date)
-												(format-time-string "%B" end-date))
-							 (format "** Semaine du %s au %s %s\n"
-											 (format-time-string "%-d" date)
-											 (format-time-string "%-d" end-date)
-											 (format-time-string "%B" end-date))
-						 (format "** Semaine du %s au %s\n"
-										 (format-time-string "%-d %B" date)
-										 (format-time-string "%-d %B" end-date)))
-					 (cl-loop for i from 0 to 6
-										concat
-										(let ((day (time-add date (days-to-time i))))
-											(concat
-											 (format-time-string "*** %A %-d\n:PROPERTIES:\n:DATE: %Y-%m-%d\n:END:\n\n" day)
-											 (mapconcat
-												(lambda (o)
-													(format "%s journal:%s\n\n"
-																	(sacha-journal-note o)
-																	(sacha-journal-zidstring o)))
-												(reverse
-												 (cdr
-													(assoc-string (format-time-string "%Y-%m-%d" day)
-																				entries)))))))))
-		(insert s)))
+  "Insert entries starting DATE."
+  (interactive (list (org-read-date nil t nil "Start date: " nil "-mon")))
+  (let* ((system-time-locale "fr_FR.UTF-8")
+			   (end-date (time-add date (days-to-time 6)))
+			   (filter-end-date (time-add date (days-to-time 7)))
+			   (entries
+				  (seq-group-by
+				   #'sacha-journal-date
+				   (sacha-journal-get-entries (format-time-string "%Y-%m-%d" date)
+																		  (format-time-string "%Y-%m-%d" filter-end-date))))
+			   s)
+	  (setq s
+				  (concat
+				   (if (string= (format-time-string "%B" date)
+											  (format-time-string "%B" end-date))
+						   (format "** Semaine du %s au %s %s\n"
+										   (format-time-string "%-d" date)
+										   (format-time-string "%-d" end-date)
+										   (format-time-string "%B" end-date))
+					   (format "** Semaine du %s au %s\n"
+									   (format-time-string "%-d %B" date)
+									   (format-time-string "%-d %B" end-date)))
+				   (cl-loop for i from 0 to 6
+									  concat
+									  (let ((day (time-add date (days-to-time i))))
+										  (concat
+										   (format-time-string "*** %A %-d\n:PROPERTIES:\n:DATE: %Y-%m-%d\n:END:\n\n" day)
+										   (mapconcat
+											  (lambda (o)
+												  (format "%s journal:%s\n\n"
+																  (sacha-journal-note o)
+																  (sacha-journal-zidstring o)))
+											  (reverse
+											   (cdr
+												  (assoc-string (format-time-string "%Y-%m-%d" day)
+																			  entries)))))))))
+	  (insert s)))
 ;;;###autoload
 (defun sacha-journal-update-from-paragraph ()
-  "Update journal entry from paragraph."
-  (interactive)
-	(save-excursion
-		(let ((text (string-trim (thing-at-point 'paragraph)))
-					id)
-			(when (string-match " *journal:\\([-0-9]+\\)" text)
-				(setq id (match-string 1 text))
-				(setq text (replace-match "" nil nil text))
-				(sacha-journal-update
-				 (list
-					:ZIDString id
-					:Note text))))))
+"Update journal entry from paragraph."
+(interactive)
+      (save-excursion
+	      (let ((text (string-trim (thing-at-point 'paragraph)))
+				      id)
+		      (when (string-match " *journal:\\([-0-9]+\\)" text)
+			      (setq id (match-string 1 text))
+			      (setq text (replace-match "" nil nil text))
+			      (sacha-journal-update
+			       (list
+				      :ZIDString id
+				      :Note text))))))
 
 ;;;###autoload
 (defun sacha-journal-update-paragraphs ()
-	(interactive)
-	(while (not (eobp))
-		(while (and (looking-at "^\\*+")
-								(not (eobp)))
-			(org-end-of-meta-data t)
-			(skip-syntax-forward " "))
-		(sacha-journal-update-from-paragraph)
-		(forward-paragraph)
-		(skip-syntax-forward " ")
-		(while (and (looking-at "^\\*+")
-								(not (eobp)))
-			(org-end-of-meta-data)
-			(skip-syntax-forward " "))))
+      (interactive)
+      (while (not (eobp))
+	      (while (and (looking-at "^\\*+")
+							      (not (eobp)))
+		      (org-end-of-meta-data t)
+		      (skip-syntax-forward " "))
+	      (sacha-journal-update-from-paragraph)
+	      (forward-paragraph)
+	      (skip-syntax-forward " ")
+	      (while (and (looking-at "^\\*+")
+							      (not (eobp)))
+		      (org-end-of-meta-data)
+		      (skip-syntax-forward " "))))
 ;; Update journal entry from paragraph:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-keyboard-shortcuts-other-speed-commands][Other speed commands:5]]
 ;;;###autoload
 (defun sacha-org-mark-done-and-add-to-journal (&optional note category)
-  (interactive (list (if current-prefix-arg
-                         (read-string (format "Note (%s): " (org-get-heading t t t t)))
-                       (org-get-heading t t t t))
-                     (or (org-entry-get (point) "JOURNAL_CAT") (sacha-journal-read-category (sacha-journal-guess-category)))))
-  (sacha-org-with-current-task
-   (org-todo "DONE")
-   (org-entry-put (point) "JOURNAL_CAT" category)
-   (let* ((title (or note (org-get-heading t t t t)))
-          (zid (org-entry-get (point) "ZIDSTRING"))
-          (other (if current-prefix-arg (substring-no-properties (sacha-org-subtree-text))))
-          (date (unless zid
-                  (format-time-string "%Y-%m-%d %H:%M"
-                                      (let ((base-date (org-read-date nil t (org-entry-get (point) "CREATED"))))
-                                        (if (string-match "Yesterday " title)
-                                            (progn
-                                              (setq title (replace-match "" nil nil title))
-                                              (org-read-date nil t "--1" nil (org-time-string-to-time (org-entry-get (point) "CREATED"))))
-                                          base-date))))))
-     (if zid
-         (sacha-journal-update (list :ZIDString zid :Note title :Category category :Other other))
-       (org-entry-put (point) "ZIDSTRING"
-                      (plist-get
-                       (sacha-journal-post title
-                                        :Category category
-                                        :Other other
-                                        :Date date)
-                       :ZIDString)))
-     (org-back-to-heading)
-     (sacha-copy-observation))))
+(interactive (list (if current-prefix-arg
+		       (read-string (format "Note (%s): " (org-get-heading t t t t)))
+		     (org-get-heading t t t t))
+		   (or (org-entry-get (point) "JOURNAL_CAT") (sacha-journal-read-category (sacha-journal-guess-category)))))
+(sacha-org-with-current-task
+ (org-todo "DONE")
+ (org-entry-put (point) "JOURNAL_CAT" category)
+ (let* ((title (or note (org-get-heading t t t t)))
+	(zid (org-entry-get (point) "ZIDSTRING"))
+	(other (if current-prefix-arg (substring-no-properties (sacha-org-subtree-text))))
+	(date (unless zid
+		(format-time-string "%Y-%m-%d %H:%M"
+				    (let ((base-date (org-read-date nil t (org-entry-get (point) "CREATED"))))
+				      (if (string-match "Yesterday " title)
+					  (progn
+					    (setq title (replace-match "" nil nil title))
+					    (org-read-date nil t "--1" nil (org-time-string-to-time (org-entry-get (point) "CREATED"))))
+					base-date))))))
+   (if zid
+       (sacha-journal-update (list :ZIDString zid :Note title :Category category :Other other))
+     (org-entry-put (point) "ZIDSTRING"
+		    (plist-get
+		     (sacha-journal-post title
+				      :Category category
+				      :Other other
+				      :Date date)
+		     :ZIDString)))
+   (org-back-to-heading)
+   (sacha-copy-observation))))
 
 ;; Other speed commands:5 ends here
 
@@ -287,9 +288,9 @@
       (message "%s" (plist-get data :ZIDString))
       data)
 		(when (and (called-interactively-p 'any)
-							 current-prefix-arg))
-		(unless (looking-at "\n") (end-of-paragraph-text))
-		(insert " journal:" (plist-get data :ZIDString))))
+							 current-prefix-arg)
+			(unless (looking-at "\n") (end-of-paragraph-text))
+			(insert " journal:" (plist-get data :ZIDString)))))
 
 ;;;###autoload
 (defun sacha-journal-get-by-zidstring (zidstring)

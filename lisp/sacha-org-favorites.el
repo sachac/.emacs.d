@@ -41,103 +41,103 @@
 
 ;;;###autoload
 (defun sacha-org-favorites ()
-	"Returns a list of plists like this: ((:title ... :url ...) ...).
+      "Returns a list of plists like this: ((:title ... :url ...) ...).
 Uses the info from `sacha-org-favorite-file'."
-	(delq nil
-        (with-current-buffer (find-file-noselect sacha-org-favorite-file)
-          (org-map-entries
-           (lambda ()
-             (let ((title (org-entry-get (point) "ITEM"))
-                   (url (or (org-entry-get (point) "URL")
-                            (progn
-                              (let ((end (save-excursion (org-end-of-subtree))))
-                                (when (and (< (point) end)
-                                           (re-search-forward org-link-any-re end t))
-                                  (org-element-property
-                                   :raw-link
-                                   (org-element-context))))))))
-               (when (string-match org-link-bracket-re title)
-                 (setq title (match-string 2 title)))
-               (when url
-                 (list :title title :url url))))))))
+      (delq nil
+      (with-current-buffer (find-file-noselect sacha-org-favorite-file)
+	(org-map-entries
+	 (lambda ()
+	   (let ((title (org-entry-get (point) "ITEM"))
+		 (url (or (org-entry-get (point) "URL")
+			  (progn
+			    (let ((end (save-excursion (org-end-of-subtree))))
+			      (when (and (< (point) end)
+					 (re-search-forward org-link-any-re end t))
+				(org-element-property
+				 :raw-link
+				 (org-element-context))))))))
+	     (when (string-match org-link-bracket-re title)
+	       (setq title (match-string 2 title)))
+	     (when url
+	       (list :title title :url url))))))))
 
 ;;;###autoload
 (defun sacha-org-favorite-match (s)
-  "Return the first favorite that matches S."
-  (setq s (split-string (downcase s)))
-  (plist-get (seq-find (lambda (favorite)
-												 (let ((title (downcase (plist-get favorite :title))))
-													 (seq-reduce (lambda (prev val)
-																				 (and prev (string-match (regexp-quote val) title)))
-																			 s
-																			 t)))
-                       (sacha-org-favorites))
-             :url))
+"Return the first favorite that matches S."
+(setq s (split-string (downcase s)))
+(plist-get (seq-find (lambda (favorite)
+											       (let ((title (downcase (plist-get favorite :title))))
+												       (seq-reduce (lambda (prev val)
+																			       (and prev (string-match (regexp-quote val) title)))
+																		       s
+																		       t)))
+		     (sacha-org-favorites))
+	   :url))
 
 (defun sacha-org-favorites-for-completion ()
-	(mapcar
-	 (lambda (o)
-		 (cons (propertize (format "%s - %s"
-															 (plist-get o :title)
-															 (plist-get o :url))
-											 :title (plist-get o :title)
-											 :url (plist-get o :url))
-					 (propertize
-						(plist-get o :url)
-						:title (plist-get o :title)
-						:url (plist-get o :url)
-						'title (plist-get o :title)
-						'url (plist-get o :url))))
-	 (sacha-org-favorites)))
+      (mapcar
+       (lambda (o)
+	       (cons (propertize (format "%s - %s"
+														       (plist-get o :title)
+														       (plist-get o :url))
+										       :title (plist-get o :title)
+										       :url (plist-get o :url))
+				       (propertize
+					      (plist-get o :url)
+					      :title (plist-get o :title)
+					      :url (plist-get o :url)
+					      'title (plist-get o :title)
+					      'url (plist-get o :url))))
+       (sacha-org-favorites)))
 
 ;;;###autoload
 (defun sacha-org-favorite-complete (&optional initial-text)
-	"Complete a favorite."
-  (when (region-active-p)
-    (setq initial-text (or initial-text (buffer-substring (region-beginning)
-                                                          (region-end)))))
-	(let ((favorites (sacha-org-favorites-for-completion)))
-		(assoc-default
-		 (completing-read
-			"Favorite: " favorites nil nil initial-text)
-		 favorites
-		 #'string=)))
+      "Complete a favorite."
+(when (region-active-p)
+  (setq initial-text (or initial-text (buffer-substring (region-beginning)
+							(region-end)))))
+      (let ((favorites (sacha-org-favorites-for-completion)))
+	      (assoc-default
+	       (completing-read
+		      "Favorite: " favorites nil nil initial-text)
+	       favorites
+	       #'string=)))
 
 ;;;###autoload
 (defun sacha-org-favorite-insert-description (link &optional description)
-	"Provide a default description."
-	(or description
-			(get-text-property 0 'title link)
-			(sacha-page-title link)))
+      "Provide a default description."
+      (or description
+		      (get-text-property 0 'title link)
+		      (sacha-page-title link)))
 
 ;;;###autoload
 (defun sacha-org-favorite-save-link (link title)
-  "Save the current link to my resources file."
-  (interactive
-   (or
-    (and (derived-mode-p 'org-mode)
-         (let ((elem (org-element-context)))
-           (when (eq (org-element-type elem) 'link)
-             (list (org-element-property :raw-link elem)
-                   (buffer-substring (org-element-contents-begin elem)
-                                     (org-element-contents-end elem))))))
-    (let* ((url (read-string "URL: "))
-           (title (sacha-page-title url)))
-      (list url (read-string "Title: " title)))))
-  (with-current-buffer (find-file-noselect sacha-org-favorite-file)
-    (goto-char (point-max))
-    (unless (bolp) (insert "\n"))
-    (insert "** " title "\n" link "\n")
-    (save-buffer)))
+"Save the current link to my resources file."
+(interactive
+ (or
+  (and (derived-mode-p 'org-mode)
+       (let ((elem (org-element-context)))
+	 (when (eq (org-element-type elem) 'link)
+	   (list (org-element-property :raw-link elem)
+		 (buffer-substring (org-element-contents-begin elem)
+				   (org-element-contents-end elem))))))
+  (let* ((url (read-string "URL: "))
+	 (title (sacha-page-title url)))
+    (list url (read-string "Title: " title)))))
+(with-current-buffer (find-file-noselect sacha-org-favorite-file)
+  (goto-char (point-max))
+  (unless (bolp) (insert "\n"))
+  (insert "** " title "\n" link "\n")
+  (save-buffer)))
 ;; Favorites:1 ends here
 
 ;; [[file:../Sacha.org::#org-mode-favorites-copy-a-link-from-my-resources-org-to-the-kill-ring][Copy a link from my resources.org to the kill ring:1]]
 ;;;###autoload
 (defun sacha-org-copy-favorite-url (favorite)
-  "Copy the URL for the favorite."
-  (interactive (list (sacha-org-favorite-complete)))
-	(kill-new favorite)
-	(message "%s" favorite))
+"Copy the URL for the favorite."
+(interactive (list (sacha-org-favorite-complete)))
+      (kill-new favorite)
+      (message "%s" favorite))
 ;; Copy a link from my resources.org to the kill ring:1 ends here
 
 (provide 'sacha-org-favorites)

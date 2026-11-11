@@ -63,7 +63,7 @@
 ;;   https://sachachua.com/dotemacs#expand
 ;;
 ;; - Save frame reference
-;;   https://sachachua.com/dotemacs#speech-recognition
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-save-frame-reference
 ;;
 ;; - Web development
 ;;   https://sachachua.com/dotemacs#web-development
@@ -84,7 +84,7 @@
 ;;   https://sachachua.com/dotemacs#streaming-turn-off-display-line-number-mode-for-images
 ;;
 ;; - Laser pointer
-;;   https://sachachua.com/dotemacs#streaming
+;;   https://sachachua.com/dotemacs#streaming-and-videos-laser-pointer
 ;;
 ;;; Code:
 
@@ -359,7 +359,7 @@ From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
   len))
 ;; Expand:4 ends here
 
-;; [[file:../Sacha.org::*Save frame reference][Save frame reference:1]]
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-save-frame-reference][Save frame reference:1]]
 (defvar sacha-active-frame nil
 "The current non-emacsclient frame.")
 (defvar sacha-ignore-frame nil "Non-nil means ignore this frame.")
@@ -372,8 +372,10 @@ From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
 
 ;;;###autoload
 (defun sacha-whisper-emacsclient ()
+	"Reset to dictation mode and run speech recognition."
 	(interactive)
 	(let ((sacha-track-active-frame nil))
+		(setq sacha-whisper-mode 'dictation)
 		(with-selected-frame sacha-active-frame
 			(with-current-buffer (window-buffer (frame-selected-window sacha-active-frame))
 				(call-interactively 'sacha-whisper-run-with-pending-indicator)))))
@@ -466,7 +468,7 @@ From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
 	(display-line-numbers-mode -1))
 ;; Turn off display-line-number-mode for images:1 ends here
 
-;; [[file:../Sacha.org::*Laser pointer][Laser pointer:1]]
+;; [[file:../Sacha.org::#streaming-and-videos-laser-pointer][Laser pointer:1]]
 (defvar sacha-highlight-pointer-process nil
 	"Process for highlight-pointer.")
 (defvar sacha-highlight-pointer-command '("highlight-pointer"

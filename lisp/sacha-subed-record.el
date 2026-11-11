@@ -33,10 +33,10 @@
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-make-it-easy-to-add-reference-links
 ;;
 ;; - Insert a clip of the corresponding video
-;;   https://sachachua.com/dotemacs#subed
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-subed-record-insert-a-clip-of-the-corresponding-video
 ;;
 ;; - Transcribe a VTT of the latest recording for easier editing
-;;   https://sachachua.com/dotemacs#subed
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-subed-record-transcribe-a-vtt-of-the-latest-recording-for-easier-editing
 ;;
 ;;; Code:
 
@@ -100,7 +100,7 @@
     (sacha-subed-record-insert-reference)))
 ;; Make it easy to add reference links:1 ends here
 
-;; [[file:../Sacha.org::*Insert a clip of the corresponding video][Insert a clip of the corresponding video:1]]
+;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-subed-record-insert-a-clip-of-the-corresponding-video][Insert a clip of the corresponding video:1]]
 (defun sacha-subed-record-find-video-for-clip ()
 	"Return the video that probably has CLIP in it.
 Return (clip-filename start-ms end-ms)."
@@ -144,7 +144,7 @@ Return (clip-filename start-ms end-ms)."
 		(subed-record-start-recording video-file (seconds-to-time (sacha-filename-timestamp video-file)))))
 ;; Insert a clip of the corresponding video:1 ends here
 
-;; [[file:../Sacha.org::*Transcribe a VTT of the latest recording for easier editing][Transcribe a VTT of the latest recording for easier editing:1]]
+;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-subed-record-transcribe-a-vtt-of-the-latest-recording-for-easier-editing][Transcribe a VTT of the latest recording for easier editing:1]]
 (defun sacha-subed-record-prepare-recording (video-file &optional data)
 	"Create a VTT file for the latest recording."
 	(interactive (list (sacha-latest-file sacha-recordings-dir "\\.mkv\\'")))

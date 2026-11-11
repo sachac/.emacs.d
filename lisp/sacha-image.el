@@ -51,7 +51,7 @@
 ;;   https://sachachua.com/dotemacs#photos
 ;;
 ;; - Use Tesseract to OCR an image and get line/word coordinates
-;;   https://sachachua.com/dotemacs#multimedia-images
+;;   https://sachachua.com/dotemacs#multimedia-images-use-tesseract-to-ocr-an-image-and-get-line-word-coordinates
 ;;
 ;; - Copy coordinates for an image
 ;;   https://sachachua.com/dotemacs#multimedia-images-copy-coordinates-for-an-image
@@ -606,7 +606,7 @@ filename)
     (if (called-interactively-p 'any) (insert result) result)))
 ;; Photos:2 ends here
 
-;; [[file:../Sacha.org::*Use Tesseract to OCR an image and get line/word coordinates][Use Tesseract to OCR an image and get line/word coordinates:1]]
+;; [[file:../Sacha.org::#multimedia-images-use-tesseract-to-ocr-an-image-and-get-line-word-coordinates][Use Tesseract to OCR an image and get line/word coordinates:1]]
 (eval-when-compile
 	(require 'dom))
 (defun sacha-image-ocr-tesseract-parse-hocr (dom)

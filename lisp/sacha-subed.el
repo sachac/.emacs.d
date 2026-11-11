@@ -32,8 +32,11 @@
 ;; - Searching transcripts
 ;;   https://sachachua.com/dotemacs#writing-and-editing-learning-french-searching-transcripts
 ;;
+;; - Remind me what section I'm in
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-remind-me-what-section-i-m-in
+;;
 ;; - subed.el and quoting snippets of YouTube videos from the auto captions
-;;   https://sachachua.com/dotemacs#subed
+;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-subed-el-and-quoting-snippets-of-youtube-videos-from-the-auto-captions
 ;;
 ;; - Reformat speaker in a two-speaker transcript
 ;;   https://sachachua.com/dotemacs#multimedia-subtitles-with-subed-reformat-speaker-in-a-two-speaker-transcript
@@ -158,21 +161,40 @@
 
 ;; [[file:../Sacha.org::#writing-and-editing-learning-french-searching-transcripts][Searching transcripts:1]]
 ;;;###autoload
+(defun sacha-subed-clean-up-youtube-vtt ()
+  "Remove duplicate lines and word timestamps."
+  (interactive)
+	(goto-char (point-min))
+	(subed-word-data-remove-word-timestamps)
+	(goto-char (point-min))
+	(subed-delete-duplicate-lines))
+
+;;;###autoload
 (defun sacha-subed-clean-up-youtube-vtt-and-convert-to-sentence-lines ()
-"Remove duplicate lines and convert to text without tags."
-(interactive)
-      (let ((file (buffer-file-name)))
-	      (subed-delete-duplicate-lines)
-	      (subed-convert "TXT")
-	      (goto-char (point-min))
-	      (while (re-search-forward "<.+?>" nil t)
-		      (replace-match ""))
-	      (let ((fill-column most-positive-fixnum))
-		      (fill-paragraph-semlf))
-	      (subed-align-word-data file (buffer-file-name) "VTT")))
+	"Remove duplicate lines and convert to text without tags."
+	(interactive)
+  (let ((file (buffer-file-name)))
+	  (subed-delete-duplicate-lines)
+	  (subed-convert "TXT")
+	  (goto-char (point-min))
+	  (while (re-search-forward "<.+?>" nil t)
+		  (replace-match ""))
+	  (let ((fill-column most-positive-fixnum))
+		  (fill-paragraph-semlf))
+	  (subed-align-word-data file (buffer-file-name) "VTT")))
 ;; Searching transcripts:1 ends here
 
-;; [[file:../Sacha.org::*subed.el and quoting snippets of YouTube videos from the auto captions][subed.el and quoting snippets of YouTube videos from the auto captions:1]]
+;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-remind-me-what-section-i-m-in][Remind me what section I'm in:1]]
+;;;###autoload
+(defun sacha-subed-show-section-comment ()
+  "Show the current section comment in the echo area."
+  (interactive)
+	(save-excursion
+		(subed-vtt-backward-subtitle-with-comment)
+		(message "%s" (subed-subtitle-comment))))
+;; Remind me what section I'm in:1 ends here
+
+;; [[file:../Sacha.org::#multimedia-subtitles-with-subed-subed-el-and-quoting-snippets-of-youtube-videos-from-the-auto-captions][subed.el and quoting snippets of YouTube videos from the auto captions:1]]
 (defvar sacha-subed-youtube-dir "~/proj/youtube-captions"
 	"Directory with YouTube captions.")
 (defvar sacha-subed-youtube-temp-dir "~/Downloads" "Snap installations need a workaround for permission.")
@@ -262,6 +284,7 @@
 				 subtitles
 				 t)
 				(find-file filename)
+				(sacha-subed-clean-up-youtube-vtt)
 				(subed-mpv-play-from-url url)))))
 
 (defun sacha-subed-youtube-id ()

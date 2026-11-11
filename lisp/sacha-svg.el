@@ -39,7 +39,7 @@
 ;;   https://sachachua.com/dotemacs#svg-animating-paths-in-order
 ;;
 ;; - Animate SVGs within Emacs itself
-;;   https://sachachua.com/dotemacs#how-can-i-generate-png-frames-that-step-through-the-highlights
+;;   https://sachachua.com/dotemacs#multimedia-images-svg-animating-svgs-animate-svgs-within-emacs-itself
 ;;
 ;; - RevealJS CSS animation of sketches
 ;;   https://sachachua.com/dotemacs#reveal-js-sketch-animation
@@ -781,7 +781,7 @@ Paths should have the title attribute."
 		 (dom-set-attribute elem 'opacity "1.0"))))
 ;; Animating paths in order:1 ends here
 
-;; [[file:../Sacha.org::*Animate SVGs within Emacs itself][Animate SVGs within Emacs itself:1]]
+;; [[file:../Sacha.org::#multimedia-images-svg-animating-svgs-animate-svgs-within-emacs-itself][Animate SVGs within Emacs itself:1]]
 (defvar-keymap sacha-svg-animation-keymap
 	"n" #'sacha-svg-animate-groups-in-emacs-next
 	"SPC" #'sacha-svg-animate-groups-in-emacs-next

@@ -188,12 +188,13 @@
 (defvar sacha-stream-old-variable-values nil "Alist of values to save.")
 (defvar sacha-stream-inbox-file nil "File to save new items to.")
 (defvar sacha-stream-url nil "*URL of current livestream.")
-(defvar sacha-stream-inbox-target
-  `(file+headline ,sacha-stream-inbox-file "Current / notes for next time"))
+
 (defvar sacha-stream-variables-to-override
   `((custom-enabled-themes . (ef-trio-dark))
     (org-agenda-files . ("~/sync/stream/index.org" "~/sync/topics/live.org" "~/sync/stream/inbox.org"))
 		(message-setup-hook . ,(remove 'org-contacts-email-setup-completion-at-point message-setup-hook))
+		(sacha-org-inbox-target .
+		 (file+headline ,sacha-stream-inbox-file "Inbox"))
     (org-refile-targets
      .
      ((("~/sync/stream/index.org"
@@ -218,7 +219,7 @@
     (org-capture-templates
      .
      (("r" "Note" entry
-       ,sacha-stream-inbox-target
+			 (function sacha-org-goto-inbox-target)
        "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n\n# %a\n%U"
        :prepend t)
       ("u" "Update" item
@@ -226,10 +227,10 @@
        "- %U %?"
        :prepend t)
       ("F" "Firefox link" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%(org-link-make-string\n(sacha-spookfox-complete-link))")
       ("f" "Firefox" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%(apply #'org-link-make-string\n								 (append (spookfox-js-injection-eval-in-active-tab \"[window.location.href, document.title]\" t) nil))")
       ("📰" "Emacs News" entry
        (file+headline "~/sync/orgzly/news.org"
@@ -237,75 +238,75 @@
        "* %a  :news:\n\n#+begin_quote\n%:text\n#+end_quote\n\n"
        :prepend t :immediate-finish t)
       ("m" "Mastodon" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n# %a"
        :prepend t)
 			("wi" "Interrupting task" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
          "* STARTED %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
          :clock-in t :clock-keep t
          :prepend t :immediate-finish t)
 
 			("wT" "Task for today" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \".\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("w>" "Task for tomorrow" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("ww" "Task for next week" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("wm" "Task for next month" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1m\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("wt" "Task for someday" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* SOMEDAY %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("wn" "Note" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
       ("t" "Task with annotation" entry
-       ,sacha-stream-inbox-target
-       "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+       (function sacha-org-goto-inbox-target)
+       "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n%(sacha-org-all-links-from-context)\n"
        :prepend t)
       ("i" "Interrupting task" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* STARTED %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :clock-in :clock-resume :prepend t )
       ("T" "Task without annotation" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n"
        :prepend t)
       ("c" "Contents to current clocked task" plain
        (clock) "%i%?\n# %a" :empty-lines 1)
       ("." "Today" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %^{Task}\nSCHEDULED: %t\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
        :immediate-finish t)
       ("v" "Video" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %^{Task}  :video:\nSCHEDULED: %t\n"
        :immediate-finish t)
       ("e" "Errand" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %^{Task}  :errands:\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
        :immediate-finish t)
       ("n" "Note" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
        :immediate-finish t)
       ("N" "Note" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
        :prepend t)
       ("s" "Selection from browser" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %a :website:\n:PROPERTIES:\n:CREATED: %U\n:END:\n#+begin_quote\n%i\n#+end_quote\n\n%?\n"
        :prepend t)
       ("S" "Screenshot" item
@@ -315,7 +316,7 @@
        (file+headline ,sacha-stream-inbox-file "Timestamps")
        "- %U %i%?")
       ("q" "Quick note" item
-       ,sacha-stream-inbox-target)
+       (function sacha-org-goto-inbox-target))
       ("w" "Web" entry (file ,sacha-stream-inbox-file)
        "* %a\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n")
       ("W" "Web favorite" entry
@@ -935,6 +936,7 @@ Check for property PRIVACY as well."
 							 (sacha-org-yt-id (org-entry-get-with-inheritance "YOUTUBE_URL")))
 		 sacha-stream-livestreaming-control)))
 
+(eval-when-compile (require 'phony))
 (with-eval-after-load 'phony
 	(phony-defun control-room ("control" "room")
 		(sacha-stream-open-control-room)))

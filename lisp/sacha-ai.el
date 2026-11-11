@@ -93,7 +93,7 @@ Generated with an LLM."
 	(sacha-whisper-audio-feedback "Thinking...")
 	(gptel-request
 			(concat
-			 "Make a list of three short follow-up questions based on this text. Assume a fairly knowledgeable reader or listener. Use Org Mode syntax. Do not include a preamble, just return the questions.
+			 "Make a list of ten short follow-up questions based on this text. Assume a fairly knowledgeable reader or listener. Use Org Mode syntax. Do not include a preamble, just return the questions.
 ###
 "
 			 (sacha-gptel-writing-context))
@@ -105,6 +105,31 @@ Generated with an LLM."
 											.message.content)
 										(prin1-to-string response)))
 				(display-buffer (current-buffer))))))
+
+;;;###autoload
+(defun sacha-gptel-proofread ()
+  "Proofread"
+  (interactive)
+	(sacha-whisper-audio-feedback "Thinking...")
+	(gptel-request
+			(concat
+			 (plist-get (gptel-get-preset 'proofread) :system) "\n\n"
+			 (sacha-gptel-writing-context))
+		:callback
+		(lambda (response info)
+			(with-current-buffer (get-buffer-create "*gptel-feedback*")
+				(erase-buffer)
+				(insert (or (let-alist (car (alist-get 'choices info))
+											.message.content)
+										response))
+				(display-buffer (current-buffer))))))
+
+(eval-when-compile (require 'phony))
+(with-eval-after-load 'phony
+	(phony-defun proofread ("proofread")
+		(sacha-gptel-proofread))
+	(phony-defun proof-read ("proof" "read")
+		(sacha-gptel-proofread)))
 
 ;;;###autoload
 (defun sacha-gptel-feedback ()
@@ -124,6 +149,7 @@ Generated with an LLM."
 				(display-buffer (current-buffer))))))
 
 (with-eval-after-load 'gptel
+	(gptel-make-preset 'proofread :system "Proofread. Do not return the fixed text, just tell me what edits I need to make.")
 	(gptel-make-preset 'questions :system "Make a list of three short follow-up questions based on this text. Assume a fairly knowledgeable reader or listener. Use Org Mode syntax. Do not include a preamble, just return the questions.")
 	(gptel-make-preset 'french-conversation :system "Chat like French conversation partners. My level is B1. Reply in 1-3 simple sentences using words for my level. Input is unedited transcription, so there may be misrecognized words. Try to introduce new vocabulary words naturally. End every reply with one easy question to keep us talking." :model 'gemini-3.5-flash-lite))
 
@@ -135,8 +161,10 @@ Generated with an LLM."
 		(gptel-preset 'french-conversation)
 		(sacha-whisper-conversation-mode 1)
 		(switch-to-buffer (current-buffer))))
-(phony-defun practice-french ("practice" "french")
-	(sacha-gptel-practice-french))
+(eval-when-compile (require 'phony))
+(with-eval-after-load 'phony
+	(phony-defun practice-french ("practice" "french")
+		(sacha-gptel-practice-french)))
 ;; Ask me questions based on the text so far:1 ends here
 
 ;; [[file:../Sacha.org::#inactive-infrequent-things-chatgpt-ai-and-large-language-models-agent-shell][agent-shell:1]]

@@ -5939,18 +5939,27 @@ and some code to clean things up:
 
 #+begin_src emacs-lisp :tangle lisp/sacha-subed.el
 ;;;###autoload
+(defun sacha-subed-clean-up-youtube-vtt ()
+  "Remove duplicate lines and word timestamps."
+  (interactive)
+	(goto-char (point-min))
+	(subed-word-data-remove-word-timestamps)
+	(goto-char (point-min))
+	(subed-delete-duplicate-lines))
+
+;;;###autoload
 (defun sacha-subed-clean-up-youtube-vtt-and-convert-to-sentence-lines ()
-"Remove duplicate lines and convert to text without tags."
-(interactive)
-      (let ((file (buffer-file-name)))
-	      (subed-delete-duplicate-lines)
-	      (subed-convert "TXT")
-	      (goto-char (point-min))
-	      (while (re-search-forward "<.+?>" nil t)
-		      (replace-match ""))
-	      (let ((fill-column most-positive-fixnum))
-		      (fill-paragraph-semlf))
-	      (subed-align-word-data file (buffer-file-name) "VTT")))
+	"Remove duplicate lines and convert to text without tags."
+	(interactive)
+  (let ((file (buffer-file-name)))
+	  (subed-delete-duplicate-lines)
+	  (subed-convert "TXT")
+	  (goto-char (point-min))
+	  (while (re-search-forward "<.+?>" nil t)
+		  (replace-match ""))
+	  (let ((fill-column most-positive-fixnum))
+		  (fill-paragraph-semlf))
+	  (subed-align-word-data file (buffer-file-name) "VTT")))
 #+end_src
 
 =fill-paragraph-semlf= reformats a paragraph so that each sentence is on a separate line.
@@ -9058,8 +9067,10 @@ From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
 
 ;;;###autoload
 (defun sacha-whisper-emacsclient ()
+	"Reset to dictation mode and run speech recognition."
 	(interactive)
 	(let ((sacha-track-active-frame nil))
+		(setq sacha-whisper-mode 'dictation)
 		(with-selected-frame sacha-active-frame
 			(with-current-buffer (window-buffer (frame-selected-window sacha-active-frame))
 				(call-interactively 'sacha-whisper-run-with-pending-indicator)))))
@@ -9249,25 +9260,25 @@ If DATE is t, clock in immediately."
 	(let* ((org-capture-templates
 					(list
 					 (append
-						`("s" "Scheduled task" entry
-							(file ,sacha-org-inbox-file)
+						(function sacha-org-goto-inbox-target)
 							,(format
-							 "* TODO %%i\n%s:PROPERTIES:\n:CREATED: %%U\n:END:\n# %%a\n# %s%s\n"
-							 (if (stringp date)
-									 (format "SCHEDULED: <%s>\n"
-													 (format-time-string
-														(if (string-match ":" date)
-																(cdr org-timestamp-formats)
-															(car org-timestamp-formats))
-														(date-to-time date)))
-								 "")
-							 (if (get-text-property 0 'file text)
-									 (concat
-										(org-link-make-string (concat "audio:" (get-text-property 0 'file text))
-																					"▶️") " ")
-								 "")
-							 (org-link-make-string (concat "file:" (sacha-screenshot-current-screen))
-																		 "screenshot"))
+								"* TODO %%i\n%s:PROPERTIES:\n:CREATED: %%U\n:END:\n%s\n# %s%s\n"
+								(if (stringp date)
+										(format "SCHEDULED: <%s>\n"
+														(format-time-string
+														 (if (string-match ":" date)
+																 (cdr org-timestamp-formats)
+															 (car org-timestamp-formats))
+														 (date-to-time date)))
+									"")
+								(replace-regexp-in-string "%" "%%" (sacha-org-all-links-from-context))
+								(if (get-text-property 0 'file text)
+										(concat
+										 (org-link-make-string (concat "audio:" (get-text-property 0 'file text))
+																					 "▶️") " ")
+									"")
+								(org-link-make-string (concat "file:" (sacha-screenshot-current-screen))
+																			"screenshot"))
 							:immediate-finish t
 							:prepend t)
 						(when (eq date t)
@@ -9379,54 +9390,117 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 ;; (sacha-phony-evaluate "doctor I'm trying to get Emacs to talk to me.")
 ;; (speech-input-commands-process "Remind me next month to verify if this works")
 #+end_src
-**** Speech shortcuts
+**** STARTED Speech shortcuts with phony
 :PROPERTIES:
 :CUSTOM_ID: writing-and-editing-speech-recognition-emacslisten-speech-shortcuts
 :END:
+:LOGBOOK:
+- State "STARTED"    from "WAITING"    [2026-11-10 Tue 23:28]
+:END:
+
+Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/blob/master/.config/emacs/lisp/phony-speech-commands.el
 
 #+begin_src emacs-lisp :tangle lisp/sacha-phony.el
+(require 'phony)
+(eval-when-compile (require 'phony))
+
 (phony-defun undo ("undo") (undo))
 (phony-defun redo ("redo") (undo-redo))
 (phony-defun winner ("winner") (winner-undo))
 
-(phony-defun pick-paragraph ("pick" "paragraph") (mark-paragraph))
-(phony-defun pick-subtree ("pick" "subtree") (org-mark-subtree))
-(phony-defun pick-sub-tree ("pick" "sub tree") (org-mark-subtree))
-(phony-defun pick-function ("pick" "function")
-	(mark-defun)
-	(activate-mark))
-(phony-defun pick-contents ("pick" "contents")
-	(org-back-to-heading)
-	(org-end-of-meta-data)
+(phony-define-open-rule target)
+(phony-defun region "region"
+	:contributes-to target
+	(car (region-beginning)
+			 (region-end)))
+(phony-defun function "function"
+	:contributes-to target
+	(cons 'function
+				(bounds-of-thing-at-point 'defun)))
+(phony-defun sentence "sentence"
+	:contributes-to target
+	(cons 'sentence
+				(bounds-of-thing-at-point 'sentence)))
+(phony-defun buffer "buffer"
+	:contributes-to target
+	(cons 'buffer
+				(bounds-of-thing-at-point 'buffer)))
+(phony-defun line "line"
+	:contributes-to target
+	(cons 'line
+				(bounds-of-thing-at-point 'line)))
+(phony-defun paragraph "paragraph"
+	:contributes-to target
+	(cons 'paragraph
+				(bounds-of-thing-at-point 'paragraph)))
+(phony-defun element "element"
+	:contributes-to target
+	(cons 'element
+				(let ((elem (org-element-context)))
+					(cons (org-element-begin elem)
+								(org-element-end elem)))))
+
+(phony-defun target-items "items"
+	:contributes-to target
+	(cons 'list
+				(let ((list (org-list-struct)))
+					(cons (caar list)
+								(car (last (car (last list))))))))
+
+(phony-defun subtree "subtree"
+	:contributes-to target
+	(save-excursion
+		(org-back-to-heading)
+		(cons 'subtree
+					(cons (point)
+								(org-end-of-subtree)))))
+(phony-defun contents "contents"
+	:contributes-to target
+	(save-excursion
+		(org-back-to-heading)
+		(org-end-of-meta-data)
+		(cons 'contents
+					(cons (point)
+								(org-end-of-subtree)))))
+
+(phony-defun subtree ("sub" "tree")
+	:contributes-to target
+	(save-excursion
+		(org-back-to-heading)
+		(cons 'subtree
+					(cons (point)
+								(org-end-of-subtree)))))
+
+(phony-defun eval-target ("run" (target target))
+	"Run selected target."
+	(eval-region
+	 (car (cdr target))
+	 (cdr (cdr target)))
+	(sacha-whisper-audio-feedback "Run"))
+
+(phony-defun debug-target ("debug" (target target))
+	"Edebug selected target."
+	(let ((edebug-all-forms t))
+		(eval-region
+		 (car (cdr target))
+		 (cdr (cdr target)))))
+
+(phony-defun pick-target ("pick" (target target))
+	"Mark TARGET."
+	(sacha-mark-bounds (cdr target)))
+
+(defun sacha-mark-bounds (bounds)
+	"Mark BOUNDS."
+	(goto-char (car bounds))
 	(push-mark)
-	(org-end-of-subtree)
-	(activate-mark))
-(phony-defun pick-element ("pick" "element") (org-mark-element))
-(phony-defun pick-line ("pick" "line")
-	(goto-char (line-beginning-position))
-	(push-mark)
-	(goto-char (line-end-position))
+	(goto-char (cdr bounds))
 	(activate-mark))
 
 (defun sacha-mark-list ()
 	"Mark the current list."
 	(let ((list (org-list-struct)))
-		(goto-char (caar list))
-		(push-mark)
-		(goto-char (car (last (car list))))
-		(activate-mark)))
-
-(phony-defun pick-list ("pick" "list")
-	(sacha-mark-list))
-
-(phony-defun pick-element-contents ("pick" "element" "contents")
-	(let ((elem (org-element-context)))
-		(goto-char (or (org-element-contents-begin elem)
-									 (org-element-begin elem)))
-		(push-mark)
-		(goto-char (or (org-element-contents-end elem)
-									 (org-element-end elem)))
-		(activate-mark)))
+		(sacha-mark-bounds (cons (caar list)
+														 (car (last (car list)))))))
 
 (phony-defun toggle-list ("toggle" "list")
 	(unless (region-active-p)
@@ -9434,6 +9508,135 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 				(sacha-mark-list)
 			(mark-paragraph)))
 	(org-toggle-item nil))
+
+(phony-defun open-file ("open" "file")
+  "Open file under cursor."
+  (ffap))
+(phony-defun save ("save")
+  "Save buffer."
+  (save-buffer))
+(phony-defun close ("close")
+  "Close current buffer."
+  (kill-current-buffer))
+(phony-defun switch ("switch" (? (text phony--builtin-phrase)))
+  "Switch to buffer."
+	(if text
+			(setq unread-command-events (listify-key-sequence (concat text (kbd "RET")))))
+	(let ((vertico-sort-function 'vertico-sort-length-alpha))
+    (call-interactively #'consult-buffer)))
+
+(phony-defun other ("other")
+	"Switch to other window."
+	(other-window 1))
+
+(phony-defun delete-window ("delete" "window")
+	"Delete window."
+	(delete-window))
+(phony-defun delete-other-window ("delete" "other" "windows")
+	"Delete other window."
+	(delete-other-windows))
+(phony-defun transpose ("transpose")
+	"Transpose windows."
+	(transpose-windows))
+
+(phony-defun delete-target ("delete" (target target))
+	"Delete TARGET."
+	(delete-region (cadr target) (cddr target)))
+(phony-defun kill-target ("kill" (target target))
+	"Kill TARGET."
+	(kill-region (cadr target) (cddr target)))
+
+(phony-defun copy-target ("copy" (target target))
+	"Copy TARGET."
+	(sacha-mark-bounds (cdr target))
+	(kill-new (buffer-substring (cadr target) (cddr target))))
+
+(phony-defun next-sentence ("next sentence")
+  (forward-sentence))
+(phony-defun previous-sentence ("previous sentence")
+  (previous-sentence))
+
+(phony-defun next-paragraph ("next paragraph")
+  "Go to next paragraph."
+  (forward-paragraph))
+
+(phony-defun previous-paragraph ("previous paragraph")
+  "Go to previous paragraph."
+  (backward-paragraph))
+(phony-defun next-heading ("previous heading")
+	(org-previous-visible-heading))
+(phony-defun previous-heading ("next heading")
+	(org-next-visible-heading))
+(phony-defun beginning-of-buffer ("top")
+  (beginning-of-buffer))
+(phony-defun end-of-buffer ("bottom")
+  (end-of-buffer))
+
+(phony-defun narrow ("narrow" (target target))
+	(narrow-to-region (cadr target)
+										(cddr target)))
+
+(phony-defun widen ("widen")
+	(widen))
+(phony-defun zoom-out ("zoom out")
+	(widen))
+
+(phony-define-dictionary on-or-off
+  "t or nil."
+  `(("yes" . t)
+    ("no" . nil)
+    ("on" . t)
+    ("off" . nil)))
+
+(phony-defun detect-voice-on ("detect voice" (state on-or-off))
+	(if state
+			(speech-input-vad-start)
+		(speech-input-vad-stop))
+	(sacha-whisper-audio-feedback (if state "on" "off")))
+
+;; org edit source block
+(phony-defun sacha-phony-edit-block ("edit block")
+  "Edit source block"
+  (org-edit-special))
+
+;; org exit source block
+(phony-defun sacha-phony-exit-block ("exit block")
+  "Exit source block"
+  (org-edit-src-exit))
+
+;; org next source block
+(phony-defun sacha-phony-next-src-block ("next block")
+  "Jump to next block"
+  (org-babel-next-src-block))
+
+;; org previous source block
+(phony-defun sacha-phony-previous-src-block ("previous block")
+  "Jump to prev block"
+  (org-babel-previous-src-block))
+
+(phony-defun sacha-phony-tangle-block ("tangle block")
+  "Tangle babel block"
+  (let ((current-prefix-arg '(4)))
+    (call-interactively #'org-babel-tangle)))
+
+;; org babel tangle file
+(phony-defun sacha-phony-tangle-file ("tangle file")
+  "Tangle current file"
+  (when buffer-file-name
+    (org-babel-tangle-file buffer-file-name)))
+
+(phony-defun mark-done ("task done")
+  "Change TODO state of an item."
+  (org-todo "DONE"))
+(phony-defun mark-waiting ("task waiting")
+  "Change TODO state of an item."
+  (org-todo "WAITING"))
+(phony-defun mark-started ("task started")
+  "Change TODO state of an item."
+  (org-todo "STARTED"))
+
+
+;; implement up/down five lines / sentences / paragraphs
 #+end_src
 
 **** Trackers
@@ -9442,6 +9645,8 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 :END:
 
 #+begin_src emacs-lisp :tangle lisp/sacha-phony.el
+(require 'phony)
+(eval-when-compile (require 'phony))
 (phony-defun emacs-news ("emacs" "news")
 	"Start tracking Emacs News."
 	(quantified-track "Emacs | Emacs News")
@@ -9454,6 +9659,11 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 
 #+begin_src emacs-lisp :tangle lisp/sacha-phony.el
 (require 'phony)
+(eval-when-compile (require 'phony))
+(require 'gptel)
+(require 'gptel-rewrite)
+
+;;; Work in progress, doesn't quite work yet
 
 (defun sacha-gptel-rewrite-region (text beg end)
   "Rewrite BEG and END using TEXT."
@@ -9461,43 +9671,21 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 				(current-prefix-arg text))
 		(save-restriction
 			(narrow-to-region beg end)
-			(gptel--suffix-rewrite))))
-
-(phony-define-open-rule target)
-(phony-defun region "region"
-	:contributes-to target
-	(car (region-beginning)
-			 (region-end)))
-(phony-defun function "function"
-	:contributes-to target
-	(bounds-of-thing-at-point 'defun))
-(phony-defun function "sentence"
-	:contributes-to target
-	(bounds-of-thing-at-point 'sentence))
-(phony-defun function "buffer"
-	:contributes-to target
-	(bounds-of-thing-at-point 'buffer))
-
-(phony-defun eval-target ("run" (target target))
-	"Run selected target."
-	(eval-region
-	 (car target)
-	 (cdr target))
-	(sacha-whisper-audio-feedback "Run"))
-
-(phony-defun debug-target ("debug" (target target))
-	"Edebug selected target."
-	(let ((edebug-all-forms t))
-		(eval-region
-		 (car target)
-		 (cdr target))))
+			(gptel--suffix-rewrite (concat text "\n\n" (buffer-substring beg end))))))
 
 (phony-defun rewrite-target ("rewrite" (target target) (text phony--builtin-phrase))
 	"Rewrite selected target."
 	(sacha-gptel-rewrite-region
 	 text
-	 (car target)
-	 (cdr target)))
+	 (car (cdr target))
+	 (cdr (cdr target))))
+
+(phony-defun computer-implement ("computer implement this function")
+	"Rewrite and implement this function."
+	(let ((bounds (bounds-of-thing-at-point 'defun)))
+		(sacha-gptel-rewrite-region "Implement this function."
+																(car bounds)
+																(cdr bounds))))
 
 (phony-defun computer-insert ("computer" "insert" (text phony--builtin-phrase))
 	"Do something with gptel and insert the results."
@@ -9812,12 +10000,13 @@ Update [2026-10-02 Fri]: Il peut aussi comprendre le français. I used to have c
 				sacha-whisper-scratch-that
 				speech-input-remove-filler-words
 				sacha-whisper-process-replacements
+				sacha-whisper-filter-mode
 				sacha-whisper-save-transcript
 				speech-input-phony-process
 				speech-input-commands-process
 				sacha-whisper-save-text
 				sacha-learn-lang-notice-bingo-words
-;          sacha-whisper-save-to-file
+				; sacha-whisper-save-to-file
 				sacha-save-to-kill-ring-after-current
 				sacha-whisper-translate
 				sacha-whisper-maybe-expand-snippet
@@ -9827,81 +10016,114 @@ Update [2026-10-02 Fri]: Il peut aussi comprendre le français. I used to have c
 				sacha-whisper-insert
 				sacha-whisper-reset)))
 #+end_src
-
+This is her test.
+I think it seems to be working.
 #+begin_src emacs-lisp :tangle lisp/sacha-speech-input.el
+(defcustom sacha-whisper-mode 'all
+  "Type of recognition."
+  :type '(choice
+					(const :tag "Commands and dictation" 'all)
+					(const :tag "Commands only, no insertion" 'commands)
+					(const :tag "Sleep - only recognizes \"wake up\"" 'sleep))
+  :group 'sacha)
+
 (defvar sacha-whisper-last-annotation nil "Last annotation so we can skip duplicates.")
 (defvar sacha-whisper-skip-annotation nil)
 (defvar sacha-whisper-target-markers nil "List of markers to send text to.")
 (defvar sacha-whisper-one-sentence-per-line t "Non-nil means split text onto separate lines.")
 
+(defun sacha-whisper-filter-mode (text)
+	"Discard, process, or modify TEXT based on `sacha-whisper-mode'."
+	(when text
+		(pcase (sacha-phony-parser--sanitize text)
+			((or "wake up" "dictation")
+			 (setq sacha-whisper-mode 'all text nil
+						 sacha-whisper-mode-indicator "✓"))
+			((or "commands" "over")
+			 (setq sacha-whisper-mode 'commands text nil
+						 sacha-whisper-mode-indicator "📋"))
+			((or "sleep" "all done")
+			 (setq sacha-whisper-mode 'sleep text nil
+						 sacha-whisper-mode-indicator "💤")))
+		(pcase sacha-whisper-mode
+			('commands
+			 ;; Keep TEXT only if it matches a command.
+			 (when
+					 (and text
+								(or (not (eq (phony-evaluate text 'not-parsed) 'not-parsed))
+										(speech-input-commands-find text)))
+				 text))
+			('sleep nil)
+			(_ text))))
+
 ;;;###autoload
 (defun sacha-whisper-insert (text)
 	"Insert TEXT at point, or at `sacha-whisper-target-markers'."
 	(let ((markers
-		 (cond
-			((null sacha-whisper-target-markers)
-			 (list whisper--marker)) ; current point where whisper was started
-			((listp sacha-whisper-target-markers)
-			 sacha-whisper-target-markers)
-			((markerp sacha-whisper-target-markers)
-			 (list sacha-whisper-target-markers))))
-		(orig-point (point))
-		(orig-buffer (current-buffer)))
+				 (cond
+					((null sacha-whisper-target-markers)
+					 (list whisper--marker)) ; current point where whisper was started
+					((listp sacha-whisper-target-markers)
+					 sacha-whisper-target-markers)
+					((markerp sacha-whisper-target-markers)
+					 (list sacha-whisper-target-markers))))
+				(orig-point (point))
+				(orig-buffer (current-buffer)))
 		(when text
-	(mapcar (lambda (marker)
-			(with-current-buffer (or (and marker (marker-buffer marker)) (current-buffer))
-				(save-restriction
-					(widen)
-					(when (and marker
-				 (marker-position marker)
-				 (marker-buffer marker))
-			(goto-char marker))
-					(when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
-			(insert "\n"))
-					(when (and sacha-whisper-one-sentence-per-line
-										 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"" (line-beginning-position))))
-						(if (and (derived-mode-p 'org-mode)
-										 (org-element-lineage (org-element-context) '(item plain-list)))
-								(unless (<= (save-excursion
-															(skip-chars-backward " \t\n")
-															(point))
-														(or (org-element-contents-begin (org-element-context))
-																most-positive-fixnum))
-									(org-return))
-							(insert "\n")))
-					(if sacha-whisper-one-sentence-per-line
-				(seq-map-indexed
-				 (lambda (line i)
-					 (when (> i 0)
-						 (if (and (derived-mode-p 'org-mode)
-					(org-element-lineage (org-element-context) '(item plain-list)))
-					 (org-return)
-				 (insert "\n")))
-					 (insert line))
-				 (split-string
-					(with-temp-buffer
-						(insert text)
-						(goto-char (point-min))
-						(let ((fill-column most-positive-fixnum))
-				(fill-paragraph-semlf))
-						(buffer-string))
-					"\n"))
-			(whisper--insert-text
-			 (concat
-				(if (looking-back "[ \t\n]\\|^")
-						""
-					" ")
-				text)))
-					(when (and
-					 marker
-					 (marker-position marker)
-					 (marker-buffer marker))
-			(move-marker marker (point)))                    ;; Move the marker forward here
-					)))
-					markers)
-	(when sacha-whisper-target-markers
-		(goto-char orig-point))
-	nil)))
+			(mapcar (lambda (marker)
+								(with-current-buffer (or (and marker (marker-buffer marker)) (current-buffer))
+									(save-restriction
+										(widen)
+										(when (and marker
+															 (marker-position marker)
+															 (marker-buffer marker))
+											(goto-char marker))
+										(when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
+											(insert "\n"))
+										(when (and sacha-whisper-one-sentence-per-line
+															 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"" (line-beginning-position))))
+											(if (and (derived-mode-p 'org-mode)
+															 (org-element-lineage (org-element-context) '(item plain-list)))
+													(unless (<= (save-excursion
+																				(skip-chars-backward " \t\n")
+																				(point))
+																			(or (org-element-contents-begin (org-element-context))
+																					most-positive-fixnum))
+														(org-return))
+												(insert "\n")))
+										(if sacha-whisper-one-sentence-per-line
+												(seq-map-indexed
+												 (lambda (line i)
+													 (when (> i 0)
+														 (if (and (derived-mode-p 'org-mode)
+																			(org-element-lineage (org-element-context) '(item plain-list)))
+																 (org-return)
+															 (insert "\n")))
+													 (insert line))
+												 (split-string
+													(with-temp-buffer
+														(insert text)
+														(goto-char (point-min))
+														(let ((fill-column most-positive-fixnum))
+															(fill-paragraph-semlf))
+														(buffer-string))
+													"\n"))
+											(whisper--insert-text
+											 (concat
+												(if (looking-back "[ \t\n]\\|^")
+														""
+													" ")
+												text)))
+										(when (and
+													 marker
+													 (marker-position marker)
+													 (marker-buffer marker))
+											(move-marker marker (point)))	;; Move the marker forward here
+										)))
+							markers)
+			(when sacha-whisper-target-markers
+				(goto-char orig-point))
+			nil)))
 #+end_src
 
 #+NAME: sacha-whisper-maybe-type
@@ -10824,7 +11046,7 @@ saying things often enough that they become more automatic.
 :PROPERTIES:
 :CUSTOM_ID: writing-and-editing-speech-recognition-using-emacs-to-visualize-speaking-and-target-words-phrases-in-real-ish-time-voice-activity-detection-and-speech-recognition
 :END:
-This code uses this server [[file:~/vendor/orukeet/asr.py][vad-file.py]], which I generated with Google Gemini. It emits JSONL for voice activity detection events (start/stop) and uses Orukeet to transcribe the speech once the voice activity detection notices it's finished. I also use spacy to look up token information because I want to someday colour the nouns by gender, which might allow me to correct myself in the next sentence instead of hesitating in the previous one.
+This code uses this server [[file:~/vendor/orukeet/asr.py][asr.py]], which I generated with Google Gemini. It emits JSONL for voice activity detection events (start/stop) and uses Orukeet to transcribe the speech once the voice activity detection notices it's finished. I also use spacy to look up token information because I want to someday colour the nouns by gender, which might allow me to correct myself in the next sentence instead of hesitating in the previous one.
 
 #+begin_src emacs-lisp :tangle lisp/sacha-vad-tutor.el :summary code for sacha-vad-tutor
 ;; Report on the balance between my tutor and me
@@ -10850,9 +11072,10 @@ This code uses this server [[file:~/vendor/orukeet/asr.py][vad-file.py]], which 
 (defun sacha-vad-tutor-start (&optional length)
   "Start the process."
   (interactive
-	 (list
-		(- (time-to-seconds (org-read-date t t nil "End: "))
-			 (time-to-seconds))))
+	 (if current-prefix-arg
+			 (list
+				(- (time-to-seconds (org-read-date t t nil "End: "))
+					 (time-to-seconds)))))
 	(when (stringp length)
 		(setq length (- (time-to-seconds (org-read-date t t length "End: "))
 										(time-to-seconds))))
@@ -11011,6 +11234,7 @@ Add to `sacha-vad-event-handler-functions'."
 								 (sacha-latest-file sacha-recordings-dir "\\.mkv$"))
 					".vtt"))
 
+(eval-when-compile (require 'phony))
 (with-eval-after-load 'phony
 	(phony-defun prepare-to-fast-forward ("prepare" "to" "fast" "forward")
 		(find-file (sacha-vad-transcript-file))
@@ -12054,16 +12278,17 @@ Related:
 (defun sacha-whisper-replay-file-from-text ()
   "Replay the file at point."
   (interactive)
+	(require 'mpv)
   (if (get-text-property (point) 'file)
       (let ((mpv-default-options
-	     (append
-	      (list "--vid=no" "--no-video" "--window-minimized=yes" )
-	      (when (get-text-property (point) 'start)
-		(list (format "--start=%f" (get-text-property (point) 'start))))
-	      (when (get-text-property (point) 'end)
-		(list (format "--end=%f" (get-text-property (point) 'end))))
-	      mpv-default-options)))
-	(mpv-play (get-text-property (point) 'file)))
+						 (append
+							(list "--vid=no" "--no-video" "--window-minimized=yes" )
+							(when (get-text-property (point) 'start)
+								(list (format "--start=%f" (get-text-property (point) 'start))))
+							(when (get-text-property (point) 'end)
+								(list (format "--end=%f" (get-text-property (point) 'end))))
+							mpv-default-options)))
+				(mpv-play (get-text-property (point) 'file)))
     (message "No file data.")))
 #+end_src
 
@@ -13558,6 +13783,37 @@ stuff.
       (org-footnote-section nil)
       (org-fold-catch-invisible-edits 'smart))
 #+end_src
+** Store all matching links
+
+#+begin_src emacs-lisp
+;;;###autoload
+(defun sacha-org-all-links-from-context ()
+  "Return all links that match at this point.
+Based on `org-link--try-link-store-functions'."
+  (interactive)
+	(with-current-buffer
+			(if org-capture-plist
+					(plist-get org-capture-plist :original-buffer)
+				(current-buffer))
+		(let ((results-alist nil))
+			(dolist (f (org-store-link-functions))
+				(when (condition-case nil
+									(funcall f)
+								(wrong-number-of-arguments
+								 (funcall f)))
+					(push (copy-sequence org-store-link-plist)
+								results-alist)))
+			(mapconcat
+			 (lambda (o)
+				 (format "# %s"
+								 (org-link-make-string
+									(plist-get o :link)
+									(plist-get o :description))))
+			 results-alist
+			 "\n"))))
+#+end_src
+
+
 ** Notifications
 :PROPERTIES:
 :CUSTOM_ID: org-mode-notifications
@@ -14533,142 +14789,151 @@ entries, notes, and other semi-structured pieces of information.
          %i
          " "Basic task data")
 (defvar sacha-ledger-file "~/cloud/ledger/current.ledger")
+(defun sacha-org-goto-inbox-target ()
+	"Open inbox target."
+	(org-capture-set-target-location sacha-org-inbox-target)
+	(pop-to-buffer-same-window (org-capture-get :buffer))
+	(goto-char (org-capture-get :pos)))
+
 (with-eval-after-load 'org-capture
+	(defvar sacha-org-inbox-target
+		`(file ,sacha-org-inbox-file)
+		"Where to file new tasks.")
 	(setq org-capture-templates
 				(seq-uniq
 				 (append
-      `(("r" "Note" entry
-         (file ,sacha-org-inbox-file)
-         "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n\n# %a"
-         :prepend t)
-				("t" "Task with annotation" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t)
-        ("i" "Interrupting task" entry
-         (file ,sacha-org-inbox-file)
-         "* STARTED %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :clock-in t :clock-keep t
-         :prepend t)
-				("wi" "Interrupting task" entry
-         (file ,sacha-org-inbox-file)
-         "* STARTED %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :clock-in t :clock-keep t
-         :prepend t :immediate-finish t)
-				("wT" "Task for today" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \".\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t :immediate-finish t)
-				("w>" "Task for tomorrow" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t :immediate-finish t)
-				("ww" "Task for next week" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t :immediate-finish t)
-				("wm" "Task for next month" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1m\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t :immediate-finish t)
-				("wt" "Task for someday" entry
-         (file ,sacha-org-inbox-file)
-         "* SOMEDAY %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t :immediate-finish t)
-				("wn" "Note" entry
-         (file ,sacha-org-inbox-file)
-         "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t :immediate-finish t)
-				("T" "Task without annotation" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n"
-         :prepend t)
-        ;; From https://takeonrules.com/2022/10/16/adding-another-function-to-sacha-workflow/
-        ("c" "Contents to current clocked task"
-	       plain (clock)
-	       "%i%?\n# %a"
-	       :empty-lines 1)
-        ;; ("p" "Podcast log - timestamped" item
-        ;;  (file+olp+datetree "~/sync/orgzly/timestamped.org")
-        ;;  "%<%H:%M:%S,%3N> %^{Note}"
-        ;;  :immediate-finish t)
-        ;; ("b" "Plover note" table-line
-        ;;  (file+headline "~/proj/plover-notes/README.org" "Brief notes")
-        ;;  "| %^{Stroke} | %^{Translation} | %^{Note} |"
-        ;;  :immediate-finish t)
-        ;; ("c" "Plover review from clippy" table-line
-        ;;  (file+headline "~/proj/plover-notes/README.org" "For review")
-        ;;  "%(let ((last (sacha-clippy-last))) (format \"| %s | %s |\" (car last) (cdr last)))"
-        ;;  :immediate-finish t)
+					`(("r" "Note" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n\n# %a"
+						 :prepend t)
+						("t" "Task with annotation" entry
+						 ,sacha-org-inbox-target
+						 "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n %(sacha-org-all-links-from-context)\n"
+						 :prepend t)
+						("i" "Interrupting task" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* STARTED %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :clock-in t :clock-keep t
+						 :prepend t)
+						("wi" "Interrupting task" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* STARTED %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :clock-in t :clock-keep t
+						 :prepend t :immediate-finish t)
+						("wT" "Task for today" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \".\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :prepend t :immediate-finish t)
+						("w>" "Task for tomorrow" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :prepend t :immediate-finish t)
+						("ww" "Task for next week" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :prepend t :immediate-finish t)
+						("wm" "Task for next month" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1m\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :prepend t :immediate-finish t)
+						("wt" "Task for someday" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* SOMEDAY %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :prepend t :immediate-finish t)
+						("wn" "Note" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :prepend t :immediate-finish t)
+						("T" "Task without annotation" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n"
+						 :prepend t)
+						;; From https://takeonrules.com/2022/10/16/adding-another-function-to-sacha-workflow/
+						("c" "Contents to current clocked task"
+						 plain (clock)
+						 "%i%?\n# %a"
+						 :empty-lines 1)
+						;; ("p" "Podcast log - timestamped" item
+						;;  (file+olp+datetree "~/sync/orgzly/timestamped.org")
+						;;  "%<%H:%M:%S,%3N> %^{Note}"
+						;;  :immediate-finish t)
+						;; ("b" "Plover note" table-line
+						;;  (file+headline "~/proj/plover-notes/README.org" "Brief notes")
+						;;  "| %^{Stroke} | %^{Translation} | %^{Note} |"
+						;;  :immediate-finish t)
+						;; ("c" "Plover review from clippy" table-line
+						;;  (file+headline "~/proj/plover-notes/README.org" "For review")
+						;;  "%(let ((last (sacha-clippy-last))) (format \"| %s | %s |\" (car last) (cdr last)))"
+						;;  :immediate-finish t)
 
-        ("." "Today" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %^{Task}\nSCHEDULED: %t\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
-         :immediate-finish t)
-        ("v" "Video" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %^{Task}  :video:\nSCHEDULED: %t\n"
-         :immediate-finish t)
-        ("e" "Errand" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %^{Task}  :errands:\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
-         :immediate-finish t)
-        ("n" "Note" entry
-         (file ,sacha-org-inbox-file)
-         "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
-         :immediate-finish t)
-        ("N" "Note" entry
-         (file ,sacha-org-inbox-file)
-         "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
-         :prepend t)
-				("s" "Selection from browser" entry
-				 (file ,sacha-org-inbox-file)
-				 "* %a :website:\n:PROPERTIES:\n:CREATED: %U\n:END:\n#+begin_quote\n%i\n#+end_quote\n\n%?\n"
-				 :prepend t)
-				("S" "Screenshot" entry
-				 (file ,sacha-org-inbox-file)
-				 "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n#+CAPTION: %(file-name-nondirectory (sacha-latest-screenshot))\n[[file:%(sacha-latest-screenshot)]]\n"
-				 :prepend t)
-        ("b" "Business task" entry
-         (file+headline "~/personal/business.org" "Tasks")
-         ,sacha-org-basic-task-template)
-        ("j" "Journal entry" plain
-         (file+olp+datetree "~/sync/orgzly/journal.org")
-         "%K - # %a\n%i\n%?\n"
-         :unnarrowed t)
-        ("db" "Done - Business" entry
-         (file+headline "~/personal/business.org" "Tasks")
-         "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-        ("dp" "Done - People" entry
-         (file+headline "~/personal/people.org" "Tasks")
-         "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-        ("dt" "Done - Task" entry
-         (file+headline "~/sync/orgzly/organizer.org" "Inbox")
-         "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-        ("q" "Quick note" item
-         (file+headline "~/sync/orgzly/organizer.org" "Quick notes"))
-        ("L" "Ledger")
-        ("Lc" "Cash expense" plain
-         (file ,sacha-ledger-file)
-         "%(ledger-read-date \"Date: \") * %^{Payee}
+						("." "Today" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %^{Task}\nSCHEDULED: %t\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
+						 :immediate-finish t)
+						("v" "Video" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %^{Task}  :video:\nSCHEDULED: %t\n"
+						 :immediate-finish t)
+						("e" "Errand" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %^{Task}  :errands:\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
+						 :immediate-finish t)
+						("n" "Note" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
+						 :immediate-finish t)
+						("N" "Note" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
+						 :prepend t)
+						("s" "Selection from browser" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* %a :website:\n:PROPERTIES:\n:CREATED: %U\n:END:\n#+begin_quote\n%i\n#+end_quote\n\n%?\n"
+						 :prepend t)
+						("S" "Screenshot" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n#+CAPTION: %(file-name-nondirectory (sacha-latest-screenshot))\n[[file:%(sacha-latest-screenshot)]]\n"
+						 :prepend t)
+						("b" "Business task" entry
+						 (file+headline "~/personal/business.org" "Tasks")
+						 ,sacha-org-basic-task-template)
+						("j" "Journal entry" plain
+						 (file+olp+datetree "~/sync/orgzly/journal.org")
+						 "%K - # %a\n%i\n%?\n"
+						 :unnarrowed t)
+						("db" "Done - Business" entry
+						 (file+headline "~/personal/business.org" "Tasks")
+						 "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+						("dp" "Done - People" entry
+						 (file+headline "~/personal/people.org" "Tasks")
+						 "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+						("dt" "Done - Task" entry
+						 (file+headline "~/sync/orgzly/organizer.org" "Inbox")
+						 "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+						("q" "Quick note" item
+						 (file+headline "~/sync/orgzly/organizer.org" "Quick notes"))
+						("L" "Ledger")
+						("Lc" "Cash expense" plain
+						 (file ,sacha-ledger-file)
+						 "%(ledger-read-date \"Date: \") * %^{Payee}
              Expenses:Cash
              Expenses:%^{Account}  %^{Amount}
            ")
-        ("Lb" "BDO CAD" plain
-         (file ,sacha-ledger-file)
-         "%(ledger-read-date \"Date: \") * %^{Payee}
+						("Lb" "BDO CAD" plain
+						 (file ,sacha-ledger-file)
+						 "%(ledger-read-date \"Date: \") * %^{Payee}
              Expenses:Play    $ %^{Amount}
              Assets:BDO
            ")
-        ("Lp" "BDO PHP" plain
-         (file ,sacha-ledger-file)
-         "%(ledger-read-date \"Date: \") * %^{Payee}
+						("Lp" "BDO PHP" plain
+						 (file ,sacha-ledger-file)
+						 "%(ledger-read-date \"Date: \") * %^{Payee}
              Expenses:Play    PHP %^{Amount}
              Assets:BDO
            ")
-        ("B" "Book" entry
-         (file+olp+datetree "~/personal/books.org" "Inbox")
-         "* %^{Title}  %^g
+						("B" "Book" entry
+						 (file+olp+datetree "~/personal/books.org" "Inbox")
+						 "* %^{Title}  %^g
            %i
            ,*Author(s):* %^{Author} \\\\
            ,*ISBN:* %^{ISBN}
@@ -14678,37 +14943,37 @@ entries, notes, and other semi-structured pieces of information.
            ,*Review on:* %^t \\
            # %a
            %U"
-         :clock-in :clock-resume)
-        ("C" "Contact" entry (file "~/sync/orgzly/people.org")
-         "* %(org-contacts-template-name)
+						 :clock-in :clock-resume)
+						("C" "Contact" entry (file "~/sync/orgzly/people.org")
+						 "* %(org-contacts-template-name)
 :PROPERTIES:
 :EMAIL: %(sacha-org-contacts-template-email)
 :END:")
-				("w" "Web" entry (file "~/sync/orgzly/Inbox.org")
-				 "* %a
+						("w" "Web" entry (file "~/sync/orgzly/Inbox.org")
+						 "* %a
 :PROPERTIES:
 :CREATED: %U
 :END:
 
 %i
 ")
-				("W" "Web favorite" entry (file "~/sync/orgzly/resources.org")
-				 "* %a
+						("W" "Web favorite" entry (file "~/sync/orgzly/resources.org")
+						 "* %a
 :PROPERTIES:
 :CREATED: %U
 :END:
 
 %i
 "
-				 :prepend t)
-				("y" "Yay Emacs" entry (file+headline "~/proj/stream/index.org" "Notes for this session")
-				 "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n
+						 :prepend t)
+						("y" "Yay Emacs" entry (file+headline "~/proj/stream/index.org" "Notes for this session")
+						 "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n
 
 %i
 
 # %a
 "))
-			org-capture-templates))))
+					org-capture-templates))))
 (keymap-global-set "C-M-r" 'org-capture)
 
 
@@ -31131,6 +31396,7 @@ Now I can use =M-x sacha-subed-youtube= to open the VTT file, which is cached lo
 				 subtitles
 				 t)
 				(find-file filename)
+				(sacha-subed-clean-up-youtube-vtt)
 				(subed-mpv-play-from-url url)))))
 
 (defun sacha-subed-youtube-id ()
@@ -36289,6 +36555,8 @@ I need to copy some environment variables from my profile.
   (exec-path-from-shell-variables
    '("PATH" "MANPATH"
 		 "BBB_ID"
+		 "BBB_SECRET"
+		 "BBB_API_URL"
      "GOOGLE_API_KEY"
 		 "ELEVENLABS_API_KEY"
      "AZURE_SPEECH_KEY"
@@ -38010,7 +38278,8 @@ This snippet makes it easier to store links to posts with
    :store 'sacha-mastodon-store-link)
 	(with-eval-after-load 'org-capture
 		(add-to-list 'org-capture-templates
-								 `("m" "Mastodon" entry (file ,sacha-org-inbox-file)
+								 `("m" "Mastodon" entry
+									 (function sacha-org-goto-inbox-target)
 									 "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n# %a"
 									 :prepend t))))
 #+end_src
@@ -39706,6 +39975,7 @@ Anyway, this code seems to do the job of scrolling my Firefox window:
 	(interactive)
  	(spookfox-js-injection-eval-in-active-tab "window.scrollBy(0, -document.documentElement.clientHeight);"))
 
+(eval-when-compile (require 'phony))
 (with-eval-after-load 'phony
 	(phony-defun web-down ("web" "down")
 		(sacha-spookfox-scroll-down))
@@ -39810,13 +40080,13 @@ Emacs), but sometimes I just want to add a link at point.
 (with-eval-after-load 'org-capture
 	(cl-pushnew
 	 `("f" "Firefox" entry
-			(file ,sacha-org-inbox-file)
+			(function sacha-org-goto-inbox-target)
 			"* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%(apply #'org-link-make-string
 								 (append (spookfox-js-injection-eval-in-active-tab \"[window.location.href, document.title]\" t) nil))")
 	 org-capture-templates)
 	(cl-pushnew
 	 `("F" "Firefox link" entry
-			(file ,sacha-org-inbox-file)
+			(function sacha-org-goto-inbox-target)
 			"* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%(org-link-make-string
 (sacha-spookfox-complete-link))")
 	 org-capture-templates))
@@ -40897,7 +41167,7 @@ I use Notmuch with [[https://github.com/gauteh/lieer][Lieer]] to fetch my mail f
 :END:
 
 #+begin_src emacs-lisp
-(defun sacha-notmuch-org-store-link ()
+(defun sacha-notmuch-gmail-org-store-link ()
 	"Store a web link to this message."
 	(when (memq major-mode '(notmuch-show-mode notmuch-tree-mode))
 		;; The value is passed around using variable `org-store-link-plist'.
@@ -40918,7 +41188,7 @@ I use Notmuch with [[https://github.com/gauteh/lieer][Lieer]] to fetch my mail f
 (with-eval-after-load 'org
 	(with-eval-after-load 'notmuch
 		(org-link-set-parameters "notmuch-gmail"
-														 :store #'sacha-notmuch-org-store-link)))
+														 :store #'sacha-notmuch-gmail-org-store-link)))
 #+end_src
 *** Act on current message with Embark  :embark:
 :PROPERTIES:
@@ -42482,8 +42752,6 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
 
 #+begin_src emacs-lisp
   (setq sacha-stream-inbox-file "~/sync/topics/live.org")
-  (setq sacha-stream-inbox-target
-				`(file+headline ,sacha-stream-inbox-file "Current / notes for next time"))
   (with-eval-after-load 'org-capture
     (add-to-list 'org-capture-templates
   	       `("u" "Update" item  ; Update for the livestream
@@ -42499,12 +42767,13 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
 (defvar sacha-stream-old-variable-values nil "Alist of values to save.")
 (defvar sacha-stream-inbox-file nil "File to save new items to.")
 (defvar sacha-stream-url nil "*URL of current livestream.")
-(defvar sacha-stream-inbox-target
-  `(file+headline ,sacha-stream-inbox-file "Current / notes for next time"))
+
 (defvar sacha-stream-variables-to-override
   `((custom-enabled-themes . (ef-trio-dark))
     (org-agenda-files . ("~/sync/stream/index.org" "~/sync/topics/live.org" "~/sync/stream/inbox.org"))
 		(message-setup-hook . ,(remove 'org-contacts-email-setup-completion-at-point message-setup-hook))
+		(sacha-org-inbox-target .
+		 (file+headline ,sacha-stream-inbox-file "Inbox"))
     (org-refile-targets
      .
      ((("~/sync/stream/index.org"
@@ -42529,7 +42798,7 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
     (org-capture-templates
      .
      (("r" "Note" entry
-       ,sacha-stream-inbox-target
+			 (function sacha-org-goto-inbox-target)
        "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n\n# %a\n%U"
        :prepend t)
       ("u" "Update" item
@@ -42537,10 +42806,10 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
        "- %U %?"
        :prepend t)
       ("F" "Firefox link" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%(org-link-make-string\n(sacha-spookfox-complete-link))")
       ("f" "Firefox" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%(apply #'org-link-make-string\n								 (append (spookfox-js-injection-eval-in-active-tab \"[window.location.href, document.title]\" t) nil))")
       ("📰" "Emacs News" entry
        (file+headline "~/sync/orgzly/news.org"
@@ -42548,75 +42817,75 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
        "* %a  :news:\n\n#+begin_quote\n%:text\n#+end_quote\n\n"
        :prepend t :immediate-finish t)
       ("m" "Mastodon" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n# %a"
        :prepend t)
 			("wi" "Interrupting task" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
          "* STARTED %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
          :clock-in t :clock-keep t
          :prepend t :immediate-finish t)
 
 			("wT" "Task for today" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \".\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("w>" "Task for tomorrow" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("ww" "Task for next week" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("wm" "Task for next month" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1m\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("wt" "Task for someday" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* SOMEDAY %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
 			("wn" "Note" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :prepend t :immediate-finish t)
       ("t" "Task with annotation" entry
-       ,sacha-stream-inbox-target
-       "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+       (function sacha-org-goto-inbox-target)
+       "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n%(sacha-org-all-links-from-context)\n"
        :prepend t)
       ("i" "Interrupting task" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* STARTED %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
        :clock-in :clock-resume :prepend t )
       ("T" "Task without annotation" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n"
        :prepend t)
       ("c" "Contents to current clocked task" plain
        (clock) "%i%?\n# %a" :empty-lines 1)
       ("." "Today" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %^{Task}\nSCHEDULED: %t\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
        :immediate-finish t)
       ("v" "Video" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %^{Task}  :video:\nSCHEDULED: %t\n"
        :immediate-finish t)
       ("e" "Errand" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* TODO %^{Task}  :errands:\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
        :immediate-finish t)
       ("n" "Note" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
        :immediate-finish t)
       ("N" "Note" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
        :prepend t)
       ("s" "Selection from browser" entry
-       ,sacha-stream-inbox-target
+       (function sacha-org-goto-inbox-target)
        "* %a :website:\n:PROPERTIES:\n:CREATED: %U\n:END:\n#+begin_quote\n%i\n#+end_quote\n\n%?\n"
        :prepend t)
       ("S" "Screenshot" item
@@ -42626,7 +42895,7 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
        (file+headline ,sacha-stream-inbox-file "Timestamps")
        "- %U %i%?")
       ("q" "Quick note" item
-       ,sacha-stream-inbox-target)
+       (function sacha-org-goto-inbox-target))
       ("w" "Web" entry (file ,sacha-stream-inbox-file)
        "* %a\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n")
       ("W" "Web favorite" entry
@@ -44896,6 +45165,7 @@ Check for property PRIVACY as well."
 							 (sacha-org-yt-id (org-entry-get-with-inheritance "YOUTUBE_URL")))
 		 sacha-stream-livestreaming-control)))
 
+(eval-when-compile (require 'phony))
 (with-eval-after-load 'phony
 	(phony-defun control-room ("control" "room")
 		(sacha-stream-open-control-room)))
@@ -47702,7 +47972,7 @@ Generated with an LLM."
 	(sacha-whisper-audio-feedback "Thinking...")
 	(gptel-request
 			(concat
-			 "Make a list of three short follow-up questions based on this text. Assume a fairly knowledgeable reader or listener. Use Org Mode syntax. Do not include a preamble, just return the questions.
+			 "Make a list of ten short follow-up questions based on this text. Assume a fairly knowledgeable reader or listener. Use Org Mode syntax. Do not include a preamble, just return the questions.
 ###
 "
 			 (sacha-gptel-writing-context))
@@ -47714,6 +47984,31 @@ Generated with an LLM."
 											.message.content)
 										(prin1-to-string response)))
 				(display-buffer (current-buffer))))))
+
+;;;###autoload
+(defun sacha-gptel-proofread ()
+  "Proofread"
+  (interactive)
+	(sacha-whisper-audio-feedback "Thinking...")
+	(gptel-request
+			(concat
+			 (plist-get (gptel-get-preset 'proofread) :system) "\n\n"
+			 (sacha-gptel-writing-context))
+		:callback
+		(lambda (response info)
+			(with-current-buffer (get-buffer-create "*gptel-feedback*")
+				(erase-buffer)
+				(insert (or (let-alist (car (alist-get 'choices info))
+											.message.content)
+										response))
+				(display-buffer (current-buffer))))))
+
+(eval-when-compile (require 'phony))
+(with-eval-after-load 'phony
+	(phony-defun proofread ("proofread")
+		(sacha-gptel-proofread))
+	(phony-defun proof-read ("proof" "read")
+		(sacha-gptel-proofread)))
 
 ;;;###autoload
 (defun sacha-gptel-feedback ()
@@ -47733,6 +48028,7 @@ Generated with an LLM."
 				(display-buffer (current-buffer))))))
 
 (with-eval-after-load 'gptel
+	(gptel-make-preset 'proofread :system "Proofread. Do not return the fixed text, just tell me what edits I need to make.")
 	(gptel-make-preset 'questions :system "Make a list of three short follow-up questions based on this text. Assume a fairly knowledgeable reader or listener. Use Org Mode syntax. Do not include a preamble, just return the questions.")
 	(gptel-make-preset 'french-conversation :system "Chat like French conversation partners. My level is B1. Reply in 1-3 simple sentences using words for my level. Input is unedited transcription, so there may be misrecognized words. Try to introduce new vocabulary words naturally. End every reply with one easy question to keep us talking." :model 'gemini-3.5-flash-lite))
 
@@ -47744,8 +48040,10 @@ Generated with an LLM."
 		(gptel-preset 'french-conversation)
 		(sacha-whisper-conversation-mode 1)
 		(switch-to-buffer (current-buffer))))
-(phony-defun practice-french ("practice" "french")
-	(sacha-gptel-practice-french))
+(eval-when-compile (require 'phony))
+(with-eval-after-load 'phony
+	(phony-defun practice-french ("practice" "french")
+		(sacha-gptel-practice-french)))
 #+end_src
 
 *** agent-shell

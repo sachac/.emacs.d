@@ -57,9 +57,10 @@
 (defun sacha-vad-tutor-start (&optional length)
   "Start the process."
   (interactive
-	 (list
-		(- (time-to-seconds (org-read-date t t nil "End: "))
-			 (time-to-seconds))))
+	 (if current-prefix-arg
+			 (list
+				(- (time-to-seconds (org-read-date t t nil "End: "))
+					 (time-to-seconds)))))
 	(when (stringp length)
 		(setq length (- (time-to-seconds (org-read-date t t length "End: "))
 										(time-to-seconds))))
@@ -218,6 +219,7 @@ Add to `sacha-vad-event-handler-functions'."
 								 (sacha-latest-file sacha-recordings-dir "\\.mkv$"))
 					".vtt"))
 
+(eval-when-compile (require 'phony))
 (with-eval-after-load 'phony
 	(phony-defun prepare-to-fast-forward ("prepare" "to" "fast" "forward")
 		(find-file (sacha-vad-transcript-file))

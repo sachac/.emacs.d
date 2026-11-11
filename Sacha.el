@@ -1824,7 +1824,7 @@ sacha-toggle-now
   ("M-D" . caser-dashcase-dwim))
 ;; Speech recognition:1 ends here
 
-;; [[file:Sacha.org::*Save frame reference][Save frame reference:2]]
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-save-frame-reference][Save frame reference:2]]
 (add-function :after after-focus-change-function #'sacha-track-active-frame)
 ;; Save frame reference:2 ends here
 
@@ -1852,7 +1852,7 @@ sacha-toggle-now
 (sacha-talon-send-action "actions.speech.enable()"))
 ;; Talon:1 ends here
 
-;; [[file:Sacha.org::*Pending indicator][Pending indicator:1]]
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-pending-indicator][Pending indicator:1]]
 (use-package pending
 	:vc (:url "https://github.com/jwiegley/pending"))
 
@@ -1864,7 +1864,7 @@ sacha-toggle-now
 								 p :cancelled (or reason :cancelled-by-user) "" t))))
 ;; Pending indicator:1 ends here
 
-;; [[file:Sacha.org::*Pending indicator][Pending indicator:2]]
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-pending-indicator][Pending indicator:2]]
 (defvar sacha-whisper-pending-overlay nil "Overlay that will have the pending indicator.")
 
 ;;;###autoload
@@ -1895,7 +1895,7 @@ sacha-toggle-now
 	text)
 ;; Pending indicator:2 ends here
 
-;; [[file:Sacha.org::*Numbers in French][Numbers in French:2]]
+;; [[file:Sacha.org::#writing-and-editing-speech-recognition-emacslisten-numbers-in-french][Numbers in French:2]]
 (use-package simulacrum)
 (use-package phony
   :load-path "~/vendor/phony.el"
@@ -1926,7 +1926,7 @@ sacha-toggle-now
    (expand-file-name (file-name-as-directory whisper-install-directory))
    "whisper.cpp/"))
 (setq whisper-return-cursor-to-start nil)
-(setq whisper--ffmpeg-input-device "VirtualMicSink.monitor")
+(setq whisper--ffmpeg-input-device "StereoInputMic.monitor")
 (setq whisper-language "en")
 (setq whisper-recording-timeout 3000)
 (setq whisper-before-transcription-hook nil)
@@ -1957,12 +1957,13 @@ sacha-toggle-now
 				sacha-whisper-scratch-that
 				speech-input-remove-filler-words
 				sacha-whisper-process-replacements
+				sacha-whisper-filter-mode
 				sacha-whisper-save-transcript
 				speech-input-phony-process
 				speech-input-commands-process
 				sacha-whisper-save-text
 				sacha-learn-lang-notice-bingo-words
-;          sacha-whisper-save-to-file
+				; sacha-whisper-save-to-file
 				sacha-save-to-kill-ring-after-current
 				sacha-whisper-translate
 				sacha-whisper-maybe-expand-snippet
@@ -2184,7 +2185,35 @@ sacha-toggle-now
       (org-fold-catch-invisible-edits 'smart))
 ;; org-package-setup ends here
 
-;; [[file:Sacha.org::*Notifications][Notifications:1]]
+;; [[file:Sacha.org::*Store all matching links][Store all matching links:1]]
+;;;###autoload
+(defun sacha-org-all-links-from-context ()
+  "Return all links that match at this point.
+Based on `org-link--try-link-store-functions'."
+  (interactive)
+	(with-current-buffer
+			(if org-capture-plist
+					(plist-get org-capture-plist :original-buffer)
+				(current-buffer))
+		(let ((results-alist nil))
+			(dolist (f (org-store-link-functions))
+				(when (condition-case nil
+									(funcall f)
+								(wrong-number-of-arguments
+								 (funcall f)))
+					(push (copy-sequence org-store-link-plist)
+								results-alist)))
+			(mapconcat
+			 (lambda (o)
+				 (format "# %s"
+								 (org-link-make-string
+									(plist-get o :link)
+									(plist-get o :description))))
+			 results-alist
+			 "\n"))))
+;; Store all matching links:1 ends here
+
+;; [[file:Sacha.org::#org-mode-notifications][Notifications:1]]
 (defvar sacha-libnotify-chime "/home/sacha/proj/french/chime.opus" "Path to chime.")
 (defun sacha-persistent-libnotify (info)
     "Send a persistent, non-expiring libnotify alert."
@@ -2212,7 +2241,7 @@ sacha-toggle-now
 )
 ;; Notifications:1 ends here
 
-;; [[file:Sacha.org::*Folding list items][Folding list items:1]]
+;; [[file:Sacha.org::#org-mode-folding-list-items][Folding list items:1]]
 ;;;###autoload
 (defun  sacha-org-fold-top-item-list-level ()
 "Toggle showing only the top item list level."
@@ -2446,142 +2475,151 @@ sacha-toggle-now
          %i
          " "Basic task data")
 (defvar sacha-ledger-file "~/cloud/ledger/current.ledger")
+(defun sacha-org-goto-inbox-target ()
+	"Open inbox target."
+	(org-capture-set-target-location sacha-org-inbox-target)
+	(pop-to-buffer-same-window (org-capture-get :buffer))
+	(goto-char (org-capture-get :pos)))
+
 (with-eval-after-load 'org-capture
+	(defvar sacha-org-inbox-target
+		`(file ,sacha-org-inbox-file)
+		"Where to file new tasks.")
 	(setq org-capture-templates
 				(seq-uniq
 				 (append
-      `(("r" "Note" entry
-         (file ,sacha-org-inbox-file)
-         "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n\n# %a"
-         :prepend t)
-				("t" "Task with annotation" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t)
-        ("i" "Interrupting task" entry
-         (file ,sacha-org-inbox-file)
-         "* STARTED %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :clock-in t :clock-keep t
-         :prepend t)
-				("wi" "Interrupting task" entry
-         (file ,sacha-org-inbox-file)
-         "* STARTED %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :clock-in t :clock-keep t
-         :prepend t :immediate-finish t)
-				("wT" "Task for today" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \".\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t :immediate-finish t)
-				("w>" "Task for tomorrow" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t :immediate-finish t)
-				("ww" "Task for next week" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t :immediate-finish t)
-				("wm" "Task for next month" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1m\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t :immediate-finish t)
-				("wt" "Task for someday" entry
-         (file ,sacha-org-inbox-file)
-         "* SOMEDAY %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t :immediate-finish t)
-				("wn" "Note" entry
-         (file ,sacha-org-inbox-file)
-         "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
-         :prepend t :immediate-finish t)
-				("T" "Task without annotation" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n"
-         :prepend t)
-        ;; From https://takeonrules.com/2022/10/16/adding-another-function-to-sacha-workflow/
-        ("c" "Contents to current clocked task"
-	       plain (clock)
-	       "%i%?\n# %a"
-	       :empty-lines 1)
-        ;; ("p" "Podcast log - timestamped" item
-        ;;  (file+olp+datetree "~/sync/orgzly/timestamped.org")
-        ;;  "%<%H:%M:%S,%3N> %^{Note}"
-        ;;  :immediate-finish t)
-        ;; ("b" "Plover note" table-line
-        ;;  (file+headline "~/proj/plover-notes/README.org" "Brief notes")
-        ;;  "| %^{Stroke} | %^{Translation} | %^{Note} |"
-        ;;  :immediate-finish t)
-        ;; ("c" "Plover review from clippy" table-line
-        ;;  (file+headline "~/proj/plover-notes/README.org" "For review")
-        ;;  "%(let ((last (sacha-clippy-last))) (format \"| %s | %s |\" (car last) (cdr last)))"
-        ;;  :immediate-finish t)
+					`(("r" "Note" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%i\n\n# %a"
+						 :prepend t)
+						("t" "Task with annotation" entry
+						 ,sacha-org-inbox-target
+						 "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n %(sacha-org-all-links-from-context)\n"
+						 :prepend t)
+						("i" "Interrupting task" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* STARTED %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :clock-in t :clock-keep t
+						 :prepend t)
+						("wi" "Interrupting task" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* STARTED %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :clock-in t :clock-keep t
+						 :prepend t :immediate-finish t)
+						("wT" "Task for today" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \".\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :prepend t :immediate-finish t)
+						("w>" "Task for tomorrow" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :prepend t :immediate-finish t)
+						("ww" "Task for next week" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+7\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :prepend t :immediate-finish t)
+						("wm" "Task for next month" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %i\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+1m\"))\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :prepend t :immediate-finish t)
+						("wt" "Task for someday" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* SOMEDAY %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :prepend t :immediate-finish t)
+						("wn" "Note" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n# %a\n"
+						 :prepend t :immediate-finish t)
+						("T" "Task without annotation" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %^{Task}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n"
+						 :prepend t)
+						;; From https://takeonrules.com/2022/10/16/adding-another-function-to-sacha-workflow/
+						("c" "Contents to current clocked task"
+						 plain (clock)
+						 "%i%?\n# %a"
+						 :empty-lines 1)
+						;; ("p" "Podcast log - timestamped" item
+						;;  (file+olp+datetree "~/sync/orgzly/timestamped.org")
+						;;  "%<%H:%M:%S,%3N> %^{Note}"
+						;;  :immediate-finish t)
+						;; ("b" "Plover note" table-line
+						;;  (file+headline "~/proj/plover-notes/README.org" "Brief notes")
+						;;  "| %^{Stroke} | %^{Translation} | %^{Note} |"
+						;;  :immediate-finish t)
+						;; ("c" "Plover review from clippy" table-line
+						;;  (file+headline "~/proj/plover-notes/README.org" "For review")
+						;;  "%(let ((last (sacha-clippy-last))) (format \"| %s | %s |\" (car last) (cdr last)))"
+						;;  :immediate-finish t)
 
-        ("." "Today" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %^{Task}\nSCHEDULED: %t\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
-         :immediate-finish t)
-        ("v" "Video" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %^{Task}  :video:\nSCHEDULED: %t\n"
-         :immediate-finish t)
-        ("e" "Errand" entry
-         (file ,sacha-org-inbox-file)
-         "* TODO %^{Task}  :errands:\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
-         :immediate-finish t)
-        ("n" "Note" entry
-         (file ,sacha-org-inbox-file)
-         "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
-         :immediate-finish t)
-        ("N" "Note" entry
-         (file ,sacha-org-inbox-file)
-         "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
-         :prepend t)
-				("s" "Selection from browser" entry
-				 (file ,sacha-org-inbox-file)
-				 "* %a :website:\n:PROPERTIES:\n:CREATED: %U\n:END:\n#+begin_quote\n%i\n#+end_quote\n\n%?\n"
-				 :prepend t)
-				("S" "Screenshot" entry
-				 (file ,sacha-org-inbox-file)
-				 "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n#+CAPTION: %(file-name-nondirectory (sacha-latest-screenshot))\n[[file:%(sacha-latest-screenshot)]]\n"
-				 :prepend t)
-        ("b" "Business task" entry
-         (file+headline "~/personal/business.org" "Tasks")
-         ,sacha-org-basic-task-template)
-        ("j" "Journal entry" plain
-         (file+olp+datetree "~/sync/orgzly/journal.org")
-         "%K - # %a\n%i\n%?\n"
-         :unnarrowed t)
-        ("db" "Done - Business" entry
-         (file+headline "~/personal/business.org" "Tasks")
-         "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-        ("dp" "Done - People" entry
-         (file+headline "~/personal/people.org" "Tasks")
-         "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-        ("dt" "Done - Task" entry
-         (file+headline "~/sync/orgzly/organizer.org" "Inbox")
-         "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
-        ("q" "Quick note" item
-         (file+headline "~/sync/orgzly/organizer.org" "Quick notes"))
-        ("L" "Ledger")
-        ("Lc" "Cash expense" plain
-         (file ,sacha-ledger-file)
-         "%(ledger-read-date \"Date: \") * %^{Payee}
+						("." "Today" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %^{Task}\nSCHEDULED: %t\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
+						 :immediate-finish t)
+						("v" "Video" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %^{Task}  :video:\nSCHEDULED: %t\n"
+						 :immediate-finish t)
+						("e" "Errand" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* TODO %^{Task}  :errands:\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
+						 :immediate-finish t)
+						("n" "Note" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
+						 :immediate-finish t)
+						("N" "Note" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
+						 :prepend t)
+						("s" "Selection from browser" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* %a :website:\n:PROPERTIES:\n:CREATED: %U\n:END:\n#+begin_quote\n%i\n#+end_quote\n\n%?\n"
+						 :prepend t)
+						("S" "Screenshot" entry
+						 (function sacha-org-goto-inbox-target)
+						 "* %i\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n#+CAPTION: %(file-name-nondirectory (sacha-latest-screenshot))\n[[file:%(sacha-latest-screenshot)]]\n"
+						 :prepend t)
+						("b" "Business task" entry
+						 (file+headline "~/personal/business.org" "Tasks")
+						 ,sacha-org-basic-task-template)
+						("j" "Journal entry" plain
+						 (file+olp+datetree "~/sync/orgzly/journal.org")
+						 "%K - # %a\n%i\n%?\n"
+						 :unnarrowed t)
+						("db" "Done - Business" entry
+						 (file+headline "~/personal/business.org" "Tasks")
+						 "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+						("dp" "Done - People" entry
+						 (file+headline "~/personal/people.org" "Tasks")
+						 "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+						("dt" "Done - Task" entry
+						 (file+headline "~/sync/orgzly/organizer.org" "Inbox")
+						 "* DONE %^{Task}\nSCHEDULED: %^t\n%?")
+						("q" "Quick note" item
+						 (file+headline "~/sync/orgzly/organizer.org" "Quick notes"))
+						("L" "Ledger")
+						("Lc" "Cash expense" plain
+						 (file ,sacha-ledger-file)
+						 "%(ledger-read-date \"Date: \") * %^{Payee}
              Expenses:Cash
              Expenses:%^{Account}  %^{Amount}
            ")
-        ("Lb" "BDO CAD" plain
-         (file ,sacha-ledger-file)
-         "%(ledger-read-date \"Date: \") * %^{Payee}
+						("Lb" "BDO CAD" plain
+						 (file ,sacha-ledger-file)
+						 "%(ledger-read-date \"Date: \") * %^{Payee}
              Expenses:Play    $ %^{Amount}
              Assets:BDO
            ")
-        ("Lp" "BDO PHP" plain
-         (file ,sacha-ledger-file)
-         "%(ledger-read-date \"Date: \") * %^{Payee}
+						("Lp" "BDO PHP" plain
+						 (file ,sacha-ledger-file)
+						 "%(ledger-read-date \"Date: \") * %^{Payee}
              Expenses:Play    PHP %^{Amount}
              Assets:BDO
            ")
-        ("B" "Book" entry
-         (file+olp+datetree "~/personal/books.org" "Inbox")
-         "* %^{Title}  %^g
+						("B" "Book" entry
+						 (file+olp+datetree "~/personal/books.org" "Inbox")
+						 "* %^{Title}  %^g
            %i
            *Author(s):* %^{Author} \\\\
            *ISBN:* %^{ISBN}
@@ -2591,37 +2629,37 @@ sacha-toggle-now
            *Review on:* %^t \\
            # %a
            %U"
-         :clock-in :clock-resume)
-        ("C" "Contact" entry (file "~/sync/orgzly/people.org")
-         "* %(org-contacts-template-name)
+						 :clock-in :clock-resume)
+						("C" "Contact" entry (file "~/sync/orgzly/people.org")
+						 "* %(org-contacts-template-name)
 :PROPERTIES:
 :EMAIL: %(sacha-org-contacts-template-email)
 :END:")
-				("w" "Web" entry (file "~/sync/orgzly/Inbox.org")
-				 "* %a
+						("w" "Web" entry (file "~/sync/orgzly/Inbox.org")
+						 "* %a
 :PROPERTIES:
 :CREATED: %U
 :END:
 
 %i
 ")
-				("W" "Web favorite" entry (file "~/sync/orgzly/resources.org")
-				 "* %a
+						("W" "Web favorite" entry (file "~/sync/orgzly/resources.org")
+						 "* %a
 :PROPERTIES:
 :CREATED: %U
 :END:
 
 %i
 "
-				 :prepend t)
-				("y" "Yay Emacs" entry (file+headline "~/proj/stream/index.org" "Notes for this session")
-				 "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n
+						 :prepend t)
+						("y" "Yay Emacs" entry (file+headline "~/proj/stream/index.org" "Notes for this session")
+						 "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n
 
 %i
 
 # %a
 "))
-			org-capture-templates))))
+					org-capture-templates))))
 (keymap-global-set "C-M-r" 'org-capture)
 
 
@@ -4351,7 +4389,7 @@ anything RevealAnything https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/an
 (auto-image-file-mode -1)
 ;; SVG:1 ends here
 
-;; [[file:Sacha.org::*Reorder SVG groups using Org Mode][Reorder SVG groups using Org Mode:1]]
+;; [[file:Sacha.org::#multimedia-images-svg-animating-svgs-reorder-svg-groups-using-org-mode][Reorder SVG groups using Org Mode:1]]
 (defun sacha-org-svg-prepare-groups (filename)
 	"Insert the groups, links, and alt text for the given SVG."
 	(interactive (list (read-file-name "SVG: ")))
@@ -4503,7 +4541,7 @@ Each list item should be a group ID."
 (setq sacha-supernote-ip-address "192.168.1.221")
 ;; org-attaching the latest image from my Supernote via Browse and Access:1 ends here
 
-;; [[file:Sacha.org::*Quick title cards][Quick title cards:1]]
+;; [[file:Sacha.org::#multimedia-subtitles-with-subed-subed-record-quick-title-cards][Quick title cards:1]]
 ;;;###autoload
 (defun sacha-subed-record-title-card (text)
   "Make a PNG for TEXT and insert a blank subtitle for it."
@@ -4782,6 +4820,8 @@ Each list item should be a group ID."
 	"`" #'sacha-wrap-symbol-at-point)
 
 (with-eval-after-load 'subed
+	(bind-key "s--" #'sacha-code-kebab-words)
+	(bind-key "s-`" #'sacha-wrap-symbol-at-point)
 	(bind-key "C-c -" #'sacha-code-kebab-words subed-mode-map)
 	(bind-key "C-c `" #'sacha-wrap-symbol-at-point subed-mode-map)
 	(put 'sacha-code-kebab-words 'repeat-map 'sacha-kebab-repeat-map)
@@ -5627,6 +5667,8 @@ Ex: 1-5
   (exec-path-from-shell-variables
    '("PATH" "MANPATH"
 		 "BBB_ID"
+		 "BBB_SECRET"
+		 "BBB_API_URL"
      "GOOGLE_API_KEY"
 		 "ELEVENLABS_API_KEY"
      "AZURE_SPEECH_KEY"
@@ -5959,7 +6001,8 @@ Ex: 1-5
    :store 'sacha-mastodon-store-link)
 	(with-eval-after-load 'org-capture
 		(add-to-list 'org-capture-templates
-								 `("m" "Mastodon" entry (file ,sacha-org-inbox-file)
+								 `("m" "Mastodon" entry
+									 (function sacha-org-goto-inbox-target)
 									 "* %?\n\n#+begin_quote\n%:text\n#+end_quote\n\n# %a"
 									 :prepend t))))
 ;; Storing Mastodon links in Org mode:2 ends here
@@ -6248,13 +6291,13 @@ Based on https://karthinks.com/software/even-more-batteries-included-with-emacs/
 (with-eval-after-load 'org-capture
 	(cl-pushnew
 	 `("f" "Firefox" entry
-			(file ,sacha-org-inbox-file)
+			(function sacha-org-goto-inbox-target)
 			"* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%(apply #'org-link-make-string
 								 (append (spookfox-js-injection-eval-in-active-tab \"[window.location.href, document.title]\" t) nil))")
 	 org-capture-templates)
 	(cl-pushnew
 	 `("F" "Firefox link" entry
-			(file ,sacha-org-inbox-file)
+			(function sacha-org-goto-inbox-target)
 			"* %^{Note}\n:PROPERTIES:\n:CREATED: %U\n:END:\n\n%(org-link-make-string
 (sacha-spookfox-complete-link))")
 	 org-capture-templates))
@@ -6349,8 +6392,8 @@ Based on https://karthinks.com/software/even-more-batteries-included-with-emacs/
   :if sacha-laptop-p)
 ;; Notmuch:1 ends here
 
-;; [[file:Sacha.org::*Allow web search via Gmail][Allow web search via Gmail:1]]
-(defun sacha-notmuch-org-store-link ()
+;; [[file:Sacha.org::#mail-and-news-notmuch-allow-web-search-via-gmail][Allow web search via Gmail:1]]
+(defun sacha-notmuch-gmail-org-store-link ()
 	"Store a web link to this message."
 	(when (memq major-mode '(notmuch-show-mode notmuch-tree-mode))
 		;; The value is passed around using variable `org-store-link-plist'.
@@ -6367,11 +6410,11 @@ Based on https://karthinks.com/software/even-more-batteries-included-with-emacs/
 		 :description (concat "Gmail: " (notmuch-show-get-subject)))))
 ;; Allow web search via Gmail:1 ends here
 
-;; [[file:Sacha.org::*Allow web search via Gmail][Allow web search via Gmail:2]]
+;; [[file:Sacha.org::#mail-and-news-notmuch-allow-web-search-via-gmail][Allow web search via Gmail:2]]
 (with-eval-after-load 'org
 	(with-eval-after-load 'notmuch
 		(org-link-set-parameters "notmuch-gmail"
-														 :store #'sacha-notmuch-org-store-link)))
+														 :store #'sacha-notmuch-gmail-org-store-link)))
 ;; Allow web search via Gmail:2 ends here
 
 ;; [[file:Sacha.org::#act-on-current-message-with-embark][Act on current message with Embark:2]]
@@ -6450,8 +6493,6 @@ Based on https://karthinks.com/software/even-more-batteries-included-with-emacs/
 
 ;; [[file:Sacha.org::#streaming-mode-for-streaming][Mode for streaming:1]]
   (setq sacha-stream-inbox-file "~/sync/topics/live.org")
-  (setq sacha-stream-inbox-target
-				`(file+headline ,sacha-stream-inbox-file "Current / notes for next time"))
   (with-eval-after-load 'org-capture
     (add-to-list 'org-capture-templates
   	       `("u" "Update" item  ; Update for the livestream

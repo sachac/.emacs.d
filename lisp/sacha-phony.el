@@ -30,25 +30,25 @@
 ;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten
 ;;
 ;; - Create Org tasks
-;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten-create-org-tasks
 ;;
-;; - Speech shortcuts
-;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten
+;; - Speech shortcuts with phony
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten-speech-shortcuts
 ;;
 ;; - Trackers
-;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten-trackers
 ;;
 ;; - gptel and phony
-;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten-gptel-and-phony
 ;;
 ;; - OBS voice commands
-;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten-obs-voice-commands
 ;;
 ;; - Numbers in French
-;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten
+;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten-numbers-in-french
 ;;
 ;; - Laser pointer
-;;   https://sachachua.com/dotemacs#streaming
+;;   https://sachachua.com/dotemacs#streaming-and-videos-laser-pointer
 ;;
 ;;; Code:
 
@@ -93,7 +93,7 @@ Useful in `speech-input-commands'."
 	(sacha-whisper-audio-feedback "Hello too"))
 ;; Emacslisten:1 ends here
 
-;; [[file:../Sacha.org::*Create Org tasks][Create Org tasks:1]]
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacslisten-create-org-tasks][Create Org tasks:1]]
 (phony-define-open-rule date)
 (phony-defun in-minutes ("in" (number phony-stdlib--number-component) "minutes")
 	:contributes-to date
@@ -145,25 +145,25 @@ If DATE is t, clock in immediately."
 	(let* ((org-capture-templates
 					(list
 					 (append
-						`("s" "Scheduled task" entry
-							(file ,sacha-org-inbox-file)
+						(function sacha-org-goto-inbox-target)
 							,(format
-							 "* TODO %%i\n%s:PROPERTIES:\n:CREATED: %%U\n:END:\n# %%a\n# %s%s\n"
-							 (if (stringp date)
-									 (format "SCHEDULED: <%s>\n"
-													 (format-time-string
-														(if (string-match ":" date)
-																(cdr org-timestamp-formats)
-															(car org-timestamp-formats))
-														(date-to-time date)))
-								 "")
-							 (if (get-text-property 0 'file text)
-									 (concat
-										(org-link-make-string (concat "audio:" (get-text-property 0 'file text))
-																					"▶️") " ")
-								 "")
-							 (org-link-make-string (concat "file:" (sacha-screenshot-current-screen))
-																		 "screenshot"))
+								"* TODO %%i\n%s:PROPERTIES:\n:CREATED: %%U\n:END:\n%s\n# %s%s\n"
+								(if (stringp date)
+										(format "SCHEDULED: <%s>\n"
+														(format-time-string
+														 (if (string-match ":" date)
+																 (cdr org-timestamp-formats)
+															 (car org-timestamp-formats))
+														 (date-to-time date)))
+									"")
+								(replace-regexp-in-string "%" "%%" (sacha-org-all-links-from-context))
+								(if (get-text-property 0 'file text)
+										(concat
+										 (org-link-make-string (concat "audio:" (get-text-property 0 'file text))
+																					 "▶️") " ")
+									"")
+								(org-link-make-string (concat "file:" (sacha-screenshot-current-screen))
+																			"screenshot"))
 							:immediate-finish t
 							:prepend t)
 						(when (eq date t)
@@ -187,7 +187,7 @@ If DATE is t, clock in immediately."
 	(sacha-org-capture-scheduled-task text t))
 ;; Create Org tasks:1 ends here
 
-;; [[file:../Sacha.org::*Create Org tasks][Create Org tasks:2]]
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacslisten-create-org-tasks][Create Org tasks:2]]
 (phony-defun rephrase ("rephrase" (text phony--builtin-phrase))
 	"Delete this sentence and reinsert it."
 	(save-excursion
@@ -211,7 +211,7 @@ If DATE is t, clock in immediately."
 
 ;; Create Org tasks:2 ends here
 
-;; [[file:../Sacha.org::*Create Org tasks][Create Org tasks:3]]
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacslisten-create-org-tasks][Create Org tasks:3]]
 (defun sacha-doctor (input)
       "Get the doctor response to INPUT."
       (with-current-buffer (get-buffer-create "*doctor*")
@@ -277,75 +277,13 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 ;; (speech-input-commands-process "Remind me next month to verify if this works")
 ;; Create Org tasks:3 ends here
 
-;; [[file:../Sacha.org::*Speech shortcuts][Speech shortcuts:1]]
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacslisten-speech-shortcuts][Speech shortcuts with phony:1]]
+(require 'phony)
+(eval-when-compile (require 'phony))
+
 (phony-defun undo ("undo") (undo))
 (phony-defun redo ("redo") (undo-redo))
 (phony-defun winner ("winner") (winner-undo))
-
-(phony-defun pick-paragraph ("pick" "paragraph") (mark-paragraph))
-(phony-defun pick-subtree ("pick" "subtree") (org-mark-subtree))
-(phony-defun pick-sub-tree ("pick" "sub tree") (org-mark-subtree))
-(phony-defun pick-function ("pick" "function")
-	(mark-defun)
-	(activate-mark))
-(phony-defun pick-contents ("pick" "contents")
-	(org-back-to-heading)
-	(org-end-of-meta-data)
-	(push-mark)
-	(org-end-of-subtree)
-	(activate-mark))
-(phony-defun pick-element ("pick" "element") (org-mark-element))
-(phony-defun pick-line ("pick" "line")
-	(goto-char (line-beginning-position))
-	(push-mark)
-	(goto-char (line-end-position))
-	(activate-mark))
-
-(defun sacha-mark-list ()
-	"Mark the current list."
-	(let ((list (org-list-struct)))
-		(goto-char (caar list))
-		(push-mark)
-		(goto-char (car (last (car list))))
-		(activate-mark)))
-
-(phony-defun pick-list ("pick" "list")
-	(sacha-mark-list))
-
-(phony-defun pick-element-contents ("pick" "element" "contents")
-	(let ((elem (org-element-context)))
-		(goto-char (or (org-element-contents-begin elem)
-									 (org-element-begin elem)))
-		(push-mark)
-		(goto-char (or (org-element-contents-end elem)
-									 (org-element-end elem)))
-		(activate-mark)))
-
-(phony-defun toggle-list ("toggle" "list")
-	(unless (region-active-p)
-		(if (org-list-struct)
-				(sacha-mark-list)
-			(mark-paragraph)))
-	(org-toggle-item nil))
-;; Speech shortcuts:1 ends here
-
-;; [[file:../Sacha.org::*Trackers][Trackers:1]]
-(phony-defun emacs-news ("emacs" "news")
-	"Start tracking Emacs News."
-	(quantified-track "Emacs | Emacs News")
-	(find-file "~/sync/emacs-news/index.org"))
-;; Trackers:1 ends here
-
-;; [[file:../Sacha.org::*gptel and phony][gptel and phony:1]]
-(require 'phony)
-
-(defun sacha-gptel-rewrite-region (text beg end)
-  "Rewrite BEG and END using TEXT."
-  (let ((gptel-rewrite-directive 'rewrite)
-				(current-prefix-arg text))
-		(save-restriction
-			(narrow-to-region beg end)
-			(gptel--suffix-rewrite))))
 
 (phony-define-open-rule target)
 (phony-defun region "region"
@@ -354,40 +292,274 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 			 (region-end)))
 (phony-defun function "function"
 	:contributes-to target
-	(bounds-of-thing-at-point 'defun))
-(phony-defun function "sentence"
+	(cons 'function
+				(bounds-of-thing-at-point 'defun)))
+(phony-defun sentence "sentence"
 	:contributes-to target
-	(bounds-of-thing-at-point 'sentence))
-(phony-defun function "buffer"
+	(cons 'sentence
+				(bounds-of-thing-at-point 'sentence)))
+(phony-defun buffer "buffer"
 	:contributes-to target
-	(bounds-of-thing-at-point 'buffer))
+	(cons 'buffer
+				(bounds-of-thing-at-point 'buffer)))
+(phony-defun line "line"
+	:contributes-to target
+	(cons 'line
+				(bounds-of-thing-at-point 'line)))
+(phony-defun paragraph "paragraph"
+	:contributes-to target
+	(cons 'paragraph
+				(bounds-of-thing-at-point 'paragraph)))
+(phony-defun element "element"
+	:contributes-to target
+	(cons 'element
+				(let ((elem (org-element-context)))
+					(cons (org-element-begin elem)
+								(org-element-end elem)))))
+
+(phony-defun target-items "items"
+	:contributes-to target
+	(cons 'list
+				(let ((list (org-list-struct)))
+					(cons (caar list)
+								(car (last (car (last list))))))))
+
+(phony-defun subtree "subtree"
+	:contributes-to target
+	(save-excursion
+		(org-back-to-heading)
+		(cons 'subtree
+					(cons (point)
+								(org-end-of-subtree)))))
+(phony-defun contents "contents"
+	:contributes-to target
+	(save-excursion
+		(org-back-to-heading)
+		(org-end-of-meta-data)
+		(cons 'contents
+					(cons (point)
+								(org-end-of-subtree)))))
+
+(phony-defun subtree ("sub" "tree")
+	:contributes-to target
+	(save-excursion
+		(org-back-to-heading)
+		(cons 'subtree
+					(cons (point)
+								(org-end-of-subtree)))))
 
 (phony-defun eval-target ("run" (target target))
 	"Run selected target."
 	(eval-region
-	 (car target)
-	 (cdr target))
+	 (car (cdr target))
+	 (cdr (cdr target)))
 	(sacha-whisper-audio-feedback "Run"))
 
 (phony-defun debug-target ("debug" (target target))
 	"Edebug selected target."
 	(let ((edebug-all-forms t))
 		(eval-region
-		 (car target)
-		 (cdr target))))
+		 (car (cdr target))
+		 (cdr (cdr target)))))
+
+(phony-defun pick-target ("pick" (target target))
+	"Mark TARGET."
+	(sacha-mark-bounds (cdr target)))
+
+(defun sacha-mark-bounds (bounds)
+	"Mark BOUNDS."
+	(goto-char (car bounds))
+	(push-mark)
+	(goto-char (cdr bounds))
+	(activate-mark))
+
+(defun sacha-mark-list ()
+	"Mark the current list."
+	(let ((list (org-list-struct)))
+		(sacha-mark-bounds (cons (caar list)
+														 (car (last (car list)))))))
+
+(phony-defun toggle-list ("toggle" "list")
+	(unless (region-active-p)
+		(if (org-list-struct)
+				(sacha-mark-list)
+			(mark-paragraph)))
+	(org-toggle-item nil))
+
+(phony-defun open-file ("open" "file")
+  "Open file under cursor."
+  (ffap))
+(phony-defun save ("save")
+  "Save buffer."
+  (save-buffer))
+(phony-defun close ("close")
+  "Close current buffer."
+  (kill-current-buffer))
+(phony-defun switch ("switch" (? (text phony--builtin-phrase)))
+  "Switch to buffer."
+	(if text
+			(setq unread-command-events (listify-key-sequence (concat text (kbd "RET")))))
+	(let ((vertico-sort-function 'vertico-sort-length-alpha))
+    (call-interactively #'consult-buffer)))
+
+(phony-defun other ("other")
+	"Switch to other window."
+	(other-window 1))
+
+(phony-defun delete-window ("delete" "window")
+	"Delete window."
+	(delete-window))
+(phony-defun delete-other-window ("delete" "other" "windows")
+	"Delete other window."
+	(delete-other-windows))
+(phony-defun transpose ("transpose")
+	"Transpose windows."
+	(transpose-windows))
+
+(phony-defun delete-target ("delete" (target target))
+	"Delete TARGET."
+	(delete-region (cadr target) (cddr target)))
+(phony-defun kill-target ("kill" (target target))
+	"Kill TARGET."
+	(kill-region (cadr target) (cddr target)))
+
+(phony-defun copy-target ("copy" (target target))
+	"Copy TARGET."
+	(sacha-mark-bounds (cdr target))
+	(kill-new (buffer-substring (cadr target) (cddr target))))
+
+(phony-defun next-sentence ("next sentence")
+  (forward-sentence))
+(phony-defun previous-sentence ("previous sentence")
+  (previous-sentence))
+
+(phony-defun next-paragraph ("next paragraph")
+  "Go to next paragraph."
+  (forward-paragraph))
+
+(phony-defun previous-paragraph ("previous paragraph")
+  "Go to previous paragraph."
+  (backward-paragraph))
+(phony-defun next-heading ("previous heading")
+	(org-previous-visible-heading))
+(phony-defun previous-heading ("next heading")
+	(org-next-visible-heading))
+(phony-defun beginning-of-buffer ("top")
+  (beginning-of-buffer))
+(phony-defun end-of-buffer ("bottom")
+  (end-of-buffer))
+
+(phony-defun narrow ("narrow" (target target))
+	(narrow-to-region (cadr target)
+										(cddr target)))
+
+(phony-defun widen ("widen")
+	(widen))
+(phony-defun zoom-out ("zoom out")
+	(widen))
+
+(phony-define-dictionary on-or-off
+  "t or nil."
+  `(("yes" . t)
+    ("no" . nil)
+    ("on" . t)
+    ("off" . nil)))
+
+(phony-defun detect-voice-on ("detect voice" (state on-or-off))
+	(if state
+			(speech-input-vad-start)
+		(speech-input-vad-stop))
+	(sacha-whisper-audio-feedback (if state "on" "off")))
+
+;; org edit source block
+(phony-defun sacha-phony-edit-block ("edit block")
+  "Edit source block"
+  (org-edit-special))
+
+;; org exit source block
+(phony-defun sacha-phony-exit-block ("exit block")
+  "Exit source block"
+  (org-edit-src-exit))
+
+;; org next source block
+(phony-defun sacha-phony-next-src-block ("next block")
+  "Jump to next block"
+  (org-babel-next-src-block))
+
+;; org previous source block
+(phony-defun sacha-phony-previous-src-block ("previous block")
+  "Jump to prev block"
+  (org-babel-previous-src-block))
+
+(phony-defun sacha-phony-tangle-block ("tangle block")
+  "Tangle babel block"
+  (let ((current-prefix-arg '(4)))
+    (call-interactively #'org-babel-tangle)))
+
+;; org babel tangle file
+(phony-defun sacha-phony-tangle-file ("tangle file")
+  "Tangle current file"
+  (when buffer-file-name
+    (org-babel-tangle-file buffer-file-name)))
+
+(phony-defun mark-done ("task done")
+  "Change TODO state of an item."
+  (org-todo "DONE"))
+(phony-defun mark-waiting ("task waiting")
+  "Change TODO state of an item."
+  (org-todo "WAITING"))
+(phony-defun mark-started ("task started")
+  "Change TODO state of an item."
+  (org-todo "STARTED"))
+
+
+;; implement up/down five lines / sentences / paragraphs
+;; Speech shortcuts with phony:1 ends here
+
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacslisten-trackers][Trackers:1]]
+(require 'phony)
+(eval-when-compile (require 'phony))
+(phony-defun emacs-news ("emacs" "news")
+	"Start tracking Emacs News."
+	(quantified-track "Emacs | Emacs News")
+	(find-file "~/sync/emacs-news/index.org"))
+;; Trackers:1 ends here
+
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacslisten-gptel-and-phony][gptel and phony:1]]
+(require 'phony)
+(eval-when-compile (require 'phony))
+(require 'gptel)
+(require 'gptel-rewrite)
+
+;;; Work in progress, doesn't quite work yet
+
+(defun sacha-gptel-rewrite-region (text beg end)
+  "Rewrite BEG and END using TEXT."
+  (let ((gptel-rewrite-directive 'rewrite)
+				(current-prefix-arg text))
+		(save-restriction
+			(narrow-to-region beg end)
+			(gptel--suffix-rewrite (concat text "\n\n" (buffer-substring beg end))))))
 
 (phony-defun rewrite-target ("rewrite" (target target) (text phony--builtin-phrase))
 	"Rewrite selected target."
 	(sacha-gptel-rewrite-region
 	 text
-	 (car target)
-	 (cdr target)))
+	 (car (cdr target))
+	 (cdr (cdr target))))
+
+(phony-defun computer-implement ("computer implement this function")
+	"Rewrite and implement this function."
+	(let ((bounds (bounds-of-thing-at-point 'defun)))
+		(sacha-gptel-rewrite-region "Implement this function."
+																(car bounds)
+																(cdr bounds))))
 
 (phony-defun computer-insert ("computer" "insert" (text phony--builtin-phrase))
 	"Do something with gptel and insert the results."
 	(let ((tok
 				 (pending-insert (point) "Calling gptel...")))
-		(gptel-request text
+		(gptel-request (concat gptel-system-prompt "\n" text)
 			:callback (lambda (response _info)
 									(if (stringp response)
 											(pending-finish tok response)
@@ -399,17 +571,24 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 				 (pending-insert (point) "Calling gptel...")))
 		(gptel-request
 				(if (> (- (point) (point-min)) 15000)
-						(concat text "\n### Context:\n\n" (buffer-string (point-min) (point)))
+						(concat gptel-system-prompt "\n"
+										text "\n### Context:\n\n"
+										(buffer-string (point-min) (point)))
 					text)
 			:callback (lambda (response _info)
 									(if (stringp response)
 											(pending-finish tok response)
 										(pending-cancel tok))))))
 
-
+(phony-defun computer-tell-me ("computer" "tell" "me" (text phony--builtin-phrase))
+	"Start or switch to a chat session."
+	(with-current-buffer (gptel "*gptel*")
+		(insert text)
+		(gptel-send)
+		(display-buffer (current-buffer))))
 ;; gptel and phony:1 ends here
 
-;; [[file:../Sacha.org::*OBS voice commands][OBS voice commands:1]]
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacslisten-obs-voice-commands][OBS voice commands:1]]
 (phony-defun break-time ("stepping" "out")
 	(obs-websocket-set-scene "Break")
 	(sacha-whisper-audio-feedback "See you soon"))
@@ -426,7 +605,7 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 	(obs-websocket-set-scene "Just webcam"))
 ;; OBS voice commands:1 ends here
 
-;; [[file:../Sacha.org::*Numbers in French][Numbers in French:1]]
+;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacslisten-numbers-in-french][Numbers in French:1]]
 (phony-define-dictionary sacha-phony-fr-digit
 "A number between 0 and 9."
 :provides digit
@@ -525,7 +704,7 @@ NUMBER-STRING is parsed by `string-to-number'."
 ;(sacha-phony-evaluate "mille neuf cent quatre vingt dix neuf")
 ;; Numbers in French:1 ends here
 
-;; [[file:../Sacha.org::*Laser pointer][Laser pointer:2]]
+;; [[file:../Sacha.org::#streaming-and-videos-laser-pointer][Laser pointer:2]]
 ;(with-eval-after-load 'phony
 ;	(phony-defun laser ("laser") (sacha-highlight-pointer-minor-mode)))
 ;; Laser pointer:2 ends here

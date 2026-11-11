@@ -60,7 +60,7 @@
 ;;   https://sachachua.com/dotemacs#write-about-keybindings
 ;;
 ;; - Join lines
-;;   https://sachachua.com/dotemacs#org
+;;   https://sachachua.com/dotemacs#org-mode-join-lines
 ;;
 ;; - Link to the part of my config that defines a function
 ;;   https://sachachua.com/dotemacs#org-mode-link-to-the-part-of-my-config-that-defines-a-function
@@ -734,7 +734,7 @@ description."
 			(message "%s" (key-description keys)))))
 ;; Write about keybindings:1 ends here
 
-;; [[file:../Sacha.org::*Join lines][Join lines:1]]
+;; [[file:../Sacha.org::#org-mode-join-lines][Join lines:1]]
 ;;;###autoload
 (defun sacha-org-join-line ()
 "Join items as well."

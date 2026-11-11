@@ -89,9 +89,16 @@
 			(whisper--transcribe-audio)
 		(whisper--process-transcription-text sacha-whisper-last-transcript)))
 
+;;;###autoload
 (defun sacha-whisper-edit-and-retry (text)
 	"Edit TEXT and retry."
 	(interactive (list (read-string "Text: " sacha-whisper-last-transcript)))
+	(whisper--process-transcription-text text))
+
+;;;###autoload
+(defun sacha-whisper-eval (text)
+	"Edit TEXT and retry."
+	(interactive (list (read-string "Text: ")))
 	(whisper--process-transcription-text text))
 ;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:4 ends here
 
@@ -109,79 +116,111 @@
 ;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:5 ends here
 
 ;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:7]]
+(defcustom sacha-whisper-mode 'all
+  "Type of recognition."
+  :type '(choice
+					(const :tag "Commands and dictation" 'all)
+					(const :tag "Commands only, no insertion" 'commands)
+					(const :tag "Sleep - only recognizes \"wake up\"" 'sleep))
+  :group 'sacha)
+
 (defvar sacha-whisper-last-annotation nil "Last annotation so we can skip duplicates.")
 (defvar sacha-whisper-skip-annotation nil)
 (defvar sacha-whisper-target-markers nil "List of markers to send text to.")
 (defvar sacha-whisper-one-sentence-per-line t "Non-nil means split text onto separate lines.")
 
+(defun sacha-whisper-filter-mode (text)
+	"Discard, process, or modify TEXT based on `sacha-whisper-mode'."
+	(when text
+		(pcase (sacha-phony-parser--sanitize text)
+			((or "wake up" "dictation")
+			 (setq sacha-whisper-mode 'all text nil
+						 sacha-whisper-mode-indicator "✓"))
+			((or "commands" "over")
+			 (setq sacha-whisper-mode 'commands text nil
+						 sacha-whisper-mode-indicator "📋"))
+			((or "sleep" "all done")
+			 (setq sacha-whisper-mode 'sleep text nil
+						 sacha-whisper-mode-indicator "💤")))
+		(pcase sacha-whisper-mode
+			('commands
+			 ;; Keep TEXT only if it matches a command.
+			 (when
+					 (and text
+								(or (not (eq (phony-evaluate text 'not-parsed) 'not-parsed))
+										(speech-input-commands-find text)))
+				 text))
+			('sleep nil)
+			(_ text))))
+
 ;;;###autoload
 (defun sacha-whisper-insert (text)
 	"Insert TEXT at point, or at `sacha-whisper-target-markers'."
 	(let ((markers
-		 (cond
-			((null sacha-whisper-target-markers)
-			 (list whisper--marker)) ; current point where whisper was started
-			((listp sacha-whisper-target-markers)
-			 sacha-whisper-target-markers)
-			((markerp sacha-whisper-target-markers)
-			 (list sacha-whisper-target-markers))))
-		(orig-point (point))
-		(orig-buffer (current-buffer)))
+				 (cond
+					((null sacha-whisper-target-markers)
+					 (list whisper--marker)) ; current point where whisper was started
+					((listp sacha-whisper-target-markers)
+					 sacha-whisper-target-markers)
+					((markerp sacha-whisper-target-markers)
+					 (list sacha-whisper-target-markers))))
+				(orig-point (point))
+				(orig-buffer (current-buffer)))
 		(when text
-	(mapcar (lambda (marker)
-			(with-current-buffer (or (and marker (marker-buffer marker)) (current-buffer))
-				(save-restriction
-					(widen)
-					(when (and marker
-				 (marker-position marker)
-				 (marker-buffer marker))
-			(goto-char marker))
-					(when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
-			(insert "\n"))
-					(when (and sacha-whisper-one-sentence-per-line
-										 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"" (line-beginning-position))))
-						(if (and (derived-mode-p 'org-mode)
-										 (org-element-lineage (org-element-context) '(item plain-list)))
-								(unless (<= (save-excursion
-															(skip-chars-backward " \t\n")
-															(point))
-														(or (org-element-contents-begin (org-element-context))
-																most-positive-fixnum))
-									(org-return))
-							(insert "\n")))
-					(if sacha-whisper-one-sentence-per-line
-				(seq-map-indexed
-				 (lambda (line i)
-					 (when (> i 0)
-						 (if (and (derived-mode-p 'org-mode)
-					(org-element-lineage (org-element-context) '(item plain-list)))
-					 (org-return)
-				 (insert "\n")))
-					 (insert line))
-				 (split-string
-					(with-temp-buffer
-						(insert text)
-						(goto-char (point-min))
-						(let ((fill-column most-positive-fixnum))
-				(fill-paragraph-semlf))
-						(buffer-string))
-					"\n"))
-			(whisper--insert-text
-			 (concat
-				(if (looking-back "[ \t\n]\\|^")
-						""
-					" ")
-				text)))
-					(when (and
-					 marker
-					 (marker-position marker)
-					 (marker-buffer marker))
-			(move-marker marker (point)))                    ;; Move the marker forward here
-					)))
-					markers)
-	(when sacha-whisper-target-markers
-		(goto-char orig-point))
-	nil)))
+			(mapcar (lambda (marker)
+								(with-current-buffer (or (and marker (marker-buffer marker)) (current-buffer))
+									(save-restriction
+										(widen)
+										(when (and marker
+															 (marker-position marker)
+															 (marker-buffer marker))
+											(goto-char marker))
+										(when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
+											(insert "\n"))
+										(when (and sacha-whisper-one-sentence-per-line
+															 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"" (line-beginning-position))))
+											(if (and (derived-mode-p 'org-mode)
+															 (org-element-lineage (org-element-context) '(item plain-list)))
+													(unless (<= (save-excursion
+																				(skip-chars-backward " \t\n")
+																				(point))
+																			(or (org-element-contents-begin (org-element-context))
+																					most-positive-fixnum))
+														(org-return))
+												(insert "\n")))
+										(if sacha-whisper-one-sentence-per-line
+												(seq-map-indexed
+												 (lambda (line i)
+													 (when (> i 0)
+														 (if (and (derived-mode-p 'org-mode)
+																			(org-element-lineage (org-element-context) '(item plain-list)))
+																 (org-return)
+															 (insert "\n")))
+													 (insert line))
+												 (split-string
+													(with-temp-buffer
+														(insert text)
+														(goto-char (point-min))
+														(let ((fill-column most-positive-fixnum))
+															(fill-paragraph-semlf))
+														(buffer-string))
+													"\n"))
+											(whisper--insert-text
+											 (concat
+												(if (looking-back "[ \t\n]\\|^")
+														""
+													" ")
+												text)))
+										(when (and
+													 marker
+													 (marker-position marker)
+													 (marker-buffer marker))
+											(move-marker marker (point)))	;; Move the marker forward here
+										)))
+							markers)
+			(when sacha-whisper-target-markers
+				(goto-char orig-point))
+			nil)))
 ;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:7 ends here
 
 ;; [[file:../Sacha.org::sacha-whisper-maybe-type][sacha-whisper-maybe-type]]
@@ -867,16 +906,17 @@ Add this to `whisper-insert-text-at-point.'"
 (defun sacha-whisper-replay-file-from-text ()
   "Replay the file at point."
   (interactive)
+	(require 'mpv)
   (if (get-text-property (point) 'file)
       (let ((mpv-default-options
-	     (append
-	      (list "--vid=no" "--no-video" "--window-minimized=yes" )
-	      (when (get-text-property (point) 'start)
-		(list (format "--start=%f" (get-text-property (point) 'start))))
-	      (when (get-text-property (point) 'end)
-		(list (format "--end=%f" (get-text-property (point) 'end))))
-	      mpv-default-options)))
-	(mpv-play (get-text-property (point) 'file)))
+						 (append
+							(list "--vid=no" "--no-video" "--window-minimized=yes" )
+							(when (get-text-property (point) 'start)
+								(list (format "--start=%f" (get-text-property (point) 'start))))
+							(when (get-text-property (point) 'end)
+								(list (format "--end=%f" (get-text-property (point) 'end))))
+							mpv-default-options)))
+				(mpv-play (get-text-property (point) 'file)))
     (message "No file data.")))
 ;; Keep track of files and stats:1 ends here
 

@@ -140,6 +140,7 @@
 	(interactive)
  	(spookfox-js-injection-eval-in-active-tab "window.scrollBy(0, -document.documentElement.clientHeight);"))
 
+(eval-when-compile (require 'phony))
 (with-eval-after-load 'phony
 	(phony-defun web-down ("web" "down")
 		(sacha-spookfox-scroll-down))

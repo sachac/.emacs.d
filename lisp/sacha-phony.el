@@ -59,6 +59,7 @@
 
 (define-error 'sacha-phony-not-parsed "Sentence not parsed." 'error)
 
+;;;###autoload
 (defun sacha-phony-parser--sanitize (s)
 	"Lowercase and remove punctuation."
 	(string-trim (replace-regexp-in-string "[,\\.!?:]" "" (downcase s))))
@@ -145,27 +146,29 @@ If DATE is t, clock in immediately."
 	(let* ((org-capture-templates
 					(list
 					 (append
-						(function sacha-org-goto-inbox-target)
-							,(format
-								"* TODO %%i\n%s:PROPERTIES:\n:CREATED: %%U\n:END:\n%s\n# %s%s\n"
-								(if (stringp date)
-										(format "SCHEDULED: <%s>\n"
-														(format-time-string
-														 (if (string-match ":" date)
-																 (cdr org-timestamp-formats)
-															 (car org-timestamp-formats))
-														 (date-to-time date)))
-									"")
-								(replace-regexp-in-string "%" "%%" (sacha-org-all-links-from-context))
-								(if (get-text-property 0 'file text)
-										(concat
-										 (org-link-make-string (concat "audio:" (get-text-property 0 'file text))
-																					 "▶️") " ")
-									"")
-								(org-link-make-string (concat "file:" (sacha-screenshot-current-screen))
-																			"screenshot"))
-							:immediate-finish t
-							:prepend t)
+						(list
+						 "s" "Task" 'entry
+						 '(function sacha-org-goto-inbox-target)
+						 (format
+							"* TODO %%i\n%s:PROPERTIES:\n:CREATED: %%U\n:END:\n%s\n# %s%s\n"
+							(if (stringp date)
+									(format "SCHEDULED: <%s>\n"
+													(format-time-string
+													 (if (string-match ":" date)
+															 (cdr org-timestamp-formats)
+														 (car org-timestamp-formats))
+													 (date-to-time date)))
+								"")
+							(replace-regexp-in-string "%" "%%" (sacha-org-all-links-from-context))
+							(if (get-text-property 0 'file text)
+									(concat
+									 (org-link-make-string (concat "audio:" (get-text-property 0 'file text))
+																				 "▶️") " ")
+								"")
+							(org-link-make-string (concat "file:" (sacha-screenshot-current-screen))
+																		"screenshot"))
+						 :immediate-finish t
+						 :prepend t)
 						(when (eq date t)
 							(list :clock-in t
 										:clock-keep t)))))
@@ -173,16 +176,16 @@ If DATE is t, clock in immediately."
 		(org-capture-string text "s")
 		""))
 
-(phony-defun remind-me ("remind" "me" (? (date date)) (? "to") (? "that") (text phony--builtin-phrase))
+(phony-defun remind-me ("remind me" (? (date date)) (? "to") (? "that") (text phrase))
 	"Capture a scheduled task."
 	(sacha-org-capture-scheduled-task text date))
-(phony-defun rappele-moi ("rappele-moi" (? (date date)) (? "de") (? "que") (text phony--builtin-phrase))
+(phony-defun rappele-moi ("rappele-moi" (? (date date)) (? "de") (? "que") (text phrase))
 	"Capture a scheduled task."
 	(sacha-org-capture-scheduled-task text date))
-(phony-defun rappelez-moi ("rappelez-moi" (? (date date)) (? "de") (? "que") (text phony--builtin-phrase))
+(phony-defun rappelez-moi ("rappelez-moi" (? (date date)) (? "de") (? "que") (text phrase))
 	"Capture a scheduled task."
 	(sacha-org-capture-scheduled-task text date))
-(phony-defun switch-to ("switch" "to" (text phony--builtin-phrase))
+(phony-defun switch-to ("switch" "to" (text phrase))
 	"Switch to this task."
 	(sacha-org-capture-scheduled-task text t))
 ;; Create Org tasks:1 ends here
@@ -285,7 +288,20 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 (phony-defun redo ("redo") (undo-redo))
 (phony-defun winner ("winner") (winner-undo))
 
+(phony-defun insert ("insert" (text phony--builtin-phrase))
+	"Insert phrase without executing it."
+	(insert text))
+(phony-defun cap ("cap" (text phony--builtin-phrase))
+	"Insert phrase but capitalize the first letter."
+	(insert (upcase (substring text 0 1))
+					(substring text 1)))
+(phony-defun kebab ("kebab" (text phony--builtin-phrase))
+	"Insert phrase with dashes."
+	(insert (replace-regexp-in-string "-$" "" (downcase (replace-regexp-in-string "[,\\. ]+" "-" text)))))
+
 (phony-define-open-rule target)
+
+
 (phony-defun region "region"
 	:contributes-to target
 	(car (region-beginning)

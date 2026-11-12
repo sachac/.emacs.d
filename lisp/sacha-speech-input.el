@@ -121,13 +121,20 @@
   :type '(choice
 					(const :tag "Commands and dictation" 'all)
 					(const :tag "Commands only, no insertion" 'commands)
-					(const :tag "Sleep - only recognizes \"wake up\"" 'sleep))
+					(const :tag "Only dictation, ignore most commands" 'dictation-focus)
+					(const :tag "Sleep" 'sleep))
   :group 'sacha)
 
 (defvar sacha-whisper-last-annotation nil "Last annotation so we can skip duplicates.")
 (defvar sacha-whisper-skip-annotation nil)
 (defvar sacha-whisper-target-markers nil "List of markers to send text to.")
 (defvar sacha-whisper-one-sentence-per-line t "Non-nil means split text onto separate lines.")
+
+(defun sacha-whisper-process-commands (text)
+	"Process commands unless set otherwise."
+	(if (member sacha-whisper-mode '(dictation-focus sleep))
+			text
+		(and text (speech-input-commands-process (speech-input-phony-process text)))))
 
 (defun sacha-whisper-filter-mode (text)
 	"Discard, process, or modify TEXT based on `sacha-whisper-mode'."
@@ -136,9 +143,18 @@
 			((or "wake up" "dictation")
 			 (setq sacha-whisper-mode 'all text nil
 						 sacha-whisper-mode-indicator "✓"))
-			((or "commands" "over")
+			((or "commands" "drive")
+			 (sacha-whisper-audio-feedback "command mode")
 			 (setq sacha-whisper-mode 'commands text nil
 						 sacha-whisper-mode-indicator "📋"))
+			((or "only dictation" "dictation focus")
+			 (sacha-whisper-audio-feedback "dictation focus")
+			 (setq sacha-whisper-mode 'dictation-focus text nil
+						 sacha-whisper-mode-indicator "💬"))
+			((or "kebab")
+			 (sacha-whisper-audio-feedback "kebab mode")
+			 (setq sacha-whisper-mode 'kebab text nil
+						 sacha-whisper-mode-indicator "-"))
 			((or "sleep" "all done")
 			 (setq sacha-whisper-mode 'sleep text nil
 						 sacha-whisper-mode-indicator "💤")))
@@ -167,6 +183,11 @@
 				(orig-point (point))
 				(orig-buffer (current-buffer)))
 		(when text
+			(when (eq sacha-whisper-mode 'kebab)
+				(setq text
+							(replace-regexp-in-string
+							 "-$" ""
+							 (downcase (replace-regexp-in-string "[,\\. ]+" "-" text)))))
 			(mapcar (lambda (marker)
 								(with-current-buffer (or (and marker (marker-buffer marker)) (current-buffer))
 									(save-restriction
@@ -501,7 +522,7 @@ Use `sacha-speech-input-model-aliases' for aliases."
   "Delete the last sentence."
   (let ((pos (point)))
     (if (derived-mode-p 'org-mode)
-      (org-backward-sentence)
+				(org-backward-sentence)
       (backward-sentence))
     (kill-region (point) pos)))
 

@@ -1959,8 +1959,7 @@ sacha-toggle-now
 				sacha-whisper-process-replacements
 				sacha-whisper-filter-mode
 				sacha-whisper-save-transcript
-				speech-input-phony-process
-				speech-input-commands-process
+				sacha-whisper-process-commands
 				sacha-whisper-save-text
 				sacha-learn-lang-notice-bingo-words
 				; sacha-whisper-save-to-file
@@ -2025,7 +2024,6 @@ sacha-toggle-now
 ;; [[file:Sacha.org::#writing-and-editing-speech-recognition-slowly-building-speech-based-commands-for-emacs][Slowly building speech-based commands for Emacs:2]]
 (setq speech-input-commands
   `(("inline \\(.+\\)" . sacha-whisper-inline)
-		("\\(?:insert\\|insere\\|inserez\\), \\(.+\\)" . sacha-whisper-always-insert-at-point)
 		("task note,? \\(.+\\)" . sacha-whisper-always-insert-at-current-task)
 		("comment,? \\(.+\\)" . sacha-whisper-insert-as-comment)
 		("scroll up" . scroll-down-command)	; this is a test
@@ -2153,6 +2151,8 @@ sacha-toggle-now
     whisper-openai-api-key "not needed"
 		      speech-input-transcribe-url "http://localhost:8003/v1/audio/transcriptions"
 		      whisper-server-port 8003)
+(when sacha-laptop-p
+	(sacha-orukeet-ensure))
 ;; Orukeet:3 ends here
 
 ;; [[file:Sacha.org::#utf-8][UTF-8:1]]
@@ -2192,7 +2192,7 @@ sacha-toggle-now
 Based on `org-link--try-link-store-functions'."
   (interactive)
 	(with-current-buffer
-			(if org-capture-plist
+			(if (and org-capture-plist (buffer-live-p (plist-get org-capture-plist :original-buffer)))
 					(plist-get org-capture-plist :original-buffer)
 				(current-buffer))
 		(let ((results-alist nil))

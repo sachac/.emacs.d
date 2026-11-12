@@ -9171,6 +9171,7 @@ https://emacslisten.org
 
 (define-error 'sacha-phony-not-parsed "Sentence not parsed." 'error)
 
+;;;###autoload
 (defun sacha-phony-parser--sanitize (s)
 	"Lowercase and remove punctuation."
 	(string-trim (replace-regexp-in-string "[,\\.!?:]" "" (downcase s))))
@@ -9260,27 +9261,29 @@ If DATE is t, clock in immediately."
 	(let* ((org-capture-templates
 					(list
 					 (append
-						(function sacha-org-goto-inbox-target)
-							,(format
-								"* TODO %%i\n%s:PROPERTIES:\n:CREATED: %%U\n:END:\n%s\n# %s%s\n"
-								(if (stringp date)
-										(format "SCHEDULED: <%s>\n"
-														(format-time-string
-														 (if (string-match ":" date)
-																 (cdr org-timestamp-formats)
-															 (car org-timestamp-formats))
-														 (date-to-time date)))
-									"")
-								(replace-regexp-in-string "%" "%%" (sacha-org-all-links-from-context))
-								(if (get-text-property 0 'file text)
-										(concat
-										 (org-link-make-string (concat "audio:" (get-text-property 0 'file text))
-																					 "▶️") " ")
-									"")
-								(org-link-make-string (concat "file:" (sacha-screenshot-current-screen))
-																			"screenshot"))
-							:immediate-finish t
-							:prepend t)
+						(list
+						 "s" "Task" 'entry
+						 '(function sacha-org-goto-inbox-target)
+						 (format
+							"* TODO %%i\n%s:PROPERTIES:\n:CREATED: %%U\n:END:\n%s\n# %s%s\n"
+							(if (stringp date)
+									(format "SCHEDULED: <%s>\n"
+													(format-time-string
+													 (if (string-match ":" date)
+															 (cdr org-timestamp-formats)
+														 (car org-timestamp-formats))
+													 (date-to-time date)))
+								"")
+							(replace-regexp-in-string "%" "%%" (sacha-org-all-links-from-context))
+							(if (get-text-property 0 'file text)
+									(concat
+									 (org-link-make-string (concat "audio:" (get-text-property 0 'file text))
+																				 "▶️") " ")
+								"")
+							(org-link-make-string (concat "file:" (sacha-screenshot-current-screen))
+																		"screenshot"))
+						 :immediate-finish t
+						 :prepend t)
 						(when (eq date t)
 							(list :clock-in t
 										:clock-keep t)))))
@@ -9288,16 +9291,16 @@ If DATE is t, clock in immediately."
 		(org-capture-string text "s")
 		""))
 
-(phony-defun remind-me ("remind" "me" (? (date date)) (? "to") (? "that") (text phony--builtin-phrase))
+(phony-defun remind-me ("remind me" (? (date date)) (? "to") (? "that") (text phrase))
 	"Capture a scheduled task."
 	(sacha-org-capture-scheduled-task text date))
-(phony-defun rappele-moi ("rappele-moi" (? (date date)) (? "de") (? "que") (text phony--builtin-phrase))
+(phony-defun rappele-moi ("rappele-moi" (? (date date)) (? "de") (? "que") (text phrase))
 	"Capture a scheduled task."
 	(sacha-org-capture-scheduled-task text date))
-(phony-defun rappelez-moi ("rappelez-moi" (? (date date)) (? "de") (? "que") (text phony--builtin-phrase))
+(phony-defun rappelez-moi ("rappelez-moi" (? (date date)) (? "de") (? "que") (text phrase))
 	"Capture a scheduled task."
 	(sacha-org-capture-scheduled-task text date))
-(phony-defun switch-to ("switch" "to" (text phony--builtin-phrase))
+(phony-defun switch-to ("switch" "to" (text phrase))
 	"Switch to this task."
 	(sacha-org-capture-scheduled-task text t))
 #+end_src
@@ -9408,7 +9411,20 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 (phony-defun redo ("redo") (undo-redo))
 (phony-defun winner ("winner") (winner-undo))
 
+(phony-defun insert ("insert" (text phony--builtin-phrase))
+	"Insert phrase without executing it."
+	(insert text))
+(phony-defun cap ("cap" (text phony--builtin-phrase))
+	"Insert phrase but capitalize the first letter."
+	(insert (upcase (substring text 0 1))
+					(substring text 1)))
+(phony-defun kebab ("kebab" (text phony--builtin-phrase))
+	"Insert phrase with dashes."
+	(insert (replace-regexp-in-string "-$" "" (downcase (replace-regexp-in-string "[,\\. ]+" "-" text)))))
+
 (phony-define-open-rule target)
+
+
 (phony-defun region "region"
 	:contributes-to target
 	(car (region-beginning)
@@ -10002,8 +10018,7 @@ Update [2026-10-02 Fri]: Il peut aussi comprendre le français. I used to have c
 				sacha-whisper-process-replacements
 				sacha-whisper-filter-mode
 				sacha-whisper-save-transcript
-				speech-input-phony-process
-				speech-input-commands-process
+				sacha-whisper-process-commands
 				sacha-whisper-save-text
 				sacha-learn-lang-notice-bingo-words
 				; sacha-whisper-save-to-file
@@ -10016,21 +10031,27 @@ Update [2026-10-02 Fri]: Il peut aussi comprendre le français. I used to have c
 				sacha-whisper-insert
 				sacha-whisper-reset)))
 #+end_src
-This is her test.
-I think it seems to be working.
+
 #+begin_src emacs-lisp :tangle lisp/sacha-speech-input.el
 (defcustom sacha-whisper-mode 'all
   "Type of recognition."
   :type '(choice
 					(const :tag "Commands and dictation" 'all)
 					(const :tag "Commands only, no insertion" 'commands)
-					(const :tag "Sleep - only recognizes \"wake up\"" 'sleep))
+					(const :tag "Only dictation, ignore most commands" 'dictation-focus)
+					(const :tag "Sleep" 'sleep))
   :group 'sacha)
 
 (defvar sacha-whisper-last-annotation nil "Last annotation so we can skip duplicates.")
 (defvar sacha-whisper-skip-annotation nil)
 (defvar sacha-whisper-target-markers nil "List of markers to send text to.")
 (defvar sacha-whisper-one-sentence-per-line t "Non-nil means split text onto separate lines.")
+
+(defun sacha-whisper-process-commands (text)
+	"Process commands unless set otherwise."
+	(if (member sacha-whisper-mode '(dictation-focus sleep))
+			text
+		(and text (speech-input-commands-process (speech-input-phony-process text)))))
 
 (defun sacha-whisper-filter-mode (text)
 	"Discard, process, or modify TEXT based on `sacha-whisper-mode'."
@@ -10039,9 +10060,18 @@ I think it seems to be working.
 			((or "wake up" "dictation")
 			 (setq sacha-whisper-mode 'all text nil
 						 sacha-whisper-mode-indicator "✓"))
-			((or "commands" "over")
+			((or "commands" "drive")
+			 (sacha-whisper-audio-feedback "command mode")
 			 (setq sacha-whisper-mode 'commands text nil
 						 sacha-whisper-mode-indicator "📋"))
+			((or "only dictation" "dictation focus")
+			 (sacha-whisper-audio-feedback "dictation focus")
+			 (setq sacha-whisper-mode 'dictation-focus text nil
+						 sacha-whisper-mode-indicator "💬"))
+			((or "kebab")
+			 (sacha-whisper-audio-feedback "kebab mode")
+			 (setq sacha-whisper-mode 'kebab text nil
+						 sacha-whisper-mode-indicator "-"))
 			((or "sleep" "all done")
 			 (setq sacha-whisper-mode 'sleep text nil
 						 sacha-whisper-mode-indicator "💤")))
@@ -10070,6 +10100,11 @@ I think it seems to be working.
 				(orig-point (point))
 				(orig-buffer (current-buffer)))
 		(when text
+			(when (eq sacha-whisper-mode 'kebab)
+				(setq text
+							(replace-regexp-in-string
+							 "-$" ""
+							 (downcase (replace-regexp-in-string "[,\\. ]+" "-" text)))))
 			(mapcar (lambda (marker)
 								(with-current-buffer (or (and marker (marker-buffer marker)) (current-buffer))
 									(save-restriction
@@ -11777,7 +11812,7 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
   "Delete the last sentence."
   (let ((pos (point)))
     (if (derived-mode-p 'org-mode)
-      (org-backward-sentence)
+				(org-backward-sentence)
       (backward-sentence))
     (kill-region (point) pos)))
 
@@ -12140,7 +12175,6 @@ Add this to `whisper-insert-text-at-point.'"
 #+begin_src emacs-lisp
 (setq speech-input-commands
   `(("inline \\(.+\\)" . sacha-whisper-inline)
-		("\\(?:insert\\|insere\\|inserez\\), \\(.+\\)" . sacha-whisper-always-insert-at-point)
 		("task note,? \\(.+\\)" . sacha-whisper-always-insert-at-current-task)
 		("comment,? \\(.+\\)" . sacha-whisper-insert-as-comment)
 		("scroll up" . scroll-down-command)	; this is a test
@@ -13274,6 +13308,8 @@ Here's my config for [[https://github.com/sachac/whisper.el][my fork of natrys/w
     whisper-openai-api-key "not needed"
 		      speech-input-transcribe-url "http://localhost:8003/v1/audio/transcriptions"
 		      whisper-server-port 8003)
+(when sacha-laptop-p
+	(sacha-orukeet-ensure))
 #+end_src
 
 *** Gladia
@@ -13792,7 +13828,7 @@ stuff.
 Based on `org-link--try-link-store-functions'."
   (interactive)
 	(with-current-buffer
-			(if org-capture-plist
+			(if (and org-capture-plist (buffer-live-p (plist-get org-capture-plist :original-buffer)))
 					(plist-get org-capture-plist :original-buffer)
 				(current-buffer))
 		(let ((results-alist nil))
@@ -45844,7 +45880,7 @@ From https://github.com/nhoffman/.emacs.d/blob/master/init.org
     (setenv "SSH_AUTH_SOCK"
             (car (split-string
                   (shell-command-to-string
-                   "ls -t $(find /tmp/ssh-* -user $USER -name 'agent.*' 2> /dev/null)"))))
+                   "ls -t $(find ~/.ssh/agent/ 2> /dev/null)"))))
     (message
      (format "SSH_AUTH_SOCK %s --> %s"
              ssh-auth-sock-old (getenv "SSH_AUTH_SOCK")))))

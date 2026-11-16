@@ -9502,7 +9502,15 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 	:contributes-to target
 	(cons 'function
 				(bounds-of-thing-at-point 'defun)))
+(phony-defun function-fr "fonction"
+	:contributes-to target
+	(cons 'function
+				(bounds-of-thing-at-point 'defun)))
 (phony-defun sentence "sentence"
+	:contributes-to target
+	(cons 'sentence
+				(bounds-of-thing-at-point 'sentence)))
+(phony-defun sentence-fr "phrase"
 	:contributes-to target
 	(cons 'sentence
 				(bounds-of-thing-at-point 'sentence)))
@@ -9603,7 +9611,7 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 (phony-defun close ("close")
   "Close current buffer."
   (kill-current-buffer))
-(phony-defun switch ("switch" (? (text phony--builtin-phrase)))
+(phony-defun buffer ("buffer" (? (text phrase)))
   "Switch to buffer."
 	(if text
 			(setq unread-command-events (listify-key-sequence (concat text (kbd "RET")))))
@@ -9654,6 +9662,8 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 	(org-next-visible-heading))
 (phony-defun beginning-of-buffer ("top")
   (beginning-of-buffer))
+(phony-defun bottom ("bottom")
+  (end-of-buffer))
 (phony-defun end-of-buffer ("bottom")
   (end-of-buffer))
 
@@ -9758,7 +9768,7 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 			(narrow-to-region beg end)
 			(gptel--suffix-rewrite (concat text "\n\n" (buffer-substring beg end))))))
 
-(phony-defun rewrite-target ("rewrite" (target target) (text phony--builtin-phrase))
+(phony-defun rewrite-target ("rewrite" (target target) (text phrase))
 	"Rewrite selected target."
 	(sacha-gptel-rewrite-region
 	 text
@@ -9772,7 +9782,7 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 																(car bounds)
 																(cdr bounds))))
 
-(phony-defun computer-insert ("computer" "insert" (text phony--builtin-phrase))
+(phony-defun computer-insert ("computer" "insert" (text phrase))
 	"Do something with gptel and insert the results."
 	(let ((tok
 				 (pending-insert (point) "Calling gptel...")))
@@ -9782,7 +9792,7 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 											(pending-finish tok response)
 										(pending-cancel tok))))))
 
-(phony-defun computer-continue ("computer" "continue" (text phony--builtin-phrase))
+(phony-defun computer-continue ("computer" "continue" (text phrase))
 	"Do something with gptel and the context so far and insert the results."
 	(let ((tok
 				 (pending-insert (point) "Calling gptel...")))
@@ -9797,10 +9807,37 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 											(pending-finish tok response)
 										(pending-cancel tok))))))
 
-(phony-defun computer-tell-me ("computer" "tell" "me" (text phony--builtin-phrase))
+(phony-defun computer-tell-me ("computer" "tell" "me" (text phrase))
 	"Start or switch to a chat session."
 	(with-current-buffer (gptel "*gptel*")
 		(insert text)
+		(gptel-send)
+		(display-buffer (current-buffer))))
+
+(phony-defun computer-tell-me-fr ("dites-moi" (text phrase))
+	"Start or switch to a chat session."
+	(with-current-buffer (gptel "*gptel*")
+		(insert text)
+		(sacha-whisper-conversation-mode)
+		(gptel-send)
+		(display-buffer (current-buffer))))
+
+(phony-defun computer-explain-fr ("explique-moi" (? "cette") (? "ce") (? (target target)) (? (phrase phrase)))
+	"Start or switch to a chat session."
+	(let ((text (if target (buffer-substring (cadr target) (cddr target))
+								"")))
+		(with-current-buffer (gptel "*gptel*")
+			(insert "Explique-moi " (or phrase "") "\n---\n"
+							text)
+			(sacha-whisper-conversation-mode -1)
+			(gptel-send)
+			(display-buffer (current-buffer)))))
+
+(phony-defun computer-tell-me-fr2 ("ditez-moi" (text phrase))
+	"Start or switch to a chat session."
+	(with-current-buffer (gptel "*gptel*")
+		(insert text)
+		(sacha-whisper-conversation-mode)
 		(gptel-send)
 		(display-buffer (current-buffer))))
 #+end_src
@@ -9997,7 +10034,7 @@ I press ~<kp-0>~ to start recording, talk, and then press ~<kp-0>~ to stop recor
 (("<f9>" . sacha-whisper-run-with-pending-indicator)
  ("M-<f9>" . whisper-run)
  ("C-<f9>" . whisper-run)
- ("S-<f2>" . whisper-run)
+ ("S-<f2>" . sacha-whisper-run-with-pending-indicator)
  ("S-<f9>" . sacha-whisper-replay)))
 #+end_src
 
@@ -10239,6 +10276,7 @@ These commands get processed regardless of the mode:
 										(when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
 											(insert "\n"))
 										(when (and sacha-whisper-one-sentence-per-line
+															 (not (eq sacha-whisper-mode 'kebab))
 															 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"" (line-beginning-position))))
 											(if (and (derived-mode-p 'org-mode)
 															 (org-element-lineage (org-element-context) '(item plain-list)))
@@ -10249,7 +10287,8 @@ These commands get processed regardless of the mode:
 																					most-positive-fixnum))
 														(org-return))
 												(insert "\n")))
-										(if sacha-whisper-one-sentence-per-line
+										(if (and sacha-whisper-one-sentence-per-line
+														 (not (eq sacha-whisper-mode 'kebab)))
 												(seq-map-indexed
 												 (lambda (line i)
 													 (when (> i 0)
@@ -11144,7 +11183,7 @@ First, I need a Python server that can print out events when it notices the star
 #+INCLUDE: ~/proj/speech-input/vad-events.py src python
 #+end_my_details
 
-I've mode the code to [[speech-input:speech-input-vad.el]], so now I can use =speech-input-vad-start= to start monitoring speech events.
+I've moved the code to [[speech-input:speech-input-vad.el]], so now I can use =speech-input-vad-start= to start monitoring speech events.
 
 #+begin_src emacs-lisp
 (use-package speech-input

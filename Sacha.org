@@ -9433,7 +9433,9 @@ If DATE is t, clock in immediately."
 (defun sacha-whisper-gptel-speak-output (beg end)
 "Speak the output.
 Set `learn-lang-language' and `learn-lang-tts-function' as needed."
-(learn-lang-tts-say (buffer-substring beg end)))
+(learn-lang-tts-say
+ (replace-regexp-in-string "^#\\+.+" ""
+													 (buffer-substring beg end))))
 
 ;;;###autoload
 (define-minor-mode sacha-whisper-conversation-mode ()

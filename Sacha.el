@@ -1678,6 +1678,10 @@ sacha-toggle-now
 
 ;; [[file:Sacha.org::#writing-and-editing-learning-french-gtts-cli][gtts-cli:1]]
 (use-package learn-lang-tts :load-path "~/proj/learn-lang"
+	:commands
+	(learn-lang-tts-kokoro-fastapi-ensure)
+	:init
+	(learn-lang-tts-kokoro-fastapi-ensure)
   :config
   (setq learn-lang-tts-kokoro-cli-executable "~/.local/bin/kokoro-tts --model /home/sacha/vendor/kokoro-onnx/kokoro-v1.0.onnx --voices /home/sacha/vendor/kokoro-onnx/voices-v1.0.bin"))
 ;; gtts-cli:1 ends here
@@ -1891,7 +1895,8 @@ sacha-toggle-now
 
 (defun sacha-whisper-pending-remove-overlay (text)
 	"Add to `whisper-insert-text-at-point'."
-	(pending-finish sacha-whisper-pending-overlay "")
+	(when sacha-whisper-pending-overlay
+		(pending-finish sacha-whisper-pending-overlay ""))
 	text)
 ;; Pending indicator:2 ends here
 
@@ -2219,31 +2224,32 @@ Based on `org-link--try-link-store-functions'."
 ;; Store all matching links:1 ends here
 
 ;; [[file:Sacha.org::#org-mode-notifications][Notifications:1]]
-(defvar sacha-libnotify-chime "/home/sacha/proj/french/chime.opus" "Path to chime.")
-(defun sacha-persistent-libnotify (info)
-    "Send a persistent, non-expiring libnotify alert."
-    (let ((title (plist-get info :title))
-          (body (plist-get info :message))
-          (severity (plist-get info :severity)))
-			(start-process "alert-sound" nil
-                     "paplay" sacha-libnotify-chime)
-      (start-process "persistent-alert" nil
-                     "notify-send"
-                     title body
-                     "-u" "critical"
-                     "-t" "0")))
-(with-eval-after-load 'alert
-	(alert-define-style 'sacha-libnotify-persistent
-                      :title "Persistent Libnotify"
-                      :notifier #'sacha-persistent-libnotify))
-(use-package org-alert :ensure t
-	:init
-	(setq alert-default-style 'sacha-libnotify-persistent)
-	(setq org-alert-interval 60
-				org-alert-notify-cutoff 1
-				org-alert-notify-after-event-cutoff 1)
-	(org-alert-enable)
-)
+  (defvar sacha-libnotify-chime "/home/sacha/proj/french/chime.opus" "Path to chime.")
+  (defun sacha-persistent-libnotify (info)
+      "Send a persistent, non-expiring libnotify alert."
+      (let ((title (plist-get info :title))
+            (body (plist-get info :message))
+            (severity (plist-get info :severity)))
+  			(start-process "alert-sound" nil
+                       "paplay" sacha-libnotify-chime)
+        (start-process "persistent-alert" nil
+                       "notify-send"
+                       title body
+                       "-u" "critical"
+                       "-t" "0")))
+  (with-eval-after-load 'alert
+  	(alert-define-style 'sacha-libnotify-persistent
+                        :title "Persistent Libnotify"
+                        :notifier #'sacha-persistent-libnotify))
+  (use-package org-alert :ensure t
+    :commands (org-alert-enable)
+  	:init
+  	(setq alert-default-style 'sacha-libnotify-persistent)
+  	(setq org-alert-interval 60
+  				org-alert-notify-cutoff 1
+  				org-alert-notify-after-event-cutoff 1)
+  	(org-alert-enable)
+  )
 ;; Notifications:1 ends here
 
 ;; [[file:Sacha.org::#org-mode-folding-list-items][Folding list items:1]]

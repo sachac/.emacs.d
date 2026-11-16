@@ -175,6 +175,7 @@ If DATE is t, clock in immediately."
 										:clock-keep t)))))
 				 (sacha-org-quick-task t))
 		(org-capture-string text "s")
+		(sacha-whisper-audio-feedback "Saved")
 		""))
 
 (phony-defun remind-me ("remind me" (? (date date)) (? "to") (? "that") (text phrase))

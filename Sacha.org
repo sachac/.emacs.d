@@ -6698,6 +6698,10 @@ Update [2026-03-08 Sun]: Moved to learn-lang:learn-lang-tts.el and [[learn-lang:
 
 #+begin_src emacs-lisp
 (use-package learn-lang-tts :load-path "~/proj/learn-lang"
+	:commands
+	(learn-lang-tts-kokoro-fastapi-ensure)
+	:init
+	(learn-lang-tts-kokoro-fastapi-ensure)
   :config
   (setq learn-lang-tts-kokoro-cli-executable "~/.local/bin/kokoro-tts --model /home/sacha/vendor/kokoro-onnx/kokoro-v1.0.onnx --voices /home/sacha/vendor/kokoro-onnx/voices-v1.0.bin"))
 #+end_src
@@ -9213,7 +9217,8 @@ emacsclient --eval "(sacha-whisper-emacsclient)"
 
 (defun sacha-whisper-pending-remove-overlay (text)
 	"Add to `whisper-insert-text-at-point'."
-	(pending-finish sacha-whisper-pending-overlay "")
+	(when sacha-whisper-pending-overlay
+		(pending-finish sacha-whisper-pending-overlay ""))
 	text)
 #+end_src
 
@@ -11389,13 +11394,14 @@ Also keep track of target phrases."
 		sacha-vad-visualize-spans)
 	"Functions to call with the VAD/transcription events.")
 
-(defvar sacha-vad-process-my-speech nil "Non-nil means process my speech through the whisper setup.")
+(defvar sacha-vad-process-my-speech t "Non-nil means process my speech through the whisper setup.")
 (defun sacha-vad-speech-process (data)
   "Process DATA through my whisper input process if it's my speech.
 Add to `sacha-vad-event-handler-functions'."
   (when (and sacha-vad-process-my-speech
 					   (string= (alist-get 'event data) "final")
 					   (string= (alist-get 'label data) sacha-vad-my-label))
+		(require 'whisper)
 	  (with-current-buffer (get-buffer-create whisper--stdout-buffer-name)
 		  (erase-buffer)
 		  (insert (alist-get 'text data))
@@ -14024,31 +14030,32 @@ Based on `org-link--try-link-store-functions'."
 :END:
 
 #+begin_src emacs-lisp
-(defvar sacha-libnotify-chime "/home/sacha/proj/french/chime.opus" "Path to chime.")
-(defun sacha-persistent-libnotify (info)
-    "Send a persistent, non-expiring libnotify alert."
-    (let ((title (plist-get info :title))
-          (body (plist-get info :message))
-          (severity (plist-get info :severity)))
-			(start-process "alert-sound" nil
-                     "paplay" sacha-libnotify-chime)
-      (start-process "persistent-alert" nil
-                     "notify-send"
-                     title body
-                     "-u" "critical"
-                     "-t" "0")))
-(with-eval-after-load 'alert
-	(alert-define-style 'sacha-libnotify-persistent
-                      :title "Persistent Libnotify"
-                      :notifier #'sacha-persistent-libnotify))
-(use-package org-alert :ensure t
-	:init
-	(setq alert-default-style 'sacha-libnotify-persistent)
-	(setq org-alert-interval 60
-				org-alert-notify-cutoff 1
-				org-alert-notify-after-event-cutoff 1)
-	(org-alert-enable)
-)
+  (defvar sacha-libnotify-chime "/home/sacha/proj/french/chime.opus" "Path to chime.")
+  (defun sacha-persistent-libnotify (info)
+      "Send a persistent, non-expiring libnotify alert."
+      (let ((title (plist-get info :title))
+            (body (plist-get info :message))
+            (severity (plist-get info :severity)))
+  			(start-process "alert-sound" nil
+                       "paplay" sacha-libnotify-chime)
+        (start-process "persistent-alert" nil
+                       "notify-send"
+                       title body
+                       "-u" "critical"
+                       "-t" "0")))
+  (with-eval-after-load 'alert
+  	(alert-define-style 'sacha-libnotify-persistent
+                        :title "Persistent Libnotify"
+                        :notifier #'sacha-persistent-libnotify))
+  (use-package org-alert :ensure t
+    :commands (org-alert-enable)
+  	:init
+  	(setq alert-default-style 'sacha-libnotify-persistent)
+  	(setq org-alert-interval 60
+  				org-alert-notify-cutoff 1
+  				org-alert-notify-after-event-cutoff 1)
+  	(org-alert-enable)
+  )
 #+end_src
 ** Folding list items
 :PROPERTIES:

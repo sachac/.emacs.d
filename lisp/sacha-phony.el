@@ -192,12 +192,88 @@ If DATE is t, clock in immediately."
 	(sacha-org-capture-scheduled-task text date))
 (phony-defun switch-to ("switch" "to" (text phrase))
 	"Switch to this task."
-	(sacha-org-capture-scheduled-task text t))
+	(if (string= (sacha-phony-parser--sanitize text) "this")
+			(let ((sacha-org-quick-task t))
+				(if (derived-mode-p 'org-agenda-mode)
+						(org-agenda-clock-in)
+					(org-clock-in)))
+		(sacha-org-capture-scheduled-task text t)))
+
 (phony-defun inbox ("inbox")
 	"Jump to inbox."
 	(sacha-org-goto-inbox-target)
 	(widen)
   (sacha-org-goto-inbox-target))
+
+;; org edit source block
+(phony-defun sacha-phony-edit-block ("edit block")
+  "Edit source block"
+  (org-edit-special))
+
+;; org exit source block
+(phony-defun sacha-phony-exit-block ("exit block")
+  "Exit source block"
+  (org-edit-src-exit))
+
+;; org next source block
+(phony-defun sacha-phony-next-src-block ("next block")
+  "Jump to next block"
+  (org-babel-next-src-block))
+
+;; org previous source block
+(phony-defun sacha-phony-previous-src-block ("previous block")
+  "Jump to prev block"
+  (org-babel-previous-src-block))
+
+(phony-defun sacha-phony-tangle-block ("tangle block")
+  "Tangle babel block"
+  (let ((current-prefix-arg '(4)))
+    (call-interactively #'org-babel-tangle)))
+
+;; org babel tangle file
+(phony-defun sacha-phony-tangle-file ("tangle file")
+  "Tangle current file"
+  (when buffer-file-name
+    (org-babel-tangle-file buffer-file-name)))
+
+(defun sacha-phony-org-todo-and-next (status)
+  "Update todo to STATUS and move to the next."
+  (if (derived-mode-p 'org-agenda-mode)
+			(progn
+				(org-agenda-todo status)
+				(forward-line 1)
+				(hl-line-highlight))
+		(org-todo status)
+		(org-next-visible-heading)))
+(phony-defun agenda ("agenda")
+	(sacha-org-check-agenda))
+(phony-defun org-reschedule ((date date))
+  "Reschedule a task."
+	(if (derived-mode-p 'org-agenda-mode)
+			(progn
+				(org-agenda-schedule nil date)
+				(forward-line 1)
+				(hl-line-highlight))
+		(org-schedule nil date)
+		(org-next-visible-heading 1)))
+
+(phony-defun mark-done ((| "done" "task done"))
+  "Change TODO state of an item."
+	(sacha-phony-org-todo-and-next "DONE"))
+(phony-defun mark-waiting ("waiting")
+  "Change TODO state of an item."
+  (sacha-phony-org-todo-and-next "WAITING"))
+(phony-defun mark-started ("started")
+  "Change TODO state of an item."
+  (sacha-phony-org-todo-and-next "STARTED"))
+(phony-defun mark-cancelled ("cancelled")
+  "Change TODO state of an item."
+  (sacha-phony-org-todo-and-next "CANCELLED"))
+
+(phony-defun refresh ("refresh")
+	(pcase major-mode
+		('org-agenda-mode
+		 (org-agenda-redo-all))))
 ;; Create Org tasks:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacslisten-create-org-tasks][Create Org tasks:2]]
@@ -300,12 +376,23 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 (phony-defun redo ("redo") (undo-redo))
 (phony-defun winner ("winner") (winner-undo))
 
+(defun sacha-maybe-capitalize-for-insertion (text)
+  "Maybe capitalize TEXT."
+  (if (looking-back
+			 "[-\\.?!][ \t]*\\|^[ \t]*"
+			 (line-beginning-position))
+			(setq text
+						(concat (upcase (substring text 0 1))
+										(if (> (length text) 1) (substring text 1) ""))))
+	text)
+
 (phony-defun insert ("insert" (text phrase))
 	"Insert phrase without executing it."
-	(insert text))
+	(sacha-whisper-insert (sacha-maybe-capitalize-for-insertion text)))
+
 (phony-defun cap ("cap" (text phrase))
 	"Insert phrase but capitalize the first letter."
-	(insert (upcase (substring text 0 1))
+	(sacha-whisper-insert (upcase (substring text 0 1))
 					(substring text 1)))
 (phony-defun kebab ("kebab" (text phrase))
 	"Insert phrase with dashes."
@@ -398,6 +485,9 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 		 (car (cdr target))
 		 (cdr (cdr target)))))
 
+(phony-defun row ("row" (number phony-stdlib--number-component))
+	(goto-line (sacha-whisper-get-line-position number) nil t))
+
 (phony-defun pick-target ("pick" (target target))
 	"Mark TARGET."
 	(sacha-mark-bounds (cdr target)))
@@ -451,6 +541,15 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 (phony-defun transpose ("transpose")
 	"Transpose windows."
 	(transpose-windows))
+
+;; You know what I need?
+;; I want to delete the last three lines sort of command.
+
+(phony-defun delete-last-n-lines ("delete the last" (number phony-stdlib--number-component) "lines")
+	"Delete the last N lines."
+	(let ((end (line-end-position)))
+		(forward-line (- (1- number)))
+		(delete-region (line-beginning-position) end)))
 
 (phony-defun delete-target ("delete" (target target))
 	"Delete TARGET."
@@ -508,47 +607,6 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 			(speech-input-vad-start)
 		(speech-input-vad-stop))
 	(sacha-whisper-audio-feedback (if state "on" "off")))
-
-;; org edit source block
-(phony-defun sacha-phony-edit-block ("edit block")
-  "Edit source block"
-  (org-edit-special))
-
-;; org exit source block
-(phony-defun sacha-phony-exit-block ("exit block")
-  "Exit source block"
-  (org-edit-src-exit))
-
-;; org next source block
-(phony-defun sacha-phony-next-src-block ("next block")
-  "Jump to next block"
-  (org-babel-next-src-block))
-
-;; org previous source block
-(phony-defun sacha-phony-previous-src-block ("previous block")
-  "Jump to prev block"
-  (org-babel-previous-src-block))
-
-(phony-defun sacha-phony-tangle-block ("tangle block")
-  "Tangle babel block"
-  (let ((current-prefix-arg '(4)))
-    (call-interactively #'org-babel-tangle)))
-
-;; org babel tangle file
-(phony-defun sacha-phony-tangle-file ("tangle file")
-  "Tangle current file"
-  (when buffer-file-name
-    (org-babel-tangle-file buffer-file-name)))
-
-(phony-defun mark-done ("task done")
-  "Change TODO state of an item."
-  (org-todo "DONE"))
-(phony-defun mark-waiting ("task waiting")
-  "Change TODO state of an item."
-  (org-todo "WAITING"))
-(phony-defun mark-started ("task started")
-  "Change TODO state of an item."
-  (org-todo "STARTED"))
 
 
 ;; implement up/down five lines / sentences / paragraphs
@@ -767,6 +825,10 @@ NUMBER-STRING is parsed by `string-to-number'."
 ;; (phony--export-all)
 ;; (sacha-phony-evaluate "dix neuf")
 ;(sacha-phony-evaluate "mille neuf cent quatre vingt dix neuf")
+
+(defun sacha-phony-sanitize-literal (s)
+  "Lowercase and remove punctuation in S."
+  (replace-regexp-in-string "[-,\\.!?:]" "" (downcase s)))
 ;; Numbers in French:1 ends here
 
 ;; [[file:../Sacha.org::#streaming-and-videos-laser-pointer][Laser pointer:2]]

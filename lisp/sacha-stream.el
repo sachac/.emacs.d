@@ -191,7 +191,8 @@
 
 (defvar sacha-stream-variables-to-override
   `((custom-enabled-themes . (ef-trio-dark))
-    (org-agenda-files . ("~/sync/stream/index.org" "~/sync/topics/live.org" "~/sync/stream/inbox.org"))
+    (org-agenda-files . ("~/sync/stream/index.org" "~/sync/topics/live.org" "~/sync/stream/inbox.org"
+												 "~/proj/emacsconf/wiki/2026/organizers-notebook/index.org"))
 		(message-setup-hook . ,(remove 'org-contacts-email-setup-completion-at-point message-setup-hook))
 		(sacha-org-inbox-target .
 		 (file+headline ,sacha-stream-inbox-file "Inbox"))
@@ -469,7 +470,11 @@ This uses a hotkey I defined in OBS."
   (interactive)
 	(shell-command "~/bin/panic")
 	(org-capture-string "Panicked" "l")
-	(org-capture-finalize))
+	(org-capture-finalize)
+	(sit-for 1)
+	(shell-command "obs &")
+	(sit-for 3)
+	(obs-websocket-connect))
 ;; OBS: A dump button for dropping the last ~10 seconds before it hits the stream:4 ends here
 
 ;; [[file:../Sacha.org::#streaming-chat][Chat:1]]
@@ -1022,15 +1027,19 @@ BASE is a broadcast object."
 			 (enableAutoStop . ,(or auto-start .contentDetails.enableAutoStop))))))
 
 (cl-defun sacha-stream-youtube-update-livestream-details (&rest args)
-	(request-response-data
-	 (request "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,contentDetails,status"
-		 :type "PUT"
-		 :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token)))
-								("Accept" . "application/json")
-								("Content-Type" . "application/json"))
-		 :data (json-encode (apply 'sacha-stream-youtube-format-broadcast args))
-		 :sync t
-		 :parser #'json-read)))
+	(let ((result (request-response-data
+								 (request "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,contentDetails,status"
+									 :type "PUT"
+									 :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token)))
+															("Accept" . "application/json")
+															("Content-Type" . "application/json"))
+									 :data (json-encode (apply 'sacha-stream-youtube-format-broadcast args))
+									 :sync t
+									 :parser #'json-read))))
+		(when (and (derived-mode-p 'org-mode)
+							 (not (org-before-first-heading-p)))
+			(org-entry-put (point) "YOUTUBE_URL" (concat "https://youtu.be/" (alist-get 'id result)))
+			result)))
 
 (defun sacha-stream-youtube-update-default-livestream-details (&rest args)
 	"Update the default or current livestream."

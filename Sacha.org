@@ -9370,12 +9370,88 @@ If DATE is t, clock in immediately."
 	(sacha-org-capture-scheduled-task text date))
 (phony-defun switch-to ("switch" "to" (text phrase))
 	"Switch to this task."
-	(sacha-org-capture-scheduled-task text t))
+	(if (string= (sacha-phony-parser--sanitize text) "this")
+			(let ((sacha-org-quick-task t))
+				(if (derived-mode-p 'org-agenda-mode)
+						(org-agenda-clock-in)
+					(org-clock-in)))
+		(sacha-org-capture-scheduled-task text t)))
+
 (phony-defun inbox ("inbox")
 	"Jump to inbox."
 	(sacha-org-goto-inbox-target)
 	(widen)
   (sacha-org-goto-inbox-target))
+
+;; org edit source block
+(phony-defun sacha-phony-edit-block ("edit block")
+  "Edit source block"
+  (org-edit-special))
+
+;; org exit source block
+(phony-defun sacha-phony-exit-block ("exit block")
+  "Exit source block"
+  (org-edit-src-exit))
+
+;; org next source block
+(phony-defun sacha-phony-next-src-block ("next block")
+  "Jump to next block"
+  (org-babel-next-src-block))
+
+;; org previous source block
+(phony-defun sacha-phony-previous-src-block ("previous block")
+  "Jump to prev block"
+  (org-babel-previous-src-block))
+
+(phony-defun sacha-phony-tangle-block ("tangle block")
+  "Tangle babel block"
+  (let ((current-prefix-arg '(4)))
+    (call-interactively #'org-babel-tangle)))
+
+;; org babel tangle file
+(phony-defun sacha-phony-tangle-file ("tangle file")
+  "Tangle current file"
+  (when buffer-file-name
+    (org-babel-tangle-file buffer-file-name)))
+
+(defun sacha-phony-org-todo-and-next (status)
+  "Update todo to STATUS and move to the next."
+  (if (derived-mode-p 'org-agenda-mode)
+			(progn
+				(org-agenda-todo status)
+				(forward-line 1)
+				(hl-line-highlight))
+		(org-todo status)
+		(org-next-visible-heading)))
+(phony-defun agenda ("agenda")
+	(sacha-org-check-agenda))
+(phony-defun org-reschedule ((date date))
+  "Reschedule a task."
+	(if (derived-mode-p 'org-agenda-mode)
+			(progn
+				(org-agenda-schedule nil date)
+				(forward-line 1)
+				(hl-line-highlight))
+		(org-schedule nil date)
+		(org-next-visible-heading 1)))
+
+(phony-defun mark-done ((| "done" "task done"))
+  "Change TODO state of an item."
+	(sacha-phony-org-todo-and-next "DONE"))
+(phony-defun mark-waiting ("waiting")
+  "Change TODO state of an item."
+  (sacha-phony-org-todo-and-next "WAITING"))
+(phony-defun mark-started ("started")
+  "Change TODO state of an item."
+  (sacha-phony-org-todo-and-next "STARTED"))
+(phony-defun mark-cancelled ("cancelled")
+  "Change TODO state of an item."
+  (sacha-phony-org-todo-and-next "CANCELLED"))
+
+(phony-defun refresh ("refresh")
+	(pcase major-mode
+		('org-agenda-mode
+		 (org-agenda-redo-all))))
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/sacha-phony.el
@@ -9486,12 +9562,23 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 (phony-defun redo ("redo") (undo-redo))
 (phony-defun winner ("winner") (winner-undo))
 
+(defun sacha-maybe-capitalize-for-insertion (text)
+  "Maybe capitalize TEXT."
+  (if (looking-back
+			 "[-\\.?!][ \t]*\\|^[ \t]*"
+			 (line-beginning-position))
+			(setq text
+						(concat (upcase (substring text 0 1))
+										(if (> (length text) 1) (substring text 1) ""))))
+	text)
+
 (phony-defun insert ("insert" (text phrase))
 	"Insert phrase without executing it."
-	(insert text))
+	(sacha-whisper-insert (sacha-maybe-capitalize-for-insertion text)))
+
 (phony-defun cap ("cap" (text phrase))
 	"Insert phrase but capitalize the first letter."
-	(insert (upcase (substring text 0 1))
+	(sacha-whisper-insert (upcase (substring text 0 1))
 					(substring text 1)))
 (phony-defun kebab ("kebab" (text phrase))
 	"Insert phrase with dashes."
@@ -9584,6 +9671,9 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 		 (car (cdr target))
 		 (cdr (cdr target)))))
 
+(phony-defun row ("row" (number phony-stdlib--number-component))
+	(goto-line (sacha-whisper-get-line-position number) nil t))
+
 (phony-defun pick-target ("pick" (target target))
 	"Mark TARGET."
 	(sacha-mark-bounds (cdr target)))
@@ -9637,6 +9727,15 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 (phony-defun transpose ("transpose")
 	"Transpose windows."
 	(transpose-windows))
+
+;; You know what I need?
+;; I want to delete the last three lines sort of command.
+
+(phony-defun delete-last-n-lines ("delete the last" (number phony-stdlib--number-component) "lines")
+	"Delete the last N lines."
+	(let ((end (line-end-position)))
+		(forward-line (- (1- number)))
+		(delete-region (line-beginning-position) end)))
 
 (phony-defun delete-target ("delete" (target target))
 	"Delete TARGET."
@@ -9694,47 +9793,6 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 			(speech-input-vad-start)
 		(speech-input-vad-stop))
 	(sacha-whisper-audio-feedback (if state "on" "off")))
-
-;; org edit source block
-(phony-defun sacha-phony-edit-block ("edit block")
-  "Edit source block"
-  (org-edit-special))
-
-;; org exit source block
-(phony-defun sacha-phony-exit-block ("exit block")
-  "Exit source block"
-  (org-edit-src-exit))
-
-;; org next source block
-(phony-defun sacha-phony-next-src-block ("next block")
-  "Jump to next block"
-  (org-babel-next-src-block))
-
-;; org previous source block
-(phony-defun sacha-phony-previous-src-block ("previous block")
-  "Jump to prev block"
-  (org-babel-previous-src-block))
-
-(phony-defun sacha-phony-tangle-block ("tangle block")
-  "Tangle babel block"
-  (let ((current-prefix-arg '(4)))
-    (call-interactively #'org-babel-tangle)))
-
-;; org babel tangle file
-(phony-defun sacha-phony-tangle-file ("tangle file")
-  "Tangle current file"
-  (when buffer-file-name
-    (org-babel-tangle-file buffer-file-name)))
-
-(phony-defun mark-done ("task done")
-  "Change TODO state of an item."
-  (org-todo "DONE"))
-(phony-defun mark-waiting ("task waiting")
-  "Change TODO state of an item."
-  (org-todo "WAITING"))
-(phony-defun mark-started ("task started")
-  "Change TODO state of an item."
-  (org-todo "STARTED"))
 
 
 ;; implement up/down five lines / sentences / paragraphs
@@ -9971,6 +10029,10 @@ NUMBER-STRING is parsed by `string-to-number'."
 ;; (phony--export-all)
 ;; (sacha-phony-evaluate "dix neuf")
 ;(sacha-phony-evaluate "mille neuf cent quatre vingt dix neuf")
+
+(defun sacha-phony-sanitize-literal (s)
+  "Lowercase and remove punctuation in S."
+  (replace-regexp-in-string "[-,\\.!?:]" "" (downcase s)))
 #+end_src
 
 
@@ -9982,9 +10044,11 @@ NUMBER-STRING is parsed by `string-to-number'."
   :init
   (server-mode 1)
 	(setq phony-export-function #'ignore)  ; don't actually use Talon for the recognition
-	(setq phony-parser-literal-comparator #'sacha-phony-compare-literal)
   :config
-  (phony-mode 1))
+  (phony-mode 1)
+	(phony-experimental-set-parser-literal-normalizer
+	 #'sacha-phony-sanitize-literal))
+
 (use-package phony-talon-community-bindings
   :load-path "~/vendor/phony.el")
 (use-package cursorfree
@@ -10145,187 +10209,193 @@ Update [2026-10-02 Fri]: Il peut aussi comprendre le français. I used to have c
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/sacha-speech-input.el
-  (defcustom sacha-whisper-mode 'all
-    "Type of recognition."
-    :type '(choice
-  					(const :tag "Commands and dictation" 'all)
-  					(const :tag "Commands only, no insertion" 'commands)
-  					(const :tag "Only dictation, ignore most commands" 'dictation-focus)
-  					(const :tag "Sleep" 'sleep))
-    :group 'sacha)
+(defcustom sacha-whisper-mode 'all
+	"Type of recognition."
+	:type '(choice
+					(const :tag "Commands and dictation" 'all)
+					(const :tag "Commands only, no insertion" 'commands)
+					(const :tag "Only dictation, ignore most commands" 'dictation-focus)
+					(const :tag "Sleep" 'sleep))
+	:group 'sacha)
 
-  (defvar sacha-whisper-last-annotation nil "Last annotation so we can skip duplicates.")
-  (defvar sacha-whisper-skip-annotation nil)
-  (defvar sacha-whisper-target-markers nil "List of markers to send text to.")
-  (defvar sacha-whisper-one-sentence-per-line t "Non-nil means split text onto separate lines.")
+(defvar sacha-whisper-last-annotation nil "Last annotation so we can skip duplicates.")
+(defvar sacha-whisper-skip-annotation nil)
+(defvar sacha-whisper-target-markers nil "List of markers to send text to.")
+(defvar sacha-whisper-one-sentence-per-line t "Non-nil means split text onto separate lines.")
 
-  (defun sacha-whisper-process-commands (text)
-  	"Process commands unless set otherwise."
-  	(if (member sacha-whisper-mode '(dictation-focus sleep))
-  			text
-  		(and text (speech-input-commands-process (speech-input-phony-process text)))))
+(defun sacha-whisper-process-commands (text)
+	"Process commands unless set otherwise."
+	(if (member sacha-whisper-mode '(dictation-focus sleep))
+			text
+		(and text (speech-input-commands-process (speech-input-phony-process text)))))
 
-  (defvar sacha-whisper-mode-indicator "" "Indicates `sacha-whisper-mode' or `sacha-whisper-sleep'.
-  Add to mode line with
-  (add-to-list 'mode-line-front-space '(:eval sacha-whisper-mode-indicator))")
+(defvar sacha-whisper-mode-indicator "" "Indicates `sacha-whisper-mode' or `sacha-whisper-sleep'.
+Add to mode line with
+(add-to-list 'mode-line-front-space '(:eval sacha-whisper-mode-indicator))")
 
-  (defvar sacha-whisper-mode-indicators
-  	'((all . "✓")
-  		(commands . "📋")
-  		(dictation . "👂")
-  		(dictation-focus . "💬")
-  		(kebab . "-"))
-  	"Indicators.")
+(defvar sacha-whisper-mode-indicators
+	'((all . "✓")
+		(commands . "📋")
+		(dictation . "👂")
+		(dictation-focus . "💬")
+		(kebab . "-"))
+	"Indicators.")
 
-  (defvar sacha-whisper-sleep nil "Non-nil means ignore most of the input.")
+(defvar sacha-whisper-sleep nil "Non-nil means ignore most of the input.")
 
-  (defun sacha-whisper-filter-mode (text)
-    "Discard, process, or modify TEXT based on `sacha-whisper-mode'.
+(defun sacha-whisper-filter-mode (text)
+	"Discard, process, or modify TEXT based on `sacha-whisper-mode'.
 
-  These commands get processed regardless of the mode:
-  - continuous: use voice activity detection
-  - manual: rely on the keyboard shortcut to indicate the start and stop of speech
-  - wake up / dictation: process both dictation and commands
-  - commands / drive: process only commands
-  - dictation focus: treat all speech as dictation except for these essential commands, which you can dictate by prepending \"insert\"
-  - kebab / skewer: put dashes between words and don't break onto lines.
-  - over: toggle between listening for things and listening only for essential commands
-  - sleep / all done: listen only for essential commands
+These commands get processed regardless of the mode:
+- continuous: use voice activity detection
+- manual: rely on the keyboard shortcut to indicate the start and stop of speech
+- wake up / dictation: process both dictation and commands
+- commands / drive: process only commands
+- dictation focus: treat all speech as dictation except for these essential commands, which you can dictate by prepending \"insert\"
+- kebab / skewer: put dashes between words and don't break onto lines.
+- over: toggle between listening for things and listening only for essential commands
+- sleep / all done: listen only for essential commands
 
-  \"over\" and \"scratch that\" gets processed at the end of any utterance.
-  "
-    (when text
-      (pcase (sacha-phony-parser--sanitize text)
-        ("continuous"
-         (speech-input-vad-start)
-         (setq text nil))
-        ("manual"
-         (speech-input-vad-stop)
-         (setq text nil))
-        ((or "wake up" "dictation")
-         (setq sacha-whisper-mode 'all text nil
-  	     sacha-whisper-sleep nil))
-        ((or "commands" "drive")
-         (sacha-whisper-audio-feedback "command mode")
-         (setq sacha-whisper-mode 'commands text nil
-  	     sacha-whisper-sleep nil))
-        ((or "only dictation" "dictation focus")
-         (sacha-whisper-audio-feedback "dictation focus")
-         (setq sacha-whisper-mode 'dictation-focus text nil sacha-whisper-sleep nil))
-        ((or "kebab" "skewer")
-         (sacha-whisper-audio-feedback "kebab mode")
-         (setq sacha-whisper-mode 'kebab
-  	     sacha-whisper-sleep nil
-  	     text nil))
-        ("over"
-         (setq sacha-whisper-sleep (not sacha-whisper-sleep) text nil)
-         (if sacha-whisper-sleep
-  	   (sacha-whisper-audio-feedback "bye")
-  	 (sacha-whisper-audio-feedback "hi")))
-        ((or "sleep" "all done")
-         (setq sacha-whisper-sleep t text nil
-  	     sacha-whisper-mode-indicator "💤"))
-        (_
-         (cond
-  	((string-match "\\<\\(scratch that\\)[\\.?! ]*$" text)
-  	 (setq text nil))
-  	((string-match "\\<\\(over\\)[\\.?! ]*$" text)
-  	 (setq sacha-whisper-sleep (not sacha-whisper-sleep)
-  	       text
-  	       (if sacha-whisper-sleep
-  		   nil
-  		 (replace-match "" nil nil text 1)))
-  	 (if sacha-whisper-sleep
-  	     (sacha-whisper-audio-feedback "bye")
-  	   (sacha-whisper-audio-feedback "hi")))
-  	(sacha-whisper-sleep
-  	 (setq text nil))))))
-    (setq sacha-whisper-mode-indicator
-  	(if sacha-whisper-sleep
-  	    "💤"
-  	  (alist-get sacha-whisper-mode sacha-whisper-mode-indicators)))
-    (when (eq sacha-whisper-mode 'commands)
-      (unless (and text
-  		 (or (not (eq (phony-evaluate text 'not-parsed) 'not-parsed))
-  		     (speech-input-commands-find text)))
-        (setq text nil)))
-    text)
+\"chat\" at the start ignores the rest of the utterance.
+\"over\" and \"scratch that\" gets processed at the end of any utterance.
+\"panic\" kills OBS.
+"
+	(when text
+		(pcase (sacha-phony-parser--sanitize text)
+			("continuous"
+			 (speech-input-vad-start)
+			 (setq text nil))
+			("manual"
+			 (speech-input-vad-stop)
+			 (setq text nil))
+			((or "wake up" "dictation")
+			 (setq sacha-whisper-mode 'all text nil
+						 sacha-whisper-sleep nil))
+			((or "commands" "drive")
+			 (sacha-whisper-audio-feedback "command mode")
+			 (setq sacha-whisper-mode 'commands text nil
+						 sacha-whisper-sleep nil))
+			((or "only dictation" "dictation focus")
+			 (sacha-whisper-audio-feedback "dictation focus")
+			 (setq sacha-whisper-mode 'dictation-focus text nil sacha-whisper-sleep nil))
+			((or "kebab" "skewer")
+			 (sacha-whisper-audio-feedback "kebab mode")
+			 (setq sacha-whisper-mode 'kebab
+						 sacha-whisper-sleep nil
+						 text nil))
+			("panic"
+			 (sacha-obs-panic))
+			("over"
+			 (setq sacha-whisper-sleep (not sacha-whisper-sleep) text nil)
+			 (if sacha-whisper-sleep
+					 (sacha-whisper-audio-feedback "bye")
+				 (sacha-whisper-audio-feedback "hi")))
+			((or "sleep" "all done")
+			 (setq sacha-whisper-sleep t text nil
+						 sacha-whisper-mode-indicator "💤"))
+			(_
+			 (cond
+				((string-match "\\`\\(so\\|anyway\\)?[\\.?! ]*chat\\>" text)
+				 (setq text nil))
+				((string-match "\\<\\(scratch that\\)[\\.?! ]*$" text)
+				 (setq text nil))
+				((string-match "\\<\\(over\\)[\\.?! ]*$" text)
+				 (setq sacha-whisper-sleep (not sacha-whisper-sleep)
+							 text
+							 (if sacha-whisper-sleep
+									 nil
+								 (replace-match "" nil nil text 1)))
+				 (if sacha-whisper-sleep
+						 (sacha-whisper-audio-feedback "bye")
+					 (sacha-whisper-audio-feedback "hi")))
+				(sacha-whisper-sleep
+				 (setq text nil))))))
+	(setq sacha-whisper-mode-indicator
+				(if sacha-whisper-sleep
+						"💤"
+					(alist-get sacha-whisper-mode sacha-whisper-mode-indicators)))
+	(when (eq sacha-whisper-mode 'commands)
+		(unless (and text
+								 (or (phony-parser--parse-utterance text)
+										 (speech-input-commands-find text)))
+			(setq text nil)))
+	text)
 
-  ;;;###autoload
-  (defun sacha-whisper-insert (text)
-  	"Insert TEXT at point, or at `sacha-whisper-target-markers'."
-  	(let ((markers
-  				 (cond
-  					((null sacha-whisper-target-markers)
-  					 (list whisper--marker)) ; current point where whisper was started
-  					((listp sacha-whisper-target-markers)
-  					 sacha-whisper-target-markers)
-  					((markerp sacha-whisper-target-markers)
-  					 (list sacha-whisper-target-markers))))
-  				(orig-point (point))
-  				(orig-buffer (current-buffer)))
-  		(when text
-  			(when (eq sacha-whisper-mode 'kebab)
-  				(setq text
-  							(replace-regexp-in-string
-  							 "-$" ""
-  							 (downcase (replace-regexp-in-string "[,\\. ]+" "-" text)))))
-  			(mapcar (lambda (marker)
-  								(with-current-buffer (or (and marker (marker-buffer marker)) (current-buffer))
-  									(save-restriction
-  										(widen)
-  										(when (and marker
-  															 (marker-position marker)
-  															 (marker-buffer marker))
-  											(goto-char marker))
-  										(when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
-  											(insert "\n"))
-  										(when (and sacha-whisper-one-sentence-per-line
-  															 (not (eq sacha-whisper-mode 'kebab))
-  															 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"" (line-beginning-position))))
-  											(if (and (derived-mode-p 'org-mode)
-  															 (org-element-lineage (org-element-context) '(item plain-list)))
-  													(unless (<= (save-excursion
-  																				(skip-chars-backward " \t\n")
-  																				(point))
-  																			(or (org-element-contents-begin (org-element-context))
-  																					most-positive-fixnum))
-  														(org-return))
-  												(insert "\n")))
-  										(if (and sacha-whisper-one-sentence-per-line
-  														 (not (eq sacha-whisper-mode 'kebab)))
-  												(seq-map-indexed
-  												 (lambda (line i)
-  													 (when (> i 0)
-  														 (if (and (derived-mode-p 'org-mode)
-  																			(org-element-lineage (org-element-context) '(item plain-list)))
-  																 (org-return)
-  															 (insert "\n")))
-  													 (insert line))
-  												 (split-string
-  													(with-temp-buffer
-  														(insert text)
-  														(goto-char (point-min))
-  														(let ((fill-column most-positive-fixnum))
-  															(fill-paragraph-semlf))
-  														(buffer-string))
-  													"\n"))
-  											(whisper--insert-text
-  											 (concat
-  												(if (looking-back "[ \t\n]\\|^")
-  														""
-  													" ")
-  												text)))
-  										(when (and
-  													 marker
-  													 (marker-position marker)
-  													 (marker-buffer marker))
-  											(move-marker marker (point)))	;; Move the marker forward here
-  										)))
-  							markers)
-  			(when sacha-whisper-target-markers
-  				(goto-char orig-point))
-  			nil)))
+;;;###autoload
+(defun sacha-whisper-insert (text)
+	"Insert TEXT at point, or at `sacha-whisper-target-markers'."
+	(let ((markers
+				 (cond
+					((null sacha-whisper-target-markers)
+					 (list whisper--marker)) ; current point where whisper was started
+					((listp sacha-whisper-target-markers)
+					 sacha-whisper-target-markers)
+					((markerp sacha-whisper-target-markers)
+					 (list sacha-whisper-target-markers))))
+				(orig-point (point))
+				(orig-buffer (current-buffer)))
+		(when text
+			(when (eq sacha-whisper-mode 'kebab)
+				(setq text
+							(replace-regexp-in-string
+							 "-$" ""
+							 (downcase (replace-regexp-in-string "[,\\. ]+" "-" text)))))
+			(mapcar (lambda (marker)
+								(with-current-buffer (or (and marker (marker-buffer marker)) (current-buffer))
+									(save-restriction
+										(widen)
+										(when (and marker
+															 (marker-position marker)
+															 (marker-buffer marker))
+											(goto-char marker))
+										(when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
+											(insert "\n"))
+										(when (and sacha-whisper-one-sentence-per-line
+															 (not (eq sacha-whisper-mode 'kebab))
+															 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"" (line-beginning-position))))
+											(if (and (derived-mode-p 'org-mode)
+															 (org-element-lineage (org-element-context) '(item plain-list)))
+													(unless (<= (save-excursion
+																				(skip-chars-backward " \t\n")
+																				(point))
+																			(or (org-element-contents-begin (org-element-context))
+																					most-positive-fixnum))
+														(org-return))
+												(insert "\n")))
+										(if (and sacha-whisper-one-sentence-per-line
+														 (not (eq sacha-whisper-mode 'kebab)))
+												(seq-map-indexed
+												 (lambda (line i)
+													 (when (> i 0)
+														 (if (and (derived-mode-p 'org-mode)
+																			(org-element-lineage (org-element-context) '(item plain-list)))
+																 (org-return)
+															 (insert "\n")))
+													 (insert line))
+												 (split-string
+													(with-temp-buffer
+														(insert text)
+														(goto-char (point-min))
+														(let ((fill-column most-positive-fixnum))
+															(fill-paragraph-semlf))
+														(buffer-string))
+													"\n"))
+											(whisper--insert-text
+											 (concat
+												(if (looking-back "[ \t\n]\\|^")
+														""
+													" ")
+												text)))
+										(when (and
+													 marker
+													 (marker-position marker)
+													 (marker-buffer marker))
+											(move-marker marker (point)))	;; Move the marker forward here
+										)))
+							markers)
+			(when sacha-whisper-target-markers
+				(goto-char orig-point))
+			nil)))
 #+end_src
 
 #+NAME: sacha-whisper-maybe-type
@@ -12095,19 +12165,24 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
       "")))
 
 (defun sacha-whisper-get-line-position (text)
-  "Return the line number based on TEXT.
+	"Return the line number based on TEXT.
   TEXT is the visible line number modulo 100."
-  (let* ((number (if (string-match "[0-9]+" text)
-		   (string-to-number text)
-		 (car (sacha-parse-number-words text))))
-       (adjusted (+ (* (/ (line-number-at-pos (point)) 100) 100)
-		    number)))
-    (cond
-     ((< adjusted (line-number-at-pos (window-start)))
-      (incf adjusted 100))
-     ((> adjusted (line-number-at-pos (window-end)))
-      (decf adjusted 100)))
-    adjusted))
+	(let* ((number
+					(cond
+					 ((numberp text) text)
+					 ((string-match "[0-9]+" text)
+						(string-to-number text))
+					 (t
+						(car (sacha-parse-number-words text)))
+					 ))
+				 (adjusted (+ (* (/ (line-number-at-pos (point)) 100) 100)
+											number)))
+		(cond
+		 ((< adjusted (line-number-at-pos (window-start)))
+			(incf adjusted 100))
+		 ((> adjusted (line-number-at-pos (window-end)))
+			(decf adjusted 100)))
+		adjusted))
 
 ;;;###autoload
 (defun sacha-whisper-jump-to-line (text)
@@ -12379,7 +12454,6 @@ Add this to `whisper-insert-text-at-point.'"
 		("new note\\(?: to\\)? \\(.+\\)" . sacha-whisper-note)
 		("journal,? \\(.+\\)" . sacha-whisper-journal)
 		("log \\(.+\\)" . sacha-whisper-note)
-		("agenda" . sacha-org-check-agenda)
 		("inbox" . sacha-whisper-inbox)
 		("current task" . sacha-whisper-current-task)
 		("\\(?:what was I doing\\|je faisais quoi\\)" . sacha-whisper-current-task)
@@ -12388,7 +12462,6 @@ Add this to `whisper-insert-text-at-point.'"
 		("toot" . sacha-whisper-draft-toot)
 		("open \\(.+\\)" . sacha-whisper-open-favorite)
 		("jump \\(.+\\)" . sacha-whisper-avy-jump)
-		("\\(?:row\\|line\\|ligne\\) \\(.+\\)" . sacha-whisper-jump-to-line)
 		("\\(?:delete\\|s?kill\\) \\(?:row\\|line\\|ligne\\)s? \\(.+\\)" . sacha-whisper-delete-line)
 		("\\(?:indent\\) \\(?:row\\|line\\|ligne\\)s? \\(.+\\)" . sacha-whisper-indent-lines)
 		("\\(?:simple\\|symbol\\) \\(.+\\)" . sacha-whisper-avy-insert-symbol)
@@ -12409,7 +12482,9 @@ Add this to `whisper-insert-text-at-point.'"
 		 . sacha-whisper-clip)
 		("rename clip,? \\(.+\\)" . ,(lambda (text) (message "%s" (file-name-base (sacha-clip-add-note-to-latest text))) ""))
 		("instant replay" . sacha-clip-play-latest)
-		("panic" . sacha-obs-panic)
+		("panic" . sacha-obs
+I and I should have my panic thing.
+Let's get this panic.-panic)
 		("one sentence per line\\|sentence mode" . (lambda () (setq sacha-whisper-one-sentence-per-line t) ""))
 		("paragraph mode" . (lambda () (setq sacha-whisper-one-sentence-per-line nil) ""))
 		("\\(?:fill\\|wrap\\|rap\\|rep\\) lines?" . (lambda () (let ((fill-column most-positive-fixnum)) (fill-paragraph)) ""))
@@ -42988,7 +43063,8 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
 
 (defvar sacha-stream-variables-to-override
   `((custom-enabled-themes . (ef-trio-dark))
-    (org-agenda-files . ("~/sync/stream/index.org" "~/sync/topics/live.org" "~/sync/stream/inbox.org"))
+    (org-agenda-files . ("~/sync/stream/index.org" "~/sync/topics/live.org" "~/sync/stream/inbox.org"
+												 "~/proj/emacsconf/wiki/2026/organizers-notebook/index.org"))
 		(message-setup-hook . ,(remove 'org-contacts-email-setup-completion-at-point message-setup-hook))
 		(sacha-org-inbox-target .
 		 (file+headline ,sacha-stream-inbox-file "Inbox"))
@@ -43615,7 +43691,9 @@ I was a little thrown off by the fact that my audio bars didn't initially show u
 To stop the stream, I can switch to OBS, click on *Stop streaming*, and *(important!)* choose *Stop streaming (discard delay)*. The OBS window might be buried under other things on my second screen, though, and that's too many clicks and mouse movements. The keyboard shortcut =Super + F12= we just set up should be handy, but I might not remember that, so let's add some scripts. [[https://github.com/obsproject/obs-websocket/issues/1309][The OBS websocket protocol doesn't support discarding the delay buffer]] yet, but I'm on Linux and X11, so I can use xdotool to simulate a keypress. Here I select the window matching the profile name I set up previously.
 
 #+begin_src sh :tangle ~/bin/panic :shebang "#!/bin/bash" :results none
-killall obs
+killall -9 obs
+sleep 1
+obs &
 #+end_src
 
 I can =org-capture= the timestamp of the panic so that I can doublecheck the recording.
@@ -43628,7 +43706,16 @@ This uses a hotkey I defined in OBS."
   (interactive)
 	(shell-command "~/bin/panic")
 	(org-capture-string "Panicked" "l")
-	(org-capture-finalize))
+	(org-capture-finalize)
+	(sit-for 1)
+	(shell-command "obs &")
+	(sit-for 3)
+	(obs-websocket-connect))
+#+end_src
+
+#+begin_src emacs-lisp
+;; hmm, what's the right way to bind this
+(bind-key "<kp-return>" (lambda () (interactive) (sacha-whisper-audio-feeback "Yay")))
 #+end_src
 
 I always have Emacs around, and if it's not my main app, I have an autokey shortcut that maps =super + 1= to focus on Emacs. Then I can =M-x panic= and Emacs completion will take care of finding the right function.
@@ -45477,15 +45564,19 @@ BASE is a broadcast object."
 			 (enableAutoStop . ,(or auto-start .contentDetails.enableAutoStop))))))
 
 (cl-defun sacha-stream-youtube-update-livestream-details (&rest args)
-	(request-response-data
-	 (request "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,contentDetails,status"
-		 :type "PUT"
-		 :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token)))
-								("Accept" . "application/json")
-								("Content-Type" . "application/json"))
-		 :data (json-encode (apply 'sacha-stream-youtube-format-broadcast args))
-		 :sync t
-		 :parser #'json-read)))
+	(let ((result (request-response-data
+								 (request "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,contentDetails,status"
+									 :type "PUT"
+									 :headers `(("Authorization" . ,(format "Bearer %s" (sacha-google-access-token)))
+															("Accept" . "application/json")
+															("Content-Type" . "application/json"))
+									 :data (json-encode (apply 'sacha-stream-youtube-format-broadcast args))
+									 :sync t
+									 :parser #'json-read))))
+		(when (and (derived-mode-p 'org-mode)
+							 (not (org-before-first-heading-p)))
+			(org-entry-put (point) "YOUTUBE_URL" (concat "https://youtu.be/" (alist-get 'id result)))
+			result)))
 
 (defun sacha-stream-youtube-update-default-livestream-details (&rest args)
 	"Update the default or current livestream."

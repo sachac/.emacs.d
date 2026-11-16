@@ -1907,9 +1907,11 @@ sacha-toggle-now
   :init
   (server-mode 1)
 	(setq phony-export-function #'ignore)  ; don't actually use Talon for the recognition
-	(setq phony-parser-literal-comparator #'sacha-phony-compare-literal)
   :config
-  (phony-mode 1))
+  (phony-mode 1)
+	(phony-experimental-set-parser-literal-normalizer
+	 #'sacha-phony-sanitize-literal))
+
 (use-package phony-talon-community-bindings
   :load-path "~/vendor/phony.el")
 (use-package cursorfree
@@ -2064,7 +2066,6 @@ sacha-toggle-now
 		("new note\\(?: to\\)? \\(.+\\)" . sacha-whisper-note)
 		("journal,? \\(.+\\)" . sacha-whisper-journal)
 		("log \\(.+\\)" . sacha-whisper-note)
-		("agenda" . sacha-org-check-agenda)
 		("inbox" . sacha-whisper-inbox)
 		("current task" . sacha-whisper-current-task)
 		("\\(?:what was I doing\\|je faisais quoi\\)" . sacha-whisper-current-task)
@@ -2073,7 +2074,6 @@ sacha-toggle-now
 		("toot" . sacha-whisper-draft-toot)
 		("open \\(.+\\)" . sacha-whisper-open-favorite)
 		("jump \\(.+\\)" . sacha-whisper-avy-jump)
-		("\\(?:row\\|line\\|ligne\\) \\(.+\\)" . sacha-whisper-jump-to-line)
 		("\\(?:delete\\|s?kill\\) \\(?:row\\|line\\|ligne\\)s? \\(.+\\)" . sacha-whisper-delete-line)
 		("\\(?:indent\\) \\(?:row\\|line\\|ligne\\)s? \\(.+\\)" . sacha-whisper-indent-lines)
 		("\\(?:simple\\|symbol\\) \\(.+\\)" . sacha-whisper-avy-insert-symbol)
@@ -2094,7 +2094,9 @@ sacha-toggle-now
 		 . sacha-whisper-clip)
 		("rename clip,? \\(.+\\)" . ,(lambda (text) (message "%s" (file-name-base (sacha-clip-add-note-to-latest text))) ""))
 		("instant replay" . sacha-clip-play-latest)
-		("panic" . sacha-obs-panic)
+		("panic" . sacha-obs
+I and I should have my panic thing.
+Let's get this panic.-panic)
 		("one sentence per line\\|sentence mode" . (lambda () (setq sacha-whisper-one-sentence-per-line t) ""))
 		("paragraph mode" . (lambda () (setq sacha-whisper-one-sentence-per-line nil) ""))
 		("\\(?:fill\\|wrap\\|rap\\|rep\\) lines?" . (lambda () (let ((fill-column most-positive-fixnum)) (fill-paragraph)) ""))
@@ -6785,6 +6787,11 @@ Otherwise, if QR is non-nil, display a QR code for TEXT."
 ;; OBS websockets:2 ends here
 
 ;; [[file:Sacha.org::#streaming-obs-a-dump-button-for-dropping-the-last-10-seconds-before-it-hits-the-stream][OBS: A dump button for dropping the last ~10 seconds before it hits the stream:5]]
+;; hmm, what's the right way to bind this
+(bind-key "<kp-return>" (lambda () (interactive) (sacha-whisper-audio-feeback "Yay")))
+;; OBS: A dump button for dropping the last ~10 seconds before it hits the stream:5 ends here
+
+;; [[file:Sacha.org::#streaming-obs-a-dump-button-for-dropping-the-last-10-seconds-before-it-hits-the-stream][OBS: A dump button for dropping the last ~10 seconds before it hits the stream:6]]
 (easy-menu-define sacha-stream-menu global-map
 	"Menu for streaming-related commands."
 	'("Stream"
@@ -6793,7 +6800,7 @@ Otherwise, if QR is non-nil, display a QR code for TEXT."
 		["Start recording" obs-websocket-start-recording]
 		["Stop streaming" obs-websocket-stop-streaming]
 		["Stop recording" obs-websocket-stop-recording]))
-;; OBS: A dump button for dropping the last ~10 seconds before it hits the stream:5 ends here
+;; OBS: A dump button for dropping the last ~10 seconds before it hits the stream:6 ends here
 
 ;; [[file:Sacha.org::#streaming-custom-org-link-type-for-hints-and-sound-effects][Custom Org link type for hints (and sound effects):2]]
 (with-eval-after-load 'org

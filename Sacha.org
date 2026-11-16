@@ -14995,6 +14995,7 @@ entries, notes, and other semi-structured pieces of information.
 (defvar sacha-ledger-file "~/cloud/ledger/current.ledger")
 (defun sacha-org-goto-inbox-target ()
 	"Open inbox target."
+	(interactive)
 	(org-capture-set-target-location sacha-org-inbox-target)
 	(pop-to-buffer-same-window (org-capture-get :buffer))
 	(goto-char (org-capture-get :pos)))

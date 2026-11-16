@@ -27162,8 +27162,14 @@ Items are returned in this hierarchy: area, paragraph, line, word."
 								(write-region (point-min) (point-max)
 															hocr-filename)))
 						(libxml-parse-html-region))))
-		(sacha-image-ocr-tesseract-parse-hocr dom)
-		))
+		(sacha-image-ocr-tesseract-parse-hocr dom)))
+
+;;;###autoload
+(defun sacha-image-insert-text-of-latest-screenshot ()
+  "Use Tesseract to insert the text of the latest screenshot."
+  (interactive)
+	(sacha-image-ocr-tesseract-insert-formatted-text
+	 (sacha-image-ocr-with-tesseract (sacha-latest-file sacha-recordings-dir "\\.png"))))
 
 ;;;###autoload
 (defun sacha-image-ocr-tesseract-as-buffer (filename)

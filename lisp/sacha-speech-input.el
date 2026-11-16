@@ -221,7 +221,7 @@ These commands get processed regardless of the mode:
 									 (or (not (eq (phony-evaluate text 'not-parsed) 'not-parsed))
 											 (speech-input-commands-find text)))
 				(setq text nil)))
-		text))
+		text)
 
 ;;;###autoload
 (defun sacha-whisper-insert (text)

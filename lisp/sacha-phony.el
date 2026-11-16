@@ -126,6 +126,7 @@ Useful in `speech-input-commands'."
 			 (* number 60 60)))))
 
 (phony-defun today "today" :contributes-to date (org-read-date nil nil "."))
+(phony-defun someday "someday" :contributes-to date nil)
 (phony-defun tomorrow "tomorrow" :contributes-to date (org-read-date nil nil "+1"))
 (phony-defun monday "Monday" :contributes-to date (org-read-date nil nil "+mon"))
 (phony-defun tuesday "Tuesday" :contributes-to date (org-read-date nil nil "+tue"))
@@ -182,16 +183,24 @@ If DATE is t, clock in immediately."
 (phony-defun rappele-moi ("rappele-moi" (? (date date)) (? "de") (? "que") (text phrase))
 	"Capture a scheduled task."
 	(sacha-org-capture-scheduled-task text date))
+(phony-defun rappelle-moi ("rappelle-moi" (? (date date)) (? "de") (? "que") (text phrase))
+	"Capture a scheduled task."
+	(sacha-org-capture-scheduled-task text date))
 (phony-defun rappelez-moi ("rappelez-moi" (? (date date)) (? "de") (? "que") (text phrase))
 	"Capture a scheduled task."
 	(sacha-org-capture-scheduled-task text date))
 (phony-defun switch-to ("switch" "to" (text phrase))
 	"Switch to this task."
 	(sacha-org-capture-scheduled-task text t))
+(phony-defun inbox ("inbox")
+	"Jump to inbox."
+	(sacha-org-goto-inbox-target)
+	(widen)
+  (sacha-org-goto-inbox-target))
 ;; Create Org tasks:1 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacslisten-create-org-tasks][Create Org tasks:2]]
-(phony-defun rephrase ("rephrase" (text phony--builtin-phrase))
+(phony-defun rephrase ("rephrase" (text phrase))
 	"Delete this sentence and reinsert it."
 	(save-excursion
 		(when (looking-back sentence-end-base (1- (point))) (backward-char))
@@ -199,7 +208,7 @@ If DATE is t, clock in immediately."
 			(delete-region (car bounds) (cdr bounds))
 			(insert (upcase (substring text 0 1)) (substring text 1)))))
 
-(phony-defun retake ("retake" (text phony--builtin-phrase))
+(phony-defun retake ("retake" (text phrase))
 	"Replace the recording for this sentence."
 	(save-excursion
 		(when (looking-back sentence-end-base (1- (point))) (backward-char))
@@ -225,7 +234,7 @@ If DATE is t, clock in immediately."
 		      (string-trim (buffer-substring pos (point-max))))))
 
 (defvar sacha-doctor-tts nil "Non-nil means say the response out loud.")
-(phony-defun doctor ("doctor" (text phony--builtin-phrase))
+(phony-defun doctor ("doctor" (text phrase))
       "Chat with Eliza."
       (let ((response (sacha-doctor text)))
 	      (message "%s" response)
@@ -252,7 +261,9 @@ If DATE is t, clock in immediately."
 (defun sacha-whisper-gptel-speak-output (beg end)
 "Speak the output.
 Set `learn-lang-language' and `learn-lang-tts-function' as needed."
-(learn-lang-tts-say (buffer-substring beg end)))
+(learn-lang-tts-say
+ (replace-regexp-in-string "^#\\+.+" ""
+													 (buffer-substring beg end))))
 
 ;;;###autoload
 (define-minor-mode sacha-whisper-conversation-mode ()
@@ -288,14 +299,14 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 (phony-defun redo ("redo") (undo-redo))
 (phony-defun winner ("winner") (winner-undo))
 
-(phony-defun insert ("insert" (text phony--builtin-phrase))
+(phony-defun insert ("insert" (text phrase))
 	"Insert phrase without executing it."
 	(insert text))
-(phony-defun cap ("cap" (text phony--builtin-phrase))
+(phony-defun cap ("cap" (text phrase))
 	"Insert phrase but capitalize the first letter."
 	(insert (upcase (substring text 0 1))
 					(substring text 1)))
-(phony-defun kebab ("kebab" (text phony--builtin-phrase))
+(phony-defun kebab ("kebab" (text phrase))
 	"Insert phrase with dashes."
 	(insert (replace-regexp-in-string "-$" "" (downcase (replace-regexp-in-string "[,\\. ]+" "-" text)))))
 
@@ -310,7 +321,15 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 	:contributes-to target
 	(cons 'function
 				(bounds-of-thing-at-point 'defun)))
+(phony-defun function-fr "fonction"
+	:contributes-to target
+	(cons 'function
+				(bounds-of-thing-at-point 'defun)))
 (phony-defun sentence "sentence"
+	:contributes-to target
+	(cons 'sentence
+				(bounds-of-thing-at-point 'sentence)))
+(phony-defun sentence-fr "phrase"
 	:contributes-to target
 	(cons 'sentence
 				(bounds-of-thing-at-point 'sentence)))
@@ -411,7 +430,7 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 (phony-defun close ("close")
   "Close current buffer."
   (kill-current-buffer))
-(phony-defun switch ("switch" (? (text phony--builtin-phrase)))
+(phony-defun buffer ("buffer" (? (text phrase)))
   "Switch to buffer."
 	(if text
 			(setq unread-command-events (listify-key-sequence (concat text (kbd "RET")))))
@@ -462,6 +481,8 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 	(org-next-visible-heading))
 (phony-defun beginning-of-buffer ("top")
   (beginning-of-buffer))
+(phony-defun bottom ("bottom")
+  (end-of-buffer))
 (phony-defun end-of-buffer ("bottom")
   (end-of-buffer))
 
@@ -557,7 +578,7 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 			(narrow-to-region beg end)
 			(gptel--suffix-rewrite (concat text "\n\n" (buffer-substring beg end))))))
 
-(phony-defun rewrite-target ("rewrite" (target target) (text phony--builtin-phrase))
+(phony-defun rewrite-target ("rewrite" (target target) (text phrase))
 	"Rewrite selected target."
 	(sacha-gptel-rewrite-region
 	 text
@@ -571,7 +592,7 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 																(car bounds)
 																(cdr bounds))))
 
-(phony-defun computer-insert ("computer" "insert" (text phony--builtin-phrase))
+(phony-defun computer-insert ("computer" "insert" (text phrase))
 	"Do something with gptel and insert the results."
 	(let ((tok
 				 (pending-insert (point) "Calling gptel...")))
@@ -581,7 +602,7 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 											(pending-finish tok response)
 										(pending-cancel tok))))))
 
-(phony-defun computer-continue ("computer" "continue" (text phony--builtin-phrase))
+(phony-defun computer-continue ("computer" "continue" (text phrase))
 	"Do something with gptel and the context so far and insert the results."
 	(let ((tok
 				 (pending-insert (point) "Calling gptel...")))
@@ -596,10 +617,37 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 											(pending-finish tok response)
 										(pending-cancel tok))))))
 
-(phony-defun computer-tell-me ("computer" "tell" "me" (text phony--builtin-phrase))
+(phony-defun computer-tell-me ("computer" "tell" "me" (text phrase))
 	"Start or switch to a chat session."
 	(with-current-buffer (gptel "*gptel*")
 		(insert text)
+		(gptel-send)
+		(display-buffer (current-buffer))))
+
+(phony-defun computer-tell-me-fr ("dites-moi" (text phrase))
+	"Start or switch to a chat session."
+	(with-current-buffer (gptel "*gptel*")
+		(insert text)
+		(sacha-whisper-conversation-mode)
+		(gptel-send)
+		(display-buffer (current-buffer))))
+
+(phony-defun computer-explain-fr ("explique-moi" (? "cette") (? "ce") (? (target target)) (? (phrase phrase)))
+	"Start or switch to a chat session."
+	(let ((text (if target (buffer-substring (cadr target) (cddr target))
+								"")))
+		(with-current-buffer (gptel "*gptel*")
+			(insert "Explique-moi " (or phrase "") "\n---\n"
+							text)
+			(sacha-whisper-conversation-mode -1)
+			(gptel-send)
+			(display-buffer (current-buffer)))))
+
+(phony-defun computer-tell-me-fr2 ("ditez-moi" (text phrase))
+	"Start or switch to a chat session."
+	(with-current-buffer (gptel "*gptel*")
+		(insert text)
+		(sacha-whisper-conversation-mode)
 		(gptel-send)
 		(display-buffer (current-buffer))))
 ;; gptel and phony:1 ends here

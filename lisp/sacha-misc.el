@@ -376,6 +376,7 @@ From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
 	(interactive)
 	(let ((sacha-track-active-frame nil))
 		(setq sacha-whisper-mode 'dictation)
+		(setq sacha-whisper-sleep nil)
 		(with-selected-frame sacha-active-frame
 			(with-current-buffer (window-buffer (frame-selected-window sacha-active-frame))
 				(call-interactively 'sacha-whisper-run-with-pending-indicator)))))

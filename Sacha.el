@@ -1936,7 +1936,7 @@ sacha-toggle-now
 (("<f9>" . sacha-whisper-run-with-pending-indicator)
  ("M-<f9>" . whisper-run)
  ("C-<f9>" . whisper-run)
- ("S-<f2>" . whisper-run)
+ ("S-<f2>" . sacha-whisper-run-with-pending-indicator)
  ("S-<f9>" . sacha-whisper-replay)))
 ;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:1 ends here
 
@@ -1973,15 +1973,20 @@ sacha-toggle-now
 				sacha-whisper-reset)))
 ;; whisper-insert-text-at-point-functions ends here
 
-;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:10]]
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:9]]
+(with-eval-after-load 'whisper
+	(add-to-list 'mode-line-front-space '(:eval sacha-whisper-mode-indicator)))
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:9 ends here
+
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:11]]
 (keymap-global-set "<f9>" #'sacha-whisper-run-at-point)
 (keymap-global-set "<kp-1>" #'whisper-run)
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:10 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:11 ends here
 
-;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:12]]
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:13]]
 (with-eval-after-load 'org
 (add-hook 'org-clock-in-hook #'sacha-whisper-org-clear-saved-annotation))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:12 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:13 ends here
 
 ;; [[file:Sacha.org::#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models][Emacs and whisper.el: Trying out different speech-to-text backends and models:2]]
 (with-eval-after-load 'whisper
@@ -2477,6 +2482,7 @@ Based on `org-link--try-link-store-functions'."
 (defvar sacha-ledger-file "~/cloud/ledger/current.ledger")
 (defun sacha-org-goto-inbox-target ()
 	"Open inbox target."
+	(interactive)
 	(org-capture-set-target-location sacha-org-inbox-target)
 	(pop-to-buffer-same-window (org-capture-get :buffer))
 	(goto-char (org-capture-get :pos)))
@@ -4718,6 +4724,7 @@ Each list item should be a group ID."
 	:preface (load "~/proj/subed-record/subed-record-autoloads.el" nil t)
 	:hook (subed-mode . subed-record-set-up)
   :config
+	(setq subed-record-sync nil)
   (remove-hook 'subed-sanitize-functions 'subed-sort)
 	(setq subed-record-ffmpeg-args (split-string "-y -f pulse -i StereoInputMic.monitor -r 48000"))
   :bind

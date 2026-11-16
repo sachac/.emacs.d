@@ -136,38 +136,92 @@
 			text
 		(and text (speech-input-commands-process (speech-input-phony-process text)))))
 
+(defvar sacha-whisper-mode-indicator "" "Indicates `sacha-whisper-mode' or `sacha-whisper-sleep'.
+Add to mode line with
+(add-to-list 'mode-line-front-space '(:eval sacha-whisper-mode-indicator))")
+
+(defvar sacha-whisper-mode-indicators
+	'((all . "✓")
+		(commands . "📋")
+		(dictation . "👂")
+		(dictation-focus . "💬")
+		(kebab . "-"))
+	"Indicators.")
+
+(defvar sacha-whisper-sleep nil "Non-nil means ignore most of the input.")
+
 (defun sacha-whisper-filter-mode (text)
-	"Discard, process, or modify TEXT based on `sacha-whisper-mode'."
+	"Discard, process, or modify TEXT based on `sacha-whisper-mode'.
+
+These commands get processed regardless of the mode:
+- continuous: use voice activity detection
+- manual: rely on the keyboard shortcut to indicate the start and stop of speech
+- wake up / dictation: process both dictation and commands
+- commands / drive: process only commands
+- dictation focus: treat all speech as dictation except for these essential commands, which you can dictate by prepending \"insert\"
+- kebab / skewer: put dashes between words and don't break onto lines.
+- over: toggle between listening for things and listening only for essential commands
+- sleep / all done: listen only for essential commands
+
+\"over\" and \"scratch that\" gets processed at the end of any utterance.
+"
 	(when text
 		(pcase (sacha-phony-parser--sanitize text)
+			("continuous"
+			 (speech-input-vad-start)
+			 (setq text nil))
+			("manual"
+			 (speech-input-vad-stop)
+			 (setq text nil))
 			((or "wake up" "dictation")
 			 (setq sacha-whisper-mode 'all text nil
-						 sacha-whisper-mode-indicator "✓"))
+						 sacha-whisper-sleep nil))
 			((or "commands" "drive")
 			 (sacha-whisper-audio-feedback "command mode")
 			 (setq sacha-whisper-mode 'commands text nil
-						 sacha-whisper-mode-indicator "📋"))
+						 sacha-whisper-sleep nil))
 			((or "only dictation" "dictation focus")
 			 (sacha-whisper-audio-feedback "dictation focus")
-			 (setq sacha-whisper-mode 'dictation-focus text nil
-						 sacha-whisper-mode-indicator "💬"))
-			((or "kebab")
+			 (setq sacha-whisper-mode 'dictation-focus text nil sacha-whisper-sleep nil))
+			((or "kebab" "skewer")
 			 (sacha-whisper-audio-feedback "kebab mode")
-			 (setq sacha-whisper-mode 'kebab text nil
-						 sacha-whisper-mode-indicator "-"))
+			 (setq sacha-whisper-mode 'kebab
+						 sacha-whisper-sleep nil
+						 text nil))
+			("over"
+			 (setq sacha-whisper-sleep (not sacha-whisper-sleep) text nil)
+			 (if sacha-whisper-sleep
+					 (sacha-whisper-audio-feedback "bye")
+				 (sacha-whisper-audio-feedback "hi")))
 			((or "sleep" "all done")
-			 (setq sacha-whisper-mode 'sleep text nil
-						 sacha-whisper-mode-indicator "💤")))
-		(pcase sacha-whisper-mode
-			('commands
-			 ;; Keep TEXT only if it matches a command.
-			 (when
-					 (and text
-								(or (not (eq (phony-evaluate text 'not-parsed) 'not-parsed))
-										(speech-input-commands-find text)))
-				 text))
-			('sleep nil)
-			(_ text))))
+			 (setq sacha-whisper-sleep t text nil
+						 sacha-whisper-mode-indicator "💤"))
+			(_
+			 (cond
+				((string-match "\\<\\(scratch that\\)[\\.?! ]*$" text)
+				 (setq text nil))
+				((string-match "\\<\\(over\\)[\\.?! ]*$" text)
+				 (setq sacha-whisper-sleep (not sacha-whisper-sleep)
+							 text
+							 (if sacha-whisper-sleep
+									 nil
+								 (replace-match "" nil nil text 1)))
+				 (if sacha-whisper-sleep
+						 (sacha-whisper-audio-feedback "bye")
+					 (sacha-whisper-audio-feedback "hi")))
+				(sacha-whisper-sleep
+				 (setq text nil)))
+				)))
+		(setq sacha-whisper-mode-indicator
+					(if sacha-whisper-sleep
+							"💤"
+						(alist-get sacha-whisper-mode sacha-whisper-mode-indicators)))
+		(when (eq sacha-whisper-mode 'commands)
+			(unless (and text
+									 (or (not (eq (phony-evaluate text 'not-parsed) 'not-parsed))
+											 (speech-input-commands-find text)))
+				(setq text nil)))
+		text))
 
 ;;;###autoload
 (defun sacha-whisper-insert (text)
@@ -199,6 +253,7 @@
 										(when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
 											(insert "\n"))
 										(when (and sacha-whisper-one-sentence-per-line
+															 (not (eq sacha-whisper-mode 'kebab))
 															 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"" (line-beginning-position))))
 											(if (and (derived-mode-p 'org-mode)
 															 (org-element-lineage (org-element-context) '(item plain-list)))
@@ -209,7 +264,8 @@
 																					most-positive-fixnum))
 														(org-return))
 												(insert "\n")))
-										(if sacha-whisper-one-sentence-per-line
+										(if (and sacha-whisper-one-sentence-per-line
+														 (not (eq sacha-whisper-mode 'kebab)))
 												(seq-map-indexed
 												 (lambda (line i)
 													 (when (> i 0)
@@ -259,7 +315,7 @@ Add this function to `whisper-insert-text-at-point'."
 			nil)))
 ;; sacha-whisper-maybe-type ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:9]]
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:10]]
 ;;;###autoload
 (defun sacha-whisper-clear-markers ()
 	(interactive)
@@ -277,9 +333,9 @@ Add this function to `whisper-insert-text-at-point'."
 	(interactive (list current-prefix-arg))
 	(sacha-whisper-clear-markers)
 	(whisper-run))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:9 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:10 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:11]]
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:12]]
 ;;;###autoload
 (defun sacha-whisper-jump-to-marker ()
 	(interactive)
@@ -373,15 +429,15 @@ Add this function to `whisper-insert-text-at-point'."
 					 (set-window-configuration config)
 					 (message "Copied: %s" text))
 				 text config))))))))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:11 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:12 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:13]]
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:14]]
 ;;;###autoload
 (defun sacha-whisper-org-clear-saved-annotation ()
 (setq sacha-whisper-org-last-annotation nil))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:13 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:14 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:14]]
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:15]]
 (defvar sacha-whisper-notes "~/sync/stream/narration.org")
 ;;;###autoload
 (defun sacha-whisper-save-to-file (text)
@@ -393,9 +449,9 @@ Add this function to `whisper-insert-text-at-point'."
 	(save-buffer)
 	(run-at-time 0.5 nil (lambda (text) (message "Saved to file: %s" text)) text)))
     text))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:14 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:15 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:15]]
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:16]]
 ;;;###autoload
 (defun sacha-save-to-kill-ring-after-current (text)
   "Save TEXT to the kill ring, but not at the top spot."
@@ -406,15 +462,15 @@ Add this function to `whisper-insert-text-at-point'."
 	  (push temp kill-ring))
       (kill-new text)))
   text)
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:15 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:16 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:16]]
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:17]]
 ;;;###autoload
 (defun sacha-whisper-redo ()
   (interactive)
   (setq whisper--marker (point-marker))
   (whisper--transcribe-audio))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:16 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:17 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models][Emacs and whisper.el: Trying out different speech-to-text backends and models:1]]
 (defvar sacha-whisper-url-format "http://%s:%d/transcribe")
@@ -856,24 +912,25 @@ Use `sacha-speech-input-model-aliases' for aliases."
 (defun sacha-whisper-process-replacements (text)
 	"Replace `sacha-whisper-replacements' in TEXT.
 Add this to `whisper-insert-text-at-point.'"
-	(with-temp-buffer
-		(insert text)
-		(goto-char (point-min))
-		(when (looking-at " +") (replace-match ""))
-		(let ((case-fold-search t))
-			(cond
-			 ((re-search-forward  " *okay[,\\.]? stop recording" nil t)
-				(when (process-live-p whisper--recording-process)
-					(replace-match "")
-					(message "Stopping.")
-					(sacha-whisper-done)))))
-		(dolist (rep sacha-whisper-replacements)
+	(when text
+		(with-temp-buffer
+			(insert text)
 			(goto-char (point-min))
-			(while (re-search-forward (car rep) nil t)
-				(replace-match (cdr rep))))
-		(goto-char (point-max))
-		(insert " ")
-		(buffer-string)))
+			(when (looking-at " +") (replace-match ""))
+			(let ((case-fold-search t))
+				(cond
+				 ((re-search-forward  " *okay[,\\.]? stop recording" nil t)
+					(when (process-live-p whisper--recording-process)
+						(replace-match "")
+						(message "Stopping.")
+						(sacha-whisper-done)))))
+			(dolist (rep sacha-whisper-replacements)
+				(goto-char (point-min))
+				(while (re-search-forward (car rep) nil t)
+					(replace-match (cdr rep))))
+			(goto-char (point-max))
+			(insert " ")
+			(buffer-string))))
 
 (defun sacha-whisper-inline (text)
   "Temporarily turn off sentence mode."

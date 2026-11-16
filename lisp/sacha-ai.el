@@ -163,7 +163,9 @@ Generated with an LLM."
 		(switch-to-buffer (current-buffer))))
 (eval-when-compile (require 'phony))
 (with-eval-after-load 'phony
-	(phony-defun practice-french ("practice" "french")
+	(phony-defun practice-french ("practice french")
+		(sacha-gptel-practice-french))
+	(phony-defun practise-french ("practise french")
 		(sacha-gptel-practice-french)))
 ;; Ask me questions based on the text so far:1 ends here
 

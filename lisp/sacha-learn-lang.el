@@ -1273,7 +1273,7 @@ Add to `whisper-insert-text-at-point'."
 								      sacha-learn-lang-bingo-words)))
 		      (when found
 			      (incf (elt found 1))
-			      (sacha-vad-tutor-update-view)
+			      (sacha-vad-asr-update-view)
 			      (with-current-buffer (get-buffer-create "*Bingo*")
 				      (erase-buffer)
 				      (insert (sacha-learn-lang-bingo-summary))))))

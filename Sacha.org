@@ -3532,6 +3532,63 @@ repeating just the last keystroke.
 (dolist (cmd '(sacha-face-text-larger sacha-face-text-smaller))
   (put cmd 'repeat-map 'sacha-face-text-property-mode-repeat-map))
 #+end_src
+** Split and follow
+
+Based on [[https://reindeereffect.com/0002][Walls of Text]], found via [[https://news.ycombinator.com/item?id=50510246][HN]]
+
+#+begin_src emacs-lisp :tangle lisp/sacha-wall.el
+;; Based on https://reindeereffect.com/0002
+
+(defvar-local wall-num-columns 3 "Number of columns.")
+
+(defun wall (buffer &optional num-columns)
+  (interactive "bbuffer:")
+  (delete-other-windows)
+  (follow-mode 0)
+  (setf wall-num-columns (or num-columns wall-num-columns))
+  (dotimes (i (1- wall-num-columns))
+    (split-window-right)
+    (balance-windows)
+    (other-window 1)
+    (switch-to-buffer buffer))
+  (other-window 1)
+  (balance-windows)
+  (wall-minor-mode))
+
+(defun wall-next-screen ()
+  (interactive)
+  (dotimes (i (length (follow-all-followers)))
+    (scroll-up-command)))
+
+(defun wall-prev-screen ()
+  (interactive)
+  (dotimes (i (length (follow-all-followers)))
+    (scroll-down-command)))
+(defun wall-add-column ()
+  (interactive)
+  (wall (current-buffer) (1+ (length (follow-all-followers)))))
+
+(defun wall-remove-column ()
+  (interactive)
+  (wall (current-buffer) (max 1 (1- (length (follow-all-followers))))))
+
+(defun wall-reset ()
+  (interactive)
+  (wall (current-buffer) 3))
+
+(define-minor-mode wall-minor-mode
+  "Turn any buffer into a wall of text."
+  :lighter "wall"
+  :keymap (list
+					 (cons (kbd "M-<XF86AudioLowerVolume>") 'wall-remove-column)
+					 (cons (kbd "M-<XF86AudioRaiseVolume>") 'wall-add-column)
+					 (cons (kbd "C-<next>") 'wall-next-screen)
+					 (cons (kbd "C-<prior>") 'wall-prev-screen))
+	(when wall-minor-mode
+		(setq scroll-preserve-screen-position t)
+		(setq next-screen-context-lines 0))
+  (follow-mode 'toggle))
+#+end_src
 * Navigation
 :PROPERTIES:
 :CUSTOM_ID: navigation

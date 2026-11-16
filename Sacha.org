@@ -9299,6 +9299,7 @@ Useful in `speech-input-commands'."
 			 (* number 60 60)))))
 
 (phony-defun today "today" :contributes-to date (org-read-date nil nil "."))
+(phony-defun someday "someday" :contributes-to date nil)
 (phony-defun tomorrow "tomorrow" :contributes-to date (org-read-date nil nil "+1"))
 (phony-defun monday "Monday" :contributes-to date (org-read-date nil nil "+mon"))
 (phony-defun tuesday "Tuesday" :contributes-to date (org-read-date nil nil "+tue"))
@@ -9355,16 +9356,24 @@ If DATE is t, clock in immediately."
 (phony-defun rappele-moi ("rappele-moi" (? (date date)) (? "de") (? "que") (text phrase))
 	"Capture a scheduled task."
 	(sacha-org-capture-scheduled-task text date))
+(phony-defun rappelle-moi ("rappelle-moi" (? (date date)) (? "de") (? "que") (text phrase))
+	"Capture a scheduled task."
+	(sacha-org-capture-scheduled-task text date))
 (phony-defun rappelez-moi ("rappelez-moi" (? (date date)) (? "de") (? "que") (text phrase))
 	"Capture a scheduled task."
 	(sacha-org-capture-scheduled-task text date))
 (phony-defun switch-to ("switch" "to" (text phrase))
 	"Switch to this task."
 	(sacha-org-capture-scheduled-task text t))
+(phony-defun inbox ("inbox")
+	"Jump to inbox."
+	(sacha-org-goto-inbox-target)
+	(widen)
+  (sacha-org-goto-inbox-target))
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/sacha-phony.el
-(phony-defun rephrase ("rephrase" (text phony--builtin-phrase))
+(phony-defun rephrase ("rephrase" (text phrase))
 	"Delete this sentence and reinsert it."
 	(save-excursion
 		(when (looking-back sentence-end-base (1- (point))) (backward-char))
@@ -9372,7 +9381,7 @@ If DATE is t, clock in immediately."
 			(delete-region (car bounds) (cdr bounds))
 			(insert (upcase (substring text 0 1)) (substring text 1)))))
 
-(phony-defun retake ("retake" (text phony--builtin-phrase))
+(phony-defun retake ("retake" (text phrase))
 	"Replace the recording for this sentence."
 	(save-excursion
 		(when (looking-back sentence-end-base (1- (point))) (backward-char))
@@ -9397,7 +9406,7 @@ If DATE is t, clock in immediately."
 		      (string-trim (buffer-substring pos (point-max))))))
 
 (defvar sacha-doctor-tts nil "Non-nil means say the response out loud.")
-(phony-defun doctor ("doctor" (text phony--builtin-phrase))
+(phony-defun doctor ("doctor" (text phrase))
       "Chat with Eliza."
       (let ((response (sacha-doctor text)))
 	      (message "%s" response)

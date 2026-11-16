@@ -9128,6 +9128,7 @@ From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
 	(interactive)
 	(let ((sacha-track-active-frame nil))
 		(setq sacha-whisper-mode 'dictation)
+		(setq sacha-whisper-sleep nil)
 		(with-selected-frame sacha-active-frame
 			(with-current-buffer (window-buffer (frame-selected-window sacha-active-frame))
 				(call-interactively 'sacha-whisper-run-with-pending-indicator)))))
@@ -9468,14 +9469,14 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 (phony-defun redo ("redo") (undo-redo))
 (phony-defun winner ("winner") (winner-undo))
 
-(phony-defun insert ("insert" (text phony--builtin-phrase))
+(phony-defun insert ("insert" (text phrase))
 	"Insert phrase without executing it."
 	(insert text))
-(phony-defun cap ("cap" (text phony--builtin-phrase))
+(phony-defun cap ("cap" (text phrase))
 	"Insert phrase but capitalize the first letter."
 	(insert (upcase (substring text 0 1))
 					(substring text 1)))
-(phony-defun kebab ("kebab" (text phony--builtin-phrase))
+(phony-defun kebab ("kebab" (text phrase))
 	"Insert phrase with dashes."
 	(insert (replace-regexp-in-string "-$" "" (downcase (replace-regexp-in-string "[,\\. ]+" "-" text)))))
 
@@ -10110,38 +10111,92 @@ Update [2026-10-02 Fri]: Il peut aussi comprendre le français. I used to have c
 			text
 		(and text (speech-input-commands-process (speech-input-phony-process text)))))
 
+(defvar sacha-whisper-mode-indicator "" "Indicates `sacha-whisper-mode' or `sacha-whisper-sleep'.
+Add to mode line with
+(add-to-list 'mode-line-front-space '(:eval sacha-whisper-mode-indicator))")
+
+(defvar sacha-whisper-mode-indicators
+	'((all . "✓")
+		(commands . "📋")
+		(dictation . "👂")
+		(dictation-focus . "💬")
+		(kebab . "-"))
+	"Indicators.")
+
+(defvar sacha-whisper-sleep nil "Non-nil means ignore most of the input.")
+
 (defun sacha-whisper-filter-mode (text)
-	"Discard, process, or modify TEXT based on `sacha-whisper-mode'."
+	"Discard, process, or modify TEXT based on `sacha-whisper-mode'.
+
+These commands get processed regardless of the mode:
+- continuous: use voice activity detection
+- manual: rely on the keyboard shortcut to indicate the start and stop of speech
+- wake up / dictation: process both dictation and commands
+- commands / drive: process only commands
+- dictation focus: treat all speech as dictation except for these essential commands, which you can dictate by prepending \"insert\"
+- kebab / skewer: put dashes between words and don't break onto lines.
+- over: toggle between listening for things and listening only for essential commands
+- sleep / all done: listen only for essential commands
+
+\"over\" and \"scratch that\" gets processed at the end of any utterance.
+"
 	(when text
 		(pcase (sacha-phony-parser--sanitize text)
+			("continuous"
+			 (speech-input-vad-start)
+			 (setq text nil))
+			("manual"
+			 (speech-input-vad-stop)
+			 (setq text nil))
 			((or "wake up" "dictation")
 			 (setq sacha-whisper-mode 'all text nil
-						 sacha-whisper-mode-indicator "✓"))
+						 sacha-whisper-sleep nil))
 			((or "commands" "drive")
 			 (sacha-whisper-audio-feedback "command mode")
 			 (setq sacha-whisper-mode 'commands text nil
-						 sacha-whisper-mode-indicator "📋"))
+						 sacha-whisper-sleep nil))
 			((or "only dictation" "dictation focus")
 			 (sacha-whisper-audio-feedback "dictation focus")
-			 (setq sacha-whisper-mode 'dictation-focus text nil
-						 sacha-whisper-mode-indicator "💬"))
-			((or "kebab")
+			 (setq sacha-whisper-mode 'dictation-focus text nil sacha-whisper-sleep nil))
+			((or "kebab" "skewer")
 			 (sacha-whisper-audio-feedback "kebab mode")
-			 (setq sacha-whisper-mode 'kebab text nil
-						 sacha-whisper-mode-indicator "-"))
+			 (setq sacha-whisper-mode 'kebab
+						 sacha-whisper-sleep nil
+						 text nil))
+			("over"
+			 (setq sacha-whisper-sleep (not sacha-whisper-sleep) text nil)
+			 (if sacha-whisper-sleep
+					 (sacha-whisper-audio-feedback "bye")
+				 (sacha-whisper-audio-feedback "hi")))
 			((or "sleep" "all done")
-			 (setq sacha-whisper-mode 'sleep text nil
-						 sacha-whisper-mode-indicator "💤")))
-		(pcase sacha-whisper-mode
-			('commands
-			 ;; Keep TEXT only if it matches a command.
-			 (when
-					 (and text
-								(or (not (eq (phony-evaluate text 'not-parsed) 'not-parsed))
-										(speech-input-commands-find text)))
-				 text))
-			('sleep nil)
-			(_ text))))
+			 (setq sacha-whisper-sleep t text nil
+						 sacha-whisper-mode-indicator "💤"))
+			(_
+			 (cond
+				((string-match "\\<\\(scratch that\\)[\\.?! ]*$" text)
+				 (setq text nil))
+				((string-match "\\<\\(over\\)[\\.?! ]*$" text)
+				 (setq sacha-whisper-sleep (not sacha-whisper-sleep)
+							 text
+							 (if sacha-whisper-sleep
+									 nil
+								 (replace-match "" nil nil text 1)))
+				 (if sacha-whisper-sleep
+						 (sacha-whisper-audio-feedback "bye")
+					 (sacha-whisper-audio-feedback "hi")))
+				(sacha-whisper-sleep
+				 (setq text nil)))
+				)))
+		(setq sacha-whisper-mode-indicator
+					(if sacha-whisper-sleep
+							"💤"
+						(alist-get sacha-whisper-mode sacha-whisper-mode-indicators)))
+		(when (eq sacha-whisper-mode 'commands)
+			(unless (and text
+									 (or (not (eq (phony-evaluate text 'not-parsed) 'not-parsed))
+											 (speech-input-commands-find text)))
+				(setq text nil)))
+		text))
 
 ;;;###autoload
 (defun sacha-whisper-insert (text)
@@ -10232,6 +10287,11 @@ Add this function to `whisper-insert-text-at-point'."
 										(list "xdotool" "type"
 													text))
 			nil)))
+#+end_src
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'whisper
+	(add-to-list 'mode-line-front-space '(:eval sacha-whisper-mode-indicator)))
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/sacha-speech-input.el
@@ -11140,28 +11200,28 @@ saying things often enough that they become more automatic.
 :END:
 This code uses this server [[file:~/vendor/orukeet/asr.py][asr.py]], which I generated with Google Gemini. It emits JSONL for voice activity detection events (start/stop) and uses Orukeet to transcribe the speech once the voice activity detection notices it's finished. I also use spacy to look up token information because I want to someday colour the nouns by gender, which might allow me to correct myself in the next sentence instead of hesitating in the previous one.
 
-#+begin_src emacs-lisp :tangle lisp/sacha-vad-tutor.el :summary code for sacha-vad-tutor
+#+begin_src emacs-lisp :tangle lisp/sacha-vad-asr.el :summary code for sacha-vad-asr
 ;; Report on the balance between my tutor and me
-(defvar sacha-vad-tutor-process nil)
-(defvar sacha-vad-tutor-dir "~/vendor/orukeet")
+(defvar sacha-vad-asr-process nil)
+(defvar sacha-vad-asr-dir "~/vendor/orukeet")
 (defvar sacha-vad-whisper-url "http://localhost:8003/v1/audio/transcriptions")
-(defvar sacha-vad-tutor-command `(,(expand-file-name ".venv/bin/python" sacha-vad-tutor-dir)
+(defvar sacha-vad-asr-command `(,(expand-file-name ".venv/bin/python" sacha-vad-asr-dir)
 																      "asr.py"
 																			"--url"
 																			,sacha-vad-whisper-url
-																      "--spacy-model"
-																      "fr_dep_news_trf"
+																      ;"--spacy-model"
+																      ;"fr_dep_news_trf"
 																      "-s" "300" "-t"
 																      "StereoInputMic.monitor=me"
 																			"alsa_output.usb-AT_AT2040USB_202011110001-00.analog-stereo.monitor=other"))
-(defvar sacha-vad-tutor-events nil "List of events as an list of alists (label start stop duration).")
-(defvar sacha-vad-tutor-labels '("sacha" "other"))
-(defvar sacha-vad-tutor-summary '(("sacha" . 0)
+(defvar sacha-vad-asr-events nil "List of events as an list of alists (label start stop duration).")
+(defvar sacha-vad-asr-labels '("sacha" "other"))
+(defvar sacha-vad-asr-summary '(("sacha" . 0)
 																      ("other" . 0)))
-(defvar sacha-vad-tutor-session-length (* 60 60) "Number of seconds to use for scale.")
+(defvar sacha-vad-asr-session-length (* 60 60) "Number of seconds to use for scale.")
 
 ;;;###autoload
-(defun sacha-vad-tutor-start (&optional length)
+(defun sacha-vad-asr-start (&optional length)
   "Start the process."
   (interactive
 	 (if current-prefix-arg
@@ -11171,30 +11231,30 @@ This code uses this server [[file:~/vendor/orukeet/asr.py][asr.py]], which I gen
 	(when (stringp length)
 		(setq length (- (time-to-seconds (org-read-date t t length "End: "))
 										(time-to-seconds))))
-	(setq sacha-vad-tutor-session-length length)
-  (sacha-vad-tutor-ensure)
-  (setq sacha-vad-tutor-summary '(("me" . 0)
+	(setq sacha-vad-asr-session-length length)
+  (sacha-vad-asr-ensure)
+  (setq sacha-vad-asr-summary '(("me" . 0)
 																  ("other" . 0))
-			  sacha-vad-tutor-events nil)
+			  sacha-vad-asr-events nil)
   (with-current-buffer (get-buffer-create "*Transcript*")
 	  (erase-buffer)
 	  (display-buffer (current-buffer)))
   (display-buffer (get-buffer-create "*tutor stats*")))
 
 ;;;###autoload
-(defun sacha-vad-tutor-update-view ()
+(defun sacha-vad-asr-update-view ()
   "Visualize the last 3 minutes and the overview of the session.
 Also keep track of target phrases."
   (interactive)
   (with-current-buffer (get-buffer-create "*tutor stats*")
 	  (erase-buffer)
-	  (let* ((total (apply '+ (mapcar 'cdr sacha-vad-tutor-summary)))
+	  (let* ((total (apply '+ (mapcar 'cdr sacha-vad-asr-summary)))
 				   (height 30)
 				   (width (window-width nil t))
 				   (max-seconds
-					  (if sacha-vad-tutor-events
+					  (if sacha-vad-asr-events
 							  (apply 'max (mapcar (lambda (o) (alist-get 'end o))
-																	  sacha-vad-tutor-events))
+																	  sacha-vad-asr-events))
 						  0))
 				   (threshold 180)							; last three minutes
 				   (threshold-seconds (- max-seconds threshold))
@@ -11207,7 +11267,7 @@ Also keep track of target phrases."
 								   `((label . ,.label)
 									   (start . ,(- .start threshold-seconds))
 									   (end . ,(- .end threshold-seconds))))))
-					   (copy-sequence sacha-vad-tutor-events)))
+					   (copy-sequence sacha-vad-asr-events)))
 				   (recent-total (apply '+ (mapcar (lambda (o)
 																					   (-
 																						  (alist-get 'end o)
@@ -11237,7 +11297,7 @@ Also keep track of target phrases."
 			   "\n")
 			  (svg-insert-image
 			   (sacha-vad-visualize
-				  sacha-vad-tutor-labels
+				  sacha-vad-asr-labels
 				  recent
 				  t
 				  width height))
@@ -11248,11 +11308,11 @@ Also keep track of target phrases."
 					  (format "%d%% %s\n"
 									  (/ (* 100.0 (cdr o)) total)
 									  (car o)))
-				  sacha-vad-tutor-summary))
+				  sacha-vad-asr-summary))
 			  (svg-insert-image
-			   (sacha-vad-visualize sacha-vad-tutor-labels sacha-vad-tutor-events t
+			   (sacha-vad-visualize sacha-vad-asr-labels sacha-vad-asr-events t
 														  width height
-														  sacha-vad-tutor-session-length))
+														  sacha-vad-asr-session-length))
 			  (insert "\n\n"  (sacha-learn-lang-bingo-summary))))))
 
 (defun sacha-vad-visualize-spans (data)
@@ -11261,14 +11321,14 @@ Also keep track of target phrases."
 									(cons 'label (alist-get 'label data))
 									(cons 'start (- (alist-get 'timestamp data)
 																	(alist-get 'duration data)
-																	(or sacha-vad-tutor-start-seconds 0)))
+																	(or sacha-vad-asr-start-seconds 0)))
 									(cons 'end (- (alist-get 'timestamp data)
-																(or sacha-vad-tutor-start-seconds 0))))))
-			(push event sacha-vad-tutor-events)
+																(or sacha-vad-asr-start-seconds 0))))))
+			(push event sacha-vad-asr-events)
 			(let-alist data
-				(incf (alist-get (alist-get 'label data) sacha-vad-tutor-summary 0 nil 'string=)
+				(incf (alist-get (alist-get 'label data) sacha-vad-asr-summary 0 nil 'string=)
 							.duration))
-			(sacha-vad-tutor-update-view))))
+			(sacha-vad-asr-update-view))))
 
 (defvar sacha-vad-event-handler-functions
 	'(sacha-vad-speech-process
@@ -11292,7 +11352,7 @@ Add to `sacha-vad-event-handler-functions'."
 		  (goto-char (point-min)))
 	  (whisper--handle-transcription-output nil (get-buffer-create whisper--stdout-buffer-name))))
 
-(defun sacha-vad-tutor-filter (proc string)
+(defun sacha-vad-asr-filter (proc string)
 	"Add and parse."
 	(when (buffer-live-p (process-buffer proc))
 		(let ((data (with-current-buffer (process-buffer proc)
@@ -11386,26 +11446,26 @@ Add to `sacha-vad-event-handler-functions'."
 	(when (and (alist-get 'text data) (string= (alist-get 'label data) sacha-vad-my-label))
 	  (sacha-learn-lang-notice-bingo-words (alist-get 'text data))))
 
-(defun sacha-vad-tutor-ensure ()
+(defun sacha-vad-asr-ensure ()
 	"Start the process if it's not already running."
 	(interactive)
-	(unless (process-live-p sacha-vad-tutor-process)
-	  (setq sacha-vad-tutor-process-start-time (current-time))
-	  (setq sacha-vad-tutor-start-seconds 0)
-		(let ((default-directory sacha-vad-tutor-dir))
-			(setq sacha-vad-tutor-process
+	(unless (process-live-p sacha-vad-asr-process)
+	  (setq sacha-vad-asr-process-start-time (current-time))
+	  (setq sacha-vad-asr-start-seconds 0)
+		(let ((default-directory sacha-vad-asr-dir))
+			(setq sacha-vad-asr-process
 						(make-process
-						 :name "vad-tutor"
-						 :command sacha-vad-tutor-command
+						 :name "vad-asr"
+						 :command sacha-vad-asr-command
 						 :connection-type 'pipe
-						 :buffer (get-buffer-create "*vad-tutor*")
-						 :stderr (get-buffer-create "*vad-tutor-err*")
-						 :filter #'sacha-vad-tutor-filter)))))
+						 :buffer (get-buffer-create "*vad-asr*")
+						 :stderr (get-buffer-create "*vad-asr-err*")
+						 :filter #'sacha-vad-asr-filter)))))
 
-(defun sacha-vad-tutor-stop ()
+(defun sacha-vad-asr-stop ()
       "Stop the process."
       (interactive)
-      (interrupt-process sacha-vad-tutor-process))
+      (interrupt-process sacha-vad-asr-process))
 
 ;;;###autoload
 (defun sacha-js-parse-jsonl-file (file)
@@ -11420,18 +11480,18 @@ Add to `sacha-vad-event-handler-functions'."
 				      (error (goto-char (point-max))))))
 	      (nreverse results)))
 
-(defvar sacha-vad-tutor-start-seconds 0 "Number of seconds to consider as the start.")
-(defvar sacha-vad-tutor-process-start-time nil "Time that the process started.")
+(defvar sacha-vad-asr-start-seconds 0 "Number of seconds to consider as the start.")
+(defvar sacha-vad-asr-process-start-time nil "Time that the process started.")
 
 ;;;###autoload
-(defun sacha-vad-tutor-reset-clock ()
+(defun sacha-vad-asr-reset-clock ()
 "Reset the start of the session."
 (interactive)
-      (setq sacha-vad-tutor-start-seconds
+      (setq sacha-vad-asr-start-seconds
 			      (time-to-seconds (time-subtract (current-time)
-																			      sacha-vad-tutor-process-start-time)))
-      (mapcar (lambda (o) (setcdr o 0)) sacha-vad-tutor-summary)
-      (setq sacha-vad-tutor-events nil))
+																			      sacha-vad-asr-process-start-time)))
+      (mapcar (lambda (o) (setcdr o 0)) sacha-vad-asr-summary)
+      (setq sacha-vad-asr-events nil))
 
 (defun sacha-vad-visualize (labels list &optional output-file width height max-seconds)
       (setq height (or height 25))
@@ -11495,7 +11555,7 @@ Add to `sacha-vad-event-handler-functions'."
 ;; (sacha-vad-visualize '("sacha" "tutor") (sacha-js-parse-jsonl-file "~/proj/speech/output.log"))
 ;; (sacha-vad-visualize '("sacha" "tutor") (seq-take (sacha-js-parse-jsonl-file "~/proj/speech/output2.log") 30))
 
-(defun sacha-vad-tutor-group-output (files)
+(defun sacha-vad-asr-group-output (files)
       (let ((grouped-files (seq-group-by
 											      (lambda (o)
 												      (substring (file-name-base o) 0 10))
@@ -11519,9 +11579,9 @@ Add to `sacha-vad-event-handler-functions'."
 							      nil))))
 	       grouped-files)))
 
-(defun sacha-vad-tutor-make-table (files &optional width height)
+(defun sacha-vad-asr-make-table (files &optional width height)
       "Make a summary table."
-      (let ((labels sacha-vad-tutor-labels)
+      (let ((labels sacha-vad-asr-labels)
 			      (width (or width 500))
 			      (height (or height 30)))
 	      ;; combine data as needed
@@ -11563,7 +11623,7 @@ Add to `sacha-vad-event-handler-functions'."
 																			       (concat "file:" svg-name))
 								       )))
 					      (list "?"))))
-		      (sacha-vad-tutor-group-output files))
+		      (sacha-vad-asr-group-output files))
 	       nil)))
 #+end_src
 
@@ -11660,7 +11720,7 @@ Add to `whisper-insert-text-at-point'."
 								      sacha-learn-lang-bingo-words)))
 		      (when found
 			      (incf (elt found 1))
-			      (sacha-vad-tutor-update-view)
+			      (sacha-vad-asr-update-view)
 			      (with-current-buffer (get-buffer-create "*Bingo*")
 				      (erase-buffer)
 				      (insert (sacha-learn-lang-bingo-summary))))))
@@ -12203,24 +12263,25 @@ I'd like to be able to dictate to Org Mode more fluidly, which includes being ab
 (defun sacha-whisper-process-replacements (text)
 	"Replace `sacha-whisper-replacements' in TEXT.
 Add this to `whisper-insert-text-at-point.'"
-	(with-temp-buffer
-		(insert text)
-		(goto-char (point-min))
-		(when (looking-at " +") (replace-match ""))
-		(let ((case-fold-search t))
-			(cond
-			 ((re-search-forward  " *okay[,\\.]? stop recording" nil t)
-				(when (process-live-p whisper--recording-process)
-					(replace-match "")
-					(message "Stopping.")
-					(sacha-whisper-done)))))
-		(dolist (rep sacha-whisper-replacements)
+	(when text
+		(with-temp-buffer
+			(insert text)
 			(goto-char (point-min))
-			(while (re-search-forward (car rep) nil t)
-				(replace-match (cdr rep))))
-		(goto-char (point-max))
-		(insert " ")
-		(buffer-string)))
+			(when (looking-at " +") (replace-match ""))
+			(let ((case-fold-search t))
+				(cond
+				 ((re-search-forward  " *okay[,\\.]? stop recording" nil t)
+					(when (process-live-p whisper--recording-process)
+						(replace-match "")
+						(message "Stopping.")
+						(sacha-whisper-done)))))
+			(dolist (rep sacha-whisper-replacements)
+				(goto-char (point-min))
+				(while (re-search-forward (car rep) nil t)
+					(replace-match (cdr rep))))
+			(goto-char (point-max))
+			(insert " ")
+			(buffer-string))))
 
 (defun sacha-whisper-inline (text)
   "Temporarily turn off sentence mode."

@@ -32494,6 +32494,7 @@ If you called whisperx with --highlight_words, this function can remove the unde
 	:preface (load "~/proj/subed-record/subed-record-autoloads.el" nil t)
 	:hook (subed-mode . subed-record-set-up)
   :config
+	(setq subed-record-sync nil)
   (remove-hook 'subed-sanitize-functions 'subed-sort)
 	(setq subed-record-ffmpeg-args (split-string "-y -f pulse -i StereoInputMic.monitor -r 48000"))
   :bind

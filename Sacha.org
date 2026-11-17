@@ -48283,10 +48283,9 @@ references.
           (gptel-make-gemini "Gemini - paid"
             :key (gptel-api-key-from-environment "GEMINI_PAID_API_KEY")
             :stream t
-            :models '(gemini-3-flash-preview
-                      gemini-2.5-flash
-                      gemini-2.5-flash-preview-09-2025
-                      gemini-2.5-flash-lite)))
+            :models '(gemini-3.8-flash
+											gemini-3.6-flash
+											gemini-3.5-flash-lite)))
     (setq sacha-gptel-mistral
           (gptel-make-openai "Mistral"
             :key (gptel-api-key-from-environment "MISTRAL_API_KEY")

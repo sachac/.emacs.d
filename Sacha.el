@@ -7001,6 +7001,27 @@ When called interactively, insert at point."
 			text)))
 ;; Insert an Org Mode link to an upcoming YouTube broadcast:1 ends here
 
+;; [[file:Sacha.org::*Large language models and AI][Large language models and AI:1]]
+(require 'llm)
+(require 'llm-ollama)
+;;;###autoload
+(defun sacha-gptel-find-function (description prefix)
+  "Find a function related to DESCRIPTION that starts with PREFIX."
+  (interactive)
+	(let (functions)
+		(mapatoms
+		 (lambda (sym)
+			 (when (and (fboundp sym)
+									(string-prefix-p prefix (symbol-name sym)))
+				 (push (cons
+								sym
+								(or (documentation sym) ""))
+							 functions))))
+		(setq functions (sort functions :key 'car :lessp #'string<))
+
+		functions))
+;; Large language models and AI:1 ends here
+
 ;; [[file:Sacha.org::#ledger-personal-finance-in-sacha-config][Ledger:1]]
 (use-package ledger-mode
   :mode "\\.ledger$"
@@ -7312,10 +7333,9 @@ When called interactively, insert at point."
           (gptel-make-gemini "Gemini - paid"
             :key (gptel-api-key-from-environment "GEMINI_PAID_API_KEY")
             :stream t
-            :models '(gemini-3-flash-preview
-                      gemini-2.5-flash
-                      gemini-2.5-flash-preview-09-2025
-                      gemini-2.5-flash-lite)))
+            :models '(gemini-3.8-flash
+											gemini-3.6-flash
+											gemini-3.5-flash-lite)))
     (setq sacha-gptel-mistral
           (gptel-make-openai "Mistral"
             :key (gptel-api-key-from-environment "MISTRAL_API_KEY")

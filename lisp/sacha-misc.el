@@ -372,7 +372,38 @@ From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
 
 ;;;###autoload
 (defun sacha-whisper-emacsclient ()
-	"Reset to dictation mode and run speech recognition."
+	"Reset to dictation mode and run speech recognition.
+
+If Whisper is sleeping, start it in dictation mode and save thes tate.
+If it's already listening in dictation mode.
+"
+	(interactive)
+	(let ((sacha-track-active-frame nil))
+		(cond
+		 (sacha-whisper-sleep
+			(setq sacha-whisper-before-emacsclient-state
+						(cons sacha-whisper-mode sacha-whisper-sleep))
+			(sacha-whisper-set-filter-mode 'dictation nil))
+		 ((eq sacha-whisper-mode 'dictation) ; already awake and listening
+			(if sacha-whisper-before-emacsclient-state
+					(sacha-whisper-set-filter-mode
+					 (car sacha-whisper-before-emacsclient-state)
+					 (cdr sacha-whisper-before-emacsclient-state))
+				(sacha-whisper-set-filter-mode
+				 'dictation
+					t)))
+		 ;; awake, but not listening for dictation
+		 (t
+			(setq sacha-whisper-before-emacsclient-state
+						(cons sacha-whisper-mode sacha-whisper-sleep))
+			(sacha-whisper-set-filter-mode
+			 'dictation
+				nil)))))
+
+(defun sacha-whisper-emacsclient-run-with-pending ()
+	"Start whisper with a pending indicator.
+Previous implementation to call with emacsclient if you're not
+using `sacha-vad-asr-start'."
 	(interactive)
 	(let ((sacha-track-active-frame nil))
 		(setq sacha-whisper-mode 'dictation)

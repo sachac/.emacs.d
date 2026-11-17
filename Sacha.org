@@ -46064,6 +46064,29 @@ https://github.com/swillner/highlight-pointer
 ;(with-eval-after-load 'phony
 ;	(phony-defun laser ("laser") (sacha-highlight-pointer-minor-mode)))
 #+end_src
+* Large language models and AI
+
+#+begin_src emacs-lisp
+(require 'llm)
+(require 'llm-ollama)
+;;;###autoload
+(defun sacha-gptel-find-function (description prefix)
+  "Find a function related to DESCRIPTION that starts with PREFIX."
+  (interactive)
+	(let (functions)
+		(mapatoms
+		 (lambda (sym)
+			 (when (and (fboundp sym)
+									(string-prefix-p prefix (symbol-name sym)))
+				 (push (cons
+								sym
+								(or (documentation sym) ""))
+							 functions))))
+		(setq functions (sort functions :key 'car :lessp #'string<))
+		;; someday: RAG to figure out which function I might be talking about?
+		functions))
+#+end_src
+
 * Miscellaneous
 :PROPERTIES:
 :CUSTOM_ID: file-misc

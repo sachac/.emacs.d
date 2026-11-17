@@ -11381,27 +11381,28 @@ saying things often enough that they become more automatic.
 :PROPERTIES:
 :CUSTOM_ID: writing-and-editing-speech-recognition-using-emacs-to-visualize-speaking-and-target-words-phrases-in-real-ish-time-voice-activity-detection-and-speech-recognition
 :END:
-This code uses this server [[file:~/vendor/orukeet/asr.py][asr.py]], which I generated with Google Gemini. It emits JSONL for voice activity detection events (start/stop) and uses Orukeet to transcribe the speech once the voice activity detection notices it's finished. I also use spacy to look up token information because I want to someday colour the nouns by gender, which might allow me to correct myself in the next sentence instead of hesitating in the previous one.
+
+This code uses this server [[file:~/vendor/orukeet/asr.py][asr.py]], which I generated with Google Gemini. You'll also need an OpenAI-compatible speech recognition server at ~sacha-vad-whisper-url~, such as the [[file:~/vendor/orukeet/orukeet-server.py][orukeet-server.py]] that I use with [[dotemacs:writing-and-editing-speech-recognition-orukeet][Orukeet]]. It emits JSONL for voice activity detection events (start/stop) and uses Orukeet to transcribe the speech once the voice activity detection notices it's finished. I've commented out the spacy stuff, but I want to someday use it to look up token information and colour French nouns by gender, which might allow me to correct myself in the next sentence instead of hesitating in the previous one.
+
+This server combines voice activity detection and preparing the audio for speech recognition. That way, it can keep a running buffer of audio samples and include the audio slightly before the detected start of speech. I use ~sacha-vad-asr-start~ to start it within Emacs. I also need ~sacha-orukeet-ensure~ to make sure my speech recognition server is running.
 
 #+begin_src emacs-lisp :tangle lisp/sacha-vad-asr.el :summary code for sacha-vad-asr
-;; Report on the balance between my tutor and me
 (defvar sacha-vad-asr-process nil)
 (defvar sacha-vad-asr-dir "~/vendor/orukeet")
 (defvar sacha-vad-whisper-url "http://localhost:8003/v1/audio/transcriptions")
 (defvar sacha-vad-asr-command `(,(expand-file-name ".venv/bin/python" sacha-vad-asr-dir)
-																      "asr.py"
-																			"--url"
-																			,sacha-vad-whisper-url
-																      ;"--spacy-model"
-																      ;"fr_dep_news_trf"
-																      "-s" "300" "-t"
-																      "StereoInputMic.monitor=me"
-																			"alsa_output.usb-AT_AT2040USB_202011110001-00.analog-stereo.monitor=other"))
+																"asr.py"
+																"--url"
+																,sacha-vad-whisper-url
+																				;"--spacy-model"
+																				;"fr_dep_news_trf"
+																"-s" "300" "-t"
+																"StereoInputMic.monitor=me"
+																"alsa_output.usb-AT_AT2040USB_202011110001-00.analog-stereo.monitor=other"))
 (defvar sacha-vad-asr-events nil "List of events as an list of alists (label start stop duration).")
 (defvar sacha-vad-asr-labels '("sacha" "other"))
 (defvar sacha-vad-asr-summary '(("sacha" . 0)
-																      ("other" . 0)))
-(defvar sacha-vad-asr-session-length (* 60 60) "Number of seconds to use for scale.")
+																("other" . 0)))
 
 ;;;###autoload
 (defun sacha-vad-asr-start (&optional length)
@@ -11417,13 +11418,98 @@ This code uses this server [[file:~/vendor/orukeet/asr.py][asr.py]], which I gen
 	(setq sacha-vad-asr-session-length length)
   (sacha-vad-asr-ensure)
   (setq sacha-vad-asr-summary '(("me" . 0)
-																  ("other" . 0))
+																("other" . 0))
 			  sacha-vad-asr-events nil)
   (with-current-buffer (get-buffer-create "*Transcript*")
 	  (erase-buffer)
 	  (display-buffer (current-buffer)))
   (display-buffer (get-buffer-create "*tutor stats*")))
 
+(defvar sacha-vad-event-handler-functions
+	'(sacha-vad-speech-process
+		sacha-vad-add-to-transcript-buffer
+		sacha-vad-add-to-transcript-file
+		sacha-vad-update-last-speaker
+		sacha-vad-notice-bingo
+		sacha-vad-visualize-spans)
+	"Functions to call with the VAD/transcription events.")
+
+
+(defvar sacha-vad-process-my-speech t "Non-nil means process my speech through the whisper setup.")
+(defun sacha-vad-speech-process (data)
+  "Process DATA through my whisper input process if it's my speech.
+Add to `sacha-vad-event-handler-functions'."
+  (when (and sacha-vad-process-my-speech
+					   (string= (alist-get 'event data) "final")
+					   (string= (alist-get 'label data) sacha-vad-my-label))
+		(require 'whisper)
+	  (with-current-buffer (get-buffer-create whisper--stdout-buffer-name)
+		  (erase-buffer)
+		  (insert (propertize (alist-get 'text data)
+													'start_ts (alist-get 'start_ts data)
+													'end_ts (alist-get 'end_ts data)
+													'start (alist-get 'start data)
+													'timestamp (alist-get 'timestamp data)))
+		  (goto-char (point-min)))
+	  (whisper--handle-transcription-output nil (get-buffer-create whisper--stdout-buffer-name))))
+
+(defun sacha-vad-asr-filter (proc string)
+	"Add and parse."
+	(when (buffer-live-p (process-buffer proc))
+		(let ((data (with-current-buffer (process-buffer proc)
+									(goto-char (point-max))
+									(save-excursion
+										(insert string))
+									(catch 'waiting
+										(unless (or (eobp) (looking-at "\n*$"))
+											(json-read))))))
+			(when (alist-get 'text data)
+				(setf (alist-get 'text data)
+							(sacha-subed-fix-common-errors-in-text (alist-get 'text data))))
+			(run-hook-with-args 'sacha-vad-event-handler-functions data))))
+
+
+(defun sacha-vad-asr-ensure ()
+	"Start the process if it's not already running."
+	(interactive)
+	(unless (process-live-p sacha-vad-asr-process)
+	  (setq sacha-vad-asr-process-start-time (current-time))
+	  (setq sacha-vad-asr-start-seconds 0)
+		(let ((default-directory sacha-vad-asr-dir))
+			(setq sacha-vad-asr-process
+						(make-process
+						 :name "vad-asr"
+						 :command sacha-vad-asr-command
+						 :connection-type 'pipe
+						 :buffer (get-buffer-create "*vad-asr*")
+						 :stderr (get-buffer-create "*vad-asr-err*")
+						 :filter #'sacha-vad-asr-filter)))))
+
+(defun sacha-vad-asr-stop ()
+  "Stop the process."
+  (interactive)
+  (interrupt-process sacha-vad-asr-process))
+
+;;;###autoload
+(defun sacha-js-parse-jsonl-file (file)
+	"Parse jsonl as a list"
+  (let (results)
+	  (with-temp-buffer
+		  (insert-file-contents file)
+		  (goto-char (point-min))
+		  (while (not (eobp))
+			  (condition-case nil
+					  (push (json-read) results)
+				  (error (goto-char (point-max))))))
+	  (nreverse results)))
+
+(defvar sacha-vad-asr-start-seconds 0 "Number of seconds to consider as the start.")
+(defvar sacha-vad-asr-process-start-time nil "Time that the process started.")
+
+#+end_src
+**** Visualizing the balance - work in progress
+#+begin_src emacs-lisp :tangle lisp/sacha-vad-asr.el :summary Visualizing the balance, work in progress
+(defvar sacha-vad-asr-session-length (* 60 60) "Number of seconds to use for scale.")
 ;;;###autoload
 (defun sacha-vad-asr-update-view ()
   "Visualize the last 3 minutes and the overview of the session.
@@ -11513,44 +11599,151 @@ Also keep track of target phrases."
 							.duration))
 			(sacha-vad-asr-update-view))))
 
-(defvar sacha-vad-event-handler-functions
-	'(sacha-vad-speech-process
-		sacha-vad-add-to-transcript-buffer
-		sacha-vad-add-to-transcript-file
-		sacha-vad-update-last-speaker
-		sacha-vad-notice-bingo
-		sacha-vad-visualize-spans)
-	"Functions to call with the VAD/transcription events.")
+(defun sacha-vad-asr-reset-clock ()
+	"Reset the start of the session."
+	(interactive)
+  (setq sacha-vad-asr-start-seconds
+			  (time-to-seconds (time-subtract (current-time)
+																			  sacha-vad-asr-process-start-time)))
+  (mapcar (lambda (o) (setcdr o 0)) sacha-vad-asr-summary)
+  (setq sacha-vad-asr-events nil))
 
-(defvar sacha-vad-process-my-speech t "Non-nil means process my speech through the whisper setup.")
-(defun sacha-vad-speech-process (data)
-  "Process DATA through my whisper input process if it's my speech.
-Add to `sacha-vad-event-handler-functions'."
-  (when (and sacha-vad-process-my-speech
-					   (string= (alist-get 'event data) "final")
-					   (string= (alist-get 'label data) sacha-vad-my-label))
-		(require 'whisper)
-	  (with-current-buffer (get-buffer-create whisper--stdout-buffer-name)
-		  (erase-buffer)
-		  (insert (alist-get 'text data))
-		  (goto-char (point-min)))
-	  (whisper--handle-transcription-output nil (get-buffer-create whisper--stdout-buffer-name))))
+(defun sacha-vad-visualize (labels list &optional output-file width height max-seconds)
+  (setq height (or height 25))
+  (setq width (or width (window-width nil t)))
+  (let* ((svg (svg-create width height))
+			   (max-seconds (max
+										   (or max-seconds 0)
+										   (if list
+												   (apply 'max (mapcar (lambda (o) (alist-get 'end o))
+																						   list))
+											   0)))
+			   (pixels-per-second (/ (* 1.0 width) max-seconds))
+			   (row-height (/ height (length labels))))
+	  (dolist (o list)
+		  (let-alist o
+			  (let ((y (* row-height (or (seq-position labels .label 'string=) -1))))
+				  (when (>= y 0)
+					  (svg-rectangle
+					   svg
+					   (* .start pixels-per-second)
+					   y
+					   (* (- .end .start) pixels-per-second)
+					   row-height :fill "green")))))
+	  (cond
+	   ((stringp output-file)
+		  (with-temp-file output-file
+			  (svg-print svg)))
+	   (output-file
+		  svg)
+	   (t
+		  (with-current-buffer (get-buffer-create "*vad*")
+			  (goto-char (point-min))
+			  (display-buffer (current-buffer))
+			  (erase-buffer)
+			  (svg-insert-image svg))))))
 
-(defun sacha-vad-asr-filter (proc string)
-	"Add and parse."
-	(when (buffer-live-p (process-buffer proc))
-		(let ((data (with-current-buffer (process-buffer proc)
-									(goto-char (point-max))
-									(save-excursion
-										(insert string))
-									(catch 'waiting
-										(unless (or (eobp) (looking-at "\n*$"))
-											(json-read))))))
-			(when (alist-get 'text data)
-				(setf (alist-get 'text data)
-							(sacha-subed-fix-common-errors-in-text (alist-get 'text data))))
-			(run-hook-with-args 'sacha-vad-event-handler-functions data))))
+(defun sacha-vad-stats (labels list)
+  "Return the balance of time talking as (label total percentage)."
+  (let* ((max-seconds (apply '+ (mapcar
+															   (lambda (o) (let-alist o (- .end .start)))
+															   list)))
+			   (durations (mapcar (lambda (o)
+													    (cons
+													     (car o)
+													     (mapcar (lambda (e) (let-alist e (- .end .start)))
+																	     (cdr o))))
+												    (seq-group-by (lambda (o) (alist-get 'label o))
+																			    list))))
+	  (seq-map
+	   (lambda (label)
+		   (let* ((row (cdr (assoc label durations)))
+						  (total (apply '+ row)))
+			   `((label . ,label)
+				   (total . ,total)
+				   (count . ,(length row))
+				   (percentage . ,(and total max-seconds (> max-seconds 0) (* 100.0 (/ total max-seconds)))))))
+	   labels)))
 
+;; (sacha-vad-stats '("sacha" "tutor") (seq-take (sacha-js-parse-jsonl-file "~/proj/speech/output2.log") 5))
+;; (sacha-vad-stats '("sacha" "tutor") (sacha-js-parse-jsonl-file "~/proj/speech/output.log"))
+;; (sacha-vad-visualize '("sacha" "tutor") (sacha-js-parse-jsonl-file "~/proj/speech/output.log"))
+;; (sacha-vad-visualize '("sacha" "tutor") (seq-take (sacha-js-parse-jsonl-file "~/proj/speech/output2.log") 30))
+
+(defun sacha-vad-asr-group-output (files)
+  (let ((grouped-files (seq-group-by
+											  (lambda (o)
+												  (substring (file-name-base o) 0 10))
+											  files)))
+	  (mapcar
+	   (lambda (group)
+		   (let ((start 0))
+			   (cons (car (cdr group))
+						   (seq-reduce
+							  (lambda (prev file)
+								  (append prev
+												  (let ((max-seconds 0))
+													  (prog1 (mapcar (lambda (event)
+																					   (incf (alist-get 'start event) start)
+																					   (incf (alist-get 'end event) start)
+																					   (setq max-seconds (max (alist-get 'end event) max-seconds))
+																					   event)
+																				   (sacha-js-parse-jsonl-file file))
+														  (setq start max-seconds)))))
+							  (cdr group)
+							  nil))))
+	   grouped-files)))
+
+(defun sacha-vad-asr-make-table (files &optional width height)
+  "Make a summary table."
+  (let ((labels sacha-vad-asr-labels)
+			  (width (or width 500))
+			  (height (or height 30)))
+	  ;; combine data as needed
+	  (append
+	   '(("Date" "Tutor" "Minutes" "%" "Visualization") hline)
+	   (seq-map
+		  (lambda (group)
+			  (let* ((list (cdr group))
+						   (base (file-name-base (car group))))
+				  (if list
+						  (let-alist (car (sacha-vad-stats labels list))
+							  (let ((svg-name
+										   (expand-file-name
+											  (concat
+											   (format-time-string
+												  "%Y-%m-%d-%H-%M-%S"
+												  (seconds-to-time
+												   (sacha-filename-timestamp (car group))))
+											   "-" .label ".svg")
+											  "~/proj/french/conversation")))
+								  (sacha-vad-visualize
+								   (list .label)
+								   list
+								   svg-name
+								   width
+								   height)
+								  (list
+								   (format-time-string "%Y-%m-%d"
+																		   (seconds-to-time
+																			  (sacha-filename-timestamp (car group))))
+								   ;; (org-link-make-string (concat "file:" o) "file")
+								   (if (string-match "-conversation-\\([^\\.]+\\)" base)
+										   (s-capitalize (substring (match-string 1 base) 0 1))
+									   "")
+
+								   (round (/ .total 60))
+								   (format "%d%%" .percentage)
+								   (org-link-make-string (concat "file:" svg-name)
+																			   (concat "file:" svg-name))
+								   )))
+					  (list "?"))))
+		  (sacha-vad-asr-group-output files))
+	   nil)))
+#+end_src
+**** Real-time-ish transcripts
+
+#+begin_src emacs-lisp :tangle lisp/sacha-vad-asr.el :summary Real-time-(ish) transcripts
 (defvar sacha-vad-last-speaker nil "Previous speaker.")
 
 (defvar sacha-vad-transcript-buffer nil "If non-nil, add speech to this buffer.")
@@ -11567,7 +11760,7 @@ Add to `sacha-vad-event-handler-functions'."
 (defun sacha-vad-transcript-file ()
 	"Return the file name of the possible transcript."
 	(concat (file-name-sans-extension
-								 (sacha-latest-file sacha-recordings-dir "\\.mkv$"))
+					 (sacha-latest-file sacha-recordings-dir "\\.mkv$"))
 					".vtt"))
 
 (eval-when-compile (require 'phony))
@@ -11591,8 +11784,8 @@ Add to `sacha-vad-event-handler-functions'."
 					 (data-start (alist-get 'start_ts data))
 					 (data-stop (alist-get 'end_ts data))
 					 (text (alist-get 'text data)))
-			;(unless (subed-media-file)
-;				(subed-mpv-play-from-file rec))
+																				;(unless (subed-media-file)
+																				;				(subed-mpv-play-from-file rec))
 			(with-current-buffer (find-file-noselect filename)
 				(save-restriction
 					(save-excursion
@@ -11625,193 +11818,8 @@ Add to `sacha-vad-event-handler-functions'."
 								" "
 							(concat (if (bobp) "" "\n\n") (alist-get 'label data) ": "))
 						(alist-get 'text data))))))))
-
-(defun sacha-vad-notice-bingo (data)
-	(when (and (alist-get 'text data) (string= (alist-get 'label data) sacha-vad-my-label))
-	  (sacha-learn-lang-notice-bingo-words (alist-get 'text data))))
-
-(defun sacha-vad-asr-ensure ()
-	"Start the process if it's not already running."
-	(interactive)
-	(unless (process-live-p sacha-vad-asr-process)
-	  (setq sacha-vad-asr-process-start-time (current-time))
-	  (setq sacha-vad-asr-start-seconds 0)
-		(let ((default-directory sacha-vad-asr-dir))
-			(setq sacha-vad-asr-process
-						(make-process
-						 :name "vad-asr"
-						 :command sacha-vad-asr-command
-						 :connection-type 'pipe
-						 :buffer (get-buffer-create "*vad-asr*")
-						 :stderr (get-buffer-create "*vad-asr-err*")
-						 :filter #'sacha-vad-asr-filter)))))
-
-(defun sacha-vad-asr-stop ()
-      "Stop the process."
-      (interactive)
-      (interrupt-process sacha-vad-asr-process))
-
-;;;###autoload
-(defun sacha-js-parse-jsonl-file (file)
-"Parse jsonl as a list"
-      (let (results)
-	      (with-temp-buffer
-		      (insert-file-contents file)
-		      (goto-char (point-min))
-		      (while (not (eobp))
-			      (condition-case nil
-					      (push (json-read) results)
-				      (error (goto-char (point-max))))))
-	      (nreverse results)))
-
-(defvar sacha-vad-asr-start-seconds 0 "Number of seconds to consider as the start.")
-(defvar sacha-vad-asr-process-start-time nil "Time that the process started.")
-
-;;;###autoload
-(defun sacha-vad-asr-reset-clock ()
-"Reset the start of the session."
-(interactive)
-      (setq sacha-vad-asr-start-seconds
-			      (time-to-seconds (time-subtract (current-time)
-																			      sacha-vad-asr-process-start-time)))
-      (mapcar (lambda (o) (setcdr o 0)) sacha-vad-asr-summary)
-      (setq sacha-vad-asr-events nil))
-
-(defun sacha-vad-visualize (labels list &optional output-file width height max-seconds)
-      (setq height (or height 25))
-      (setq width (or width (window-width nil t)))
-      (let* ((svg (svg-create width height))
-			       (max-seconds (max
-										       (or max-seconds 0)
-										       (if list
-												       (apply 'max (mapcar (lambda (o) (alist-get 'end o))
-																						       list))
-											       0)))
-			       (pixels-per-second (/ (* 1.0 width) max-seconds))
-			       (row-height (/ height (length labels))))
-	      (dolist (o list)
-		      (let-alist o
-			      (let ((y (* row-height (or (seq-position labels .label 'string=) -1))))
-				      (when (>= y 0)
-					      (svg-rectangle
-					       svg
-					       (* .start pixels-per-second)
-					       y
-					       (* (- .end .start) pixels-per-second)
-					       row-height :fill "green")))))
-	      (cond
-	       ((stringp output-file)
-		      (with-temp-file output-file
-			      (svg-print svg)))
-	       (output-file
-		      svg)
-	       (t
-		      (with-current-buffer (get-buffer-create "*vad*")
-			      (goto-char (point-min))
-			      (display-buffer (current-buffer))
-			      (erase-buffer)
-			      (svg-insert-image svg))))))
-
-(defun sacha-vad-stats (labels list)
-      "Return the balance of time talking as (label total percentage)."
-      (let* ((max-seconds (apply '+ (mapcar
-															       (lambda (o) (let-alist o (- .end .start)))
-															       list)))
-			       (durations (mapcar (lambda (o)
-													      (cons
-													       (car o)
-													       (mapcar (lambda (e) (let-alist e (- .end .start)))
-																	       (cdr o))))
-												      (seq-group-by (lambda (o) (alist-get 'label o))
-																			      list))))
-	      (seq-map
-	       (lambda (label)
-		       (let* ((row (cdr (assoc label durations)))
-						      (total (apply '+ row)))
-			       `((label . ,label)
-				       (total . ,total)
-				       (count . ,(length row))
-				       (percentage . ,(and total max-seconds (> max-seconds 0) (* 100.0 (/ total max-seconds)))))))
-	       labels)))
-
-;; (sacha-vad-stats '("sacha" "tutor") (seq-take (sacha-js-parse-jsonl-file "~/proj/speech/output2.log") 5))
-;; (sacha-vad-stats '("sacha" "tutor") (sacha-js-parse-jsonl-file "~/proj/speech/output.log"))
-;; (sacha-vad-visualize '("sacha" "tutor") (sacha-js-parse-jsonl-file "~/proj/speech/output.log"))
-;; (sacha-vad-visualize '("sacha" "tutor") (seq-take (sacha-js-parse-jsonl-file "~/proj/speech/output2.log") 30))
-
-(defun sacha-vad-asr-group-output (files)
-      (let ((grouped-files (seq-group-by
-											      (lambda (o)
-												      (substring (file-name-base o) 0 10))
-											      files)))
-	      (mapcar
-	       (lambda (group)
-		       (let ((start 0))
-			       (cons (car (cdr group))
-						       (seq-reduce
-							      (lambda (prev file)
-								      (append prev
-												      (let ((max-seconds 0))
-													      (prog1 (mapcar (lambda (event)
-																					       (incf (alist-get 'start event) start)
-																					       (incf (alist-get 'end event) start)
-																					       (setq max-seconds (max (alist-get 'end event) max-seconds))
-																					       event)
-																				       (sacha-js-parse-jsonl-file file))
-														      (setq start max-seconds)))))
-							      (cdr group)
-							      nil))))
-	       grouped-files)))
-
-(defun sacha-vad-asr-make-table (files &optional width height)
-      "Make a summary table."
-      (let ((labels sacha-vad-asr-labels)
-			      (width (or width 500))
-			      (height (or height 30)))
-	      ;; combine data as needed
-	      (append
-	       '(("Date" "Tutor" "Minutes" "%" "Visualization") hline)
-	       (seq-map
-		      (lambda (group)
-			      (let* ((list (cdr group))
-						       (base (file-name-base (car group))))
-				      (if list
-						      (let-alist (car (sacha-vad-stats labels list))
-							      (let ((svg-name
-										       (expand-file-name
-											      (concat
-											       (format-time-string
-												      "%Y-%m-%d-%H-%M-%S"
-												      (seconds-to-time
-												       (sacha-filename-timestamp (car group))))
-											       "-" .label ".svg")
-											      "~/proj/french/conversation")))
-								      (sacha-vad-visualize
-								       (list .label)
-								       list
-								       svg-name
-								       width
-								       height)
-								      (list
-								       (format-time-string "%Y-%m-%d"
-																		       (seconds-to-time
-																			      (sacha-filename-timestamp (car group))))
-								       ;; (org-link-make-string (concat "file:" o) "file")
-								       (if (string-match "-conversation-\\([^\\.]+\\)" base)
-										       (s-capitalize (substring (match-string 1 base) 0 1))
-									       "")
-
-								       (round (/ .total 60))
-								       (format "%d%%" .percentage)
-								       (org-link-make-string (concat "file:" svg-name)
-																			       (concat "file:" svg-name))
-								       )))
-					      (list "?"))))
-		      (sacha-vad-asr-group-output files))
-	       nil)))
 #+end_src
 
-Related:
 
 **** Noticing bingo phrases
 :PROPERTIES:
@@ -11830,6 +11838,11 @@ I keep the list of expressions in [[file:~/proj/french/bingo.txt]].
 (defvar sacha-learn-lang-bingo-word-file "~/proj/french/bingo.txt")
 (defvar sacha-learn-lang-bingo-words nil "List of words.")
 (defvar sacha-learn-lang-bingo-words-hash nil "Data for the counts.")
+
+;;;###autoload
+(defun sacha-vad-notice-bingo (data)
+	(when (and (alist-get 'text data) (string= (alist-get 'label data) sacha-vad-my-label))
+	  (sacha-learn-lang-notice-bingo-words (alist-get 'text data))))
 
 ;;;###autoload
 (defun sacha-learn-lang-bingo-words ()

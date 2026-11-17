@@ -5777,7 +5777,7 @@ Check tatoeba, dictionary, then Google Translate."
 			(cons
 			 (format "%s - %s" (car o) (cdr o))
 			 (car o)))
-		(learn-lang-tatoeba-entries (sacha-orderless-accent-regexp input)))
+		(learn-lang-tatoeba-entries input))
 	 (seq-keep 'cdr (sacha-learn-lang-en-fr-dict-lookup input))
 	 (let ((translation (learn-lang-translate-text-to-target input)))
 		 (cons translation translation))))

@@ -9128,7 +9128,38 @@ From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
 
 ;;;###autoload
 (defun sacha-whisper-emacsclient ()
-	"Reset to dictation mode and run speech recognition."
+	"Reset to dictation mode and run speech recognition.
+
+If Whisper is sleeping, start it in dictation mode and save thes tate.
+If it's already listening in dictation mode.
+"
+	(interactive)
+	(let ((sacha-track-active-frame nil))
+		(cond
+		 (sacha-whisper-sleep
+			(setq sacha-whisper-before-emacsclient-state
+						(cons sacha-whisper-mode sacha-whisper-sleep))
+			(sacha-whisper-set-filter-mode 'dictation nil))
+		 ((eq sacha-whisper-mode 'dictation) ; already awake and listening
+			(if sacha-whisper-before-emacsclient-state
+					(sacha-whisper-set-filter-mode
+					 (car sacha-whisper-before-emacsclient-state)
+					 (cdr sacha-whisper-before-emacsclient-state))
+				(sacha-whisper-set-filter-mode
+				 'dictation
+					t)))
+		 ;; awake, but not listening for dictation
+		 (t
+			(setq sacha-whisper-before-emacsclient-state
+						(cons sacha-whisper-mode sacha-whisper-sleep))
+			(sacha-whisper-set-filter-mode
+			 'dictation
+				nil)))))
+
+(defun sacha-whisper-emacsclient-run-with-pending ()
+	"Start whisper with a pending indicator.
+Previous implementation to call with emacsclient if you're not
+using `sacha-vad-asr-start'."
 	(interactive)
 	(let ((sacha-track-active-frame nil))
 		(setq sacha-whisper-mode 'dictation)
@@ -10243,6 +10274,32 @@ Add to mode line with
 
 (defvar sacha-whisper-sleep nil "Non-nil means ignore most of the input.")
 
+(defvar sacha-whisper-mode-changes (make-ring 5)
+	"A ring of the form ((timestamp mode sleep) ...).
+This helps figure out whether a text event
+was started when it was sleeping, in command mode,
+or in dictation mode.")
+
+(defun sacha-whisper-effective-mode-at-timestamp (timestamp-seconds)
+  "Return the effective state at TIMESTAMP-SECONDS."
+	(or
+	 (if timestamp-seconds
+			 (seq-find (lambda (o)
+									 (< (car o) timestamp-seconds))
+								 (ring-elements sacha-whisper-mode-changes))
+		 (ring-ref sacha-whisper-mode-changes 0))
+	 (list nil sacha-whisper-mode sacha-whisper-sleep)))
+
+(defun sacha-whisper-set-filter-mode (type sleep)
+	"Set the filter mode to TYPE and the sleep mode to SLEEP."
+	(when type (setq sacha-whisper-mode type))
+	(setq sacha-whisper-sleep sleep)
+	(setq sacha-whisper-mode-indicator
+				(if sacha-whisper-sleep
+						"💤"
+					(alist-get sacha-whisper-mode sacha-whisper-mode-indicators)))
+	(ring-insert sacha-whisper-mode-changes (list (* (float-time) 1000.0) type sleep)))
+
 (defun sacha-whisper-filter-mode (text)
 	"Discard, process, or modify TEXT based on `sacha-whisper-mode'.
 
@@ -10269,30 +10326,31 @@ These commands get processed regardless of the mode:
 			 (speech-input-vad-stop)
 			 (setq text nil))
 			((or "wake up" "dictation")
-			 (setq sacha-whisper-mode 'all text nil
-						 sacha-whisper-sleep nil))
+			 (sacha-whisper-set-filter-mode 'all nil)
+			 (setq text nil))
 			((or "commands" "drive")
 			 (sacha-whisper-audio-feedback "command mode")
-			 (setq sacha-whisper-mode 'commands text nil
-						 sacha-whisper-sleep nil))
+			 (sacha-whisper-set-filter-mode 'commands nil)
+			 (setq text nil))
 			((or "only dictation" "dictation focus")
 			 (sacha-whisper-audio-feedback "dictation focus")
-			 (setq sacha-whisper-mode 'dictation-focus text nil sacha-whisper-sleep nil))
+			 (sacha-whisper-set-filter-mode 'dictation-focus nil)
+			 (setq text nil))
 			((or "kebab" "skewer")
 			 (sacha-whisper-audio-feedback "kebab mode")
-			 (setq sacha-whisper-mode 'kebab
-						 sacha-whisper-sleep nil
-						 text nil))
+			 (sacha-whisper-set-filter-mode 'kebab nil)
+			 (setq text nil))
 			("panic"
 			 (sacha-obs-panic))
 			("over"
-			 (setq sacha-whisper-sleep (not sacha-whisper-sleep) text nil)
+			 (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
+			 (setq text nil)
 			 (if sacha-whisper-sleep
 					 (sacha-whisper-audio-feedback "bye")
 				 (sacha-whisper-audio-feedback "hi")))
 			((or "sleep" "all done")
-			 (setq sacha-whisper-sleep t text nil
-						 sacha-whisper-mode-indicator "💤"))
+			 (sacha-whisper-set-filter-mode nil t)
+			 (setq text nil))
 			(_
 			 (cond
 				((string-match "\\`\\(so\\|anyway\\)?[\\.?! ]*chat\\>" text)
@@ -10300,25 +10358,25 @@ These commands get processed regardless of the mode:
 				((string-match "\\<\\(scratch that\\)[\\.?! ]*$" text)
 				 (setq text nil))
 				((string-match "\\<\\(over\\)[\\.?! ]*$" text)
-				 (setq sacha-whisper-sleep (not sacha-whisper-sleep)
-							 text
+				 (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
+				 (setq text
 							 (if sacha-whisper-sleep
 									 nil
 								 (replace-match "" nil nil text 1)))
 				 (if sacha-whisper-sleep
 						 (sacha-whisper-audio-feedback "bye")
-					 (sacha-whisper-audio-feedback "hi")))
-				(sacha-whisper-sleep
-				 (setq text nil))))))
-	(setq sacha-whisper-mode-indicator
-				(if sacha-whisper-sleep
-						"💤"
-					(alist-get sacha-whisper-mode sacha-whisper-mode-indicators)))
-	(when (eq sacha-whisper-mode 'commands)
-		(unless (and text
-								 (or (phony-parser--parse-utterance text)
-										 (speech-input-commands-find text)))
-			(setq text nil)))
+					 (sacha-whisper-audio-feedback "hi")))))))
+	(let* ((state (sacha-whisper-effective-mode-at-timestamp
+								 (get-text-property 0 'start_ts text)))
+				 (mode (elt state 1))
+				 (sleep (elt state 2)))
+		(when sleep
+			(setq text nil));; Filter based on sleep or commands
+		(when (eq mode 'commands)
+			(unless (and text
+									 (or (phony-parser--parse-utterance text)
+											 (speech-input-commands-find text)))
+				(setq text nil))))
 	text)
 
 ;;;###autoload

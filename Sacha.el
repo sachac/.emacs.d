@@ -1901,24 +1901,25 @@ sacha-toggle-now
 ;; Pending indicator:2 ends here
 
 ;; [[file:Sacha.org::#writing-and-editing-speech-recognition-emacslisten-numbers-in-french][Numbers in French:2]]
-(use-package simulacrum)
-(use-package phony
-  :load-path "~/vendor/phony.el"
-  :init
-  (server-mode 1)
-	(setq phony-export-function #'ignore)  ; don't actually use Talon for the recognition
-  :config
-  (phony-mode 1)
-	(phony-experimental-set-parser-literal-normalizer
-	 #'sacha-phony-sanitize-literal))
-
-(use-package phony-talon-community-bindings
-  :load-path "~/vendor/phony.el")
-(use-package cursorfree
-	:load-path "~/vendor/cursorfree.el"
-	:config
-	(cursorfree-phony-mode)
-	)
+  (use-package simulacrum)
+  (use-package phony
+    :load-path "~/vendor/phony.el"
+    :init
+    (server-mode 1)
+  	(setq phony-export-function #'ignore)  ; don't actually use Talon for the recognition
+    :config
+    (phony-mode 1))
+  (with-eval-after-load 'phony
+    (require 'phony-experimental)
+    (phony-experimental-set-parser-literal-normalizer
+     #'sacha-phony-sanitize-literal))
+  (use-package phony-talon-community-bindings
+    :load-path "~/vendor/phony.el")
+  (use-package cursorfree
+  	:load-path "~/vendor/cursorfree.el"
+  	:config
+  	(cursorfree-phony-mode)
+  	)
 ;; Numbers in French:2 ends here
 
 ;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:1]]
@@ -2094,9 +2095,7 @@ sacha-toggle-now
 		 . sacha-whisper-clip)
 		("rename clip,? \\(.+\\)" . ,(lambda (text) (message "%s" (file-name-base (sacha-clip-add-note-to-latest text))) ""))
 		("instant replay" . sacha-clip-play-latest)
-		("panic" . sacha-obs
-I and I should have my panic thing.
-Let's get this panic.-panic)
+		("panic" . sacha-obs-panic)
 		("one sentence per line\\|sentence mode" . (lambda () (setq sacha-whisper-one-sentence-per-line t) ""))
 		("paragraph mode" . (lambda () (setq sacha-whisper-one-sentence-per-line nil) ""))
 		("\\(?:fill\\|wrap\\|rap\\|rep\\) lines?" . (lambda () (let ((fill-column most-positive-fixnum)) (fill-paragraph)) ""))
@@ -2155,6 +2154,15 @@ Let's get this panic.-panic)
 	   :command sacha-orukeet-command
 	   :buffer (get-buffer-create "*orukeet*")
 	   :stderr (get-buffer-create "*orukeet-err*"))))))
+
+;;;###autoload
+(defun sacha-orukeet-restart ()
+  "Restart the process."
+  (interactive)
+	(when (process-live-p sacha-orukeet-process)
+		(kill-process sacha-orukeet-process))
+	(sleep-for 0.1)
+	(sacha-orukeet-ensure))
 ;; Orukeet:2 ends here
 
 ;; [[file:Sacha.org::#writing-and-editing-speech-recognition-orukeet][Orukeet:3]]
@@ -7018,7 +7026,7 @@ When called interactively, insert at point."
 								(or (documentation sym) ""))
 							 functions))))
 		(setq functions (sort functions :key 'car :lessp #'string<))
-
+		;; someday: RAG to figure out which function I might be talking about?
 		functions))
 ;; Large language models and AI:1 ends here
 

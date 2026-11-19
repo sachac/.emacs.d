@@ -97,35 +97,36 @@
 ;; Search backups:1 ends here
 
 ;; [[file:../Sacha.org::#killing-text][Killing text:2]]
-;;;###autoload
-(defun sacha-kill-single-line-if-region-is-inactive (beg end &optional region)
-"Wrap around `kill-region' so that we kill a single line."
-(interactive (progn
-	       (let ((beg (mark kill-region-dwim))
-		     (end (point)))
-		 (cond
-		  ((and kill-region-dwim (not (use-region-p)))
-		   (list beg end kill-region-dwim))
-		  ((not (and beg end))
-		   (user-error "The mark is not set now, so there is no region"))
-		  ((list beg end 'region))))))
-(if (or (region-active-p)
-	(derived-mode-p 'minibuffer-mode))
-    (kill-region beg end region)
-  (kill-region
-   (line-beginning-position)
-   (line-beginning-position 2))))
+  ;;;###autoload
+  (defun sacha-kill-single-line-if-region-is-inactive (beg end &optional region)
+  "Wrap around `kill-region' so that we kill a single line."
+  (interactive (progn
+  	       (let ((beg (mark kill-region-dwim))
+  		     (end (point)))
+  		 (cond
+  		  ((and kill-region-dwim (not (use-region-p)))
+  		   (list beg end kill-region-dwim))
+  		  ((not (and beg end))
+  		   (user-error "The mark is not set now, so there is no region"))
+  		  ((list beg end 'region))))))
+  (if (or (region-active-p)
+  	(derived-mode-p 'minibuffer-mode))
+      (kill-region beg end region)
+    (kill-region
+     (line-beginning-position)
+     (line-beginning-position 2))))
 
-(ert-deftest sacha-kill-single-line-if-region-is-inactive ()
-"Tests `sacha-kill-single-line-if-region-is-inactive'."
-(should
- (equal
-  (with-temp-buffer
-    (insert "Hello there\nWorld\n")
-    (goto-char (point-min))
-    (sacha-kill-single-line-if-region-is-inactive nil nil)
-    (setq text (buffer-string)))
-  "World\n")))
+  (eval-when-compile (require 'ert))
+  (ert-deftest sacha-kill-single-line-if-region-is-inactive ()
+  "Tests `sacha-kill-single-line-if-region-is-inactive'."
+  (should
+   (equal
+    (with-temp-buffer
+      (insert "Hello there\nWorld\n")
+      (goto-char (point-min))
+      (sacha-kill-single-line-if-region-is-inactive nil nil)
+      (setq text (buffer-string)))
+    "World\n")))
 ;; Killing text:2 ends here
 
 ;; [[file:../Sacha.org::#killing-text][Killing text:3]]

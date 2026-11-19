@@ -126,6 +126,7 @@ Useful in `speech-input-commands'."
 			 (* number 60 60)))))
 
 (phony-defun today "today" :contributes-to date (org-read-date nil nil "."))
+(phony-defun afternoon "afternoon" :contributes-to date (org-read-date nil nil "12:30"))
 (phony-defun someday "someday" :contributes-to date nil)
 (phony-defun tomorrow "tomorrow" :contributes-to date (org-read-date nil nil "+1"))
 (phony-defun monday "Monday" :contributes-to date (org-read-date nil nil "+mon"))

@@ -339,9 +339,10 @@
           (mapcar
            (lambda (var)
              (prog1 (cons (car var) (symbol-value (car var)))
-               (setopt--set
-                (car var)
-                (cdr var))))
+							 (unless (equal (cdr var) (symbol-value (car var)))
+								 (setopt--set
+									(car var)
+									(cdr var)))))
            sacha-stream-variables-to-override)))
   (when (featurep 'org)
     (org-refile-cache-clear)))

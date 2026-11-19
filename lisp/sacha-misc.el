@@ -360,57 +360,67 @@ From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
 ;; Expand:4 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-save-frame-reference][Save frame reference:1]]
-(defvar sacha-active-frame nil
-"The current non-emacsclient frame.")
-(defvar sacha-ignore-frame nil "Non-nil means ignore this frame.")
-;;;###autoload
-(defun sacha-track-active-frame (&rest _)
-      (let ((frame (selected-frame)))
-  (when (and (frame-focus-state frame)
-	     (not sacha-ignore-frame))
-    (setq sacha-active-frame frame))))
+  (defvar sacha-active-frame nil
+  "The current non-emacsclient frame.")
+  (defvar sacha-ignore-frame nil "Non-nil means ignore this frame.")
+  ;;;###autoload
+  (defun sacha-track-active-frame (&rest _)
+        (let ((frame (selected-frame)))
+    (when (and (frame-focus-state frame)
+  	     (not sacha-ignore-frame))
+      (setq sacha-active-frame frame))))
 
-;;;###autoload
-(defun sacha-whisper-emacsclient ()
-	"Reset to dictation mode and run speech recognition.
+  ;;;###autoload
+  (defun sacha-whisper-emacsclient ()
+  	"Reset to dictation mode and run speech recognition.
 
-If Whisper is sleeping, start it in dictation mode and save thes tate.
-If it's already listening in dictation mode.
-"
-	(interactive)
-	(let ((sacha-track-active-frame nil))
-		(cond
-		 (sacha-whisper-sleep
-			(setq sacha-whisper-before-emacsclient-state
-						(cons sacha-whisper-mode sacha-whisper-sleep))
-			(sacha-whisper-set-filter-mode 'dictation nil))
-		 ((eq sacha-whisper-mode 'dictation) ; already awake and listening
-			(if sacha-whisper-before-emacsclient-state
-					(sacha-whisper-set-filter-mode
-					 (car sacha-whisper-before-emacsclient-state)
-					 (cdr sacha-whisper-before-emacsclient-state))
-				(sacha-whisper-set-filter-mode
-				 'dictation
-					t)))
-		 ;; awake, but not listening for dictation
-		 (t
-			(setq sacha-whisper-before-emacsclient-state
-						(cons sacha-whisper-mode sacha-whisper-sleep))
-			(sacha-whisper-set-filter-mode
-			 'dictation
-				nil)))))
+  If Whisper is sleeping, start it in dictation mode and save thes tate.
+  If it's already listening in dictation mode.
+  "
+  	(interactive)
+  	(let ((sacha-track-active-frame nil))
+  		(if (process-live-p sacha-vad-asr-process)
+  				(cond
+  				 (sacha-whisper-sleep
+  					(setq sacha-whisper-before-emacsclient-state
+  								(cons sacha-whisper-mode sacha-whisper-sleep))
+  					(sacha-whisper-set-filter-mode 'dictation nil))
+  				 ((eq sacha-whisper-mode 'dictation) ; already awake and listening
+  					(if sacha-whisper-before-emacsclient-state
+  							(sacha-whisper-set-filter-mode
+  							 (car sacha-whisper-before-emacsclient-state)
+  							 (cdr sacha-whisper-before-emacsclient-state))
+  						(sacha-whisper-set-filter-mode
+  						 'dictation
+  						 t)))
+  				 ;; awake, but not listening for dictation
+  				 (t
+  					(setq sacha-whisper-before-emacsclient-state
+  								(cons sacha-whisper-mode sacha-whisper-sleep))
+  					(sacha-whisper-set-filter-mode
+  					 'dictation
+  					 nil)))
+  			(sacha-whisper-emacsclient-run-with-pending))))
 
-(defun sacha-whisper-emacsclient-run-with-pending ()
-	"Start whisper with a pending indicator.
-Previous implementation to call with emacsclient if you're not
-using `sacha-vad-asr-start'."
-	(interactive)
-	(let ((sacha-track-active-frame nil))
-		(setq sacha-whisper-mode 'dictation)
-		(setq sacha-whisper-sleep nil)
-		(with-selected-frame sacha-active-frame
-			(with-current-buffer (window-buffer (frame-selected-window sacha-active-frame))
-				(call-interactively 'sacha-whisper-run-with-pending-indicator)))))
+  (defun sacha-whisper-emacsclient-run-with-pending ()
+  	"Start whisper with a pending indicator.
+  Previous implementation to call with emacsclient if you're not
+  using `sacha-vad-asr-start'."
+  	(interactive)
+  	(let ((sacha-track-active-frame nil))
+  		;; TODO: Change this to use the event ring
+  		(if (and (eq sacha-whisper-mode 'dictation)
+  						 (not sacha-whisper-sleep)
+  						 sacha-whisper-before-emacsclient-state)
+  				(sacha-whisper-set-filter-mode
+  				 (car sacha-whisper-before-emacsclient-state)
+  				 (cdr sacha-whisper-before-emacsclient-state))
+  			(setq sacha-whisper-before-emacsclient-state
+  						(cons sacha-whisper-mode sacha-whisper-sleep))
+  			(sacha-whisper-set-filter-mode 'dictation nil))
+  		(with-selected-frame sacha-active-frame
+  			(with-current-buffer (window-buffer (frame-selected-window sacha-active-frame))
+  				(call-interactively 'sacha-whisper-run-with-pending-indicator)))))
 ;; Save frame reference:1 ends here
 
 ;; [[file:../Sacha.org::#web-development][Web development:3]]

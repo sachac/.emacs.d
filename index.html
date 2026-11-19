@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2026-11-17 Tue 10:26 -->
+<!-- 2026-11-18 Wed 11:34 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sacha Chua's Emacs Configuration</title>
@@ -140,7 +140,7 @@
 </ul>
 </li>
 <li><a href="#face-text">4.5. Quickly adding face properties to regions</a></li>
-<li><a href="#orgc593a0a">4.6. Split and follow</a></li>
+<li><a href="#org1de8e3e">4.6. Split and follow</a></li>
 </ul>
 </li>
 <li><a href="#navigation">5. Navigation</a>
@@ -329,8 +329,8 @@
 <li><a href="#writing-and-editing-speech-recognition-reporting-speaking-stats-balance">9.21.11. Using Emacs to visualize speaking and target words/phrases in real-ish time</a>
 <ul>
 <li><a href="#writing-and-editing-speech-recognition-using-emacs-to-visualize-speaking-and-target-words-phrases-in-real-ish-time-voice-activity-detection-and-speech-recognition">9.21.11.1. Voice activity detection and speech recognition</a></li>
-<li><a href="#org2f23a07">9.21.11.2. Visualizing the balance - work in progress</a></li>
-<li><a href="#org10643a4">9.21.11.3. Real-time-ish transcripts</a></li>
+<li><a href="#orgdf209a7">9.21.11.2. Visualizing the balance - work in progress</a></li>
+<li><a href="#orgc08bdda">9.21.11.3. Real-time-ish transcripts</a></li>
 <li><a href="#writing-and-editing-speech-recognition-using-emacs-to-visualize-speaking-and-target-words-phrases-in-real-ish-time-noticing-bingo-phrases">9.21.11.4. Noticing bingo phrases</a></li>
 </ul>
 </li>
@@ -368,7 +368,7 @@
 </li>
 <li><a href="#org">10. Org Mode</a>
 <ul>
-<li><a href="#org6c3ddcb">10.1. Store all matching links</a></li>
+<li><a href="#org27bba0e">10.1. Store all matching links</a></li>
 <li><a href="#org-mode-notifications">10.2. Notifications</a></li>
 <li><a href="#org-mode-folding-list-items">10.3. Folding list items</a></li>
 <li><a href="#org-mode-join-lines">10.4. Join lines</a></li>
@@ -1074,7 +1074,7 @@
 <li><a href="#streaming-and-videos-laser-pointer">21.31. Laser pointer</a></li>
 </ul>
 </li>
-<li><a href="#org596eed2">22. Large language models and AI</a></li>
+<li><a href="#org21e3092">22. Large language models and AI</a></li>
 <li><a href="#file-misc">23. Miscellaneous</a>
 <ul>
 <li><a href="#ledger-personal-finance-in-sacha-config">23.1. Ledger</a></li>
@@ -1275,7 +1275,7 @@ Here's how we start:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org3875fb3"><code><span class="org-comment-delimiter">;; </span><span class="org-comment">-*- lexical-binding: t -*-</span>
+<pre class="src src-emacs-lisp" id="orgeec2db2"><code><span class="org-comment-delimiter">;; </span><span class="org-comment">-*- lexical-binding: t -*-</span>
 <span class="org-comment-delimiter">;; </span><span class="org-comment">This sets up the load path so that we can override it</span>
 (<span class="org-keyword">setq</span> warning-suppress-log-types <span class="org-highlight-quoted-quote">'</span>((package reinitialization)))  (package-initialize)
 (add-to-list <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">load-path</span> <span class="org-string">"/usr/local/share/emacs/site-lisp"</span>)
@@ -1340,7 +1340,7 @@ in a directory in my <code>load-path</code>, Emacs can find them.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org7c36cfc"><code>(add-to-list <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">load-path</span> <span class="org-string">"~/elisp"</span>)
+<pre class="src src-emacs-lisp" id="org1aabbf8"><code>(add-to-list <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">load-path</span> <span class="org-string">"~/elisp"</span>)
 (<span class="org-keyword">setq</span> use-package-verbose t)
 (<span class="org-keyword">setq</span> use-package-always-ensure t)
 (<span class="org-keyword">require</span> <span class="org-highlight-quoted-quote">'</span><span class="org-constant">use-package</span>)
@@ -1367,7 +1367,7 @@ in a directory in my <code>load-path</code>, Emacs can find them.
 <h3 id="system-information"><span class="section-number-3">1.5.</span> <a href="#system-information">System information</a></h3>
 <div class="outline-text-3" id="text-system-information">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org8e15c4f"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-laptop-p</span> (<span class="org-keyword">or</span> (equal (system-name) <span class="org-string">"sacha-x230"</span>) (equal (system-name) <span class="org-string">"sacha-p52"</span>)))
+<pre class="src src-emacs-lisp" id="orga36f7ab"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-laptop-p</span> (<span class="org-keyword">or</span> (equal (system-name) <span class="org-string">"sacha-x230"</span>) (equal (system-name) <span class="org-string">"sacha-p52"</span>)))
 (<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-server-p</span> (<span class="org-keyword">and</span> (equal (system-name) <span class="org-string">"localhost"</span>) (equal user-login-name <span class="org-string">"sacha"</span>)))
 (<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-phone-p</span> (not (null (getenv <span class="org-string">"ANDROID_ROOT"</span>)))
   <span class="org-doc">"If non-nil, GNU Emacs is running on Termux."</span>)
@@ -1420,7 +1420,7 @@ Disk space is cheap. Save lots.
 <div id="outline-container-about-this-file-backups-obscure-emacs-package-appreciation-backup-walker" class="outline-4">
 <h4 id="about-this-file-backups-obscure-emacs-package-appreciation-backup-walker"><span class="section-number-4">1.7.1.</span> <a href="#about-this-file-backups-obscure-emacs-package-appreciation-backup-walker">Obscure Emacs package appreciation: backup-walker</a></h4>
 <div class="outline-text-4" id="text-about-this-file-backups-obscure-emacs-package-appreciation-backup-walker">
-<div class="update" id="orgfa8cf0c">
+<div class="update" id="org29e0497">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2026-05-11">[2026-05-11 Mon]</time></span>: Switching to <a href="https://github.com/sachac/backup-walker">my fork of backup-walker</a> in preparation for other changes.
 </p>
@@ -1518,7 +1518,7 @@ newer versions marked with <code>+</code>. Emacs being Emacs,
 </p>
 
 
-<figure id="orgb705292">
+<figure id="org670d40d">
 <img src="images/2025-09-17_13-46-12.png" alt="2025-09-17_13-46-12.png">
 
 <figcaption><span class="figure-number">Figure 1: </span>backup-walker diffs going the direction I want them to: additions (+) marked in green, deletions (-) in red</figcaption>
@@ -1583,7 +1583,7 @@ and changing my <a href="https://manpages.debian.org/testing/borgbackup/borg-pat
 this:
 </p>
 
-<pre class="example" id="org8a60378">
+<pre class="example" id="org381e68a">
 + /home/sacha/.config/emacs/backups
 - /home/sacha/.config/*
 # ... other rules
@@ -1901,7 +1901,7 @@ In addition to the entries below, I also have Embark-related code in other place
 <div id="outline-container-embark-qr" class="outline-4">
 <h4 id="embark-qr"><span class="section-number-4">2.1.1.</span> <a href="#embark-qr">Using Embark and qrencode to show a QR code for the Org Mode link at point&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span>&nbsp;<span class="org">org</span></span></a></h4>
 <div class="outline-text-4" id="text-embark-qr">
-<div class="update" id="orgfa98ef3">
+<div class="update" id="org607aebe">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2024-01-12">[2024-01-12 Fri]</time></span>: Added some code to display the QR code on the right side.
 </p>
@@ -1942,7 +1942,7 @@ from <a href="https://sachachua.com/dotemacs#web-link">web-link</a> so that I ca
 </div>
 
 
-<figure id="orgba9173a">
+<figure id="org0782fb5">
 <img src="images/qr-code.svg" alt="qr-code.svg" class="org-svg" data-link="t">
 
 <figcaption><span class="figure-number">Figure 2: </span>Screenshot of QR code for the link at point</figcaption>
@@ -2140,7 +2140,7 @@ from <a href="https://sachachua.com/dotemacs#web-link">web-link</a> so that I ca
 <h4 id="using-embark-to-offer-context-sensitive-actions-for-org-elements"><span class="section-number-4">2.1.5.</span> <a href="#using-embark-to-offer-context-sensitive-actions-for-org-elements">Using Embark to offer context-sensitive actions for Org elements</a></h4>
 <div class="outline-text-4" id="text-using-embark-to-offer-context-sensitive-actions-for-org-elements">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org9c16243"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org6923c26"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-embark-org-element</span> ()
 <span class="org-doc">"Target an Org Mode element at point."</span>
 (<span class="org-keyword">save-window-excursion</span>
@@ -2263,7 +2263,7 @@ tweaks.
 </p>
 
 
-<figure id="org2a7a37c">
+<figure id="org1e34d10">
 <img src="images/2025-01-04_21-02-39.png" alt="2025-01-04_21-02-39.png">
 
 <figcaption><span class="figure-number">Figure 3: </span>Screenshot of which-key with some tweaks</figcaption>
@@ -2323,7 +2323,7 @@ wrap some advice around
 <div id="outline-container-embark-image" class="outline-4">
 <h4 id="embark-image"><span class="section-number-4">2.1.7.</span> <a href="#embark-image">Embark and images&nbsp;&nbsp;&nbsp<span class="tag"><span class="image">image</span></span></a></h4>
 <div class="outline-text-4" id="text-embark-image">
-<div class="update" id="org339a1e0">
+<div class="update" id="orge7165c4">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2024-09-25">[2024-09-25 Wed]</time></span>: added attachment handling
 </p>
@@ -3213,7 +3213,7 @@ the shortcuts there. Here's what it looks like:
 </p>
 
 
-<figure id="orgc27a212">
+<figure id="org0d8ad41">
 <img src="https://sachachua.com/blog/2021/04/emacs-hydra-allow-completion-when-i-can-t-remember-the-command-name/Screenshot_20210425_232535.png" alt="Screenshot_20210425_232535.png">
 
 <figcaption><span class="figure-number">Figure 4: </span>Hydra completion</figcaption>
@@ -3370,7 +3370,7 @@ Sometimes <code>C-h</code> gets weird and calls <code>which-key-C-h-dispatch</co
 I want these abbreviations to expand as soon as I type SPC, even without the TAB that expands yasnippet snippets.
 </p>
 
-<table id="orgd12ba0d">
+<table id="org89d2aa5">
 
 
 <colgroup>
@@ -3481,7 +3481,7 @@ Inspired by <a href="https://github.com/oantolin/emacs-config">https://github.co
 <div id="outline-container-completion-emacs-completion-and-handling-accented-characters-with-orderless" class="outline-3">
 <h3 id="completion-emacs-completion-and-handling-accented-characters-with-orderless"><span class="section-number-3">3.3.</span> <a href="#completion-emacs-completion-and-handling-accented-characters-with-orderless">Emacs completion and handling accented characters with orderless&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span></span></a></h3>
 <div class="outline-text-3" id="text-completion-emacs-completion-and-handling-accented-characters-with-orderless">
-<div class="update" id="org8e4f74c">
+<div class="update" id="org2a59df7">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2026-10-29">[2026-10-29 Thu]</time></span>: I think I should be using <code>orderless-matching-styles</code> instead of <code>orderless-style-dispatchers</code>.
 </p>
@@ -3516,14 +3516,14 @@ I like using the <a target="_blank" href="https://melpa.org/#/orderless">orderle
 </div>
 
 
-<figure id="orgf0b79e4">
+<figure id="org763166c">
 <a href="file:///home/sacha/recordings/2026-02-26_15-06-59.png"><img src="file:///home/sacha/recordings/2026-02-26_15-06-59.png" alt="2026-02-26_15-06-59.png"></a>
 
 <figcaption><span class="figure-number">Figure 5: </span>Screenshot of consult-line showing matching against accented characters</figcaption>
 </figure>
 
 
-<figure id="org5a7fb66">
+<figure id="orgd500944">
 <a href="file:///home/sacha/recordings/2026-02-26_15-08-34.png"><img src="file:///home/sacha/recordings/2026-02-26_15-08-34.png" alt="2026-02-26_15-08-34.png"></a>
 
 <figcaption><span class="figure-number">Figure 6: </span>Screenshot of completion-at-point matching "fev" with "février"</figcaption>
@@ -3706,7 +3706,7 @@ This is an entry for <a href="https://sachachua.com/blog/2026/01/emacs-carnival-
 <h4 id="completing-sketches"><span class="section-number-4">3.5.2.</span> <a href="#completing-sketches">Completing sketches&nbsp;&nbsp;&nbsp<span class="tag"><span class="image">image</span></span></a></h4>
 <div class="outline-text-4" id="text-completing-sketches">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgca57fd8"><code>(<span class="org-keyword">declare-function</span> sacha-geeqie-view <span class="org-string">"Sacha.el"</span>)
+<pre class="src src-emacs-lisp" id="org4bc54cc"><code>(<span class="org-keyword">declare-function</span> sacha-geeqie-view <span class="org-string">"Sacha.el"</span>)
 
 (<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-sketch-preview</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">text</span>
   <span class="org-doc">"*Preview sketches.</span>
@@ -3881,7 +3881,7 @@ For some reason, installing <a href="https://github.com/armindarvish/consult-omn
 I also needed to create a Google custom search JSON API key at <a href="https://developers.google.com/custom-search/v1/introduction">https://developers.google.com/custom-search/v1/introduction</a> .
 </p>
 
-<div class="update" id="org6645228">
+<div class="update" id="org1e85d07">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2026-04-23">[2026-04-23 Thu]</time></span>: According to <a href="https://programmablesearchengine.google.com/controlpanel/overview">the Google Programmable Search Engine control panel overview</a>:
 </p>
@@ -4006,7 +4006,7 @@ I guess I need to find a different API instead of Google Search.
 <div id="outline-container-completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode" class="outline-5">
 <h5 id="completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode"><span class="section-number-5">3.5.5.1.</span> <a href="#completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode"><span class="todo SOMEDAY">SOMEDAY</span> Using web searches and favorites to quickly link placeholders in Org Mode&nbsp;&nbsp;&nbsp<span class="tag"><span class="org">org</span>&nbsp;<span class="emacs">emacs</span></span></a></h5>
 <div class="outline-text-5" id="text-completion-consult-consult-omni-using-web-searches-and-bookmarks-to-quickly-link-placeholders-in-org-mode">
-<div class="update" id="orga84f88d">
+<div class="update" id="org924b66b">
 <ul class="org-ul">
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2025-09-22">[2025-09-22 Mon]</time></span>: Fix bug in <code>sacha-org-in-bracketed-text-link-p</code>.</li>
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2025-07-23">[2025-07-23 Wed]</time></span>: Handle Org link updates from the middle of a link.</li>
@@ -4070,7 +4070,7 @@ Most of my targets can be found with a web search. I can do that with <a href="h
 This is what that looks like:
 </p>
 
-<div class="media-post" id="org1ffa4c2">
+<div class="media-post" id="org9fdee6d">
 <p>
 <figure><video preload="none" controls="1" src="https://sachachua.com/blog/2025/07/finding-unlinked-text/2025-07-21_23.58.10.webm" type="video/webm"></video><figcaption><div>Screencast: filling in a link URL based on the text</div></figcaption></figure>
 </p>
@@ -4118,7 +4118,7 @@ Sometimes a web search isn't the fastest way to find something. Some links might
 Here's an example:
 </p>
 
-<div class="media-post" id="org6c49693">
+<div class="media-post" id="org5d2e65c">
 <p>
 <figure><video preload="none" controls="1" src="https://sachachua.com/blog/2025/07/finding-unlinked-text/2025-07-21_23.59.47.webm" type="video/webm"></video><figcaption><div>Screencast showing how to specify a link with completion</div></figcaption></figure>
 </p>
@@ -4161,7 +4161,7 @@ I can now look for untargeted links and process each one. The <code>(undo-bounda
 </code></pre>
 </div>
 
-<div class="media-post" id="org80113f9">
+<div class="media-post" id="org090656c">
 <p>
 Here's how that works:
 </p>
@@ -4347,7 +4347,7 @@ Here's what it looks like by itself when I call <code>consult-omni-sacha-blog</c
 </p>
 
 
-<figure id="org168b8fa">
+<figure id="org056b0ea">
 <img src="images/2025-07-21_23-24-09.png" alt="2025-07-21_23-24-09.png">
 
 <figcaption><span class="figure-number">Figure 7: </span>Screenshot of a search through my blog post titles</figcaption>
@@ -4370,7 +4370,7 @@ Here's what it looks like when I call <code>consult-omni</code> to search my fav
 </p>
 
 
-<figure id="org9ff39fa">
+<figure id="org65bf559">
 <img src="images/2025-07-21_23-29-06.png" alt="2025-07-21_23-29-06.png">
 
 <figcaption><span class="figure-number">Figure 8: </span>Screenshot of a consult-omni search with multiple sources</figcaption>
@@ -4803,7 +4803,7 @@ I wanted to experiment with <a href="https://irreal.org/blog/?p=11867#comment-63
 <div class="row">
 <div class="columns small-12 medium-6 large-6">
 
-<figure id="org83b304f">
+<figure id="orgd636d58">
 <a href="images/dark-mode-line.svg" data-link="t"><img src="images/dark-mode-line.svg" alt="dark-mode-line.svg" class="org-svg" data-link="t"></a>
 
 <figcaption><span class="figure-number">Figure 9: </span>with dark mode</figcaption>
@@ -4812,7 +4812,7 @@ I wanted to experiment with <a href="https://irreal.org/blog/?p=11867#comment-63
 </div>
 <div class="columns small-12 medium-6 large-6">
 
-<figure id="org48561ac">
+<figure id="org06f3c96">
 <a href="images/light-mode-line.svg" data-link="t"><img src="images/light-mode-line.svg" alt="light-mode-line.svg" class="org-svg" data-link="t"></a>
 
 <figcaption><span class="figure-number">Figure 10: </span>with light mode</figcaption>
@@ -4827,7 +4827,7 @@ I wanted to experiment with <a href="https://irreal.org/blog/?p=11867#comment-63
 <div id="outline-container-face-text" class="outline-3">
 <h3 id="face-text"><span class="section-number-3">4.5.</span> <a href="#face-text">Quickly adding face properties to regions&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span></span></a></h3>
 <div class="outline-text-3" id="text-face-text">
-<div class="update" id="org1dfd716">
+<div class="update" id="orge094e74">
 <ul class="org-ul">
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2024-09-20">[2024-09-20 Fri]</time></span>: Set the first frame of the animated GIF to a reasonable backup image.</li>
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2024-09-20">[2024-09-20 Fri]</time></span>: Add <code>:init-value nil</code> to the mode.</li>
@@ -4836,7 +4836,7 @@ I wanted to experiment with <a href="https://irreal.org/blog/?p=11867#comment-63
 </div>
 
 
-<figure id="orgb4d4bb2">
+<figure id="orge327db3">
 <img src="images/output-2024-09-20-13:09:17.gif" alt="output-2024-09-20-13:09:17.gif">
 
 <figcaption><span class="figure-number">Figure 11: </span>Screencast of modifying face properties</figcaption>
@@ -4923,8 +4923,8 @@ repeating just the last keystroke.
 </div>
 </div>
 </div>
-<div id="outline-container-orgc593a0a" class="outline-3">
-<h3 id="orgc593a0a"><span class="section-number-3">4.6.</span> <a href="#orgc593a0a">Split and follow</a></h3>
+<div id="outline-container-org1de8e3e" class="outline-3">
+<h3 id="org1de8e3e"><span class="section-number-3">4.6.</span> <a href="#org1de8e3e">Split and follow</a></h3>
 <div class="outline-text-3" id="text-4-6">
 <p>
 Based on <a href="https://reindeereffect.com/0002">Walls of Text</a>, found via <a href="https://news.ycombinator.com/item?id=50510246">HN</a>
@@ -5160,7 +5160,7 @@ I like context-sensitive keyboard shortcuts, so when I came across <a href="http
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org6342916"><code>(<span class="org-keyword">use-package</span> ctrlf
+<pre class="src src-emacs-lisp" id="org5b9fd9d"><code>(<span class="org-keyword">use-package</span> ctrlf
   <span class="org-comment-delimiter">;;</span><span class="org-comment">:init (ctrlf-mode +1)   ; I'm also getting used to isearch-lazy-count, though.</span>
   )
 
@@ -6411,7 +6411,7 @@ From <a href="https://mbork.pl/2026-05-18_Marking_today%e2%80%99s_files_in_Dired
 <div id="outline-container-image-dired-screenshots" class="outline-4">
 <h4 id="image-dired-screenshots"><span class="section-number-4">5.28.2.</span> <a href="#image-dired-screenshots">Using image-dired to browse the latest screenshots from multiple directories&nbsp;&nbsp;&nbsp<span class="tag"><span class="image">image</span>&nbsp;<span class="org">org</span>&nbsp;<span class="link">link</span></span></a></h4>
 <div class="outline-text-4" id="text-image-dired-screenshots">
-<div class="update" id="orgfd98aaf">
+<div class="update" id="org1676faf">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2025-01-06">[2025-01-06 Mon]</time></span>: <a href="https://lists.gnu.org/archive/html/emacs-devel/2025-01/msg00064.html">Patch in progress</a>, Stefan Kangas is looking into it.
 </p>
@@ -6454,7 +6454,7 @@ error when you do this (I need to send a patch
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orged15baa"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-screenshot-dirs</span>
+<pre class="src src-emacs-lisp" id="org02a9e60"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-screenshot-dirs</span>
   <span class="org-highlight-quoted-quote">'</span>(<span class="org-string">"~/recordings"</span>
     <span class="org-string">"~/.var/app/org.prismlauncher.PrismLauncher/data/PrismLauncher/instances/"</span>
     <span class="org-string">"~/sync/gdlauncher-instances/"</span>
@@ -6489,7 +6489,7 @@ error when you do this (I need to send a patch
 </div>
 
 
-<figure id="org34a210b">
+<figure id="orgb7cd38d">
 <img src="images/2025-01-02_08-19-32.png" alt="2025-01-02_08-19-32.png">
 
 <figcaption><span class="figure-number">Figure 12: </span>The result of <code>sacha-show-combined-screenshots</code></figcaption>
@@ -6513,7 +6513,7 @@ takes the original filename:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgfd695bd"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="orge86312f"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-image-dired-store-link</span> ()
 (<span class="org-keyword">when</span> (<span class="org-keyword">and</span> (derived-mode-p <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">image-dired-thumbnail-mode</span>)
      (get-text-property (point) <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">original-file-name</span>))
@@ -8039,7 +8039,7 @@ Hmm, let me try filling in this quiz&hellip;
 <div id="outline-container-writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document" class="outline-4">
 <h4 id="writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document"><span class="section-number-4">9.3.8.</span> <a href="#writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document">Emacs Lisp and NodeJS: Getting the bolded words from a section of a Google Document&nbsp;&nbsp;&nbsp<span class="tag"><span class="js">js</span>&nbsp;<span class="emacs">emacs</span></span></a></h4>
 <div class="outline-text-4" id="text-writing-and-editing-learning-french-emacs-lisp-and-nodejs-getting-the-bolded-words-from-a-section-of-a-google-document">
-<div class="update" id="org59bce5d">
+<div class="update" id="orgef9323e">
 <ul class="org-ul">
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2026-03-13">[2026-03-13 Fri]</time></span>: Cleaned up links from Google</li>
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2026-03-12">[2026-03-12 Thu]</time></span>: Simplified getting a section or finding the bolded text by using the Org Mode format instead.</li>
@@ -8343,7 +8343,7 @@ Screenshot:
 </p>
 
 
-<figure id="orga309e82">
+<figure id="org41dbf0a">
 <a href="file:///home/sacha/recordings/2026-03-12_11-28-24.png"><img src="file:///home/sacha/recordings/2026-03-12_11-28-24.png" alt="2026-03-12_11-28-24.png"></a>
 
 <figcaption><span class="figure-number">Figure 13: </span>wdiff</figcaption>
@@ -8357,7 +8357,7 @@ Screenshot:
 After learning about French spellcheck and grammar checking from <a href="https://eeame-97718b.frama.io/jours/jour11/">Emacs expliqué à mes enfants</a>, I added <a href="https://github.com/milouse/flycheck-grammalecte">flycheck-grammalecte</a> to my config. Nudged by <a href="https://mastodon.zaclys.com/@lann/115974248832191444">@lann@mastodon.zaclys.com</a>, I finally got around to figuring out why my setup sometimes worked and sometimes didn't. When I checked <code>flycheck-verify-setup</code>, I noticed that grammalecte kept getting disabled. A little digging around showed me that it was getting disabled because of too many errors. That was because it was trying to work on my whole file instead of just the portion that I <a href="https://www.gnu.org/software/emacs/manual/html_node/emacs/Narrowing.html">narrowed</a> to with <code>org-narrow-to-subtree</code> (ooh, just noticed an <code>org-toggle-narrow-to-subtree</code> command). I like having all of my French journal entries in one file because I can use <code>consult-line</code> (which I've bound to <code>M-g l</code>) to quickly look up examples of where else I've used a word. So I needed to define a checker that runs only on the narrowed part of the buffer.
 </p>
 
-<div class="update" id="org251dbef">
+<div class="update" id="orgdf6cbfb">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2026-04-11">[2026-04-11 Sat]</time></span>: Now at <a href="https://codeberg.org/sachac/learn-lang/src/branch/main/learn-lang-flycheck-grammalecte-narrowed.el">learn-lang-flycheck-grammalecte-narrowed-setup</a>.
 </p>
@@ -8369,7 +8369,7 @@ After I use <code>sacha-flycheck-grammalecte-setup</code>, I can use <code>flych
 </p>
 
 
-<figure id="org029e275">
+<figure id="org5870178">
 <a href="file:///home/sacha/recordings/2026-01-30_22-20-20.png"><img src="file:///home/sacha/recordings/2026-01-30_22-20-20.png" alt="2026-01-30_22-20-20.png"></a>
 
 <figcaption><span class="figure-number">Figure 14: </span>Screenshot of grammalecte providing grammar feedback</figcaption>
@@ -8670,7 +8670,7 @@ Moved to <a href="https://codeberg.org/sachac/learn-lang/src/branch/main/learn-l
 
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org4ac778a"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org161a3c4"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
   (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-copy-clean-version</span> (text)
     <span class="org-doc">"Copy BEG to END without strike-throughs."</span>
     (<span class="org-keyword">interactive</span> (list (<span class="org-keyword">if</span> (region-active-p) (buffer-substring (region-beginning) (region-end))
@@ -8703,7 +8703,7 @@ Moved to <a href="https://codeberg.org/sachac/learn-lang/src/branch/main/learn-l
 <h4 id="writing-and-editing-learning-french-using-flycheck-to-display-ai-grammar-feedback-from-gptel-as-i-learn-french"><span class="section-number-4">9.3.15.</span> <a href="#writing-and-editing-learning-french-using-flycheck-to-display-ai-grammar-feedback-from-gptel-as-i-learn-french">Using flycheck to display AI grammar feedback from gptel as I learn French</a></h4>
 <div class="outline-text-4" id="text-writing-and-editing-learning-french-using-flycheck-to-display-ai-grammar-feedback-from-gptel-as-i-learn-french">
 
-<figure id="orgb8b9837">
+<figure id="org01de477">
 <img src="images/2026-01-26_08-15-16.png" alt="2026-01-26_08-15-16.png">
 
 <figcaption><span class="figure-number">Figure 15: </span>Screenshot of flycheck showing grammar feedback from gptel</figcaption>
@@ -9652,7 +9652,7 @@ sentence navigation commands work for me.
 <div id="outline-container-transcript-keywords" class="outline-3">
 <h3 id="transcript-keywords"><span class="section-number-3">9.9.</span> <a href="#transcript-keywords"><span class="done DONE">DONE</span> Audio braindump workflow tweaks: Adding Org Mode hyperlinks to recordings based on keywords&nbsp;&nbsp;&nbsp<span class="tag"><span class="audio">audio</span>&nbsp;<span class="writing">writing</span></span></a></h3>
 <div class="outline-text-3" id="text-transcript-keywords">
-<div class="update" id="org0ed8a18">
+<div class="update" id="org5fd4dcc">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2023-12-24">[2023-12-24 Sun]</time></span> Added a quick video!
 </p>
@@ -9681,7 +9681,7 @@ Here's a new brain-dumping workflow that I've been experimenting with, though. I
 
 <details class="code-details"><summary>Animated GIF showing Google Recorder 's real-time transcript</summary>
 
-<figure id="org64d6476">
+<figure id="org2282d6b">
 <img src="images/braindump-recording.gif" alt="braindump-recording.gif" style="max-height:80vh">
 
 </figure>
@@ -9697,7 +9697,7 @@ I copy those with Syncthing.
 If I use keywords like "start" or "stop" along with things like "topic", "reminder", or "summary", then I can put those on separate lines automatically (<code>sacha-audio-braindump-prepare-alignment-breaks</code>).
 </p>
 
-<pre class="example" id="org47f93b6">
+<pre class="example" id="org451eef7">
 ...
 News. Miscellaneous little tasks that he doing. I do want to
 finish that blog post about the playlist Just so that it's out.
@@ -9732,7 +9732,7 @@ I can then create an Org Mode TODO item with a quick hyperlinked summary as well
 </p>
 
 
-<figure id="orga8e6514">
+<figure id="org37b3fa7">
 <img src="images/braindump-summary.svg" alt="braindump-summary.svg" class="org-svg" style="max-height:80vh" data-link="t">
 
 <figcaption><span class="figure-number">Figure 16: </span>Summary with headings and links</figcaption>
@@ -9744,7 +9744,7 @@ I can jump to the audio if there are misrecognized words.
 
 <details class="code-details"><summary>Screenshot of jumping to the audio</summary>
 
-<figure id="org160a105">
+<figure id="org6537cdc">
 <img src="images/braindump-vtt.png" alt="braindump-vtt.png" style="max-height:80vh" data-link="t">
 
 <figcaption><span class="figure-number">Figure 17: </span>Following the link to the chapter in the VTT file</figcaption>
@@ -9875,11 +9875,11 @@ keyword within the next X words. (<code>sacha-audio-braindump-scan-for-part-keyw
     (insert <span class="org-string">"some text start a reminder hello world stop there and do something stop reminder more text"</span>)
     (goto-char (point-min))
     (<span class="org-keyword">let</span> ((result (sacha-audio-braindump-scan-for-part-keyword <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">start</span> nil)))
-      (expect (elt result 2) <span class="org-builtin">:to-equal</span> <span class="org-string">"start"</span>)
-      (expect (elt result 3) <span class="org-builtin">:to-equal</span> <span class="org-string">"reminder"</span>))
+      (<span class="org-keyword">expect</span> (elt result 2) <span class="org-builtin">:to-equal</span> <span class="org-string">"start"</span>)
+      (<span class="org-keyword">expect</span> (elt result 3) <span class="org-builtin">:to-equal</span> <span class="org-string">"reminder"</span>))
     (<span class="org-keyword">let</span> ((result (sacha-audio-braindump-scan-for-part-keyword <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">stop</span> <span class="org-string">"reminder"</span>)))
-      (expect (elt result 2) <span class="org-builtin">:to-equal</span> <span class="org-string">"stop"</span>)
-      (expect (elt result 3) <span class="org-builtin">:to-equal</span> <span class="org-string">"reminder"</span>))))
+      (<span class="org-keyword">expect</span> (elt result 2) <span class="org-builtin">:to-equal</span> <span class="org-string">"stop"</span>)
+      (<span class="org-keyword">expect</span> (elt result 3) <span class="org-builtin">:to-equal</span> <span class="org-string">"reminder"</span>))))
 </code></pre>
 </div></details>
 </div>
@@ -9905,7 +9905,7 @@ compile audio/video without that segment, if I want to use the audio
 without rerecording it.
 </p>
 
-<pre class="example" id="orga856baa">
+<pre class="example" id="orgf4bf258">
 And the way I can help is by jotting words down in a mind map,
 typing her sentences. Oops
 typing, her sentences And generating, follow-up questions.
@@ -10000,7 +10000,7 @@ skimming the text file.
     (insert <span class="org-string">"some text start a reminder hello world stop there and do something stop reminder more text"</span>)
     (goto-char (point-min))
     (sacha-audio-braindump-prepare-alignment-breaks)
-    (expect (buffer-string) <span class="org-builtin">:to-equal</span>
+    (<span class="org-keyword">expect</span> (buffer-string) <span class="org-builtin">:to-equal</span>
             <span class="org-string">"some text</span>
 <span class="org-string">  START REMINDER hello world stop there and do something STOP REMINDER</span>
 <span class="org-string">  more text"</span>)))
@@ -10029,11 +10029,11 @@ timestamps using the <code>ol-subed.el</code> that I just added.
                         sub-text)
       (concat (match-string 1 sub-text) <span class="org-string">": "</span> (match-string 2 sub-text)))))
 (<span class="org-keyword">ert-deftest</span> <span class="org-function-name">sacha-audio-braindump-get-subtitle-note-based-on-keywords</span> ()
-  (expect (sacha-audio-braindump-get-subtitle-note-based-on-keywords <span class="org-string">"BEGIN NEXT STEPS . Think about how dictation helps me practice slower speed. CLOSE NEXT STEPS"</span>)
+  (<span class="org-keyword">expect</span> (sacha-audio-braindump-get-subtitle-note-based-on-keywords <span class="org-string">"BEGIN NEXT STEPS . Think about how dictation helps me practice slower speed. CLOSE NEXT STEPS"</span>)
           <span class="org-builtin">:to-equal</span> <span class="org-string">"NEXT STEPS: . Think about how dictation helps me practice slower speed."</span>)
-  (expect (sacha-audio-braindump-get-subtitle-note-based-on-keywords <span class="org-string">"START SUMMARY hello world STOP SUMMARY"</span>)
+  (<span class="org-keyword">expect</span> (sacha-audio-braindump-get-subtitle-note-based-on-keywords <span class="org-string">"START SUMMARY hello world STOP SUMMARY"</span>)
           <span class="org-builtin">:to-equal</span> <span class="org-string">"SUMMARY: hello world"</span>)
-  (expect (sacha-audio-braindump-get-subtitle-note-based-on-keywords <span class="org-string">"START CHAPTER hello world again"</span>)
+  (<span class="org-keyword">expect</span> (sacha-audio-braindump-get-subtitle-note-based-on-keywords <span class="org-string">"START CHAPTER hello world again"</span>)
           <span class="org-builtin">:to-equal</span> <span class="org-string">"CHAPTER: hello world again"</span>)
   )
 </code></pre>
@@ -10380,7 +10380,7 @@ the transcript, and the annotated PDF.
 </p>
 
 
-<figure id="org159b2fa">
+<figure id="org2e7503e">
 <a href="images/2024-11-17_20-44-30.png"><img src="images/2024-11-17_20-44-30.png" alt="2024-11-17_20-44-30.png"></a>
 
 <figcaption><span class="figure-number">Figure 18: </span>Screenshot of draft, transcript, and PDF</figcaption>
@@ -10611,7 +10611,7 @@ filename)
 <div id="outline-container-unfill-paragraph" class="outline-3">
 <h3 id="unfill-paragraph"><span class="section-number-3">9.14.</span> <a href="#unfill-paragraph">Emacs: Cycle through different paragraph formats: all on one line, wrapped, max one sentence per line, one sentence per line</a></h3>
 <div class="outline-text-3" id="text-unfill-paragraph">
-<div class="update" id="org81dde82">
+<div class="update" id="org711d2fd">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2025-09-30">[2025-09-30 Tue]</time></span>: Add <code>move-to-left-margin</code> to work around bug when using <code>fill-paragraph-semlf</code> at the end of a paragraph.
 </p>
@@ -10946,26 +10946,28 @@ From <a href="https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-comp
 <span class="org-doc">"</span>
   (<span class="org-keyword">interactive</span>)
   (<span class="org-keyword">let</span> ((sacha-track-active-frame nil))
-    (<span class="org-keyword">cond</span>
-     (sacha-whisper-sleep
-      (<span class="org-keyword">setq</span> sacha-whisper-before-emacsclient-state
-            (cons sacha-whisper-mode sacha-whisper-sleep))
-      (sacha-whisper-set-filter-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">dictation</span> nil))
-     ((eq sacha-whisper-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">dictation</span>) <span class="org-comment-delimiter">; </span><span class="org-comment">already awake and listening</span>
-      (<span class="org-keyword">if</span> sacha-whisper-before-emacsclient-state
+    (<span class="org-keyword">if</span> (process-live-p sacha-vad-asr-process)
+        (<span class="org-keyword">cond</span>
+         (sacha-whisper-sleep
+          (<span class="org-keyword">setq</span> sacha-whisper-before-emacsclient-state
+                (cons sacha-whisper-mode sacha-whisper-sleep))
+          (sacha-whisper-set-filter-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">dictation</span> nil))
+         ((eq sacha-whisper-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">dictation</span>) <span class="org-comment-delimiter">; </span><span class="org-comment">already awake and listening</span>
+          (<span class="org-keyword">if</span> sacha-whisper-before-emacsclient-state
+              (sacha-whisper-set-filter-mode
+               (car sacha-whisper-before-emacsclient-state)
+               (cdr sacha-whisper-before-emacsclient-state))
+            (sacha-whisper-set-filter-mode
+             <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">dictation</span>
+             t)))
+         <span class="org-comment-delimiter">;; </span><span class="org-comment">awake, but not listening for dictation</span>
+         (t
+          (<span class="org-keyword">setq</span> sacha-whisper-before-emacsclient-state
+                (cons sacha-whisper-mode sacha-whisper-sleep))
           (sacha-whisper-set-filter-mode
-           (car sacha-whisper-before-emacsclient-state)
-           (cdr sacha-whisper-before-emacsclient-state))
-        (sacha-whisper-set-filter-mode
-         <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">dictation</span>
-          t)))
-     <span class="org-comment-delimiter">;; </span><span class="org-comment">awake, but not listening for dictation</span>
-     (t
-      (<span class="org-keyword">setq</span> sacha-whisper-before-emacsclient-state
-            (cons sacha-whisper-mode sacha-whisper-sleep))
-      (sacha-whisper-set-filter-mode
-       <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">dictation</span>
-        nil)))))
+           <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">dictation</span>
+           nil)))
+      (sacha-whisper-emacsclient-run-with-pending))))
 
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-whisper-emacsclient-run-with-pending</span> ()
   <span class="org-doc">"Start whisper with a pending indicator.</span>
@@ -10973,11 +10975,19 @@ From <a href="https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-comp
 <span class="org-doc">using `</span><span class="org-doc"><span class="org-constant">sacha-vad-asr-start</span></span><span class="org-doc">'."</span>
   (<span class="org-keyword">interactive</span>)
   (<span class="org-keyword">let</span> ((sacha-track-active-frame nil))
-    (<span class="org-keyword">setq</span> sacha-whisper-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">dictation</span>)
-    (<span class="org-keyword">setq</span> sacha-whisper-sleep nil)
+    <span class="org-comment-delimiter">;; </span><span class="org-comment">TODO: Change this to use the event ring</span>
+    (<span class="org-keyword">if</span> (<span class="org-keyword">and</span> (eq sacha-whisper-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">dictation</span>)
+             (not sacha-whisper-sleep)
+             sacha-whisper-before-emacsclient-state)
+        (sacha-whisper-set-filter-mode
+         (car sacha-whisper-before-emacsclient-state)
+         (cdr sacha-whisper-before-emacsclient-state))
+      (<span class="org-keyword">setq</span> sacha-whisper-before-emacsclient-state
+            (cons sacha-whisper-mode sacha-whisper-sleep))
+      (sacha-whisper-set-filter-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">dictation</span> nil))
     (<span class="org-keyword">with-selected-frame</span> sacha-active-frame
       (<span class="org-keyword">with-current-buffer</span> (window-buffer (frame-selected-window sacha-active-frame))
-        (call-interactively <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">sacha-whisper-run-with-pending-indicator</span>)))))
+        (call-interactively <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">sacha-whisper-run-with-pending-indicator</span>))))))
 </code></pre>
 </div>
 
@@ -11154,6 +11164,7 @@ From <a href="https://github.com/purcell/emacs.d/blob/master/lisp/init-auto-comp
        (* number 60 60)))))
 
 (<span class="org-keyword">phony-defun</span> today <span class="org-string">"today"</span> <span class="org-builtin">:contributes-to</span> date (org-read-date nil nil <span class="org-string">"."</span>))
+(<span class="org-keyword">phony-defun</span> afternoon <span class="org-string">"afternoon"</span> <span class="org-builtin">:contributes-to</span> date (org-read-date nil nil <span class="org-string">"12:30"</span>))
 (<span class="org-keyword">phony-defun</span> someday <span class="org-string">"someday"</span> <span class="org-builtin">:contributes-to</span> date nil)
 (<span class="org-keyword">phony-defun</span> tomorrow <span class="org-string">"tomorrow"</span> <span class="org-builtin">:contributes-to</span> date (org-read-date nil nil <span class="org-string">"+1"</span>))
 (<span class="org-keyword">phony-defun</span> monday <span class="org-string">"Monday"</span> <span class="org-builtin">:contributes-to</span> date (org-read-date nil nil <span class="org-string">"+mon"</span>))
@@ -11923,7 +11934,7 @@ Work in progress
 <div id="outline-container-multimedia-whisper" class="outline-4">
 <h4 id="multimedia-whisper"><span class="section-number-4">9.21.5.</span> <a href="#multimedia-whisper">Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere&nbsp;&nbsp;&nbsp<span class="tag"><span class="speech">speech</span></span></a></h4>
 <div class="outline-text-4" id="text-multimedia-whisper">
-<div class="update" id="org4910318">
+<div class="update" id="org71d6c7f">
 <ul class="org-ul">
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2026-10-02">[2026-10-02 Fri]</time></span>: I now use Orukeet as the speech recognition model because it's faster.</li>
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2026-01-30">[2026-01-30 Fri]</time></span>: Major change: I switched to <a href="https://github.com/sachac/whisper.el/tree/whisper-insert-text-at-point-function">my fork</a> of natrys/whisper.el so that I can specify functions that change the window configuration etc.</li>
@@ -12058,7 +12069,7 @@ Update <span class="timestamp-wrapper"><time class="timestamp" datetime="2026-10
 </div>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org1e24044"><code>
+<pre class="src src-emacs-lisp" id="org247c918"><code>
 
 <span class="org-comment-delimiter">;; </span><span class="org-comment">Only works with my tweaks to whisper.el</span>
 <span class="org-comment-delimiter">;; </span><span class="org-comment">https://github.com/sachac/whisper.el/tree/whisper-insert-text-at-point-function</span>
@@ -12164,61 +12175,62 @@ Update <span class="timestamp-wrapper"><time class="timestamp" datetime="2026-10
 <span class="org-doc">\"over\" and \"scratch that\" gets processed at the end of any utterance.</span>
 <span class="org-doc">\"panic\" kills OBS.</span>
 <span class="org-doc">"</span>
-  (<span class="org-keyword">when</span> text
-    (<span class="org-keyword">pcase</span> (sacha-phony-parser--sanitize text)
-      (<span class="org-string">"continuous"</span>
-       (speech-input-vad-start)
-       (<span class="org-keyword">setq</span> text nil))
-      (<span class="org-string">"manual"</span>
-       (speech-input-vad-stop)
-       (<span class="org-keyword">setq</span> text nil))
-      ((<span class="org-keyword">or</span> <span class="org-string">"wake up"</span> <span class="org-string">"dictation"</span>)
-       (sacha-whisper-set-filter-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">all</span> nil)
-       (<span class="org-keyword">setq</span> text nil))
-      ((<span class="org-keyword">or</span> <span class="org-string">"commands"</span> <span class="org-string">"drive"</span>)
-       (sacha-whisper-audio-feedback <span class="org-string">"command mode"</span>)
-       (sacha-whisper-set-filter-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">commands</span> nil)
-       (<span class="org-keyword">setq</span> text nil))
-      ((<span class="org-keyword">or</span> <span class="org-string">"only dictation"</span> <span class="org-string">"dictation focus"</span>)
-       (sacha-whisper-audio-feedback <span class="org-string">"dictation focus"</span>)
-       (sacha-whisper-set-filter-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">dictation-focus</span> nil)
-       (<span class="org-keyword">setq</span> text nil))
-      ((<span class="org-keyword">or</span> <span class="org-string">"kebab"</span> <span class="org-string">"skewer"</span>)
-       (sacha-whisper-audio-feedback <span class="org-string">"kebab mode"</span>)
-       (sacha-whisper-set-filter-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">kebab</span> nil)
-       (<span class="org-keyword">setq</span> text nil))
-      (<span class="org-string">"panic"</span>
-       (sacha-obs-panic))
-      (<span class="org-string">"over"</span>
-       (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
-       (<span class="org-keyword">setq</span> text nil)
-       (<span class="org-keyword">if</span> sacha-whisper-sleep
-           (sacha-whisper-audio-feedback <span class="org-string">"bye"</span>)
-         (sacha-whisper-audio-feedback <span class="org-string">"hi"</span>)))
-      ((<span class="org-keyword">or</span> <span class="org-string">"sleep"</span> <span class="org-string">"all done"</span>)
-       (sacha-whisper-set-filter-mode nil t)
-       (<span class="org-keyword">setq</span> text nil))
-      (_
-       (<span class="org-keyword">cond</span>
-        ((string-match <span class="org-string">"\\`</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">so</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">anyway</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?[\\.?! ]*chat\\&gt;"</span> text)
-         (<span class="org-keyword">setq</span> text nil))
-        ((string-match <span class="org-string">"\\&lt;</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">scratch that</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">[\\.?! ]*$"</span> text)
-         (<span class="org-keyword">setq</span> text nil))
-        ((string-match <span class="org-string">"\\&lt;</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">over</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">[\\.?! ]*$"</span> text)
-         (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
-         (<span class="org-keyword">setq</span> text
-               (<span class="org-keyword">if</span> sacha-whisper-sleep
-                   nil
-                 (replace-match <span class="org-string">""</span> nil nil text 1)))
-         (<span class="org-keyword">if</span> sacha-whisper-sleep
-             (sacha-whisper-audio-feedback <span class="org-string">"bye"</span>)
-           (sacha-whisper-audio-feedback <span class="org-string">"hi"</span>)))))))
-  (<span class="org-keyword">let*</span> ((state (sacha-whisper-effective-mode-at-timestamp
-                 (get-text-property 0 <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">start_ts</span> text)))
+  (<span class="org-keyword">let*</span> ((state (<span class="org-keyword">and</span> text
+                     (sacha-whisper-effective-mode-at-timestamp
+                      (get-text-property 0 <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">start_ts</span> text))))
          (mode (elt state 1))
          (sleep (elt state 2)))
+    (<span class="org-keyword">when</span> text
+      (<span class="org-keyword">pcase</span> (sacha-phony-parser--sanitize text)
+        (<span class="org-string">"continuous"</span>
+         (speech-input-vad-start)
+         (<span class="org-keyword">setq</span> text nil))
+        (<span class="org-string">"manual"</span>
+         (speech-input-vad-stop)
+         (<span class="org-keyword">setq</span> text nil))
+        ((<span class="org-keyword">or</span> <span class="org-string">"wake up"</span> <span class="org-string">"dictation"</span>)
+         (sacha-whisper-set-filter-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">all</span> nil)
+         (<span class="org-keyword">setq</span> text nil))
+        ((<span class="org-keyword">or</span> <span class="org-string">"commands"</span> <span class="org-string">"drive"</span>)
+         (sacha-whisper-audio-feedback <span class="org-string">"command mode"</span>)
+         (sacha-whisper-set-filter-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">commands</span> nil)
+         (<span class="org-keyword">setq</span> text nil))
+        ((<span class="org-keyword">or</span> <span class="org-string">"only dictation"</span> <span class="org-string">"dictation focus"</span>)
+         (sacha-whisper-audio-feedback <span class="org-string">"dictation focus"</span>)
+         (sacha-whisper-set-filter-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">dictation-focus</span> nil)
+         (<span class="org-keyword">setq</span> text nil))
+        ((<span class="org-keyword">or</span> <span class="org-string">"kebab"</span> <span class="org-string">"skewer"</span>)
+         (sacha-whisper-audio-feedback <span class="org-string">"kebab mode"</span>)
+         (sacha-whisper-set-filter-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">kebab</span> nil)
+         (<span class="org-keyword">setq</span> text nil))
+        (<span class="org-string">"panic"</span>
+         (sacha-obs-panic))
+        (<span class="org-string">"over"</span>
+         (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
+         (<span class="org-keyword">setq</span> text nil)
+         (<span class="org-keyword">if</span> sacha-whisper-sleep
+             (sacha-whisper-audio-feedback <span class="org-string">"bye"</span>)
+           (sacha-whisper-audio-feedback <span class="org-string">"hi"</span>)))
+        ((<span class="org-keyword">or</span> <span class="org-string">"sleep"</span> <span class="org-string">"all done"</span>)
+         (sacha-whisper-set-filter-mode nil t)
+         (<span class="org-keyword">setq</span> text nil))
+        (_
+         (<span class="org-keyword">cond</span>
+          ((string-match <span class="org-string">"\\`</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">so</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">anyway</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">?[\\.?! ]*chat\\&gt;"</span> text)
+           (<span class="org-keyword">setq</span> text nil))
+          ((string-match <span class="org-string">"\\&lt;</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">scratch that</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">[\\.?! ]*$"</span> text)
+           (<span class="org-keyword">setq</span> text nil))
+          ((string-match <span class="org-string">"\\&lt;</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">over</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">[\\.?! ]*$"</span> text)
+           (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
+           (<span class="org-keyword">setq</span> text
+                 (<span class="org-keyword">if</span> sacha-whisper-sleep
+                     nil
+                   (replace-match <span class="org-string">""</span> nil nil text 1)))
+           (<span class="org-keyword">if</span> sacha-whisper-sleep
+               (sacha-whisper-audio-feedback <span class="org-string">"bye"</span>)
+             (sacha-whisper-audio-feedback <span class="org-string">"hi"</span>)))))))
     (<span class="org-keyword">when</span> sleep
-      (<span class="org-keyword">setq</span> text nil))<span class="org-comment-delimiter">;; </span><span class="org-comment">Filter based on sleep or commands</span>
+      (<span class="org-keyword">setq</span> text nil)) <span class="org-comment-delimiter">;; </span><span class="org-comment">Filter based on sleep or commands</span>
     (<span class="org-keyword">when</span> (eq mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">commands</span>)
       (<span class="org-keyword">unless</span> (<span class="org-keyword">and</span> text
                    (<span class="org-keyword">or</span> (phony-parser--parse-utterance text)
@@ -12257,7 +12269,7 @@ Update <span class="timestamp-wrapper"><time class="timestamp" datetime="2026-10
                       (insert <span class="org-string">"\n"</span>))
                     (<span class="org-keyword">when</span> (<span class="org-keyword">and</span> sacha-whisper-one-sentence-per-line
                                (not (eq sacha-whisper-mode <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">kebab</span>))
-                               (not (looking-back <span class="org-string">"^</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">\\**</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string"> *-*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string"> *;+ *</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"> *</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">\""</span> (line-beginning-position))))
+                               (not (looking-back <span class="org-string">"^</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">\\**</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string"> *-*</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string"> *;+ *</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string"> *</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">\"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">|</span></span><span class="org-string">;; *"</span> (line-beginning-position))))
                       (<span class="org-keyword">if</span> (<span class="org-keyword">and</span> (derived-mode-p <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org-mode</span>)
                                (org-element-lineage (org-element-context) <span class="org-highlight-quoted-quote">'</span>(item plain-list)))
                           (<span class="org-keyword">unless</span> (&lt;= (<span class="org-keyword">save-excursion</span>
@@ -12305,7 +12317,7 @@ Update <span class="timestamp-wrapper"><time class="timestamp" datetime="2026-10
 </div>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgc8e2a10"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org4625c8c"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-whisper-maybe-type</span> (text)
   <span class="org-doc">"If Emacs is not the focused app, simulate typing TEXT.</span>
 <span class="org-doc">Add this function to `</span><span class="org-doc"><span class="org-constant">whisper-insert-text-at-point</span></span><span class="org-doc">'."</span>
@@ -12701,7 +12713,7 @@ and it should remember my configuration.
 Here's a demo:
 </p>
 
-<div class="media-post" id="org4ba115b">
+<div class="media-post" id="org1dad762">
 <p>
 <figure><video preload="none" controls="1" src="https://sachachua.com/blog/2026/01/using-whisper-el-to-capture-text-to-speech-in-emacs/2026-01-08_11.17.22.webm" type="video/webm"><track kind="subtitles" label="Captions" src="https://sachachua.com/blog/2026/01/using-whisper-el-to-capture-text-to-speech-in-emacs/2026-01-08_11.17.22.vtt" srclang="en" default></track></video><figcaption><div>Screencast of using whisper.el to do speech-to-text into the current buffer, clocked-in task, or other function</div></figcaption></figure>
 </p>
@@ -12825,12 +12837,12 @@ Here's the audio file. It is around 10 seconds long. I run the benchmark 3 times
 </p>
 
 <p>
-<div class="audio"><audio controls="1" preload="metadata" src="/blog/2026/01/emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models/2026-01-19-14-17-53.wav?2026-11-17" type="audio/x-wav"><a href="/blog/2026/01/emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models/2026-01-19-14-17-53.wav">Download the audio</a></audio></div>
+<div class="audio"><audio controls="1" preload="metadata" src="/blog/2026/01/emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models/2026-01-19-14-17-53.wav?2026-11-18" type="audio/x-wav"><a href="/blog/2026/01/emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models/2026-01-19-14-17-53.wav">Download the audio</a></audio></div>
 <a href="https://sachachua.com/blog/2026/01/emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models/2026-01-19-14-17-53.wav">Download</a>
 </p>
 
 <details><summary>Code for running the benchmarks</summary><div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org786433a"><code>(<span class="org-keyword">let</span> ((times <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">3</span>))
+<pre class="src src-emacs-lisp" id="org748e508"><code>(<span class="org-keyword">let</span> ((times <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">3</span>))
 (mapcar
 (<span class="org-keyword">lambda</span> (group)
  (<span class="org-keyword">let</span> ((whisper--temp-file <span class="org-string">"/home/sacha/recordings/whisper/2026-01-19-14-17-53.wav"</span>))
@@ -12942,7 +12954,7 @@ I tried it with:
 <li><a href="https://codeberg.org/aryak/whisperx-server">whisperx-server</a>, which is a front-end for <a href="https://github.com/m-bain/whisperX">whisperx</a></li>
 </ul>
 
-<div class="update" id="org6686f74">
+<div class="update" id="org7522bf5">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2026-04-05">[2026-04-05 Sun]</time></span> Update: After a lot of rebooting, I figured out how to get the Nvidia P1000 GPU on my Lenovo P52 to work for up to the Whisper medium models. Large models don't fit in the 4GB of VRAM it has. Here are the benchmarking results:
 </p>
@@ -13293,7 +13305,7 @@ Anyway, here's the code for sending the current recording to whisper in the back
 <div id="outline-container-writing-and-editing-speech-recognition-using-silero-voice-activity-detection-to-automatically-queue-multiple-transcriptions-with-natrys-whisper-el" class="outline-4">
 <h4 id="writing-and-editing-speech-recognition-using-silero-voice-activity-detection-to-automatically-queue-multiple-transcriptions-with-natrys-whisper-el"><span class="section-number-4">9.21.10.</span> <a href="#writing-and-editing-speech-recognition-using-silero-voice-activity-detection-to-automatically-queue-multiple-transcriptions-with-natrys-whisper-el">Using Silero voice activity detection to automatically queue multiple transcriptions with natrys/whisper.el&nbsp;&nbsp;&nbsp<span class="tag"><span class="SpeechRecognition">SpeechRecognition</span>&nbsp;<span class="emacs">emacs</span></span></a></h4>
 <div class="outline-text-4" id="text-writing-and-editing-speech-recognition-using-silero-voice-activity-detection-to-automatically-queue-multiple-transcriptions-with-natrys-whisper-el">
-<div class="update" id="org28996e8">
+<div class="update" id="org8785edd">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2026-03-27">[2026-03-27 Fri]</time></span>: Moved code to <a href="https://codeberg.org/sachac/speech-input">sachac/speech-input</a>.
 </p>
@@ -13416,12 +13428,12 @@ How is this different from the streaming approach that many real-time speech rec
 <div id="outline-container-writing-and-editing-speech-recognition-reporting-speaking-stats-balance" class="outline-4">
 <h4 id="writing-and-editing-speech-recognition-reporting-speaking-stats-balance"><span class="section-number-4">9.21.11.</span> <a href="#writing-and-editing-speech-recognition-reporting-speaking-stats-balance">Using Emacs to visualize speaking and target words/phrases in real-ish time&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span>&nbsp;<span class="learning">learning</span>&nbsp;<span class="visualization">visualization</span></span></a></h4>
 <div class="outline-text-4" id="text-writing-and-editing-speech-recognition-reporting-speaking-stats-balance">
-<div class="sticky-toc" id="orgfe8baff">
+<div class="sticky-toc" id="org2418688">
 <div id="text-table-of-contents-1" role="doc-toc">
 <ul>
 <li><a href="#writing-and-editing-speech-recognition-using-emacs-to-visualize-speaking-and-target-words-phrases-in-real-ish-time-voice-activity-detection-and-speech-recognition">9.21.11.1. Voice activity detection and speech recognition</a></li>
-<li><a href="#org2f23a07">9.21.11.2. Visualizing the balance - work in progress</a></li>
-<li><a href="#org10643a4">9.21.11.3. Real-time-ish transcripts</a></li>
+<li><a href="#orgdf209a7">9.21.11.2. Visualizing the balance - work in progress</a></li>
+<li><a href="#orgc08bdda">9.21.11.3. Real-time-ish transcripts</a></li>
 <li><a href="#writing-and-editing-speech-recognition-using-emacs-to-visualize-speaking-and-target-words-phrases-in-real-ish-time-noticing-bingo-phrases">9.21.11.4. Noticing bingo phrases</a></li>
 </ul>
 </div>
@@ -13429,7 +13441,7 @@ How is this different from the streaming approach that many real-time speech rec
 </div>
 
 
-<figure id="orgc856bfe">
+<figure id="orgb8132a8">
 <img src="images/2026-10-07_07-33-03.png" alt="2026-10-07_07-33-03.png">
 
 <figcaption><span class="figure-number">Figure 19: </span>Screenshot showing my list of target phrases and which ones have been recognized</figcaption>
@@ -13587,8 +13599,8 @@ This server combines voice activity detection and preparing the audio for speech
 </div></details>
 </div>
 </div>
-<div id="outline-container-org2f23a07" class="outline-5">
-<h5 id="org2f23a07"><span class="section-number-5">9.21.11.2.</span> <a href="#org2f23a07">Visualizing the balance - work in progress</a></h5>
+<div id="outline-container-orgdf209a7" class="outline-5">
+<h5 id="orgdf209a7"><span class="section-number-5">9.21.11.2.</span> <a href="#orgdf209a7">Visualizing the balance - work in progress</a></h5>
 <div class="outline-text-5" id="text-9-21-11-2">
 <details><summary>Visualizing the balance, work in progress</summary><div class="org-src-container">
 <pre class="src src-emacs-lisp"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-vad-asr-session-length</span> (* 60 60) <span class="org-doc">"Number of seconds to use for scale."</span>)
@@ -13826,8 +13838,8 @@ This server combines voice activity detection and preparing the audio for speech
 </div></details>
 </div>
 </div>
-<div id="outline-container-org10643a4" class="outline-5">
-<h5 id="org10643a4"><span class="section-number-5">9.21.11.3.</span> <a href="#org10643a4">Real-time-ish transcripts</a></h5>
+<div id="outline-container-orgc08bdda" class="outline-5">
+<h5 id="orgc08bdda"><span class="section-number-5">9.21.11.3.</span> <a href="#orgc08bdda">Real-time-ish transcripts</a></h5>
 <div class="outline-text-5" id="text-9-21-11-3">
 <details><summary>Real-time-(ish) transcripts</summary><div class="org-src-container">
 <pre class="src src-emacs-lisp"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-vad-last-speaker</span> nil <span class="org-doc">"Previous speaker."</span>)
@@ -14759,7 +14771,7 @@ Related:
 <div id="outline-container-writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results" class="outline-4">
 <h4 id="writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results"><span class="section-number-4">9.21.17.</span> <a href="#writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results">Using speech recognition for on-the-fly translations in Emacs and faking in-buffer completion for the results&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span>&nbsp;<span class="speech">speech</span></span></a></h4>
 <div class="outline-text-4" id="text-writing-and-editing-speech-recognition-using-speech-recognition-for-translations-in-emacs-and-faking-in-buffer-completion-for-the-results">
-<div class="update" id="org9bdce23">
+<div class="update" id="orga9e03d4">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2026-03-31">[2026-03-31 Tue]</time></span>: I added the recognized text so that I can confirm what was translated. I also moved sacha-type-with-hint to <a href="https://codeberg.org/sachac/learn-lang/src/branch/main/learn-lang-type.el">learn-lang-type-with-hint</a>.
 </p>
@@ -14851,7 +14863,7 @@ But that's too easy. I want to actually type things myself so that I get more pr
 Here's a demonstration of me saying "Okay, this is a test, in French.":
 </p>
 
-<div class="media-post" id="orgb6cadbb">
+<div class="media-post" id="orgbd57a9e">
 <p>
 <figure><video preload="none" controls="1" src="https://sachachua.com/blog/2026/02/using-speech-recognition-for-on-the-fly-translations-in-emacs-and-faking-in-buffer-completion-for-the-results/2026-02-27-translate-and-type-with-hints.webm" type="video/webm"></video><figcaption><div>Screencast of using speech recognition to translate into French and provide a hint when typing</div></figcaption></figure>
 </p>
@@ -14870,7 +14882,7 @@ Since we're faking in-buffer completion here, maybe we can still get away with c
 <a href="https://github.com/joaotavora/yasnippet">Yasnippet</a> is a template system for Emacs. I want to use it by voice. I'd like to be able to say things like "Okay, define interactive function" and have that expand to a matching snippet in Emacs or other applications. Here's a quick demonstration of expanding simple snippets:
 </p>
 
-<div class="media-post" id="orga83daff">
+<div class="media-post" id="orgbc62691">
 <p>
 <figure><video preload="none" controls="1" src="https://sachachua.com/blog/2026/03/expanding-yasnippet-by-voice/2026-03-04_12.33.19.webm" type="video/webm"><track kind="subtitles" label="Captions" src="https://sachachua.com/blog/2026/03/expanding-yasnippet-by-voice/2026-03-04_12.33.19.vtt" srclang="en" default></track></video><figcaption><div>Screencast of expanding snippets by voice in Emacs and in other applications</div></figcaption></figure>
 </p>
@@ -14941,7 +14953,7 @@ The code for inserting into other functions is defined in <a href="https://sacha
 
 <p>
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgae27851"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org13e4589"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-whisper-maybe-type</span> (text)
   <span class="org-doc">"If Emacs is not the focused app, simulate typing TEXT.</span>
 <span class="org-doc">Add this function to `</span><span class="org-doc"><span class="org-constant">whisper-insert-text-at-point</span></span><span class="org-doc">'."</span>
@@ -15796,6 +15808,15 @@ I generated this simple server file with Gemini AI: <a href="file:///home/sacha/
      <span class="org-builtin">:command</span> sacha-orukeet-command
      <span class="org-builtin">:buffer</span> (get-buffer-create <span class="org-string">"*orukeet*"</span>)
      <span class="org-builtin">:stderr</span> (get-buffer-create <span class="org-string">"*orukeet-err*"</span>))))))
+
+<span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+(<span class="org-keyword">defun</span> <span class="org-function-name">sacha-orukeet-restart</span> ()
+  <span class="org-doc">"Restart the process."</span>
+  (<span class="org-keyword">interactive</span>)
+  (<span class="org-keyword">when</span> (process-live-p sacha-orukeet-process)
+    (kill-process sacha-orukeet-process))
+  (sleep-for 0.1)
+  (sacha-orukeet-ensure))
 </code></pre>
 </div>
 
@@ -15923,7 +15944,7 @@ Here's my config for <a href="https://github.com/sachac/whisper.el">my fork of n
 <div id="outline-container-live-speech" class="outline-4">
 <h4 id="live-speech"><span class="section-number-4">9.21.25.</span> <a href="#live-speech"><span class="done DONE">DONE</span> Getting live speech into Emacs with Deepgram's streaming API&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span>&nbsp;<span class="speech">speech</span></span></a></h4>
 <div class="outline-text-4" id="text-live-speech">
-<div class="update" id="org4b8913d">
+<div class="update" id="org4372b93">
 <ul class="org-ul">
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2023-12-26">[2023-12-26 Tue]</time></span>: Reorganized code to call a list of functions and pass the recognition results. Added Etherpad. Took out the mode; will just use the functions. Related: <a href="https://sachachua.com/blog/2023/12/yay-i-can-get-live-speech-recognition-results-from-emacs-to-etherpad/">getting live speech from Emacs into Etherpad</a></li>
 </ul>
@@ -16406,7 +16427,7 @@ From <a href="http://www.wisdomandwonder.com/wordpress/wp-content/uploads/2014/0
 <div id="outline-container-wdiff" class="outline-3">
 <h3 id="wdiff"><span class="section-number-3">9.23.</span> <a href="#wdiff">Wdiff</a></h3>
 <div class="outline-text-3" id="text-wdiff">
-<div class="update" id="orged71b48">
+<div class="update" id="orgba1a53d">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2024-10-20">[2024-10-20 Sun]</time></span>: I switched to using proper font-locking, yay.
 </p>
@@ -16525,7 +16546,7 @@ stuff.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgd69d05f"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-org-inbox-file</span> <span class="org-string">"~/sync/orgzly/Inbox.org"</span>)
+<pre class="src src-emacs-lisp" id="orgcb5799e"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-org-inbox-file</span> <span class="org-string">"~/sync/orgzly/Inbox.org"</span>)
 (<span class="org-keyword">use-package</span> org
 <span class="org-builtin">:load-path</span> (<span class="org-string">"~/vendor/org-mode/lisp"</span> <span class="org-string">"~/vendor/org-mode/contrib/lisp"</span>)
 <span class="org-builtin">:preface</span> (load <span class="org-string">"~/vendor/org-mode/lisp/org-loaddefs.el"</span> nil t)
@@ -16542,8 +16563,8 @@ stuff.
 </code></pre>
 </div>
 </div>
-<div id="outline-container-org6c3ddcb" class="outline-3">
-<h3 id="org6c3ddcb"><span class="section-number-3">10.1.</span> <a href="#org6c3ddcb">Store all matching links</a></h3>
+<div id="outline-container-org27bba0e" class="outline-3">
+<h3 id="org27bba0e"><span class="section-number-3">10.1.</span> <a href="#org27bba0e">Store all matching links</a></h3>
 <div class="outline-text-3" id="text-10-1">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
@@ -17039,7 +17060,7 @@ Or I can use this code to make an Embark command that hooks into minibuffer prom
 </div>
 
 
-<figure id="org5d738f0">
+<figure id="org0bed3c9">
 <img src="images/2024-10-24_10-34-21.png" alt="2024-10-24_10-34-21.png">
 
 <figcaption><span class="figure-number">Figure 20: </span>Screenshot of Embark menu invoked with "C-.", showing the new "i" shortcut for inserting a link</figcaption>
@@ -17120,7 +17141,7 @@ This function moves all the properties up one level.
 <h3 id="org-files"><span class="section-number-3">10.17.</span> <a href="#org-files">My files</a></h3>
 <div class="outline-text-3" id="text-org-files">
 <p>
-#<a id="org0e6524b"></a>
+#<a id="org1bfb559"></a>
 </p>
 
 <p>
@@ -17319,7 +17340,7 @@ I don't use the diary, but I do use the clock a lot.
 <div id="outline-container-org-mode-keyboard-shortcuts-speed-commands-org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command" class="outline-5">
 <h5 id="org-mode-keyboard-shortcuts-speed-commands-org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command"><span class="section-number-5">10.19.1.1.</span> <a href="#org-mode-keyboard-shortcuts-speed-commands-org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command">Org Mode: Cutting the current list item (including nested lists) with a speed command</a></h5>
 <div class="outline-text-5" id="text-org-mode-keyboard-shortcuts-speed-commands-org-mode-cutting-the-current-list-item-including-nested-lists-with-a-speed-command">
-<div class="update" id="orgd53c029">
+<div class="update" id="orgcd481d0">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2025-09-17">[2025-09-17 Wed]</time></span>: Limited <code>sacha-org-cut-subtree-or-list-item</code> to Inbox.org, posts.org, news.org.
 </p>
@@ -18079,7 +18100,7 @@ I use <code>STARTED</code> to keep track of things I've started working on, and 
 <h5 id="todo-keywords"><span class="section-number-5">10.23.1.2.</span> <a href="#todo-keywords">Track TODO state</a></h5>
 <div class="outline-text-5" id="text-todo-keywords">
 <p>
-<a id="org54c1d24"></a>
+<a id="org0c07a1e"></a>
 </p>
 
 <p>
@@ -18144,14 +18165,14 @@ colour them based on the current Modus theme.
 </div>
 
 
-<figure id="orgb785f1a">
+<figure id="orgca552f4">
 <img src="images/2024-10-14-17-21-48.svg" alt="2024-10-14-17-21-48.svg" class="org-svg" data-link="t">
 
 <figcaption><span class="figure-number">Figure 21: </span>Light background</figcaption>
 </figure>
 
 
-<figure id="org4a97596">
+<figure id="org3499831">
 <img src="images/2024-10-14-17-22-31.svg" alt="2024-10-14-17-22-31.svg" class="org-svg" data-link="t">
 
 <figcaption><span class="figure-number">Figure 22: </span>Dark background</figcaption>
@@ -18743,7 +18764,7 @@ I wanted a view that showed projects with a few subtasks underneath
 them. Here's a sample of the output:
 </p>
 
-<pre class="example" id="orgaade470">
+<pre class="example" id="orgcf78bcd">
      Headlines with TAGS match: +PROJECT
      Press `C-u r' to search again with new search string
        organizer:  Set up communication processes for Awesome Foundation Toronto
@@ -19509,7 +19530,7 @@ forget to assign tasks a date. I also want to keep track of stuck projects.
 <h4 id="weekly-review"><span class="section-number-4">10.26.1.</span> <a href="#weekly-review">Weekly review</a></h4>
 <div class="outline-text-4" id="text-weekly-review">
 <p>
-<a id="orgb7e0ad2"></a>
+<a id="org668cc18"></a>
 </p>
 
 <p>
@@ -19959,7 +19980,7 @@ Now we put it all together&hellip;
 <h4 id="monthly-reviews"><span class="section-number-4">10.26.2.</span> <a href="#monthly-reviews">Monthly reviews</a></h4>
 <div class="outline-text-4" id="text-monthly-reviews">
 <p>
-<a id="org212806f"></a>
+<a id="orgeb547b4"></a>
 </p>
 
 <p>
@@ -20700,7 +20721,7 @@ were helpful:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org88c4a33"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org04695cb"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-refile-in-file</span> (<span class="org-type">&amp;optional</span> prefix)
 <span class="org-doc">"Refile to a target within the current file."</span>
 (<span class="org-keyword">interactive</span>)
@@ -21051,7 +21072,7 @@ args for Org Babel source blocks.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org5c9cc60"><code>(<span class="org-keyword">setq</span> org-babel-default-header-args
+<pre class="src src-emacs-lisp" id="orga2939d8"><code>(<span class="org-keyword">setq</span> org-babel-default-header-args
     <span class="org-highlight-quoted-quote">'</span>((<span class="org-builtin">:session</span> . <span class="org-string">"none"</span>)
       (<span class="org-builtin">:results</span> . <span class="org-string">"drawer replace"</span>)
             (<span class="org-builtin">:comments</span> . <span class="org-string">"link"</span>)  <span class="org-comment-delimiter">;; </span><span class="org-comment">add a link to the original source</span>
@@ -21193,7 +21214,7 @@ Aha, I can fiddle with <code>org-babel-post-tangle-hook</code> to insert the boi
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org04f54cc"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="orga88c6a4"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-dotemacs-link-for-section-at-point</span> (<span class="org-type">&amp;optional</span> combined)
 <span class="org-doc">"Return the link for the current section."</span>
 (<span class="org-keyword">let*</span> ((custom-id (org-entry-get-with-inheritance <span class="org-string">"CUSTOM_ID"</span>))
@@ -21276,7 +21297,7 @@ Let's set up the functions for tangling the boilerplate.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgc430156"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-emacs-config-modules-dir</span> <span class="org-string">"~/sync/emacs/lisp/"</span>)
+<pre class="src src-emacs-lisp" id="orgb6a11db"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-emacs-config-modules-dir</span> <span class="org-string">"~/sync/emacs/lisp/"</span>)
 (<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-emacs-config-modules-info</span> nil <span class="org-doc">"Alist of module info."</span>)
 (<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-emacs-config-url</span> <span class="org-string">"https://sachachua.com/dotemacs"</span>)
 
@@ -21336,7 +21357,7 @@ Let's set up the functions for tangling the boilerplate.
 </div>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orge394792"><code>(<span class="org-keyword">setq</span> sacha-emacs-config-url <span class="org-string">"https://sachachua.com/dotemacs"</span>)
+<pre class="src src-emacs-lisp" id="org6112852"><code>(<span class="org-keyword">setq</span> sacha-emacs-config-url <span class="org-string">"https://sachachua.com/dotemacs"</span>)
 (<span class="org-keyword">with-eval-after-load</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org</span>
 (add-hook <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org-babel-pre-tangle-hook</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">sacha-emacs-config-prepare-to-tangle</span>)
 (add-hook <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org-babel-post-tangle-hook</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">sacha-org-babel-post-tangle-insert-boilerplate-for-sacha-lisp</span>))
@@ -21656,7 +21677,7 @@ Related: <a href="https://sachachua.com/dotemacs#execute-named-babel-block">Exec
 <h4 id="execute-named-babel-block"><span class="section-number-4">10.31.8.</span> <a href="#execute-named-babel-block">Execute named babel block</a></h4>
 <div class="outline-text-4" id="text-execute-named-babel-block">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgb577281"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="orgddb4402"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-execute-src-block-by-name</span> (name)
 (<span class="org-keyword">interactive</span> (list (completing-read <span class="org-string">"Block: "</span>(org-babel-src-block-names))))
 (<span class="org-keyword">save-excursion</span>
@@ -21830,7 +21851,7 @@ tree)
 <div id="outline-container-org-mode-publishing-changing-org-mode-underlines-to-the-html-mark-element" class="outline-5">
 <h5 id="org-mode-publishing-changing-org-mode-underlines-to-the-html-mark-element"><span class="section-number-5">10.32.3.1.</span> <a href="#org-mode-publishing-changing-org-mode-underlines-to-the-html-mark-element">Changing Org Mode underlines to the HTML mark element&nbsp;&nbsp;&nbsp<span class="tag"><span class="org">org</span></span></a></h5>
 <div class="outline-text-5" id="text-org-mode-publishing-changing-org-mode-underlines-to-the-html-mark-element">
-<div class="update" id="orgbcd01ea">
+<div class="update" id="orga437e41">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2025-03-19">[2025-03-19 Wed]</time></span>: Changed org-html to ox-html.
 </p>
@@ -21858,7 +21879,7 @@ purposes&hellip;
 Okay, let's try it with:
 </p>
 
-<pre class="example" id="org195f6f6">
+<pre class="example" id="orgde592a1">
 Let's see _how that works._
 </pre>
 
@@ -21968,7 +21989,7 @@ Interesting, interesting&hellip;
 <div id="outline-container-org-inline-svg" class="outline-5">
 <h5 id="org-inline-svg"><span class="section-number-5">10.32.3.2.</span> <a href="#org-inline-svg">Include inline SVGs in Org Mode HTML and Markdown exports&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span>&nbsp;<span class="org">org</span>&nbsp;<span class="images">images</span></span></a></h5>
 <div class="outline-text-5" id="text-org-inline-svg">
-<div class="update" id="org2a5037c">
+<div class="update" id="org0f54d49">
 <ul class="org-ul">
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2025-01-10">[2025-01-10 Fri]</time></span>: Fixed descriptions.</li>
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2024-10-14">[2024-10-14 Mon]</time></span>: Fixed path when inlining file URLs.</li>
@@ -22112,7 +22133,7 @@ to include SVGs.
 <div id="outline-container-org-mode-publishing-html-export-html-copy-files-and-serve-via-simple-httpd" class="outline-5">
 <h5 id="org-mode-publishing-html-export-html-copy-files-and-serve-via-simple-httpd"><span class="section-number-5">10.32.3.3.</span> <a href="#org-mode-publishing-html-export-html-copy-files-and-serve-via-simple-httpd">Org Mode: Export HTML, copy files, and serve the results via simple-httpd so that media files work</a></h5>
 <div class="outline-text-5" id="text-org-mode-publishing-html-export-html-copy-files-and-serve-via-simple-httpd">
-<div class="update" id="org7a3bdc3">
+<div class="update" id="org40beccb">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2026-03-23">[2026-03-23 Mon]</time></span>: <mark>Update</mark> Oh, ignore all of this! For some reason, when I export the regular Org Mode way, my media files work. Maybe it was just a weird hiccup!
 </p>
@@ -22656,7 +22677,7 @@ to export a subtree to a webserver and have all the media files work. This took 
 <div id="outline-container-linking-to-blog-posts" class="outline-5">
 <h5 id="linking-to-blog-posts"><span class="section-number-5">10.32.4.3.</span> <a href="#linking-to-blog-posts">Linking to blog posts</a></h5>
 <div class="outline-text-5" id="text-linking-to-blog-posts">
-<div class="update" id="orgca8abb6">
+<div class="update" id="org39e1691">
 <ul class="org-ul">
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2024-01-19">[2024-01-19 Fri]</time></span>: added link description</li>
 </ul>
@@ -22664,7 +22685,7 @@ to export a subtree to a webserver and have all the media files work. This took 
 </div>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgbe302fa"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-blog-base-url</span> <span class="org-string">"https://sachachua.com/"</span>)
+<pre class="src src-emacs-lisp" id="org6e2f462"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-blog-base-url</span> <span class="org-string">"https://sachachua.com/"</span>)
 
 <span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-blog-complete</span> ()
@@ -23434,7 +23455,7 @@ Sometimes I want to process those exported files, but exclude some posts that ar
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org216e535"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="orgd987992"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-blog-org-files-except-reviews</span> (after-date)
 <span class="org-doc">"Return a list of recent .org files except for Emacs News and weekly/monthly/yearly reviews.</span>
 <span class="org-doc">AFTER-DATE is in the form yyyy, yyyy-mm, or yyyy-mm-dd."</span>
@@ -23754,7 +23775,7 @@ Sometimes I want to process those exported files, but exclude some posts that ar
 <div id="outline-container-org-mode-including-portions-of-files-between-two-regular-expressions" class="outline-4">
 <h4 id="org-mode-including-portions-of-files-between-two-regular-expressions"><span class="section-number-4">10.32.10.</span> <a href="#org-mode-including-portions-of-files-between-two-regular-expressions">Org Mode: Including portions of files between two regular expressions&nbsp;&nbsp;&nbsp<span class="tag"><span class="org">org</span>&nbsp;<span class="emacs">emacs</span></span></a></h4>
 <div class="outline-text-4" id="text-org-mode-including-portions-of-files-between-two-regular-expressions">
-<div class="update" id="org6de23d4">
+<div class="update" id="orgb489560">
 <ul class="org-ul">
 <li>2023-10-11 Wed: Include images inline.</li>
 <li>2023-09-10: Use <code>consult-line</code> instead of <code>consult--line</code>.</li>
@@ -23815,7 +23836,7 @@ prompt.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org294aa7a"><code>(org-link-set-parameters
+<pre class="src src-emacs-lisp" id="org3a2bbdc"><code>(org-link-set-parameters
  <span class="org-string">"sacha-include"</span>
  <span class="org-builtin">:follow</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">sacha-include-open</span>
  <span class="org-builtin">:store</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">sacha-include-store</span>
@@ -24179,7 +24200,7 @@ This uses the <code>sacha-combined-screenshots</code> and <code>sacha-latest-scr
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org7eea091"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">mastodon-toot-mode</span>)
+<pre class="src src-emacs-lisp" id="org3480bb7"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">mastodon-toot-mode</span>)
 <span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-insert-screenshot</span> (file <span class="org-type">&amp;optional</span> note)
 (<span class="org-keyword">interactive</span> (list
@@ -24362,7 +24383,7 @@ complicated than they are. Let's turn them off by default, and let's use fancy H
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org5128827"><code>(<span class="org-keyword">setq</span> org-html-doctype <span class="org-string">"html5"</span>)
+<pre class="src src-emacs-lisp" id="org77c1123"><code>(<span class="org-keyword">setq</span> org-html-doctype <span class="org-string">"html5"</span>)
 (<span class="org-keyword">setq</span> org-html-html5-fancy t)
 (<span class="org-keyword">setq</span> org-export-with-section-numbers nil)
 (<span class="org-keyword">setq</span> org-html-include-timestamps nil)
@@ -24487,7 +24508,7 @@ Details that will be displayed when the summary is clicked.
 </div>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org88d3d51"><code>(<span class="org-keyword">use-package</span> org-special-block-extras
+<pre class="src src-emacs-lisp" id="org16cf9d1"><code>(<span class="org-keyword">use-package</span> org-special-block-extras
 <span class="org-builtin">:if</span> sacha-laptop-p
 <span class="org-builtin">:hook</span> (org-mode . org-special-block-extras-mode)
       <span class="org-builtin">:init</span> (<span class="org-keyword">setq</span> org-special-block-add-html-extra nil)
@@ -24723,7 +24744,7 @@ regular src blocks, and to change the HTML export to wrap the code in
 So now I can use it by specifying blocks like this:
 </p>
 
-<pre class="example" id="org30ec230">
+<pre class="example" id="org7e2af34">
 #+begin_src emacs-lisp :summary "Code for adding a :summary argument and using it during export"
 ;; code goes here
 #+end_src
@@ -24762,7 +24783,7 @@ Might as well take advantage of my stylesheet:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgea0db73"><code>(<span class="org-keyword">setq</span> org-html-head <span class="org-string">"</span>
+<pre class="src src-emacs-lisp" id="orgf3a441c"><code>(<span class="org-keyword">setq</span> org-html-head <span class="org-string">"</span>
 <span class="org-string">     &lt;link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/assets/css/style.css\"&gt;&lt;/link&gt;</span>
 <span class="org-string">     &lt;link rel=\"stylesheet\" type=\"text/css\" href=\"https://sachachua.com/assets/css/org-export.css\"&gt;&lt;/link&gt;</span>
 <span class="org-string">     &lt;script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js\"&gt;&lt;/script&gt;"</span>)
@@ -24910,7 +24931,7 @@ configuration that focuses on just the packages needed.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orge0aa409"><code>(<span class="org-keyword">setq</span> org-export-async-init-file <span class="org-string">"~/.config/emacs/org-async-export-config.el"</span>)
+<pre class="src src-emacs-lisp" id="org6bf3b20"><code>(<span class="org-keyword">setq</span> org-export-async-init-file <span class="org-string">"~/.config/emacs/org-async-export-config.el"</span>)
 (<span class="org-keyword">setq</span> org-export-async-debug t)
 </code></pre>
 </div>
@@ -24921,7 +24942,7 @@ those named blocks by using noweb.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org338085f"><code>&lt;&lt;org-async-variables&gt;&gt;
+<pre class="src src-emacs-lisp" id="orgeaf33bf"><code>&lt;&lt;org-async-variables&gt;&gt;
 &lt;&lt;startup&gt;&gt;
 &lt;&lt;system-info&gt;&gt;
 &lt;&lt;package-setup&gt;&gt;
@@ -25052,7 +25073,7 @@ For Emacs News, I want to export links without punctuation, and I want to indent
 This makes my Emacs News export like this:
 </p>
 
-<pre class="example" id="org2e86275">
+<pre class="example" id="org23cc144">
 - Org Mode:
     - Stop renting your life - own it https://curtismchale.ca/2025/08/23/stop-renting-your-life-own-it/ - Org Mode and tasks
     - TIL: Org Mode Can Sort Lists Automatically! https://www.reddit.com/r/emacs/comments/1musbn8/til_org_mode_can_sort_lists_automatically/ C-c ^ (org-sort)
@@ -25063,7 +25084,7 @@ This makes my Emacs News export like this:
 instead of:
 </p>
 
-<pre class="example" id="org19bc734">
+<pre class="example" id="orgba5289d">
 - Org Mode:
   - [Stop renting your life - own it] (&lt;https://curtismchale.ca/2025/08/23/stop-renting-your-life-own-it/&gt;) - Org Mode and tasks
   - [TIL: Org Mode Can Sort Lists Automatically!] (&lt;https://www.reddit.com/r/emacs/comments/1musbn8/til_org_mode_can_sort_lists_automatically/&gt;) C-c ^ (org-sort)
@@ -25316,7 +25337,7 @@ instead of:
 <div id="outline-container-sacha-org-insert-link-dwim" class="outline-4">
 <h4 id="sacha-org-insert-link-dwim"><span class="section-number-4">10.34.2.</span> <a href="#sacha-org-insert-link-dwim">Adding Org Mode link awesomeness elsewhere: sacha-org-insert-link-dwim&nbsp;&nbsp;&nbsp<span class="tag"><span class="org">org</span></span></a></h4>
 <div class="outline-text-4" id="text-sacha-org-insert-link-dwim">
-<div class="update" id="org357e901">
+<div class="update" id="org6edee8d">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2025-09-23">[2025-09-23 Tue]</time></span>: Changed my mind, I want the clipboard URL to be used by default. More bugfixes.
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2025-09-22">[2025-09-22 Mon]</time></span>: Fix bug in <code>sacha-page-title</code>. Add <code>mastodon-toot-mode-map</code>.
@@ -25390,7 +25411,7 @@ Mostly, this is motivated by my annoyance with having to work with different lin
 I want things to Just Work.
 </p>
 
-<div class="media-post" id="org0071f43">
+<div class="media-post" id="orgf2e7c8a">
 <p>
 
 </p>
@@ -25755,7 +25776,7 @@ With prefix argument, also display headlines without a TODO keyword."
 <h4 id="links-to-sacha-config"><span class="section-number-4">10.34.6.</span> <a href="#links-to-sacha-config">Links to my config</a></h4>
 <div class="outline-text-4" id="text-links-to-sacha-config">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org0470f8d"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org80070f6"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-emacs-config-url</span>)
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-dotemacs-export</span> (path desc format _)
       <span class="org-doc">"Export dotemacs link."</span>
@@ -25813,7 +25834,7 @@ With prefix argument, also display headlines without a TODO keyword."
 </div>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org71662de"><code>(<span class="org-keyword">with-eval-after-load</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org</span>
+<pre class="src src-emacs-lisp" id="org2c38c4c"><code>(<span class="org-keyword">with-eval-after-load</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org</span>
   (org-link-set-parameters
    <span class="org-string">"dotemacs"</span>
    <span class="org-builtin">:complete</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">sacha-org-dotemacs-complete</span>
@@ -25832,7 +25853,7 @@ With prefix argument, also display headlines without a TODO keyword."
 <li><a id="config"></a><a href="#config">Config</a><br>
 <div class="outline-text-6" id="text-config">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org681bcf4"><code>(<span class="org-keyword">use-package</span> org
+<pre class="src src-emacs-lisp" id="orgb0e1d2d"><code>(<span class="org-keyword">use-package</span> org
 <span class="org-builtin">:config</span>
 (org-link-set-parameters
 <span class="org-string">"config"</span>
@@ -25851,7 +25872,7 @@ With prefix argument, also display headlines without a TODO keyword."
 <h4 id="youtube"><span class="section-number-4">10.34.7.</span> <a href="#youtube">YouTube</a></h4>
 <div class="outline-text-4" id="text-youtube">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgada1558"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-org-yt-iframe-format</span>
+<pre class="src src-emacs-lisp" id="org0aba5a8"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-org-yt-iframe-format</span>
 (concat <span class="org-string">"&lt;div class=\"yt-video\"&gt;&lt;iframe width=\"456\""</span>
   <span class="org-string">" height=\"315\""</span>
               <span class="org-string">" title=""YouTube video player\""</span>
@@ -26010,7 +26031,7 @@ With prefix argument, also display headlines without a TODO keyword."
 </div>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org864b3af"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="orgb2d5735"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-video-follow</span> (path _)
       (<span class="org-keyword">cond</span>
        ((string-match <span class="org-string">"</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">https://.+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">:</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">(</span></span><span class="org-string">[0-9:]+</span><span class="org-string"><span class="org-regexp-grouping-backslash">\\</span></span><span class="org-string"><span class="org-regexp-grouping-construct">)</span></span><span class="org-string">"</span> path)
@@ -26222,7 +26243,7 @@ With prefix argument, also display headlines without a TODO keyword."
 <h4 id="audio"><span class="section-number-4">10.34.10.</span> <a href="#audio">Audio</a></h4>
 <div class="outline-text-4" id="text-audio">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgde932bf"><code>(<span class="org-keyword">with-eval-after-load</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org</span>
+<pre class="src src-emacs-lisp" id="org7f029ce"><code>(<span class="org-keyword">with-eval-after-load</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org</span>
   (org-link-set-parameters
    <span class="org-string">"audio"</span>
    <span class="org-builtin">:export</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">sacha-org-audio-export</span>
@@ -26420,7 +26441,7 @@ With prefix argument, also display headlines without a TODO keyword."
 <h4 id="org-captions"><span class="section-number-4">10.34.11.</span> <a href="#org-captions">Captions</a></h4>
 <div class="outline-text-4" id="text-org-captions">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org8ead77b"><code>(<span class="org-keyword">with-eval-after-load</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org</span>
+<pre class="src src-emacs-lisp" id="org1c48ca9"><code>(<span class="org-keyword">with-eval-after-load</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org</span>
   (org-link-set-parameters
    <span class="org-string">"captions"</span>
    <span class="org-builtin">:export</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">sacha-org-captions-export</span>
@@ -26816,7 +26837,7 @@ With prefix argument, also display headlines without a TODO keyword."
 <div id="outline-container-git-projects" class="outline-4">
 <h4 id="git-projects"><span class="section-number-4">10.34.13.</span> <a href="#git-projects">Using an Emacs Lisp macro to define quick custom Org Mode links to project files; plus URLs and search&nbsp;&nbsp;&nbsp<span class="tag"><span class="org">org</span>&nbsp;<span class="emacs">emacs</span>&nbsp;<span class="coding">coding</span>&nbsp;<span class="embark">embark</span></span></a></h4>
 <div class="outline-text-4" id="text-git-projects">
-<div class="update" id="org492a913">
+<div class="update" id="org370bc4f">
 <ul class="org-ul">
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2025-03-27">[2025-03-27 Thu]</time></span>: Use sacha-org-project- as the prefix to avoid collisions.</li>
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2024-09-19">[2024-09-19 Thu]</time></span>: Added function for replacing current link, bound to <code>C-. r</code> (<code>sacha-embark-replace-link-with-exported-url</code>)</li>
@@ -26829,7 +26850,7 @@ With prefix argument, also display headlines without a TODO keyword."
 
 </div>
 
-<summary id="org39757e3">
+<summary id="org6eb3c04">
 <p>
 Summary (882 words): Emacs macros make it easy to define sets of related functions for custom Org links. This makes it easier to link to projects and export or copy the links to the files in the web-based repos. You can also use that information to consult-ripgrep across lots of projects.
 </p>
@@ -26848,7 +26869,7 @@ great way to write code to write code.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orga2287f4"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-project-web-base-list</span> nil <span class="org-doc">"Local path . web repo URLs for easy linking."</span>)
+<pre class="src src-emacs-lisp" id="orgd73ac91"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-project-web-base-list</span> nil <span class="org-doc">"Local path . web repo URLs for easy linking."</span>)
 
 <span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defmacro</span> <span class="org-function-name">sacha-org-project-link</span> (type file-path git-url)
@@ -26965,7 +26986,7 @@ And I can complete them with the usual <code>C-c C-l</code> (<code>org-insert-li
 </p>
 
 
-<figure id="org2837197">
+<figure id="orgb6f72b5">
 <img src="images/completing-custom-links.gif" alt="completing-custom-links.gif">
 
 <figcaption><span class="figure-number">Figure 23: </span>Completing a custom link with <code>org-insert-link</code></figcaption>
@@ -26992,7 +27013,7 @@ that to my other projects.
 <div id="outline-container-web-link" class="outline-5">
 <h5 id="web-link"><span class="section-number-5">10.34.13.1.</span> <a href="#web-link">Copy web link</a></h5>
 <div class="outline-text-5" id="text-web-link">
-<div class="update" id="orge05b719">
+<div class="update" id="org8c7c534">
 <ul class="org-ul">
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2024-01-20">[2024-01-20 Sat]</time></span>: Fix Wayback link handling.</li>
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2024-01-19">[2024-01-19 Fri]</time></span>: Add Wayback machine.</li>
@@ -27229,7 +27250,7 @@ always have different commands search different things.
 </div>
 
 
-<figure id="org828f063">
+<figure id="org485e476">
 <img src="images/ripgrep-code.gif" alt="ripgrep-code.gif">
 
 <figcaption><span class="figure-number">Figure 24: </span>Using sacha-consult-ripgrep-code</figcaption>
@@ -27418,7 +27439,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
 <h4 id="fix-elisp-links"><span class="section-number-4">10.34.16.</span> <a href="#fix-elisp-links">Fix elisp links</a></h4>
 <div class="outline-text-4" id="text-fix-elisp-links">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgbc0aa5d"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org78cb77e"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-elisp-link-export</span> (link description format <span class="org-type">&amp;optional</span> arg)
   (<span class="org-keyword">pcase</span> format
    (<span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">html</span> (format <span class="org-string">"&lt;span title=\"%s\"&gt;%s&lt;/span&gt;"</span> (replace-regexp-in-string <span class="org-string">"\""</span> <span class="org-string">"&amp;quot;"</span> link) description))
@@ -27439,7 +27460,7 @@ So that I can easily add links at point. Formatted as an Org list for now.
 <h4 id="irc"><span class="section-number-4">10.34.17.</span> <a href="#irc">IRC</a></h4>
 <div class="outline-text-4" id="text-irc">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgdc4a3dd"><code>(org-link-set-parameters
+<pre class="src src-emacs-lisp" id="orgaaa3f69"><code>(org-link-set-parameters
  <span class="org-string">"ircs"</span>
  <span class="org-builtin">:export</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">sacha-org-irc-export</span>)
 </code></pre>
@@ -27512,7 +27533,7 @@ our Org files? Here's a quick hack that reuses <code>org-store-link</code> and
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orga925fe0"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="orgd830a8e"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">org-protocol-open-link</span> (info)
   <span class="org-doc">"Process an org-protocol://open style url with INFO."</span>
   (org-link-open (car (org-element-parse-secondary-string (plist-get info <span class="org-builtin">:link</span>) <span class="org-highlight-quoted-quote">'</span>(link)))))
@@ -27895,7 +27916,7 @@ The following code lets me complete journal entries and get their ZIDs.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org54bb883"><code>(<span class="org-keyword">defun</span> <span class="org-function-name">sacha-json-request</span> (url)
+<pre class="src src-emacs-lisp" id="org90d21bc"><code>(<span class="org-keyword">defun</span> <span class="org-function-name">sacha-json-request</span> (url)
   (<span class="org-keyword">let</span> ((json-object-type <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">plist</span>)
         (url-request-extra-headers (cons <span class="org-highlight-quoted-quote">'</span>(<span class="org-string">"Content-Type"</span> . <span class="org-string">"application/json"</span>) url-request-extra-headers)))
     (<span class="org-keyword">with-current-buffer</span> (url-retrieve-synchronously url)
@@ -28024,7 +28045,7 @@ This lets me define a custom link type.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgefb4e75"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org9cd29fe"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-journal-open</span> (id <span class="org-type">&amp;optional</span> arg)
   (browse-url (format <span class="org-string">"%s/zid/%s"</span> sacha-journal-url id)))
 
@@ -28706,7 +28727,7 @@ Here's sample Mermaid markup and the file it creates:
 </div>
 
 
-<figure id="org5202e9b">
+<figure id="orga869af6">
 <svg aria-roledescription="mindmap" role="graphics-document document" viewBox="5 5 317.16314697265625 293.0904235839844" style="max-width: 317.163px; background-color: white;" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="100%" id="my-svg"><style>#my-svg{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;fill:#333;}#my-svg .error-icon{fill:#552222;}#my-svg .error-text{fill:#552222;stroke:#552222;}#my-svg .edge-thickness-normal{stroke-width:1px;}#my-svg .edge-thickness-thick{stroke-width:3.5px;}#my-svg .edge-pattern-solid{stroke-dasharray:0;}#my-svg .edge-thickness-invisible{stroke-width:0;fill:none;}#my-svg .edge-pattern-dashed{stroke-dasharray:3;}#my-svg .edge-pattern-dotted{stroke-dasharray:2;}#my-svg .marker{fill:#333333;stroke:#333333;}#my-svg .marker.cross{stroke:#333333;}#my-svg svg{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;}#my-svg p{margin:0;}#my-svg .edge{stroke-width:3;}#my-svg .section--1 rect,#my-svg .section--1 path,#my-svg .section--1 circle,#my-svg .section--1 polygon,#my-svg .section--1 path{fill:hsl(240, 100%, 76.2745098039%);}#my-svg .section--1 text{fill:#ffffff;}#my-svg .node-icon--1{font-size:40px;color:#ffffff;}#my-svg .section-edge--1{stroke:hsl(240, 100%, 76.2745098039%);}#my-svg .edge-depth--1{stroke-width:17;}#my-svg .section--1 line{stroke:hsl(60, 100%, 86.2745098039%);stroke-width:3;}#my-svg .disabled,#my-svg .disabled circle,#my-svg .disabled text{fill:lightgray;}#my-svg .disabled text{fill:#efefef;}#my-svg .section-0 rect,#my-svg .section-0 path,#my-svg .section-0 circle,#my-svg .section-0 polygon,#my-svg .section-0 path{fill:hsl(60, 100%, 73.5294117647%);}#my-svg .section-0 text{fill:black;}#my-svg .node-icon-0{font-size:40px;color:black;}#my-svg .section-edge-0{stroke:hsl(60, 100%, 73.5294117647%);}#my-svg .edge-depth-0{stroke-width:14;}#my-svg .section-0 line{stroke:hsl(240, 100%, 83.5294117647%);stroke-width:3;}#my-svg .disabled,#my-svg .disabled circle,#my-svg .disabled text{fill:lightgray;}#my-svg .disabled text{fill:#efefef;}#my-svg .section-1 rect,#my-svg .section-1 path,#my-svg .section-1 circle,#my-svg .section-1 polygon,#my-svg .section-1 path{fill:hsl(80, 100%, 76.2745098039%);}#my-svg .section-1 text{fill:black;}#my-svg .node-icon-1{font-size:40px;color:black;}#my-svg .section-edge-1{stroke:hsl(80, 100%, 76.2745098039%);}#my-svg .edge-depth-1{stroke-width:11;}#my-svg .section-1 line{stroke:hsl(260, 100%, 86.2745098039%);stroke-width:3;}#my-svg .disabled,#my-svg .disabled circle,#my-svg .disabled text{fill:lightgray;}#my-svg .disabled text{fill:#efefef;}#my-svg .section-2 rect,#my-svg .section-2 path,#my-svg .section-2 circle,#my-svg .section-2 polygon,#my-svg .section-2 path{fill:hsl(270, 100%, 76.2745098039%);}#my-svg .section-2 text{fill:#ffffff;}#my-svg .node-icon-2{font-size:40px;color:#ffffff;}#my-svg .section-edge-2{stroke:hsl(270, 100%, 76.2745098039%);}#my-svg .edge-depth-2{stroke-width:8;}#my-svg .section-2 line{stroke:hsl(90, 100%, 86.2745098039%);stroke-width:3;}#my-svg .disabled,#my-svg .disabled circle,#my-svg .disabled text{fill:lightgray;}#my-svg .disabled text{fill:#efefef;}#my-svg .section-3 rect,#my-svg .section-3 path,#my-svg .section-3 circle,#my-svg .section-3 polygon,#my-svg .section-3 path{fill:hsl(300, 100%, 76.2745098039%);}#my-svg .section-3 text{fill:black;}#my-svg .node-icon-3{font-size:40px;color:black;}#my-svg .section-edge-3{stroke:hsl(300, 100%, 76.2745098039%);}#my-svg .edge-depth-3{stroke-width:5;}#my-svg .section-3 line{stroke:hsl(120, 100%, 86.2745098039%);stroke-width:3;}#my-svg .disabled,#my-svg .disabled circle,#my-svg .disabled text{fill:lightgray;}#my-svg .disabled text{fill:#efefef;}#my-svg .section-4 rect,#my-svg .section-4 path,#my-svg .section-4 circle,#my-svg .section-4 polygon,#my-svg .section-4 path{fill:hsl(330, 100%, 76.2745098039%);}#my-svg .section-4 text{fill:black;}#my-svg .node-icon-4{font-size:40px;color:black;}#my-svg .section-edge-4{stroke:hsl(330, 100%, 76.2745098039%);}#my-svg .edge-depth-4{stroke-width:2;}#my-svg .section-4 line{stroke:hsl(150, 100%, 86.2745098039%);stroke-width:3;}#my-svg .disabled,#my-svg .disabled circle,#my-svg .disabled text{fill:lightgray;}#my-svg .disabled text{fill:#efefef;}#my-svg .section-5 rect,#my-svg .section-5 path,#my-svg .section-5 circle,#my-svg .section-5 polygon,#my-svg .section-5 path{fill:hsl(0, 100%, 76.2745098039%);}#my-svg .section-5 text{fill:black;}#my-svg .node-icon-5{font-size:40px;color:black;}#my-svg .section-edge-5{stroke:hsl(0, 100%, 76.2745098039%);}#my-svg .edge-depth-5{stroke-width:-1;}#my-svg .section-5 line{stroke:hsl(180, 100%, 86.2745098039%);stroke-width:3;}#my-svg .disabled,#my-svg .disabled circle,#my-svg .disabled text{fill:lightgray;}#my-svg .disabled text{fill:#efefef;}#my-svg .section-6 rect,#my-svg .section-6 path,#my-svg .section-6 circle,#my-svg .section-6 polygon,#my-svg .section-6 path{fill:hsl(30, 100%, 76.2745098039%);}#my-svg .section-6 text{fill:black;}#my-svg .node-icon-6{font-size:40px;color:black;}#my-svg .section-edge-6{stroke:hsl(30, 100%, 76.2745098039%);}#my-svg .edge-depth-6{stroke-width:-4;}#my-svg .section-6 line{stroke:hsl(210, 100%, 86.2745098039%);stroke-width:3;}#my-svg .disabled,#my-svg .disabled circle,#my-svg .disabled text{fill:lightgray;}#my-svg .disabled text{fill:#efefef;}#my-svg .section-7 rect,#my-svg .section-7 path,#my-svg .section-7 circle,#my-svg .section-7 polygon,#my-svg .section-7 path{fill:hsl(90, 100%, 76.2745098039%);}#my-svg .section-7 text{fill:black;}#my-svg .node-icon-7{font-size:40px;color:black;}#my-svg .section-edge-7{stroke:hsl(90, 100%, 76.2745098039%);}#my-svg .edge-depth-7{stroke-width:-7;}#my-svg .section-7 line{stroke:hsl(270, 100%, 86.2745098039%);stroke-width:3;}#my-svg .disabled,#my-svg .disabled circle,#my-svg .disabled text{fill:lightgray;}#my-svg .disabled text{fill:#efefef;}#my-svg .section-8 rect,#my-svg .section-8 path,#my-svg .section-8 circle,#my-svg .section-8 polygon,#my-svg .section-8 path{fill:hsl(150, 100%, 76.2745098039%);}#my-svg .section-8 text{fill:black;}#my-svg .node-icon-8{font-size:40px;color:black;}#my-svg .section-edge-8{stroke:hsl(150, 100%, 76.2745098039%);}#my-svg .edge-depth-8{stroke-width:-10;}#my-svg .section-8 line{stroke:hsl(330, 100%, 86.2745098039%);stroke-width:3;}#my-svg .disabled,#my-svg .disabled circle,#my-svg .disabled text{fill:lightgray;}#my-svg .disabled text{fill:#efefef;}#my-svg .section-9 rect,#my-svg .section-9 path,#my-svg .section-9 circle,#my-svg .section-9 polygon,#my-svg .section-9 path{fill:hsl(180, 100%, 76.2745098039%);}#my-svg .section-9 text{fill:black;}#my-svg .node-icon-9{font-size:40px;color:black;}#my-svg .section-edge-9{stroke:hsl(180, 100%, 76.2745098039%);}#my-svg .edge-depth-9{stroke-width:-13;}#my-svg .section-9 line{stroke:hsl(0, 100%, 86.2745098039%);stroke-width:3;}#my-svg .disabled,#my-svg .disabled circle,#my-svg .disabled text{fill:lightgray;}#my-svg .disabled text{fill:#efefef;}#my-svg .section-10 rect,#my-svg .section-10 path,#my-svg .section-10 circle,#my-svg .section-10 polygon,#my-svg .section-10 path{fill:hsl(210, 100%, 76.2745098039%);}#my-svg .section-10 text{fill:black;}#my-svg .node-icon-10{font-size:40px;color:black;}#my-svg .section-edge-10{stroke:hsl(210, 100%, 76.2745098039%);}#my-svg .edge-depth-10{stroke-width:-16;}#my-svg .section-10 line{stroke:hsl(30, 100%, 86.2745098039%);stroke-width:3;}#my-svg .disabled,#my-svg .disabled circle,#my-svg .disabled text{fill:lightgray;}#my-svg .disabled text{fill:#efefef;}#my-svg .section-root rect,#my-svg .section-root path,#my-svg .section-root circle,#my-svg .section-root polygon{fill:hsl(240, 100%, 46.2745098039%);}#my-svg .section-root text{fill:#ffffff;}#my-svg .icon-container{height:100%;display:flex;justify-content:center;align-items:center;}#my-svg .edge{fill:none;}#my-svg .mindmap-node-label{dy:1em;alignment-baseline:middle;text-anchor:middle;dominant-baseline:middle;text-align:center;}#my-svg :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g/><g class="mindmap-edges"><path class="edge section-edge-0 edge-depth-1" d="M 156.2394983385432,207.10100852170092 L 204.394269348771,229.34806795233158 L252.54904035899878,251.59512738296223"/><path class="edge section-edge-0 edge-depth-1" d="M 130.94088755467334,210.2196844286218 L 99.5612259744297,235.49633881449563 L68.18156439418605,260.77299320036946"/><path class="edge section-edge-0 edge-depth-0" d="M 159.66247448974417,126.84106814400455 L 152.82611905593672,156.51698614321847 L145.98976362212926,186.19290414243238"/><path class="edge section-edge-1 edge-depth-0" d="M 154.09508923767103,100.17521262926093 L 133.62141528943948,72.56586296223074 L113.14774134120793,44.95651329520055"/><path class="edge section-edge-2 edge-depth-0" d="M 177.9456516501682,110.63742145501358 L 219.5964730576593,106.20732695323616 L261.2472944651504,101.77723245145874"/></g><g class="mindmap-nodes"><g transform="translate(140.02978616301402, 94.31610092446147)" class="mindmap-node section--1 section-root"><g transform="translate(23, 17.9078125)"><circle r="23" class="node-bkg node-circle" id="node-0"/></g><g transform="translate(23, 5)" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" dy="1em"><g><rect style="stroke: none" class="background"/><text style="" y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"><tspan font-weight="normal" class="text-inner-tspan" font-style="normal">test</tspan></tspan></text></g></g></g><g transform="translate(106.6224519488594, 182.90224636197547)" class="mindmap-node section-0"><g><path d="M0 30.815624999999997 v-25.815624999999997 q0,-5 5,-5 h62 q5,0 5,5 v30.815624999999997 H0 Z" class="node-bkg node-no-border" id="node-1"/><line y2="35.815625" x2="72" y1="35.815625" x1="0" class="node-line-0"/></g><g transform="translate(36, 5)" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" dy="1em"><g><rect style="stroke: none" class="background"/><text style="" y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"><tspan font-weight="normal" class="text-inner-tspan" font-style="normal">Node</tspan><tspan font-weight="normal" class="text-inner-tspan" font-style="normal"> 1</tspan></tspan></text></g></g></g><g transform="translate(68.21304441586494, 15)" class="mindmap-node section-1"><g><path d="M0 30.815624999999997 v-25.815624999999997 q0,-5 5,-5 h62 q5,0 5,5 v30.815624999999997 H0 Z" class="node-bkg node-no-border" id="node-4"/><line y2="35.815625" x2="72" y1="35.815625" x1="0" class="node-line-1"/></g><g transform="translate(36, 5)" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" dy="1em"><g><rect style="stroke: none" class="background"/><text style="" y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"><tspan font-weight="normal" class="text-inner-tspan" font-style="normal">Node</tspan><tspan font-weight="normal" class="text-inner-tspan" font-style="normal"> 2</tspan></tspan></text></g></g></g><g transform="translate(240.16315995230457, 82.28292798201085)" class="mindmap-node section-2"><g><path d="M0 30.815624999999997 v-25.815624999999997 q0,-5 5,-5 h62 q5,0 5,5 v30.815624999999997 H0 Z" class="node-bkg node-no-border" id="node-5"/><line y2="35.815625" x2="72" y1="35.815625" x1="0" class="node-line-2"/></g><g transform="translate(36, 5)" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" dy="1em"><g><rect style="stroke: none" class="background"/><text style="" y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"><tspan font-weight="normal" class="text-inner-tspan" font-style="normal">Node</tspan><tspan font-weight="normal" class="text-inner-tspan" font-style="normal"> 3</tspan></tspan></text></g></g></g><g transform="translate(224.66608674868257, 239.9782645426877)" class="mindmap-node section-0"><g><path d="M0 30.815624999999997 v-25.815624999999997 q0,-5 5,-5 h73 q5,0 5,5 v30.815624999999997 H0 Z" class="node-bkg node-no-border" id="node-2"/><line y2="35.815625" x2="83" y1="35.815625" x1="0" class="node-line-0"/></g><g transform="translate(41.5, 5)" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" dy="1em"><g><rect style="stroke: none" class="background"/><text style="" y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"><tspan font-weight="normal" class="text-inner-tspan" font-style="normal">Node</tspan><tspan font-weight="normal" class="text-inner-tspan" font-style="normal"> 1A</tspan></tspan></text></g></g></g><g transform="translate(15, 252.2748062670158)" class="mindmap-node section-0"><g><path d="M0 30.815624999999997 v-25.815624999999997 q0,-5 5,-5 h73 q5,0 5,5 v30.815624999999997 H0 Z" class="node-bkg node-no-border" id="node-3"/><line y2="35.815625" x2="83" y1="35.815625" x1="0" class="node-line-0"/></g><g transform="translate(41.5, 5)" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" dy="1em"><g><rect style="stroke: none" class="background"/><text style="" y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"><tspan font-weight="normal" class="text-inner-tspan" font-style="normal">Node</tspan><tspan font-weight="normal" class="text-inner-tspan" font-style="normal"> 1B</tspan></tspan></text></g></g></g></g></svg>
 
 
@@ -28963,7 +28984,7 @@ Requires dash.
 <h4 id="counting-words"><span class="section-number-4">10.47.1.</span> <a href="#counting-words">Counting words</a></h4>
 <div class="outline-text-4" id="text-counting-words">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org9475ee2"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-org-note-words-target</span> (* 140 20))
+<pre class="src src-emacs-lisp" id="orgb616013"><code>(<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-org-note-words-target</span> (* 140 20))
 <span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-collect-notes</span> (<span class="org-type">&amp;optional</span> block-name)
   (<span class="org-keyword">let</span> (results)
@@ -29210,7 +29231,7 @@ Here's some code that sorts Org lists in a custom sequence, with
 unknown items at the bottom for easy re-ordering. It will take a list like:
 </p>
 
-<pre class="example" id="orgb9b66a2">
+<pre class="example" id="org5f9f30e">
      - Other:
        - Link A
        - Link B
@@ -29226,7 +29247,7 @@ unknown items at the bottom for easy re-ordering. It will take a list like:
 and turn it into:
 </p>
 
-<pre class="example" id="orgb5979f2">
+<pre class="example" id="org46fa78c">
      - Emacs Lisp:
        - Link A
        - Link B
@@ -29260,7 +29281,7 @@ and turn it into:
 <h4 id="package-links"><span class="section-number-4">10.51.4.</span> <a href="#package-links">Package links</a></h4>
 <div class="outline-text-4" id="text-package-links">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org6d4accb"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org7fbccb2"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-package-open</span> (package-name)
   (<span class="org-keyword">interactive</span> <span class="org-string">"MPackage name: "</span>)
   (describe-package (intern package-name)))
@@ -29423,7 +29444,7 @@ and turn it into:
 <div id="outline-container-linking-to-and-exporting-function-definitions-in-org-mode" class="outline-3">
 <h3 id="linking-to-and-exporting-function-definitions-in-org-mode"><span class="section-number-3">10.55.</span> <a href="#linking-to-and-exporting-function-definitions-in-org-mode">Linking to and exporting function definitions in Org Mode&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span>&nbsp;<span class="org">org</span></span></a></h3>
 <div class="outline-text-3" id="text-linking-to-and-exporting-function-definitions-in-org-mode">
-<div class="update" id="org6017c77">
+<div class="update" id="org25af863">
 <ul class="org-ul">
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2024-01-11">[2024-01-11 Thu]</time></span>: Added ?link=1 to copy the context link</li>
 <li>2023-09-12: added a way to force the defun to start open with ?open=1</li>
@@ -29456,7 +29477,7 @@ blog post, navigate back to the function, and export HTML.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgeb931b1"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="orga23d434"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-defun-complete</span> ()
   <span class="org-doc">"Return function definitions."</span>
   (concat <span class="org-string">"defun:"</span>
@@ -29616,7 +29637,7 @@ scoping so that it kicks in only when <code>defun:</code> would also kick in.
 <div id="outline-container-including-variables" class="outline-3">
 <h3 id="including-variables"><span class="section-number-3">10.56.</span> <a href="#including-variables">Including variables</a></h3>
 <div class="outline-text-3" id="text-including-variables">
-<div class="update" id="org41a43a8">
+<div class="update" id="org19b35ce">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2024-01-20">[2024-01-20 Sat]</time></span>: Fixed org-def-store thanks to oantolin's comment.
 </p>
@@ -29624,7 +29645,7 @@ scoping so that it kicks in only when <code>defun:</code> would also kick in.
 </div>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org5306107"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="orgc7b50a0"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-defvar-complete</span> ()
   <span class="org-doc">"Return variable definitions."</span>
   (concat <span class="org-string">"defvar:"</span>
@@ -29963,7 +29984,7 @@ Luhmann&#8217;s only real help was a housekeeper who cooked for him and his chil
 <div id="outline-container-org-mode-sorting-completion-candidates-such-as-sorting-org-headings-by-level" class="outline-3">
 <h3 id="org-mode-sorting-completion-candidates-such-as-sorting-org-headings-by-level"><span class="section-number-3">10.60.</span> <a href="#org-mode-sorting-completion-candidates-such-as-sorting-org-headings-by-level">Sorting completion candidates, such as sorting Org headings by level&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span>&nbsp;<span class="org">org</span></span></a></h3>
 <div class="outline-text-3" id="text-org-mode-sorting-completion-candidates-such-as-sorting-org-headings-by-level">
-<div class="update" id="org789aae1">
+<div class="update" id="orge5ad834">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2026-02-26">[2026-02-26 Thu]</time></span>: Made the code even neater with <code>:key</code>, included the old code as well
 </p>
@@ -29990,7 +30011,7 @@ Here's some code that allows you to use <code>consult-org-heading</code> to jump
 </div>
 
 
-<figure id="org59b8179">
+<figure id="org52b3676">
 <img src="https://sachachua.com/blog/2026/02/sorting-completion-candidates-such-as-sorting-org-headings-by-level/2026-02-26_13-42-58.png" alt="2026-02-26_13-42-58.png">
 
 <figcaption><span class="figure-number">Figure 25: </span>Screenshot showing where the candidates transition from top-level headings to second-level headings</figcaption>
@@ -30061,7 +30082,7 @@ This is a little trickier because the table of completion candidates is a list o
 </div>
 
 
-<figure id="org0f8beb2">
+<figure id="org526b2b4">
 <img src="https://sachachua.com/blog/2026/02/sorting-completion-candidates-such-as-sorting-org-headings-by-level/2026-02-26_14-01-28.png" alt="2026-02-26_14-01-28.png">
 
 <figcaption><span class="figure-number">Figure 26: </span>Screenshot of sorted refile entries</figcaption>
@@ -30113,7 +30134,7 @@ John Kitchin just posted a different project - org-db-v3. Let's see if I can fig
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org5afff46"><code>(<span class="org-keyword">use-package</span> org-db-v3
+<pre class="src src-emacs-lisp" id="org9e32be3"><code>(<span class="org-keyword">use-package</span> org-db-v3
   <span class="org-builtin">:load-path</span> <span class="org-string">"~/vendor/org-db-v3/elisp"</span>
   <span class="org-builtin">:init</span>
   (<span class="org-keyword">setq</span> org-db-v3-auto-enable nil))
@@ -30221,7 +30242,7 @@ Fixing the index:
 <h4 id="org-mode-vector-search-consult-based-interface-for-searching-blog-posts"><span class="section-number-4">10.61.2.</span> <a href="#org-mode-vector-search-consult-based-interface-for-searching-blog-posts">Consult-based interface for searching blog posts</a></h4>
 <div class="outline-text-4" id="text-org-mode-vector-search-consult-based-interface-for-searching-blog-posts">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org070c002"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="orga3540e3"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-blog-similar-link</span> (link)
   <span class="org-doc">"Vector-search blog posts using `</span><span class="org-doc"><span class="org-constant">emacs-rag-search</span></span><span class="org-doc">' and insert a link.</span>
 <span class="org-doc">If called with \\[universal-argument</span><span class="org-doc"><span class="org-warning">\</span></span><span class="org-doc">], use the current post's text.</span>
@@ -30317,7 +30338,7 @@ exported blog posts
 <h5 id="org-mode-vector-search-consult-based-interface-for-searching-blog-posts-handle-sketches-too"><span class="section-number-5">10.61.2.2.</span> <a href="#org-mode-vector-search-consult-based-interface-for-searching-blog-posts-handle-sketches-too">Handle sketches too</a></h5>
 <div class="outline-text-5" id="text-org-mode-vector-search-consult-based-interface-for-searching-blog-posts-handle-sketches-too">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgc02d718"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org111d039"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-db-v3-index-recent-sketches</span> (after)
   (<span class="org-keyword">interactive</span> (list
                 (<span class="org-keyword">when</span> current-prefix-arg
@@ -30331,7 +30352,7 @@ exported blog posts
 </div>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orge42bdca"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org56420ac"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-db-v3-sketch--collection</span> (input)
   <span class="org-doc">"Perform the RAG search and format the results for Consult.</span>
 <span class="org-doc">Returns a list of cons cells (DISPLAY-STRING . PLIST)."</span>
@@ -30415,7 +30436,7 @@ exported blog posts
 </div>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org62768b2"><code>(<span class="org-keyword">with-eval-after-load</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">consult</span>
+<pre class="src src-emacs-lisp" id="org447399b"><code>(<span class="org-keyword">with-eval-after-load</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">consult</span>
 (<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-consult-source-similar-sketches</span>
     (list <span class="org-builtin">:name</span> <span class="org-string">"Sketches"</span>
           <span class="org-builtin">:narrow</span> ?s
@@ -30468,7 +30489,7 @@ exported blog posts
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgb8ca2ca"><code>(<span class="org-keyword">use-package</span> emacs-rag
+<pre class="src src-emacs-lisp" id="org6ebe639"><code>(<span class="org-keyword">use-package</span> emacs-rag
   <span class="org-builtin">:load-path</span> <span class="org-string">"~/vendor/emacs-rag-libsql/emacs-rag"</span>
   <span class="org-builtin">:commands</span> (emacs-rag-menu emacs-rag--request)
   <span class="org-builtin">:config</span>
@@ -32537,7 +32558,7 @@ One image per second
 <li><a id="reveal-js-sketch-animation"></a><a href="#reveal-js-sketch-animation">RevealJS CSS animation of sketches</a><br>
 <div class="outline-text-6" id="text-reveal-js-sketch-animation">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgd7969d8"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org32087c4"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-reveal-svg-animation</span> (slide)
   (string-join
    (seq-map-indexed
@@ -32741,7 +32762,7 @@ from Emacs.
 <div class="row">
 <div class="columns small-12 medium-6 large-6">
 
-<figure id="org22ad38b">
+<figure id="orgf6bafd2">
 <img src="images/2024-11-05-14-15-55.svg" alt="2024-11-05-14-15-55.svg" class="box-shadow" data-link="t">
 
 <figcaption><span class="figure-number">Figure 27: </span>Selecting the colour to replace</figcaption>
@@ -32750,7 +32771,7 @@ from Emacs.
 </div>
 <div class="columns small-12 medium-6 large-6">
 
-<figure id="orgd271599">
+<figure id="org28d9ebb">
 <img src="images/2024-11-05-14-16-04.svg" alt="2024-11-05-14-16-04.svg" class="box-shadow" data-link="t">
 
 <figcaption><span class="figure-number">Figure 28: </span>Selecting the new colour</figcaption>
@@ -32840,7 +32861,7 @@ for it. It would be extra cool if I could use this
 <h4 id="org-mode-sketch-links"><span class="section-number-4">11.3.11.</span> <a href="#org-mode-sketch-links">Org Mode sketch: links&nbsp;&nbsp;&nbsp<span class="tag"><span class="image">image</span></span></a></h4>
 <div class="outline-text-4" id="text-org-mode-sketch-links">
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org2d9a1b7"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org07ea6cb"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-open-images-in-krita</span> (files)
   (apply <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">call-process</span> <span class="org-string">"krita"</span> nil 0 nil <span class="org-string">"--nosplash"</span> files))
 <span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
@@ -33070,7 +33091,7 @@ accidentally selecting only part of the text.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgd7086be"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="orgeb26a9c"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-copy-export</span> (link desc format)
   (<span class="org-keyword">pcase</span> format
     (<span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">org</span> (org-link-make-string (concat <span class="org-string">"copy:"</span> link) desc))
@@ -33399,7 +33420,7 @@ Related: <a href="https://sachachua.com/blog/2025/10/doodling-icons-in-a-grid/">
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgc6cf12b"><code>(<span class="org-keyword">require</span> <span class="org-highlight-quoted-quote">'</span><span class="org-constant">svg</span>)
+<pre class="src src-emacs-lisp" id="org9e0c034"><code>(<span class="org-keyword">require</span> <span class="org-highlight-quoted-quote">'</span><span class="org-constant">svg</span>)
 (<span class="org-keyword">defvar</span> <span class="org-variable-name">sacha-dot-grid-boxes-params</span>
   <span class="org-highlight-quoted-quote">'</span>(<span class="org-builtin">:num-rows</span> 5
     <span class="org-builtin">:num-cols</span> 7
@@ -33472,7 +33493,7 @@ Related: <a href="https://sachachua.com/blog/2025/10/doodling-icons-in-a-grid/">
 </div>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgbf1fa0c"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org8c9cf42"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">cl-defun</span> <span class="org-function-name">sacha-dot-grid-boxes-list</span> (<span class="org-type">&amp;key</span> (num-rows 5)
                                        (num-cols 7)
                                        (dot-spacing 60)
@@ -33563,7 +33584,7 @@ This updates the index.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orgdcf100f"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="orga4fc4bd"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-sketch-icon-update-index</span> (list)
   (<span class="org-keyword">let</span> (data
         (index-file (expand-file-name <span class="org-string">"index.json"</span> sacha-sketch-icon-directory)))
@@ -34030,7 +34051,7 @@ based on the item text, and moved the item there.
 </div>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org897dfc7"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="orgf7080ca"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-move-current-item-to-category</span> (category)
     <span class="org-doc">"Move current list item under CATEGORY earlier in the list.</span>
 <span class="org-doc">  CATEGORY can be a string or a list of the form (text indent regexp).</span>
@@ -34844,7 +34865,7 @@ It would make sense to register this as an export backend so that I can call it 
 Adding this line to my Org file allows me to use <code>\spacing{1.5}</code> for 1.5 line spacing, so I can write in more annotations..
 </p>
 
-<pre class="example" id="org0002414">
+<pre class="example" id="org603b1b8">
 #+LATEX_HEADER+: \usepackage{setspace}
 </pre>
 
@@ -34852,7 +34873,7 @@ Adding this line to my Org file allows me to use <code>\spacing{1.5}</code> for 
 Sometimes I use custom blocks for HTML classes. When LaTeX complains about undefined environments, I can define them like this:
 </p>
 
-<pre class="example" id="org55d65dc">
+<pre class="example" id="org669c336">
 #+LATEX_HEADER+: \newenvironment{whatever_my_custom_environment_is_called}
 </pre>
 
@@ -34868,7 +34889,7 @@ I wonder if multimodal AI models can handle annotated images with editing marks&
 <div id="outline-container-supernote-browse" class="outline-5">
 <h5 id="supernote-browse"><span class="section-number-5">11.3.29.2.</span> <a href="#supernote-browse">org-attaching the latest image from my Supernote via Browse and Access&nbsp;&nbsp;&nbsp<span class="tag"><span class="supernote">supernote</span>&nbsp;<span class="org">org</span></span></a></h5>
 <div class="outline-text-5" id="text-supernote-browse">
-<div class="update" id="orgb231456">
+<div class="update" id="orgc4b0cbc">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2024-09-29">[2024-09-29 Sun]</time></span>: Use sketch links when possible. Recolor before cropping so that the grid is removed.
 </p>
@@ -36486,14 +36507,14 @@ more in the process, too. Fun!
 <div id="outline-container-word-level" class="outline-4">
 <h4 id="word-level"><span class="section-number-4">11.6.16.</span> <a href="#word-level">Using word-level timing information when editing subtitles or captions in Emacs&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span></span></a></h4>
 <div class="outline-text-4" id="text-word-level">
-<div class="update" id="org69ba33c">
+<div class="update" id="orgda6f6fd">
 <p>
 2022-10-26: <a href="file:///blog/2022/10/subed-el-word-level-timing-improvements/">Merged word-level timing support into subed.el</a>, so I don't need my old caption functions.
 </p>
 
 </div>
 
-<div class="update" id="org5267add">
+<div class="update" id="orgabbe434">
 <p>
 2022-04-18: Switched to using yt-dlp.
 </p>
@@ -36530,7 +36551,7 @@ can do with the following function:
 </code></pre>
 </div>
 
-<div class="update" id="org0d13e84">
+<div class="update" id="org44e84fd">
 <p>
 2022-10-26: I can also generate a SRV2-ish file using
 torchaudio, which I can then load with
@@ -36660,7 +36681,7 @@ certain words, these functions help:
 <div id="outline-container-whisperx" class="outline-4">
 <h4 id="whisperx"><span class="section-number-4">11.6.17.</span> <a href="#whisperx">Using WhisperX to get word-level timestamps for audio editing with Emacs and subed-record&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span>&nbsp;<span class="subed">subed</span></span></a></h4>
 <div class="outline-text-4" id="text-whisperx">
-<div class="update" id="org0773327">
+<div class="update" id="org98a327b">
 <ul class="org-ul">
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2024-12-09">[2024-12-09 Mon]</time></span>: Split whisperx to pass one file per call.</li>
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2024-11-16">[2024-11-16 Sat]</time></span>: Removed <code>highlight_words</code>, made <code>max_line_width</code> use the environment variable if specified.</li>
@@ -36754,7 +36775,7 @@ I used this command to get word-level timing data. (<a href="https://medium.com/
 Among other things, it makes a text file that looks like this:
 </p>
 
-<pre class="example" id="org7741c92">
+<pre class="example" id="org24ac0e1">
 I often need to... I sometimes need to replace or navigate by symbols.
 Casual symbol overlays a new package that adds those shortcuts so that I don't have to remember the other keywords for them.
 </pre>
@@ -36853,7 +36874,7 @@ wanted. I like Emacs much more, though. I'm used
 to having all my keyboard shortcuts at hand.
 </p>
 
-<pre class="example" id="org9db894d">
+<pre class="example" id="org24e47f8">
 0.427000	0.507000	I
 0.587000	0.887000	often
 0.987000	1.227000	need
@@ -36897,7 +36918,7 @@ Here I switch to another file I've been editing&hellip;
 </p>
 
 
-<figure id="org20d9949">
+<figure id="org583bb6a">
 <img src="https://sachachua.com/blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/2024-09-17-12-06-12.svg" alt="2024-09-17-12-06-12.svg" class="org-svg" data-link="t">
 
 <figcaption><span class="figure-number">Figure 29: </span>Screenshot of subed-waveform</figcaption>
@@ -36909,7 +36930,7 @@ audio</a> into an <code>.opus</code> file that sounds reasonably smooth.
 </p>
 
 <p>
-<div class="audio"><audio controls="1" preload="metadata" src="/blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/casual-symbol-overlay.opus?2026-11-17" type="audio/ogg"><a href="/blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/casual-symbol-overlay.opus">Download the audio</a><track kind="captions" label="Captions" src="/blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/casual-symbol-overlay.vtt" srclang="en" default></track></audio></div>
+<div class="audio"><audio controls="1" preload="metadata" src="/blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/casual-symbol-overlay.opus?2026-11-18" type="audio/ogg"><a href="/blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/casual-symbol-overlay.opus">Download the audio</a><track kind="captions" label="Captions" src="/blog/2024/09/using-whisperx-to-get-word-level-timestamps-for-audio-editing-with-emacs-and-subed-record/casual-symbol-overlay.vtt" srclang="en" default></track></audio></div>
 </p>
 
 <span class="audio-time" data-start="0.000000" data-end="2.999000">I sometimes need to replace or navigate by symbols.</span>
@@ -36962,7 +36983,7 @@ parts of my workflow.
 <div id="outline-container-filler-start" class="outline-4">
 <h4 id="filler-start"><span class="section-number-4">11.6.19.</span> <a href="#filler-start"><span class="done DONE">DONE</span> Remove filler words at the start and upcase the next word&nbsp;&nbsp;&nbsp<span class="tag"><span class="speechtotext">speechtotext</span>&nbsp;<span class="emacs">emacs</span></span></a></h4>
 <div class="outline-text-4" id="text-filler-start">
-<div class="update" id="org3515a90">
+<div class="update" id="orgcb8bd8e">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2024-11-21">[2024-11-21 Thu]</time></span>: Fixed the second filler words regexp, and make it work at the start of lines too. Thanks to <a href="https://mastodon.online/@arialdo/113522591084370172">@arialdo@mastodon.online</a> for the feedback!
 </p>
@@ -37537,7 +37558,7 @@ The Org file doesn't look too bad, either.
 </p>
 
 
-<figure id="orgc7e01d1">
+<figure id="org9aab107">
 <img src="https://sachachua.com/blog/wp-content/uploads/2021/04/Screenshot_20210401_234956.png" alt="Screenshot_20210401_234956.png">
 
 </figure>
@@ -38849,7 +38870,7 @@ a third column with the category I wanted to put commands into.
 </p>
 
 <details class="code-details"><summary>Details</summary>
-<table id="org4b5bd59">
+<table id="org67c9ea3">
 
 
 <colgroup>
@@ -39318,7 +39339,7 @@ Here's the result:
 </p>
 
 
-<figure id="orge9931d1">
+<figure id="orgbf5a565">
 <img src="https://sachachua.com/blog/wp-content/uploads/2021/04/Screenshot_20210413_002503.png" alt="Screenshot_20210413_002503.png">
 
 <figcaption><span class="figure-number">Figure 30: </span>Hydra-based cheat sheet</figcaption>
@@ -39330,7 +39351,7 @@ I'm experimenting with having my Windows key be <code>F14</code> if tapped and
 shortcut</a> with:
 </p>
 
-<pre class="example" id="org09cb0a1">
+<pre class="example" id="org75a9947">
 kwriteconfig5 --file ~/.config/kwinrc --group ModifierOnlyShortcuts --key Meta ""
 qdbus org.kde.KWin /KWin reconfigure
 </pre>
@@ -39885,12 +39906,12 @@ From <a href="https://www.reddit.com/r/emacs/comments/1fub66z/comment/lpyv8no/">
 <span class="org-string">      (it \"8\")))</span>
 <span class="org-string">  )"</span>)
     (<span class="org-keyword">let</span> ((tests (sacha-buttercup-tests-and-positions)))
-      (expect (assoc <span class="org-string">"test 1"</span> tests))
-      (expect (assoc <span class="org-string">"test 2"</span> tests))
-      (expect (assoc <span class="org-string">"test b 3"</span> tests))
-      (expect (assoc <span class="org-string">"test b 4"</span> tests))
-      (expect (assoc <span class="org-string">"test c 5"</span> tests))
-      (expect (assoc <span class="org-string">"test e f 8"</span> tests)))))
+      (<span class="org-keyword">expect</span> (assoc <span class="org-string">"test 1"</span> tests))
+      (<span class="org-keyword">expect</span> (assoc <span class="org-string">"test 2"</span> tests))
+      (<span class="org-keyword">expect</span> (assoc <span class="org-string">"test b 3"</span> tests))
+      (<span class="org-keyword">expect</span> (assoc <span class="org-string">"test b 4"</span> tests))
+      (<span class="org-keyword">expect</span> (assoc <span class="org-string">"test c 5"</span> tests))
+      (<span class="org-keyword">expect</span> (assoc <span class="org-string">"test e f 8"</span> tests)))))
 </code></pre>
 </div>
 </div>
@@ -41233,7 +41254,7 @@ This adds these coloured bars to show what has changed since the last commit.
 </p>
 
 
-<figure id="org56e6627">
+<figure id="org3efb36a">
 <img src="images/2026-04-27_09-28-37.png" alt="2026-04-27_09-28-37.png">
 
 <figcaption><span class="figure-number">Figure 31: </span>Screenshot of diff-hl showing the green indicator in the left fringe</figcaption>
@@ -41244,7 +41265,7 @@ This adds these coloured bars to show what has changed since the last commit.
 <h3 id="magit"><span class="section-number-3">12.24.</span> <a href="#magit">Magit - nice git interface</a></h3>
 <div class="outline-text-3" id="text-magit">
 <p>
-<a id="org9cdc011"></a>
+<a id="orgdc3b33c"></a>
 </p>
 
 <p>
@@ -42955,7 +42976,7 @@ This snippet makes it easier to store links to posts with
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="orge07a7ea"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org2bb09e9"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-mastodon-store-link</span> ()
   <span class="org-doc">"Store links in Mastodon buffers."</span>
   (<span class="org-keyword">when</span> (derived-mode-p <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">mastodon-mode</span>)
@@ -43001,7 +43022,7 @@ This snippet makes it easier to store links to posts with
 <div id="outline-container-mastodon-news" class="outline-3">
 <h3 id="mastodon-news"><span class="section-number-3">14.7.</span> <a href="#mastodon-news">Collecting Emacs News from Mastodon&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span>&nbsp;<span class="mastodon">mastodon</span></span></a></h3>
 <div class="outline-text-3" id="text-mastodon-news">
-<div class="update" id="org2e4b2b9">
+<div class="update" id="org9512622">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2025-03-06">[2025-03-06 Thu]</time></span>: Use <code>sacha-org-link-url-from-string</code>.
 </p>
@@ -43103,7 +43124,7 @@ handle. This is what it looks like:
 </p>
 
 
-<figure id="org7acbdf8">
+<figure id="orgd3b39b6">
 <img src="images/output-2024-09-16-13:14:38.gif" alt="output-2024-09-16-13:14:38.gif">
 
 <figcaption><span class="figure-number">Figure 32: </span>Quick screencast summarizing Mastodon toots</figcaption>
@@ -43290,7 +43311,7 @@ This works particularly well with <a href="https://sachachua.com/dotemacs#mastod
 <div id="outline-container-mastodon-combined-timeline" class="outline-3">
 <h3 id="mastodon-combined-timeline"><span class="section-number-3">14.9.</span> <a href="#mastodon-combined-timeline">Combining Mastodon timelines using mastodon.el&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span>&nbsp;<span class="mastodon">mastodon</span></span></a></h3>
 <div class="outline-text-3" id="text-mastodon-combined-timeline">
-<div class="update" id="orge7628a4">
+<div class="update" id="orgcb10806">
 <ul class="org-ul">
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2025-09-15">[2025-09-15 Mon]</time></span>: Removed <code>edited_at</code> attribute.</li>
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2025-03-24">[2025-03-24 Mon]</time></span>: Updated <code>sacha-mastodon-follow-user</code> to use <code>alist-get</code>.</li>
@@ -43483,7 +43504,7 @@ I'm curious: how many toots would I be missing if I looked at only one instance'
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org40d8ca3"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org9f6a87d"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-three-way-comparison</span> (seq1 seq2 seq3 <span class="org-type">&amp;optional</span> test-fn)
   <span class="org-highlight-quoted-quote">`</span>((<span class="org-string">"1"</span> ,@(seq-difference seq1 (seq-union seq2 seq3 test-fn) test-fn))
     (<span class="org-string">"2"</span> ,@(seq-difference seq2 (seq-union seq1 seq3 test-fn) test-fn))
@@ -43555,7 +43576,7 @@ I'm curious: how many toots would I be missing if I looked at only one instance'
 </code></pre>
 </div></details>
 
-<div class="bordered" id="org4a290d3">
+<div class="bordered" id="org6408ea6">
 
 </div>
 
@@ -43564,7 +43585,7 @@ Here's an Euler diagram visualizing it.
 </p>
 
 
-<figure id="orgffaef3f">
+<figure id="org712d33f">
 <img src="images/2024-09-13-12-45-10.png" alt="2024-09-13-12-45-10.png">
 
 <figcaption><span class="figure-number">Figure 33: </span>#emacs posts on 2024-09-12 - an Euler diagram showing the table above</figcaption>
@@ -44193,7 +44214,7 @@ Hmm. I've mapped <code>M-g u</code> to <code>link-hint-open-link</code>, so mayb
 <div id="outline-container-web-emacs-open-urls-or-search-the-web-plus-browse-url-handlers" class="outline-3">
 <h3 id="web-emacs-open-urls-or-search-the-web-plus-browse-url-handlers"><span class="section-number-3">15.2.</span> <a href="#web-emacs-open-urls-or-search-the-web-plus-browse-url-handlers">Emacs: Open URLs or search the web, plus browse-url-handlers&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span>&nbsp;<span class="org">org</span></span></a></h3>
 <div class="outline-text-3" id="text-web-emacs-open-urls-or-search-the-web-plus-browse-url-handlers">
-<div class="update" id="org86bb3cf">
+<div class="update" id="org3b6eac9">
 <ul class="org-ul">
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2025-07-14">[2025-07-14 Mon]</time></span>: Naturally, <a href="https://emacsninja.com/posts/cve-2025-1244-from-emacs-url-handler-to-rce.html">do this only with text you trust</a>. =)</li>
 <li><span class="timestamp-wrapper"><time class="timestamp" datetime="2025-07-12">[2025-07-12 Sat]</time></span>: Use cl-pushnew instead of add-to-list, correct <code>browse-url-browser-browser-function</code> to <code>browse-url-browser-function</code>, and add an example for eww.</li>
@@ -44791,7 +44812,7 @@ Anyway, this code seems to do the job of scrolling my Firefox window:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org2138100"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org605f5df"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-spookfox-scroll-down</span> ()
   (<span class="org-keyword">interactive</span>)
   (spookfox-js-injection-eval-in-active-tab <span class="org-string">"window.scrollBy(0, document.documentElement.clientHeight);"</span> t))
@@ -44821,7 +44842,7 @@ This code opens a tab without switching keyboard focus away from Emacs:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org2be3fe4"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="org71d3e54"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-spookfox-background-tab</span> (url <span class="org-type">&amp;rest</span> args)
   <span class="org-doc">"Open URL as a background tab."</span>
   (<span class="org-keyword">if</span> spookfox--connected-clients
@@ -44947,7 +44968,7 @@ This uses <code>sacha-spookfox-complete-link</code> from <a href="https://sachac
 <h3 id="clock-in"><span class="section-number-3">16.1.</span> <a href="#clock-in">Quantified Awesome</a></h3>
 <div class="outline-text-3" id="text-clock-in">
 <p>
-<a id="org4375dc2"></a>
+<a id="orge1cacbd"></a>
 </p>
 
 <div class="org-src-container">
@@ -45147,7 +45168,7 @@ This uses <code>sacha-spookfox-complete-link</code> from <a href="https://sachac
 <h3 id="compare-time"><span class="section-number-3">16.2.</span> <a href="#compare-time">Compare times and effort estimates</a></h3>
 <div class="outline-text-3" id="text-compare-time">
 <p>
-<a id="org78fdc61"></a>
+<a id="orge23e24b"></a>
 </p>
 
 <p>
@@ -45169,7 +45190,7 @@ This is for comparing times in column view and in tables.
 Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <code>#+BEGIN: columnview :hlines 1</code> &hellip; <code>#+END:</code>, and
 </p>
 
-<pre class="example" id="org16bff45">
+<pre class="example" id="org7b857bd">
     #+TBLFM: $4='(sacha-compare-times $3 $2)
 </pre>
 </div>
@@ -45177,7 +45198,7 @@ Use with <code>#+COLUMNS: %40ITEM %17Effort(Estimated){:} %CLOCKSUM</code>, <cod
 <h4 id="using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs"><span class="section-number-4">16.2.1.</span> <a href="#using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs">Using the calendar-date-echo-text variable to help plot a heatmap on a year-long calendar in Emacs&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span></span></a></h4>
 <div class="outline-text-4" id="text-using-the-calendar-date-echo-text-variable-to-help-plot-a-heatmap-on-a-year-long-calendar-in-emacs">
 
-<figure id="org869a269">
+<figure id="org647b2c5">
 <img src="images/output-2023-01-06-10:26:49.gif" alt="output-2023-01-06-10:26:49.gif">
 
 <figcaption><span class="figure-number">Figure 34: </span>Sketch heatmap from 2008-2023</figcaption>
@@ -46198,7 +46219,7 @@ for Gnus. I have GPG set up for encryption, and an <code>~/.authinfo.gpg</code>
 file set up with something like:
 </p>
 
-<pre class="example" id="org930a515">
+<pre class="example" id="orgfea7aba">
       machine imap.gmail.com login sacha@sachachua.com password mysecretapppassword
       machine imap.gmail.com login sacha@sachachua.com password mysecretapppassword port 993
       machine smtp.gmail.com login sacha@sachachua.com password mysecretapppassword port 587
@@ -46250,7 +46271,7 @@ Get smarter about filtering depending on what I reed or mark. I use <code>!</cod
 <div id="outline-container-windows" class="outline-4">
 <h4 id="windows"><span class="section-number-4">19.4.1.</span> <a href="#windows">Windows</a></h4>
 <div class="outline-text-4" id="text-windows">
-<div class="update" id="orgbe50543">
+<div class="update" id="orge988e88">
 <p>
 I don't use Windows much any more, but this is here in case it's helpful for people who still do.
 </p>
@@ -46264,7 +46285,7 @@ accept the mail and forward it to Gmail. The server starts with this
 batch file:
 </p>
 
-<pre class="example" id="orgbe26ffe">
+<pre class="example" id="orgda52fd7">
       start "emailrelay" "C:\Program Files (x86)\emailrelay\emailrelay.exe" --as-proxy smtp.gmail.com:25 --client-auth "C:/sacha/.emailrelay" --client-tls --log --pid-file "C:\Program Files (x86)\emailrelay\emailrelay.pid" --spool-dir C:\sacha\tmp\emailrelay
 </pre>
 
@@ -46272,7 +46293,7 @@ batch file:
 Sending queued mail works with this batch file:
 </p>
 
-<pre class="example" id="orgbb8a653">
+<pre class="example" id="org7c24f37">
       "c:\Program Files (x86)\emailrelay\emailrelay.exe" --as-client smtp.gmail.com:587 --client-auth c:\sacha\.emailrelay --client-tls --spool-dir c:\sacha\tmp\emailrelay
 </pre>
 
@@ -46362,7 +46383,7 @@ program. We usually set mailing lists to moderated so that
 <div id="outline-container-areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours" class="outline-4">
 <h4 id="areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours"><span class="section-number-4">20.1.1.</span> <a href="#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours">Transforming HTML clipboard contents with Emacs to smooth out Mailchimp annoyances: dates, images, comments, colours&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span></span></a></h4>
 <div class="outline-text-4" id="text-areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours">
-<div class="update" id="org15ec361">
+<div class="update" id="org9645a18">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2025-09-17">[2025-09-17 Wed]</time></span>: Minor tweaks to get it to work better with <a href="https://sachachua.com/dotemacs#collaboration-bike-brigade-extract-information-from-google-docs-export-as-zipped-html">Getting a Google Docs draft ready for Mailchimp via Emacs</a>.
 </p>
@@ -46384,7 +46405,7 @@ shouldn't just dump a bunch of HTML in. (We don't have the more expensive plan t
 </p>
 
 
-<figure id="orgadc22e5">
+<figure id="org169fbf6">
 <img src="images/2025-06-20_20-58-49.png" alt="2025-06-20_20-58-49.png" class="box-shadow">
 
 <figcaption><span class="figure-number">Figure 35: </span>Screenshot of Slack canvas</figcaption>
@@ -46395,7 +46416,7 @@ And then I redo it in Mailchimp:
 </p>
 
 
-<figure id="org0939279">
+<figure id="org02c6bb2">
 <img src="images/2025-06-20_21-01-08.png" alt="2025-06-20_21-01-08.png" class="box-shadow">
 
 <figcaption><span class="figure-number">Figure 36: </span>Screenshot of Mailchimp design</figcaption>
@@ -46419,7 +46440,7 @@ My process is roughly:
 I think I can get <a href="https://sachachua.com/topic/emacs/">Emacs</a> to make things easier.
 </p>
 
-<div class="sticky-toc" id="orgdd4bdfc">
+<div class="sticky-toc" id="org88d3b63">
 <div id="text-table-of-contents-2" role="doc-toc">
 <ul>
 <li><a href="#areas-transforming-html-clipboard-contents-with-emacs-to-smooth-out-mailchimp-annoyances-dates-images-comments-colours-automating-buttons">20.1.1.1. Automating buttons</a></li>
@@ -46464,7 +46485,7 @@ This code generates something like this:
 </p>
 
 
-<figure id="org02020f4">
+<figure id="orgd6a4944">
 <img src="images/2025-06-20_21-09-44.png" alt="2025-06-20_21-09-44.png" class="box-shadow">
 
 <figcaption><span class="figure-number">Figure 37: </span>Screenshot of buttons</figcaption>
@@ -47031,7 +47052,7 @@ Now I can test those functions in combination:
 </div>
 
 
-<figure id="org0b28491">
+<figure id="org38ff229">
 <img src="images/2025-06-20_21-10-38.png" alt="2025-06-20_21-10-38.png" class="box-shadow">
 
 <figcaption><span class="figure-number">Figure 38: </span>Screenshot of button</figcaption>
@@ -47056,7 +47077,7 @@ the links in Mailchimp, which was tedious.
 </p>
 
 
-<figure id="org754af1e">
+<figure id="orgb42e21c">
 <img src="images/2025-06-20_21-25-51.png" alt="2025-06-20_21-25-51.png" class="box-shadow">
 
 <figcaption><span class="figure-number">Figure 39: </span>Screenshot of community update colours</figcaption>
@@ -47230,7 +47251,7 @@ xclip call so it didn't hang.)
 <div id="outline-container-collaboration-bike-brigade-extract-information-from-google-docs-export-as-zipped-html" class="outline-4">
 <h4 id="collaboration-bike-brigade-extract-information-from-google-docs-export-as-zipped-html"><span class="section-number-4">20.1.2.</span> <a href="#collaboration-bike-brigade-extract-information-from-google-docs-export-as-zipped-html">Getting a Google Docs draft ready for Mailchimp via Emacs and Org Mode&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span>&nbsp;<span class="org">org</span></span></a></h4>
 <div class="outline-text-4" id="text-collaboration-bike-brigade-extract-information-from-google-docs-export-as-zipped-html">
-<div class="update" id="org5faca10">
+<div class="update" id="org8539871">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2025-09-18">[2025-09-18 Thu]</time></span>: Got it to include the dates in the TOC as well
 </p>
@@ -47266,7 +47287,7 @@ I finally got to spend a little time automating a new workflow. This time I expo
 </p>
 
 
-<figure id="org10f1dbd">
+<figure id="orgeb85872">
 <img src="images/2025-09-17_09-22-35.png" alt="2025-09-17_09-22-35.png">
 
 <figcaption><span class="figure-number">Figure 40: </span>Exported HTML for an entry</figcaption>
@@ -47291,7 +47312,7 @@ Here's what the result looks like. It makes a table of contents, adds the sign-u
 </p>
 
 
-<figure id="orgba96779">
+<figure id="org28978cd">
 <img src="images/2025-09-17_10-03-27.png" alt="2025-09-17_10-03-27.png">
 
 <figcaption><span class="figure-number">Figure 41: </span>Screenshot of newsletter Org file with blocks for easy copying</figcaption>
@@ -47824,7 +47845,7 @@ Progress, bit by bit! Here's a screenshot showing the Google Docs draft on one s
 </p>
 
 
-<figure id="org52fdf58">
+<figure id="org9174500">
 <img src="https://sachachua.com/blog/2026/01/emacs-updating-a-mailchimp-campaign-using-a-template-sending-test-e-mails-and-scheduling-a-campaign/2026-01-17_13-00-27.png" alt="2026-01-17_13-00-27.png">
 
 <figcaption><span class="figure-number">Figure 42: </span>Google Docs and Mailchimp campaign preview</figcaption>
@@ -48013,9 +48034,10 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
           (mapcar
            (<span class="org-keyword">lambda</span> (var)
              (<span class="org-keyword">prog1</span> (cons (car var) (symbol-value (car var)))
-               (setopt--set
-                (car var)
-                (cdr var))))
+               (<span class="org-keyword">unless</span> (equal (cdr var) (symbol-value (car var)))
+                 (setopt--set
+                  (car var)
+                  (cdr var)))))
            sacha-stream-variables-to-override)))
   (<span class="org-keyword">when</span> (<span class="org-keyword">featurep</span> <span class="org-highlight-quoted-quote">'</span><span class="org-constant">org</span>)
     (org-refile-cache-clear)))
@@ -48828,7 +48850,7 @@ To activate:
 <div id="outline-container-simple-streaming" class="outline-3">
 <h3 id="simple-streaming"><span class="section-number-3">21.12.</span> <a href="#simple-streaming">Simple streaming with FFmpeg</a></h3>
 <div class="outline-text-3" id="text-simple-streaming">
-<div class="update" id="org5ddd3ee">
+<div class="update" id="orgb360f30">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2024-01-20">[2024-01-20 Sat]</time></span>: As it turns out, my X230T can't
 handle streaming with FFMmpeg. I get like half a
@@ -48845,7 +48867,7 @@ My X230T can't handle OBS, but maybe I can stream with FFmpeg.
 </p>
 
 <details><summary>streaming-setup</summary><div class="org-src-container">
-<pre class="src src-sh" id="orgf59fbf5"><code><span class="org-comment-delimiter"># </span><span class="org-comment">From pacmd list-sources | egrep '^\s+name'</span>
+<pre class="src src-sh" id="orge0c348e"><code><span class="org-comment-delimiter"># </span><span class="org-comment">From pacmd list-sources | egrep '^\s+name'</span>
 <span class="org-builtin">export</span> <span class="org-variable-name">LAPEL</span>=alsa_input.usb-Jieli_Technology_USB_Composite_Device_433035383239312E-00.mono-fallback <span class="org-comment-delimiter">#</span>
 <span class="org-builtin">export</span> <span class="org-variable-name">YETI</span>=alsa_input.usb-Blue_Microphones_Yeti_Stereo_Microphone_REV8-00.analog-stereo
 <span class="org-builtin">export</span> <span class="org-variable-name">SYSTEM</span>=alsa_output.pci-0000_00_1b.0.analog-stereo.monitor
@@ -48985,7 +49007,7 @@ Ideas for next steps:
 <div id="outline-container-controlling-sacha-stream-audio-from-emacs-background-music-typing-sounds-and-push-to-talk" class="outline-3">
 <h3 id="controlling-sacha-stream-audio-from-emacs-background-music-typing-sounds-and-push-to-talk"><span class="section-number-3">21.13.</span> <a href="#controlling-sacha-stream-audio-from-emacs-background-music-typing-sounds-and-push-to-talk">Controlling my stream audio from Emacs: background music, typing sounds, and push to talk&nbsp;&nbsp;&nbsp<span class="tag"><span class="emacs">emacs</span></span></a></h3>
 <div class="outline-text-3" id="text-controlling-sacha-stream-audio-from-emacs-background-music-typing-sounds-and-push-to-talk">
-<div class="update" id="org4829691">
+<div class="update" id="orgd0f13f5">
 <ul class="org-ul">
 <li>2021-02-11: Parsed <code>pacmd list-sources</code> so that I can mute/unmute devices by regular expression.</li>
 <li>2021-02-07: Made it work with my USB microphone.</li>
@@ -49064,7 +49086,7 @@ this more random-sounding someday.
 </code></pre>
 </div>
 
-<div class="update" id="orge0cd6af">
+<div class="update" id="org0cedf9f">
 <p>
 <span class="timestamp-wrapper"><time class="timestamp" datetime="2024-01-10">[2024-01-10 Wed]</time></span>: I'm using the Blue Yeti microphone now, so I can use the
 hardware mute button instead of push to talk.
@@ -49948,7 +49970,7 @@ Here is an example of that link in action. It's the <code>(Log)</code> link that
 </code></pre>
 </div></details>
 
-<div class="media-post" id="org3ed8d1b">
+<div class="media-post" id="orgeef48e7">
 <p>
 <video preload="none" controls="1" src="file:///home/sacha/proj/yay-emacs/ye16.1-stream-show-string-and-calculate-offset.mp4" type="video/mp4"> <a href="/home/sacha/proj/yay-emacs/ye16.1-stream-show-string-and-calculate-offset.mp4">Download the video</a></video>
 </p>
@@ -49972,7 +49994,7 @@ Here's a short function for getting those times:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org0ca836b"><code>(<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-time-at-point</span> ()
+<pre class="src src-emacs-lisp" id="org453b3be"><code>(<span class="org-keyword">defun</span> <span class="org-function-name">sacha-org-time-at-point</span> ()
   <span class="org-doc">"Return Emacs time object for timestamp at point."</span>
   (<span class="org-keyword">if</span> (eq (org-element-type (org-element-context)) <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">timestamp</span>)
       (org-timestamp-to-time (org-timestamp-from-string (org-element-property <span class="org-builtin">:raw-value</span> (org-element-context))))
@@ -50951,8 +50973,8 @@ I sometimes want to make my mouse cursor easier to see when I am streaming.
 </div>
 </div>
 </div>
-<div id="outline-container-org596eed2" class="outline-2">
-<h2 id="org596eed2"><span class="section-number-2">22.</span> <a href="#org596eed2">Large language models and AI</a></h2>
+<div id="outline-container-org21e3092" class="outline-2">
+<h2 id="org21e3092"><span class="section-number-2">22.</span> <a href="#org21e3092">Large language models and AI</a></h2>
 <div class="outline-text-2" id="text-22">
 <div class="org-src-container">
 <pre class="src src-emacs-lisp"><code>(<span class="org-keyword">require</span> <span class="org-highlight-quoted-quote">'</span><span class="org-constant">llm</span>)
@@ -50971,7 +50993,7 @@ I sometimes want to make my mouse cursor easier to see when I am streaming.
                 (<span class="org-keyword">or</span> (documentation sym) <span class="org-string">""</span>))
                functions))))
     (<span class="org-keyword">setq</span> functions (sort functions <span class="org-builtin">:key</span> <span class="org-highlight-quoted-quote">'</span><span class="org-highlight-quoted-symbol">car</span> <span class="org-builtin">:lessp</span> <span class="org-highlight-quoted-quote">#'</span><span class="org-highlight-quoted-symbol">string&lt;</span>))
-
+    <span class="org-comment-delimiter">;; </span><span class="org-comment">someday: RAG to figure out which function I might be talking about?</span>
     functions))
 </code></pre>
 </div>
@@ -51197,7 +51219,7 @@ From <a href="https://github.com/nhoffman/.emacs.d/blob/master/init.org">https:/
 <h2 id="links"><span class="section-number-2">24.</span> <a href="#links">Other cool configs you may want to check out</a></h2>
 <div class="outline-text-2" id="text-links">
 <p>
-<a id="org9a8871b"></a>
+<a id="orgd43e4e4"></a>
 </p>
 
 <ul class="org-ul">
@@ -51375,7 +51397,7 @@ I added <code>sacha-emacswiki-open</code> to <code>browse-url-handlers</code>. (
 <h3 id="beeminder"><span class="section-number-3">25.4.</span> <a href="#beeminder">Beeminder</a></h3>
 <div class="outline-text-3" id="text-beeminder">
 <p>
-<a id="org49a2ff3"></a>
+<a id="org186a690"></a>
 </p>
 
 <p>
@@ -51543,7 +51565,7 @@ There's probably a better way to do it, but this is a good start.
 </p>
 
 
-<figure id="org98a041b">
+<figure id="org11ace8c">
 <img src="images/steno.png" alt="steno.png">
 
 <figcaption><span class="figure-number">Figure 43: </span>This is how the hint appears</figcaption>
@@ -52329,7 +52351,7 @@ something that uses inotify to monitor the clippy.txt log and put it
 an Emacs buffer instead. It results in text like this:
 </p>
 
-<pre class="example" id="org9a4dfe8">
+<pre class="example" id="orge209605">
 Clippy
 KHREUP PEU
 added
@@ -52953,7 +52975,7 @@ references.
 </div>
 
 <div class="org-src-container">
-<pre class="src src-emacs-lisp" id="org65c8ee1"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
+<pre class="src src-emacs-lisp" id="orge2b1c1f"><code><span class="org-comment-delimiter">;;;</span><span class="org-comment">###</span><span class="org-comment"><span class="org-warning">autoload</span></span>
 (<span class="org-keyword">defun</span> <span class="org-function-name">sacha-geeqie-view</span> (filenames)
   (<span class="org-keyword">interactive</span> <span class="org-string">"f"</span>)
   (start-process-shell-command
@@ -53964,7 +53986,7 @@ can make a table that looks like this:
 </p>
 
 
-<figure id="org28a4c50">
+<figure id="org4421002">
 <img src="images/comparison-shopping.png" alt="comparison-shopping.png">
 
 <figcaption><span class="figure-number">Figure 44: </span>Comparison-shopping</figcaption>

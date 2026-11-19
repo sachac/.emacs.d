@@ -559,35 +559,36 @@ contents of the minibuffer before submitting it.
 From https://github.com/itsjeyd/emacs-config/blob/emacs24/init.el
 
 #+BEGIN_SRC emacs-lisp :tangle lisp/sacha-navigate.el
-;;;###autoload
-(defun sacha-kill-single-line-if-region-is-inactive (beg end &optional region)
-"Wrap around `kill-region' so that we kill a single line."
-(interactive (progn
-	       (let ((beg (mark kill-region-dwim))
-		     (end (point)))
-		 (cond
-		  ((and kill-region-dwim (not (use-region-p)))
-		   (list beg end kill-region-dwim))
-		  ((not (and beg end))
-		   (user-error "The mark is not set now, so there is no region"))
-		  ((list beg end 'region))))))
-(if (or (region-active-p)
-	(derived-mode-p 'minibuffer-mode))
-    (kill-region beg end region)
-  (kill-region
-   (line-beginning-position)
-   (line-beginning-position 2))))
+  ;;;###autoload
+  (defun sacha-kill-single-line-if-region-is-inactive (beg end &optional region)
+  "Wrap around `kill-region' so that we kill a single line."
+  (interactive (progn
+  	       (let ((beg (mark kill-region-dwim))
+  		     (end (point)))
+  		 (cond
+  		  ((and kill-region-dwim (not (use-region-p)))
+  		   (list beg end kill-region-dwim))
+  		  ((not (and beg end))
+  		   (user-error "The mark is not set now, so there is no region"))
+  		  ((list beg end 'region))))))
+  (if (or (region-active-p)
+  	(derived-mode-p 'minibuffer-mode))
+      (kill-region beg end region)
+    (kill-region
+     (line-beginning-position)
+     (line-beginning-position 2))))
 
-(ert-deftest sacha-kill-single-line-if-region-is-inactive ()
-"Tests `sacha-kill-single-line-if-region-is-inactive'."
-(should
- (equal
-  (with-temp-buffer
-    (insert "Hello there\nWorld\n")
-    (goto-char (point-min))
-    (sacha-kill-single-line-if-region-is-inactive nil nil)
-    (setq text (buffer-string)))
-  "World\n")))
+  (eval-when-compile (require 'ert))
+  (ert-deftest sacha-kill-single-line-if-region-is-inactive ()
+  "Tests `sacha-kill-single-line-if-region-is-inactive'."
+  (should
+   (equal
+    (with-temp-buffer
+      (insert "Hello there\nWorld\n")
+      (goto-char (point-min))
+      (sacha-kill-single-line-if-region-is-inactive nil nil)
+      (setq text (buffer-string)))
+    "World\n")))
 #+END_SRC
 
 If I use =M-w= (=kill-ring-save=) without a region, I usually mean the current symbol.
@@ -9116,57 +9117,67 @@ From https://code.tecosaur.net/tec/emacs-config/commit/1e6e64991e"
 :END:
 
 #+begin_src emacs-lisp :tangle lisp/sacha-misc.el
-(defvar sacha-active-frame nil
-"The current non-emacsclient frame.")
-(defvar sacha-ignore-frame nil "Non-nil means ignore this frame.")
-;;;###autoload
-(defun sacha-track-active-frame (&rest _)
-      (let ((frame (selected-frame)))
-  (when (and (frame-focus-state frame)
-	     (not sacha-ignore-frame))
-    (setq sacha-active-frame frame))))
+  (defvar sacha-active-frame nil
+  "The current non-emacsclient frame.")
+  (defvar sacha-ignore-frame nil "Non-nil means ignore this frame.")
+  ;;;###autoload
+  (defun sacha-track-active-frame (&rest _)
+        (let ((frame (selected-frame)))
+    (when (and (frame-focus-state frame)
+  	     (not sacha-ignore-frame))
+      (setq sacha-active-frame frame))))
 
-;;;###autoload
-(defun sacha-whisper-emacsclient ()
-	"Reset to dictation mode and run speech recognition.
+  ;;;###autoload
+  (defun sacha-whisper-emacsclient ()
+  	"Reset to dictation mode and run speech recognition.
 
-If Whisper is sleeping, start it in dictation mode and save thes tate.
-If it's already listening in dictation mode.
-"
-	(interactive)
-	(let ((sacha-track-active-frame nil))
-		(cond
-		 (sacha-whisper-sleep
-			(setq sacha-whisper-before-emacsclient-state
-						(cons sacha-whisper-mode sacha-whisper-sleep))
-			(sacha-whisper-set-filter-mode 'dictation nil))
-		 ((eq sacha-whisper-mode 'dictation) ; already awake and listening
-			(if sacha-whisper-before-emacsclient-state
-					(sacha-whisper-set-filter-mode
-					 (car sacha-whisper-before-emacsclient-state)
-					 (cdr sacha-whisper-before-emacsclient-state))
-				(sacha-whisper-set-filter-mode
-				 'dictation
-					t)))
-		 ;; awake, but not listening for dictation
-		 (t
-			(setq sacha-whisper-before-emacsclient-state
-						(cons sacha-whisper-mode sacha-whisper-sleep))
-			(sacha-whisper-set-filter-mode
-			 'dictation
-				nil)))))
+  If Whisper is sleeping, start it in dictation mode and save thes tate.
+  If it's already listening in dictation mode.
+  "
+  	(interactive)
+  	(let ((sacha-track-active-frame nil))
+  		(if (process-live-p sacha-vad-asr-process)
+  				(cond
+  				 (sacha-whisper-sleep
+  					(setq sacha-whisper-before-emacsclient-state
+  								(cons sacha-whisper-mode sacha-whisper-sleep))
+  					(sacha-whisper-set-filter-mode 'dictation nil))
+  				 ((eq sacha-whisper-mode 'dictation) ; already awake and listening
+  					(if sacha-whisper-before-emacsclient-state
+  							(sacha-whisper-set-filter-mode
+  							 (car sacha-whisper-before-emacsclient-state)
+  							 (cdr sacha-whisper-before-emacsclient-state))
+  						(sacha-whisper-set-filter-mode
+  						 'dictation
+  						 t)))
+  				 ;; awake, but not listening for dictation
+  				 (t
+  					(setq sacha-whisper-before-emacsclient-state
+  								(cons sacha-whisper-mode sacha-whisper-sleep))
+  					(sacha-whisper-set-filter-mode
+  					 'dictation
+  					 nil)))
+  			(sacha-whisper-emacsclient-run-with-pending))))
 
-(defun sacha-whisper-emacsclient-run-with-pending ()
-	"Start whisper with a pending indicator.
-Previous implementation to call with emacsclient if you're not
-using `sacha-vad-asr-start'."
-	(interactive)
-	(let ((sacha-track-active-frame nil))
-		(setq sacha-whisper-mode 'dictation)
-		(setq sacha-whisper-sleep nil)
-		(with-selected-frame sacha-active-frame
-			(with-current-buffer (window-buffer (frame-selected-window sacha-active-frame))
-				(call-interactively 'sacha-whisper-run-with-pending-indicator)))))
+  (defun sacha-whisper-emacsclient-run-with-pending ()
+  	"Start whisper with a pending indicator.
+  Previous implementation to call with emacsclient if you're not
+  using `sacha-vad-asr-start'."
+  	(interactive)
+  	(let ((sacha-track-active-frame nil))
+  		;; TODO: Change this to use the event ring
+  		(if (and (eq sacha-whisper-mode 'dictation)
+  						 (not sacha-whisper-sleep)
+  						 sacha-whisper-before-emacsclient-state)
+  				(sacha-whisper-set-filter-mode
+  				 (car sacha-whisper-before-emacsclient-state)
+  				 (cdr sacha-whisper-before-emacsclient-state))
+  			(setq sacha-whisper-before-emacsclient-state
+  						(cons sacha-whisper-mode sacha-whisper-sleep))
+  			(sacha-whisper-set-filter-mode 'dictation nil))
+  		(with-selected-frame sacha-active-frame
+  			(with-current-buffer (window-buffer (frame-selected-window sacha-active-frame))
+  				(call-interactively 'sacha-whisper-run-with-pending-indicator)))))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -9335,6 +9346,7 @@ Useful in `speech-input-commands'."
 			 (* number 60 60)))))
 
 (phony-defun today "today" :contributes-to date (org-read-date nil nil "."))
+(phony-defun afternoon "afternoon" :contributes-to date (org-read-date nil nil "12:30"))
 (phony-defun someday "someday" :contributes-to date nil)
 (phony-defun tomorrow "tomorrow" :contributes-to date (org-read-date nil nil "+1"))
 (phony-defun monday "Monday" :contributes-to date (org-read-date nil nil "+mon"))
@@ -10069,24 +10081,25 @@ NUMBER-STRING is parsed by `string-to-number'."
 
 
 #+begin_src emacs-lisp
-(use-package simulacrum)
-(use-package phony
-  :load-path "~/vendor/phony.el"
-  :init
-  (server-mode 1)
-	(setq phony-export-function #'ignore)  ; don't actually use Talon for the recognition
-  :config
-  (phony-mode 1)
-	(phony-experimental-set-parser-literal-normalizer
-	 #'sacha-phony-sanitize-literal))
-
-(use-package phony-talon-community-bindings
-  :load-path "~/vendor/phony.el")
-(use-package cursorfree
-	:load-path "~/vendor/cursorfree.el"
-	:config
-	(cursorfree-phony-mode)
-	)
+  (use-package simulacrum)
+  (use-package phony
+    :load-path "~/vendor/phony.el"
+    :init
+    (server-mode 1)
+  	(setq phony-export-function #'ignore)  ; don't actually use Talon for the recognition
+    :config
+    (phony-mode 1))
+  (with-eval-after-load 'phony
+    (require 'phony-experimental)
+    (phony-experimental-set-parser-literal-normalizer
+     #'sacha-phony-sanitize-literal))
+  (use-package phony-talon-community-bindings
+    :load-path "~/vendor/phony.el")
+  (use-package cursorfree
+  	:load-path "~/vendor/cursorfree.el"
+  	:config
+  	(cursorfree-phony-mode)
+  	)
 #+end_src
 *** Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere :speech:
 :PROPERTIES:
@@ -10317,61 +10330,62 @@ These commands get processed regardless of the mode:
 \"over\" and \"scratch that\" gets processed at the end of any utterance.
 \"panic\" kills OBS.
 "
-	(when text
-		(pcase (sacha-phony-parser--sanitize text)
-			("continuous"
-			 (speech-input-vad-start)
-			 (setq text nil))
-			("manual"
-			 (speech-input-vad-stop)
-			 (setq text nil))
-			((or "wake up" "dictation")
-			 (sacha-whisper-set-filter-mode 'all nil)
-			 (setq text nil))
-			((or "commands" "drive")
-			 (sacha-whisper-audio-feedback "command mode")
-			 (sacha-whisper-set-filter-mode 'commands nil)
-			 (setq text nil))
-			((or "only dictation" "dictation focus")
-			 (sacha-whisper-audio-feedback "dictation focus")
-			 (sacha-whisper-set-filter-mode 'dictation-focus nil)
-			 (setq text nil))
-			((or "kebab" "skewer")
-			 (sacha-whisper-audio-feedback "kebab mode")
-			 (sacha-whisper-set-filter-mode 'kebab nil)
-			 (setq text nil))
-			("panic"
-			 (sacha-obs-panic))
-			("over"
-			 (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
-			 (setq text nil)
-			 (if sacha-whisper-sleep
-					 (sacha-whisper-audio-feedback "bye")
-				 (sacha-whisper-audio-feedback "hi")))
-			((or "sleep" "all done")
-			 (sacha-whisper-set-filter-mode nil t)
-			 (setq text nil))
-			(_
-			 (cond
-				((string-match "\\`\\(so\\|anyway\\)?[\\.?! ]*chat\\>" text)
-				 (setq text nil))
-				((string-match "\\<\\(scratch that\\)[\\.?! ]*$" text)
-				 (setq text nil))
-				((string-match "\\<\\(over\\)[\\.?! ]*$" text)
-				 (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
-				 (setq text
-							 (if sacha-whisper-sleep
-									 nil
-								 (replace-match "" nil nil text 1)))
-				 (if sacha-whisper-sleep
-						 (sacha-whisper-audio-feedback "bye")
-					 (sacha-whisper-audio-feedback "hi")))))))
-	(let* ((state (sacha-whisper-effective-mode-at-timestamp
-								 (get-text-property 0 'start_ts text)))
+	(let* ((state (and text
+										 (sacha-whisper-effective-mode-at-timestamp
+											(get-text-property 0 'start_ts text))))
 				 (mode (elt state 1))
 				 (sleep (elt state 2)))
+		(when text
+			(pcase (sacha-phony-parser--sanitize text)
+				("continuous"
+				 (speech-input-vad-start)
+				 (setq text nil))
+				("manual"
+				 (speech-input-vad-stop)
+				 (setq text nil))
+				((or "wake up" "dictation")
+				 (sacha-whisper-set-filter-mode 'all nil)
+				 (setq text nil))
+				((or "commands" "drive")
+				 (sacha-whisper-audio-feedback "command mode")
+				 (sacha-whisper-set-filter-mode 'commands nil)
+				 (setq text nil))
+				((or "only dictation" "dictation focus")
+				 (sacha-whisper-audio-feedback "dictation focus")
+				 (sacha-whisper-set-filter-mode 'dictation-focus nil)
+				 (setq text nil))
+				((or "kebab" "skewer")
+				 (sacha-whisper-audio-feedback "kebab mode")
+				 (sacha-whisper-set-filter-mode 'kebab nil)
+				 (setq text nil))
+				("panic"
+				 (sacha-obs-panic))
+				("over"
+				 (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
+				 (setq text nil)
+				 (if sacha-whisper-sleep
+						 (sacha-whisper-audio-feedback "bye")
+					 (sacha-whisper-audio-feedback "hi")))
+				((or "sleep" "all done")
+				 (sacha-whisper-set-filter-mode nil t)
+				 (setq text nil))
+				(_
+				 (cond
+					((string-match "\\`\\(so\\|anyway\\)?[\\.?! ]*chat\\>" text)
+					 (setq text nil))
+					((string-match "\\<\\(scratch that\\)[\\.?! ]*$" text)
+					 (setq text nil))
+					((string-match "\\<\\(over\\)[\\.?! ]*$" text)
+					 (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
+					 (setq text
+								 (if sacha-whisper-sleep
+										 nil
+									 (replace-match "" nil nil text 1)))
+					 (if sacha-whisper-sleep
+							 (sacha-whisper-audio-feedback "bye")
+						 (sacha-whisper-audio-feedback "hi")))))))
 		(when sleep
-			(setq text nil));; Filter based on sleep or commands
+			(setq text nil)) ;; Filter based on sleep or commands
 		(when (eq mode 'commands)
 			(unless (and text
 									 (or (phony-parser--parse-utterance text)
@@ -10410,7 +10424,7 @@ These commands get processed regardless of the mode:
 											(insert "\n"))
 										(when (and sacha-whisper-one-sentence-per-line
 															 (not (eq sacha-whisper-mode 'kebab))
-															 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"" (line-beginning-position))))
+															 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"\\|;; *" (line-beginning-position))))
 											(if (and (derived-mode-p 'org-mode)
 															 (org-element-lineage (org-element-context) '(item plain-list)))
 													(unless (<= (save-excursion
@@ -12553,9 +12567,7 @@ Add this to `whisper-insert-text-at-point.'"
 		 . sacha-whisper-clip)
 		("rename clip,? \\(.+\\)" . ,(lambda (text) (message "%s" (file-name-base (sacha-clip-add-note-to-latest text))) ""))
 		("instant replay" . sacha-clip-play-latest)
-		("panic" . sacha-obs
-I and I should have my panic thing.
-Let's get this panic.-panic)
+		("panic" . sacha-obs-panic)
 		("one sentence per line\\|sentence mode" . (lambda () (setq sacha-whisper-one-sentence-per-line t) ""))
 		("paragraph mode" . (lambda () (setq sacha-whisper-one-sentence-per-line nil) ""))
 		("\\(?:fill\\|wrap\\|rap\\|rep\\) lines?" . (lambda () (let ((fill-column most-positive-fixnum)) (fill-paragraph)) ""))
@@ -13618,6 +13630,15 @@ I generated this simple server file with Gemini AI: [[file:~/vendor/orukeet/oruk
 	   :command sacha-orukeet-command
 	   :buffer (get-buffer-create "*orukeet*")
 	   :stderr (get-buffer-create "*orukeet-err*"))))))
+
+;;;###autoload
+(defun sacha-orukeet-restart ()
+  "Restart the process."
+  (interactive)
+	(when (process-live-p sacha-orukeet-process)
+		(kill-process sacha-orukeet-process))
+	(sleep-for 0.1)
+	(sacha-orukeet-ensure))
 #+end_src
 
 Here's my config for [[https://github.com/sachac/whisper.el][my fork of natrys/whisper.el]]:
@@ -43282,9 +43303,10 @@ It'll be even cooler if I can get some of this working via systemd persistent ta
           (mapcar
            (lambda (var)
              (prog1 (cons (car var) (symbol-value (car var)))
-               (setopt--set
-                (car var)
-                (cdr var))))
+							 (unless (equal (cdr var) (symbol-value (car var)))
+								 (setopt--set
+									(car var)
+									(cdr var)))))
            sacha-stream-variables-to-override)))
   (when (featurep 'org)
     (org-refile-cache-clear)))

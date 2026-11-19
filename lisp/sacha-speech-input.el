@@ -193,61 +193,62 @@ These commands get processed regardless of the mode:
 \"over\" and \"scratch that\" gets processed at the end of any utterance.
 \"panic\" kills OBS.
 "
-	(when text
-		(pcase (sacha-phony-parser--sanitize text)
-			("continuous"
-			 (speech-input-vad-start)
-			 (setq text nil))
-			("manual"
-			 (speech-input-vad-stop)
-			 (setq text nil))
-			((or "wake up" "dictation")
-			 (sacha-whisper-set-filter-mode 'all nil)
-			 (setq text nil))
-			((or "commands" "drive")
-			 (sacha-whisper-audio-feedback "command mode")
-			 (sacha-whisper-set-filter-mode 'commands nil)
-			 (setq text nil))
-			((or "only dictation" "dictation focus")
-			 (sacha-whisper-audio-feedback "dictation focus")
-			 (sacha-whisper-set-filter-mode 'dictation-focus nil)
-			 (setq text nil))
-			((or "kebab" "skewer")
-			 (sacha-whisper-audio-feedback "kebab mode")
-			 (sacha-whisper-set-filter-mode 'kebab nil)
-			 (setq text nil))
-			("panic"
-			 (sacha-obs-panic))
-			("over"
-			 (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
-			 (setq text nil)
-			 (if sacha-whisper-sleep
-					 (sacha-whisper-audio-feedback "bye")
-				 (sacha-whisper-audio-feedback "hi")))
-			((or "sleep" "all done")
-			 (sacha-whisper-set-filter-mode nil t)
-			 (setq text nil))
-			(_
-			 (cond
-				((string-match "\\`\\(so\\|anyway\\)?[\\.?! ]*chat\\>" text)
-				 (setq text nil))
-				((string-match "\\<\\(scratch that\\)[\\.?! ]*$" text)
-				 (setq text nil))
-				((string-match "\\<\\(over\\)[\\.?! ]*$" text)
-				 (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
-				 (setq text
-							 (if sacha-whisper-sleep
-									 nil
-								 (replace-match "" nil nil text 1)))
-				 (if sacha-whisper-sleep
-						 (sacha-whisper-audio-feedback "bye")
-					 (sacha-whisper-audio-feedback "hi")))))))
-	(let* ((state (sacha-whisper-effective-mode-at-timestamp
-								 (get-text-property 0 'start_ts text)))
+	(let* ((state (and text
+										 (sacha-whisper-effective-mode-at-timestamp
+											(get-text-property 0 'start_ts text))))
 				 (mode (elt state 1))
 				 (sleep (elt state 2)))
+		(when text
+			(pcase (sacha-phony-parser--sanitize text)
+				("continuous"
+				 (speech-input-vad-start)
+				 (setq text nil))
+				("manual"
+				 (speech-input-vad-stop)
+				 (setq text nil))
+				((or "wake up" "dictation")
+				 (sacha-whisper-set-filter-mode 'all nil)
+				 (setq text nil))
+				((or "commands" "drive")
+				 (sacha-whisper-audio-feedback "command mode")
+				 (sacha-whisper-set-filter-mode 'commands nil)
+				 (setq text nil))
+				((or "only dictation" "dictation focus")
+				 (sacha-whisper-audio-feedback "dictation focus")
+				 (sacha-whisper-set-filter-mode 'dictation-focus nil)
+				 (setq text nil))
+				((or "kebab" "skewer")
+				 (sacha-whisper-audio-feedback "kebab mode")
+				 (sacha-whisper-set-filter-mode 'kebab nil)
+				 (setq text nil))
+				("panic"
+				 (sacha-obs-panic))
+				("over"
+				 (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
+				 (setq text nil)
+				 (if sacha-whisper-sleep
+						 (sacha-whisper-audio-feedback "bye")
+					 (sacha-whisper-audio-feedback "hi")))
+				((or "sleep" "all done")
+				 (sacha-whisper-set-filter-mode nil t)
+				 (setq text nil))
+				(_
+				 (cond
+					((string-match "\\`\\(so\\|anyway\\)?[\\.?! ]*chat\\>" text)
+					 (setq text nil))
+					((string-match "\\<\\(scratch that\\)[\\.?! ]*$" text)
+					 (setq text nil))
+					((string-match "\\<\\(over\\)[\\.?! ]*$" text)
+					 (sacha-whisper-set-filter-mode nil (not sacha-whisper-sleep))
+					 (setq text
+								 (if sacha-whisper-sleep
+										 nil
+									 (replace-match "" nil nil text 1)))
+					 (if sacha-whisper-sleep
+							 (sacha-whisper-audio-feedback "bye")
+						 (sacha-whisper-audio-feedback "hi")))))))
 		(when sleep
-			(setq text nil));; Filter based on sleep or commands
+			(setq text nil)) ;; Filter based on sleep or commands
 		(when (eq mode 'commands)
 			(unless (and text
 									 (or (phony-parser--parse-utterance text)
@@ -286,7 +287,7 @@ These commands get processed regardless of the mode:
 											(insert "\n"))
 										(when (and sacha-whisper-one-sentence-per-line
 															 (not (eq sacha-whisper-mode 'kebab))
-															 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"" (line-beginning-position))))
+															 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"\\|;; *" (line-beginning-position))))
 											(if (and (derived-mode-p 'org-mode)
 															 (org-element-lineage (org-element-context) '(item plain-list)))
 													(unless (<= (save-excursion

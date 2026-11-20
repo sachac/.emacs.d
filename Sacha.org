@@ -9882,6 +9882,20 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 	 (car (cdr target))
 	 (cdr (cdr target))))
 
+(phony-defun clean-up ("clean up" (? target))
+	"Rewrite selected target."
+	(setq target
+				(or target (cons 'paragraph
+												 (bounds-of-thing-at-point 'paragraph))))
+	(gptel-with-preset 'clean-up
+		(save-restriction
+			(narrow-to-region (car (cdr target)) (cdr (cdr target)))
+			(goto-char (point-min))
+			(push-mark (point-max) t t)
+			(gptel--suffix-rewrite (or gptel--rewrite-message "Clean up this transcribed text.")))))
+
+
+
 (phony-defun computer-implement ("computer implement this function")
 	"Rewrite and implement this function."
 	(let ((bounds (bounds-of-thing-at-point 'defun)))
@@ -11520,6 +11534,30 @@ Add to `sacha-vad-event-handler-functions'."
 (defvar sacha-vad-asr-start-seconds 0 "Number of seconds to consider as the start.")
 (defvar sacha-vad-asr-process-start-time nil "Time that the process started.")
 
+(defun sacha-vad-asr-subtitle-list (&optional beg end)
+  "Regenerate the subtitle list from events in the region."
+	(interactive (list
+								(if (region-active-p) (region-beginning) (point))
+								(if (region-active-p) (region-end) (point-max))))
+	(setq beg (or beg (point)))
+	(setq end (or end (point-max)))
+  (let (result)
+		(goto-char beg)
+		(catch 'done
+			(while (< (point) end)
+				(let ((event (condition-case err (json-read)
+											 (error
+												(throw 'done result)))))
+					(when (string= (alist-get 'event event) "final")
+						(mapcar (lambda (o)
+											(push (list nil
+																	(* (alist-get 'start o) 1000)
+																	(* (alist-get 'end o) 1000)
+																	(format "[%s]: %s" (alist-get 'label event)
+																					(alist-get 'text o)))
+														result))
+										(alist-get 'phrases event))))))
+		(nreverse result)))
 #+end_src
 **** Visualizing the balance - work in progress
 #+begin_src emacs-lisp :tangle lisp/sacha-vad-asr.el :summary Visualizing the balance, work in progress
@@ -31956,6 +31994,53 @@ Return (clip-filename start-ms end-ms)."
 		 (org-link-make-string (concat "file:" filename)))))
 
 ;;;###autoload
+(defun sacha-subed-record-title-card-tikz (text)
+  "Make a 1280x720 PNG for TEXT using TikZ and Arial, and insert a subtitle for it."
+  (interactive "MText: ")
+  (let* ((base-name (concat (file-name-sans-extension (buffer-file-name))
+                            "-"
+                            (learn-lang-slugify text)))
+         (png-filename (concat base-name ".png"))
+         (tex-file (make-temp-file "title-card-" nil ".tex"))
+         (pdf-file (concat (file-name-sans-extension tex-file) ".pdf"))
+         (temp-dir (file-name-directory tex-file))
+         (escaped-text (replace-regexp-in-string
+                        "\\([#$%&_{}]\\)" "\\\\\\1" text))
+         (tex-content
+          (format "\\documentclass[tikz,border=0pt]{standalone}
+\\usepackage{fontspec}
+\\setmainfont{Arial}
+\\begin{document}
+\\begin{tikzpicture}
+  \\fill[black] (0,0) rectangle (1280bp, 720bp);
+  \\node[white, text width=1120bp, align=center, font=\\fontsize{70}{84}\\selectfont\\bfseries]
+    at (640bp, 360bp) {%s};
+\\end{tikzpicture}
+\\end{document}"
+                  escaped-text)))
+    (unwind-protect
+        (progn
+          (with-temp-file tex-file
+            (insert tex-content))
+          (shell-command-to-string
+           (format "lualatex -interaction=nonstopmode -output-directory=%s %s"
+                   (shell-quote-argument temp-dir)
+                   (shell-quote-argument tex-file)))
+          (shell-command-to-string
+           (format "magick -density 72 %s -resize 1280x720! %s"
+                   (shell-quote-argument pdf-file)
+                   (shell-quote-argument png-filename))))
+      (dolist (ext '(".tex" ".pdf" ".log" ".aux"))
+        (let ((f (concat (file-name-sans-extension tex-file) ext)))
+          (when (file-exists-p f)
+            (delete-file f)))))
+		(subed-set-subtitle-comment
+		 (concat (if (subed-subtitle-comment)
+								 (concat (subed-subtitle-comment) "\n")
+							 "")
+						 (org-link-make-string (concat "file:" png-filename))))))
+
+;;;###autoload
 (defun sacha-subed-insert-whisper-recording ()
   "Insert a subed record for the latest whisper result."
   (interactive)
@@ -48312,10 +48397,11 @@ references.
             :host "api.groq.com"
             :endpoint "/openai/v1/chat/completions"
             :stream t
-            :key (gptel-api-key-from-environment "GROQ_API_KEY")
+            :key (lambda () (getenv "GROQ_API_KEY"))
             :models '(llama-3.3-70b-versatile
                       llama-3.1-8b-instant
                       openai/gpt-oss-20b
+											qwen/qwen3.8-27b
                       openai/gpt-oss-120b)))
     (setq sacha-gptel-gemini
           (gptel-make-gemini "Gemini"
@@ -48453,6 +48539,7 @@ Generated with an LLM."
 
 (with-eval-after-load 'gptel
 	(gptel-make-preset 'proofread :system "Proofread. Do not return the fixed text, just tell me what edits I need to make.")
+	(gptel-make-preset 'clean-up :system "Clean up this raw transcript. Remove false starts and filler words, fix misrecognized words, sentences and punctuation. Try to stay as close as possible to original wording. Keep contractions and tone. Return only the cleaned-up text, no preface or explanations." :model 'qwen/qwen3.8-27b)
 	(gptel-make-preset 'questions :system "Make a list of three short follow-up questions based on this text. Assume a fairly knowledgeable reader or listener. Use Org Mode syntax. Do not include a preamble, just return the questions.")
 	(gptel-make-preset 'french-conversation :system "Chat like French conversation partners. My level is B1. Reply in 1-3 simple sentences using words for my level. Input is unedited transcription, so there may be misrecognized words. Try to introduce new vocabulary words naturally. End every reply with one easy question to keep us talking." :model 'gemini-3.5-flash-lite))
 

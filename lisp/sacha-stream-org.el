@@ -64,8 +64,9 @@
 										:auto-stop json-false
 										:thumbnail (or (org-entry-get (point) "THUMBNAIL") "~/proj/yay-emacs/thumbnail.png")))
 				 (url (concat "https://youtube.com/live/" (alist-get 'id response))))
-		(org-entry-put (point) "YOUTUBE_URL" url)
-		(insert "yt:" url)
+		(when url
+			(org-entry-put (point) "YOUTUBE_URL" url)
+			(insert "yt:" url))
 		(cl-pushnew
 		 response
 		 (alist-get 'items sacha-google-youtube-live-broadcasts))

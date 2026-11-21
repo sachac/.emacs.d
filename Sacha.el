@@ -1982,19 +1982,21 @@ sacha-toggle-now
 ;; whisper-insert-text-at-point-functions ends here
 
 ;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:9]]
-(with-eval-after-load 'whisper
+(defvar sacha-voice-mark-indicator)
+(with-eval-after-load 'sacha-phony
 	(add-to-list 'mode-line-front-space '(:eval sacha-whisper-mode-indicator)))
+	(add-to-list 'mode-line-front-space '(:eval sacha-voice-mark-indicator))
 ;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:9 ends here
 
-;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:11]]
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:12]]
 (keymap-global-set "<f9>" #'sacha-whisper-run-at-point)
 (keymap-global-set "<kp-1>" #'whisper-run)
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:11 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:12 ends here
 
-;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:13]]
+;; [[file:Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:14]]
 (with-eval-after-load 'org
 (add-hook 'org-clock-in-hook #'sacha-whisper-org-clear-saved-annotation))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:13 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:14 ends here
 
 ;; [[file:Sacha.org::#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models][Emacs and whisper.el: Trying out different speech-to-text backends and models:2]]
 (with-eval-after-load 'whisper
@@ -2940,11 +2942,14 @@ Based on `org-link--try-link-store-functions'."
 
 (setq org-agenda-custom-commands
       `(("a" "Agenda"
-         ((agenda "" ((org-agenda-span 2)))
+				 (
 					(org-ql-block '(and (not (priority "A"))
 															(todo "STARTED")
-															(not (scheduled)))
+															(or (scheduled :to today)
+																	(not (scheduled))))
 												((org-ql-block-header "Started")))
+					(agenda "" ((org-agenda-span 2)))
+
 					(org-ql-block '(and (priority "A")
 															(todo "TODO" "STARTED" "SOMEDAY")
 															(not (scheduled)))
@@ -4580,6 +4585,63 @@ Each list item should be a group ID."
 		(subed-append-subtitle
 		 nil 0 0 ""
 		 (org-link-make-string (concat "file:" filename)))))
+
+;;;###autoload
+(defun sacha-subed-record-title-card-tikz (text)
+  "Make a 1280x720 PNG for TEXT using TikZ and Arial, and insert a subtitle for it."
+  (interactive (list (read-string "Text: "
+																	(when (derived-mode-p 'subed-mode)
+																		(string-trim
+																		 (subed-record-remove-directives (or (subed-subtitle-comment)
+																																				 "")))))))
+  (let* ((base-name (concat (file-name-sans-extension (buffer-file-name))
+                            "-"
+                            (learn-lang-slugify text)))
+         (png-filename (concat base-name ".png"))
+         (tex-file (make-temp-file "title-card-" nil ".tex"))
+         (pdf-file (concat (file-name-sans-extension tex-file) ".pdf"))
+         (temp-dir (file-name-directory tex-file))
+         (escaped-text (replace-regexp-in-string
+                        "\\([#$%&_{}]\\)" "\\\\\\1" text))
+         (tex-content
+          (format "\\documentclass[tikz,border=0pt]{standalone}
+\\usepackage{fontspec}
+\\setmainfont{Arial}
+\\begin{document}
+\\begin{tikzpicture}
+  \\fill[black] (0,0) rectangle (1280bp, 720bp);
+  \\node[white, text width=1120bp, align=center, font=\\fontsize{70}{84}\\selectfont\\bfseries, execute at begin node={\\hyphenpenalty=10000}]
+    at (640bp, 360bp) {%s};
+\\end{tikzpicture}
+\\end{document}"
+                  escaped-text)))
+    (unwind-protect
+        (progn
+          (with-temp-file tex-file
+            (insert tex-content))
+					(when (file-exists-p png-filename)
+						(delete-file png-filename))
+          (shell-command-to-string
+           (format "lualatex -interaction=nonstopmode -output-directory=%s %s"
+                   (shell-quote-argument temp-dir)
+                   (shell-quote-argument tex-file)))
+          (shell-command-to-string
+           (format "magick -density 72 %s -resize 1280x720! %s"
+                   (shell-quote-argument pdf-file)
+                   (shell-quote-argument png-filename)))))
+		(if (file-exists-p png-filename)
+				(progn
+					(dolist (ext '(".tex" ".pdf" ".log" ".aux"))
+						(let ((f (concat (file-name-sans-extension tex-file) ext)))
+							(when (file-exists-p f)
+								(delete-file f))))
+					(unless (string-match png-filename (or (subed-subtitle-comment) ""))
+						(subed-set-subtitle-comment
+						 (concat (if (subed-subtitle-comment)
+												 (concat (subed-subtitle-comment) "\n")
+											 "")
+										 (org-link-make-string (concat "file:" png-filename))))))
+			(error "Could not get file. Might be multiple pages?"))))
 
 ;;;###autoload
 (defun sacha-subed-insert-whisper-recording ()
@@ -7325,10 +7387,11 @@ When called interactively, insert at point."
             :host "api.groq.com"
             :endpoint "/openai/v1/chat/completions"
             :stream t
-            :key (gptel-api-key-from-environment "GROQ_API_KEY")
+            :key (lambda () (getenv "GROQ_API_KEY"))
             :models '(llama-3.3-70b-versatile
                       llama-3.1-8b-instant
                       openai/gpt-oss-20b
+											qwen/qwen3.8-27b
                       openai/gpt-oss-120b)))
     (setq sacha-gptel-gemini
           (gptel-make-gemini "Gemini"

@@ -256,6 +256,11 @@ These commands get processed regardless of the mode:
 				(setq text nil))))
 	text)
 
+(defvar sacha-whisper-voice-region-overlay nil "Overlay highlighting current speech context.")
+(defvar sacha-whisper-voice-region-show-overlay t "Non-nil means highlight current speech context.")
+(defface sacha-whisper-voice-region-face '((t :underline t))
+	"Face for current dictated region.")
+
 ;;;###autoload
 (defun sacha-whisper-insert (text)
 	"Insert TEXT at point, or at `sacha-whisper-target-markers'."
@@ -267,9 +272,13 @@ These commands get processed regardless of the mode:
 					 sacha-whisper-target-markers)
 					((markerp sacha-whisper-target-markers)
 					 (list sacha-whisper-target-markers))))
-				(orig-point (point))
+				(orig-marker (point-marker))
 				(orig-buffer (current-buffer)))
 		(when text
+			(when sacha-whisper-target-markers
+				(setq sacha-whisper-target-markers
+							(seq-filter #'marker-buffer sacha-whisper-target-markers))
+				(unless sacha-whisper-target-markers (sacha-whisper-clear-markers)))
 			(when (eq sacha-whisper-mode 'kebab)
 				(setq text
 							(replace-regexp-in-string
@@ -285,6 +294,26 @@ These commands get processed regardless of the mode:
 											(goto-char marker))
 										(when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
 											(insert "\n"))
+										;; I want to change the overlay if we move to a different point or if we move to a different buffer.
+										(when (and sacha-whisper-voice-region-show-overlay
+															 (not
+																(and (overlayp sacha-whisper-voice-region-overlay)
+																		 (equal (overlay-buffer sacha-whisper-voice-region-overlay)
+																						(current-buffer))
+																		 (<=
+																			(overlay-start sacha-whisper-voice-region-overlay) (point))
+																		 (>=
+																			(overlay-end sacha-whisper-voice-region-overlay) (point))
+																		 )))
+											(when (overlayp sacha-whisper-voice-region-overlay)
+												(delete-overlay sacha-whisper-voice-region-overlay))
+											(setq sacha-whisper-voice-region-overlay
+														(make-overlay (point) (point) nil nil t))
+											(overlay-put sacha-whisper-voice-region-overlay
+																	 'voice-region t)
+											(overlay-put sacha-whisper-voice-region-overlay
+																	 'face
+																	 'sacha-whisper-voice-region-face))
 										(when (and sacha-whisper-one-sentence-per-line
 															 (not (eq sacha-whisper-mode 'kebab))
 															 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"\\|;; *" (line-beginning-position))))
@@ -296,7 +325,7 @@ These commands get processed regardless of the mode:
 																			(or (org-element-contents-begin (org-element-context))
 																					most-positive-fixnum))
 														(org-return))
-												(insert "\n")))
+												(comment-indent-new-line)))
 										(if (and sacha-whisper-one-sentence-per-line
 														 (not (eq sacha-whisper-mode 'kebab)))
 												(seq-map-indexed
@@ -305,7 +334,7 @@ These commands get processed regardless of the mode:
 														 (if (and (derived-mode-p 'org-mode)
 																			(org-element-lineage (org-element-context) '(item plain-list)))
 																 (org-return)
-															 (insert "\n")))
+															 (comment-indent-new-line)))
 													 (insert line))
 												 (split-string
 													(with-temp-buffer
@@ -321,16 +350,51 @@ These commands get processed regardless of the mode:
 														""
 													" ")
 												text)))
+										(when (and sacha-whisper-voice-region-show-overlay
+															 (overlayp sacha-whisper-voice-region-overlay))
+											(overlay-put sacha-whisper-voice-region-overlay
+																	 'evaporate
+																	 t))
 										(when (and
 													 marker
 													 (marker-position marker)
 													 (marker-buffer marker))
-											(move-marker marker (point)))	;; Move the marker forward here
+											(move-marker marker (point))) ;; Move the marker forward here
 										)))
 							markers)
 			(when sacha-whisper-target-markers
-				(goto-char orig-point))
+				(goto-char orig-marker)
+				(set-marker orig-marker nil))
 			nil)))
+
+;; what if I move over here?
+;; Oh yeah.
+;; I want that to be moved.
+;; okay, so if I move to a different area of my buffer and I start
+;; Talking, I want the overlay.
+;; To shift to this new place.
+;; So really what I need here is I wanted to check whether we're in the same buffer and if my point.
+;; Point.
+;; Is within the overlay.
+;; Oh, which also tells me that I need to put, um
+;; So I need to s check at the point to see within the the overlay.
+;; And there's probably an easy way to do this.
+;; Hands at no.
+;; I could do overlays at the point.
+;; I guess so.
+;; Or I could check the start in the end.
+
+
+;; This is a test.
+;; Hey.
+;; Yeah, is that an underline?
+;; That's very cool.
+;; All right.
+;; So now that I have the current stuff.
+;; In an underline.
+;; I can then get the text of the current overlay.
+;; And I can pass that very right thing.
+;; But first I need to figure out when I want it to stop being underlined.
 ;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:7 ends here
 
 ;; [[file:../Sacha.org::sacha-whisper-maybe-type][sacha-whisper-maybe-type]]
@@ -348,27 +412,33 @@ Add this function to `whisper-insert-text-at-point'."
 			nil)))
 ;; sacha-whisper-maybe-type ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:10]]
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:11]]
 ;;;###autoload
 (defun sacha-whisper-clear-markers ()
 	(interactive)
-	(setq sacha-whisper-target-markers nil))
+	(setq sacha-whisper-target-markers nil)
+	(when (overlayp sacha-whisper-voice-region-overlay)
+		(delete-overlay sacha-whisper-voice-region-overlay))
+	(setq sacha-voice-mark-indicator "☝️"))
 
 ;;;###autoload
 (defun sacha-whisper-use-current-point (&optional add)
 	(interactive (list current-prefix-arg))
+	(when (overlayp sacha-whisper-voice-region-overlay)
+		(delete-overlay sacha-whisper-voice-region-overlay))
 	(if add
-(push (point-marker) sacha-whisper-target-markers)
-		(setq sacha-whisper-target-markers (list (point-marker)))))
+			(push (point-marker) sacha-whisper-target-markers)
+		(setq sacha-whisper-target-markers (list (point-marker))))
+	(setq sacha-voice-mark-indicator "🔖"))
 
 ;;;###autoload
 (defun sacha-whisper-run-at-point (&optional add)
 	(interactive (list current-prefix-arg))
 	(sacha-whisper-clear-markers)
 	(whisper-run))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:10 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:11 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:12]]
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:13]]
 ;;;###autoload
 (defun sacha-whisper-jump-to-marker ()
 	(interactive)
@@ -380,13 +450,16 @@ Add this function to `whisper-insert-text-at-point'."
 	(interactive (list current-prefix-arg))
 	(save-window-excursion
 		(save-restriction
-(save-excursion
-	(org-clock-goto)
-	(org-end-of-meta-data)
-	(org-end-of-subtree)
-	(if add
-			(push (point-marker) sacha-whisper-target-markers)
-		(setq sacha-whisper-target-markers (list (point-marker))))))))
+			(save-excursion
+				(org-clock-goto)
+				(org-end-of-meta-data)
+				(org-end-of-subtree)
+				(if add
+						(push (point-marker) sacha-whisper-target-markers)
+					(setq sacha-whisper-target-markers (list (point-marker)))))))
+	(when (overlayp sacha-whisper-voice-region-overlay)
+		(delete-overlay sacha-whisper-voice-region-overlay))
+	(setq sacha-voice-mark-indicator "⏲️"))
 
 ;;;###autoload
 (defun sacha-whisper-run (&optional skip-annotation)
@@ -462,15 +535,15 @@ Add this function to `whisper-insert-text-at-point'."
 					 (set-window-configuration config)
 					 (message "Copied: %s" text))
 				 text config))))))))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:12 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:13 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:14]]
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:15]]
 ;;;###autoload
 (defun sacha-whisper-org-clear-saved-annotation ()
 (setq sacha-whisper-org-last-annotation nil))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:14 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:15 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:15]]
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:16]]
 (defvar sacha-whisper-notes "~/sync/stream/narration.org")
 ;;;###autoload
 (defun sacha-whisper-save-to-file (text)
@@ -482,9 +555,9 @@ Add this function to `whisper-insert-text-at-point'."
 	(save-buffer)
 	(run-at-time 0.5 nil (lambda (text) (message "Saved to file: %s" text)) text)))
     text))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:15 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:16 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:16]]
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:17]]
 ;;;###autoload
 (defun sacha-save-to-kill-ring-after-current (text)
   "Save TEXT to the kill ring, but not at the top spot."
@@ -495,15 +568,15 @@ Add this function to `whisper-insert-text-at-point'."
 	  (push temp kill-ring))
       (kill-new text)))
   text)
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:16 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:17 ends here
 
-;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:17]]
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:18]]
 ;;;###autoload
 (defun sacha-whisper-redo ()
   (interactive)
   (setq whisper--marker (point-marker))
   (whisper--transcribe-audio))
-;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:17 ends here
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:18 ends here
 
 ;; [[file:../Sacha.org::#writing-and-editing-speech-recognition-emacs-and-whisper-el-trying-out-different-speech-to-text-backends-and-models][Emacs and whisper.el: Trying out different speech-to-text backends and models:1]]
 (defvar sacha-whisper-url-format "http://%s:%d/transcribe")

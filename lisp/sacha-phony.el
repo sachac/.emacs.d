@@ -47,6 +47,9 @@
 ;; - Numbers in French
 ;;   https://sachachua.com/dotemacs#writing-and-editing-speech-recognition-emacslisten-numbers-in-french
 ;;
+;; - Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere
+;;   https://sachachua.com/dotemacs#multimedia-whisper
+;;
 ;; - Laser pointer
 ;;   https://sachachua.com/dotemacs#streaming-and-videos-laser-pointer
 ;;
@@ -142,6 +145,9 @@ Useful in `speech-input-commands'."
 (phony-defun demain "demain" :contributes-to date (org-read-date nil nil "+1"))
 (phony-defun la-semaine-prochaine ("la" "semaine" "prochaine") :contributes-to date (org-read-date nil nil "+7"))
 
+(phony-defun current ("current")
+	"Jump to current task."
+	(sacha-whisper-current-task))
 (defun sacha-org-capture-scheduled-task (text &optional date)
 	"Create an inbox task for TEXT on DATE.
 If DATE is t, clock in immediately."
@@ -270,6 +276,9 @@ If DATE is t, clock in immediately."
 (phony-defun mark-cancelled ("cancelled")
   "Change TODO state of an item."
   (sacha-phony-org-todo-and-next "CANCELLED"))
+(phony-defun mark-started ("started")
+  "Change TODO state of an item."
+  (sacha-phony-org-todo-and-next "STARTED"))
 
 (phony-defun refresh ("refresh")
 	(pcase major-mode
@@ -430,6 +439,14 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 	:contributes-to target
 	(cons 'line
 				(bounds-of-thing-at-point 'line)))
+
+(phony-defun voice "voice"
+	"Current voice region context."
+	:contributes-to target
+	(cons 'voice
+				(cons (overlay-start sacha-whisper-voice-region-overlay)
+							(overlay-end sacha-whisper-voice-region-overlay))))
+
 (phony-defun paragraph "paragraph"
 	:contributes-to target
 	(cons 'paragraph
@@ -645,6 +662,32 @@ Set `learn-lang-language' and `learn-lang-tts-function' as needed."
 	 (car (cdr target))
 	 (cdr (cdr target))))
 
+(phony-defun clean-up ("clean up" (? target))
+	"Rewrite selected target."
+	(setq target
+				(or target
+						(if (and (overlayp sacha-whisper-voice-region-overlay)
+										 (not (eq (overlay-start sacha-whisper-voice-region-overlay)
+															(overlay-end sacha-whisper-voice-region-overlay))))
+								(cons 'voice
+											(cons
+											 (overlay-start sacha-whisper-voice-region-overlay)
+											 (overlay-end sacha-whisper-voice-region-overlay)))
+							(cons 'paragraph
+										(bounds-of-thing-at-point 'paragraph)))))
+	(with-current-buffer
+			(if (eq (car target) 'voice)
+					(overlay-buffer sacha-whisper-voice-region-overlay)
+				(current-buffer))
+		(save-restriction
+			(gptel-with-preset 'clean-up
+				(narrow-to-region (car (cdr target)) (cdr (cdr target)))
+				(goto-char (point-min))
+				(push-mark (point-max) t t)
+				(gptel--suffix-rewrite (or gptel--rewrite-message "Clean up this transcribed text."))))))
+
+
+
 (phony-defun computer-implement ("computer implement this function")
 	"Rewrite and implement this function."
 	(let ((bounds (bounds-of-thing-at-point 'defun)))
@@ -831,6 +874,32 @@ NUMBER-STRING is parsed by `string-to-number'."
   "Lowercase and remove punctuation in S."
   (replace-regexp-in-string "[-,\\.!?:]" "" (downcase s)))
 ;; Numbers in French:1 ends here
+
+;; [[file:../Sacha.org::#multimedia-whisper][Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:10]]
+(eval-when-compile (require 'phony))
+(require 'phony)
+
+(defvar sacha-voice-mark-indicator "☝️" "Indicate where the voice mark is.")
+
+(phony-defun voice-mark ("voice mark")
+	"Sets the voice cursor."
+	(sacha-whisper-use-current-point)
+	(sacha-whisper-audio-feedback "Marked."))
+
+(phony-defun voice-clear ("voice clear")
+	"Clear the voice cursor."
+	(sacha-whisper-clear-markers)
+	(sacha-whisper-audio-feedback "Clear."))
+
+(phony-defun voice-jump ("voice jump")
+	"Jump to the voice cursor."
+	(sacha-whisper-jump-to-marker))
+
+(phony-defun voice-clock ("voice clock")
+	"Set the voice cursor to the clocked task."
+	(sacha-whisper-use-currently-clocked-task)
+	(sacha-whisper-audio-feedback "Clock."))
+;; Using whisper.el to convert speech to text and save it to the currently clocked task in Org Mode or elsewhere:10 ends here
 
 ;; [[file:../Sacha.org::#streaming-and-videos-laser-pointer][Laser pointer:2]]
 ;(with-eval-after-load 'phony

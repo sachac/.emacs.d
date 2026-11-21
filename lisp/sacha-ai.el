@@ -150,6 +150,26 @@ Generated with an LLM."
 
 (with-eval-after-load 'gptel
 	(gptel-make-preset 'proofread :system "Proofread. Do not return the fixed text, just tell me what edits I need to make.")
+	(gptel-make-preset 'clean-up :system "You are a dictation assistant, you will be given transcript by the user with speech disfluencies, minor mistakes, and edits and you have to return a corrected transcript. The user might give you their stream of consciousness and you have to ensure that you correctly identify a request to edit and don't misfire. You don't have to generate any new information, just ensure fixes in spoken transcripts and edits as asked.
+
+Input:
+I want to write about umm something related to food.
+My name is name is Sacha
+
+Output:
+I want to write about something related to food.
+My name is Sacha.
+
+Input:
+Okay we will start.
+Let's write something about chairs.
+No not chairs, make it tables.
+
+Output:
+Let's write something about tables.
+"
+																				; "Clean up this raw transcript. Remove false starts and filler words, fix misrecognized words, sentences and punctuation. Try to stay as close as possible to original wording. Keep contractions and tone. Return only the cleaned-up text, no preface or explanations. If the original text is one sentence per line, make the result one sentence per line as well."
+										 :model 'qwen/qwen3.8-27b)
 	(gptel-make-preset 'questions :system "Make a list of three short follow-up questions based on this text. Assume a fairly knowledgeable reader or listener. Use Org Mode syntax. Do not include a preamble, just return the questions.")
 	(gptel-make-preset 'french-conversation :system "Chat like French conversation partners. My level is B1. Reply in 1-3 simple sentences using words for my level. Input is unedited transcription, so there may be misrecognized words. Try to introduce new vocabulary words naturally. End every reply with one easy question to keep us talking." :model 'gemini-3.5-flash-lite))
 

@@ -9362,6 +9362,9 @@ Useful in `speech-input-commands'."
 (phony-defun demain "demain" :contributes-to date (org-read-date nil nil "+1"))
 (phony-defun la-semaine-prochaine ("la" "semaine" "prochaine") :contributes-to date (org-read-date nil nil "+7"))
 
+(phony-defun current ("current")
+	"Jump to current task."
+	(sacha-whisper-current-task))
 (defun sacha-org-capture-scheduled-task (text &optional date)
 	"Create an inbox task for TEXT on DATE.
 If DATE is t, clock in immediately."
@@ -9490,6 +9493,9 @@ If DATE is t, clock in immediately."
 (phony-defun mark-cancelled ("cancelled")
   "Change TODO state of an item."
   (sacha-phony-org-todo-and-next "CANCELLED"))
+(phony-defun mark-started ("started")
+  "Change TODO state of an item."
+  (sacha-phony-org-todo-and-next "STARTED"))
 
 (phony-defun refresh ("refresh")
 	(pcase major-mode
@@ -9658,6 +9664,14 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 	:contributes-to target
 	(cons 'line
 				(bounds-of-thing-at-point 'line)))
+
+(phony-defun voice "voice"
+	"Current voice region context."
+	:contributes-to target
+	(cons 'voice
+				(cons (overlay-start sacha-whisper-voice-region-overlay)
+							(overlay-end sacha-whisper-voice-region-overlay))))
+
 (phony-defun paragraph "paragraph"
 	:contributes-to target
 	(cons 'paragraph
@@ -9885,14 +9899,26 @@ Lots of inspiration from https://github.com/NapoleonWils0n/freebsd-dotfiles-xps/
 (phony-defun clean-up ("clean up" (? target))
 	"Rewrite selected target."
 	(setq target
-				(or target (cons 'paragraph
-												 (bounds-of-thing-at-point 'paragraph))))
-	(gptel-with-preset 'clean-up
+				(or target
+						(if (and (overlayp sacha-whisper-voice-region-overlay)
+										 (not (eq (overlay-start sacha-whisper-voice-region-overlay)
+															(overlay-end sacha-whisper-voice-region-overlay))))
+								(cons 'voice
+											(cons
+											 (overlay-start sacha-whisper-voice-region-overlay)
+											 (overlay-end sacha-whisper-voice-region-overlay)))
+							(cons 'paragraph
+										(bounds-of-thing-at-point 'paragraph)))))
+	(with-current-buffer
+			(if (eq (car target) 'voice)
+					(overlay-buffer sacha-whisper-voice-region-overlay)
+				(current-buffer))
 		(save-restriction
-			(narrow-to-region (car (cdr target)) (cdr (cdr target)))
-			(goto-char (point-min))
-			(push-mark (point-max) t t)
-			(gptel--suffix-rewrite (or gptel--rewrite-message "Clean up this transcribed text.")))))
+			(gptel-with-preset 'clean-up
+				(narrow-to-region (car (cdr target)) (cdr (cdr target)))
+				(goto-char (point-min))
+				(push-mark (point-max) t t)
+				(gptel--suffix-rewrite (or gptel--rewrite-message "Clean up this transcribed text."))))))
 
 
 
@@ -10407,6 +10433,11 @@ These commands get processed regardless of the mode:
 				(setq text nil))))
 	text)
 
+(defvar sacha-whisper-voice-region-overlay nil "Overlay highlighting current speech context.")
+(defvar sacha-whisper-voice-region-show-overlay t "Non-nil means highlight current speech context.")
+(defface sacha-whisper-voice-region-face '((t :underline t))
+	"Face for current dictated region.")
+
 ;;;###autoload
 (defun sacha-whisper-insert (text)
 	"Insert TEXT at point, or at `sacha-whisper-target-markers'."
@@ -10418,9 +10449,13 @@ These commands get processed regardless of the mode:
 					 sacha-whisper-target-markers)
 					((markerp sacha-whisper-target-markers)
 					 (list sacha-whisper-target-markers))))
-				(orig-point (point))
+				(orig-marker (point-marker))
 				(orig-buffer (current-buffer)))
 		(when text
+			(when sacha-whisper-target-markers
+				(setq sacha-whisper-target-markers
+							(seq-filter #'marker-buffer sacha-whisper-target-markers))
+				(unless sacha-whisper-target-markers (sacha-whisper-clear-markers)))
 			(when (eq sacha-whisper-mode 'kebab)
 				(setq text
 							(replace-regexp-in-string
@@ -10436,6 +10471,26 @@ These commands get processed regardless of the mode:
 											(goto-char marker))
 										(when (and (derived-mode-p 'org-mode) (org-at-drawer-p))
 											(insert "\n"))
+										;; I want to change the overlay if we move to a different point or if we move to a different buffer.
+										(when (and sacha-whisper-voice-region-show-overlay
+															 (not
+																(and (overlayp sacha-whisper-voice-region-overlay)
+																		 (equal (overlay-buffer sacha-whisper-voice-region-overlay)
+																						(current-buffer))
+																		 (<=
+																			(overlay-start sacha-whisper-voice-region-overlay) (point))
+																		 (>=
+																			(overlay-end sacha-whisper-voice-region-overlay) (point))
+																		 )))
+											(when (overlayp sacha-whisper-voice-region-overlay)
+												(delete-overlay sacha-whisper-voice-region-overlay))
+											(setq sacha-whisper-voice-region-overlay
+														(make-overlay (point) (point) nil nil t))
+											(overlay-put sacha-whisper-voice-region-overlay
+																	 'voice-region t)
+											(overlay-put sacha-whisper-voice-region-overlay
+																	 'face
+																	 'sacha-whisper-voice-region-face))
 										(when (and sacha-whisper-one-sentence-per-line
 															 (not (eq sacha-whisper-mode 'kebab))
 															 (not (looking-back "^\\(\\**\\| *-*\\| *;+ *\\) *\\|\"\\|;; *" (line-beginning-position))))
@@ -10447,7 +10502,7 @@ These commands get processed regardless of the mode:
 																			(or (org-element-contents-begin (org-element-context))
 																					most-positive-fixnum))
 														(org-return))
-												(insert "\n")))
+												(comment-indent-new-line)))
 										(if (and sacha-whisper-one-sentence-per-line
 														 (not (eq sacha-whisper-mode 'kebab)))
 												(seq-map-indexed
@@ -10456,7 +10511,7 @@ These commands get processed regardless of the mode:
 														 (if (and (derived-mode-p 'org-mode)
 																			(org-element-lineage (org-element-context) '(item plain-list)))
 																 (org-return)
-															 (insert "\n")))
+															 (comment-indent-new-line)))
 													 (insert line))
 												 (split-string
 													(with-temp-buffer
@@ -10472,16 +10527,51 @@ These commands get processed regardless of the mode:
 														""
 													" ")
 												text)))
+										(when (and sacha-whisper-voice-region-show-overlay
+															 (overlayp sacha-whisper-voice-region-overlay))
+											(overlay-put sacha-whisper-voice-region-overlay
+																	 'evaporate
+																	 t))
 										(when (and
 													 marker
 													 (marker-position marker)
 													 (marker-buffer marker))
-											(move-marker marker (point)))	;; Move the marker forward here
+											(move-marker marker (point))) ;; Move the marker forward here
 										)))
 							markers)
 			(when sacha-whisper-target-markers
-				(goto-char orig-point))
+				(goto-char orig-marker)
+				(set-marker orig-marker nil))
 			nil)))
+
+;; what if I move over here?
+;; Oh yeah.
+;; I want that to be moved.
+;; okay, so if I move to a different area of my buffer and I start
+;; Talking, I want the overlay.
+;; To shift to this new place.
+;; So really what I need here is I wanted to check whether we're in the same buffer and if my point.
+;; Point.
+;; Is within the overlay.
+;; Oh, which also tells me that I need to put, um
+;; So I need to s check at the point to see within the the overlay.
+;; And there's probably an easy way to do this.
+;; Hands at no.
+;; I could do overlays at the point.
+;; I guess so.
+;; Or I could check the start in the end.
+
+
+;; This is a test.
+;; Hey.
+;; Yeah, is that an underline?
+;; That's very cool.
+;; All right.
+;; So now that I have the current stuff.
+;; In an underline.
+;; I can then get the text of the current overlay.
+;; And I can pass that very right thing.
+;; But first I need to figure out when I want it to stop being underlined.
 #+end_src
 
 #+NAME: sacha-whisper-maybe-type
@@ -10501,22 +10591,56 @@ Add this function to `whisper-insert-text-at-point'."
 #+end_src
 
 #+begin_src emacs-lisp
-(with-eval-after-load 'whisper
+(defvar sacha-voice-mark-indicator)
+(with-eval-after-load 'sacha-phony
 	(add-to-list 'mode-line-front-space '(:eval sacha-whisper-mode-indicator)))
+	(add-to-list 'mode-line-front-space '(:eval sacha-voice-mark-indicator))
+#+end_src
+
+#+begin_src emacs-lisp :tangle lisp/sacha-phony.el
+(eval-when-compile (require 'phony))
+(require 'phony)
+
+(defvar sacha-voice-mark-indicator "☝️" "Indicate where the voice mark is.")
+
+(phony-defun voice-mark ("voice mark")
+	"Sets the voice cursor."
+	(sacha-whisper-use-current-point)
+	(sacha-whisper-audio-feedback "Marked."))
+
+(phony-defun voice-clear ("voice clear")
+	"Clear the voice cursor."
+	(sacha-whisper-clear-markers)
+	(sacha-whisper-audio-feedback "Clear."))
+
+(phony-defun voice-jump ("voice jump")
+	"Jump to the voice cursor."
+	(sacha-whisper-jump-to-marker))
+
+(phony-defun voice-clock ("voice clock")
+	"Set the voice cursor to the clocked task."
+	(sacha-whisper-use-currently-clocked-task)
+	(sacha-whisper-audio-feedback "Clock."))
 #+end_src
 
 #+begin_src emacs-lisp :tangle lisp/sacha-speech-input.el
 ;;;###autoload
 (defun sacha-whisper-clear-markers ()
 	(interactive)
-	(setq sacha-whisper-target-markers nil))
+	(setq sacha-whisper-target-markers nil)
+	(when (overlayp sacha-whisper-voice-region-overlay)
+		(delete-overlay sacha-whisper-voice-region-overlay))
+	(setq sacha-voice-mark-indicator "☝️"))
 
 ;;;###autoload
 (defun sacha-whisper-use-current-point (&optional add)
 	(interactive (list current-prefix-arg))
+	(when (overlayp sacha-whisper-voice-region-overlay)
+		(delete-overlay sacha-whisper-voice-region-overlay))
 	(if add
-(push (point-marker) sacha-whisper-target-markers)
-		(setq sacha-whisper-target-markers (list (point-marker)))))
+			(push (point-marker) sacha-whisper-target-markers)
+		(setq sacha-whisper-target-markers (list (point-marker))))
+	(setq sacha-voice-mark-indicator "🔖"))
 
 ;;;###autoload
 (defun sacha-whisper-run-at-point (&optional add)
@@ -10542,13 +10666,16 @@ Add this function to `whisper-insert-text-at-point'."
 	(interactive (list current-prefix-arg))
 	(save-window-excursion
 		(save-restriction
-(save-excursion
-	(org-clock-goto)
-	(org-end-of-meta-data)
-	(org-end-of-subtree)
-	(if add
-			(push (point-marker) sacha-whisper-target-markers)
-		(setq sacha-whisper-target-markers (list (point-marker))))))))
+			(save-excursion
+				(org-clock-goto)
+				(org-end-of-meta-data)
+				(org-end-of-subtree)
+				(if add
+						(push (point-marker) sacha-whisper-target-markers)
+					(setq sacha-whisper-target-markers (list (point-marker)))))))
+	(when (overlayp sacha-whisper-voice-region-overlay)
+		(delete-overlay sacha-whisper-voice-region-overlay))
+	(setq sacha-voice-mark-indicator "⏲️"))
 
 ;;;###autoload
 (defun sacha-whisper-run (&optional skip-annotation)
@@ -12071,6 +12198,8 @@ Display MESSAGE."
  "Make a task for next month."
  "wm"
  "Next month: %s")
+
+
 #+end_src
 *** Scratch that
 :PROPERTIES:
@@ -16370,11 +16499,14 @@ hang of using these more!
 
 (setq org-agenda-custom-commands
       `(("a" "Agenda"
-         ((agenda "" ((org-agenda-span 2)))
+				 (
 					(org-ql-block '(and (not (priority "A"))
 															(todo "STARTED")
-															(not (scheduled)))
+															(or (scheduled :to today)
+																	(not (scheduled))))
 												((org-ql-block-header "Started")))
+					(agenda "" ((org-agenda-span 2)))
+
 					(org-ql-block '(and (priority "A")
 															(todo "TODO" "STARTED" "SOMEDAY")
 															(not (scheduled)))
@@ -31996,7 +32128,11 @@ Return (clip-filename start-ms end-ms)."
 ;;;###autoload
 (defun sacha-subed-record-title-card-tikz (text)
   "Make a 1280x720 PNG for TEXT using TikZ and Arial, and insert a subtitle for it."
-  (interactive "MText: ")
+  (interactive (list (read-string "Text: "
+																	(when (derived-mode-p 'subed-mode)
+																		(string-trim
+																		 (subed-record-remove-directives (or (subed-subtitle-comment)
+																																				 "")))))))
   (let* ((base-name (concat (file-name-sans-extension (buffer-file-name))
                             "-"
                             (learn-lang-slugify text)))
@@ -32013,7 +32149,7 @@ Return (clip-filename start-ms end-ms)."
 \\begin{document}
 \\begin{tikzpicture}
   \\fill[black] (0,0) rectangle (1280bp, 720bp);
-  \\node[white, text width=1120bp, align=center, font=\\fontsize{70}{84}\\selectfont\\bfseries]
+  \\node[white, text width=1120bp, align=center, font=\\fontsize{70}{84}\\selectfont\\bfseries, execute at begin node={\\hyphenpenalty=10000}]
     at (640bp, 360bp) {%s};
 \\end{tikzpicture}
 \\end{document}"
@@ -32022,6 +32158,8 @@ Return (clip-filename start-ms end-ms)."
         (progn
           (with-temp-file tex-file
             (insert tex-content))
+					(when (file-exists-p png-filename)
+						(delete-file png-filename))
           (shell-command-to-string
            (format "lualatex -interaction=nonstopmode -output-directory=%s %s"
                    (shell-quote-argument temp-dir)
@@ -32029,16 +32167,20 @@ Return (clip-filename start-ms end-ms)."
           (shell-command-to-string
            (format "magick -density 72 %s -resize 1280x720! %s"
                    (shell-quote-argument pdf-file)
-                   (shell-quote-argument png-filename))))
-      (dolist (ext '(".tex" ".pdf" ".log" ".aux"))
-        (let ((f (concat (file-name-sans-extension tex-file) ext)))
-          (when (file-exists-p f)
-            (delete-file f)))))
-		(subed-set-subtitle-comment
-		 (concat (if (subed-subtitle-comment)
-								 (concat (subed-subtitle-comment) "\n")
-							 "")
-						 (org-link-make-string (concat "file:" png-filename))))))
+                   (shell-quote-argument png-filename)))))
+		(if (file-exists-p png-filename)
+				(progn
+					(dolist (ext '(".tex" ".pdf" ".log" ".aux"))
+						(let ((f (concat (file-name-sans-extension tex-file) ext)))
+							(when (file-exists-p f)
+								(delete-file f))))
+					(unless (string-match png-filename (or (subed-subtitle-comment) ""))
+						(subed-set-subtitle-comment
+						 (concat (if (subed-subtitle-comment)
+												 (concat (subed-subtitle-comment) "\n")
+											 "")
+										 (org-link-make-string (concat "file:" png-filename))))))
+			(error "Could not get file. Might be multiple pages?"))))
 
 ;;;###autoload
 (defun sacha-subed-insert-whisper-recording ()
@@ -45753,7 +45895,8 @@ BASE is a broadcast object."
 									 :parser #'json-read))))
 		(when (and (derived-mode-p 'org-mode)
 							 (not (org-before-first-heading-p)))
-			(org-entry-put (point) "YOUTUBE_URL" (concat "https://youtu.be/" (alist-get 'id result)))
+			(when (alist-get 'id result)
+				(org-entry-put (point) "YOUTUBE_URL" (concat "https://youtu.be/" (alist-get 'id result))))
 			result)))
 
 (defun sacha-stream-youtube-update-default-livestream-details (&rest args)
@@ -45866,8 +46009,9 @@ Now we can quickly schedule a livestream based on the Org entry at point.
 										:auto-stop json-false
 										:thumbnail (or (org-entry-get (point) "THUMBNAIL") "~/proj/yay-emacs/thumbnail.png")))
 				 (url (concat "https://youtube.com/live/" (alist-get 'id response))))
-		(org-entry-put (point) "YOUTUBE_URL" url)
-		(insert "yt:" url)
+		(when url
+			(org-entry-put (point) "YOUTUBE_URL" url)
+			(insert "yt:" url))
 		(cl-pushnew
 		 response
 		 (alist-get 'items sacha-google-youtube-live-broadcasts))
@@ -48539,7 +48683,26 @@ Generated with an LLM."
 
 (with-eval-after-load 'gptel
 	(gptel-make-preset 'proofread :system "Proofread. Do not return the fixed text, just tell me what edits I need to make.")
-	(gptel-make-preset 'clean-up :system "Clean up this raw transcript. Remove false starts and filler words, fix misrecognized words, sentences and punctuation. Try to stay as close as possible to original wording. Keep contractions and tone. Return only the cleaned-up text, no preface or explanations." :model 'qwen/qwen3.8-27b)
+	(gptel-make-preset 'clean-up :system "You are a dictation assistant, you will be given transcript by the user with speech disfluencies, minor mistakes, and edits and you have to return a corrected transcript. The user might give you their stream of consciousness and you have to ensure that you correctly identify a request to edit and don't misfire. You don't have to generate any new information, just ensure fixes in spoken transcripts and edits as asked.
+
+Input:
+I want to write about umm something related to food.
+My name is name is Sacha
+
+Output:
+I want to write about something related to food.
+My name is Sacha.
+
+Input:
+Okay we will start.
+Let's write something about chairs.
+No not chairs, make it tables.
+
+Output:
+Let's write something about tables.
+"
+																				; "Clean up this raw transcript. Remove false starts and filler words, fix misrecognized words, sentences and punctuation. Try to stay as close as possible to original wording. Keep contractions and tone. Return only the cleaned-up text, no preface or explanations. If the original text is one sentence per line, make the result one sentence per line as well."
+										 :model 'qwen/qwen3.8-27b)
 	(gptel-make-preset 'questions :system "Make a list of three short follow-up questions based on this text. Assume a fairly knowledgeable reader or listener. Use Org Mode syntax. Do not include a preamble, just return the questions.")
 	(gptel-make-preset 'french-conversation :system "Chat like French conversation partners. My level is B1. Reply in 1-3 simple sentences using words for my level. Input is unedited transcription, so there may be misrecognized words. Try to introduce new vocabulary words naturally. End every reply with one easy question to keep us talking." :model 'gemini-3.5-flash-lite))
 

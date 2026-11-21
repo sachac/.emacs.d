@@ -1039,7 +1039,8 @@ BASE is a broadcast object."
 									 :parser #'json-read))))
 		(when (and (derived-mode-p 'org-mode)
 							 (not (org-before-first-heading-p)))
-			(org-entry-put (point) "YOUTUBE_URL" (concat "https://youtu.be/" (alist-get 'id result)))
+			(when (alist-get 'id result)
+				(org-entry-put (point) "YOUTUBE_URL" (concat "https://youtu.be/" (alist-get 'id result))))
 			result)))
 
 (defun sacha-stream-youtube-update-default-livestream-details (&rest args)
